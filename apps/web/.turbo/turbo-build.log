@@ -1,0 +1,15 @@
+
+> my-v0-project@0.1.0 build /Users/MAC/Documents/delulu/apps/web
+> next build
+
+ [33m[1m⚠[22m[39m Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/MAC/Documents/delulu/pnpm-lock.yaml as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/MAC/Documents/delulu/apps/web/package-lock.json
+
+   [1m[38;2;173;127;168m▲ Next.js 16.0.3[39m[22m (Turbopack)
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 130.[39m
