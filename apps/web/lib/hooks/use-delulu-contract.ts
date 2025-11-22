@@ -1,25 +1,11 @@
 "use client";
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { deluluAbi } from "@/lib/contracts/delulu-abi";
-import { CONTRACTS, type Delusion, type UserStake } from "@/lib/contracts/config";
+import { DELULU_CONTRACT_ADDRESS, CUSD_CONTRACT_ADDRESS, type Delusion, type UserStake } from "@/lib/contracts/config";
 import type { Address } from "viem";
 
-/**
- * Get the Delulu contract address for the current chain
- */
-export function useDeluluContractAddress() {
-  const chainId = useChainId();
-  return CONTRACTS.delulu[chainId as keyof typeof CONTRACTS.delulu] || CONTRACTS.delulu[44787]; // Default to Alfajores
-}
 
-/**
- * Get the cUSD token address for the current chain
- */
-export function useCUSDContractAddress() {
-  const chainId = useChainId();
-  return CONTRACTS.cUSD[chainId as keyof typeof CONTRACTS.cUSD] || CONTRACTS.cUSD[44787]; // Default to Alfajores
-}
 
 // ============ Write Functions (Transactions) ============
 
@@ -28,7 +14,6 @@ export function useCUSDContractAddress() {
  * @param onSuccess - Callback function when transaction is successful
  */
 export function useCreateDelusion(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -42,7 +27,7 @@ export function useCreateDelusion(onSuccess?: (data: any) => void) {
     position: boolean // true = Believe, false = Doubt
   ) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "createDelusion",
       args: [deluluText, deadline, amount, position],
@@ -67,7 +52,6 @@ export function useCreateDelusion(onSuccess?: (data: any) => void) {
  * Hook to stake believing the delusion will succeed
  */
 export function useStakeBelieve(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -76,7 +60,7 @@ export function useStakeBelieve(onSuccess?: (data: any) => void) {
 
   const stakeBelieve = (delusionId: bigint, amount: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "stakeBelieve",
       args: [delusionId, amount],
@@ -101,7 +85,6 @@ export function useStakeBelieve(onSuccess?: (data: any) => void) {
  * Hook to stake doubting the delusion will succeed
  */
 export function useStakeDoubt(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -110,7 +93,7 @@ export function useStakeDoubt(onSuccess?: (data: any) => void) {
 
   const stakeDoubt = (delusionId: bigint, amount: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "stakeDoubt",
       args: [delusionId, amount],
@@ -135,7 +118,6 @@ export function useStakeDoubt(onSuccess?: (data: any) => void) {
  * Hook to switch from Doubt to Believe position
  */
 export function useSwitchToBelieve(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -144,7 +126,7 @@ export function useSwitchToBelieve(onSuccess?: (data: any) => void) {
 
   const switchToBelieve = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "switchToBelieve",
       args: [delusionId],
@@ -169,7 +151,6 @@ export function useSwitchToBelieve(onSuccess?: (data: any) => void) {
  * Hook to switch from Believe to Doubt position
  */
 export function useSwitchToDoubt(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -178,7 +159,7 @@ export function useSwitchToDoubt(onSuccess?: (data: any) => void) {
 
   const switchToDoubt = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "switchToDoubt",
       args: [delusionId],
@@ -203,7 +184,6 @@ export function useSwitchToDoubt(onSuccess?: (data: any) => void) {
  * Hook to withdraw stake before deadline (with penalty)
  */
 export function useWithdrawStake(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -212,7 +192,7 @@ export function useWithdrawStake(onSuccess?: (data: any) => void) {
 
   const withdrawStake = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "withdrawStake",
       args: [delusionId],
@@ -238,7 +218,6 @@ export function useWithdrawStake(onSuccess?: (data: any) => void) {
  * Only creator can call this
  */
 export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -247,7 +226,7 @@ export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
 
   const finalizeSuccess = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "finalizeDelusionSuccess",
       args: [delusionId],
@@ -273,7 +252,6 @@ export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
  * Only creator can call this
  */
 export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -282,7 +260,7 @@ export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
 
   const finalizeFail = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "finalizeDelusionFail",
       args: [delusionId],
@@ -307,7 +285,6 @@ export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
  * Hook to claim rewards after delusion is finalized
  */
 export function useClaimReward(onSuccess?: (data: any) => void) {
-  const address = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -316,7 +293,7 @@ export function useClaimReward(onSuccess?: (data: any) => void) {
 
   const claim = (delusionId: bigint) => {
     writeContract({
-      address,
+      address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
       functionName: "claim",
       args: [delusionId],
@@ -343,15 +320,14 @@ export function useClaimReward(onSuccess?: (data: any) => void) {
  * Hook to get delusion details by ID
  */
 export function useGetDelusion(delusionId: bigint | undefined) {
-  const address = useDeluluContractAddress();
   
   const { data, error, isLoading, refetch } = useReadContract({
-    address,
+    address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "getDelusion",
     args: delusionId !== undefined ? [delusionId] : undefined,
     query: {
-      enabled: delusionId !== undefined && delusionId > 0n,
+      enabled: delusionId !== undefined && delusionId > BigInt(0),
     },
   });
 
@@ -367,15 +343,14 @@ export function useGetDelusion(delusionId: bigint | undefined) {
  * Hook to get user's stake in a delusion
  */
 export function useGetUserStake(delusionId: bigint | undefined, userAddress: Address | undefined) {
-  const address = useDeluluContractAddress();
   
   const { data, error, isLoading, refetch } = useReadContract({
-    address,
+    address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "getUserStake",
     args: delusionId !== undefined && userAddress ? [delusionId, userAddress] : undefined,
     query: {
-      enabled: delusionId !== undefined && delusionId > 0n && !!userAddress,
+      enabled: delusionId !== undefined && delusionId > BigInt(0) && !!userAddress,
     },
   });
 
@@ -391,15 +366,14 @@ export function useGetUserStake(delusionId: bigint | undefined, userAddress: Add
  * Hook to get pool amounts for a delusion
  */
 export function useGetPools(delusionId: bigint | undefined) {
-  const address = useDeluluContractAddress();
   
   const { data, error, isLoading, refetch } = useReadContract({
-    address,
+    address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "getPools",
     args: delusionId !== undefined ? [delusionId] : undefined,
     query: {
-      enabled: delusionId !== undefined && delusionId > 0n,
+      enabled: delusionId !== undefined && delusionId > 0,
     },
   });
 
@@ -415,10 +389,9 @@ export function useGetPools(delusionId: bigint | undefined) {
  * Hook to get total delusion counter
  */
 export function useGetDelusionCounter() {
-  const address = useDeluluContractAddress();
   
   const { data, error, isLoading, refetch } = useReadContract({
-    address,
+    address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "delusionCounter",
   });

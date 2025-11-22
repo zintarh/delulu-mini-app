@@ -1,18 +1,6 @@
-// Contract addresses for different networks
-import { celo, celoAlfajores } from "wagmi/chains";
-
-export const CONTRACTS = {
-  // Delulu Contract
-  delulu: {
-    [celoAlfajores.id]: "0xd35643920B38538a6a1BB6a288076f19dBe1Ae40" as `0x${string}`, // Deployed on Alfajores
-    [celo.id]: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: Add mainnet address
-  },
-  // cUSD Token Contract (Celo native stable coin)
-  cUSD: {
-    [celoAlfajores.id]: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as `0x${string}`, // Official Alfajores cUSD
-    [celo.id]: "0x765DE816845861e75A25fCA122bb6898B8B1282a" as `0x${string}`, // Official Mainnet cUSD
-  },
-} as const;
+// Contract addresses - Static constants
+export const DELULU_CONTRACT_ADDRESS = "0xd35643920B38538a6a1BB6a288076f19dBe1Ae40" as `0x${string}`;
+export const CUSD_CONTRACT_ADDRESS = "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b" as `0x${string}`;
 
 // Contract constants from the Delulu contract
 export const CONTRACT_CONSTANTS = {

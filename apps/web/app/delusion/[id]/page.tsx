@@ -28,7 +28,7 @@ import {
 } from "@/lib/hooks/use-delulu-contract";
 import { 
   useCheckAndApproveCUSD, 
-  useCUSDBalance, 
+  useCUSDBalanceContract, 
   parseCUSD, 
   formatCUSD 
 } from "@/lib/hooks/use-cusd-approval";
@@ -54,7 +54,7 @@ export default function DelusionDetailPage({
   // Fetch delusion data
   const { delusion, isLoading: loadingDelusion, refetch: refetchDelusion } = useGetDelusion(delusionId);
   const { userStake, refetch: refetchUserStake } = useGetUserStake(delusionId, userAddress);
-  const { balance, balanceFormatted } = useCUSDBalance();
+  const { balance, balanceFormatted } = useCUSDBalanceContract();
 
   // Calculate time remaining
   const getTimeRemaining = () => {
@@ -78,7 +78,7 @@ export default function DelusionDetailPage({
   const isCreator = userAddress && delusion && delusion.creator.toLowerCase() === userAddress.toLowerCase();
   const isActive = delusion && delusion.status === DelusionStatus.Active;
   const isFinalized = delusion && (delusion.status === DelusionStatus.SuccessFinalized || delusion.status === DelusionStatus.FailedFinalized);
-  const hasStake = userStake && userStake.amount > 0n;
+  const hasStake = userStake && userStake.amount > BigInt(0);
   const userPosition = userStake?.position || StakePosition.None;
 
   // Check if user won
@@ -159,7 +159,7 @@ export default function DelusionDetailPage({
   }
 
   const total = delusion.believePool + delusion.doubtPool;
-  const believersPercent = total > 0n ? Number((delusion.believePool * 100n) / total) : 50;
+  const believersPercent = total > BigInt(0) ? Number((delusion.believePool * BigInt(100)) / total) : 50;
 
   return (
     <div className="min-h-screen bg-background pb-8">

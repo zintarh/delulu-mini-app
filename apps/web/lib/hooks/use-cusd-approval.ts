@@ -1,49 +1,53 @@
 "use client";
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  useBalance,
+} from "wagmi";
 import { erc20Abi } from "@/lib/contracts/erc20-abi";
-import { useCUSDContractAddress, useDeluluContractAddress } from "./use-delulu-contract";
+import {
+  DELULU_CONTRACT_ADDRESS,
+  CUSD_CONTRACT_ADDRESS,
+} from "@/lib/contracts/config";
 import { parseUnits, formatUnits } from "viem";
+import { sepolia, mainnet } from "viem/chains";
 
-/**
- * Hook to check cUSD balance of connected wallet
- */
 export function useCUSDBalance() {
-  const { address: userAddress } = useAccount();
-  const cUSDAddress = useCUSDContractAddress();
+  const { address } = useAccount();
 
-  const { data, error, isLoading, refetch } = useReadContract({
-    address: cUSDAddress,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: userAddress ? [userAddress] : undefined,
+  const { data, error, isLoading, refetch } = useBalance({
+    address: address,
+    chainId: sepolia.id,
+    // token: CUSD_CONTRACT_ADDRESS,
     query: {
-      enabled: !!userAddress,
+      enabled: !!address,
     },
   });
 
+
+  console.log("data", data);
+
   return {
-    balance: data as bigint | undefined,
-    balanceFormatted: data ? formatUnits(data, 18) : "0",
+    balance: data?.value,
+    balanceFormatted: data?.formatted || "0",
     error,
     isLoading,
     refetch,
   };
+
 }
 
-/**
- * Hook to check current cUSD allowance for Delulu contract
- */
 export function useCUSDAllowance() {
   const { address: userAddress } = useAccount();
-  const cUSDAddress = useCUSDContractAddress();
-  const deluluAddress = useDeluluContractAddress();
 
   const { data, error, isLoading, refetch } = useReadContract({
-    address: cUSDAddress,
+    address: CUSD_CONTRACT_ADDRESS,
     abi: erc20Abi,
     functionName: "allowance",
-    args: userAddress ? [userAddress, deluluAddress] : undefined,
+    args: userAddress ? [userAddress, DELULU_CONTRACT_ADDRESS] : undefined,
     query: {
       enabled: !!userAddress,
     },
@@ -64,26 +68,26 @@ export function useCUSDAllowance() {
  * @param onSuccess - Callback when approval is successful
  */
 export function useApproveCUSD(onSuccess?: (data: any) => void) {
-  const cUSDAddress = useCUSDContractAddress();
-  const deluluAddress = useDeluluContractAddress();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
   const approve = (amount: bigint) => {
     writeContract({
-      address: cUSDAddress,
+      address: CUSD_CONTRACT_ADDRESS,
       abi: erc20Abi,
       functionName: "approve",
-      args: [deluluAddress, amount],
+      args: [DELULU_CONTRACT_ADDRESS, amount],
     });
   };
 
   const approveMax = () => {
     // Approve maximum possible amount (effectively unlimited)
-    const maxAmount = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    const maxAmount = BigInt(
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    );
     approve(maxAmount);
   };
 
@@ -113,8 +117,12 @@ export function useCheckAndApproveCUSD(requiredAmount: bigint | undefined) {
     refetchAllowance();
   });
 
-  const needsApproval = requiredAmount !== undefined && allowance !== undefined && allowance < requiredAmount;
-  const hasInfiniteApproval = allowance !== undefined && allowance > parseUnits("1000000", 18); // Consider > 1M as infinite
+  const needsApproval =
+    requiredAmount !== undefined &&
+    allowance !== undefined &&
+    allowance < requiredAmount;
+  const hasInfiniteApproval =
+    allowance !== undefined && allowance > parseUnits("1000000", 18); // Consider > 1M as infinite
 
   return {
     needsApproval,
@@ -134,7 +142,7 @@ export function parseCUSD(value: string): bigint {
   try {
     return parseUnits(value, 18);
   } catch {
-    return 0n;
+    return BigInt(0);
   }
 }
 
@@ -149,4 +157,3 @@ export function formatCUSD(value: bigint | undefined, decimals = 2): string {
   const formatted = formatUnits(value, 18);
   return Number(formatted).toFixed(decimals);
 }
-

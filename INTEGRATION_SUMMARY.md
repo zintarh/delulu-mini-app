@@ -98,19 +98,17 @@ Edit `/lib/contracts/config.ts` and update with your deployed contract addresses
 ```typescript
 export const CONTRACTS = {
   delulu: {
-    [celoAlfajores.id]: "0xYourAlfajoresAddress" as `0x${string}`,
     [celo.id]: "0xYourMainnetAddress" as `0x${string}`,
   },
   // cUSD addresses are already configured
 }
 ```
 
-### 2. Test on Celo Alfajores Testnet
+### 2. Test on Celo sepolia Testnet
 
-The app is configured to work with Celo Alfajores testnet by default. To test:
+The app is configured to work with Celo sepolia testnet by default. To test:
 
-1. Get Alfajores CELO and cUSD from faucet: https://faucet.celo.org/alfajores
-2. Deploy your contract to Alfajores
+2. Deploy your contract to sepolia
 3. Update the contract address in `config.ts`
 4. Connect with Farcaster wallet in the miniapp
 
@@ -160,7 +158,7 @@ The app is configured to work with Celo Alfajores testnet by default. To test:
 ### 1. Deploy Contract
 ```bash
 cd apps/contracts
-pnpm hardhat run scripts/deploy.ts --network alfajores
+pnpm hardhat run scripts/deploy.ts --network sepolia
 ```
 
 ### 2. Update Contract Address
@@ -284,7 +282,7 @@ Contract errors are shown but could be more user-friendly. Consider:
 
 ## 💡 Tips
 
-1. **Test with small amounts first** on Alfajores testnet
+1. **Test with small amounts first** on sepolia testnet
 2. **Approve max cUSD** for better UX (no approval needed for future stakes)
 3. **Check deadline** before finalizing
 4. **Winners should claim** rewards promptly after finalization

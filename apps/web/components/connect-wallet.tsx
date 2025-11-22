@@ -96,7 +96,7 @@ export function ConnectWallet() {
           onClick={() => {
             if (address) {
               window.open(
-                `https://celoscan.io/address/${address}`,
+                `https://etherscan.io/address/${address}`,
                 "_blank"
               );
             }

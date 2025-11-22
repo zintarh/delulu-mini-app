@@ -7,13 +7,6 @@
 
 You need to update the contract addresses in `/apps/web/lib/contracts/config.ts` after deployment:
 
-```typescript
-export const CONTRACTS = {
-  delulu: {
-    [celoAlfajores.id]: "0xYourDeployedAddress", // Update this!
-    [celo.id]: "0xYourMainnetAddress",  // Update for mainnet
-  },
-}
 ```
 
 ### 2. cUSD Approval Flow
@@ -98,7 +91,7 @@ Full transaction feedback with 4 states:
 
 ## 🚀 Quick Deployment Steps
 
-### Step 1: Deploy Contract (Alfajores Testnet)
+### Step 1: Deploy Contract (sepolia Testnet)
 
 ```bash
 cd apps/contracts
@@ -106,8 +99,8 @@ cd apps/contracts
 # Compile
 pnpm hardhat compile
 
-# Deploy to Alfajores testnet
-pnpm hardhat run scripts/deploy.ts --network alfajores
+# Deploy to sepolia testnet
+pnpm hardhat run scripts/deploy.ts --network sepolia
 
 # Copy the deployed address
 ```
@@ -118,16 +111,12 @@ pnpm hardhat run scripts/deploy.ts --network alfajores
 // apps/web/lib/contracts/config.ts
 export const CONTRACTS = {
   delulu: {
-    [celoAlfajores.id]: "0xPasteYourAddressHere" as `0x${string}`,
+    [celosepolia.id]: "0xPasteYourAddressHere" as `0x${string}`,
   },
 }
 ```
 
-### Step 3: Get Test Tokens
-
-1. Visit https://faucet.celo.org/alfajores
-2. Get Alfajores CELO (for gas)
-3. Get Alfajores cUSD (for staking)
+)
 
 ### Step 4: Test the App
 
@@ -244,7 +233,7 @@ const getDefaultDeadline = () => {
 ```typescript
 // In /app/contexts/frame-wallet-context.tsx
 const config = createConfig({
-  chains: [celo, celoAlfajores, yourNewChain],
+  chains: [celo, celosepolia, yourNewChain],
   // ...
 })
 
@@ -252,7 +241,7 @@ const config = createConfig({
 export const CONTRACTS = {
   delulu: {
     [celo.id]: "0x...",
-    [celoAlfajores.id]: "0x...",
+    [celosepolia.id]: "0x...",
     [yourNewChain.id]: "0x...",
   },
 }
@@ -279,7 +268,6 @@ export const CONTRACTS = {
 **Solution:** Update contract address in `/lib/contracts/config.ts`
 
 ### Issue: "Insufficient balance"
-**Solution:** Get cUSD from faucet: https://faucet.celo.org/alfajores
 
 ### Issue: "Approval not working"
 **Solution:** 
@@ -289,7 +277,6 @@ export const CONTRACTS = {
 
 ### Issue: "Transaction stuck"
 **Solution:**
-- Check Celoscan: https://alfajores.celoscan.io
 - Celo is usually fast (5-10 seconds)
 - If stuck >1 min, may need to increase gas
 
@@ -309,7 +296,7 @@ export const CONTRACTS = {
 
 ## 🎯 Testing Checklist
 
-- [ ] Deploy contract to Alfajores
+- [ ] Deploy contract to sepolia
 - [ ] Update contract address in config
 - [ ] Get CELO and cUSD from faucet
 - [ ] Create a delusion (test approval flow)

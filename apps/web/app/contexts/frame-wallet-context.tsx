@@ -4,17 +4,15 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { celo, celoAlfajores } from "wagmi/chains";
+import { mainnet, sepolia } from 'wagmi/chains'
 import { injected, walletConnect } from "wagmi/connectors";
 
 const config = createConfig({
-  chains: [celo, celoAlfajores],
+  chains: [sepolia, mainnet],
   connectors: [
-    // Injected connector - supports MetaMask, Valora, Coinbase Wallet, etc.
     injected(),
-    // WalletConnect - for mobile wallets
     walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
+      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "198c09df983943bca25a23aaa539fbd4",
       metadata: {
         name: "Delulu",
         description: "Stake on your delusions",
@@ -26,8 +24,8 @@ const config = createConfig({
     farcasterMiniApp(),
   ],
   transports: {
-    [celo.id]: http(),
-    [celoAlfajores.id]: http(),
+    [mainnet.id]: http(),
+    [sepolia.id]: http(),
   },
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -17,7 +17,10 @@ import {
   TransactionStatus,
   ApprovalFlow,
 } from "@/components/transaction-status";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
+import { FeedbackModal } from "@/components/feedback-modal";
+import { sepolia } from "wagmi/chains";
+import { CUSD_CONTRACT_ADDRESS } from "@/lib/contracts/config";
 
 const HYPE_TEXT = [
   {
@@ -41,12 +44,14 @@ const HYPE_TEXT = [
 
 export default function CreatePage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
-
+  const {  isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
-  const [stakeAmount, setStakeAmount] = useState([100]);
+  const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
-  const { balance, balanceFormatted } = useCUSDBalance();
+  const { balance, balanceFormatted, isLoading: balanceLoading, error: balanceError } = useCUSDBalance();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const getDefaultDeadline = () => {
     const date = new Date();
@@ -67,24 +72,45 @@ export default function CreatePage() {
   const approval = useCheckAndApproveCUSD(stakeAmountBigInt);
 
   const creation = useCreateDelusion((hash) => {
-    setTimeout(() => router.push("/"), 2000);
+    console.log("Delusion created successfully:", hash);
   });
+  
 
   const handleCreate = () => {
-    const deadlineTimestamp = BigInt(
-      Math.floor(new Date(deadline).getTime() / 1000)
-    );
+    try {
+      const deadlineTimestamp = BigInt(
+        Math.floor(new Date(deadline).getTime() / 1000)
+      );
 
-    creation.createDelusion(
-      delusionText,
-      deadlineTimestamp,
-      stakeAmountBigInt,
-      true
-    );
+      creation.createDelusion(
+        delusionText,
+        deadlineTimestamp,
+        stakeAmountBigInt,
+        true
+      );
+    } catch (error) {
+      console.error("Error creating delusion:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to create delusion");
+      setShowErrorModal(true);
+    }
   };
 
+  useEffect(() => {
+    if (creation.isSuccess) {
+      setShowSuccessModal(true);
+    }
+    if (creation.error) {
+      setErrorMessage(
+        creation.error instanceof Error 
+          ? creation.error.message 
+          : "Transaction failed. Please try again."
+      );
+      setShowErrorModal(true);
+    }
+  }, [creation.isSuccess, creation.error]);
 
-  
+
+
 
   const hasInsufficientBalance =
     balance !== undefined && balance < stakeAmountBigInt;
@@ -93,7 +119,7 @@ export default function CreatePage() {
   const canGoNext = () => {
     if (currentStep === 0) return delusionText.trim().length > 0;
     if (currentStep === 1) return true;
-    if (currentStep === 2) return !hasInsufficientBalance;
+    if (currentStep === 2) return stakeAmount[0] > 0 && !hasInsufficientBalance;
     return false;
   };
 
@@ -108,6 +134,10 @@ export default function CreatePage() {
       setCurrentStep(currentStep - 1);
     }
   };
+
+
+
+  
 
   return (
     <div className="min-h-screen bg-delulu-yellow relative overflow-hidden">
@@ -166,35 +196,71 @@ export default function CreatePage() {
           )}
 
           {currentStep === 2 && (
-            <div className="w-full max-w-2xl animate-fade-in space-y-12">
+            <div className="w-full max-w-2xl animate-fade-in space-y-8">
               <div className="text-center">
-                <div className="text-8xl font-black text-delulu-dark mb-2">
-                  ${stakeAmount[0]}
+                {/* Big editable input - serves as both display and input */}
+                <div className="relative inline-block">
+                  <span className="text-6xl font-black text-delulu-dark">$</span>
+                  <input
+                    type="number"
+                    value={stakeAmount[0]}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "") {
+                        return; // Allow empty while typing
+                      }
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        const clampedValue = Math.min(numValue, 10000);
+                        setStakeAmount([clampedValue]);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Ensure valid value on blur
+                      if (e.target.value === "" || parseFloat(e.target.value) <= 0) {
+                        setStakeAmount([0.01]);
+                      }
+                    }}
+                    min={0}
+                    max={10000}
+                    step="any"
+                    className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-delulu-dark/5 rounded-2xl px-4 transition-colors"
+                    style={{ width: `${Math.max(stakeAmount[0].toString().length, 2) * 0.75}em` }}
+                  />
                 </div>
-                <p className="text-2xl text-delulu-dark/70 font-medium">cUSD</p>
+                <p className="text-xl text-delulu-dark/70 font-medium mt-2">cUSD</p>
               </div>
               
               <div className="px-8">
                 <Slider
                   value={stakeAmount}
                   onValueChange={setStakeAmount}
-                  min={5}
-                  max={500}
-                  step={5}
+                  min={0.001}
+                  max={1000}
+                  step={0.001}
                   className="delulu-slider"
                 />
                 <div className="flex justify-between text-sm text-delulu-dark/50 font-medium mt-4">
-                  <span>$5</span>
-                  <span>$500</span>
+                  <span>$0.001</span>
+                  <span>$1,000</span>
                 </div>
               </div>
 
               <div className="text-center">
                 <p className="text-sm text-delulu-dark/60">
-                  Balance: <span className="font-bold">{balanceFormatted} cUSD</span>
+                  Balance: {balanceLoading ? (
+                    <span className="font-bold">Loading...</span>
+                  ) : balanceError ? (
+                    <span className="font-bold text-red-600">Error loading balance</span>
+                  ) : (
+                    <span className="font-bold">{balanceFormatted} cUSD</span>
+                  )}
                 </p>
                 {hasInsufficientBalance && (
                   <p className="text-sm text-red-600 mt-2 font-bold">Insufficient balance</p>
+                )}
+                {!isConnected && (
+                  <p className="text-xs text-delulu-dark/40 mt-1">Connect wallet to see balance</p>
                 )}
               </div>
             </div>
@@ -222,7 +288,7 @@ export default function CreatePage() {
                       Stake
                     </p>
                     <p className="text-lg font-bold text-delulu-dark">
-                      ${stakeAmount[0]}
+                      ${stakeAmount[0].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -317,6 +383,31 @@ export default function CreatePage() {
             </div>
           )}
         </div>
+
+      {/* Success Modal */}
+      <FeedbackModal
+        isOpen={showSuccessModal}
+        type="success"
+        title="Delusion Created! 🎉"
+        message="Your delusion has been successfully manifested on the blockchain. Let's see if it comes true!"
+        onClose={() => {
+          setShowSuccessModal(false);
+          router.push("/");
+        }}
+        actionText="View Delusions"
+      />
+
+      {/* Error Modal */}
+      <FeedbackModal
+        isOpen={showErrorModal}
+        type="error"
+        title="Oops! Something went wrong"
+        message={errorMessage || "Failed to create delusion. Please try again."}
+        onClose={() => {
+          setShowErrorModal(false);
+        }}
+        actionText="Try Again"
+      />
     </div>
   );
 }
