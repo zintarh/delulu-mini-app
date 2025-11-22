@@ -1,7 +1,7 @@
 "use client"
 
-import { Copy } from "lucide-react"
-import { useState } from "react"
+import { Menu } from "lucide-react"
+import { ConnectWallet } from "@/components/connect-wallet"
 
 interface UserHeaderProps {
   username: string
@@ -10,44 +10,19 @@ interface UserHeaderProps {
 }
 
 export function UserHeader({ username, pfp, address }: UserHeaderProps) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(address)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const truncateAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-  }
-
   return (
-    <header className="bg-delulu-yellow px-6 py-5 sticky top-0 z-10">
-      <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
-        <h1 className="font-black text-4xl text-delulu-dark tracking-tighter">Delulu</h1>
-        <div className="flex items-center gap-3 bg-delulu-dark/90 px-4 py-2.5 rounded-full border border-delulu-yellow/20">
-          <img
-            src={pfp || "/placeholder.svg"}
-            alt={username}
-            className="w-8 h-8 rounded-full border border-delulu-yellow/30"
-          />
-          <div className="flex flex-col">
-            <span className="font-bold text-xs text-delulu-yellow">@{username}</span>
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono text-[10px] text-delulu-yellow/70">
-                {truncateAddress(address)}
-              </span>
-              <button
-                onClick={handleCopy}
-                className="hover:opacity-70 transition-opacity"
-                title="Copy address"
-              >
-                <Copy className={`w-3 h-3 ${copied ? 'text-delulu-green' : 'text-delulu-yellow/70'}`} />
-              </button>
-            </div>
-          </div>
+    <header className="bg-delulu-yellow border-b border-delulu-dark/10 sticky top-0 z-50 shadow-sm">
+      <div className="w-full max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-delulu-dark/5 active:bg-delulu-dark/10 transition-colors"
+            aria-label="Menu"
+          >
+            <Menu className="w-6 h-6 text-delulu-dark" />
+          </button>
+          <h1 className="font-black text-2xl text-delulu-dark tracking-tight">Delulu</h1>
         </div>
+        <ConnectWallet />
       </div>
     </header>
   )

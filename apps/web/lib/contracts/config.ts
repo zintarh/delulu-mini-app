@@ -4,8 +4,8 @@ import { celo, celoAlfajores } from "wagmi/chains";
 export const CONTRACTS = {
   // Delulu Contract
   delulu: {
-    [celoAlfajores.id]: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: Add deployed address
-    [celo.id]: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: Add deployed address
+    [celoAlfajores.id]: "0xd35643920B38538a6a1BB6a288076f19dBe1Ae40" as `0x${string}`, // Deployed on Alfajores
+    [celo.id]: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: Add mainnet address
   },
   // cUSD Token Contract (Celo native stable coin)
   cUSD: {

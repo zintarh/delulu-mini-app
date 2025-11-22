@@ -1,10 +1,30 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display, Gloria_Hallelujah, Schoolbell, Comic_Neue } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/providers";
 
-
 const inter = Inter({ subsets: ["latin"] });
+const playfair = Playfair_Display({ 
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-serif"
+});
+const gloria = Gloria_Hallelujah({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-gloria"
+});
+const schoolbell = Schoolbell({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-schoolbell"
+});
+const comic = Comic_Neue({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-comic"
+});
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
@@ -44,7 +64,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${playfair.variable} ${gloria.variable} ${schoolbell.variable} ${comic.variable}`}>
         <div className="relative flex min-h-screen flex-col">
           <Providers>
             <main className="flex-1">{children}</main>

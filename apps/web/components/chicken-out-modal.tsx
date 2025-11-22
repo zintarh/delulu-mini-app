@@ -24,8 +24,8 @@ export function ChickenOutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md bg-card border border-destructive/30 p-6">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+      <Card className="w-full max-w-md bg-white border border-destructive/30 p-6 shadow-2xl">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -79,7 +79,7 @@ export function ChickenOutModal({
           <Button
             size="lg"
             variant="destructive"
-            className="w-full h-12 font-black rounded-xl"
+            className="w-full h-12 font-black rounded-xl text-white"
             onClick={() => {
               onConfirm();
               onClose();
@@ -91,7 +91,7 @@ export function ChickenOutModal({
           <Button
             size="lg"
             variant="outline"
-            className="w-full h-12 font-bold rounded-xl border border-border bg-transparent"
+            className="w-full h-12 font-bold rounded-xl border-2 border-delulu-dark bg-transparent hover:bg-gray-50"
             onClick={onClose}
           >
             Cancel

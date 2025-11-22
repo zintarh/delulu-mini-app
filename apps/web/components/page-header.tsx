@@ -12,16 +12,17 @@ export function PageHeader({ title, backHref = "/" }: PageHeaderProps) {
   const router = useRouter()
 
   return (
-    <header className="bg-delulu-yellow px-6 py-5 sticky top-0 z-10">
-      <div className="w-full max-w-5xl mx-auto">
+    <header className="bg-delulu-yellow border-b border-delulu-dark/10 sticky top-0 z-50 shadow-sm">
+      <div className="w-full max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => router.push(backHref)}
-          className="flex items-center gap-2 mb-3 -ml-1 font-bold text-delulu-dark hover:opacity-70 transition-opacity"
+          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-delulu-dark/5 active:bg-delulu-dark/10 transition-colors"
+          aria-label="Go back"
         >
-          <ArrowLeft className="w-5 h-5" />
-          Back
+          <ArrowLeft className="w-6 h-6 text-delulu-dark" />
         </button>
-        <h1 className="font-black text-3xl text-delulu-dark tracking-tighter">{title}</h1>
+        <h1 className="font-bold text-lg text-delulu-dark absolute left-1/2 -translate-x-1/2">{title}</h1>
+        <div className="w-10" /> {/* Spacer for centering */}
       </div>
     </header>
   )
