@@ -1972,3 +1972,281 @@
 2025-11-23T11:19:52.420284Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
 2025-11-23T11:19:52.521535Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/contracts/.turbo/turbo-build.log")}
 2025-11-23T11:19:52.521560Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("hardhat"), path: AnchoredSystemPathBuf("apps/contracts") }}))
+2025-11-23T11:22:33.519862Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:33.519935Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:33.719096Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:33.719131Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:33.920089Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:33.920113Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:34.019356Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:34.019379Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:34.620052Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:34.620103Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:34.818526Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:34.818557Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:34.920244Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:34.920324Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:35.019670Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:35.019698Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:35.619117Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:35.619146Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:35.819755Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:35.819772Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:36.019771Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:36.019792Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:36.219362Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:36.219389Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:36.419823Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:36.419861Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:36.719282Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:36.719304Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:36.919008Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:36.919045Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:37.219099Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:37.219116Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:37.419559Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:37.419599Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:37.919510Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:37.919538Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:38.120903Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:38.120982Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:38.918163Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:38.918178Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:39.419372Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:39.419395Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:40.519613Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:40.519624Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:40.619759Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:40.619770Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:41.119344Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:41.119363Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:41.218701Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:41.218735Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:41.421419Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:41.421432Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:42.018800Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:42.018822Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:42.119859Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:42.119879Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:42.319222Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:42.319239Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:46.418485Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:46.418501Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:22:50.518808Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:22:50.518825Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:17.021436Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:17.021464Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:17.322230Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:17.322252Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:19.022211Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:19.022235Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:19.122475Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:19.122513Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:21.122294Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:21.122305Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:21.522170Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:21.522192Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:21.722634Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:21.722657Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:22.322175Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:22.322207Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:22.621705Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:22.621724Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:22.821867Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:22.821888Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:23:23.022056Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:23:23.022080Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:31.414845Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/server/app-paths-manifest.json.tmp.5oeodpqreko"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.js.tmp.9ch3w5tjxrl"), AnchoredSystemPathBuf("apps/web/.next/dev/build-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.js.tmp.9fh5nupna39"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/6ff39_@noble_curves_esm_secp256k1_e422c07a.js"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/febbc_viem__esm_utils_ccip_e422c07a.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/apps_web_app_page_tsx_16d03567._.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.json.tmp.lz53s2cpbsf"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/node_modules__pnpm_db6569d5._.js"), AnchoredSystemPathBuf("apps/web/.next/dev/fallback-build-manifest.json.tmp.q10zinijg0f"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app/page/react-loadable-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/node_modules__pnpm_db6569d5._.js.map"), AnchoredSystemPathBuf("apps/web/.next/dev/server/middleware-build-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/build-manifest.json.tmp.6w6iueok8ms"), AnchoredSystemPathBuf("apps/web/.next/dev/fallback-build-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app-paths-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app/page_client-reference-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/middleware-build-manifest.js.tmp.q2soe2d3jrl"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.json.tmp.sahiia8h8oe"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.js")}
+2025-11-23T11:37:31.414901Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:32.113900Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:37:32.113909Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:32.414543Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:37:32.414552Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:32.814719Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:37:32.814730Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:33.414379Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:37:33.414400Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:37:34.115123Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:37:34.115153Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:11.608476Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:11.608504Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:12.408763Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:12.408774Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:25.206230Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:25.206256Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:25.407272Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:25.407312Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:25.505989Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:25.506014Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:25.806448Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:25.806484Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:26.007082Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:26.007103Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:26.107288Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:26.107307Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:26.505765Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:26.505793Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:26.707180Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:26.707198Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:27.008048Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:27.008070Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:27.207128Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:27.207146Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:27.506192Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:27.506237Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:27.606812Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:27.606828Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:28.006933Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:28.006955Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:28.105665Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:28.105689Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:28.405999Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:28.406017Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:30.006256Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:30.006279Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:30.307147Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:30.307169Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:30.506836Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:30.506864Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:30.605737Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:30.605763Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:30.806706Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:30.806719Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:31.206159Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:31.206179Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:31.405794Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:31.405814Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:31.610258Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:31.610297Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:31.706567Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:31.706588Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:32.006279Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:32.006306Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:32.406876Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:32.406947Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:32.606094Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:32.606134Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:32.905371Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:32.905414Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:34.206201Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:34.206233Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:37.011583Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:37.011615Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:38.206078Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:38.206127Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:38.605321Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:38.605354Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:39.106145Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:39.106174Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:41.206076Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:41.206097Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:41.506053Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:41.506095Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:41.606040Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:41.606057Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:41.706545Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:41.706593Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.006137Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.006176Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.106111Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.106151Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.406073Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.406122Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.605423Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.605444Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.705578Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.705608Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:42.906486Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:42.906597Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:43.305812Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:43.305835Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:43.605941Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:43.605961Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:43.704809Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:43.704828Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:44.405620Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:44.405664Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:44.505338Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:44.505362Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:44.605452Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:44.605465Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:45.305693Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:45.305708Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:46.405404Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:46.405450Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:46.605036Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:46.605060Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:46.705161Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:46.705199Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:46.906998Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:46.907038Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:48.804902Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:48.804928Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:49.005924Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:49.005963Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:49.206217Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:49.206265Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:49.905524Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:49.905552Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.006663Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.006684Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.217027Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.217046Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.305000Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.305022Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.604778Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.604797Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.705149Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.705169Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:50.905521Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:50.905567Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:51.409147Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:51.409173Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:51.505986Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:51.506034Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:51.705595Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:51.705616Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:52.006245Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:52.006316Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:54.205212Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:54.205239Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:38:58.904727Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:38:58.904744Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:00.805211Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:00.805232Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:04.405167Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:04.405186Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:05.106046Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:05.106083Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:06.105271Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:06.105284Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:06.904600Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:06.904613Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:08.204374Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:08.204401Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:08.904937Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:08.904989Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:09.504274Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:09.504299Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:10.004542Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:10.004562Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:48.804817Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:48.804873Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:39:59.405079Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:39:59.405115Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:05.804960Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:05.805016Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:17.604328Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:17.604342Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:28.402881Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:28.402909Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:30.803548Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:30.803589Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:36.203468Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/node_modules__pnpm_392234df._.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/middleware-build-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/node_modules__pnpm_392234df._.js.map"), AnchoredSystemPathBuf("apps/web/.next/dev/build-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/fallback-build-manifest.json.tmp.r4rk0bwrgym"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.js.tmp.51vx60s5w3i"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.json.tmp.4au4n8ueuho"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app/delusion/[id]/page_client-reference-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.js"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/febbc_viem__esm_utils_ccip_9fb3b68c.js"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app-paths-manifest.json.tmp.z1b58xt1n8"), AnchoredSystemPathBuf("apps/web/.next/dev/server/next-font-manifest.js.tmp.b4986gtzei"), AnchoredSystemPathBuf("apps/web/.next/dev/server/middleware-build-manifest.js.tmp.aj1bgjtfs5k"), AnchoredSystemPathBuf("apps/web/.next/dev/build-manifest.json.tmp.qol3e9zlxqk"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/fallback-build-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app-paths-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/app/delusion/[id]/page/react-loadable-manifest.json"), AnchoredSystemPathBuf("apps/web/.next/dev/server/server-reference-manifest.json.tmp.43vkh26tkwd"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/6ff39_@noble_curves_esm_secp256k1_9fb3b68c.js"), AnchoredSystemPathBuf("apps/web/.next/dev/static/chunks/apps_web_app_delusion_[id]_page_tsx_16d03567._.js")}
+2025-11-23T11:40:36.203481Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:36.903640Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:36.903653Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:37.804155Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:37.804185Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
+2025-11-23T11:40:57.504209Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/.next/dev/logs/next-development.log")}
+2025-11-23T11:40:57.504230Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("my-v0-project"), path: AnchoredSystemPathBuf("apps/web") }}))
