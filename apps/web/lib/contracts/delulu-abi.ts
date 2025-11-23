@@ -1,12 +1,14 @@
-// Delulu Contract ABI
-// Generated from contracts/Delulu.sol
+// DeluluOracle Contract ABI
+// Generated from DeluluOracle contract
 
 export const deluluAbi = [
   // Constructor
   {
-    inputs: [{ internalType: "address", name: "_cUSDAddress", type: "address" }],
+    inputs: [
+      { internalType: "address", name: "_cUSDAddress", type: "address" }
+    ],
     stateMutability: "nonpayable",
-    type: "constructor",
+    type: "constructor"
   },
   
   // Events
@@ -15,236 +17,199 @@ export const deluluAbi = [
     inputs: [
       { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
       { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "string", name: "delulu", type: "string" },
-      { indexed: false, internalType: "uint256", name: "deadline", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "stake", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "deadline", type: "uint256" }
     ],
     name: "DelusionCreated",
-    type: "event",
+    type: "event"
   },
   {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
-      { indexed: false, internalType: "enum Delulu.DelusionStatus", name: "outcome", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "believePool", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "doubtPool", type: "uint256" },
+      { indexed: false, internalType: "bool", name: "result", type: "bool" }
     ],
-    name: "DelusionFinalized",
-    type: "event",
+    name: "DelusionVerified",
+    type: "event"
   },
   {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "user", type: "address" },
-      { indexed: false, internalType: "uint256", name: "reward", type: "uint256" },
+      { indexed: true, internalType: "address", name: "staker", type: "address" },
+      { indexed: false, internalType: "uint8", name: "newPosition", type: "uint8" }
     ],
-    name: "RewardClaimed",
-    type: "event",
+    name: "PositionSwitched",
+    type: "event"
   },
   {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "user", type: "address" },
-      { indexed: false, internalType: "enum Delulu.StakePosition", name: "position", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      { indexed: true, internalType: "address", name: "staker", type: "address" },
+      { indexed: false, internalType: "uint8", name: "position", type: "uint8" },
+      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" }
     ],
     name: "StakePlaced",
-    type: "event",
+    type: "event"
   },
   {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "user", type: "address" },
-      { indexed: false, internalType: "enum Delulu.StakePosition", name: "fromPosition", type: "uint8" },
-      { indexed: false, internalType: "enum Delulu.StakePosition", name: "toPosition", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "penaltyPaid", type: "uint256" },
+      { indexed: true, internalType: "address", name: "claimer", type: "address" },
+      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" }
     ],
-    name: "StakeSwitched",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "delusionId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "user", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "penalty", type: "uint256" },
-    ],
-    name: "StakeWithdrawn",
-    type: "event",
-  },
-
-  // Write Functions
-  {
-    inputs: [
-      { internalType: "string", name: "_delulu", type: "string" },
-      { internalType: "uint256", name: "_deadline", type: "uint256" },
-      { internalType: "uint256", name: "_amount", type: "uint256" },
-      { internalType: "bool", name: "_position", type: "bool" },
-    ],
-    name: "createDelusion",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_delusionId", type: "uint256" },
-      { internalType: "uint256", name: "_amount", type: "uint256" },
-    ],
-    name: "stakeBelieve",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_delusionId", type: "uint256" },
-      { internalType: "uint256", name: "_amount", type: "uint256" },
-    ],
-    name: "stakeDoubt",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "switchToBelieve",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "switchToDoubt",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "withdrawStake",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "finalizeDelusionSuccess",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "finalizeDelusionFail",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "claim",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    name: "WinningsClaimed",
+    type: "event"
   },
 
   // Read Functions
   {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "getDelusion",
-    outputs: [
-      {
-        components: [
-          { internalType: "uint256", name: "id", type: "uint256" },
-          { internalType: "address", name: "creator", type: "address" },
-          { internalType: "string", name: "delulu", type: "string" },
-          { internalType: "uint256", name: "createdAt", type: "uint256" },
-          { internalType: "uint256", name: "deadline", type: "uint256" },
-          { internalType: "uint256", name: "believePool", type: "uint256" },
-          { internalType: "uint256", name: "doubtPool", type: "uint256" },
-          { internalType: "uint256", name: "believerCount", type: "uint256" },
-          { internalType: "uint256", name: "doubterCount", type: "uint256" },
-          { internalType: "enum Delulu.DelusionStatus", name: "status", type: "uint8" },
-        ],
-        internalType: "struct Delulu.Delusion",
-        name: "",
-        type: "tuple",
-      },
-    ],
+    inputs: [],
+    name: "cUSD",
+    outputs: [{ internalType: "contract IERC20", name: "", type: "address" }],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_delusionId", type: "uint256" },
-      { internalType: "address", name: "_user", type: "address" },
-    ],
-    name: "getUserStake",
-    outputs: [
-      {
-        components: [
-          { internalType: "uint256", name: "amount", type: "uint256" },
-          { internalType: "enum Delulu.StakePosition", name: "position", type: "uint8" },
-          { internalType: "uint256", name: "stakedAt", type: "uint256" },
-          { internalType: "bool", name: "hasClaimed", type: "bool" },
-        ],
-        internalType: "struct Delulu.UserStake",
-        name: "",
-        type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "getPools",
-    outputs: [
-      { internalType: "uint256", name: "believePool", type: "uint256" },
-      { internalType: "uint256", name: "doubtPool", type: "uint256" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
-    name: "getOutcome",
-    outputs: [{ internalType: "enum Delulu.DelusionStatus", name: "", type: "uint8" }],
-    stateMutability: "view",
-    type: "function",
+    type: "function"
   },
   {
     inputs: [],
     name: "delusionCounter",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
-    type: "function",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "delusions",
+    outputs: [
+      { internalType: "uint256", name: "id", type: "uint256" },
+      { internalType: "address", name: "creator", type: "address" },
+      { internalType: "string", name: "description", type: "string" },
+      { internalType: "uint256", name: "deadline", type: "uint256" },
+      { internalType: "uint256", name: "believePool", type: "uint256" },
+      { internalType: "uint256", name: "doubtPool", type: "uint256" },
+      { internalType: "uint8", name: "status", type: "uint8" },
+      { internalType: "bool", name: "result", type: "bool" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
+    name: "getDelusion",
+    outputs: [
+      { internalType: "address", name: "creator", type: "address" },
+      { internalType: "string", name: "description", type: "string" },
+      { internalType: "uint256", name: "deadline", type: "uint256" },
+      { internalType: "uint256", name: "believePool", type: "uint256" },
+      { internalType: "uint256", name: "doubtPool", type: "uint256" },
+      { internalType: "uint8", name: "status", type: "uint8" },
+      { internalType: "bool", name: "result", type: "bool" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_delusionId", type: "uint256" },
+      { internalType: "address", name: "_user", type: "address" }
+    ],
+    name: "getUserStake",
+    outputs: [
+      { internalType: "uint8", name: "position", type: "uint8" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "bool", name: "claimed", type: "bool" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_delusionId", type: "uint256" },
+      { internalType: "address", name: "_user", type: "address" }
+    ],
+    name: "calculatePotentialWinnings",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
   },
   {
     inputs: [],
-    name: "cUSD",
+    name: "getCUSDAddress",
     outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
-    type: "function",
+    type: "function"
   },
   {
-    inputs: [],
-    name: "platformVault",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    inputs: [
+      { internalType: "uint256", name: "", type: "uint256" },
+      { internalType: "address", name: "", type: "address" }
+    ],
+    name: "stakes",
+    outputs: [
+      { internalType: "uint8", name: "position", type: "uint8" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "bool", name: "claimed", type: "bool" }
+    ],
     stateMutability: "view",
-    type: "function",
+    type: "function"
   },
-  {
-    inputs: [],
-    name: "climateVault",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
 
+  // Write Functions
+  {
+    inputs: [
+      { internalType: "string", name: "_description", type: "string" },
+      { internalType: "uint256", name: "_durationInSeconds", type: "uint256" },
+      { internalType: "uint256", name: "_stakeAmount", type: "uint256" }
+    ],
+    name: "createDelusion",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_delusionId", type: "uint256" },
+      { internalType: "uint256", name: "_amount", type: "uint256" }
+    ],
+    name: "stakeBelieve",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_delusionId", type: "uint256" },
+      { internalType: "uint256", name: "_amount", type: "uint256" }
+    ],
+    name: "stakeDoubt",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
+    name: "switchToDoubt",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_delusionId", type: "uint256" },
+      { internalType: "bool", name: "_result", type: "bool" }
+    ],
+    name: "verifyDelusion",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "_delusionId", type: "uint256" }],
+    name: "claimWinnings",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  }
+] as const;

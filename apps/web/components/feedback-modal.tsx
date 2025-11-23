@@ -22,7 +22,7 @@ export function FeedbackModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6 animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-6 animate-fade-in">
       <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-slide-up relative">
         {/* Close button - top right */}
         <button

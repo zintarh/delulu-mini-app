@@ -1,13 +1,19 @@
 "use client";
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { deluluAbi } from "@/lib/contracts/delulu-abi";
-import { DELULU_CONTRACT_ADDRESS, CUSD_CONTRACT_ADDRESS, type Delusion, type UserStake } from "@/lib/contracts/config";
+import {
+  DELULU_CONTRACT_ADDRESS,
+  type Delusion,
+  type UserStake,
+  DelusionStatus,
+  StakePosition,
+} from "@/lib/contracts/config";
 import type { Address } from "viem";
-
-
-
-// ============ Write Functions (Transactions) ============
 
 /**
  * Hook to create a new delusion
@@ -15,36 +21,69 @@ import type { Address } from "viem";
  */
 export function useCreateDelusion(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+    status: receiptStatus,
+  } = useWaitForTransactionReceipt({
     hash,
+    pollingInterval: 2000, // Poll every 2 seconds instead of default
+    retryCount: 10, // Retry up to 10 times
+    timeout: 60000, // Wait up to 60 seconds
+  });
+
+  // Log receipt polling status
+  console.log("📊 Transaction receipt status:", {
+    hash,
+    isConfirming,
+    isSuccess,
+    receiptStatus,
+    receiptError: receiptError?.message,
   });
 
   const createDelusion = (
-    deluluText: string,
-    deadline: bigint,
-    amount: bigint,
-    position: boolean // true = Believe, false = Doubt
+    description: string,
+    durationInSeconds: bigint,
+    stakeAmount: bigint
   ) => {
-    writeContract({
-      address: DELULU_CONTRACT_ADDRESS,
-      abi: deluluAbi,
-      functionName: "createDelusion",
-      args: [deluluText, deadline, amount, position],
-    });
+    try {
+      console.log("🔄 useCreateDelusion - calling writeContract with:", {
+        address: DELULU_CONTRACT_ADDRESS,
+        description,
+        durationInSeconds: durationInSeconds.toString(),
+        stakeAmount: stakeAmount.toString(),
+      });
+
+      writeContract({
+        address: DELULU_CONTRACT_ADDRESS,
+        abi: deluluAbi,
+        functionName: "createDelusion",
+        args: [description, durationInSeconds, stakeAmount],
+      });
+
+      console.log("✅ writeContract called successfully");
+    } catch (err) {
+      console.error("❌ Error in createDelusion:", err);
+      throw err;
+    }
   };
 
   if (isSuccess && onSuccess) {
     onSuccess(hash);
   }
 
+  const combinedError = receiptError || error;
+
   return {
     createDelusion,
     hash,
-    error,
+    error: combinedError,
     isPending: isPending || isConfirming,
     isConfirming,
     isSuccess,
+    receiptStatus,
   };
 }
 
@@ -53,7 +92,7 @@ export function useCreateDelusion(onSuccess?: (data: any) => void) {
  */
 export function useStakeBelieve(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -86,7 +125,7 @@ export function useStakeBelieve(onSuccess?: (data: any) => void) {
  */
 export function useStakeDoubt(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -119,18 +158,13 @@ export function useStakeDoubt(onSuccess?: (data: any) => void) {
  */
 export function useSwitchToBelieve(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
   const switchToBelieve = (delusionId: bigint) => {
-    writeContract({
-      address: DELULU_CONTRACT_ADDRESS,
-      abi: deluluAbi,
-      functionName: "switchToBelieve",
-      args: [delusionId],
-    });
+
   };
 
   if (isSuccess && onSuccess) {
@@ -147,12 +181,9 @@ export function useSwitchToBelieve(onSuccess?: (data: any) => void) {
   };
 }
 
-/**
- * Hook to switch from Believe to Doubt position
- */
 export function useSwitchToDoubt(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -180,23 +211,14 @@ export function useSwitchToDoubt(onSuccess?: (data: any) => void) {
   };
 }
 
-/**
- * Hook to withdraw stake before deadline (with penalty)
- */
+
 export function useWithdrawStake(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
-
   const withdrawStake = (delusionId: bigint) => {
-    writeContract({
-      address: DELULU_CONTRACT_ADDRESS,
-      abi: deluluAbi,
-      functionName: "withdrawStake",
-      args: [delusionId],
-    });
+   
   };
 
   if (isSuccess && onSuccess) {
@@ -213,22 +235,22 @@ export function useWithdrawStake(onSuccess?: (data: any) => void) {
   };
 }
 
+
 /**
- * Hook to finalize delusion as successful (believers win)
- * Only creator can call this
+ * Hook to claim winnings after delusion is verified
  */
-export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
+export function useClaimWinnings(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
-  const finalizeSuccess = (delusionId: bigint) => {
+  const claimWinnings = (delusionId: bigint) => {
     writeContract({
       address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
-      functionName: "finalizeDelusionSuccess",
+      functionName: "claimWinnings",
       args: [delusionId],
     });
   };
@@ -238,7 +260,7 @@ export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
   }
 
   return {
-    finalizeSuccess,
+    claimWinnings,
     hash,
     error,
     isPending: isPending || isConfirming,
@@ -248,22 +270,21 @@ export function useFinalizeDelusionSuccess(onSuccess?: (data: any) => void) {
 }
 
 /**
- * Hook to finalize delusion as failed (doubters win)
- * Only creator can call this
+ * Hook to verify delusion (creator only, after deadline)
  */
-export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
+export function useVerifyDelusion(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
+
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
-  const finalizeFail = (delusionId: bigint) => {
+  const verifyDelusion = (delusionId: bigint, result: boolean) => {
     writeContract({
       address: DELULU_CONTRACT_ADDRESS,
       abi: deluluAbi,
-      functionName: "finalizeDelusionFail",
-      args: [delusionId],
+      functionName: "verifyDelusion",
+      args: [delusionId, result],
     });
   };
 
@@ -272,7 +293,7 @@ export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
   }
 
   return {
-    finalizeFail,
+    verifyDelusion,
     hash,
     error,
     isPending: isPending || isConfirming,
@@ -281,38 +302,10 @@ export function useFinalizeDelusionFail(onSuccess?: (data: any) => void) {
   };
 }
 
-/**
- * Hook to claim rewards after delusion is finalized
- */
-export function useClaimReward(onSuccess?: (data: any) => void) {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
-  
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
-
-  const claim = (delusionId: bigint) => {
-    writeContract({
-      address: DELULU_CONTRACT_ADDRESS,
-      abi: deluluAbi,
-      functionName: "claim",
-      args: [delusionId],
-    });
-  };
-
-  if (isSuccess && onSuccess) {
-    onSuccess(hash);
-  }
-
-  return {
-    claim,
-    hash,
-    error,
-    isPending: isPending || isConfirming,
-    isConfirming,
-    isSuccess,
-  };
-}
+// Keeping old function names for backward compatibility but they now call verify
+export const useFinalizeDelusionSuccess = useVerifyDelusion;
+export const useFinalizeDelusionFail = useVerifyDelusion;
+export const useClaimReward = useClaimWinnings;
 
 // ============ Read Functions (View/Pure) ============
 
@@ -320,19 +313,48 @@ export function useClaimReward(onSuccess?: (data: any) => void) {
  * Hook to get delusion details by ID
  */
 export function useGetDelusion(delusionId: bigint | undefined) {
-  
   const { data, error, isLoading, refetch } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
-    functionName: "getDelusion",
+    functionName: "delusions", // Use the public mapping instead
     args: delusionId !== undefined ? [delusionId] : undefined,
     query: {
       enabled: delusionId !== undefined && delusionId > BigInt(0),
     },
   });
 
+  console.log("useGetDelusion hook (using delusions mapping):", {
+    delusionId: delusionId?.toString(),
+    isLoading,
+    hasData: !!data,
+    dataType: typeof data,
+    dataKeys: data ? Object.keys(data) : [],
+    data,
+    error: error?.message,
+  });
+
+  // Parse data from contract mapping: [id, creator, description, deadline, believePool, doubtPool, status, result]
+  const delusion: Delusion | undefined = data ? {
+    id: (data as any)[0] as bigint,
+    creator: (data as any)[1] as `0x${string}`,
+    description: (data as any)[2] as string,
+    deadline: (data as any)[3] as bigint,
+    believePool: (data as any)[4] as bigint,
+    doubtPool: (data as any)[5] as bigint,
+    status: (data as any)[6] as DelusionStatus,
+    result: (data as any)[7] as boolean,
+  } : undefined;
+
+  console.log("useGetDelusion parsed:", {
+    delusionId: delusionId?.toString(),
+    hasParsedDelusion: !!delusion,
+    description: delusion?.description,
+    creator: delusion?.creator,
+    believePool: delusion?.believePool?.toString(),
+  });
+
   return {
-    delusion: data as Delusion | undefined,
+    delusion,
     error,
     isLoading,
     refetch,
@@ -342,43 +364,33 @@ export function useGetDelusion(delusionId: bigint | undefined) {
 /**
  * Hook to get user's stake in a delusion
  */
-export function useGetUserStake(delusionId: bigint | undefined, userAddress: Address | undefined) {
-  
+export function useGetUserStake(
+  delusionId: bigint | undefined,
+  userAddress: Address | undefined
+) {
   const { data, error, isLoading, refetch } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "getUserStake",
-    args: delusionId !== undefined && userAddress ? [delusionId, userAddress] : undefined,
+    args:
+      delusionId !== undefined && userAddress
+        ? [delusionId, userAddress]
+        : undefined,
     query: {
-      enabled: delusionId !== undefined && delusionId > BigInt(0) && !!userAddress,
+      enabled:
+        delusionId !== undefined && delusionId > BigInt(0) && !!userAddress,
     },
   });
 
-  return {
-    userStake: data as UserStake | undefined,
-    error,
-    isLoading,
-    refetch,
-  };
-}
-
-/**
- * Hook to get pool amounts for a delusion
- */
-export function useGetPools(delusionId: bigint | undefined) {
-  
-  const { data, error, isLoading, refetch } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
-    abi: deluluAbi,
-    functionName: "getPools",
-    args: delusionId !== undefined ? [delusionId] : undefined,
-    query: {
-      enabled: delusionId !== undefined && delusionId > 0,
-    },
-  });
+  // Parse data from contract: [position, amount, claimed]
+  const userStake: UserStake | undefined = data ? {
+    position: (data as any)[0] as StakePosition,
+    amount: (data as any)[1] as bigint,
+    claimed: (data as any)[2] as boolean,
+  } : undefined;
 
   return {
-    pools: data ? { believePool: data[0], doubtPool: data[1] } : undefined,
+    userStake,
     error,
     isLoading,
     refetch,
@@ -389,11 +401,16 @@ export function useGetPools(delusionId: bigint | undefined) {
  * Hook to get total delusion counter
  */
 export function useGetDelusionCounter() {
-  
   const { data, error, isLoading, refetch } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: deluluAbi,
     functionName: "delusionCounter",
+  });
+
+  console.log("useGetDelusionCounter:", {
+    isLoading,
+    counter: data?.toString(),
+    error: error?.message,
   });
 
   return {
@@ -404,3 +421,23 @@ export function useGetDelusionCounter() {
   };
 }
 
+/**
+ * Hook to fetch all delusions
+ * Fetches delusions from 1 to delusionCounter
+ */
+export function useGetAllDelusions() {
+  const { counter, isLoading: isLoadingCounter } = useGetDelusionCounter();
+  
+  const totalDelusions = counter ? Number(counter) : 0;
+  
+  // Create array of IDs from 1 to counter
+  const delusionIds = totalDelusions > 0 
+    ? Array.from({ length: totalDelusions }, (_, i) => BigInt(i + 1))
+    : [];
+
+  return {
+    delusionIds,
+    totalDelusions,
+    isLoadingCounter,
+  };
+}

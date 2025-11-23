@@ -4,15 +4,31 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { mainnet, sepolia } from 'wagmi/chains'
+import { defineChain } from "viem";
 import { injected, walletConnect } from "wagmi/connectors";
 
+// Define Celo Sepolia (the current Celo testnet)
+const celoSepolia = defineChain({
+  id: 11142220,
+  name: "Celo Sepolia Testnet",
+  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://forno.celo-sepolia.celo-testnet.org"] },
+  },
+  blockExplorers: {
+    default: { name: "Celo Explorer", url: "https://celo-sepolia.blockscout.com" },
+  },
+  testnet: true,
+});
+
 const config = createConfig({
-  chains: [sepolia, mainnet],
+  chains: [celoSepolia],
   connectors: [
     injected(),
     walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "198c09df983943bca25a23aaa539fbd4",
+      projectId:
+        process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+        "198c09df983943bca25a23aaa539fbd4",
       metadata: {
         name: "Delulu",
         description: "Stake on your delusions",
@@ -24,8 +40,11 @@ const config = createConfig({
     farcasterMiniApp(),
   ],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [celoSepolia.id]: http("https://forno.celo-sepolia.celo-testnet.org", {
+      retryCount: 5,
+      retryDelay: 1000,
+      timeout: 30000, // 30 seconds
+    }),
   },
 });
 

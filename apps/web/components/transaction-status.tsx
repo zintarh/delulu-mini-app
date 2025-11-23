@@ -37,12 +37,12 @@ export function TransactionStatus({
 
   // Get explorer URL based on chain
   const getExplorerUrl = (txHash: string) => {
-    if (chainId === 1) {
-      // Ethereum Mainnet
-      return `https://etherscan.io/tx/${txHash}`;
+    if (chainId === 42220) {
+      // Celo Mainnet
+      return `https://celoscan.io/tx/${txHash}`;
     } else {
-      // Sepolia Testnet (default)
-      return `https://sepolia.etherscan.io/tx/${txHash}`;
+      // Celo Sepolia Testnet (default)
+      return `https://celo-sepolia.blockscout.com/tx/${txHash}`;
     }
   };
 

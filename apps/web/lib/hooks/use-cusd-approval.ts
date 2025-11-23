@@ -5,7 +5,6 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
-  useBalance,
 } from "wagmi";
 import { erc20Abi } from "@/lib/contracts/erc20-abi";
 import {
@@ -13,31 +12,32 @@ import {
   CUSD_CONTRACT_ADDRESS,
 } from "@/lib/contracts/config";
 import { parseUnits, formatUnits } from "viem";
-import { sepolia, mainnet } from "viem/chains";
 
-export function useCUSDBalance() {
-  const { address } = useAccount();
+// Celo Sepolia Chain ID
+const CELO_SEPOLIA_CHAIN_ID = 11142220;
 
-  const { data, error, isLoading, refetch } = useBalance({
-    address: address,
-    chainId: sepolia.id,
-    // token: CUSD_CONTRACT_ADDRESS,
+export function useCUSDBalanceContract() {
+  const { address: userAddress } = useAccount();
+
+  const { data, error, isLoading, refetch } = useReadContract({
+    address: CUSD_CONTRACT_ADDRESS,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    chainId: CELO_SEPOLIA_CHAIN_ID,
+    args: userAddress ? [userAddress] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!userAddress,
     },
   });
 
 
-  console.log("data", data);
-
   return {
-    balance: data?.value,
-    balanceFormatted: data?.formatted || "0",
+    balance: data as bigint | undefined,
+    balanceFormatted: data ? formatUnits(data, 18) : "0",
     error,
     isLoading,
     refetch,
   };
-
 }
 
 export function useCUSDAllowance() {
@@ -70,39 +70,86 @@ export function useCUSDAllowance() {
 export function useApproveCUSD(onSuccess?: (data: any) => void) {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { 
+    isLoading: isConfirming, 
+    isSuccess,
+    error: receiptError,
+    status: receiptStatus 
+  } = useWaitForTransactionReceipt({
     hash,
+    pollingInterval: 2000,
+    retryCount: 10,
+    timeout: 60000,
+  });
+
+  // Log receipt polling status
+  console.log("📊 Approval receipt status:", {
+    hash,
+    isConfirming,
+    isSuccess,
+    receiptStatus,
+    receiptError: receiptError?.message,
   });
 
   const approve = (amount: bigint) => {
-    writeContract({
-      address: CUSD_CONTRACT_ADDRESS,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [DELULU_CONTRACT_ADDRESS, amount],
-    });
+    try {
+      console.log("🔄 useApproveCUSD - calling approve with:", {
+        tokenAddress: CUSD_CONTRACT_ADDRESS,
+        spenderAddress: DELULU_CONTRACT_ADDRESS,
+        amount: amount.toString(),
+      });
+
+      writeContract({
+        address: CUSD_CONTRACT_ADDRESS,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [DELULU_CONTRACT_ADDRESS, amount],
+      });
+
+      console.log("✅ approve writeContract called successfully");
+    } catch (err) {
+      console.error("❌ Error in approve:", err);
+      throw err;
+    }
   };
 
   const approveMax = () => {
-    // Approve maximum possible amount (effectively unlimited)
-    const maxAmount = BigInt(
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-    );
-    approve(maxAmount);
+    try {
+      const maxAmount = BigInt(
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      );
+      console.log("🔄 Approving max amount:", maxAmount.toString());
+      approve(maxAmount);
+    } catch (err) {
+      console.error("❌ Error in approveMax:", err);
+      throw err;
+    }
   };
 
   if (isSuccess && onSuccess) {
     onSuccess(hash);
   }
 
+  // Log errors for debugging
+  if (error) {
+    console.error("❌ useApproveCUSD writeContract error:", error);
+  }
+  if (receiptError) {
+    console.error("❌ useApproveCUSD receipt error:", receiptError);
+  }
+
+  // Combine errors - prioritize receipt error if both exist
+  const combinedError = receiptError || error;
+
   return {
     approve,
     approveMax,
     hash,
-    error,
+    error: combinedError,
     isPending: isPending || isConfirming,
     isConfirming,
     isSuccess,
+    receiptStatus,
   };
 }
 
@@ -129,6 +176,7 @@ export function useCheckAndApproveCUSD(requiredAmount: bigint | undefined) {
     hasInfiniteApproval,
     currentAllowance: allowance,
     requiredAmount,
+    refetchAllowance,
     ...approval,
   };
 }

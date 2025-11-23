@@ -96,7 +96,7 @@ export function ConnectWallet() {
           onClick={() => {
             if (address) {
               window.open(
-                `https://etherscan.io/address/${address}`,
+                `https://celo-sepolia.blockscout.com/address/${address}`,
                 "_blank"
               );
             }
