@@ -10,6 +10,27 @@
    * /Users/MAC/Documents/delulu/apps/web/package-lock.json
 
    [1m[38;2;173;127;168m▲ Next.js 16.0.3[39m[22m (Turbopack)
+   - Environments: .env.local
 
  [37m[1m [22m[39m Creating an optimized production build ...
-[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 130.[39m
+ [32m[1m✓[22m[39m Compiled successfully in 2.6s
+ [37m[1m [22m[39m Skipping validation of types
+[?25l [37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data using 7 workers in 290.2ms     [32m[1m✓[22m[39m Collecting page data using 7 workers in 290.2ms 
+[?25l [37m[1m [22m[39m Generating static pages using 7 workers (0/7)  [36m[    ][39m[2K[1G [37m[1m [22m[39m Generating static pages using 7 workers (0/7)  [36m[=   ][39m[2K[1G[?25h(node:5696) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[?25h [32m[1m✓[22m[39m Generating static pages using 7 workers (7/7) in 363.0ms
+[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization in 4.1ms     [32m[1m✓[22m[39m Finalizing page optimization in 4.1ms 
+
+[4mRoute (app)[24m
+┌ ○ /
+├ ○ /_not-found
+├ ○ /create
+├ ƒ /delusion/[id]
+├ ○ /settings
+└ ○ /verify
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+[?25h
