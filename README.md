@@ -13,23 +13,6 @@ Status | In Development
 Platform | Celo Mini App (Mobile First)
 Identity | Farcaster / SelfProtocol
 
-### Features
-
-Delulu is built for a sleek, high-contrast mobile experience, focusing on clarity and high-stakes interaction.
-
-  * Identity Gateway: Seamless Celo wallet and Farcaster identity connection, instantly verifying human status via SelfProtocol.
-
-  * Delusion Creation Flow: Intuitive multi-step process for creators to define their prediction, set a resolution date, and commit initial collateral.
-
-  * Real-Time Conviction Gauge: Dynamic visualization of the live Believe:Doubt ratio, reflecting the collective market sentiment.
-
-  * High-Stakes Staking: User module for staking collateral on either side of a Delusion with clear confirmation flows.
-
-  * Social Amplification: Integrated sharing functionality to amplify Delulus and staking decisions directly onto the Farcaster network.
-
-  * Lifecycle Management: Dedicated flows for proposers to submit outcomes and for winners to securely claim their pot share.
-
-  * Personal Tracking: Profile section to track all active stakes, view calculated unrealized PnL (My Conviction), and browse resolved markets.
 
 ### Technology Stack
 
