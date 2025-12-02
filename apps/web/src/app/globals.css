@@ -1,80 +1,283 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-  :root {
-    --border: 214.3 31.8% 91.4%;
-    --input: 216 33% 97%;
-    --ring: 215 20.2% 65.1%;
+@custom-variant dark (&:is(.dark *));
 
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+:root {
+  /* Updated color palette - replacing red/green with Celo-inspired colors */
+  --delulu-yellow: #fcff52;
+  --delulu-green: #35d07f;
+  --delulu-purple: #8b5cf6;
+  --delulu-dark: #0a0a0a;
+  --delulu-white: #ffffff;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #1a1a1a;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1a;
+  --popover-foreground: #fafafa;
+  --primary: #fcff52;
+  --primary-foreground: #0a0a0a;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #fcff52;
+  --accent-foreground: #0a0a0a;
+  --destructive: #8b5cf6;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
+  --input: #262626;
+  --ring: #fcff52;
+  --chart-1: #fcff52;
+  --chart-2: #35d07f;
+  --chart-3: #fafafa;
+  --chart-4: #8b5cf6;
+  --chart-5: #262626;
+  --radius: 1rem;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #fcff52;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #fcff52;
+}
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+.dark {
+  /* Dark mode purple color */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #1a1a1a;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1a;
+  --popover-foreground: #fafafa;
+  --primary: #fcff52;
+  --primary-foreground: #0a0a0a;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #fcff52;
+  --accent-foreground: #0a0a0a;
+  --destructive: #a78bfa;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #fcff52;
+  --chart-1: #fcff52;
+  --chart-2: #35d07f;
+  --chart-3: #fafafa;
+  --chart-4: #a78bfa;
+  --chart-5: #262626;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #fcff52;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #262626;
+  --sidebar-ring: #fcff52;
+}
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-delulu-yellow: var(--delulu-yellow);
+  --color-delulu-green: var(--delulu-green);
+  --color-delulu-purple: var(--delulu-purple);
+  --color-delulu-dark: var(--delulu-dark);
+  --color-delulu-white: var(--delulu-white);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom slider styles for Delulu aesthetic */
+.delulu-slider [role="slider"] {
+  @apply bg-delulu-dark border-2 border-delulu-dark w-6 h-6 shadow-lg;
+}
+
+.delulu-slider [data-orientation="horizontal"] {
+  @apply h-2 bg-delulu-dark/10;
+}
+
+.delulu-slider [data-orientation="horizontal"] > span {
+  @apply bg-delulu-dark;
+}
+
+/* Fashion magazine style animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.6s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* 
+ * Custom Font Classes
+ * Use these interchangeably throughout the app:
+ * - font-gloria: Gloria Hallelujah (handwritten)
+ * - font-schoolbell: Schoolbell (playful handwritten)
+ * - font-comic: Comic Neue (comic/fun style)
+ * - font-serif: Playfair Display (fashion magazine)
+ */
+
+/* Fashion serif font */
+.font-serif {
+  font-family: var(--font-serif), 'Playfair Display', 'Georgia', serif;
+}
+
+/* Gloria Hallelujah - Handwritten font */
+.font-gloria {
+  font-family: var(--font-gloria), 'Gloria Hallelujah', cursive;
+}
+
+/* Schoolbell - Playful handwritten font */
+.font-schoolbell {
+  font-family: var(--font-schoolbell), 'Schoolbell', cursive;
+}
+
+/* Comic Neue - Comic/fun font */
+.font-comic {
+  font-family: var(--font-comic), 'Comic Neue', 'Comic Sans MS', cursive;
+}
+
+/* Alias for backward compatibility */
+.font-handwritten {
+  font-family: var(--font-gloria), 'Gloria Hallelujah', cursive;
+}
+
+/* Instagram Story style text input */
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Blinking caret animation */
+@keyframes blink-caret {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Custom caret color and width */
+.caret-delulu-dark {
+  caret-color: #0a0a0a;
 }
