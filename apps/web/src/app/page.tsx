@@ -135,7 +135,7 @@ export default function HomePage() {
                     </div>
                     
                     <p className="text-xl font-black text-black leading-tight drop-shadow-sm flex-1 line-clamp-2">
-                      "{delusion.claim}"
+                      &ldquo;{delusion.claim}&rdquo;
                     </p>
                     
                     <div className="flex items-center justify-between mt-auto">
