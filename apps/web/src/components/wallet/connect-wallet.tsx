@@ -34,7 +34,7 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
   }
 
   if (!mounted) {
-    return <div className="w-20 h-9 animate-pulse bg-white/10 rounded-full" />
+    return <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
   }
 
   if (isConnected) {
@@ -49,11 +49,15 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
         <button
           disabled={isLoading}
           className={cn(
-            "px-5 py-2",
-            "bg-delulu-yellow text-delulu-dark",
-            "rounded-full font-bold text-sm",
-            "active:scale-95 transition-transform",
-            "disabled:opacity-70",
+            "relative px-5 py-2",
+            "bg-gradient-to-b from-delulu-yellow via-delulu-yellow to-[#d4af37]",
+            "text-delulu-dark",
+            "rounded-xl font-black text-sm",
+            "border-2 border-delulu-dark",
+            "shadow-[0_4px_0_0_#0a0a0a]",
+            "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+            "transition-all duration-150",
+            "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a]",
             className
           )}
         >
@@ -78,9 +82,13 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
               disabled={isLoading}
               className={cn(
                 "w-full p-4",
-                "bg-delulu-dark/10 active:bg-delulu-dark/20",
-                "rounded-xl transition-colors",
-                "font-bold text-delulu-dark",
+                "bg-gradient-to-b from-delulu-yellow via-delulu-yellow to-[#d4af37]",
+                "text-delulu-dark",
+                "rounded-xl font-black",
+                "border-2 border-delulu-dark",
+                "shadow-[0_4px_0_0_#0a0a0a]",
+                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                "transition-all duration-150",
                 "disabled:opacity-50"
               )}
             >

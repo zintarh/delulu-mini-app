@@ -54,9 +54,12 @@ export function ConnectedAccount({ className }: ConnectedAccountProps) {
         <button
           className={cn(
             "flex items-center gap-2 pl-1 pr-4 py-1",
-            "bg-white/10",
-            "rounded-full",
-            "active:scale-95 transition-transform",
+            "bg-gradient-to-b from-white/20 via-white/10 to-white/5",
+            "rounded-xl",
+            "border border-white/20",
+            "shadow-[0_2px_0_0_rgba(0,0,0,0.2)]",
+            "active:shadow-[0_1px_0_0_rgba(0,0,0,0.2)] active:translate-y-0.5",
+            "transition-all duration-150",
             className
           )}
         >
@@ -101,7 +104,16 @@ export function ConnectedAccount({ className }: ConnectedAccountProps) {
           {/* Disconnect */}
           <button
             onClick={handleDisconnect}
-            className="w-full py-3 bg-delulu-dark text-delulu-yellow rounded-xl font-bold active:scale-[0.98] transition-transform"
+            className={cn(
+              "w-full py-3",
+              "bg-gradient-to-b from-delulu-dark via-delulu-dark to-[#1a1a1a]",
+              "text-delulu-yellow",
+              "rounded-xl font-black",
+              "border-2 border-delulu-yellow/30",
+              "shadow-[0_4px_0_0_#0a0a0a]",
+              "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+              "transition-all duration-150"
+            )}
           >
             Disconnect
           </button>
