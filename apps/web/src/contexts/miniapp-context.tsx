@@ -45,6 +45,8 @@ export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderP
     }
   }, []);
 
+
+
   useEffect(() => {
     if (!isMiniAppReady) {
       setMiniAppReady().then(() => {
@@ -67,7 +69,6 @@ export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderP
   }, []);
 
   useEffect(() => {
-    // on load, set the frame as ready
     if (isMiniAppReady && !context?.client?.added && addMiniAppOnLoad) {
       handleAddMiniApp();
     }
