@@ -155,7 +155,7 @@
     transform: translateX(-100%);
   }
   100% {
-    transform: translateX(200%);
+    transform: translateX(100%);
   }
 }
 
@@ -271,9 +271,4 @@ textarea {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-/* Gloria Hallelujah font utility */
-.font-gloria {
-  font-family: var(--font-gloria), cursive;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useAccount } from "wagmi"
-import { WalletConnectButton } from "@/components/connect-button"
+import { ConnectWallet } from "@/components/wallet"
 
 export function Navbar() {
   const { isConnected } = useAccount()
@@ -24,7 +24,7 @@ export function Navbar() {
             Profile
           </Link>
         ) : (
-          <WalletConnectButton />
+          <ConnectWallet />
         )}
       </nav>
     </header>
