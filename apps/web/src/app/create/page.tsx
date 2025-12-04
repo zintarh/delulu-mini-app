@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Home, Loader2 } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 
 
 import { useAccount } from "wagmi";
@@ -119,7 +119,7 @@ export default function CreatePage() {
       </div>
 
       <div className="absolute top-16 left-0 right-0 text-center px-6 z-10 animate-slide-down">
-        <p className="text-lg font-schoolbell text-delulu-dark/80 tracking-wide animate-float">
+        <p className="text-lg font-gloria text-delulu-dark/80 tracking-wide animate-float">
           {HYPE_TEXT[currentStep].subtitle}
         </p>
       </div>
@@ -263,7 +263,7 @@ export default function CreatePage() {
         {currentStep === 3 && (
           <div className="w-full max-w-2xl animate-fade-in space-y-8">
             <div className="text-center space-y-6">
-              <p className="text-3xl md:text-4xl font-bold text-delulu-dark leading-tight italic">
+              <p className="text-3xl md:text-4xl font-gloria text-delulu-dark leading-tight italic">
                 &ldquo;{delusionText}&rdquo;
               </p>
 
