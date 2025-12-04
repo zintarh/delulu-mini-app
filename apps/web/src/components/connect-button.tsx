@@ -3,11 +3,18 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useMiniApp } from '@/contexts/miniapp-context'
+import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { ConnectedAccount } from "@/components/wallet/connected-account"
 
-export function WalletConnectButton() {
+interface WalletConnectButtonProps {
+  className?: string
+}
+
+export function WalletConnectButton({ className }: WalletConnectButtonProps) {
   const [mounted, setMounted] = useState(false)
-  const { address, isConnected } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { address, isConnected, isConnecting } = useAccount()
+  const { connect, connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
   const { context } = useMiniApp()
 
@@ -16,43 +23,39 @@ export function WalletConnectButton() {
   }, [])
 
   if (!mounted) {
-    return (
-      <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-        Connect Wallet
-      </button>
-    )
+    return <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
   }
 
-  if (!isConnected) {
-    const frameConnector = connectors.find(connector => connector.id === 'frameWallet')
-    
-    return (
-      <button
-        onClick={() => frameConnector && connect({ connector: frameConnector })}
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-      >
-        Connect Wallet
-      </button>
-    )
+  if (isConnected) {
+    return <ConnectedAccount className={className} />
   }
 
+  const isLoading = isConnecting || isPending
+  const frameConnector = connectors.find(connector => connector.id === 'frameWallet')
+  
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-3 py-2"
-      >
-        Celo
-      </button>
-
-      <button
-        onClick={() => disconnect()}
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-      >
-        {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected'}
-      </button>
-    </div>
+    <button
+      onClick={() => frameConnector && connect({ connector: frameConnector })}
+      disabled={isLoading || !frameConnector}
+      type="button"
+      className={cn(
+        "relative px-5 py-2",
+        "bg-gradient-to-b from-delulu-yellow via-delulu-yellow to-[#d4af37]",
+        "text-delulu-dark",
+        "rounded-xl font-black text-sm",
+        "border-2 border-delulu-dark",
+        "shadow-[0_4px_0_0_#0a0a0a]",
+        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+        "transition-all duration-150",
+        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a]",
+        className
+      )}
+    >
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <span>Connect</span>
+      )}
+    </button>
   )
 }
