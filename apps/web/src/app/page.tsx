@@ -178,13 +178,81 @@ export default function HomePage() {
                 <div 
                   className="relative rounded-3xl p-5 h-[200px] active:scale-[0.98] transition-transform overflow-hidden flex flex-col"
                   style={{
-                    background: "linear-gradient(145deg, #d4af37 0%, #f4e4a6 15%, #d4af37 30%, #aa8c2c 50%, #d4af37 70%, #f4e4a6 85%, #d4af37 100%)",
+                    background: "linear-gradient(135deg, #f9e79f 0%, #f7dc6f 10%, #d4af37 25%, #c9a227 40%, #d4af37 55%, #f4e4a6 70%, #d4af37 85%, #f9e79f 100%)",
+                    boxShadow: `
+                      inset 0 2px 4px rgba(255, 255, 255, 0.5),
+                      inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+                      0 4px 8px rgba(0, 0, 0, 0.2),
+                      0 8px 16px rgba(212, 175, 55, 0.3),
+                      0 0 0 1px rgba(212, 175, 55, 0.4),
+                      0 0 20px rgba(212, 175, 55, 0.2)
+                    `,
+                    border: "2px solid",
+                    borderColor: "rgba(212, 175, 55, 0.6)",
                   }}
                 >
+                  {/* Base metallic texture */}
                   <div 
-                    className="absolute inset-0 opacity-30"
+                    className="absolute inset-0"
                     style={{
-                      background: "linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.5) 50%, transparent 75%)",
+                      background: `
+                        repeating-linear-gradient(
+                          45deg,
+                          transparent,
+                          transparent 2px,
+                          rgba(255, 255, 255, 0.05) 2px,
+                          rgba(255, 255, 255, 0.05) 4px
+                        ),
+                        repeating-linear-gradient(
+                          -45deg,
+                          transparent,
+                          transparent 2px,
+                          rgba(0, 0, 0, 0.05) 2px,
+                          rgba(0, 0, 0, 0.05) 4px
+                        )
+                      `,
+                    }}
+                  />
+                  
+                  {/* Animated metallic shine */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: "linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%)",
+                      transform: "translateX(-100%)",
+                      animation: "shimmer 4s ease-in-out infinite",
+                    }}
+                  />
+                  
+                  {/* Top highlight */}
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1/3 opacity-60"
+                    style={{
+                      background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent)",
+                      borderRadius: "1.5rem 1.5rem 0 0",
+                    }}
+                  />
+                  
+                  {/* Bottom shadow */}
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 h-1/3 opacity-40"
+                    style={{
+                      background: "linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent)",
+                      borderRadius: "0 0 1.5rem 1.5rem",
+                    }}
+                  />
+                  
+                  {/* Corner highlights */}
+                  <div 
+                    className="absolute top-0 left-0 w-20 h-20 opacity-30"
+                    style={{
+                      background: "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)",
+                    }}
+                  />
+                  <div 
+                    className="absolute top-0 right-0 w-20 h-20 opacity-30"
+                    style={{
+                      background: "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)",
                     }}
                   />
                   
@@ -195,17 +263,26 @@ export default function HomePage() {
                           {delusion.creator.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-black/60">{delusion.creator}</span>
-                      <span className="ml-auto text-xs font-bold text-white bg-black/80 px-2 py-1 rounded-full">HOT</span>
+                      <span className="text-sm font-semibold" style={{ color: "#2d2d2d", textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)" }}>{delusion.creator}</span>
+                      <span className="ml-auto text-xs font-bold text-white px-2 py-1 rounded-full" style={{
+                        background: "rgba(0, 0, 0, 0.7)",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
+                      }}>HOT</span>
                     </div>
                     
-                    <p className="text-xl font-black text-black leading-tight drop-shadow-sm flex-1 line-clamp-2">
+                    <p className="text-xl font-black leading-tight flex-1 line-clamp-2" style={{
+                      color: "#1a1a1a",
+                      textShadow: "0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.5)"
+                    }}>
                       &ldquo;{delusion.claim}&rdquo;
                     </p>
                     
                     <div className="flex items-center justify-between mt-auto">
                       <RingProgress believe={delusion.believers} doubt={delusion.doubters} dark />
-                      <span className="text-2xl font-black text-black">${delusion.pool}</span>
+                      <span className="text-2xl font-black" style={{
+                        color: "#1a1a1a",
+                        textShadow: "0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4)"
+                      }}>${delusion.pool}</span>
                     </div>
                   </div>
                 </div>
