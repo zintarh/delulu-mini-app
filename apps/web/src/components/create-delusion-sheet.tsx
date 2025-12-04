@@ -104,11 +104,11 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           side="bottom" 
-          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 max-h-[95vh] overflow-y-auto"
+          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none"
         >
-          <div className="relative min-h-[80vh] flex flex-col">
+          <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Progress indicators */}
-            <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10">
+            <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10 px-6">
               {[0, 1, 2, 3].map((step) => (
                 <div
                   key={step}
@@ -131,7 +131,7 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 mt-20">
+            <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 mt-20 overflow-y-auto">
               {currentStep === 0 && (
                 <div className="w-full max-w-2xl">
                   <textarea
