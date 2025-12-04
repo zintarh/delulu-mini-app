@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["@repo/ui"], // Keep this if you are in a monorepo
   webpack: (config) => {
-    config.externals.push('pino-pretty', 'lokijs', 'encoding')
-    return config
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
+    return config;
   },
 };
 
