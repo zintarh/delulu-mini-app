@@ -10,19 +10,9 @@ interface ConnectWalletProps {
   className?: string
 }
 
-export function ConnectWallet({ className }: ConnectWalletProps) {
-  const [mounted, setMounted] = useState(false)
-  
+function ConnectWalletComponent({ className }: ConnectWalletProps) {
   const { isConnected, isConnecting } = useAccount()
   const { connect, connectors, isPending } = useConnect()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
-  }
 
   if (isConnected) {
     return <ConnectedAccount className={className} />
@@ -56,4 +46,18 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
       )}
     </button>
   )
+}
+
+export function ConnectWallet({ className }: ConnectWalletProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
+  }
+
+  return <ConnectWalletComponent className={className} />
 }
