@@ -1,5 +1,5 @@
-import { getFarcasterManifest } from "@/lib/warpcast";
 import { NextResponse } from "next/server";
+import { getFarcasterManifest } from "../../../lib/warpcast";
 
 export async function GET() {
   try {

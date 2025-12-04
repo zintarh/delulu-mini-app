@@ -159,6 +159,28 @@
   }
 }
 
+@keyframes slide-up-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up-from-bottom-delayed {
+  from {
+    opacity: 0;
+    transform: translateY(80px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
@@ -185,6 +207,15 @@
 
 .animate-shimmer {
   animation: shimmer 2s linear infinite;
+}
+
+.animate-slide-up-from-bottom {
+  animation: slide-up-from-bottom 0.8s ease-out;
+}
+
+.animate-slide-up-from-bottom-delayed {
+  animation: slide-up-from-bottom-delayed 0.8s ease-out;
+  animation-fill-mode: both;
 }
 
 /* Custom scrollbar for dark theme */

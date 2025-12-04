@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Gloria_Hallelujah } from 'next/font/google';
+import { Inter, Gloria_Hallelujah, Bebas_Neue } from 'next/font/google';
 import './globals.css';
 
 import Providers from "@/components/providers"
@@ -14,6 +14,13 @@ const gloriaHallelujah = Gloria_Hallelujah({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-gloria',
+  display: 'swap',
+});
+
+const bebasNeue = Bebas_Neue({ 
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-bebas',
   display: 'swap',
 });
 
@@ -54,7 +61,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} ${gloriaHallelujah.variable} antialiased`}>
+      <body className={`${inter.className} ${gloriaHallelujah.variable} ${bebasNeue.variable} antialiased`}>
         <Providers>
           {children}
         </Providers>
