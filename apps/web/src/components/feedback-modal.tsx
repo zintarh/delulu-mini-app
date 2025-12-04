@@ -27,7 +27,7 @@ export function FeedbackModal({
 }: FeedbackModalProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="bg-delulu-yellow rounded-t-3xl pb-8">
+      <SheetContent side="bottom" className="bg-delulu-yellow rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20">
         <SheetHeader>
           <div className="flex justify-center mb-6">
             {type === "success" ? (

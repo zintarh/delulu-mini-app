@@ -25,14 +25,12 @@ export function ConnectorSelectionSheet({
     const connector = connectors.find((c) => c.id === connectorId);
     if (connector) {
       connect({ connector });
-      // Close sheet after connecting
       setTimeout(() => {
         onOpenChange(false);
       }, 500);
     }
   };
 
-  // Filter out Farcaster connector for local testing
   const availableConnectors = connectors.filter(
     (connector) => connector.id !== "farcaster"
   );
@@ -48,7 +46,7 @@ export function ConnectorSelectionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 rounded-t-3xl pb-8"
+        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
       >
         <SheetHeader>
           <SheetTitle className="text-xl font-black text-delulu-dark text-left">

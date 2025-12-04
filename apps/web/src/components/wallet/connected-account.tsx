@@ -84,7 +84,7 @@ export function ConnectedAccount({
 
       <SheetContent
         side="bottom"
-        className="bg-delulu-yellow flex flex-col items-center justify-center rounded-t-3xl pb-8"
+        className="bg-delulu-yellow flex flex-col items-center justify-center rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
       >
         <SheetHeader>
           <SheetTitle className="text-xl font-black text-delulu-dark text-left">

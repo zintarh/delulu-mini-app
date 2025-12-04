@@ -104,7 +104,7 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           side="bottom" 
-          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none"
+          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
         >
           <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Progress indicators */}
