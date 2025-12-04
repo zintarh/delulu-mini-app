@@ -14,6 +14,9 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        gloria: ["var(--font-gloria)", "cursive"],
+      },
       colors: {
         // Delulu brand colors
         "delulu-yellow": "#fcff52",
