@@ -264,7 +264,7 @@ export default function CreatePage() {
           <div className="w-full max-w-2xl animate-fade-in space-y-8">
             <div className="text-center space-y-6">
               <p className="text-3xl md:text-4xl font-bold text-delulu-dark leading-tight italic">
-                "{delusionText}"
+                &ldquo;{delusionText}&rdquo;
               </p>
 
               <div className="flex items-center justify-center gap-8 text-center">
@@ -333,7 +333,7 @@ export default function CreatePage() {
               className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               
-              CREATE DELUSION"
+              CREATE DELUSION
             
             </button>
 

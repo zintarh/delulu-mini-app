@@ -389,7 +389,7 @@ function DelusionCard({
         
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-delulu-dark truncate">{claim}</p>
-          <span className="text-xs "><span className="text-delulu-purple">{believers + doubters}</span> stakers</span>
+          <span className="text-xs text-delulu-dark "><span className="text-delulu-purple">{believers + doubters}</span> stakers</span>
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
