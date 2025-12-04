@@ -272,3 +272,8 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Gloria Hallelujah font utility */
+.font-gloria {
+  font-family: var(--font-gloria), cursive;
+}
