@@ -19,12 +19,19 @@ function ConnectWalletComponent({ className }: ConnectWalletProps) {
   }
 
   const isLoading = isConnecting || isPending
-  const frameConnector = connectors.find(connector => connector.id === 'frameWallet')
+  const frameConnector = connectors.find(connector => connector.id === 'farcaster')
+
   
   return (
     <button
-      onClick={() => frameConnector && connect({ connector: frameConnector })}
-      disabled={isLoading || !frameConnector}
+      onClick={() => {
+
+        console.log("Connecting to frame connector")
+
+        frameConnector && connect({ connector: frameConnector })
+        
+      }}
+      // disabled={isLoading || !frameConnector}
       type="button"
       className={cn(
         "relative px-5 py-2",
