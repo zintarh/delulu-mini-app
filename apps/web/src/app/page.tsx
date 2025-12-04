@@ -1,8 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { TrendingUp, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/navbar"
+import { LoginScreen } from "@/components/login-screen"
+import { CreateDelusionSheet } from "@/components/create-delusion-sheet"
+import { useAccount } from "wagmi"
 import Link from "next/link"
 
 const hotDelusions = [
@@ -153,6 +157,9 @@ function isEndingSoon(deadline: Date): boolean {
 }
 
 export default function HomePage() {
+  const { isConnected } = useAccount()
+  const [createSheetOpen, setCreateSheetOpen] = useState(false)
+  
   // Get all delusions and filter for ending soon
   const allDelusions = [...hotDelusions, ...delusions]
   const endingSoonDelusions = allDelusions
@@ -160,8 +167,10 @@ export default function HomePage() {
     .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime())
     .slice(0, 5) // Limit to 5 most urgent
 
-
-    console.log("Current URL:", process.env.NEXT_PUBLIC_URL);
+  // Show login screen if not connected
+  if (!isConnected) {
+    return <LoginScreen />
+  }
 
   return (
     <div className="min-h-screen bg-delulu-yellow">
@@ -307,8 +316,8 @@ export default function HomePage() {
         
         <div className="px-4">
           {/* Create Button - Game Style */}
-          <Link
-            href="/create"
+          <button
+            onClick={() => setCreateSheetOpen(true)}
             className={cn(
               "block w-full mb-5",
               "relative overflow-hidden",
@@ -326,7 +335,7 @@ export default function HomePage() {
             </div>
             {/* Shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" />
-          </Link>
+          </button>
         
           {/* Ending Soon */}
           {endingSoonDelusions.length > 0 && (
@@ -376,7 +385,12 @@ export default function HomePage() {
           </div>
         </div>
       </main>
-      
+
+      {/* Create Delusion Bottom Sheet */}
+      <CreateDelusionSheet 
+        open={createSheetOpen} 
+        onOpenChange={setCreateSheetOpen} 
+      />
     </div>
   )
 }
