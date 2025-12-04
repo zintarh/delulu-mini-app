@@ -59,9 +59,7 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
 
   const [deadline, setDeadline] = useState(getDefaultDeadline());
 
-  const stakeAmountBigInt = 0.9;
-  const approval = 0;
-  const hasInsufficientBalance = 0;
+  const hasInsufficientBalance = false;
 
   const canGoNext = () => {
     if (currentStep === 0) return delusionText.trim().length > 0;
