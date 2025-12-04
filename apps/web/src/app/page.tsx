@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/navbar"
 import { LoginScreen } from "@/components/login-screen"
 import { CreateDelusionSheet } from "@/components/create-delusion-sheet"
+import { ProfileSheet } from "@/components/profile-sheet"
 import { useAccount } from "wagmi"
 import Link from "next/link"
 
@@ -159,6 +160,7 @@ function isEndingSoon(deadline: Date): boolean {
 export default function HomePage() {
   const { isConnected } = useAccount()
   const [createSheetOpen, setCreateSheetOpen] = useState(false)
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false)
   
   // Get all delusions and filter for ending soon
   const allDelusions = [...hotDelusions, ...delusions]
@@ -174,7 +176,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-delulu-yellow">
-      <Navbar />
+      <Navbar onProfileClick={() => setProfileSheetOpen(true)} />
       
       <main className="max-w-lg mx-auto pt-4 pb-24">
         {/* Hot Delusions - Swipeable */}
@@ -390,6 +392,12 @@ export default function HomePage() {
       <CreateDelusionSheet 
         open={createSheetOpen} 
         onOpenChange={setCreateSheetOpen} 
+      />
+
+      {/* Profile Bottom Sheet */}
+      <ProfileSheet 
+        open={profileSheetOpen} 
+        onOpenChange={setProfileSheetOpen} 
       />
     </div>
   )
