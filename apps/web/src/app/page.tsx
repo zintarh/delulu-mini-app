@@ -159,6 +159,10 @@ export default function HomePage() {
     .filter(d => d.deadline && isEndingSoon(d.deadline))
     .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime())
     .slice(0, 5) // Limit to 5 most urgent
+
+
+    console.log("Current URL:", process.env.NEXT_PUBLIC_URL);
+
   return (
     <div className="min-h-screen bg-delulu-yellow">
       <Navbar />
