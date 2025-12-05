@@ -1,18 +1,32 @@
-import { keccak256, stringToHex } from "viem";
-
 export async function uploadToIPFS(content: string): Promise<string> {
-  // TODO: Replace with actual IPFS upload
-  // For testing: using keccak256 hash as placeholder
-  // For production: Use Pinata, Web3.Storage, or NFT.Storage
-  // Example with Pinata:
-  // const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
-  //   method: 'POST',
-  //   headers: { 'Authorization': `Bearer ${PINATA_JWT}` },
-  //   body: JSON.stringify({ pinataContent: { text: content } })
-  // });
-  // const data = await response.json();
-  // return data.IpfsHash;
-  
-  return keccak256(stringToHex(content));
+  try {
+    const response = await fetch("/api/ipfs/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to upload to IPFS");
+    }
+
+    const data = await response.json();
+    
+    if (!data.hash) {
+      throw new Error("No IPFS hash returned");
+    }
+
+    return data.hash;
+  } catch (error) {
+    console.error("IPFS upload error:", error);
+    throw new Error(
+      error instanceof Error
+        ? `IPFS upload failed: ${error.message}`
+        : "IPFS upload failed"
+    );
+  }
 }
 
