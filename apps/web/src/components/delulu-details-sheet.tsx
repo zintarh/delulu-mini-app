@@ -7,6 +7,7 @@ import { type FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useUserPosition } from "@/hooks/use-user-position";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,9 @@ export function DeluluDetailsSheet({
   delulu,
 }: DeluluDetailsSheetProps) {
   const { isConnected, address } = useAccount();
+
+
+
   const {
     stake,
     isPending,
@@ -42,6 +46,9 @@ export function DeluluDetailsSheet({
     isSuccess: isStakeSuccess,
     error: stakeError,
   } = useStake();
+
+
+
   const {
     approve,
     needsApproval,
@@ -53,8 +60,15 @@ export function DeluluDetailsSheet({
   } = useTokenApproval();
   const { balance: cusdBalance, isLoading: isLoadingBalance } =
     useCUSDBalance();
+  const { hasStaked, isBeliever: userIsBeliever, stakeAmount: userStakeAmount } = useUserPosition(
+    delulu?.id || null
+  );
+
   const [stakeAmount, setStakeAmount] = useState("1");
   const [pendingAction, setPendingAction] = useState<
+    "believe" | "doubt" | null
+  >(null);
+  const [lastStakeAction, setLastStakeAction] = useState<
     "believe" | "doubt" | null
   >(null);
   const [showStakeInput, setShowStakeInput] = useState(false);
@@ -62,16 +76,13 @@ export function DeluluDetailsSheet({
   const [errorMessage, setErrorMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Check if user is the creator
   const isCreator = isDeluluCreator(address, delulu);
 
-  // Auto-stake after approval succeeds
   useEffect(() => {
     if (!delulu) return;
     if (isApprovalSuccess && pendingAction) {
       const amount = parseFloat(stakeAmount);
 
-      // Validate before auto-staking
       if (isNaN(amount) || amount <= 0) {
         setErrorMessage("Invalid stake amount");
         setShowErrorModal(true);
@@ -80,7 +91,9 @@ export function DeluluDetailsSheet({
       }
 
       try {
-        if (pendingAction === "believe") {
+        const isBeliever = pendingAction === "believe";
+        setLastStakeAction(pendingAction);
+        if (isBeliever) {
           stake(delulu.id, amount, true);
         } else {
           stake(delulu.id, amount, false);
@@ -113,7 +126,6 @@ export function DeluluDetailsSheet({
       setShowSuccessModal(true);
       setShowStakeInput(false);
       setStakeAmount("1");
-      setPendingAction(null);
     }
   }, [isStakeSuccess]);
 
@@ -149,7 +161,6 @@ export function DeluluDetailsSheet({
     }
   }, [approvalError]);
 
-  // Handle stake errors
   useEffect(() => {
     if (stakeError) {
       let errorMsg = "Failed to stake";
@@ -315,11 +326,14 @@ export function DeluluDetailsSheet({
     }
 
     try {
+      const isBeliever = pendingAction === "believe";
+      setLastStakeAction(pendingAction);
+      
       if (needsApproval(amount)) {
         await approve(amount);
         return;
       }
-      await stake(delulu.id, amount, pendingAction === "believe");
+      await stake(delulu.id, amount, isBeliever);
     } catch (error) {
       console.error("Stake error:", error);
 
@@ -352,9 +366,13 @@ export function DeluluDetailsSheet({
   const isStaking =
     isPending || isConfirming || isApproving || isApprovingConfirming;
   const canStake =
-    !delulu.isResolved && new Date() < delulu.stakingDeadline && !isCreator;
+    !delulu.isResolved &&
+    new Date() < delulu.stakingDeadline &&
+    !isCreator &&
+    !hasStaked;
   const amount = parseFloat(stakeAmount);
   const needsApprovalForAmount = needsApproval(amount);
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -502,6 +520,21 @@ export function DeluluDetailsSheet({
           </div>
         )}
 
+        {/* Already staked message */}
+        {hasStaked && isConnected && !isCreator && (
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
+            <div className="w-full px-6 py-4 bg-delulu-dark/10 rounded-full text-center">
+              <p className="text-sm font-bold text-delulu-dark">
+                You&apos;ve already staked {userStakeAmount > 0
+                  ? userStakeAmount < 0.01
+                    ? userStakeAmount.toFixed(4)
+                    : userStakeAmount.toFixed(2)
+                  : "0.00"} cUSD as a {userIsBeliever ? "believer" : "doubter"}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Insufficient Balance Message */}
         {canStake &&
           isConnected &&
@@ -590,10 +623,11 @@ export function DeluluDetailsSheet({
         type="success"
         title="Stake Placed! 🎉"
         message={`You've successfully staked ${stakeAmount} cUSD as a ${
-          pendingAction === "believe" ? "believer" : "doubter"
+          lastStakeAction === "believe" ? "believer" : "doubter"
         }!`}
         onClose={() => {
           setShowSuccessModal(false);
+          setPendingAction(null);
         }}
         actionText="Done"
       />
