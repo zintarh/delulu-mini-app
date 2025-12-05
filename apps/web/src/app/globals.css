@@ -310,6 +310,16 @@ textarea {
   display: none;
 }
 
+/* Custom Slider Styles */
+.delulu-slider [data-slot="slider-range"] {
+  background-color: white !important;
+}
+
+.delulu-slider [data-slot="slider-thumb"] {
+  border-color: var(--delulu-dark) !important;
+  background-color: white !important;
+}
+
 /* Blinking caret animation */
 @keyframes blink-caret {
   0%, 50% {
