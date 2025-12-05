@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useUserStore } from "@/stores/useUserStore";
 
 interface MiniAppContextType {
   isMiniAppReady: boolean;
@@ -29,20 +30,36 @@ interface MiniAppProviderProps {
 export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderProps): JSX.Element {
   const [context, setContext] = useState<FrameContext | null>(null);
   const [isMiniAppReady, setIsMiniAppReady] = useState(false);
+  const { setUser, setLoading } = useUserStore();
 
   const setMiniAppReady = useCallback(async () => {
     try {
+      setLoading(true);
       const context = await sdk.context;
       if (context) {
         setContext(context);
+        
+        // Extract and store user data from Farcaster context
+        if (context.user) {
+          const userData = {
+            fid: context.user.fid || 0,
+            username: context.user.username,
+            displayName: context.user.displayName,
+            pfpUrl: context.user.pfpUrl,
+          };
+          setUser(userData);
+          console.log("User data synced to store:", userData);
+        }
       }
       await sdk.actions.ready();
     } catch (err) {
       console.error("SDK initialization error:", err);
+      setLoading(false);
     } finally {
       setIsMiniAppReady(true);
+      setLoading(false);
     }
-  }, []);
+  }, [setUser, setLoading]);
 
 
   useEffect(() => {
