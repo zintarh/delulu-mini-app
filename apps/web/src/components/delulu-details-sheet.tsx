@@ -6,12 +6,10 @@ import { useAccount } from "wagmi";
 import { type FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
+import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+import { isDeluluCreator } from "@/lib/delulu-utils";
 
 interface DeluluDetailsSheetProps {
   open: boolean;
@@ -36,7 +34,7 @@ export function DeluluDetailsSheet({
   delulu,
 }: DeluluDetailsSheetProps) {
   const { isConnected, address } = useAccount();
-  const { stake, isPending, isConfirming } = useStake();
+  const { stake, isPending, isConfirming, isSuccess: isStakeSuccess, error: stakeError } = useStake();
   const {
     approve,
     needsApproval,
@@ -49,15 +47,17 @@ export function DeluluDetailsSheet({
   const [pendingAction, setPendingAction] = useState<
     "believe" | "doubt" | null
   >(null);
+  const [showStakeInput, setShowStakeInput] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  if (!delulu) return null;
-
-  const total = delulu.totalBelieverStake + delulu.totalDoubterStake;
-  const believerPercent =
-    total > 0 ? Math.round((delulu.totalBelieverStake / total) * 100) : 0;
+  // Check if user is the creator
+  const isCreator = isDeluluCreator(address, delulu);
 
   // Auto-stake after approval succeeds
   useEffect(() => {
+    if (!delulu) return;
     if (isApprovalSuccess && pendingAction) {
       const amount = parseFloat(stakeAmount);
       if (pendingAction === "believe") {
@@ -72,44 +72,83 @@ export function DeluluDetailsSheet({
     isApprovalSuccess,
     pendingAction,
     stakeAmount,
-    delulu.id,
+    delulu,
     stake,
     refetchAllowance,
   ]);
 
-  const handleBelieve = async () => {
-    if (!isConnected || !address) return;
-    const amount = parseFloat(stakeAmount);
-    if (needsApproval(amount)) {
-      setPendingAction("believe");
-      await approve(amount);
-      return;
+  // Handle stake success
+  useEffect(() => {
+    if (isStakeSuccess) {
+      setShowSuccessModal(true);
+      setShowStakeInput(false);
+      setStakeAmount("1");
+      setPendingAction(null);
     }
-    try {
-      await stake(delulu.id, amount, true);
-    } catch (error) {
-      console.error("Stake error:", error);
+  }, [isStakeSuccess]);
+
+  // Handle stake errors
+  useEffect(() => {
+    if (stakeError) {
+      let errorMsg = "Failed to stake";
+      if (stakeError.message) {
+        if (stakeError.message.includes("user rejected")) {
+          errorMsg = "Transaction was cancelled";
+        } else if (stakeError.message.includes("insufficient")) {
+          errorMsg = "Insufficient balance";
+        } else if (stakeError.message.includes("revert")) {
+          const revertMatch = stakeError.message.match(/revert (.+)/);
+          if (revertMatch) {
+            errorMsg = `Transaction failed: ${revertMatch[1]}`;
+          }
+        } else {
+          errorMsg = stakeError.message;
+        }
+      }
+      setErrorMessage(errorMsg);
+      setShowErrorModal(true);
     }
+  }, [stakeError]);
+
+  if (!delulu) return null;
+
+  const total = delulu.totalBelieverStake + delulu.totalDoubterStake;
+  const believerPercent =
+    total > 0 ? Math.round((delulu.totalBelieverStake / total) * 100) : 0;
+
+  const handleBelieveClick = () => {
+    setPendingAction("believe");
+    setShowStakeInput(true);
   };
 
-  const handleDoubt = async () => {
-    if (!isConnected || !address) return;
+  const handleDoubtClick = () => {
+    setPendingAction("doubt");
+    setShowStakeInput(true);
+  };
+
+  const handleStake = async () => {
+    if (!isConnected || !address || !pendingAction || isCreator) return;
     const amount = parseFloat(stakeAmount);
-    if (needsApproval(amount)) {
-      setPendingAction("doubt");
-      await approve(amount);
-      return;
-    }
+    if (amount <= 0) return;
+
     try {
-      await stake(delulu.id, amount, false);
+      if (needsApproval(amount)) {
+        await approve(amount);
+        return;
+      }
+      await stake(delulu.id, amount, pendingAction === "believe");
     } catch (error) {
       console.error("Stake error:", error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to stake"
+      );
+      setShowErrorModal(true);
     }
   };
 
   const isStaking =
     isPending || isConfirming || isApproving || isApprovingConfirming;
-  const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline;
+  const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !isCreator;
   const amount = parseFloat(stakeAmount);
   const needsApprovalForAmount = needsApproval(amount);
 
@@ -119,25 +158,12 @@ export function DeluluDetailsSheet({
         side="bottom"
         className="bg-delulu-yellow border-t-2 border-delulu-dark/20 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
       >
-        <div className="relative flex flex-col overflow-y-auto pb-24">
+        <div className="relative flex flex-col overflow-y-auto pb-32">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-delulu-dark/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-delulu-dark">
-                  {formatAddress(delulu.creator).slice(0, 2).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-delulu-dark">
-                  {formatAddress(delulu.creator)}
-                </p>
-                <p className="text-xs text-delulu-dark/50">
-                  Created{" "}
-                  {new Date(delulu.stakingDeadline).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-delulu-dark/50 mb-4">
+              Created {new Date(delulu.stakingDeadline).toLocaleDateString()}
+            </p>
 
             {/* Content */}
             <div className="mb-6">
@@ -222,8 +248,8 @@ export function DeluluDetailsSheet({
               </p>
             </div>
 
-            {/* Stake Amount Input */}
-            {canStake && isConnected && (
+            {/* Stake Amount Input - shown after clicking Believe/Doubt */}
+            {canStake && isConnected && showStakeInput && (
               <div className="mb-6">
                 <label className="block text-sm font-bold text-delulu-dark mb-2">
                   Stake Amount (cUSD)
@@ -235,71 +261,114 @@ export function DeluluDetailsSheet({
                   min="0.001"
                   step="0.001"
                   className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-delulu-dark text-delulu-dark font-bold text-lg focus:outline-none focus:ring-2 focus:ring-delulu-dark"
+                  autoFocus
                 />
-                {stakeAmount && parseFloat(stakeAmount) > 0 && (
-                  <div className="mt-4 flex gap-4">
-                    <button
-                      onClick={handleBelieve}
-                      disabled={isStaking}
-                      className={cn(
-                        "flex-1 px-6 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
-                        "flex items-center justify-center gap-2"
-                      )}
-                    >
-                      {isStaking && pendingAction === "believe" ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>
-                            {isApproving || isApprovingConfirming
-                              ? "Approving..."
-                              : "Staking..."}
-                          </span>
-                        </>
-                      ) : (
-                        <span>Believe</span>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleDoubt}
-                      disabled={isStaking}
-                      className={cn(
-                        "flex-1 px-6 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
-                        "flex items-center justify-center gap-2"
-                      )}
-                    >
-                      {isStaking && pendingAction === "doubt" ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>
-                            {isApproving || isApprovingConfirming
-                              ? "Approving..."
-                              : "Staking..."}
-                          </span>
-                        </>
-                      ) : (
-                        <span>Doubt</span>
-                      )}
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
         </div>
 
+        {/* Creator message */}
+        {isCreator && isConnected && (
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
+            <div className="w-full px-6 py-4 bg-delulu-dark/10 rounded-full text-center">
+              <p className="text-sm font-bold text-delulu-dark">
+                You can&apos;t stake on your own delusion
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Action Buttons - at bottom, floating on top */}
+        {canStake && isConnected && !isCreator && (
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 flex gap-4 z-50">
+            {!showStakeInput ? (
+              <>
+                <button
+                  onClick={handleBelieveClick}
+                  className={cn(
+                    "flex-1 px-6 py-4",
+                    "bg-white rounded-full",
+                    "text-delulu-dark font-black text-lg",
+                    "shadow-[0_4px_0_0_#0a0a0a]",
+                    "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                    "transition-all duration-150"
+                  )}
+                >
+                  Believe
+                </button>
+                <button
+                  onClick={handleDoubtClick}
+                  className={cn(
+                    "flex-1 px-6 py-4",
+                    "bg-white rounded-full",
+                    "text-delulu-dark font-black text-lg",
+                    "shadow-[0_4px_0_0_#0a0a0a]",
+                    "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                    "transition-all duration-150"
+                  )}
+                >
+                  Doubt
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleStake}
+                disabled={isStaking || !stakeAmount || amount <= 0}
+                className={cn(
+                  "w-full px-6 py-4",
+                  "bg-white rounded-full",
+                  "text-delulu-dark font-black text-lg",
+                  "shadow-[0_4px_0_0_#0a0a0a]",
+                  "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                  "transition-all duration-150",
+                  "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                  "flex items-center justify-center gap-2"
+                )}
+              >
+                {isStaking ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>
+                      {isApproving || isApprovingConfirming
+                        ? "Approving..."
+                        : "Staking..."}
+                    </span>
+                  </>
+                ) : (
+                  <span>
+                    {pendingAction === "believe" ? "Believe" : "Doubt"}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </SheetContent>
+
+      {/* Success Modal */}
+      <FeedbackModal
+        isOpen={showSuccessModal}
+        type="success"
+        title="Stake Placed! 🎉"
+        message={`You've successfully staked ${stakeAmount} cUSD as a ${pendingAction === "believe" ? "believer" : "doubter"}!`}
+        onClose={() => {
+          setShowSuccessModal(false);
+        }}
+        actionText="Done"
+      />
+
+      {/* Error Modal */}
+      <FeedbackModal
+        isOpen={showErrorModal}
+        type="error"
+        title="Staking Failed"
+        message={errorMessage || "Failed to place stake. Please try again."}
+        onClose={() => {
+          setShowErrorModal(false);
+        }}
+        actionText="Try Again"
+      />
     </Sheet>
   );
 }
