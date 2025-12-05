@@ -85,10 +85,6 @@ export function DatePicker({
             day_outside: "text-delulu-dark/30",
             day_hidden: "invisible",
           }}
-          components={{
-            IconLeft: () => <span className="text-delulu-dark">‹</span>,
-            IconRight: () => <span className="text-delulu-dark">›</span>,
-          }}
         />
       </div>
     </div>
