@@ -7,6 +7,7 @@ import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
+import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const HYPE_TEXT = [
@@ -66,8 +67,7 @@ export function CreateDelusionSheet({
     refetchAllowance,
   } = useTokenApproval();
 
-
-
+  const { balance: cusdBalance, isLoading: isLoadingBalance } = useCUSDBalance();
 
   useEffect(() => {
     if (isSuccess) {
@@ -102,7 +102,9 @@ export function CreateDelusionSheet({
 
   const [deadline, setDeadline] = useState(getDefaultDeadline());
 
-  const hasInsufficientBalance = false;
+  const hasInsufficientBalance = cusdBalance 
+    ? parseFloat(cusdBalance.formatted) < stakeAmount[0]
+    : false;
 
   const canGoNext = () => {
     if (currentStep === 0) return delusionText.trim().length > 0;
@@ -284,14 +286,16 @@ export function CreateDelusionSheet({
                         <span className="font-bold text-delulu-dark/40">
                           Not connected
                         </span>
-                      ) : false ? (
+                      ) : isLoadingBalance ? (
                         <span className="font-bold">Loading...</span>
-                      ) : false ? (
+                      ) : cusdBalance ? (
+                        <span className="font-bold">
+                          {parseFloat(cusdBalance.formatted).toFixed(2)} cUSD
+                        </span>
+                      ) : (
                         <span className="font-bold text-red-600">
                           Error loading balance
                         </span>
-                      ) : (
-                        <span className="font-bold">{0} cUSD</span>
                       )}
                     </p>
                     {isConnected && hasInsufficientBalance && (
