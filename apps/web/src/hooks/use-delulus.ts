@@ -63,19 +63,7 @@ export function useDelulus() {
     args: [1n, 100n], // startId: 1, count: 100
   });
 
-  console.log("=== useDelulus Hook Debug ===");
-  console.log("Contract Address:", DELULU_CONTRACT_ADDRESS);
-  console.log("Args: [startId: 1, count: 100]");
-  console.log("Raw Data:", data);
-  console.log("Is Loading:", isLoading);
-  console.log("Error:", error);
-  if (data && Array.isArray(data)) {
-    console.log("Data Length:", data.length);
-    if (data.length > 0) {
-      console.log("First Item Raw:", (data as any)[0]);
-    }
-  }
-  console.log("============================");
+
 
   const [delulusWithContent, setDelulusWithContent] = useState<FormattedDelulu[]>([]);
 

@@ -247,6 +247,69 @@ textarea {
   -ms-overflow-style: none;
 }
 
+/* Custom Date Picker Styles */
+.rdp {
+  --rdp-cell-size: 32px;
+  --rdp-accent-color: var(--delulu-purple);
+  --rdp-background-color: var(--delulu-yellow);
+  --rdp-accent-color-dark: var(--delulu-purple);
+  --rdp-background-color-dark: var(--delulu-dark);
+  --rdp-outline: 2px solid var(--delulu-purple);
+  --rdp-outline-selected: 2px solid var(--delulu-purple);
+  margin: 0;
+}
+
+.rdp-months {
+  display: flex;
+  justify-content: center;
+}
+
+.rdp-month {
+  margin: 0;
+}
+
+.rdp-table {
+  width: 100%;
+  max-width: none;
+  border-collapse: collapse;
+}
+
+.rdp-day {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+}
+
+/* Override any blue colors to purple */
+.rdp-day_selected,
+.rdp-day_selected:focus-visible,
+.rdp-day_selected:hover {
+  background-color: var(--delulu-purple) !important;
+  color: white !important;
+}
+
+.rdp-day:focus-visible {
+  background-color: var(--delulu-purple) !important;
+  color: white !important;
+}
+
+/* Custom date picker navigation icons */
+.rdp-nav_button_previous::before {
+  content: "‹";
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.rdp-nav_button_next::before {
+  content: "›";
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.rdp-nav_button_previous svg,
+.rdp-nav_button_next svg {
+  display: none;
+}
+
 /* Blinking caret animation */
 @keyframes blink-caret {
   0%, 50% {

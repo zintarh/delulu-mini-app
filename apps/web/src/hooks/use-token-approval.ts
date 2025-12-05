@@ -36,7 +36,7 @@ export function useTokenApproval() {
   });
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -51,6 +51,9 @@ export function useTokenApproval() {
 
   const approve = async (amount: number) => {
     if (!tokenAddress) return;
+    if (isNaN(amount) || amount <= 0) {
+      throw new Error("Invalid amount");
+    }
     
     const amountWei = parseUnits(amount.toString(), 18);
     writeContract({
@@ -64,6 +67,7 @@ export function useTokenApproval() {
 
   const needsApproval = (amount: number): boolean => {
     if (!allowance || !tokenAddress) return true;
+    if (isNaN(amount) || amount <= 0) return true;
     const amountWei = parseUnits(amount.toString(), 18);
     return allowance < amountWei;
   };
@@ -78,7 +82,7 @@ export function useTokenApproval() {
     isPending,
     isConfirming,
     isSuccess,
-    error,
+    error: error || receiptError,
     refetchAllowance,
   };
 }

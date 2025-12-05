@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { type FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
+import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,15 +35,24 @@ export function DeluluDetailsSheet({
   delulu,
 }: DeluluDetailsSheetProps) {
   const { isConnected, address } = useAccount();
-  const { stake, isPending, isConfirming, isSuccess: isStakeSuccess, error: stakeError } = useStake();
+  const {
+    stake,
+    isPending,
+    isConfirming,
+    isSuccess: isStakeSuccess,
+    error: stakeError,
+  } = useStake();
   const {
     approve,
     needsApproval,
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
+    error: approvalError,
     refetchAllowance,
   } = useTokenApproval();
+  const { balance: cusdBalance, isLoading: isLoadingBalance } =
+    useCUSDBalance();
   const [stakeAmount, setStakeAmount] = useState("1");
   const [pendingAction, setPendingAction] = useState<
     "believe" | "doubt" | null
@@ -60,13 +70,33 @@ export function DeluluDetailsSheet({
     if (!delulu) return;
     if (isApprovalSuccess && pendingAction) {
       const amount = parseFloat(stakeAmount);
-      if (pendingAction === "believe") {
-        stake(delulu.id, amount, true);
-      } else {
-        stake(delulu.id, amount, false);
+
+      // Validate before auto-staking
+      if (isNaN(amount) || amount <= 0) {
+        setErrorMessage("Invalid stake amount");
+        setShowErrorModal(true);
+        setPendingAction(null);
+        return;
       }
-      setPendingAction(null);
-      refetchAllowance();
+
+      try {
+        if (pendingAction === "believe") {
+          stake(delulu.id, amount, true);
+        } else {
+          stake(delulu.id, amount, false);
+        }
+        setPendingAction(null);
+        refetchAllowance();
+      } catch (error) {
+        console.error("Auto-stake error:", error);
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Failed to stake after approval"
+        );
+        setShowErrorModal(true);
+        setPendingAction(null);
+      }
     }
   }, [
     isApprovalSuccess,
@@ -87,24 +117,129 @@ export function DeluluDetailsSheet({
     }
   }, [isStakeSuccess]);
 
+  // Handle approval errors
+  useEffect(() => {
+    if (approvalError) {
+      let errorMsg = "Failed to approve cUSD";
+
+      if (approvalError.message) {
+        const errorLower = approvalError.message.toLowerCase();
+
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied") ||
+          errorLower.includes("rejected the request")
+        ) {
+          errorMsg = "Approval was cancelled";
+        } else if (errorLower.includes("insufficient")) {
+          errorMsg = "Insufficient balance for approval";
+        } else if (errorLower.includes("revert")) {
+          errorMsg = "Approval failed. Please try again.";
+        } else {
+          errorMsg =
+            approvalError.message.length > 100
+              ? "Approval failed. Please try again."
+              : approvalError.message;
+        }
+      }
+
+      setErrorMessage(errorMsg);
+      setShowErrorModal(true);
+      setPendingAction(null);
+    }
+  }, [approvalError]);
+
   // Handle stake errors
   useEffect(() => {
     if (stakeError) {
       let errorMsg = "Failed to stake";
+
       if (stakeError.message) {
-        if (stakeError.message.includes("user rejected")) {
+        const errorLower = stakeError.message.toLowerCase();
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied") ||
+          errorLower.includes("rejected the request")
+        ) {
           errorMsg = "Transaction was cancelled";
-        } else if (stakeError.message.includes("insufficient")) {
-          errorMsg = "Insufficient balance";
-        } else if (stakeError.message.includes("revert")) {
-          const revertMatch = stakeError.message.match(/revert (.+)/);
-          if (revertMatch) {
-            errorMsg = `Transaction failed: ${revertMatch[1]}`;
+        }
+        // Insufficient balance
+        else if (
+          errorLower.includes("insufficient") ||
+          errorLower.includes("balance too low")
+        ) {
+          errorMsg = "Insufficient cUSD balance";
+        }
+        // Contract revert errors
+        else if (errorLower.includes("revert")) {
+          // Try to extract the revert reason
+          const revertMatch = stakeError.message.match(
+            /revert\s+(.+?)(?:\s|$)/i
+          );
+          if (revertMatch && revertMatch[1]) {
+            const reason = revertMatch[1].trim();
+            // Common contract errors
+            if (
+              reason.includes("StakingDeadlinePassed") ||
+              reason.includes("deadline")
+            ) {
+              errorMsg = "Staking deadline has passed";
+            } else if (
+              reason.includes("DeluluResolved") ||
+              reason.includes("resolved")
+            ) {
+              errorMsg = "This delulu has already been resolved";
+            } else if (
+              reason.includes("DeluluCancelled") ||
+              reason.includes("cancelled")
+            ) {
+              errorMsg = "This delulu has been cancelled";
+            } else if (
+              reason.includes("CreatorCannotStake") ||
+              reason.includes("creator")
+            ) {
+              errorMsg = "Creators cannot stake on their own delulu";
+            } else if (
+              reason.includes("InvalidAmount") ||
+              reason.includes("amount")
+            ) {
+              errorMsg = "Invalid stake amount";
+            } else {
+              errorMsg = `Transaction failed: ${reason}`;
+            }
+          } else {
+            errorMsg = "Transaction failed. Please try again.";
           }
-        } else {
-          errorMsg = stakeError.message;
+        }
+        // Network/RPC errors
+        else if (
+          errorLower.includes("network") ||
+          errorLower.includes("connection") ||
+          errorLower.includes("timeout") ||
+          errorLower.includes("block is out of range") ||
+          errorLower.includes("synchronization") ||
+          errorLower.includes("rpc")
+        ) {
+          errorMsg =
+            "Network synchronization issue. The RPC node is catching up. Please wait a moment and try again.";
+        }
+        // Gas estimation errors
+        else if (
+          errorLower.includes("gas") ||
+          errorLower.includes("execution reverted")
+        ) {
+          errorMsg =
+            "Transaction would fail. Please check your balance and try again.";
+        }
+        // Generic error
+        else {
+          errorMsg =
+            stakeError.message.length > 100
+              ? "Transaction failed. Please try again."
+              : stakeError.message;
         }
       }
+
       setErrorMessage(errorMsg);
       setShowErrorModal(true);
     }
@@ -116,20 +251,68 @@ export function DeluluDetailsSheet({
   const believerPercent =
     total > 0 ? Math.round((delulu.totalBelieverStake / total) * 100) : 0;
 
+  const hasBalance = cusdBalance
+    ? parseFloat(cusdBalance.formatted) > 0
+    : false;
+  const hasInsufficientBalance = cusdBalance
+    ? parseFloat(cusdBalance.formatted) < parseFloat(stakeAmount || "0")
+    : false;
+
   const handleBelieveClick = () => {
+    if (!hasBalance) {
+      setErrorMessage("Insufficient balance. You need cUSD to stake.");
+      setShowErrorModal(true);
+      return;
+    }
     setPendingAction("believe");
     setShowStakeInput(true);
   };
 
   const handleDoubtClick = () => {
+    if (!hasBalance) {
+      setErrorMessage("Insufficient balance. You need cUSD to stake.");
+      setShowErrorModal(true);
+      return;
+    }
     setPendingAction("doubt");
     setShowStakeInput(true);
   };
 
   const handleStake = async () => {
     if (!isConnected || !address || !pendingAction || isCreator) return;
+
     const amount = parseFloat(stakeAmount);
-    if (amount <= 0) return;
+
+    // Validate amount
+    if (isNaN(amount) || amount <= 0) {
+      setErrorMessage("Please enter a valid stake amount (greater than 0)");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check balance before staking
+    if (cusdBalance && parseFloat(cusdBalance.formatted) < amount) {
+      setErrorMessage(
+        `Insufficient balance. You have ${parseFloat(
+          cusdBalance.formatted
+        ).toFixed(2)} cUSD but need ${amount.toFixed(2)} cUSD.`
+      );
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check if delulu is still active
+    if (delulu.isResolved) {
+      setErrorMessage("This delulu has already been resolved");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (new Date() >= delulu.stakingDeadline) {
+      setErrorMessage("Staking deadline has passed");
+      setShowErrorModal(true);
+      return;
+    }
 
     try {
       if (needsApproval(amount)) {
@@ -139,16 +322,37 @@ export function DeluluDetailsSheet({
       await stake(delulu.id, amount, pendingAction === "believe");
     } catch (error) {
       console.error("Stake error:", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to stake"
-      );
+
+      let errorMsg = "Failed to stake";
+      if (error instanceof Error) {
+        const errorLower = error.message.toLowerCase();
+
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied")
+        ) {
+          errorMsg = "Transaction was cancelled";
+        } else if (errorLower.includes("insufficient")) {
+          errorMsg = "Insufficient balance";
+        } else if (errorLower.includes("invalid")) {
+          errorMsg = error.message;
+        } else {
+          errorMsg =
+            error.message.length > 100
+              ? "Transaction failed. Please try again."
+              : error.message;
+        }
+      }
+
+      setErrorMessage(errorMsg);
       setShowErrorModal(true);
     }
   };
 
   const isStaking =
     isPending || isConfirming || isApproving || isApprovingConfirming;
-  const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !isCreator;
+  const canStake =
+    !delulu.isResolved && new Date() < delulu.stakingDeadline && !isCreator;
   const amount = parseFloat(stakeAmount);
   const needsApprovalForAmount = needsApproval(amount);
 
@@ -200,14 +404,17 @@ export function DeluluDetailsSheet({
 
             {/* Progress Ring */}
             <div className="flex items-center justify-center mb-6">
-              <div className="relative w-32 h-32">
+              <div
+                className="relative w-32 h-32"
+                style={{ filter: "drop-shadow(0 4px 0 #0a0a0a)" }}
+              >
                 <svg className="w-32 h-32 -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
                     r="40"
                     fill="none"
-                    stroke="rgba(10,10,10,0.2)"
+                    stroke="rgba(255,255,255,0.3)"
                     strokeWidth="8"
                   />
                   <circle
@@ -215,7 +422,7 @@ export function DeluluDetailsSheet({
                     cy="50"
                     r="40"
                     fill="none"
-                    stroke="var(--delulu-purple)"
+                    stroke="#ffffff"
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 40}
@@ -249,7 +456,7 @@ export function DeluluDetailsSheet({
             </div>
 
             {/* Stake Amount Input - shown after clicking Believe/Doubt */}
-            {canStake && isConnected && showStakeInput && (
+            {canStake && isConnected && showStakeInput && hasBalance && (
               <div className="mb-6">
                 <label className="block text-sm font-bold text-delulu-dark mb-2">
                   Stake Amount (cUSD)
@@ -260,9 +467,25 @@ export function DeluluDetailsSheet({
                   onChange={(e) => setStakeAmount(e.target.value)}
                   min="0.001"
                   step="0.001"
+                  max={cusdBalance ? cusdBalance.formatted : undefined}
                   className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-delulu-dark text-delulu-dark font-bold text-lg focus:outline-none focus:ring-2 focus:ring-delulu-dark"
                   autoFocus
                 />
+                {isLoadingBalance ? (
+                  <p className="text-xs text-delulu-dark/50 mt-2">
+                    Loading balance...
+                  </p>
+                ) : cusdBalance ? (
+                  <p className="text-xs text-delulu-dark/50 mt-2">
+                    Available: {parseFloat(cusdBalance.formatted).toFixed(2)}{" "}
+                    cUSD
+                  </p>
+                ) : null}
+                {hasInsufficientBalance && (
+                  <p className="text-sm text-red-600 mt-2 font-bold">
+                    Insufficient balance
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -279,8 +502,23 @@ export function DeluluDetailsSheet({
           </div>
         )}
 
+        {/* Insufficient Balance Message */}
+        {canStake &&
+          isConnected &&
+          !isCreator &&
+          !isLoadingBalance &&
+          !hasBalance && (
+            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
+              <div className="w-full px-6 py-4 bg-red-100 rounded-full text-center">
+                <p className="text-sm font-bold text-red-600">
+                  Insufficient balance. You need cUSD to stake.
+                </p>
+              </div>
+            </div>
+          )}
+
         {/* Floating Action Buttons - at bottom, floating on top */}
-        {canStake && isConnected && !isCreator && (
+        {canStake && isConnected && !isCreator && hasBalance && (
           <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 flex gap-4 z-50">
             {!showStakeInput ? (
               <>
@@ -351,7 +589,9 @@ export function DeluluDetailsSheet({
         isOpen={showSuccessModal}
         type="success"
         title="Stake Placed! 🎉"
-        message={`You've successfully staked ${stakeAmount} cUSD as a ${pendingAction === "believe" ? "believer" : "doubter"}!`}
+        message={`You've successfully staked ${stakeAmount} cUSD as a ${
+          pendingAction === "believe" ? "believer" : "doubter"
+        }!`}
         onClose={() => {
           setShowSuccessModal(false);
         }}
