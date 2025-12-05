@@ -119,14 +119,14 @@ export function CreateDelusionSheet({
   const canGoNext = () => {
     if (currentStep === 0) return delusionText.trim().length > 0;
     if (currentStep === 1) return true;
-    if (currentStep === 2) return stakeAmount[0] > 0 && !hasInsufficientBalance;
+    if (currentStep === 2) return stakeAmount[0] >= 1 && !hasInsufficientBalance;
     return false;
   };
 
   const handleNext = () => {
     if (canGoNext() && currentStep < 3) {
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
-      if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] <= 0)) {
+      if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] < 1)) {
         console.warn("Invalid stake amount detected, resetting to 1");
         setStakeAmount([1]);
       }
@@ -249,14 +249,16 @@ export function CreateDelusionSheet({
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "") {
-                            setStakeAmount([0.01]);
+                            setStakeAmount([1]);
                             return;
                           }
                           const numValue = parseFloat(value);
-                          if (!isNaN(numValue) && numValue >= 0) {
-                            const clampedValue = Math.min(numValue, 10000);
+                          if (!isNaN(numValue) && numValue >= 1) {
+                            const clampedValue = Math.max(1, Math.min(numValue, 10000));
                             setStakeAmount([clampedValue]);
                             console.log("Stake amount set to:", clampedValue);
+                          } else if (!isNaN(numValue) && numValue < 1) {
+                            setStakeAmount([1]);
                           }
                         }}
                         onBlur={(e) => {
@@ -264,21 +266,22 @@ export function CreateDelusionSheet({
                           if (
                             e.target.value === "" ||
                             isNaN(currentValue) ||
-                            currentValue <= 0
+                            currentValue < 1
                           ) {
                             setStakeAmount([1]);
                             console.log("Reset stake amount to 1.00");
                           } else {
-                            setStakeAmount([currentValue]);
+                            const clampedValue = Math.max(1, currentValue);
+                            setStakeAmount([clampedValue]);
                             console.log(
                               "Stake amount confirmed on blur:",
-                              currentValue
+                              clampedValue
                             );
                           }
                         }}
-                        min={0}
+                        min={1}
                         max={10000}
-                        step="any"
+                        step="0.01"
                         className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-delulu-dark/5 rounded-2xl px-4 transition-colors"
                         style={{
                           width: `${
@@ -295,14 +298,17 @@ export function CreateDelusionSheet({
                   <div className="px-8">
                     <Slider
                       value={stakeAmount}
-                      onValueChange={setStakeAmount}
-                      min={0.001}
+                      onValueChange={(values) => {
+                        const clamped = values.map(v => Math.max(1, v));
+                        setStakeAmount(clamped);
+                      }}
+                      min={1}
                       max={1000}
-                      step={0.001}
+                      step={0.01}
                       className="delulu-slider"
                     />
                     <div className="flex justify-between text-sm text-delulu-dark/50 font-medium mt-4">
-                      <span>$0.001</span>
+                      <span>$1.00</span>
                       <span>$1,000</span>
                     </div>
                   </div>
@@ -328,6 +334,11 @@ export function CreateDelusionSheet({
                     {isConnected && !isLoadingBalance && !cusdBalance && (
                       <p className="text-xs text-delulu-dark/40 mt-1">
                         Check console for details
+                      </p>
+                    )}
+                    {isConnected && stakeAmount[0] < 1 && (
+                      <p className="text-sm text-red-600 mt-2 font-bold">
+                        Minimum stake is 1 cUSD
                       </p>
                     )}
                     {isConnected && hasInsufficientBalance && (
