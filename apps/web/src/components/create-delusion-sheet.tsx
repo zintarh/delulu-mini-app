@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Home } from "lucide-react";
 import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
+import { DatePicker } from "@/components/date-picker";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 const HYPE_TEXT = [
   {
@@ -40,6 +43,7 @@ export function CreateDelusionSheet({
   onOpenChange,
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
@@ -90,16 +94,23 @@ export function CreateDelusionSheet({
   const getDefaultDeadline = () => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
-    return date.toISOString().slice(0, 16);
+    date.setHours(12, 0, 0, 0);
+    return date;
   };
 
   const getMinDeadline = () => {
     const date = new Date();
     date.setHours(date.getHours() + 24);
-    return date.toISOString().slice(0, 16);
+    return date;
   };
 
-  const [deadline, setDeadline] = useState(getDefaultDeadline());
+  const getMaxDeadline = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date;
+  };
+
+  const [deadline, setDeadline] = useState<Date>(getDefaultDeadline());
 
   const hasInsufficientBalance = cusdBalance
     ? parseFloat(cusdBalance.formatted) < stakeAmount[0]
@@ -151,6 +162,26 @@ export function CreateDelusionSheet({
           className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
         >
           <div className="relative h-full flex flex-col overflow-y-auto">
+            {/* Home Icon */}
+            <button
+              onClick={() => {
+                handleClose();
+                router.push("/");
+              }}
+              className={cn(
+                "absolute top-4 left-4 z-20",
+                "w-10 h-10",
+                "bg-white rounded-full",
+                "text-delulu-dark",
+                "shadow-[0_4px_0_0_#0a0a0a]",
+                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                "transition-all duration-150",
+                "flex items-center justify-center hover:bg-delulu-dark/5"
+              )}
+            >
+              <Home className="w-5 h-5" />
+            </button>
+
             {/* Progress indicators */}
             <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10 px-6">
               {[0, 1, 2, 3].map((step) => (
@@ -168,7 +199,10 @@ export function CreateDelusionSheet({
             </div>
 
             <div className="absolute top-16 left-0 right-0 text-center px-6 z-10">
-              <p className="text-lg font-gloria text-delulu-dark/80 tracking-wide">
+              <p
+                className="text-sm font-bold text-delulu-dark/80 "
+                style={{ fontFamily: "var(--font-gloria)" }}
+              >
                 {HYPE_TEXT[currentStep].subtitle}
               </p>
             </div>
@@ -190,16 +224,11 @@ export function CreateDelusionSheet({
 
               {currentStep === 1 && (
                 <div className="w-full max-w-2xl">
-                  <input
-                    type="datetime-local"
+                  <DatePicker
                     value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    min={getMinDeadline()}
-                    className="w-full bg-transparent border-none outline-none text-2xl font-bold text-delulu-dark text-center caret-delulu-dark"
-                    style={{
-                      caretColor: "#0a0a0a",
-                      colorScheme: "light",
-                    }}
+                    onChange={(date) => date && setDeadline(date)}
+                    minDate={getMinDeadline()}
+                    maxDate={getMaxDeadline()}
                   />
                   <p className="text-sm text-delulu-dark/50 text-center mt-6">
                     24h minimum • 1 year max
@@ -328,7 +357,7 @@ export function CreateDelusionSheet({
                           Deadline
                         </p>
                         <p className="text-lg font-bold text-delulu-dark">
-                          {new Date(deadline).toLocaleDateString("en-US", {
+                          {deadline.toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                           })}
@@ -361,30 +390,67 @@ export function CreateDelusionSheet({
                   {currentStep > 0 && (
                     <button
                       onClick={handleBack}
-                      className="w-14 h-14 rounded-full bg-delulu-dark/80 backdrop-blur-sm flex items-center justify-center hover:bg-delulu-dark transition-colors"
+                      className={cn(
+                        "w-14 h-14",
+                        "bg-delulu-dark rounded-full",
+                        "text-white",
+                        "shadow-[0_4px_0_0_#0a0a0a]",
+                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                        "transition-all duration-150",
+                        "flex items-center justify-center hover:bg-delulu-dark/90"
+                      )}
                     >
-                      <ArrowLeft className="w-6 h-6 text-white" />
+                      <ArrowLeft className="w-6 h-6" />
                     </button>
                   )}
                   <button
                     onClick={handleNext}
                     disabled={!canGoNext()}
-                    className={`flex-1 h-14 rounded-full font-bold text-lg transition-all ${
-                      canGoNext()
-                        ? "bg-delulu-dark hover:bg-delulu-dark/90 text-white"
-                        : "bg-delulu-dark/20 text-delulu-dark/40 cursor-not-allowed"
-                    }`}
+                    className={cn(
+                      "flex-1",
+                      "px-8 py-4",
+                      "bg-white rounded-full",
+                      "text-delulu-dark font-black text-lg",
+                      "shadow-[0_4px_0_0_#0a0a0a]",
+                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                      "transition-all duration-150",
+                      "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed"
+                    )}
                   >
                     Continue
                   </button>
                 </div>
               ) : (
-                <div className="w-full max-w-md mx-auto">
+                <div className="w-full max-w-md mx-auto flex items-center gap-4">
+                  <button
+                    onClick={handleBack}
+                    className={cn(
+                      "w-14 h-14",
+                      "bg-delulu-dark rounded-full",
+                      "text-white",
+                      "shadow-[0_4px_0_0_#0a0a0a]",
+                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                      "transition-all duration-150",
+                      "flex items-center justify-center hover:bg-delulu-dark/90"
+                    )}
+                  >
+                    <ArrowLeft className="w-6 h-6" />
+                  </button>
                   {needsApproval(stakeAmount[0]) ? (
                     <button
                       onClick={() => approve(stakeAmount[0])}
                       disabled={isApproving || isApprovingConfirming}
-                      className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className={cn(
+                        "flex-1",
+                        "px-8 py-4",
+                        "bg-white rounded-full",
+                        "text-delulu-dark font-black text-lg",
+                        "shadow-[0_4px_0_0_#0a0a0a]",
+                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                        "transition-all duration-150",
+                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "flex items-center justify-center gap-2"
+                      )}
                     >
                       {isApproving || isApprovingConfirming ? (
                         <>
@@ -415,7 +481,17 @@ export function CreateDelusionSheet({
                         }
                       }}
                       disabled={isCreating || isConfirming}
-                      className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className={cn(
+                        "flex-1",
+                        "px-8 py-4",
+                        "bg-white rounded-full",
+                        "text-delulu-dark font-black text-lg",
+                        "shadow-[0_4px_0_0_#0a0a0a]",
+                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                        "transition-all duration-150",
+                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "flex items-center justify-center gap-2"
+                      )}
                     >
                       {isCreating || isConfirming ? (
                         <>

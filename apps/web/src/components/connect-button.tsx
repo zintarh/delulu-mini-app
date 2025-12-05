@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
 import { Loader2, ChevronDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
