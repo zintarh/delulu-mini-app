@@ -8,6 +8,11 @@ import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { useUserPosition } from "@/hooks/use-user-position";
+import { usePotentialPayout } from "@/hooks/use-potential-payout";
+import { useClaimable } from "@/hooks/use-claimable";
+import { useClaimWinnings } from "@/hooks/use-claim-winnings";
+import { useDeluluState, DeluluState } from "@/hooks/use-delulu-state";
+import { DeluluStatusBadge } from "@/components/delulu-status-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,6 +69,18 @@ export function DeluluDetailsSheet({
     delulu?.id || null
   );
 
+  const { stateEnum: deluluState } = useDeluluState(delulu?.id || null);
+  const { isClaimable, isLoading: isLoadingClaimable } = useClaimable(
+    delulu?.id || null
+  );
+  const {
+    claim,
+    isPending: isClaiming,
+    isConfirming: isClaimConfirming,
+    isSuccess: isClaimSuccess,
+    error: claimError,
+  } = useClaimWinnings();
+
   const [stakeAmount, setStakeAmount] = useState("1");
   const [pendingAction, setPendingAction] = useState<
     "believe" | "doubt" | null
@@ -75,6 +92,14 @@ export function DeluluDetailsSheet({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
+
+  // Calculate potential payout when user enters stake amount
+  const { potentialPayout, isLoading: isLoadingPayout } = usePotentialPayout(
+    delulu?.id || null,
+    showStakeInput && stakeAmount ? parseFloat(stakeAmount) : null,
+    pendingAction === "believe" ? true : pendingAction === "doubt" ? false : null
+  );
 
   const isCreator = isDeluluCreator(address, delulu);
 
@@ -128,6 +153,40 @@ export function DeluluDetailsSheet({
       setStakeAmount("1");
     }
   }, [isStakeSuccess]);
+
+  // Handle claim success
+  useEffect(() => {
+    if (isClaimSuccess) {
+      setShowClaimSuccessModal(true);
+    }
+  }, [isClaimSuccess]);
+
+  // Handle claim errors
+  useEffect(() => {
+    if (claimError) {
+      let errorMsg = "Failed to claim winnings";
+      if (claimError.message) {
+        const errorLower = claimError.message.toLowerCase();
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied")
+        ) {
+          errorMsg = "Claim was cancelled";
+        } else if (errorLower.includes("already claimed")) {
+          errorMsg = "Winnings have already been claimed";
+        } else if (errorLower.includes("not claimable")) {
+          errorMsg = "Winnings are not yet claimable";
+        } else {
+          errorMsg =
+            claimError.message.length > 100
+              ? "Claim failed. Please try again."
+              : claimError.message;
+        }
+      }
+      setErrorMessage(errorMsg);
+      setShowErrorModal(true);
+    }
+  }, [claimError]);
 
   // Handle approval errors
   useEffect(() => {
@@ -383,6 +442,14 @@ export function DeluluDetailsSheet({
         <div className="relative flex flex-col overflow-y-auto pb-32">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
+            {/* Status Badge */}
+            <div className="mb-4">
+              <DeluluStatusBadge
+                state={deluluState}
+                isResolved={delulu.isResolved}
+                isCancelled={delulu.isCancelled}
+              />
+            </div>
             <p className="text-xs text-delulu-dark/50 mb-4">
               Created {new Date(delulu.stakingDeadline).toLocaleDateString()}
             </p>
@@ -504,6 +571,23 @@ export function DeluluDetailsSheet({
                     Insufficient balance
                   </p>
                 )}
+                {/* Potential Payout Display */}
+                {potentialPayout !== null &&
+                  !isLoadingPayout &&
+                  stakeAmount &&
+                  parseFloat(stakeAmount) > 0 && (
+                    <div className="mt-4 p-4 rounded-2xl bg-delulu-green/10 border-2 border-delulu-green/30">
+                      <p className="text-xs text-delulu-dark/50 mb-1">
+                        Potential Payout
+                      </p>
+                      <p className="text-xl font-black text-delulu-green">
+                        {potentialPayout.toFixed(2)} cUSD
+                      </p>
+                      <p className="text-xs text-delulu-dark/50 mt-1">
+                        If you win, you&apos;ll receive this amount
+                      </p>
+                    </div>
+                  )}
               </div>
             )}
           </div>
@@ -550,8 +634,40 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
+        {/* Claim Button - shown when winnings are claimable */}
+        {isClaimable &&
+          isConnected &&
+          !isLoadingClaimable &&
+          delulu.isResolved && (
+            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
+              <button
+                onClick={() => claim(delulu.id)}
+                disabled={isClaiming || isClaimConfirming}
+                className={cn(
+                  "w-full px-6 py-4",
+                  "bg-delulu-green rounded-full",
+                  "text-white font-black text-lg",
+                  "shadow-[0_4px_0_0_#0a0a0a]",
+                  "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                  "transition-all duration-150",
+                  "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                  "flex items-center justify-center gap-2"
+                )}
+              >
+                {isClaiming || isClaimConfirming ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Claiming...</span>
+                  </>
+                ) : (
+                  <span>Claim Winnings</span>
+                )}
+              </button>
+            </div>
+          )}
+
         {/* Floating Action Buttons - at bottom, floating on top */}
-        {canStake && isConnected && !isCreator && hasBalance && (
+        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
           <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 flex gap-4 z-50">
             {!showStakeInput ? (
               <>
@@ -642,6 +758,18 @@ export function DeluluDetailsSheet({
           setShowErrorModal(false);
         }}
         actionText="Try Again"
+      />
+
+      {/* Claim Success Modal */}
+      <FeedbackModal
+        isOpen={showClaimSuccessModal}
+        type="success"
+        title="Winnings Claimed! 🎉"
+        message="Your winnings have been successfully claimed and sent to your wallet!"
+        onClose={() => {
+          setShowClaimSuccessModal(false);
+        }}
+        actionText="Done"
       />
     </Sheet>
   );
