@@ -46,7 +46,9 @@ export function DeluluDetailsSheet({
     refetchAllowance,
   } = useTokenApproval();
   const [stakeAmount, setStakeAmount] = useState("1");
-  const [pendingAction, setPendingAction] = useState<"believe" | "doubt" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "believe" | "doubt" | null
+  >(null);
 
   if (!delulu) return null;
 
@@ -66,7 +68,14 @@ export function DeluluDetailsSheet({
       setPendingAction(null);
       refetchAllowance();
     }
-  }, [isApprovalSuccess, pendingAction, stakeAmount, delulu.id, stake, refetchAllowance]);
+  }, [
+    isApprovalSuccess,
+    pendingAction,
+    stakeAmount,
+    delulu.id,
+    stake,
+    refetchAllowance,
+  ]);
 
   const handleBelieve = async () => {
     if (!isConnected || !address) return;
@@ -108,9 +117,9 @@ export function DeluluDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-[85vh] max-h-[85vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
+        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
       >
-        <div className="relative h-full flex flex-col overflow-y-auto pb-24">
+        <div className="relative flex flex-col overflow-y-auto pb-24">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
             <div className="flex items-center gap-3 mb-4">
@@ -180,7 +189,7 @@ export function DeluluDetailsSheet({
                     cy="50"
                     r="40"
                     fill="none"
-                    stroke="#0a0a0a"
+                    stroke="var(--delulu-purple)"
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 40}
@@ -227,74 +236,69 @@ export function DeluluDetailsSheet({
                   step="0.001"
                   className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-delulu-dark text-delulu-dark font-bold text-lg focus:outline-none focus:ring-2 focus:ring-delulu-dark"
                 />
+                {stakeAmount && parseFloat(stakeAmount) > 0 && (
+                  <div className="mt-4 flex gap-4">
+                    <button
+                      onClick={handleBelieve}
+                      disabled={isStaking}
+                      className={cn(
+                        "flex-1 px-6 py-4",
+                        "bg-white rounded-full",
+                        "text-delulu-dark font-black text-lg",
+                        "shadow-[0_4px_0_0_#0a0a0a]",
+                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                        "transition-all duration-150",
+                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "flex items-center justify-center gap-2"
+                      )}
+                    >
+                      {isStaking && pendingAction === "believe" ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>
+                            {isApproving || isApprovingConfirming
+                              ? "Approving..."
+                              : "Staking..."}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Believe</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleDoubt}
+                      disabled={isStaking}
+                      className={cn(
+                        "flex-1 px-6 py-4",
+                        "bg-white rounded-full",
+                        "text-delulu-dark font-black text-lg",
+                        "shadow-[0_4px_0_0_#0a0a0a]",
+                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
+                        "transition-all duration-150",
+                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "flex items-center justify-center gap-2"
+                      )}
+                    >
+                      {isStaking && pendingAction === "doubt" ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>
+                            {isApproving || isApprovingConfirming
+                              ? "Approving..."
+                              : "Staking..."}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Doubt</span>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Floating Action Buttons */}
-        {canStake && isConnected && (
-          <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow border-t border-delulu-dark/10 flex gap-4 z-50">
-            <button
-              onClick={handleBelieve}
-              disabled={isStaking || !stakeAmount || amount <= 0}
-              className={cn(
-                "flex-1 px-6 py-4",
-                "bg-white rounded-full",
-                "text-delulu-dark font-black text-lg",
-                "shadow-[0_4px_0_0_#0a0a0a]",
-                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                "transition-all duration-150",
-                "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
-                "flex items-center justify-center gap-2"
-              )}
-            >
-              {isStaking ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>
-                    {isApproving || isApprovingConfirming
-                      ? "Approving..."
-                      : "Staking..."}
-                  </span>
-                </>
-              ) : needsApprovalForAmount ? (
-                <span>Approve & Believe</span>
-              ) : (
-                <span>Believe</span>
-              )}
-            </button>
-            <button
-              onClick={handleDoubt}
-              disabled={isStaking || !stakeAmount || amount <= 0}
-              className={cn(
-                "flex-1 px-6 py-4",
-                "bg-white rounded-full",
-                "text-delulu-dark font-black text-lg",
-                "shadow-[0_4px_0_0_#0a0a0a]",
-                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                "transition-all duration-150",
-                "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
-                "flex items-center justify-center gap-2"
-              )}
-            >
-              {isStaking ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>
-                    {isApproving || isApprovingConfirming
-                      ? "Approving..."
-                      : "Staking..."}
-                  </span>
-                </>
-              ) : needsApprovalForAmount ? (
-                <span>Approve & Doubt</span>
-              ) : (
-                <span>Doubt</span>
-              )}
-            </button>
-          </div>
-        )}
       </SheetContent>
     </Sheet>
   );
