@@ -7,10 +7,10 @@ import { Navbar } from "@/components/navbar"
 import { LoginScreen } from "@/components/login-screen"
 import { CreateDelusionSheet } from "@/components/create-delusion-sheet"
 import { ProfileSheet } from "@/components/profile-sheet"
-import { DeluluCardSkeleton,  } from "@/components/delulu-skeleton"
+import { DeluluCardSkeleton } from "@/components/delulu-skeleton"
+import { DeluluDetailsSheet } from "@/components/delulu-details-sheet"
 import { useAccount } from "wagmi"
 import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus"
-import Link from "next/link"
 
 function formatTimeRemaining(deadline: Date): string {
   const now = new Date()
@@ -68,6 +68,8 @@ export default function HomePage() {
   const { delulus, isLoading } = useDelulus()
   const [createSheetOpen, setCreateSheetOpen] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
+  const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(null)
+  const [detailsSheetOpen, setDetailsSheetOpen] = useState(false)
   
   console.log("=== HomePage Debug ===");
   console.log("Delulus from hook:", delulus);
@@ -98,9 +100,27 @@ export default function HomePage() {
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {hotDelusions.map((delusion) => (
-              <Link 
+              <button
                 key={delusion.id}
-                href={`/delusion/${delusion.id}`}
+                onClick={() => {
+                  // For static hot delusions, create a mock FormattedDelulu
+                  const mockDelulu: FormattedDelulu = {
+                    id: delusion.id,
+                    creator: delusion.creator,
+                    contentHash: delusion.claim,
+                    content: delusion.claim,
+                    stakingDeadline: delusion.deadline,
+                    resolutionDeadline: new Date(delusion.deadline.getTime() + 24 * 60 * 60 * 1000),
+                    totalBelieverStake: delusion.believers,
+                    totalDoubterStake: delusion.doubters,
+                    totalStake: delusion.pool,
+                    outcome: false,
+                    isResolved: false,
+                    isCancelled: false,
+                  };
+                  setSelectedDelulu(mockDelulu);
+                  setDetailsSheetOpen(true);
+                }}
                 className="shrink-0 w-full snap-center"
               >
                 <div 
@@ -222,7 +242,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
           
@@ -267,36 +287,47 @@ export default function HomePage() {
               ))}
             </div>
           ) : endingSoonDelusions.length > 0 ? (
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-3">
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-delulu-dark/50" />
                 <span className="text-xs font-bold text-delulu-dark/50 uppercase tracking-wider">Ending Soon</span>
-              </div>
-              <div className="space-y-2">
+          </div>
+          <div className="space-y-2">
                 {endingSoonDelusions.map((delusion) => (
-                  <Link 
+                  <button
                     key={delusion.id}
-                    href={`/delusion/${delusion.id}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl bg-delulu-dark/5 active:scale-[0.98] transition-transform hover:bg-delulu-dark/10"
+                    onClick={() => {
+                      setSelectedDelulu(delusion);
+                      setDetailsSheetOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-delulu-dark/5 active:scale-[0.98] transition-transform hover:bg-delulu-dark/10 text-left"
                   >
                     <div className="w-8 h-8 rounded-full bg-delulu-dark/10 flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-bold text-delulu-dark">
                         {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-delulu-dark truncate">{delusion.contentHash}</p>
-                    </div>
-                    <div className="text-right shrink-0">
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-delulu-dark truncate">
+                        {delusion.content || delusion.contentHash}
+                      </p>
+                </div>
+                <div className="text-right shrink-0">
                       <p className="text-xs font-black text-delulu-dark">
                         {formatTimeRemaining(delusion.stakingDeadline)}
                       </p>
-                      <p className="text-xs text-delulu-dark/50">${delusion.totalStake.toFixed(0)}</p>
+                      <p className="text-xs text-delulu-dark/50">
+                        ${delusion.totalStake > 0 
+                          ? (delusion.totalStake < 1 
+                              ? delusion.totalStake.toFixed(2) 
+                              : delusion.totalStake.toFixed(0))
+                          : "0"}
+                      </p>
                     </div>
-                  </Link>
+                  </button>
                 ))}
-              </div>
-            </div>
+          </div>
+        </div>
           ) : null}
         
           {/* Trending */}
@@ -312,14 +343,21 @@ export default function HomePage() {
                 ))
               ) : (
                 trendingDelusions.map((delusion) => (
-                  <DelusionCard key={delusion.id} delusion={delusion} />
+                  <DelusionCard 
+                    key={delusion.id} 
+                    delusion={delusion}
+                    onClick={() => {
+                      setSelectedDelulu(delusion);
+                      setDetailsSheetOpen(true);
+                    }}
+                  />
                 ))
               )}
             </div>
           </div>
         </div>
       </main>
-
+      
       {/* Create Delusion Bottom Sheet */}
       <CreateDelusionSheet 
         open={createSheetOpen} 
@@ -330,6 +368,13 @@ export default function HomePage() {
       <ProfileSheet 
         open={profileSheetOpen} 
         onOpenChange={setProfileSheetOpen} 
+      />
+
+      {/* Delulu Details Bottom Sheet */}
+      <DeluluDetailsSheet
+        open={detailsSheetOpen}
+        onOpenChange={setDetailsSheetOpen}
+        delulu={selectedDelulu}
       />
     </div>
   )
@@ -361,19 +406,32 @@ function RingProgress({
         </span>
       </div>
       <div className="flex flex-col">
-        <span className={cn("text-xs font-bold", dark ? "text-black" : "text-white")}>{believe.toFixed(2)} cUSD</span>
-        <span className={cn("text-xs", dark ? "text-black/50" : "text-white/50")}>{doubt.toFixed(2)} cUSD</span>
+        <span className={cn("text-xs font-bold", dark ? "text-black" : "text-white")}>
+          {believe > 0 ? (believe < 0.01 ? believe.toFixed(4) : believe.toFixed(2)) : "0.00"} cUSD
+        </span>
+        <span className={cn("text-xs", dark ? "text-black/50" : "text-white/50")}>
+          {doubt > 0 ? (doubt < 0.01 ? doubt.toFixed(4) : doubt.toFixed(2)) : "0.00"} cUSD
+        </span>
       </div>
     </div>
   )
 }
 
-function DelusionCard({ delusion }: { delusion: FormattedDelulu }) {
+function DelusionCard({ 
+  delusion, 
+  onClick 
+}: { 
+  delusion: FormattedDelulu;
+  onClick: () => void;
+}) {
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake
   const believerPercent = total > 0 ? Math.round((delusion.totalBelieverStake / total) * 100) : 0
   
   return (
-    <Link href={`/delusion/${delusion.id}`} className="block p-4 rounded-2xl bg-delulu-dark/5 active:scale-[0.98] transition-transform">
+    <button 
+      onClick={onClick}
+      className="w-full block p-4 rounded-2xl bg-delulu-dark/5 active:scale-[0.98] transition-transform text-left"
+    >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-delulu-dark/10 flex items-center justify-center shrink-0">
           <span className="text-xs font-bold text-delulu-dark">
@@ -381,9 +439,17 @@ function DelusionCard({ delusion }: { delusion: FormattedDelulu }) {
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-delulu-dark truncate">{delusion.contentHash}</p>
+          <p className="text-sm font-bold text-delulu-dark truncate">
+            {delusion.content || delusion.contentHash}
+          </p>
           <span className="text-xs text-delulu-dark">
-            <span className="text-delulu-purple">{Math.round(delusion.totalBelieverStake + delusion.totalDoubterStake)}</span> cUSD staked
+            <span className="text-delulu-purple">
+              {delusion.totalStake > 0 
+                ? (delusion.totalStake < 0.01 
+                    ? delusion.totalStake.toFixed(4) 
+                    : delusion.totalStake.toFixed(2))
+                : "0.00"} 
+            </span> cUSD staked
           </span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -396,9 +462,15 @@ function DelusionCard({ delusion }: { delusion: FormattedDelulu }) {
               {believerPercent}%
             </span>
           </div>
-          <span className="text-sm font-black text-delulu-dark">${delusion.totalStake.toFixed(0)}</span>
+          <span className="text-sm font-black text-delulu-dark">
+            ${delusion.totalStake > 0 
+              ? (delusion.totalStake < 1 
+                  ? delusion.totalStake.toFixed(2) 
+                  : delusion.totalStake.toFixed(0))
+              : "0"}
+          </span>
         </div>
       </div>
-    </Link>
+    </button>
   )
 }

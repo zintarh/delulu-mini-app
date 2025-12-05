@@ -26,7 +26,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           side="bottom" 
-          className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none"
+          className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl"
         >
           <div className="relative h-full flex flex-col items-center justify-center px-6">
             <p className="text-white/50">
