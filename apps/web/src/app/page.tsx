@@ -75,6 +75,7 @@ export default function HomePage() {
 
   const hotDelusions = staticHotDelusions;
   const trendingDelusions = delulus.slice(0);
+  
   const endingSoonDelusions = delulus
     .filter((d) => !d.isResolved && isEndingSoon(d.stakingDeadline))
     .sort((a, b) => a.stakingDeadline.getTime() - b.stakingDeadline.getTime())

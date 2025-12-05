@@ -39,13 +39,6 @@ export function useCreateDelulu() {
         throw new Error("Stake amount must be greater than 0");
       }
 
-      console.log("Creating delulu with:", {
-        contentHash,
-        stakingDeadline: stakingDeadline.toString(),
-        resolutionDeadline: resolutionDeadline.toString(),
-        amountWei: amountWei.toString(),
-      });
-
       writeContract({
         address: DELULU_CONTRACT_ADDRESS,
         abi: DELULU_ABI,

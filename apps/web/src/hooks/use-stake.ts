@@ -5,16 +5,24 @@ import { DELULU_ABI } from "@/lib/abi";
 
 export function useStake() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({
     hash,
   });
 
-  const stake = async (deluluId: number, amount: number, isBeliever: boolean) => {
+  const stake = async (
+    deluluId: number,
+    amount: number,
+    isBeliever: boolean
+  ) => {
     // Validate inputs
     if (isNaN(deluluId) || deluluId <= 0) {
       throw new Error("Invalid delulu ID");
     }
-    
+
     if (isNaN(amount) || amount <= 0) {
       throw new Error("Stake amount must be greater than 0");
     }
@@ -32,7 +40,7 @@ export function useStake() {
       });
     } catch (error: any) {
       console.error("Error in stake function:", error);
-      
+
       // Handle RPC sync errors
       if (
         error?.code === -32019 ||
@@ -43,14 +51,18 @@ export function useStake() {
           "Network synchronization issue. The RPC node is catching up. Please wait a moment and try again."
         );
       }
-      
+
       // Handle other common RPC errors
-      if (error?.code === -32603 || error?.message?.includes("execution reverted")) {
+      if (
+        error?.code === -32603 ||
+        error?.message?.includes("execution reverted")
+      ) {
         // Try to extract revert reason
-        const revertReason = error?.data?.message || error?.message || "Transaction reverted";
+        const revertReason =
+          error?.data?.message || error?.message || "Transaction reverted";
         throw new Error(`Transaction failed: ${revertReason}`);
       }
-      
+
       throw error;
     }
   };
@@ -64,4 +76,3 @@ export function useStake() {
     error: error || receiptError,
   };
 }
-

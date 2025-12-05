@@ -37,7 +37,7 @@ async function fetchIPFSContent(hash: string): Promise<string | null> {
     const response = await fetch(`https://ipfs.io/ipfs/${hash}`, {
       method: "GET",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
       },
     });
     if (!response.ok) {
@@ -45,9 +45,9 @@ async function fetchIPFSContent(hash: string): Promise<string | null> {
       return null;
     }
     const data = await response.json();
-    console.log(`IPFS response for ${hash}:`, data);
     // Pinata stores content in pinataContent.text
-    const content = data.pinataContent?.text || data.text || data.content || null;
+    const content =
+      data.pinataContent?.text || data.text || data.content || null;
     return content;
   } catch (error) {
     console.error(`Failed to fetch IPFS content for ${hash}:`, error);
@@ -63,26 +63,22 @@ export function useDelulus() {
     args: [1n, 100n], // startId: 1, count: 100
   });
 
+  
 
-
-  const [delulusWithContent, setDelulusWithContent] = useState<FormattedDelulu[]>([]);
+  const [delulusWithContent, setDelulusWithContent] = useState<
+    FormattedDelulu[]
+  >([]);
 
   const rawDelulus: FormattedDelulu[] = data
     ? (data as Delulu[])
         .filter((d) => !d.isCancelled)
         .map((d) => {
-          const believerStake = parseFloat(formatUnits(d.totalBelieverStake, 18));
+          const believerStake = parseFloat(
+            formatUnits(d.totalBelieverStake, 18)
+          );
           const doubterStake = parseFloat(formatUnits(d.totalDoubterStake, 18));
           const totalStake = believerStake + doubterStake;
-          
-          console.log(`Delulu ${d.id}:`, {
-            rawBelieverStake: d.totalBelieverStake.toString(),
-            rawDoubterStake: d.totalDoubterStake.toString(),
-            believerStake,
-            doubterStake,
-            totalStake,
-          });
-          
+
           return {
             id: Number(d.id),
             creator: d.creator,
@@ -110,27 +106,15 @@ export function useDelulus() {
       const delulusWithDecoded = await Promise.all(
         rawDelulus.map(async (delulu) => {
           const content = await fetchIPFSContent(delulu.contentHash);
-          console.log(`Fetched content for hash ${delulu.contentHash}:`, content);
+          
           return { ...delulu, content: content || delulu.contentHash };
         })
       );
       setDelulusWithContent(delulusWithDecoded);
-      console.log("Delulus with decoded content:", delulusWithDecoded);
     };
 
     fetchContents();
   }, [data]);
 
-  console.log("=== useDelulus Hook Debug ===");
-  console.log("Contract Address:", DELULU_CONTRACT_ADDRESS);
-  console.log("Args: [startId: 1, count: 100]");
-  console.log("Raw Data:", data);
-  console.log("Is Loading:", isLoading);
-  console.log("Error:", error);
-  console.log("Raw Delulus Count:", rawDelulus.length);
-  console.log("Delulus with Content Count:", delulusWithContent.length);
-  console.log("============================");
-
   return { delulus: delulusWithContent, isLoading, error };
 }
-
