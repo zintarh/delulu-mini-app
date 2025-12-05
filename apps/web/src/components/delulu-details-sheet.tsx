@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useAccount } from "wagmi";
 import { type FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
@@ -439,6 +439,9 @@ export function DeluluDetailsSheet({
         side="bottom"
         className="bg-delulu-yellow border-t-2 border-delulu-dark/20 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
       >
+        <SheetTitle className="sr-only">
+          {delulu ? `Delulu Details: ${delulu.content || delulu.contentHash}` : "Delulu Details"}
+        </SheetTitle>
         <div className="relative flex flex-col overflow-y-auto pb-32">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">

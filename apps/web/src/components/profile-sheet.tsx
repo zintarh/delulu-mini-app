@@ -6,6 +6,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
 } from "@/components/ui/sheet";
 
 interface ProfileSheetProps {
@@ -28,6 +29,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
           side="bottom" 
           className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl"
         >
+          <SheetTitle className="sr-only">Profile</SheetTitle>
           <div className="relative h-full flex flex-col items-center justify-center px-6">
             <p className="text-white/50">
               Please connect your wallet to view your profile
@@ -44,6 +46,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
         side="bottom" 
         className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none"
       >
+        <SheetTitle className="sr-only">Profile</SheetTitle>
         <div className="relative h-full flex flex-col overflow-y-auto">
           {/* Profile Header */}
           <div className="px-6 pt-6 pb-4">

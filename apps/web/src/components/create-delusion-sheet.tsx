@@ -10,7 +10,7 @@ import { DatePicker } from "@/components/date-picker";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 const HYPE_TEXT = [
@@ -161,6 +161,7 @@ export function CreateDelusionSheet({
           side="bottom"
           className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
         >
+          <SheetTitle className="sr-only">Create Delusion</SheetTitle>
           <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Home Icon */}
             <button
@@ -182,7 +183,6 @@ export function CreateDelusionSheet({
               <Home className="w-5 h-5" />
             </button>
 
-            {/* Progress indicators */}
             <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10 px-6">
               {[0, 1, 2, 3].map((step) => (
                 <div
