@@ -56,8 +56,6 @@ export function CreateDelusionSheet({
     error: createError,
   } = useCreateDelulu();
 
-
-  
   const {
     approve,
     needsApproval,
@@ -67,7 +65,8 @@ export function CreateDelusionSheet({
     refetchAllowance,
   } = useTokenApproval();
 
-  const { balance: cusdBalance, isLoading: isLoadingBalance } = useCUSDBalance();
+  const { balance: cusdBalance, isLoading: isLoadingBalance } =
+    useCUSDBalance();
 
   useEffect(() => {
     if (isSuccess) {
@@ -102,7 +101,7 @@ export function CreateDelusionSheet({
 
   const [deadline, setDeadline] = useState(getDefaultDeadline());
 
-  const hasInsufficientBalance = cusdBalance 
+  const hasInsufficientBalance = cusdBalance
     ? parseFloat(cusdBalance.formatted) < stakeAmount[0]
     : false;
 
@@ -168,7 +167,6 @@ export function CreateDelusionSheet({
               ))}
             </div>
 
-            {/* Subtitle */}
             <div className="absolute top-16 left-0 right-0 text-center px-6 z-10">
               <p className="text-lg font-gloria text-delulu-dark/80 tracking-wide">
                 {HYPE_TEXT[currentStep].subtitle}
@@ -298,6 +296,11 @@ export function CreateDelusionSheet({
                         </span>
                       )}
                     </p>
+                    {isConnected && !isLoadingBalance && !cusdBalance && (
+                      <p className="text-xs text-delulu-dark/40 mt-1">
+                        Check console for details
+                      </p>
+                    )}
                     {isConnected && hasInsufficientBalance && (
                       <p className="text-sm text-red-600 mt-2 font-bold">
                         Insufficient balance
@@ -352,7 +355,6 @@ export function CreateDelusionSheet({
               )}
             </div>
 
-            {/* Bottom buttons */}
             <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow border-t border-delulu-dark/10">
               {currentStep < 3 ? (
                 <div className="w-full max-w-md mx-auto flex items-center gap-4">

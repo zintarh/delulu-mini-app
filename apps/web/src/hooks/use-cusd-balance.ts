@@ -1,43 +1,41 @@
-import { useAccount, useBalance, useReadContract } from "wagmi";
+import { useAccount, useBalance, useReadContract, useChainId } from "wagmi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { CUSD_ADDRESSES } from "@/lib/constants";
 import { useEffect } from "react";
 
 export function useCUSDBalance() {
   const { address } = useAccount();
+  const chainId = useChainId();
   
-  const { data: tokenAddress } = useReadContract({
+  // Try to get token address from contract, fallback to known addresses
+  const { data: tokenAddress, isLoading: isLoadingTokenAddress, error: tokenAddressError } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "stablecoin",
   });
 
+  // Fallback: use known cUSD addresses based on chain
+  const fallbackTokenAddress = chainId === 44787 
+    ? CUSD_ADDRESSES.alfajores 
+    : chainId === 42220 
+    ? CUSD_ADDRESSES.mainnet 
+    : undefined;
+
+  const finalTokenAddress = tokenAddress || fallbackTokenAddress;
+
   const { data: balance, isLoading, error } = useBalance({
     address,
-    token: tokenAddress as `0x${string}` | undefined,
-    query: { enabled: !!tokenAddress && !!address },
+    token: finalTokenAddress as `0x${string}` | undefined,
+    query: { enabled: !!finalTokenAddress && !!address },
   });
 
-  useEffect(() => {
-    if (balance && tokenAddress) {
-      console.log("=== Celo Chain Balances ===");
-      console.log("cUSD Token Address:", tokenAddress);
-      console.log("cUSD Balance (wei):", balance.value.toString());
-      console.log("cUSD Balance (formatted):", balance.formatted);
-      console.log("cUSD Symbol:", balance.symbol);
-      console.log("Decimals:", balance.decimals);
-      console.log("=========================");
-    }
-    if (error) {
-      console.error("Error fetching cUSD balance:", error);
-    }
-  }, [balance, tokenAddress, error]);
 
   return {
     balance,
-    isLoading,
-    error,
-    tokenAddress,
+    isLoading: isLoading || isLoadingTokenAddress,
+    error: error || tokenAddressError,
+    tokenAddress: finalTokenAddress,
   };
 }
 

@@ -7,10 +7,33 @@ import { Navbar } from "@/components/navbar"
 import { LoginScreen } from "@/components/login-screen"
 import { CreateDelusionSheet } from "@/components/create-delusion-sheet"
 import { ProfileSheet } from "@/components/profile-sheet"
+import { DeluluCardSkeleton,  } from "@/components/delulu-skeleton"
 import { useAccount } from "wagmi"
+import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus"
 import Link from "next/link"
 
-const hotDelusions = [
+function formatTimeRemaining(deadline: Date): string {
+  const now = new Date()
+  const diff = deadline.getTime() - now.getTime()
+  if (diff <= 0) return "Ended"
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(hours / 24)
+  if (days > 0) return `${days}d`
+  if (hours > 0) return `${hours}h`
+  return `${Math.floor(diff / (1000 * 60))}m`
+}
+
+function isEndingSoon(deadline: Date): boolean {
+  const diff = deadline.getTime() - Date.now()
+  const hours = diff / (1000 * 60 * 60)
+  return hours > 0 && hours <= 24
+}
+
+function formatAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+const staticHotDelusions = [
   {
     id: 1,
     claim: "I'll 100x my portfolio with this one altcoin I found",
@@ -18,7 +41,7 @@ const hotDelusions = [
     believers: 234,
     doubters: 567,
     pool: 12400,
-    deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+    deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   },
   {
     id: 2,
@@ -27,147 +50,37 @@ const hotDelusions = [
     believers: 89,
     doubters: 890,
     pool: 5600,
-    deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 21 days from now
+    deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
   },
   {
-    id: 5,
+    id: 3,
     claim: "I'll get my ex back by showing them my crypto gains",
     creator: "toxic_trader",
     believers: 156,
     doubters: 678,
     pool: 8900,
-    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   },
 ]
-
-const delusions = [
-  {
-    id: 3,
-    claim: "I'll make $1M from a single NFT flip this month",
-    creator: "nft_whale",
-    believers: 345,
-    doubters: 123,
-    pool: 15600,
-    deadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), // 20 days from now
-  },
-  {
-    id: 4,
-    claim: "My crush will slide into my DMs after I flex my ETH stack",
-    creator: "crypto_rizz",
-    believers: 67,
-    doubters: 456,
-    pool: 3200,
-    deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
-  },
-  {
-    id: 6,
-    claim: "I'll find my soulmate in a DeFi discord server",
-    creator: "lonely_dev",
-    believers: 234,
-    doubters: 789,
-    pool: 7800,
-    deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
-  },
-  {
-    id: 7,
-    claim: "My ex will regret leaving when I hit $100k in crypto",
-    creator: "revenge_trader",
-    believers: 189,
-    doubters: 567,
-    pool: 10200,
-    deadline: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
-  },
-  {
-    id: 8,
-    claim: "I'll get a date by proving I'm not a bot on-chain",
-    creator: "verified_human",
-    believers: 45,
-    doubters: 890,
-    pool: 2100,
-    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-  },
-  {
-    id: 9,
-    claim: "I'll marry someone I met through a DAO proposal",
-    creator: "dao_romantic",
-    believers: 123,
-    doubters: 456,
-    pool: 4500,
-    deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
-  },
-  {
-    id: 10,
-    claim: "I'll 10x my portfolio by end of today",
-    creator: "yolo_trader",
-    believers: 89,
-    doubters: 234,
-    pool: 5600,
-    deadline: new Date(Date.now() + 18 * 60 * 60 * 1000), // 18 hours from now
-  },
-  {
-    id: 11,
-    claim: "My ex will text me back before midnight",
-    creator: "hopeful_one",
-    believers: 123,
-    doubters: 456,
-    pool: 3200,
-    deadline: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 hours from now
-  },
-  {
-    id: 12,
-    claim: "I'll land that job offer by tomorrow morning",
-    creator: "job_hunter",
-    believers: 67,
-    doubters: 189,
-    pool: 2100,
-    deadline: new Date(Date.now() + 22 * 60 * 60 * 1000), // 22 hours from now
-  },
-]
-
-const recentWinners = [
-  { creator: "crypto_queen", claim: "Made $50k from a meme coin and got my ex back", won: 12400 },
-  { creator: "dao_lover", claim: "Found my partner through a governance vote", won: 8900 },
-]
-
-// Helper function to format time remaining
-function formatTimeRemaining(deadline: Date): string {
-  const now = new Date()
-  const diff = deadline.getTime() - now.getTime()
-  
-  if (diff <= 0) return "Ended"
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(hours / 24)
-  
-  if (days > 0) {
-    return `${days}d`
-  } else if (hours > 0) {
-    return `${hours}h`
-  } else {
-    const minutes = Math.floor(diff / (1000 * 60))
-    return `${minutes}m`
-  }
-}
-
-// Helper function to check if delusion is ending soon (within 24 hours)
-function isEndingSoon(deadline: Date): boolean {
-  const now = new Date()
-  const diff = deadline.getTime() - now.getTime()
-  const hours = diff / (1000 * 60 * 60)
-  return hours > 0 && hours <= 24
-}
 
 export default function HomePage() {
   const { isConnected } = useAccount()
+  const { delulus, isLoading } = useDelulus()
   const [createSheetOpen, setCreateSheetOpen] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
   
-  // Get all delusions and filter for ending soon
-  const allDelusions = [...hotDelusions, ...delusions]
-  const endingSoonDelusions = allDelusions
-    .filter(d => d.deadline && isEndingSoon(d.deadline))
-    .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime())
-    .slice(0, 5) // Limit to 5 most urgent
+  console.log("=== HomePage Debug ===");
+  console.log("Delulus from hook:", delulus);
+  console.log("Is Loading:", isLoading);
+  console.log("Delulus Count:", delulus.length);
+  console.log("======================");
+  
+  const hotDelusions = staticHotDelusions
+  const trendingDelusions = delulus.slice(0)
+  const endingSoonDelusions = delulus
+    .filter((d) => !d.isResolved && isEndingSoon(d.stakingDeadline))
+    .sort((a, b) => a.stakingDeadline.getTime() - b.stakingDeadline.getTime())
+    .slice(0, 5)
 
   // Show login screen if not connected
   if (!isConnected) {
@@ -275,10 +188,12 @@ export default function HomePage() {
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center backdrop-blur-sm">
                         <span className="text-xs font-bold text-white drop-shadow">
-                          {delusion.creator.slice(0, 2).toUpperCase()}
+                          {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold" style={{ color: "#2d2d2d", textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)" }}>{delusion.creator}</span>
+                      <span className="text-sm font-semibold" style={{ color: "#2d2d2d", textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)" }}>
+                        {delusion.creator}
+                      </span>
                       <span className="ml-auto text-xs font-bold text-white px-2 py-1 rounded-full" style={{
                         background: "rgba(0, 0, 0, 0.7)",
                         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
@@ -293,11 +208,17 @@ export default function HomePage() {
                     </p>
                     
                     <div className="flex items-center justify-between mt-auto">
-                      <RingProgress believe={delusion.believers} doubt={delusion.doubters} dark />
+                      <RingProgress 
+                        believe={delusion.believers} 
+                        doubt={delusion.doubters} 
+                        dark 
+                      />
                       <span className="text-2xl font-black" style={{
                         color: "#1a1a1a",
                         textShadow: "0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4)"
-                      }}>${delusion.pool}</span>
+                      }}>
+                        ${delusion.pool}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -305,7 +226,6 @@ export default function HomePage() {
             ))}
           </div>
           
-          {/* Dots indicator */}
           <div className="flex justify-center gap-1.5 mt-3">
             {hotDelusions.map((_, i) => (
               <div key={i} className={cn(
@@ -340,7 +260,13 @@ export default function HomePage() {
           </button>
         
           {/* Ending Soon */}
-          {endingSoonDelusions.length > 0 && (
+          {isLoading ? (
+            <div className="mb-5 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <DeluluCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : endingSoonDelusions.length > 0 ? (
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-delulu-dark/50" />
@@ -355,23 +281,23 @@ export default function HomePage() {
                   >
                     <div className="w-8 h-8 rounded-full bg-delulu-dark/10 flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-bold text-delulu-dark">
-                        {delusion.creator.slice(0, 2).toUpperCase()}
+                        {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-delulu-dark truncate">{delusion.claim}</p>
+                      <p className="text-sm font-bold text-delulu-dark truncate">{delusion.contentHash}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs font-black text-delulu-dark">
-                        {formatTimeRemaining(delusion.deadline!)}
+                        {formatTimeRemaining(delusion.stakingDeadline)}
                       </p>
-                      <p className="text-xs text-delulu-dark/50">${delusion.pool}</p>
+                      <p className="text-xs text-delulu-dark/50">${delusion.totalStake.toFixed(0)}</p>
                     </div>
                   </Link>
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
         
           {/* Trending */}
           <div>
@@ -380,9 +306,15 @@ export default function HomePage() {
               <span className="text-xs font-bold text-delulu-dark/50 uppercase tracking-wider">Trending</span>
             </div>
             <div className="space-y-2">
-              {delusions.map((delusion) => (
-                <DelusionCard key={delusion.id} {...delusion} />
-              ))}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <DeluluCardSkeleton key={i} />
+                ))
+              ) : (
+                trendingDelusions.map((delusion) => (
+                  <DelusionCard key={delusion.id} delusion={delusion} />
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -413,7 +345,7 @@ function RingProgress({
   dark?: boolean
 }) {
   const total = believe + doubt
-  const percent = Math.round((believe / total) * 100)
+  const percent = total > 0 ? Math.round((believe / total) * 100) : 0
   const circumference = 2 * Math.PI * 18
   const strokeDashoffset = circumference - (percent / 100) * circumference
   
@@ -421,101 +353,50 @@ function RingProgress({
     <div className="flex items-center gap-3">
       <div className="relative w-11 h-11">
         <svg className="w-11 h-11 -rotate-90" viewBox="0 0 44 44">
-          <circle
-            cx="22"
-            cy="22"
-            r="18"
-            fill="none"
-            stroke={dark ? "rgba(0,0,0,0.2)" : "rgba(252,255,82,0.2)"}
-            strokeWidth="4"
-          />
-          <circle
-            cx="22"
-            cy="22"
-            r="18"
-            fill="none"
-            stroke={dark ? "#000000" : "#fcff52"}
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-          />
+          <circle cx="22" cy="22" r="18" fill="none" stroke={dark ? "rgba(0,0,0,0.2)" : "rgba(252,255,82,0.2)"} strokeWidth="4" />
+          <circle cx="22" cy="22" r="18" fill="none" stroke={dark ? "#000000" : "#fcff52"} strokeWidth="4" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
         </svg>
-        <span className={cn(
-          "absolute inset-0 flex items-center justify-center text-xs font-black",
-          dark ? "text-black" : "text-white"
-        )}>
+        <span className={cn("absolute inset-0 flex items-center justify-center text-xs font-black", dark ? "text-black" : "text-white")}>
           {percent}%
         </span>
       </div>
       <div className="flex flex-col">
-        <span className={cn("text-xs font-bold", dark ? "text-black" : "text-white")}>{believe} believe</span>
-        <span className={cn("text-xs", dark ? "text-black/50" : "text-white/50")}>{doubt} doubt</span>
+        <span className={cn("text-xs font-bold", dark ? "text-black" : "text-white")}>{believe.toFixed(2)} cUSD</span>
+        <span className={cn("text-xs", dark ? "text-black/50" : "text-white/50")}>{doubt.toFixed(2)} cUSD</span>
       </div>
     </div>
   )
 }
 
-function DelusionCard({ 
-  id,
-  claim, 
-  creator, 
-  believers, 
-  doubters, 
-  pool,
-}: {
-  id: number
-  claim: string
-  creator: string
-  believers: number
-  doubters: number
-  pool: number
-}) {
-  const total = believers + doubters
-  const believerPercent = Math.round((believers / total) * 100)
+function DelusionCard({ delusion }: { delusion: FormattedDelulu }) {
+  const total = delusion.totalBelieverStake + delusion.totalDoubterStake
+  const believerPercent = total > 0 ? Math.round((delusion.totalBelieverStake / total) * 100) : 0
   
   return (
-    <Link 
-      href={`/delusion/${id}`}
-      className={cn(
-        "block p-4 rounded-2xl",
-        "bg-delulu-dark/5",
-        "active:scale-[0.98] transition-transform"
-      )}
-    >
+    <Link href={`/delusion/${delusion.id}`} className="block p-4 rounded-2xl bg-delulu-dark/5 active:scale-[0.98] transition-transform">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-delulu-dark/10 flex items-center justify-center shrink-0">
           <span className="text-xs font-bold text-delulu-dark">
-            {creator.slice(0, 2).toUpperCase()}
+            {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
           </span>
         </div>
-        
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-delulu-dark truncate">{claim}</p>
-          <span className="text-xs text-delulu-dark "><span className="text-delulu-purple">{believers + doubters}</span> stakers</span>
+          <p className="text-sm font-bold text-delulu-dark truncate">{delusion.contentHash}</p>
+          <span className="text-xs text-delulu-dark">
+            <span className="text-delulu-purple">{Math.round(delusion.totalBelieverStake + delusion.totalDoubterStake)}</span> cUSD staked
+          </span>
         </div>
-        
         <div className="flex items-center gap-3 shrink-0">
           <div className="relative w-8 h-8">
             <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
               <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(10,10,10,0.2)" strokeWidth="3" />
-              <circle
-                cx="16"
-                cy="16"
-                r="12"
-                fill="none"
-                stroke="#0a0a0a"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 12}
-                strokeDashoffset={2 * Math.PI * 12 - (believerPercent / 100) * 2 * Math.PI * 12}
-              />
+              <circle cx="16" cy="16" r="12" fill="none" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="round" strokeDasharray={2 * Math.PI * 12} strokeDashoffset={2 * Math.PI * 12 - (believerPercent / 100) * 2 * Math.PI * 12} />
             </svg>
             <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-delulu-dark">
-              {believerPercent}
+              {believerPercent}%
             </span>
           </div>
-          <span className="text-sm font-black text-delulu-dark">${pool}</span>
+          <span className="text-sm font-black text-delulu-dark">${delusion.totalStake.toFixed(0)}</span>
         </div>
       </div>
     </Link>
