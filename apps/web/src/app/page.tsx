@@ -33,36 +33,6 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-const staticHotDelusions = [
-  {
-    id: 1,
-    claim: "I'll 100x my portfolio with this one altcoin I found",
-    creator: "degen_ape",
-    believers: 234,
-    doubters: 567,
-    pool: 12400,
-    deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: 2,
-    claim: "My situationship will finally commit after I stake $5k",
-    creator: "hopeless",
-    believers: 89,
-    doubters: 890,
-    pool: 5600,
-    deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: 3,
-    claim: "I'll get my ex back by showing them my crypto gains",
-    creator: "toxic_trader",
-    believers: 156,
-    doubters: 678,
-    pool: 8900,
-    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  },
-];
-
 export default function HomePage() {
   const { isConnected } = useAccount();
   const { delulus, isLoading } = useDelulus();
@@ -72,8 +42,6 @@ export default function HomePage() {
     null
   );
   const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
-
-  const hotDelusions = staticHotDelusions;
   const trendingDelusions = delulus.slice(0);
   
   const endingSoonDelusions = delulus
@@ -89,204 +57,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-delulu-yellow">
       <Navbar onProfileClick={() => setProfileSheetOpen(true)} />
-
+      
       <main className="max-w-lg mx-auto pt-4 pb-24">
-        {/* Hot Delusions - Swipeable */}
-        <div className="mb-5">
-          <div
-            className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scrollbar-hide"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {hotDelusions.map((delusion) => (
-              <button
-                key={delusion.id}
-                onClick={() => {
-                  // For static hot delusions, create a mock FormattedDelulu
-                  const mockDelulu: FormattedDelulu = {
-                    id: delusion.id,
-                    creator: delusion.creator,
-                    contentHash: delusion.claim,
-                    content: delusion.claim,
-                    stakingDeadline: delusion.deadline,
-                    resolutionDeadline: new Date(
-                      delusion.deadline.getTime() + 24 * 60 * 60 * 1000
-                    ),
-                    totalBelieverStake: delusion.believers,
-                    totalDoubterStake: delusion.doubters,
-                    totalStake: delusion.pool,
-                    outcome: false,
-                    isResolved: false,
-                    isCancelled: false,
-                  };
-                  setSelectedDelulu(mockDelulu);
-                  setDetailsSheetOpen(true);
-                }}
-                className="shrink-0 w-full snap-center"
-              >
-                <div
-                  className="relative rounded-3xl p-5 h-[200px] active:scale-[0.98] transition-transform overflow-hidden flex flex-col"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #f9e79f 0%, #f7dc6f 10%, #d4af37 25%, #c9a227 40%, #d4af37 55%, #f4e4a6 70%, #d4af37 85%, #f9e79f 100%)",
-                    boxShadow: `
-                      inset 0 2px 4px rgba(255, 255, 255, 0.5),
-                      inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-                      0 4px 8px rgba(0, 0, 0, 0.2),
-                      0 8px 16px rgba(212, 175, 55, 0.3),
-                      0 0 0 1px rgba(212, 175, 55, 0.4),
-                      0 0 20px rgba(212, 175, 55, 0.2)
-                    `,
-                    border: "2px solid",
-                    borderColor: "rgba(212, 175, 55, 0.6)",
-                  }}
-                >
-                  {/* Base metallic texture */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: `
-                        repeating-linear-gradient(
-                          45deg,
-                          transparent,
-                          transparent 2px,
-                          rgba(255, 255, 255, 0.05) 2px,
-                          rgba(255, 255, 255, 0.05) 4px
-                        ),
-                        repeating-linear-gradient(
-                          -45deg,
-                          transparent,
-                          transparent 2px,
-                          rgba(0, 0, 0, 0.05) 2px,
-                          rgba(0, 0, 0, 0.05) 4px
-                        )
-                      `,
-                    }}
-                  />
-
-                  {/* Animated metallic shine */}
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background:
-                        "linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%)",
-                      transform: "translateX(-100%)",
-                      animation: "shimmer 4s ease-in-out infinite",
-                    }}
-                  />
-
-                  {/* Top highlight */}
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1/3 opacity-60"
-                    style={{
-                      background:
-                        "linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent)",
-                      borderRadius: "1.5rem 1.5rem 0 0",
-                    }}
-                  />
-
-                  {/* Bottom shadow */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 h-1/3 opacity-40"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent)",
-                      borderRadius: "0 0 1.5rem 1.5rem",
-                    }}
-                  />
-
-                  {/* Corner highlights */}
-                  <div
-                    className="absolute top-0 left-0 w-20 h-20 opacity-30"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)",
-                    }}
-                  />
-                  <div
-                    className="absolute top-0 right-0 w-20 h-20 opacity-30"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)",
-                    }}
-                  />
-
-                  <div className="relative flex flex-col flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-xs font-bold text-white drop-shadow">
-                          {formatAddress(delusion.creator)
-                            .slice(0, 2)
-                            .toUpperCase()}
-                        </span>
-                      </div>
-                      <span
-                        className="text-sm font-semibold"
-                        style={{
-                          color: "#2d2d2d",
-                          textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)",
-                        }}
-                      >
-                        {delusion.creator}
-                      </span>
-                      <span
-                        className="ml-auto text-xs font-bold text-white px-2 py-1 rounded-full"
-                        style={{
-                          background: "rgba(0, 0, 0, 0.7)",
-                          boxShadow:
-                            "0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
-                        }}
-                      >
-                        HOT
-                      </span>
-                    </div>
-
-                    <p
-                      className="text-xl font-black leading-tight flex-1 line-clamp-2"
-                      style={{
-                        color: "#1a1a1a",
-                        textShadow:
-                          "0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.5)",
-                      }}
-                    >
-                      &ldquo;{delusion.claim}&rdquo;
-                    </p>
-
-                    <div className="flex items-center justify-between mt-auto">
-                      <RingProgress
-                        believe={delusion.believers}
-                        doubt={delusion.doubters}
-                        dark
-                      />
-                      <span
-                        className="text-2xl font-black"
-                        style={{
-                          color: "#1a1a1a",
-                          textShadow:
-                            "0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4)",
-                        }}
-                      >
-                        ${delusion.pool}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex justify-center gap-1.5 mt-3">
-            {hotDelusions.map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  i === 0 ? "bg-delulu-dark" : "bg-delulu-dark/20"
-                )}
-              />
-            ))}
-          </div>
-        </div>
-
         <div className="px-4">
           {/* Create Button - Game Style */}
           <button
@@ -320,14 +92,14 @@ export default function HomePage() {
               ))}
             </div>
           ) : endingSoonDelusions.length > 0 ? (
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-3">
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-delulu-dark/50" />
                 <span className="text-xs font-bold text-delulu-dark/50 uppercase tracking-wider">
                   Ending Soon
                 </span>
-              </div>
-              <div className="space-y-2">
+          </div>
+          <div className="space-y-2">
                 {endingSoonDelusions.map((delusion) => (
                   <button
                     key={delusion.id}
@@ -342,14 +114,14 @@ export default function HomePage() {
                         {formatAddress(delusion.creator)
                           .slice(0, 2)
                           .toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-delulu-dark truncate">
                         {delusion.content || delusion.contentHash}
                       </p>
-                    </div>
-                    <div className="text-right shrink-0">
+                </div>
+                <div className="text-right shrink-0">
                       <p className="text-xs font-black text-delulu-dark">
                         {formatTimeRemaining(delusion.stakingDeadline)}
                       </p>
@@ -361,13 +133,13 @@ export default function HomePage() {
                             : delusion.totalStake.toFixed(0)
                           : "0"}
                       </p>
-                    </div>
+                </div>
                   </button>
-                ))}
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
           ) : null}
-
+        
           {/* Trending */}
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -390,12 +162,12 @@ export default function HomePage() {
                         setDetailsSheetOpen(true);
                       }}
                     />
-                  ))}
+              ))}
             </div>
           </div>
         </div>
       </main>
-
+      
       {/* Create Delusion Bottom Sheet */}
       <CreateDelusionSheet
         open={createSheetOpen}
@@ -418,89 +190,6 @@ export default function HomePage() {
   );
 }
 
-function RingProgress({
-  believe,
-  doubt,
-  dark = false,
-}: {
-  believe: number;
-  doubt: number;
-  dark?: boolean;
-}) {
-  const total = believe + doubt;
-  const percent = total > 0 ? Math.round((believe / total) * 100) : 0;
-  const radius = 22;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percent / 100) * circumference;
-
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className="relative w-16 h-16"
-        style={{ filter: "drop-shadow(0 4px 0 #0a0a0a)" }}
-      >
-        <svg className="w-16 h-16 -rotate-90" viewBox="0 0 56 56">
-          <circle
-            cx="28"
-            cy="28"
-            r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.3)"
-            strokeWidth="5"
-          />
-          <circle
-            cx="28"
-            cy="28"
-            r={radius}
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-          />
-        </svg>
-        <span
-          className={cn(
-            "absolute inset-0 flex items-center justify-center text-sm font-black",
-            dark ? "text-delulu-dark" : "text-white"
-          )}
-        >
-          {percent}%
-        </span>
-      </div>
-      <div className="flex flex-col">
-        <span
-          className={cn(
-            "text-xs font-bold",
-            dark ? "text-delulu-dark" : "text-white"
-          )}
-        >
-          {believe > 0
-            ? believe < 0.01
-              ? believe.toFixed(4)
-              : believe.toFixed(2)
-            : "0.00"}{" "}
-          cUSD
-        </span>
-        <span
-          className={cn(
-            "text-xs",
-            dark ? "text-delulu-dark/50" : "text-white/50"
-          )}
-        >
-          {doubt > 0
-            ? doubt < 0.01
-              ? doubt.toFixed(4)
-              : doubt.toFixed(2)
-            : "0.00"}{" "}
-          cUSD
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function DelusionCard({
   delusion,
   onClick,
@@ -511,7 +200,7 @@ function DelusionCard({
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const believerPercent =
     total > 0 ? Math.round((delusion.totalBelieverStake / total) * 100) : 0;
-
+  
   return (
     <button
       onClick={onClick}
