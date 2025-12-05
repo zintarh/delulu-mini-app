@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
-import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
+import { useCreateDelulu } from "@/hooks/use-delulu-contract";
+import { useTokenApproval } from "@/hooks/use-token-approval";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const HYPE_TEXT = [
   {
@@ -35,15 +34,59 @@ interface CreateDelusionSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetProps) {
-  const { isConnected } = useAccount();
+export function CreateDelusionSheet({
+  open,
+  onOpenChange,
+}: CreateDelusionSheetProps) {
+  const { isConnected, address } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
- 
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const {
+    createDelulu,
+    isPending: isCreating,
+    isConfirming,
+    isSuccess,
+    error: createError,
+  } = useCreateDelulu();
+
+
+  
+  const {
+    approve,
+    needsApproval,
+    isPending: isApproving,
+    isConfirming: isApprovingConfirming,
+    isSuccess: isApprovalSuccess,
+    refetchAllowance,
+  } = useTokenApproval();
+
+
+
+
+  useEffect(() => {
+    if (isSuccess) {
+      setShowSuccessModal(true);
+    }
+  }, [isSuccess]);
+
+  useEffect(() => {
+    if (createError) {
+      setErrorMessage(createError.message || "Failed to create delusion");
+      setShowErrorModal(true);
+    }
+  }, [createError]);
+
+  useEffect(() => {
+    if (isApprovalSuccess) {
+      refetchAllowance();
+    }
+  }, [isApprovalSuccess, refetchAllowance]);
 
   const getDefaultDeadline = () => {
     const date = new Date();
@@ -102,8 +145,8 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent 
-          side="bottom" 
+        <SheetContent
+          side="bottom"
           className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
         >
           <div className="relative h-full flex flex-col overflow-y-auto">
@@ -168,7 +211,9 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
                 <div className="w-full max-w-2xl space-y-8">
                   <div className="text-center">
                     <div className="relative inline-block">
-                      <span className="text-6xl font-black text-delulu-dark">$</span>
+                      <span className="text-6xl font-black text-delulu-dark">
+                        $
+                      </span>
                       <input
                         type="number"
                         value={stakeAmount[0]}
@@ -246,9 +291,7 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
                           Error loading balance
                         </span>
                       ) : (
-                        <span className="font-bold">
-                          {0} cUSD
-                        </span>
+                        <span className="font-bold">{0} cUSD</span>
                       )}
                     </p>
                     {isConnected && hasInsufficientBalance && (
@@ -331,12 +374,53 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
                 </div>
               ) : (
                 <div className="w-full max-w-md mx-auto">
-                  <button
-                    onClick={() => {}}
-                    className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    CREATE DELUSION
-                  </button>
+                  {needsApproval(stakeAmount[0]) ? (
+                    <button
+                      onClick={() => approve(stakeAmount[0])}
+                      disabled={isApproving || isApprovingConfirming}
+                      className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isApproving || isApprovingConfirming ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Approving...</span>
+                        </>
+                      ) : (
+                        <span>Approve cUSD</span>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const deadlineDate = new Date(deadline);
+                          await createDelulu(
+                            delusionText,
+                            deadlineDate,
+                            stakeAmount[0]
+                          );
+                        } catch (error) {
+                          setErrorMessage(
+                            error instanceof Error
+                              ? error.message
+                              : "Failed to create delusion"
+                          );
+                          setShowErrorModal(true);
+                        }
+                      }}
+                      disabled={isCreating || isConfirming}
+                      className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isCreating || isConfirming ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <span>CREATE DELUSION</span>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -368,4 +452,3 @@ export function CreateDelusionSheet({ open, onOpenChange }: CreateDelusionSheetP
     </>
   );
 }
-
