@@ -67,6 +67,7 @@ export function CreateDelusionSheet({
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     refetchAllowance,
+    isLoadingAllowance,
   } = useTokenApproval();
 
   const { balance: cusdBalance, isLoading: isLoadingBalance } =
@@ -87,7 +88,13 @@ export function CreateDelusionSheet({
 
   useEffect(() => {
     if (isApprovalSuccess) {
-      refetchAllowance();
+      // Refetch allowance and wait a bit for the blockchain state to update
+      const refetch = async () => {
+        await refetchAllowance();
+        // Small delay to ensure the refetch completes and state updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+      };
+      refetch();
     }
   }, [isApprovalSuccess, refetchAllowance]);
 
@@ -447,10 +454,10 @@ export function CreateDelusionSheet({
                   >
                     <ArrowLeft className="w-6 h-6" />
                   </button>
-                  {needsApproval(stakeAmount[0]) ? (
+                  {needsApproval(stakeAmount[0]) && !isApprovalSuccess && !isLoadingAllowance ? (
                     <button
                       onClick={() => approve(stakeAmount[0])}
-                      disabled={isApproving || isApprovingConfirming}
+                      disabled={isApproving || isApprovingConfirming || isLoadingAllowance}
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
@@ -463,7 +470,7 @@ export function CreateDelusionSheet({
                         "flex items-center justify-center gap-2"
                       )}
                     >
-                      {isApproving || isApprovingConfirming ? (
+                      {isApproving || isApprovingConfirming || isLoadingAllowance ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span>Approving...</span>
