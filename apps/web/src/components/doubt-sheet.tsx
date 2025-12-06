@@ -192,7 +192,7 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
 
             {/* Description */}
             <p className="text-sm text-white/60 mb-6 pt-10">
-              Stake your doubt in this delulu. If it doesn't come true, you'll
+              Stake your doubt in this delulu. If it doesn&apos;t come true, you&apos;ll
               share in the rewards.
             </p>
 
