@@ -43,3 +43,37 @@ export function HotDeluluSkeleton() {
   );
 }
 
+export function TwitterPostCardSkeleton({ className = "shrink-0 w-[85%] sm:w-[400px]" }: { className?: string }) {
+  return (
+    <div className={`block p-4 rounded-2xl bg-white/5 animate-pulse border border-white/10 ${className}`}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-white/10 shrink-0" />
+        <div className="h-4 bg-white/10 rounded w-24" />
+      </div>
+
+      {/* Content */}
+      <div className="space-y-2 mb-4">
+        <div className="h-4 bg-white/10 rounded w-full" />
+        <div className="h-4 bg-white/10 rounded w-5/6" />
+        <div className="h-4 bg-white/10 rounded w-4/6" />
+      </div>
+
+      {/* Staking Deadline */}
+      <div className="h-3 bg-white/10 rounded w-32 mb-3" />
+
+      {/* Stats */}
+      <div className="flex items-center gap-6 mb-3">
+        <div className="h-4 bg-white/10 rounded w-16" />
+        <div className="h-4 bg-white/10 rounded w-12" />
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-3 border-t border-white/10">
+        <div className="h-4 bg-white/10 rounded w-20" />
+        <div className="h-4 bg-white/10 rounded w-20" />
+      </div>
+    </div>
+  );
+}
+
