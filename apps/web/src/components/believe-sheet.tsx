@@ -175,7 +175,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   
             {/* Description */}
             <p className="text-sm text-white/60 mb-6 pt-10">
-              Stake your belief in this delulu. If it comes true, you'll share in the rewards.
+              Stake your belief in this delulu. If it comes true, you&apos;ll share in the rewards.
             </p>
 
             {/* Status Box */}
