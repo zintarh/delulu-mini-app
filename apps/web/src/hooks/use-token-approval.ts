@@ -40,7 +40,7 @@ export function useTokenApproval() {
     hash,
   });
 
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance, isLoading: isLoadingAllowance } = useReadContract({
     address: tokenAddress as `0x${string}`,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -84,6 +84,7 @@ export function useTokenApproval() {
     isSuccess,
     error: error || receiptError,
     refetchAllowance,
+    isLoadingAllowance,
   };
 }
 

@@ -43,9 +43,10 @@ function Slider({
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
-          className={
-            'bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full'
-          }
+          className={cn(
+            'absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full',
+            className?.includes('delulu-slider') ? 'bg-white' : 'bg-primary'
+          )}
         />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (

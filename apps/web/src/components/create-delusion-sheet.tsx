@@ -10,8 +10,11 @@ import { DatePicker } from "@/components/date-picker";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/stores/useUserStore";
+
+const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
 const HYPE_TEXT = [
   {
@@ -44,9 +47,11 @@ export function CreateDelusionSheet({
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
   const router = useRouter();
+  const { user } = useUserStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
+  const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -67,6 +72,7 @@ export function CreateDelusionSheet({
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     refetchAllowance,
+    isLoadingAllowance,
   } = useTokenApproval();
 
   const { balance: cusdBalance, isLoading: isLoadingBalance } =
@@ -87,7 +93,13 @@ export function CreateDelusionSheet({
 
   useEffect(() => {
     if (isApprovalSuccess) {
-      refetchAllowance();
+      // Refetch allowance and wait a bit for the blockchain state to update
+      const refetch = async () => {
+        await refetchAllowance();
+        // Small delay to ensure the refetch completes and state updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+      };
+      refetch();
     }
   }, [isApprovalSuccess, refetchAllowance]);
 
@@ -117,16 +129,16 @@ export function CreateDelusionSheet({
     : false;
 
   const canGoNext = () => {
-    if (currentStep === 0) return delusionText.trim().length > 0;
+    if (currentStep === 0) return delusionText.trim().length > 0 && delusionText.trim().length <= MAX_DELULU_LENGTH;
     if (currentStep === 1) return true;
-    if (currentStep === 2) return stakeAmount[0] > 0 && !hasInsufficientBalance;
+    if (currentStep === 2) return stakeAmount[0] >= 1 && !hasInsufficientBalance;
     return false;
   };
 
   const handleNext = () => {
     if (canGoNext() && currentStep < 3) {
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
-      if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] <= 0)) {
+      if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] < 1)) {
         console.warn("Invalid stake amount detected, resetting to 1");
         setStakeAmount([1]);
       }
@@ -159,9 +171,19 @@ export function CreateDelusionSheet({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent
           side="bottom"
-          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
+          className="border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20 relative"
+          style={{
+            backgroundImage: "url('/island2.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
         >
-          <div className="relative h-full flex flex-col overflow-y-auto">
+          {/* Yellow overlay */}
+          <div className="absolute inset-0 bg-delulu-yellow/70 z-0" />
+          <div className="relative z-10 h-full flex flex-col [&_button[data-radix-dialog-close]]:z-[100]">
+            <SheetTitle className="sr-only">Create Delusion</SheetTitle>
+            <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Home Icon */}
             <button
               onClick={() => {
@@ -171,18 +193,14 @@ export function CreateDelusionSheet({
               className={cn(
                 "absolute top-4 left-4 z-20",
                 "w-10 h-10",
-                "bg-white rounded-full",
-                "text-delulu-dark",
-                "shadow-[0_4px_0_0_#0a0a0a]",
-                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                "transition-all duration-150",
-                "flex items-center justify-center hover:bg-delulu-dark/5"
+                "bg-white text-delulu-dark",
+                "btn-game",
+                "flex items-center justify-center"
               )}
             >
               <Home className="w-5 h-5" />
             </button>
 
-            {/* Progress indicators */}
             <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10 px-6">
               {[0, 1, 2, 3].map((step) => (
                 <div
@@ -214,11 +232,25 @@ export function CreateDelusionSheet({
                   <textarea
                     placeholder="Tap to type..."
                     value={delusionText}
-                    onChange={(e) => setDelusionText(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= MAX_DELULU_LENGTH) {
+                        setDelusionText(e.target.value);
+                      }
+                    }}
+                    maxLength={MAX_DELULU_LENGTH}
                     className="w-full min-h-[200px] bg-transparent border-none outline-none text-3xl md:text-4xl font-bold text-delulu-dark text-center placeholder:text-delulu-dark/30 resize-none leading-tight caret-delulu-dark font-gloria"
                     autoFocus
                     style={{ caretColor: "#0a0a0a" }}
                   />
+                  <div className="mt-4 text-center">
+                    <span className={`text-sm ${
+                      delusionText.length > MAX_DELULU_LENGTH * 0.9 
+                        ? "text-red-500" 
+                        : "text-delulu-dark/50"
+                    }`}>
+                      {delusionText.length}/{MAX_DELULU_LENGTH}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -249,14 +281,16 @@ export function CreateDelusionSheet({
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "") {
-                            setStakeAmount([0.01]);
+                            setStakeAmount([1]);
                             return;
                           }
                           const numValue = parseFloat(value);
-                          if (!isNaN(numValue) && numValue >= 0) {
-                            const clampedValue = Math.min(numValue, 10000);
+                          if (!isNaN(numValue) && numValue >= 1) {
+                            const clampedValue = Math.max(1, Math.min(numValue, 10000));
                             setStakeAmount([clampedValue]);
                             console.log("Stake amount set to:", clampedValue);
+                          } else if (!isNaN(numValue) && numValue < 1) {
+                            setStakeAmount([1]);
                           }
                         }}
                         onBlur={(e) => {
@@ -264,21 +298,22 @@ export function CreateDelusionSheet({
                           if (
                             e.target.value === "" ||
                             isNaN(currentValue) ||
-                            currentValue <= 0
+                            currentValue < 1
                           ) {
                             setStakeAmount([1]);
                             console.log("Reset stake amount to 1.00");
                           } else {
-                            setStakeAmount([currentValue]);
+                            const clampedValue = Math.max(1, currentValue);
+                            setStakeAmount([clampedValue]);
                             console.log(
                               "Stake amount confirmed on blur:",
-                              currentValue
+                              clampedValue
                             );
                           }
                         }}
-                        min={0}
+                        min={1}
                         max={10000}
-                        step="any"
+                        step="0.01"
                         className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-delulu-dark/5 rounded-2xl px-4 transition-colors"
                         style={{
                           width: `${
@@ -295,14 +330,17 @@ export function CreateDelusionSheet({
                   <div className="px-8">
                     <Slider
                       value={stakeAmount}
-                      onValueChange={setStakeAmount}
-                      min={0.001}
+                      onValueChange={(values) => {
+                        const clamped = values.map(v => Math.max(1, v));
+                        setStakeAmount(clamped);
+                      }}
+                      min={1}
                       max={1000}
-                      step={0.001}
+                      step={0.01}
                       className="delulu-slider"
                     />
                     <div className="flex justify-between text-sm text-delulu-dark/50 font-medium mt-4">
-                      <span>$0.001</span>
+                      <span>$1.00</span>
                       <span>$1,000</span>
                     </div>
                   </div>
@@ -328,6 +366,11 @@ export function CreateDelusionSheet({
                     {isConnected && !isLoadingBalance && !cusdBalance && (
                       <p className="text-xs text-delulu-dark/40 mt-1">
                         Check console for details
+                      </p>
+                    )}
+                    {isConnected && stakeAmount[0] < 1 && (
+                      <p className="text-sm text-red-600 mt-2 font-bold">
+                        Minimum stake is 1 cUSD
                       </p>
                     )}
                     {isConnected && hasInsufficientBalance && (
@@ -392,12 +435,9 @@ export function CreateDelusionSheet({
                       onClick={handleBack}
                       className={cn(
                         "w-14 h-14",
-                        "bg-delulu-dark rounded-full",
-                        "text-white",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "flex items-center justify-center hover:bg-delulu-dark/90"
+                        "bg-delulu-dark text-white",
+                        "btn-game",
+                        "flex items-center justify-center"
                       )}
                     >
                       <ArrowLeft className="w-6 h-6" />
@@ -409,12 +449,8 @@ export function CreateDelusionSheet({
                     className={cn(
                       "flex-1",
                       "px-8 py-4",
-                      "bg-white rounded-full",
-                      "text-delulu-dark font-black text-lg",
-                      "shadow-[0_4px_0_0_#0a0a0a]",
-                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                      "transition-all duration-150",
-                      "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed"
+                      "bg-white text-delulu-dark text-lg",
+                      "btn-game"
                     )}
                   >
                     Continue
@@ -426,33 +462,26 @@ export function CreateDelusionSheet({
                     onClick={handleBack}
                     className={cn(
                       "w-14 h-14",
-                      "bg-delulu-dark rounded-full",
-                      "text-white",
-                      "shadow-[0_4px_0_0_#0a0a0a]",
-                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                      "transition-all duration-150",
-                      "flex items-center justify-center hover:bg-delulu-dark/90"
+                      "bg-delulu-dark text-white",
+                      "btn-game",
+                      "flex items-center justify-center"
                     )}
                   >
                     <ArrowLeft className="w-6 h-6" />
                   </button>
-                  {needsApproval(stakeAmount[0]) ? (
+                  {needsApproval(stakeAmount[0]) && !isApprovalSuccess && !isLoadingAllowance ? (
                     <button
                       onClick={() => approve(stakeAmount[0])}
-                      disabled={isApproving || isApprovingConfirming}
+                      disabled={isApproving || isApprovingConfirming || isLoadingAllowance}
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "bg-white text-delulu-dark text-lg",
+                        "btn-game",
                         "flex items-center justify-center gap-2"
                       )}
                     >
-                      {isApproving || isApprovingConfirming ? (
+                      {isApproving || isApprovingConfirming || isLoadingAllowance ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span>Approving...</span>
@@ -469,7 +498,9 @@ export function CreateDelusionSheet({
                           await createDelulu(
                             delusionText,
                             deadlineDate,
-                            stakeAmount[0]
+                            stakeAmount[0],
+                            user?.username,
+                            user?.pfpUrl
                           );
                         } catch (error) {
                           setErrorMessage(
@@ -484,12 +515,8 @@ export function CreateDelusionSheet({
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "bg-white text-delulu-dark text-lg",
+                        "btn-game",
                         "flex items-center justify-center gap-2"
                       )}
                     >
@@ -506,6 +533,7 @@ export function CreateDelusionSheet({
                 </div>
               )}
             </div>
+          </div>
           </div>
         </SheetContent>
       </Sheet>

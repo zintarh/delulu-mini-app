@@ -13,11 +13,13 @@ export function useCreateDelulu() {
   const createDelulu = async (
     content: string,
     deadline: Date,
-    amount: number
+    amount: number,
+    username?: string,
+    pfpUrl?: string
   ) => {
     try {
-      // Upload content to IPFS
-      const contentHash = await uploadToIPFS(content);
+      // Upload content to IPFS with user info if available
+      const contentHash = await uploadToIPFS(content, username, pfpUrl);
       
       if (!contentHash || typeof contentHash !== "string") {
         throw new Error("Invalid IPFS hash returned");
@@ -38,13 +40,6 @@ export function useCreateDelulu() {
       if (amountWei <= 0n) {
         throw new Error("Stake amount must be greater than 0");
       }
-
-      console.log("Creating delulu with:", {
-        contentHash,
-        stakingDeadline: stakingDeadline.toString(),
-        resolutionDeadline: resolutionDeadline.toString(),
-        amountWei: amountWei.toString(),
-      });
 
       writeContract({
         address: DELULU_CONTRACT_ADDRESS,

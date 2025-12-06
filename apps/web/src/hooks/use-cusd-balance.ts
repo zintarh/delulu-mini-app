@@ -1,35 +1,40 @@
 import { useAccount, useBalance, useReadContract, useChainId } from "wagmi";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { CUSD_ADDRESSES, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { CUSD_ADDRESSES } from "@/lib/constants";
-import { useEffect } from "react";
 
 export function useCUSDBalance() {
   const { address } = useAccount();
   const chainId = useChainId();
-  
-  // Try to get token address from contract, fallback to known addresses
-  const { data: tokenAddress, isLoading: isLoadingTokenAddress, error: tokenAddressError } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+
+  const {
+    data: tokenAddress,
+    isLoading: isLoadingTokenAddress,
+    error: tokenAddressError,
+  } = useReadContract({
+    address: DELULU_CONTRACT_ADDRESS ,
     abi: DELULU_ABI,
     functionName: "stablecoin",
   });
 
   // Fallback: use known cUSD addresses based on chain
-  const fallbackTokenAddress = chainId === 44787 
-    ? CUSD_ADDRESSES.alfajores 
-    : chainId === 42220 
-    ? CUSD_ADDRESSES.mainnet 
-    : undefined;
+  const fallbackTokenAddress =
+    chainId === 44787
+      ? CUSD_ADDRESSES.alfajores
+      : chainId === 42220
+      ? CUSD_ADDRESSES.mainnet
+      : undefined;
 
   const finalTokenAddress = tokenAddress || fallbackTokenAddress;
 
-  const { data: balance, isLoading, error } = useBalance({
+  const {
+    data: balance,
+    isLoading,
+    error,
+  } = useBalance({
     address,
     token: finalTokenAddress as `0x${string}` | undefined,
     query: { enabled: !!finalTokenAddress && !!address },
   });
-
 
   return {
     balance,
@@ -38,4 +43,3 @@ export function useCUSDBalance() {
     tokenAddress: finalTokenAddress,
   };
 }
-

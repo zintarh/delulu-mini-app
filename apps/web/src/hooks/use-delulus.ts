@@ -22,6 +22,8 @@ export interface FormattedDelulu {
   creator: string;
   contentHash: string;
   content?: string;
+  username?: string;
+  pfpUrl?: string;
   stakingDeadline: Date;
   resolutionDeadline: Date;
   totalBelieverStake: number;
@@ -32,12 +34,18 @@ export interface FormattedDelulu {
   isCancelled: boolean;
 }
 
-async function fetchIPFSContent(hash: string): Promise<string | null> {
+interface IPFSContent {
+  text?: string;
+  username?: string;
+  pfpUrl?: string;
+}
+
+async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
   try {
     const response = await fetch(`https://ipfs.io/ipfs/${hash}`, {
       method: "GET",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
       },
     });
     if (!response.ok) {
@@ -45,10 +53,13 @@ async function fetchIPFSContent(hash: string): Promise<string | null> {
       return null;
     }
     const data = await response.json();
-    console.log(`IPFS response for ${hash}:`, data);
-    // Pinata stores content in pinataContent.text
-    const content = data.pinataContent?.text || data.text || data.content || null;
-    return content;
+    // Pinata stores content in pinataContent
+    const pinataContent = data.pinataContent || data;
+    return {
+      text: pinataContent.text || data.text || data.content || null,
+      username: pinataContent.username || data.username || null,
+      pfpUrl: pinataContent.pfpUrl || data.pfpUrl || null,
+    };
   } catch (error) {
     console.error(`Failed to fetch IPFS content for ${hash}:`, error);
     return null;
@@ -60,29 +71,23 @@ export function useDelulus() {
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getDelulus",
-    args: [1n, 100n], // startId: 1, count: 100
+    args: [1n, 100n],
   });
 
-
-
-  const [delulusWithContent, setDelulusWithContent] = useState<FormattedDelulu[]>([]);
+  const [delulusWithContent, setDelulusWithContent] = useState<
+    FormattedDelulu[]
+  >([]);
 
   const rawDelulus: FormattedDelulu[] = data
     ? (data as Delulu[])
         .filter((d) => !d.isCancelled)
         .map((d) => {
-          const believerStake = parseFloat(formatUnits(d.totalBelieverStake, 18));
+          const believerStake = parseFloat(
+            formatUnits(d.totalBelieverStake, 18)
+          );
           const doubterStake = parseFloat(formatUnits(d.totalDoubterStake, 18));
           const totalStake = believerStake + doubterStake;
-          
-          console.log(`Delulu ${d.id}:`, {
-            rawBelieverStake: d.totalBelieverStake.toString(),
-            rawDoubterStake: d.totalDoubterStake.toString(),
-            believerStake,
-            doubterStake,
-            totalStake,
-          });
-          
+
           return {
             id: Number(d.id),
             creator: d.creator,
@@ -109,28 +114,21 @@ export function useDelulus() {
     const fetchContents = async () => {
       const delulusWithDecoded = await Promise.all(
         rawDelulus.map(async (delulu) => {
-          const content = await fetchIPFSContent(delulu.contentHash);
-          console.log(`Fetched content for hash ${delulu.contentHash}:`, content);
-          return { ...delulu, content: content || delulu.contentHash };
+          const ipfsData = await fetchIPFSContent(delulu.contentHash);
+
+          return {
+            ...delulu,
+            content: ipfsData?.text || delulu.contentHash,
+            username: ipfsData?.username,
+            pfpUrl: ipfsData?.pfpUrl,
+          };
         })
       );
       setDelulusWithContent(delulusWithDecoded);
-      console.log("Delulus with decoded content:", delulusWithDecoded);
     };
 
     fetchContents();
   }, [data]);
 
-  console.log("=== useDelulus Hook Debug ===");
-  console.log("Contract Address:", DELULU_CONTRACT_ADDRESS);
-  console.log("Args: [startId: 1, count: 100]");
-  console.log("Raw Data:", data);
-  console.log("Is Loading:", isLoading);
-  console.log("Error:", error);
-  console.log("Raw Delulus Count:", rawDelulus.length);
-  console.log("Delulus with Content Count:", delulusWithContent.length);
-  console.log("============================");
-
   return { delulus: delulusWithContent, isLoading, error };
 }
-

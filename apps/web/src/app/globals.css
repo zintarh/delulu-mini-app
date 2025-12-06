@@ -87,6 +87,56 @@
   .border-delulu-purple { border-color: var(--delulu-purple); }
   .border-delulu-dark { border-color: var(--delulu-dark); }
   .border-delulu-white { border-color: var(--delulu-white); }
+
+  /* Home page gradient background */
+  .bg-home-gradient {
+    background: linear-gradient(180deg, #0a0514 0%, #0a0a0a 40%, #000000 100%);
+  }
+
+  /* Game-like button style - delulusion buttons */
+  .btn-game {
+    position: relative;
+    font-family: var(--font-gloria), cursive;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 4px solid;
+    border-top-color: rgba(255, 255, 255, 0.3);
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-right-color: rgba(0, 0, 0, 0.3);
+    border-bottom-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 
+      0 6px 0 rgba(0, 0, 0, 0.4),
+      inset 0 2px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.1s ease;
+    transform-style: preserve-3d;
+  }
+
+  .btn-game:hover {
+    transform: translateY(2px);
+    box-shadow: 
+      0 4px 0 rgba(0, 0, 0, 0.4),
+      inset 0 2px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-game:active {
+    transform: translateY(4px);
+    box-shadow: 
+      0 2px 0 rgba(0, 0, 0, 0.4),
+      inset 0 2px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-game:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 
+      0 2px 0 rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* Fashion magazine style animations */
@@ -237,6 +287,16 @@
   background: var(--muted-foreground);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Instagram Story style text input */
 textarea::-webkit-scrollbar {
   display: none;
@@ -308,6 +368,16 @@ textarea {
 .rdp-nav_button_previous svg,
 .rdp-nav_button_next svg {
   display: none;
+}
+
+/* Custom Slider Styles */
+.delulu-slider [data-slot="slider-range"] {
+  background-color: white !important;
+}
+
+.delulu-slider [data-slot="slider-thumb"] {
+  border-color: var(--delulu-dark) !important;
+  background-color: white !important;
 }
 
 /* Blinking caret animation */
