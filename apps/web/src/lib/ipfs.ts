@@ -1,7 +1,8 @@
 export async function uploadToIPFS(
   content: string,
   username?: string,
-  pfpUrl?: string
+  pfpUrl?: string,
+  createdAt?: Date
 ): Promise<string> {
   try {
     const response = await fetch("/api/ipfs/upload", {
@@ -13,6 +14,7 @@ export async function uploadToIPFS(
         content,
         username,
         pfpUrl,
+        createdAt: createdAt ? createdAt.toISOString() : undefined,
       }),
     });
 

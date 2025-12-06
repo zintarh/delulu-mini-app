@@ -24,6 +24,7 @@ export interface FormattedDelulu {
   content?: string;
   username?: string;
   pfpUrl?: string;
+  createdAt?: Date;
   stakingDeadline: Date;
   resolutionDeadline: Date;
   totalBelieverStake: number;
@@ -38,6 +39,7 @@ interface IPFSContent {
   text?: string;
   username?: string;
   pfpUrl?: string;
+  createdAt?: string;
 }
 
 async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
@@ -53,12 +55,12 @@ async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
       return null;
     }
     const data = await response.json();
-    // Pinata stores content in pinataContent
     const pinataContent = data.pinataContent || data;
     return {
       text: pinataContent.text || data.text || data.content || null,
       username: pinataContent.username || data.username || null,
       pfpUrl: pinataContent.pfpUrl || data.pfpUrl || null,
+      createdAt: pinataContent.createdAt || data.createdAt || null,
     };
   } catch (error) {
     console.error(`Failed to fetch IPFS content for ${hash}:`, error);
@@ -121,6 +123,7 @@ export function useDelulus() {
             content: ipfsData?.text || delulu.contentHash,
             username: ipfsData?.username,
             pfpUrl: ipfsData?.pfpUrl,
+            createdAt: ipfsData?.createdAt ? new Date(ipfsData.createdAt) : undefined,
           };
         })
       );

@@ -472,7 +472,7 @@ export function DeluluDetailsSheet({
               />
             </div>
             <p className="text-xs text-white/50 mb-4">
-              Created {new Date(delulu.stakingDeadline).toLocaleDateString()}
+              Created {delulu.createdAt ? delulu.createdAt.toLocaleDateString() : new Date(delulu.stakingDeadline).toLocaleDateString()}
             </p>
 
             {/* Content */}

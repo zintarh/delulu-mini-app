@@ -2,7 +2,7 @@
 const DELULU_CONTRACT_ADDRESSES = {
   mainnet:
     process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET ||
-    "0xF43Fe1ec7260b725Da62e3C241f45efB1831AaEd", // TODO: Add mainnet address
+    "0x81a8C01409810B4a1b2be2C4b83A862FB2db9db8", // Add mainnet address
   testnet: "0xF43Fe1ec7260b725Da62e3C241f45efB1831AaEd", // sepolia testnet
 } as const;
 
