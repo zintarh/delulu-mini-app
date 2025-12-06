@@ -11,16 +11,12 @@ function formatAddress(address: string): string {
 interface TwitterPostCardProps {
   delusion: FormattedDelulu;
   onClick: () => void;
-  onBelieve?: () => void;
-  onDoubt?: () => void;
   className?: string;
 }
 
 export function TwitterPostCard({ 
   delusion, 
   onClick,
-  onBelieve,
-  onDoubt,
   className = "shrink-0 w-[85%] sm:w-[400px]"
 }: TwitterPostCardProps) {
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
@@ -95,11 +91,7 @@ export function TwitterPostCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (onBelieve) {
-              onBelieve();
-            } else {
-              onClick();
-            }
+            onClick();
           }}
           className="flex items-center gap-2 text-white/60 hover:text-delulu-green transition-colors"
         >
@@ -115,11 +107,7 @@ export function TwitterPostCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (onDoubt) {
-              onDoubt();
-            } else {
-              onClick();
-            }
+            onClick();
           }}
           className="flex items-center gap-2 text-white/60 hover:text-delulu-purple transition-colors"
         >
