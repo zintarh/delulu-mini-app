@@ -13,11 +13,13 @@ export function useCreateDelulu() {
   const createDelulu = async (
     content: string,
     deadline: Date,
-    amount: number
+    amount: number,
+    username?: string,
+    pfpUrl?: string
   ) => {
     try {
-      // Upload content to IPFS
-      const contentHash = await uploadToIPFS(content);
+      // Upload content to IPFS with user info if available
+      const contentHash = await uploadToIPFS(content, username, pfpUrl);
       
       if (!contentHash || typeof contentHash !== "string") {
         throw new Error("Invalid IPFS hash returned");
