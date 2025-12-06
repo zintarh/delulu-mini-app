@@ -59,15 +59,15 @@ export function DeluluMenu({ delulu, onCancel, onResolve }: DeluluMenuProps) {
                 onClick={handleCancel}
                 className="w-full px-4 py-2.5 flex items-center gap-2 text-left hover:bg-white/5 transition-colors"
               >
-                <X className="w-4 h-4 text-white/60" />
-                <span className="text-sm text-white/90 font-medium">Cancel Delulu</span>
+                <X className="w-4 h-4 text-red-400" />
+                <span className="text-sm text-red-400 font-medium">Cancel</span>
               </button>
               <button
                 onClick={handleResolve}
                 className="w-full px-4 py-2.5 flex items-center gap-2 text-left hover:bg-white/5 transition-colors border-t border-white/10"
               >
                 <CheckCircle className="w-4 h-4 text-white/60" />
-                <span className="text-sm text-white/90 font-medium">Resolve Delulu</span>
+                <span className="text-sm text-white/90 font-medium">Resolve</span>
               </button>
             </>
           )}
