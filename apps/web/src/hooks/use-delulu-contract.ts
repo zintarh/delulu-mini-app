@@ -18,8 +18,9 @@ export function useCreateDelulu() {
     pfpUrl?: string
   ) => {
     try {
-      // Upload content to IPFS with user info if available
-      const contentHash = await uploadToIPFS(content, username, pfpUrl);
+      // Upload content to IPFS with user info and created_at timestamp
+      const createdAt = new Date();
+      const contentHash = await uploadToIPFS(content, username, pfpUrl, createdAt);
       
       if (!contentHash || typeof contentHash !== "string") {
         throw new Error("Invalid IPFS hash returned");
