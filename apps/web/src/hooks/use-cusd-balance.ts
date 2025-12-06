@@ -11,7 +11,7 @@ export function useCUSDBalance() {
     isLoading: isLoadingTokenAddress,
     error: tokenAddressError,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+    address: DELULU_CONTRACT_ADDRESS ,
     abi: DELULU_ABI,
     functionName: "stablecoin",
   });
