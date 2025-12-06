@@ -238,7 +238,7 @@ export default function HomePage() {
                     Your Conviction
                   </p>
                   <p className="text-sm text-white/60 leading-relaxed">
-                    Back your beliefs with real stakes. Win financial rewards and social validation when you're right.
+                    Back your beliefs with real stakes. Win financial rewards and social validation when you&apos;re right.
                   </p>
                 </div>
                 <div className="mt-4 flex justify-end">
