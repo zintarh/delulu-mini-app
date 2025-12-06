@@ -1,7 +1,7 @@
 "use client";
 
 import { FormattedDelulu } from "@/hooks/use-delulus";
-import { formatTimeRemaining, cn } from "@/lib/utils";
+import { formatTimeRemaining, formatTimeAgo, cn } from "@/lib/utils";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -47,9 +47,17 @@ export function TwitterPostCard({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-bold text-white/90">
-            {delusion.username ? `@${delusion.username}` : formatAddress(delusion.creator)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-white/90">
+              {delusion.username ? `@${delusion.username}` : formatAddress(delusion.creator)}
+            </span>
+            <span className="text-xs text-white/50">·</span>
+            <span className="text-xs text-white/50">
+              {formatTimeAgo(
+                delusion.createdAt || new Date(delusion.stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000)
+              )}
+            </span>
+          </div>
         </div>
       </div>
 
