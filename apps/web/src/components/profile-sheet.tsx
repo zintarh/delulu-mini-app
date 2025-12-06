@@ -96,7 +96,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                     const deadline = d.stakingDeadline;
                     const diff = deadline.getTime() - now.getTime();
                     const hours = diff / (1000 * 60 * 60);
-                    return hours > 0 && hours <= 24 && !isDeluluCreator(address, d);
+                    return hours > 0 && hours <= 2 && !isDeluluCreator(address, d);
                   });
 
                   if (endingSoonDelulus.length === 0) {
