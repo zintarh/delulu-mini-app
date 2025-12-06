@@ -33,7 +33,7 @@ export function usePotentialPayout(
   });
 
   return {
-    potentialPayout: payout ? parseFloat(formatUnits(payout, 18)) : null,
+    potentialPayout: payout && typeof payout === "bigint" ? parseFloat(formatUnits(payout, 18)) : null,
     isLoading,
     error,
   };
