@@ -22,6 +22,8 @@ export interface FormattedDelulu {
   creator: string;
   contentHash: string;
   content?: string;
+  username?: string;
+  pfpUrl?: string;
   stakingDeadline: Date;
   resolutionDeadline: Date;
   totalBelieverStake: number;
@@ -32,7 +34,13 @@ export interface FormattedDelulu {
   isCancelled: boolean;
 }
 
-async function fetchIPFSContent(hash: string): Promise<string | null> {
+interface IPFSContent {
+  text?: string;
+  username?: string;
+  pfpUrl?: string;
+}
+
+async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
   try {
     const response = await fetch(`https://ipfs.io/ipfs/${hash}`, {
       method: "GET",
@@ -45,10 +53,13 @@ async function fetchIPFSContent(hash: string): Promise<string | null> {
       return null;
     }
     const data = await response.json();
-    // Pinata stores content in pinataContent.text
-    const content =
-      data.pinataContent?.text || data.text || data.content || null;
-    return content;
+    // Pinata stores content in pinataContent
+    const pinataContent = data.pinataContent || data;
+    return {
+      text: pinataContent.text || data.text || data.content || null,
+      username: pinataContent.username || data.username || null,
+      pfpUrl: pinataContent.pfpUrl || data.pfpUrl || null,
+    };
   } catch (error) {
     console.error(`Failed to fetch IPFS content for ${hash}:`, error);
     return null;
@@ -60,10 +71,8 @@ export function useDelulus() {
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getDelulus",
-    args: [1n, 100n], // startId: 1, count: 100
+    args: [1n, 100n],
   });
-
-  
 
   const [delulusWithContent, setDelulusWithContent] = useState<
     FormattedDelulu[]
@@ -105,9 +114,14 @@ export function useDelulus() {
     const fetchContents = async () => {
       const delulusWithDecoded = await Promise.all(
         rawDelulus.map(async (delulu) => {
-          const content = await fetchIPFSContent(delulu.contentHash);
-          
-          return { ...delulu, content: content || delulu.contentHash };
+          const ipfsData = await fetchIPFSContent(delulu.contentHash);
+
+          return {
+            ...delulu,
+            content: ipfsData?.text || delulu.contentHash,
+            username: ipfsData?.username,
+            pfpUrl: ipfsData?.pfpUrl,
+          };
         })
       );
       setDelulusWithContent(delulusWithDecoded);
