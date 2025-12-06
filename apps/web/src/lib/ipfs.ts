@@ -1,11 +1,19 @@
-export async function uploadToIPFS(content: string): Promise<string> {
+export async function uploadToIPFS(
+  content: string,
+  username?: string,
+  pfpUrl?: string
+): Promise<string> {
   try {
     const response = await fetch("/api/ipfs/upload", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ 
+        content,
+        username,
+        pfpUrl,
+      }),
     });
 
     if (!response.ok) {
