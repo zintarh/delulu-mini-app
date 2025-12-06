@@ -19,7 +19,7 @@ interface AllDelulusSheetProps {
 function isEndingSoon(deadline: Date): boolean {
   const diff = deadline.getTime() - Date.now();
   const hours = diff / (1000 * 60 * 60);
-  return hours > 0 && hours <= 2;
+  return hours > 0 && hours <= 24;
 }
 
 function getCreatedAt(delulu: FormattedDelulu): Date {
@@ -38,39 +38,7 @@ export function AllDelulusSheet({
   onDeluluClick,
   isLoading = false,
 }: AllDelulusSheetProps) {
-  const mockEndingSoon: FormattedDelulu[] = [
-    {
-      id: 999,
-      creator: "0x1234567890123456789012345678901234567890",
-      contentHash: "QmMockHash1",
-      content: "I will become a millionaire by next month",
-      stakingDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000),
-      resolutionDeadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
-      totalBelieverStake: 100,
-      totalDoubterStake: 50,
-      totalStake: 150,
-      outcome: false,
-      isResolved: false,
-      isCancelled: false,
-    },
-    {
-      id: 998,
-      creator: "0x9876543210987654321098765432109876543210",
-      contentHash: "QmMockHash2",
-      content: "Bitcoin will hit $100k by end of year",
-      stakingDeadline: new Date(Date.now() + 18 * 60 * 60 * 1000),
-      resolutionDeadline: new Date(Date.now() + 42 * 60 * 60 * 1000),
-      totalBelieverStake: 200,
-      totalDoubterStake: 75,
-      totalStake: 275,
-      outcome: false,
-      isResolved: false,
-      isCancelled: false,
-    },
-  ];
-
   const endingSoon = delulus.filter((d) => isEndingSoon(d.stakingDeadline));
-  const displayEndingSoon = endingSoon.length > 0 ? endingSoon : mockEndingSoon;
   const allDelulusSorted = [...delulus].sort((a, b) => {
     const aCreated = getCreatedAt(a);
     const bCreated = getCreatedAt(b);
@@ -126,7 +94,7 @@ export function AllDelulusSheet({
                 ))}
               </div>
             </div>
-          ) : displayEndingSoon.length > 0 ? (
+          ) : endingSoon.length > 0 ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-4 h-4 text-delulu-yellow/50" />
@@ -138,7 +106,7 @@ export function AllDelulusSheet({
                 className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide "
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {displayEndingSoon.map((delulu) => (
+                {endingSoon.map((delulu) => (
                   <EndingSoonCard
                     key={delulu.id}
                     delulu={delulu}
