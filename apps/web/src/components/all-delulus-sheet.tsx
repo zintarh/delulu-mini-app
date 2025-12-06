@@ -24,8 +24,13 @@ function isEndingSoon(deadline: Date): boolean {
   return hours > 0 && hours <= 24;
 }
 
-function estimateCreatedAt(stakingDeadline: Date): Date {
-  return new Date(stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000);
+function getCreatedAt(delulu: FormattedDelulu): Date {
+  // Use createdAt from IPFS if available, otherwise estimate from staking deadline
+  if (delulu.createdAt) {
+    return delulu.createdAt;
+  }
+  // Fallback: estimate 7 days before staking deadline
+  return new Date(delulu.stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000);
 }
 
 export function AllDelulusSheet({
@@ -71,8 +76,8 @@ export function AllDelulusSheet({
   const endingSoon = delulus.filter((d) => isEndingSoon(d.stakingDeadline));
   const displayEndingSoon = endingSoon.length > 0 ? endingSoon : mockEndingSoon;
   const allDelulusSorted = [...delulus].sort((a, b) => {
-    const aCreated = estimateCreatedAt(a.stakingDeadline);
-    const bCreated = estimateCreatedAt(b.stakingDeadline);
+    const aCreated = getCreatedAt(a);
+    const bCreated = getCreatedAt(b);
     return aCreated.getTime() - bCreated.getTime();
   });
 
