@@ -37,7 +37,7 @@ export function SplashScreen() {
           fontFamily: "var(--font-gloria), cursive",
         }}
       >
-        delulu<span className="text-delulu-purple -ml-1">.</span>
+          delulu<span className="text-white -ml-1">.</span>
       </div>
       <div
         className={cn(
