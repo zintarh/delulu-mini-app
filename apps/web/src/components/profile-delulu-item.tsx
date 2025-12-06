@@ -24,7 +24,7 @@ export function ProfileDeluluItem({
     const deadline = delulu.stakingDeadline;
     const diff = deadline.getTime() - now.getTime();
     const hours = diff / (1000 * 60 * 60);
-    return hours > 0 && hours <= 24;
+    return hours > 0 && hours <= 2;
   };
 
   return (
