@@ -313,14 +313,6 @@ export default function HomePage() {
           setSelectedDelulu(delulu);
           setDetailsSheetOpen(true);
         }}
-        onBelieve={(delulu) => {
-          setSelectedDelulu(delulu);
-          setBelieveSheetOpen(true);
-        }}
-        onDoubt={(delulu) => {
-          setSelectedDelulu(delulu);
-          setDoubtSheetOpen(true);
-        }}
       />
 
       {/* Believe Sheet */}
