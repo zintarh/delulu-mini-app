@@ -14,7 +14,7 @@ const isProduction =
 
 export const DELULU_CONTRACT_ADDRESS = isProduction
   ? (DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`)
-  : (DELULU_CONTRACT_ADDRESSES.testnet as `0x${string}`);
+  : (DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`);
 
 // Celo cUSD address
 export const CUSD_ADDRESSES = {
