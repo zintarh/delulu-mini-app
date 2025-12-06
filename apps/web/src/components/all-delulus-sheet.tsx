@@ -13,15 +13,13 @@ interface AllDelulusSheetProps {
   onOpenChange: (open: boolean) => void;
   delulus: FormattedDelulu[];
   onDeluluClick: (delulu: FormattedDelulu) => void;
-  onBelieve?: (delulu: FormattedDelulu) => void;
-  onDoubt?: (delulu: FormattedDelulu) => void;
   isLoading?: boolean;
 }
 
 function isEndingSoon(deadline: Date): boolean {
   const diff = deadline.getTime() - Date.now();
   const hours = diff / (1000 * 60 * 60);
-  return hours > 0 && hours <= 24;
+  return hours > 0 && hours <= 2;
 }
 
 function getCreatedAt(delulu: FormattedDelulu): Date {
@@ -38,8 +36,6 @@ export function AllDelulusSheet({
   onOpenChange,
   delulus,
   onDeluluClick,
-  onBelieve,
-  onDoubt,
   isLoading = false,
 }: AllDelulusSheetProps) {
   const mockEndingSoon: FormattedDelulu[] = [
@@ -186,8 +182,6 @@ export function AllDelulusSheet({
                     key={delulu.id}
                     delusion={delulu}
                     onClick={() => onDeluluClick(delulu)}
-                    onBelieve={onBelieve ? () => onBelieve(delulu) : undefined}
-                    onDoubt={onDoubt ? () => onDoubt(delulu) : undefined}
                     className="w-full"
                   />
                 ))}
