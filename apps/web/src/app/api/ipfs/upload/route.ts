@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { content } = await request.json();
+    const { content, username, pfpUrl } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
@@ -21,6 +21,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build pinataContent object
+    const pinataContent: { text: string; username?: string; pfpUrl?: string } = {
+      text: content,
+    };
+    
+    if (username && typeof username === "string") {
+      pinataContent.username = username;
+    }
+    
+    if (pfpUrl && typeof pfpUrl === "string") {
+      pinataContent.pfpUrl = pfpUrl;
+    }
+
     // Upload to Pinata
     const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
       method: "POST",
@@ -29,9 +42,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${pinataJWT}`,
       },
       body: JSON.stringify({
-        pinataContent: {
-          text: content,
-        },
+        pinataContent,
         pinataMetadata: {
           name: "delulu-content",
         },
