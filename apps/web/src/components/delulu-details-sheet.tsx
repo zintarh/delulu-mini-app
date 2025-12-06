@@ -11,7 +11,7 @@ import { useUserPosition } from "@/hooks/use-user-position";
 import { usePotentialPayout } from "@/hooks/use-potential-payout";
 import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
-import { useDeluluState, DeluluState } from "@/hooks/use-delulu-state";
+import { useDeluluState, } from "@/hooks/use-delulu-state";
 import { DeluluStatusBadge } from "@/components/delulu-status-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
@@ -22,6 +22,8 @@ interface DeluluDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   delulu: FormattedDelulu | null;
+  onBelieve?: () => void;
+  onDoubt?: () => void;
 }
 
 function formatTimeRemaining(deadline: Date): string {
@@ -39,6 +41,8 @@ export function DeluluDetailsSheet({
   open,
   onOpenChange,
   delulu,
+  onBelieve,
+  onDoubt,
 }: DeluluDetailsSheetProps) {
   const { isConnected, address } = useAccount();
 
@@ -315,7 +319,29 @@ export function DeluluDetailsSheet({
     }
   }, [stakeError]);
 
-  if (!delulu) return null;
+  if (!delulu) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          className="bg-delulu-dark border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
+        >
+          <SheetTitle className="sr-only">Delulu Details</SheetTitle>
+          <div className="px-6 pt-6 pb-8">
+            <div className="space-y-4 animate-pulse">
+              <div className="h-6 bg-white/10 rounded w-1/2" />
+              <div className="h-4 bg-white/10 rounded w-3/4" />
+              <div className="h-32 bg-white/5 rounded-2xl border border-white/10" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-20 bg-white/5 rounded-xl border border-white/10" />
+                <div className="h-20 bg-white/5 rounded-xl border border-white/10" />
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   const total = delulu.totalBelieverStake + delulu.totalDoubterStake;
   const believerPercent =
@@ -329,23 +355,15 @@ export function DeluluDetailsSheet({
     : false;
 
   const handleBelieveClick = () => {
-    if (!hasBalance) {
-      setErrorMessage("Insufficient balance. You need cUSD to stake.");
-      setShowErrorModal(true);
-      return;
+    if (onBelieve) {
+      onBelieve();
     }
-    setPendingAction("believe");
-    setShowStakeInput(true);
   };
 
   const handleDoubtClick = () => {
-    if (!hasBalance) {
-      setErrorMessage("Insufficient balance. You need cUSD to stake.");
-      setShowErrorModal(true);
-      return;
+    if (onDoubt) {
+      onDoubt();
     }
-    setPendingAction("doubt");
-    setShowStakeInput(true);
   };
 
   const handleStake = async () => {
@@ -437,14 +455,14 @@ export function DeluluDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
+        className="bg-delulu-dark border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
       >
         <SheetTitle className="sr-only">
           {delulu ? `Delulu Details: ${delulu.content || delulu.contentHash}` : "Delulu Details"}
         </SheetTitle>
-        <div className="relative flex flex-col overflow-y-auto pb-32">
+        <div className="max-w-lg mx-auto pt-6 pb-32 px-6">
           {/* Header */}
-          <div className="px-6 pt-6 pb-4">
+          <div className="mb-6">
             {/* Status Badge */}
             <div className="mb-4">
               <DeluluStatusBadge
@@ -453,22 +471,22 @@ export function DeluluDetailsSheet({
                 isCancelled={delulu.isCancelled}
               />
             </div>
-            <p className="text-xs text-delulu-dark/50 mb-4">
+            <p className="text-xs text-white/50 mb-4">
               Created {new Date(delulu.stakingDeadline).toLocaleDateString()}
             </p>
 
             {/* Content */}
             <div className="mb-6">
-              <p className="text-2xl font-gloria text-delulu-dark leading-tight mb-4">
-                &ldquo;{delulu.content || delulu.contentHash}&rdquo;
+              <p className="text-base text-white/90 leading-relaxed break-words whitespace-pre-wrap">
+                {delulu.content || delulu.contentHash}
               </p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 rounded-2xl bg-delulu-dark/5">
-                <p className="text-xs text-delulu-dark/50 mb-1">Believers</p>
-                <p className="text-xl font-black text-delulu-dark">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs text-white/60 mb-1">Believers</p>
+                <p className="text-lg font-black text-white/90">
                   {delulu.totalBelieverStake > 0
                     ? delulu.totalBelieverStake < 0.01
                       ? delulu.totalBelieverStake.toFixed(4)
@@ -477,9 +495,9 @@ export function DeluluDetailsSheet({
                   cUSD
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-delulu-dark/5">
-                <p className="text-xs text-delulu-dark/50 mb-1">Doubters</p>
-                <p className="text-xl font-black text-delulu-dark">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs text-white/60 mb-1">Doubters</p>
+                <p className="text-lg font-black text-white/90">
                   {delulu.totalDoubterStake > 0
                     ? delulu.totalDoubterStake < 0.01
                       ? delulu.totalDoubterStake.toFixed(4)
@@ -490,117 +508,46 @@ export function DeluluDetailsSheet({
               </div>
             </div>
 
-            {/* Progress Ring */}
-            <div className="flex items-center justify-center mb-6">
-              <div
-                className="relative w-32 h-32"
-                style={{ filter: "drop-shadow(0 4px 0 #0a0a0a)" }}
-              >
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 40}
-                    strokeDashoffset={
-                      2 * Math.PI * 40 -
-                      (believerPercent / 100) * 2 * Math.PI * 40
-                    }
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-delulu-dark">
-                    {believerPercent}%
-                  </span>
-                  <span className="text-xs text-delulu-dark/50">Believe</span>
-                </div>
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-white/60">Believers</span>
+                <span className="text-sm font-bold text-white/90">{believerPercent}%</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-delulu-yellow rounded-full transition-all duration-300"
+                  style={{ width: `${believerPercent}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-white/50">Doubters</span>
+                <span className="text-xs text-white/50">{100 - believerPercent}%</span>
               </div>
             </div>
 
             {/* Deadline */}
-            <div className="p-4 rounded-2xl bg-delulu-dark/5 mb-6">
-              <p className="text-xs text-delulu-dark/50 mb-1">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-6">
+              <p className="text-xs text-white/60 mb-1">
                 Staking Deadline
               </p>
-              <p className="text-lg font-black text-delulu-dark">
+              <p className="text-base font-black text-white/90">
                 {formatTimeRemaining(delulu.stakingDeadline)} remaining
               </p>
-              <p className="text-xs text-delulu-dark/50 mt-1">
+              <p className="text-xs text-white/50 mt-1">
                 {delulu.stakingDeadline.toLocaleDateString()} at{" "}
                 {delulu.stakingDeadline.toLocaleTimeString()}
               </p>
             </div>
 
-            {/* Stake Amount Input - shown after clicking Believe/Doubt */}
-            {canStake && isConnected && showStakeInput && hasBalance && (
-              <div className="mb-6">
-                <label className="block text-sm font-bold text-delulu-dark mb-2">
-                  Stake Amount (cUSD)
-                </label>
-                <input
-                  type="number"
-                  value={stakeAmount}
-                  onChange={(e) => setStakeAmount(e.target.value)}
-                  min="0.001"
-                  step="0.001"
-                  max={cusdBalance ? cusdBalance.formatted : undefined}
-                  className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-delulu-dark text-delulu-dark font-bold text-lg focus:outline-none focus:ring-2 focus:ring-delulu-dark"
-                  autoFocus
-                />
-                {isLoadingBalance ? (
-                  <p className="text-xs text-delulu-dark/50 mt-2">
-                    Loading balance...
-                  </p>
-                ) : cusdBalance ? (
-                  <p className="text-xs text-delulu-dark/50 mt-2">
-                    Available: {parseFloat(cusdBalance.formatted).toFixed(2)}{" "}
-                    cUSD
-                  </p>
-                ) : null}
-                {hasInsufficientBalance && (
-                  <p className="text-sm text-red-600 mt-2 font-bold">
-                    Insufficient balance
-                  </p>
-                )}
-                {/* Potential Payout Display */}
-                {potentialPayout !== null &&
-                  !isLoadingPayout &&
-                  stakeAmount &&
-                  parseFloat(stakeAmount) > 0 && (
-                    <div className="mt-4 p-4 rounded-2xl bg-delulu-green/10 border-2 border-delulu-green/30">
-                      <p className="text-xs text-delulu-dark/50 mb-1">
-                        Potential Payout
-                      </p>
-                      <p className="text-xl font-black text-delulu-green">
-                        {potentialPayout.toFixed(2)} cUSD
-                      </p>
-                      <p className="text-xs text-delulu-dark/50 mt-1">
-                        If you win, you&apos;ll receive this amount
-                      </p>
-                    </div>
-                  )}
-              </div>
-            )}
           </div>
         </div>
 
         {/* Creator message */}
         {isCreator && isConnected && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
-            <div className="w-full px-6 py-4 bg-delulu-dark/10 rounded-full text-center">
-              <p className="text-sm font-bold text-delulu-dark">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="w-full px-4 py-2 bg-white/10 rounded-full text-center border border-white/20">
+              <p className="text-xs font-medium text-white/80">
                 You can&apos;t stake on your own delusion
               </p>
             </div>
@@ -609,9 +556,9 @@ export function DeluluDetailsSheet({
 
         {/* Already staked message */}
         {hasStaked && isConnected && !isCreator && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
-            <div className="w-full px-6 py-4 bg-delulu-dark/10 rounded-full text-center">
-              <p className="text-sm font-bold text-delulu-dark">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="w-full px-4 py-2 bg-white/10 rounded-full text-center border border-white/20">
+              <p className="text-xs font-medium text-white/80">
                 You&apos;ve already staked {userStakeAmount > 0
                   ? userStakeAmount < 0.01
                     ? userStakeAmount.toFixed(4)
@@ -628,9 +575,9 @@ export function DeluluDetailsSheet({
           !isCreator &&
           !isLoadingBalance &&
           !hasBalance && (
-            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
-              <div className="w-full px-6 py-4 bg-red-100 rounded-full text-center">
-                <p className="text-sm font-bold text-red-600">
+            <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+              <div className="w-full px-4 py-2 bg-red-500/20 rounded-full text-center border border-red-500/30">
+                <p className="text-xs font-medium text-red-400">
                   Insufficient balance. You need cUSD to stake.
                 </p>
               </div>
@@ -642,18 +589,18 @@ export function DeluluDetailsSheet({
           isConnected &&
           !isLoadingClaimable &&
           delulu.isResolved && (
-            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 z-50">
+            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
               <button
                 onClick={() => claim(delulu.id)}
                 disabled={isClaiming || isClaimConfirming}
                 className={cn(
-                  "w-full px-6 py-4",
-                  "bg-delulu-green rounded-full",
-                  "text-white font-black text-lg",
-                  "shadow-[0_4px_0_0_#0a0a0a]",
-                  "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                  "transition-all duration-150",
-                  "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                  "w-full px-4 py-3",
+                  "bg-white/10 rounded-full",
+                  "text-white/90 font-black text-sm",
+                  "border border-white/20",
+                  "active:scale-[0.98]",
+                  "transition-all duration-150 hover:bg-white/15",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
                   "flex items-center justify-center gap-2"
                 )}
               >
@@ -671,67 +618,33 @@ export function DeluluDetailsSheet({
 
         {/* Floating Action Buttons - at bottom, floating on top */}
         {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow/95 backdrop-blur-sm border-t border-delulu-dark/10 flex gap-4 z-50">
-            {!showStakeInput ? (
-              <>
-                <button
-                  onClick={handleBelieveClick}
-                  className={cn(
-                    "flex-1 px-6 py-4",
-                    "bg-white rounded-full",
-                    "text-delulu-dark font-black text-lg",
-                    "shadow-[0_4px_0_0_#0a0a0a]",
-                    "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                    "transition-all duration-150"
-                  )}
-                >
-                  Believe
-                </button>
-                <button
-                  onClick={handleDoubtClick}
-                  className={cn(
-                    "flex-1 px-6 py-4",
-                    "bg-white rounded-full",
-                    "text-delulu-dark font-black text-lg",
-                    "shadow-[0_4px_0_0_#0a0a0a]",
-                    "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                    "transition-all duration-150"
-                  )}
-                >
-                  Doubt
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleStake}
-                disabled={isStaking || !stakeAmount || amount <= 0}
-                className={cn(
-                  "w-full px-6 py-4",
-                  "bg-white rounded-full",
-                  "text-delulu-dark font-black text-lg",
-                  "shadow-[0_4px_0_0_#0a0a0a]",
-                  "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                  "transition-all duration-150",
-                  "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
-                  "flex items-center justify-center gap-2"
-                )}
-              >
-                {isStaking ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>
-                      {isApproving || isApprovingConfirming
-                        ? "Approving..."
-                        : "Staking..."}
-                    </span>
-                  </>
-                ) : (
-                  <span>
-                    {pendingAction === "believe" ? "Believe" : "Doubt"}
-                  </span>
-                )}
-              </button>
-            )}
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 flex gap-4 z-50">
+            <button
+              onClick={handleBelieveClick}
+              className={cn(
+                "flex-1 px-4 py-3",
+                "bg-white/10 rounded-full",
+                "text-white/90 font-black text-sm",
+                "border border-white/20",
+                "active:scale-[0.98]",
+                "transition-all duration-150 hover:bg-white/15"
+              )}
+            >
+              Believe
+            </button>
+            <button
+              onClick={handleDoubtClick}
+              className={cn(
+                "flex-1 px-4 py-3",
+                "bg-white/10 rounded-full",
+                "text-white/90 font-black text-sm",
+                "border border-white/20",
+                "active:scale-[0.98]",
+                "transition-all duration-150 hover:bg-white/15"
+              )}
+            >
+              Doubt
+            </button>
           </div>
         )}
       </SheetContent>
