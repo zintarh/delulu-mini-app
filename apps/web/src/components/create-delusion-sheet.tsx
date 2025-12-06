@@ -12,6 +12,9 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/stores/useUserStore";
+
+const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
 const HYPE_TEXT = [
   {
@@ -44,9 +47,11 @@ export function CreateDelusionSheet({
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
   const router = useRouter();
+  const { user } = useUserStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
+  const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -124,7 +129,7 @@ export function CreateDelusionSheet({
     : false;
 
   const canGoNext = () => {
-    if (currentStep === 0) return delusionText.trim().length > 0;
+    if (currentStep === 0) return delusionText.trim().length > 0 && delusionText.trim().length <= MAX_DELULU_LENGTH;
     if (currentStep === 1) return true;
     if (currentStep === 2) return stakeAmount[0] >= 1 && !hasInsufficientBalance;
     return false;
@@ -166,10 +171,19 @@ export function CreateDelusionSheet({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent
           side="bottom"
-          className="bg-delulu-yellow border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
+          className="border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20 relative"
+          style={{
+            backgroundImage: "url('/island2.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
         >
-          <SheetTitle className="sr-only">Create Delusion</SheetTitle>
-          <div className="relative h-full flex flex-col overflow-y-auto">
+          {/* Yellow overlay */}
+          <div className="absolute inset-0 bg-delulu-yellow/70 z-0" />
+          <div className="relative z-10 h-full flex flex-col [&_button[data-radix-dialog-close]]:z-[100]">
+            <SheetTitle className="sr-only">Create Delusion</SheetTitle>
+            <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Home Icon */}
             <button
               onClick={() => {
@@ -179,12 +193,9 @@ export function CreateDelusionSheet({
               className={cn(
                 "absolute top-4 left-4 z-20",
                 "w-10 h-10",
-                "bg-white rounded-full",
-                "text-delulu-dark",
-                "shadow-[0_4px_0_0_#0a0a0a]",
-                "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                "transition-all duration-150",
-                "flex items-center justify-center hover:bg-delulu-dark/5"
+                "bg-white text-delulu-dark",
+                "btn-game",
+                "flex items-center justify-center"
               )}
             >
               <Home className="w-5 h-5" />
@@ -221,11 +232,25 @@ export function CreateDelusionSheet({
                   <textarea
                     placeholder="Tap to type..."
                     value={delusionText}
-                    onChange={(e) => setDelusionText(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= MAX_DELULU_LENGTH) {
+                        setDelusionText(e.target.value);
+                      }
+                    }}
+                    maxLength={MAX_DELULU_LENGTH}
                     className="w-full min-h-[200px] bg-transparent border-none outline-none text-3xl md:text-4xl font-bold text-delulu-dark text-center placeholder:text-delulu-dark/30 resize-none leading-tight caret-delulu-dark font-gloria"
                     autoFocus
                     style={{ caretColor: "#0a0a0a" }}
                   />
+                  <div className="mt-4 text-center">
+                    <span className={`text-sm ${
+                      delusionText.length > MAX_DELULU_LENGTH * 0.9 
+                        ? "text-red-500" 
+                        : "text-delulu-dark/50"
+                    }`}>
+                      {delusionText.length}/{MAX_DELULU_LENGTH}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -410,12 +435,9 @@ export function CreateDelusionSheet({
                       onClick={handleBack}
                       className={cn(
                         "w-14 h-14",
-                        "bg-delulu-dark rounded-full",
-                        "text-white",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "flex items-center justify-center hover:bg-delulu-dark/90"
+                        "bg-delulu-dark text-white",
+                        "btn-game",
+                        "flex items-center justify-center"
                       )}
                     >
                       <ArrowLeft className="w-6 h-6" />
@@ -427,12 +449,8 @@ export function CreateDelusionSheet({
                     className={cn(
                       "flex-1",
                       "px-8 py-4",
-                      "bg-white rounded-full",
-                      "text-delulu-dark font-black text-lg",
-                      "shadow-[0_4px_0_0_#0a0a0a]",
-                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                      "transition-all duration-150",
-                      "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed"
+                      "bg-white text-delulu-dark text-lg",
+                      "btn-game"
                     )}
                   >
                     Continue
@@ -444,12 +462,9 @@ export function CreateDelusionSheet({
                     onClick={handleBack}
                     className={cn(
                       "w-14 h-14",
-                      "bg-delulu-dark rounded-full",
-                      "text-white",
-                      "shadow-[0_4px_0_0_#0a0a0a]",
-                      "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                      "transition-all duration-150",
-                      "flex items-center justify-center hover:bg-delulu-dark/90"
+                      "bg-delulu-dark text-white",
+                      "btn-game",
+                      "flex items-center justify-center"
                     )}
                   >
                     <ArrowLeft className="w-6 h-6" />
@@ -461,12 +476,8 @@ export function CreateDelusionSheet({
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "bg-white text-delulu-dark text-lg",
+                        "btn-game",
                         "flex items-center justify-center gap-2"
                       )}
                     >
@@ -487,7 +498,9 @@ export function CreateDelusionSheet({
                           await createDelulu(
                             delusionText,
                             deadlineDate,
-                            stakeAmount[0]
+                            stakeAmount[0],
+                            user?.username,
+                            user?.pfpUrl
                           );
                         } catch (error) {
                           setErrorMessage(
@@ -502,12 +515,8 @@ export function CreateDelusionSheet({
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white rounded-full",
-                        "text-delulu-dark font-black text-lg",
-                        "shadow-[0_4px_0_0_#0a0a0a]",
-                        "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-                        "transition-all duration-150",
-                        "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a] disabled:cursor-not-allowed",
+                        "bg-white text-delulu-dark text-lg",
+                        "btn-game",
                         "flex items-center justify-center gap-2"
                       )}
                     >
@@ -524,6 +533,7 @@ export function CreateDelusionSheet({
                 </div>
               )}
             </div>
+          </div>
           </div>
         </SheetContent>
       </Sheet>
