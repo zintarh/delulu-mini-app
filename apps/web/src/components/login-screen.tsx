@@ -62,8 +62,19 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-delulu-yellow flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md flex flex-col items-center">
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center px-6 relative"
+      style={{
+        backgroundImage: "url('/island1.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* Yellow overlay */}
+      <div className="absolute inset-0 bg-delulu-yellow/60" />
+      
+      <div className="w-full max-w-md flex flex-col items-center relative z-10">
         {/* Logo */}
         <div
           className={cn(
@@ -74,13 +85,13 @@ export function LoginScreen() {
             fontFamily: "var(--font-gloria), cursive",
           }}
         >
-          delulu<span className="text-delulu-purple -ml-1">.</span>
+          delulu<span className="text-white -ml-1">.</span>
         </div>
 
         {/* Tagline */}
         <div
           className={cn(
-            "text-sm md:text-lg font-bold text-delulu-dark/80 mb-12",
+            "text-sm md:text-lg font-bold text-delulu-dark/90 mb-12",
             "animate-slide-up-from-bottom-delayed"
           )}
           style={{
@@ -97,12 +108,9 @@ export function LoginScreen() {
           className={cn(
             "w-full max-w-xs",
             "px-8 py-4",
-            "bg-white rounded-full",
-            "text-delulu-dark font-black text-lg",
-            "shadow-[0_4px_0_0_#0a0a0a]",
-            "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
-            "transition-all duration-150",
-            "disabled:opacity-70 disabled:shadow-[0_2px_0_0_#0a0a0a]",
+            "bg-white",
+            "text-delulu-dark text-lg",
+            "btn-game",
             "flex items-center justify-center gap-2"
           )}
         >
@@ -117,13 +125,13 @@ export function LoginScreen() {
         </button>
 
         {/* Terms */}
-        <p className="mt-8 text-xs text-delulu-dark/50 text-center max-w-xs">
+        <p className="mt-8 text-xs text-delulu-dark/70 text-center max-w-xs">
           By signing in, you agree to the{" "}
-          <a href="#" className="text-delulu-dark/70 underline">
+          <a href="#" className="text-delulu-dark/90 underline">
             Terms of Service
           </a>{" "}
           and{" "}
-          <a href="#" className="text-delulu-dark/70 underline">
+          <a href="#" className="text-delulu-dark/90 underline">
             Privacy Policy
           </a>
         </p>
