@@ -1,11 +1,12 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import { TwitterPostCard } from "./twitter-post-card";
 import { EndingSoonCard } from "./ending-soon-card";
-import { DeluluCardSkeleton, TwitterPostCardSkeleton } from "./delulu-skeleton";
-import { Clock, TrendingUp } from "lucide-react";
+import {  TwitterPostCardSkeleton } from "./delulu-skeleton";
+import { Clock, TrendingUp, Search, X } from "lucide-react";
 import Link from "next/link";
 
 interface AllDelulusSheetProps {
@@ -23,11 +24,9 @@ function isEndingSoon(deadline: Date): boolean {
 }
 
 function getCreatedAt(delulu: FormattedDelulu): Date {
-  // Use createdAt from IPFS if available, otherwise estimate from staking deadline
   if (delulu.createdAt) {
     return delulu.createdAt;
   }
-  // Fallback: estimate 7 days before staking deadline
   return new Date(delulu.stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000);
 }
 
@@ -38,19 +37,47 @@ export function AllDelulusSheet({
   onDeluluClick,
   isLoading = false,
 }: AllDelulusSheetProps) {
-  const endingSoon = delulus.filter((d) => isEndingSoon(d.stakingDeadline));
-  const allDelulusSorted = [...delulus].sort((a, b) => {
-    const aCreated = getCreatedAt(a);
-    const bCreated = getCreatedAt(b);
-    return aCreated.getTime() - bCreated.getTime();
-  });
 
-  const regularDelulus = allDelulusSorted.filter(
-    (d) => !isEndingSoon(d.stakingDeadline)
-  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const endingSoon = delulus.filter((d) => isEndingSoon(d.stakingDeadline));
+  const regularDelulusUnfiltered = useMemo(() => {
+    const allDelulusSorted = [...delulus].sort((a, b) => {
+      const aCreated = getCreatedAt(a);
+      const bCreated = getCreatedAt(b);
+      return aCreated.getTime() - bCreated.getTime();
+    });
+    return allDelulusSorted.filter((d) => !isEndingSoon(d.stakingDeadline));
+  }, [delulus]);
+
+
+  const regularDelulus = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return regularDelulusUnfiltered;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return regularDelulusUnfiltered.filter((d) => {
+      const content = (d.content || d.contentHash || "").toLowerCase();
+      const username = (d.username || "").toLowerCase();
+      const creator = d.creator.toLowerCase();
+
+      return (
+        content.includes(query) ||
+        username.includes(query) ||
+        creator.includes(query)
+      );
+    });
+  }, [regularDelulusUnfiltered, searchQuery]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSearchQuery("");
+    }
+    onOpenChange(isOpen);
+  };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
         className="bg-delulu-dark border-t border-white/10 !max-h-screen !h-screen  overflow-y-auto"
@@ -74,6 +101,27 @@ export function AllDelulusSheet({
           </div>
 
           <div className="h-px bg-white/10 mb-6" />
+
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search delulus..."
+                className="w-full pl-10 pr-10 py-3 bg-white/5 border border-white/10 rounded-2xl text-white/90 placeholder:text-white/40 focus:outline-none focus:border-white/20 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
           {isLoading ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
@@ -87,9 +135,12 @@ export function AllDelulusSheet({
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
                 {[1, 2].map((i) => (
-                  <div key={i} className="shrink-0 w-[280px] bg-white/5 rounded-2xl p-4 border border-white/10 animate-pulse">
-                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-white/10 rounded w-1/2" />
+                  <div
+                    key={i}
+                    className="shrink-0 w-[200px] sm:w-[240px] bg-white/5 rounded-xl p-3 border border-white/10 animate-pulse"
+                  >
+                    <div className="h-3 bg-white/10 rounded w-3/4 mb-2" />
+                    <div className="h-2 bg-white/10 rounded w-1/2" />
                   </div>
                 ))}
               </div>
@@ -115,7 +166,7 @@ export function AllDelulusSheet({
                 ))}
               </div>
             </div>
-          ) : (
+          ) : !searchQuery ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-4 h-4 text-delulu-yellow/50" />
@@ -127,7 +178,7 @@ export function AllDelulusSheet({
                 <p className="text-white/50 text-xs">No delulus ending soon</p>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="">
             <div className="flex items-center gap-2 mb-4">
@@ -153,6 +204,13 @@ export function AllDelulusSheet({
                     className="w-full"
                   />
                 ))}
+              </div>
+            ) : searchQuery ? (
+              <div className="text-center py-12">
+                <p className="text-white/60 text-sm mb-2">No delulus found</p>
+                <p className="text-white/40 text-xs">
+                  Try a different search term
+                </p>
               </div>
             ) : (
               <div className="text-center py-12">

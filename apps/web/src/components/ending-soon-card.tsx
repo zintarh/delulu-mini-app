@@ -15,33 +15,33 @@ interface EndingSoonCardProps {
 export function EndingSoonCard({ 
   delulu, 
   onClick,
-  className = "shrink-0 w-[85%] sm:w-[400px]"
+  className = "shrink-0 w-[200px] sm:w-[240px]"
 }: EndingSoonCardProps) {
   const content = delulu.content || delulu.contentHash;
-  const truncatedContent = content.length > 80 ? content.slice(0, 80) + "..." : content;
+  const truncatedContent = content.length > 60 ? content.slice(0, 60) + "..." : content;
 
   return (
     <button
       onClick={onClick}
       className={cn(
         className,
-        "block p-4 rounded-2xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10"
+        "block p-3 rounded-xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10"
       )}
     >
       {/* Content */}
-      <p className="text-sm text-white/90 mb-3 leading-relaxed line-clamp-2">
+      <p className="text-xs text-white/90 mb-2 leading-relaxed line-clamp-2">
         {truncatedContent}
       </p>
 
       {/* Time Remaining - Prominent */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-white/60">Ends in</span>
-          <span className="text-sm font-bold text-delulu-yellow">
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] text-white/60">Ends in</span>
+          <span className="text-xs font-bold text-delulu-yellow">
             {formatTimeRemaining(delulu.stakingDeadline)}
           </span>
         </div>
-        <span className="text-xs text-white/40">
+        <span className="text-[10px] text-white/40">
           {delulu.totalStake > 0
             ? delulu.totalStake < 0.01
               ? delulu.totalStake.toFixed(2)

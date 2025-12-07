@@ -4,7 +4,7 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { celo, celoAlfajores, celoSepolia } from "wagmi/chains";
+import { celo, celoSepolia } from "wagmi/chains";
 
 // ============================================
 // LOCAL TESTING MODE - WALLET CONNECTORS
@@ -31,11 +31,10 @@ const connectors = ENABLE_LOCAL_WALLETS
     ];
 
 const config = createConfig({
-  chains: [celo, celoAlfajores, celoSepolia],
+  chains: [celo, celoSepolia],
   connectors,
   transports: {
     [celo.id]: http(),
-    [celoAlfajores.id]: http(),
     [celoSepolia.id]: http(),
   },
 });
