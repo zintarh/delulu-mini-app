@@ -66,29 +66,15 @@ export default function HomePage() {
       <main className="max-w-lg mx-auto pt-4 pb-32">
         <div className="px-4 space-y-6">
        
-          <button
-            onClick={() => setClaimRewardsSheetOpen(true)}
-            className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 active:scale-[0.98] transition-transform"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-white/60 mb-2">Rewards</p>
-                <p className="text-2xl font-black text-white/90">
-                  {isLoadingStats ? "..." : `$${totalEarnings.toFixed(2)}`}
-                </p>
-                <p className="text-xs text-white/40 mt-1">earned</p>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setClaimRewardsSheetOpen(true);
-                }}
-                className="px-4 py-2 bg-white text-delulu-dark text-sm btn-game"
-              >
-                Claim
-              </button>
+          <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10">
+            <div>
+              <p className="text-xs text-white/60 mb-2">Rewards</p>
+              <p className="text-2xl font-black text-white/90">
+                {isLoadingStats ? "..." : `$${totalEarnings.toFixed(2)}`}
+              </p>
+              <p className="text-xs text-white/40 mt-1">earned</p>
             </div>
-          </button>
+          </div>
 
           <div>
             <div className="flex items-center justify-between mb-3 px-1">

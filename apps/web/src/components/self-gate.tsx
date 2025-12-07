@@ -63,7 +63,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           endpoint: getSelfEndpoint(),
           logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png", 
           userId: ethers.ZeroAddress, 
-          endpointType: "staging_https",
+          endpointType: "https",
           userIdType: "hex",
           userDefinedData: JSON.stringify({
             country: countryCode,
@@ -135,8 +135,6 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
 
   const handleError = (error: any) => {
     console.error("Self verification error:", error);
-
-    // Extract error message from error object
     let errorMessage = "Failed to verify identity. Please try again.";
 
     if (error?.reason) {
