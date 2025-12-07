@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/**`
- * @title DeluluMarket (Security Hardened Version)
+/**
+ * @title DeluluMarket (Security Hardened Version - FIXED)
  * @notice Parimutuel prediction market with enhanced security controls
- * @dev Addresses critical findings from security audit
+ * @dev Addresses critical findings from security audit + claim function fixes
  */
 contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
@@ -36,6 +36,8 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
     error SlippageTooHigh();
     error StakingDeadlineTooFar();
     error ResolutionDeadlineTooFar();
+    error MarketCancelled();
+    error PayoutCalculationError();
 
     // ============ Constants ============
     uint256 public constant PLATFORM_FEE_BPS = 500; // 5%
@@ -290,7 +292,7 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         if (block.timestamp < delulu.stakingDeadline)
             revert StakingNotYetClosed();
         if (delulu.isResolved) revert AlreadyResolved();
-        if (delulu.isCancelled) revert AlreadyResolved();
+        if (delulu.isCancelled) revert MarketCancelled();
 
         delulu.outcome = outcome;
         delulu.isResolved = true;
@@ -306,15 +308,24 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
-     * @notice Claim winnings
+     * @notice Claim winnings - FIXED VERSION
      */
     function claimWinnings(
         uint256 deluluId
     ) external nonReentrant whenNotPaused {
-        if (!isClaimable(deluluId, msg.sender)) revert UserIsNotWinner();
-
         Delulu storage delulu = delulus[deluluId];
+
+        // FIXED: Add explicit validation checks BEFORE isClaimable
+        if (delulu.id == 0) revert DeluluNotFound();
+        if (!delulu.isResolved) revert NotResolved();
+        if (delulu.isCancelled) revert MarketCancelled();
+
         UserPosition storage position = userStakes[deluluId][msg.sender];
+
+        // FIXED: Better error messages
+        if (position.amount == 0) revert NoStakeToRefund();
+        if (position.claimed) revert AlreadyClaimed();
+        if (position.side != delulu.outcome) revert UserIsNotWinner();
 
         // CEI: Mark claimed BEFORE calculations
         position.claimed = true;
@@ -329,17 +340,26 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         uint256 netPayout;
         uint256 platformFee;
 
-        // Zero opposition = no fee
+        // Zero opposition = no fee, return original stake
         if (losingPool == 0) {
             netPayout = position.amount;
             platformFee = 0;
         } else {
+            // FIXED: Add safety checks for calculations
+            if (winningPool == 0) revert PayoutCalculationError();
+
             uint256 totalPool = winningPool + losingPool;
+
+            // Calculate user's proportional share with high precision
             uint256 userShare = (position.amount * PRECISION) / winningPool;
             uint256 grossPayout = (userShare * totalPool) / PRECISION;
 
+            // Calculate fee on gross payout
             platformFee = (grossPayout * PLATFORM_FEE_BPS) / BPS_DENOMINATOR;
             netPayout = grossPayout - platformFee;
+
+            // FIXED: Sanity check - payout should always be at least original stake
+            if (netPayout < position.amount) revert PayoutCalculationError();
         }
 
         totalFeesCollected += platformFee;
@@ -442,7 +462,7 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
-     * @notice Internal payout calculation
+     * @notice Internal payout calculation - FIXED VERSION
      */
     function _calculatePotentialPayout(
         uint256 believerPool,
@@ -453,9 +473,14 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         uint256 currentPool = isBeliever ? believerPool : doubterPool;
         uint256 opposingPool = isBeliever ? doubterPool : believerPool;
 
+        // If no opposition, return original stake
         if (opposingPool == 0) return amount;
 
         uint256 newPool = currentPool + amount;
+
+        // FIXED: Safety check for division by zero
+        if (newPool == 0) return 0;
+
         uint256 totalPool = newPool + opposingPool;
 
         uint256 userShare = (amount * PRECISION) / newPool;
@@ -463,18 +488,24 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
 
         uint256 platformFee = (grossPayout * PLATFORM_FEE_BPS) /
             BPS_DENOMINATOR;
+
+        // FIXED: Ensure we don't underflow
+        if (grossPayout < platformFee) return 0;
+
         return grossPayout - platformFee;
     }
 
     /**
-     * @notice Check if user can claim
+     * @notice Check if user can claim - FIXED VERSION
      */
     function isClaimable(
         uint256 deluluId,
         address user
     ) public view returns (bool) {
         Delulu storage delulu = delulus[deluluId];
-        if (!delulu.isResolved) return false;
+
+        // FIXED: Check both resolved AND not cancelled
+        if (!delulu.isResolved || delulu.isCancelled) return false;
 
         UserPosition storage position = userStakes[deluluId][user];
         if (position.claimed) return false;
@@ -535,4 +566,3 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         return address(stablecoin);
     }
 }
-
