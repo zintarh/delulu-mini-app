@@ -2,7 +2,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { uploadToIPFS } from "@/lib/ipfs";
+import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
 
 export function useCreateDelulu() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
@@ -15,12 +15,13 @@ export function useCreateDelulu() {
     deadline: Date,
     amount: number,
     username?: string,
-    pfpUrl?: string
+    pfpUrl?: string,
+    gatekeeper?: GatekeeperConfig | null
   ) => {
     try {
-      // Upload content to IPFS with user info and created_at timestamp
+      // Upload content to IPFS with user info, created_at timestamp, and gatekeeper config
       const createdAt = new Date();
-      const contentHash = await uploadToIPFS(content, username, pfpUrl, createdAt);
+      const contentHash = await uploadToIPFS(content, username, pfpUrl, createdAt, gatekeeper);
       
       if (!contentHash || typeof contentHash !== "string") {
         throw new Error("Invalid IPFS hash returned");
