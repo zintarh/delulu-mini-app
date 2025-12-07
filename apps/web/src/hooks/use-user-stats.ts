@@ -1,10 +1,12 @@
 import { useAccount } from "wagmi";
 import { useDelulus } from "./use-delulus";
+import { useTotalClaimedAmount } from "./use-total-claimed-amount";
 import { useMemo } from "react";
 
 export function useUserStats() {
   const { address } = useAccount();
   const { delulus, isLoading } = useDelulus();
+  const { totalClaimed, isLoading: isLoadingClaimed } = useTotalClaimedAmount();
 
   const stats = useMemo(() => {
     if (!address || isLoading) {
@@ -31,16 +33,16 @@ export function useUserStats() {
     // This requires checking getUserPosition for each delulu
     const totalStakes = 0; // Placeholder - needs contract calls
 
-    // Total earnings from resolved delulus where user won
-    const totalEarnings = 0; // Placeholder - needs calculation from resolved positions
+    // Total claimed amount from contract
+    const totalEarnings = totalClaimed;
 
     return {
       createdCount,
       totalStakes,
       totalEarnings,
-      isLoading: false,
+      isLoading: isLoading || isLoadingClaimed,
     };
-  }, [address, delulus, isLoading]);
+  }, [address, delulus, isLoading, totalClaimed, isLoadingClaimed]);
 
   return stats;
 }
