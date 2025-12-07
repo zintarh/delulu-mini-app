@@ -7,7 +7,6 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-
 interface TwitterPostCardProps {
   delusion: FormattedDelulu;
   onClick: () => void;
@@ -28,9 +27,20 @@ export function TwitterPostCard({
       onClick={onClick}
       className={cn(
         className,
-        "block p-4 rounded-2xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10"
+        "block p-4 rounded-2xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10 relative"
       )}
     >
+      {/* Gatekeeper Badge */}
+      {delusion.gatekeeper?.enabled && (
+        <div className="absolute top-3 right-3 z-10">
+          <div className="px-2 py-1 rounded-full bg-delulu-yellow/20 border border-delulu-yellow/30 backdrop-blur-sm">
+            <span className="text-[10px] font-bold text-delulu-yellow">
+              {delusion.gatekeeper.label || delusion.gatekeeper.value}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         {delusion.pfpUrl ? (
