@@ -11,7 +11,8 @@ import { useUserPosition } from "@/hooks/use-user-position";
 import { usePotentialPayout } from "@/hooks/use-potential-payout";
 import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
-import { useDeluluState, } from "@/hooks/use-delulu-state";
+import { useDeluluState } from "@/hooks/use-delulu-state";
+import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { DeluluStatusBadge } from "@/components/delulu-status-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Loader2 } from "lucide-react";
@@ -75,6 +76,9 @@ export function DeluluDetailsSheet({
 
   const { stateEnum: deluluState } = useDeluluState(delulu?.id || null);
   const { isClaimable, isLoading: isLoadingClaimable } = useClaimable(
+    delulu?.id || null
+  );
+  const { claimableAmount, isLoading: isLoadingClaimableAmount } = useUserClaimableAmount(
     delulu?.id || null
   );
   const {
@@ -540,6 +544,26 @@ export function DeluluDetailsSheet({
               </p>
             </div>
 
+            {/* Claimable Amount - shown when user has staked and there's something to claim */}
+            {hasStaked && isConnected && claimableAmount > 0 && (
+              <div className="p-4 rounded-2xl bg-delulu-yellow/10 border border-delulu-yellow/20 mb-6">
+                <p className="text-xs text-delulu-yellow/80 mb-1">
+                  {isLoadingClaimableAmount ? "Loading..." : "Claimable Amount"}
+                </p>
+                <p className="text-xl font-black text-delulu-yellow">
+                  {isLoadingClaimableAmount 
+                    ? "..." 
+                    : claimableAmount > 0.01
+                      ? claimableAmount.toFixed(2)
+                      : claimableAmount.toFixed(4)}{" "}
+                  cUSD
+                </p>
+                <p className="text-xs text-delulu-yellow/60 mt-1">
+                  Available to claim
+                </p>
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -584,15 +608,16 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
-        {/* Claim Button - shown when winnings are claimable */}
+        {/* Claim Button - shown when winnings are claimable (resolved or cancelled) */}
         {isClaimable &&
           isConnected &&
           !isLoadingClaimable &&
-          delulu.isResolved && (
+          claimableAmount > 0 &&
+          (delulu.isResolved || delulu.isCancelled) && (
             <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
               <button
                 onClick={() => claim(delulu.id)}
-                disabled={isClaiming || isClaimConfirming}
+                disabled={isClaiming || isClaimConfirming || claimableAmount === 0}
                 className={cn(
                   "w-full px-4 py-3",
                   "bg-white/10 rounded-full",
@@ -610,7 +635,11 @@ export function DeluluDetailsSheet({
                     <span>Claiming...</span>
                   </>
                 ) : (
-                  <span>Claim Winnings</span>
+                  <span>
+                    Claim {claimableAmount > 0.01 
+                      ? `${claimableAmount.toFixed(2)}` 
+                      : claimableAmount.toFixed(4)} cUSD
+                  </span>
                 )}
               </button>
             </div>
