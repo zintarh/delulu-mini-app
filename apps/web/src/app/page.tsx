@@ -22,9 +22,6 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import {  TrendingUp } from "lucide-react";
 
 
-
-
-
 export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();

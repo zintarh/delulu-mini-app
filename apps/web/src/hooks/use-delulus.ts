@@ -17,6 +17,13 @@ export interface Delulu {
   isCancelled: boolean;
 }
 
+export interface GatekeeperConfig {
+  enabled: boolean;
+  type: "country";
+  value: string; // ISO Code e.g., "NG"
+  label: string; // Human readable e.g., "Nigeria"
+}
+
 export interface FormattedDelulu {
   id: number;
   creator: string;
@@ -25,6 +32,7 @@ export interface FormattedDelulu {
   username?: string;
   pfpUrl?: string;
   createdAt?: Date;
+  gatekeeper?: GatekeeperConfig;
   stakingDeadline: Date;
   resolutionDeadline: Date;
   totalBelieverStake: number;
@@ -40,6 +48,7 @@ interface IPFSContent {
   username?: string;
   pfpUrl?: string;
   createdAt?: string;
+  gatekeeper?: GatekeeperConfig;
 }
 
 async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
@@ -61,6 +70,7 @@ async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
       username: pinataContent.username || data.username || null,
       pfpUrl: pinataContent.pfpUrl || data.pfpUrl || null,
       createdAt: pinataContent.createdAt || data.createdAt || null,
+      gatekeeper: pinataContent.gatekeeper || data.gatekeeper || null,
     };
   } catch (error) {
     console.error(`Failed to fetch IPFS content for ${hash}:`, error);
@@ -125,6 +135,7 @@ export function useDelulus() {
             username: ipfsData?.username,
             pfpUrl: ipfsData?.pfpUrl,
             createdAt: ipfsData?.createdAt ? new Date(ipfsData.createdAt) : undefined,
+            gatekeeper: ipfsData?.gatekeeper || undefined,
           };
         })
       );

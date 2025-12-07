@@ -25,9 +25,20 @@ export function EndingSoonCard({
       onClick={onClick}
       className={cn(
         className,
-        "block p-3 rounded-xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10"
+        "block p-3 rounded-xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10 relative"
       )}
     >
+      {/* Gatekeeper Badge */}
+      {delulu.gatekeeper?.enabled && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="px-1.5 py-0.5 rounded-full bg-delulu-yellow/20 border border-delulu-yellow/30 backdrop-blur-sm">
+            <span className="text-[9px] font-bold text-delulu-yellow">
+              {delulu.gatekeeper.label || delulu.gatekeeper.value}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <p className="text-xs text-white/90 mb-2 leading-relaxed line-clamp-2">
         {truncatedContent}

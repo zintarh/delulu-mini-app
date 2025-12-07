@@ -1,8 +1,16 @@
+export interface GatekeeperConfig {
+  enabled: boolean;
+  type: "country";
+  value: string; // ISO Code e.g., "NG"
+  label: string; // Human readable e.g., "Nigeria"
+}
+
 export async function uploadToIPFS(
   content: string,
   username?: string,
   pfpUrl?: string,
-  createdAt?: Date
+  createdAt?: Date,
+  gatekeeper?: GatekeeperConfig | null
 ): Promise<string> {
   try {
     const response = await fetch("/api/ipfs/upload", {
@@ -15,6 +23,7 @@ export async function uploadToIPFS(
         username,
         pfpUrl,
         createdAt: createdAt ? createdAt.toISOString() : undefined,
+        gatekeeper: gatekeeper || undefined,
       }),
     });
 

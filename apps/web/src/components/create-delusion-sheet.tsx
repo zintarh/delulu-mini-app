@@ -13,8 +13,9 @@ import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
+import { GatekeeperStep } from "@/components/create/gatekeeper-step";
+import { type GatekeeperConfig } from "@/lib/ipfs";
 
-const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
 const HYPE_TEXT = [
   {
@@ -29,6 +30,10 @@ const HYPE_TEXT = [
   {
     title: "Put Your Money Where Your Mouth Is",
     subtitle: "How much do you believe?",
+  },
+  {
+    title: "Restrict Access?",
+    subtitle: "Limit who can stake (optional)",
   },
   {
     title: "Make It Official",
@@ -51,6 +56,7 @@ export function CreateDelusionSheet({
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
+  const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const MAX_DELULU_LENGTH = 280; // Twitter character limit
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -132,11 +138,12 @@ export function CreateDelusionSheet({
     if (currentStep === 0) return delusionText.trim().length > 0 && delusionText.trim().length <= MAX_DELULU_LENGTH;
     if (currentStep === 1) return true;
     if (currentStep === 2) return stakeAmount[0] >= 1 && !hasInsufficientBalance;
+    if (currentStep === 3) return true; // Gatekeeper step is optional
     return false;
   };
 
   const handleNext = () => {
-    if (canGoNext() && currentStep < 3) {
+    if (canGoNext() && currentStep < 4) {
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
       if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] < 1)) {
         console.warn("Invalid stake amount detected, resetting to 1");
@@ -158,6 +165,7 @@ export function CreateDelusionSheet({
     setStakeAmount([1]);
     setDelusionText("");
     setDeadline(getDefaultDeadline());
+    setGatekeeper(null);
     onOpenChange(false);
   };
 
@@ -202,7 +210,7 @@ export function CreateDelusionSheet({
             </button>
 
             <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-2 z-10 px-6">
-              {[0, 1, 2, 3].map((step) => (
+              {[0, 1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
                   className={`h-1 rounded-full transition-all duration-300 ${
@@ -388,6 +396,15 @@ export function CreateDelusionSheet({
               )}
 
               {currentStep === 3 && (
+                <div className="w-full max-w-2xl">
+                  <GatekeeperStep
+                    value={gatekeeper}
+                    onChange={setGatekeeper}
+                  />
+                </div>
+              )}
+
+              {currentStep === 4 && (
                 <div className="w-full max-w-2xl space-y-8">
                   <div className="text-center space-y-6">
                     <p className="text-3xl md:text-4xl font-gloria text-delulu-dark leading-tight italic">
@@ -417,6 +434,14 @@ export function CreateDelusionSheet({
                       </div>
                     </div>
 
+                    {gatekeeper?.enabled && (
+                      <div className="inline-block px-4 py-2 bg-delulu-yellow/20 rounded-full border border-delulu-yellow/30">
+                        <p className="text-xs font-bold text-delulu-dark">
+                          {gatekeeper.label} Only
+                        </p>
+                      </div>
+                    )}
+
                     <div className="inline-block px-6 py-3 bg-delulu-dark/10 rounded-full">
                       <p className="text-sm font-bold text-delulu-dark">
                         Staking as BELIEVER
@@ -428,7 +453,7 @@ export function CreateDelusionSheet({
             </div>
 
             <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow border-t border-delulu-dark/10">
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <div className="w-full max-w-md mx-auto flex items-center gap-4">
                   {currentStep > 0 && (
                     <button
@@ -500,7 +525,8 @@ export function CreateDelusionSheet({
                             deadlineDate,
                             stakeAmount[0],
                             user?.username,
-                            user?.pfpUrl
+                            user?.pfpUrl,
+                            gatekeeper
                           );
                         } catch (error) {
                           setErrorMessage(
