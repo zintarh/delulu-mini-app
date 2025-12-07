@@ -1,15 +1,12 @@
 export const DELULU_ABI = [
   {
-    inputs: [
-      { internalType: "address", name: "stablecoinAddress", type: "address" },
-    ],
+    inputs: [{ internalType: "address", name: "_cUSD", type: "address" }],
     stateMutability: "nonpayable",
     type: "constructor",
   },
   { inputs: [], name: "AlreadyClaimed", type: "error" },
   { inputs: [], name: "AlreadyResolved", type: "error" },
   { inputs: [], name: "DeluluNotFound", type: "error" },
-  { inputs: [], name: "EmptyContentHash", type: "error" },
   { inputs: [], name: "InsufficientStake", type: "error" },
   { inputs: [], name: "InvalidDeadlines", type: "error" },
   { inputs: [], name: "InvalidTokenAddress", type: "error" },
@@ -26,31 +23,18 @@ export const DELULU_ABI = [
     name: "OwnableUnauthorizedAccount",
     type: "error",
   },
-  { inputs: [], name: "QueryTooLarge", type: "error" },
-  { inputs: [], name: "ResolutionDeadlineTooFar", type: "error" },
   {
     inputs: [{ internalType: "address", name: "token", type: "address" }],
     name: "SafeERC20FailedOperation",
     type: "error",
   },
-  { inputs: [], name: "SlippageTooHigh", type: "error" },
-  { inputs: [], name: "StakeLimitExceeded", type: "error" },
-  { inputs: [], name: "StakeTooLarge", type: "error" },
-  { inputs: [], name: "StakeTooSmall", type: "error" },
-  { inputs: [], name: "StakingDeadlineTooFar", type: "error" },
   { inputs: [], name: "StakingIsClosed", type: "error" },
   { inputs: [], name: "StakingNotYetClosed", type: "error" },
-  { inputs: [], name: "TransferFailed", type: "error" },
   { inputs: [], name: "UserIsNotWinner", type: "error" },
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
       {
         indexed: true,
         internalType: "address",
@@ -59,26 +43,8 @@ export const DELULU_ABI = [
       },
       {
         indexed: false,
-        internalType: "string",
-        name: "contentHash",
-        type: "string",
-      },
-      {
-        indexed: false,
         internalType: "uint256",
-        name: "stakingDeadline",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "resolutionDeadline",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "creatorStake",
+        name: "stake",
         type: "uint256",
       },
     ],
@@ -88,23 +54,18 @@ export const DELULU_ABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
       { indexed: false, internalType: "bool", name: "outcome", type: "bool" },
       {
         indexed: false,
         internalType: "uint256",
-        name: "winningPool",
+        name: "winPool",
         type: "uint256",
       },
       {
         indexed: false,
         internalType: "uint256",
-        name: "losingPool",
+        name: "losePool",
         type: "uint256",
       },
     ],
@@ -114,25 +75,7 @@ export const DELULU_ABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
-    ],
-    name: "DelululCancelled",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
       { indexed: true, internalType: "address", name: "user", type: "address" },
       {
         indexed: false,
@@ -147,31 +90,6 @@ export const DELULU_ABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "FeeCollected",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
       {
         indexed: false,
         internalType: "uint256",
@@ -217,12 +135,7 @@ export const DELULU_ABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
       { indexed: true, internalType: "address", name: "user", type: "address" },
       {
         indexed: false,
@@ -234,7 +147,7 @@ export const DELULU_ABI = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "newTotalPoolStake",
+        name: "newTotal",
         type: "uint256",
       },
     ],
@@ -257,12 +170,7 @@ export const DELULU_ABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "deluluId",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
       { indexed: true, internalType: "address", name: "user", type: "address" },
       {
         indexed: false,
@@ -270,12 +178,7 @@ export const DELULU_ABI = [
         name: "payout",
         type: "uint256",
       },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "feeCharged",
-        type: "uint256",
-      },
+      { indexed: false, internalType: "uint256", name: "fee", type: "uint256" },
     ],
     name: "WinningsClaimed",
     type: "event",
@@ -303,13 +206,6 @@ export const DELULU_ABI = [
   },
   {
     inputs: [],
-    name: "MAX_RESOLUTION_DURATION",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "MAX_STAKE",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
@@ -318,13 +214,6 @@ export const DELULU_ABI = [
   {
     inputs: [],
     name: "MAX_STAKE_PER_USER",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MAX_STAKING_DURATION",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -503,6 +392,23 @@ export const DELULU_ABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getTotalClaimedAmount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "deluluId", type: "uint256" },
+      { internalType: "address", name: "user", type: "address" },
+    ],
+    name: "getUserClaimableAmount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { internalType: "uint256", name: "deluluId", type: "uint256" },
       { internalType: "address", name: "user", type: "address" },
@@ -588,13 +494,19 @@ export const DELULU_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "deluluId", type: "uint256" },
-      { internalType: "bool", name: "side", type: "bool" },
       { internalType: "uint256", name: "amount", type: "uint256" },
-      { internalType: "uint256", name: "minPayout", type: "uint256" },
+      { internalType: "bool", name: "side", type: "bool" },
     ],
     name: "stakeOnDelulu",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "totalClaimed",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {

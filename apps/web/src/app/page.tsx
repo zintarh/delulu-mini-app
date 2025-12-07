@@ -6,7 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { LoginScreen } from "@/components/login-screen";
 import { CreateDelusionSheet } from "@/components/create-delusion-sheet";
 import { ProfileSheet } from "@/components/profile-sheet";
-import { DeluluCardSkeleton, TwitterPostCardSkeleton } from "@/components/delulu-skeleton";
+import {  TwitterPostCardSkeleton } from "@/components/delulu-skeleton";
 import { DeluluDetailsSheet } from "@/components/delulu-details-sheet";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { AllDelulusSheet } from "@/components/all-delulus-sheet";
@@ -35,6 +35,8 @@ export default function HomePage() {
     totalEarnings,
     isLoading: isLoadingStats,
   } = useUserStats();
+
+
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
@@ -66,26 +68,7 @@ export default function HomePage() {
 
       <main className="max-w-lg mx-auto pt-4 pb-32">
         <div className="px-4 space-y-6">
-          {/* Stats Cards - Created & Total Stakes */}
-          {/* <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-xs text-white/60 mb-2">Created</p>
-              <p className="text-2xl font-black text-white/90">
-                {isLoadingStats ? "..." : createdCount}
-              </p>
-              <p className="text-xs text-white/40 mt-1">delulus</p>
-                    </div>
-                    
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-xs text-white/60 mb-2">Total Stakes</p>
-              <p className="text-2xl font-black text-white/90">
-                {isLoadingStats ? "..." : totalStakes.toFixed(2)}
-              </p>
-              <p className="text-xs text-white/40 mt-1">cUSD</p>
-                </div>
-          </div> */}
-
-          {/* Rewards Card */}
+       
           <button
             onClick={() => setClaimRewardsSheetOpen(true)}
             className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 active:scale-[0.98] transition-transform"
@@ -110,7 +93,6 @@ export default function HomePage() {
             </div>
           </button>
 
-          {/* Trending Delulus Section */}
           <div>
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">

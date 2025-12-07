@@ -6,7 +6,8 @@ import { FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
-import { FeedbackModal } from "@/components/feedback-modal";
+import { StakeSuccessSheet } from "@/components/stake-success-sheet";
+import { StakeErrorSheet } from "@/components/stake-error-sheet";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
@@ -24,6 +25,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [stakedAmount, setStakedAmount] = useState(0);
 
   const { balance: cusdBalanceData, isLoading: isLoadingBalance } = useCUSDBalance();
   const cusdBalance = cusdBalanceData ? parseFloat(cusdBalanceData.formatted) : null;
@@ -51,16 +53,21 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
       setShowSuccessModal(false);
       setShowErrorModal(false);
       setErrorMessage("");
+      setStakedAmount(0);
     }
   }, [open]);
 
   // Handle success
   useEffect(() => {
     if (isStakeSuccess) {
-      setShowSuccessModal(true);
-      setStakeAmount("");
+      const amount = stakeAmount ? parseFloat(stakeAmount) : 0;
+      if (amount > 0) {
+        setStakedAmount(amount);
+        setShowSuccessModal(true);
+        setStakeAmount("");
+      }
     }
-  }, [isStakeSuccess]);
+  }, [isStakeSuccess, stakeAmount]);
 
   // Handle errors
   useEffect(() => {
@@ -267,25 +274,25 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
         </SheetContent>
       </Sheet>
 
-      {/* Success Modal */}
-      <FeedbackModal
-        isOpen={showSuccessModal}
-        type="success"
-        title="Success!"
-        message="You've successfully placed a stake as a believer."
-        onClose={() => {
-          setShowSuccessModal(false);
-          onOpenChange(false);
+      {/* Success Sheet */}
+      <StakeSuccessSheet
+        open={showSuccessModal}
+        onOpenChange={(open) => {
+          setShowSuccessModal(open);
+          if (!open) {
+            onOpenChange(false);
+            setStakedAmount(0);
+          }
         }}
+        isBeliever={true}
+        amount={stakedAmount}
       />
 
-      {/* Error Modal */}
-      <FeedbackModal
-        isOpen={showErrorModal}
-        type="error"
-        title="Error"
-        message={errorMessage}
-        onClose={() => setShowErrorModal(false)}
+      {/* Error Sheet */}
+      <StakeErrorSheet
+        open={showErrorModal}
+        onOpenChange={setShowErrorModal}
+        errorMessage={errorMessage}
       />
     </>
   );

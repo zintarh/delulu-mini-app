@@ -69,6 +69,7 @@ async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
 }
 
 export function useDelulus() {
+
   const { data, isLoading, error } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
@@ -82,29 +83,29 @@ export function useDelulus() {
 
   const rawDelulus: FormattedDelulu[] = data
     ? (data as Delulu[])
-        .filter((d) => !d.isCancelled)
-        .map((d) => {
-          const believerStake = parseFloat(
-            formatUnits(d.totalBelieverStake, 18)
-          );
-          const doubterStake = parseFloat(formatUnits(d.totalDoubterStake, 18));
-          const totalStake = believerStake + doubterStake;
+      .filter((d) => !d.isCancelled)
+      .map((d) => {
+        const believerStake = parseFloat(
+          formatUnits(d.totalBelieverStake, 18)
+        );
+        const doubterStake = parseFloat(formatUnits(d.totalDoubterStake, 18));
+        const totalStake = believerStake + doubterStake;
 
-          return {
-            id: Number(d.id),
-            creator: d.creator,
-            contentHash: d.contentHash,
-            stakingDeadline: new Date(Number(d.stakingDeadline) * 1000),
-            resolutionDeadline: new Date(Number(d.resolutionDeadline) * 1000),
-            totalBelieverStake: believerStake,
-            totalDoubterStake: doubterStake,
-            totalStake,
-            outcome: d.outcome,
-            isResolved: d.isResolved,
-            isCancelled: d.isCancelled,
-          };
-        })
-        .sort((a, b) => b.totalStake - a.totalStake)
+        return {
+          id: Number(d.id),
+          creator: d.creator,
+          contentHash: d.contentHash,
+          stakingDeadline: new Date(Number(d.stakingDeadline) * 1000),
+          resolutionDeadline: new Date(Number(d.resolutionDeadline) * 1000),
+          totalBelieverStake: believerStake,
+          totalDoubterStake: doubterStake,
+          totalStake,
+          outcome: d.outcome,
+          isResolved: d.isResolved,
+          isCancelled: d.isCancelled,
+        };
+      })
+      .sort((a, b) => b.totalStake - a.totalStake)
     : [];
 
   useEffect(() => {
