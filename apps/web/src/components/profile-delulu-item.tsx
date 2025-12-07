@@ -29,7 +29,17 @@ export function ProfileDeluluItem({
 
   return (
     <>
-      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-3">
+      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-3 relative">
+        {/* Gatekeeper Badge */}
+        {delulu.gatekeeper?.enabled && (
+          <div className="absolute top-3 right-3 z-10">
+            <div className="px-2 py-1 rounded-full bg-delulu-yellow/20 border border-delulu-yellow/30 backdrop-blur-sm">
+              <span className="text-[10px] font-bold text-delulu-yellow">
+                {delulu.gatekeeper.label || delulu.gatekeeper.value}
+              </span>
+            </div>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm text-white/90 mb-2 break-words whitespace-pre-wrap">
