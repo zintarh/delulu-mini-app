@@ -15,6 +15,7 @@ import { useDeluluState } from "@/hooks/use-delulu-state";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { DeluluStatusBadge } from "@/components/delulu-status-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
+import { VerificationSheet } from "@/components/verification-sheet";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
@@ -101,6 +102,8 @@ export function DeluluDetailsSheet({
   const [errorMessage, setErrorMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [showVerificationSheet, setShowVerificationSheet] = useState(false);
 
   // Calculate potential payout when user enters stake amount
   const { potentialPayout, isLoading: isLoadingPayout } = usePotentialPayout(
@@ -110,6 +113,13 @@ export function DeluluDetailsSheet({
   );
 
   const isCreator = isDeluluCreator(address, delulu);
+
+  // Reset verification state when delulu changes or sheet closes
+  useEffect(() => {
+    if (!open || !delulu) {
+      setIsVerified(false);
+    }
+  }, [open, delulu?.id]);
 
   useEffect(() => {
     if (!delulu) return;
@@ -454,6 +464,10 @@ export function DeluluDetailsSheet({
   const amount = parseFloat(stakeAmount);
   const needsApprovalForAmount = needsApproval(amount);
 
+  // Check if gatekeeper is enabled and user is not verified
+  const isGated = delulu.gatekeeper?.enabled === true;
+  const needsVerification = isGated && !isVerified;
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -645,8 +659,27 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
+        {/* Verify Button - shown when gated and not verified */}
+        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && needsVerification && (
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <button
+              onClick={() => setShowVerificationSheet(true)}
+              className={cn(
+                "w-full px-4 py-3",
+                "bg-delulu-yellow rounded-full",
+                "text-delulu-dark font-black text-sm",
+                "border border-delulu-yellow/20",
+                "active:scale-[0.98]",
+                "transition-all duration-150 hover:bg-delulu-yellow/90"
+              )}
+            >
+              Verify to Stake
+            </button>
+          </div>
+        )}
+
         {/* Floating Action Buttons - at bottom, floating on top */}
-        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
+        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && !needsVerification && (
           <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 flex gap-4 z-50">
             <button
               onClick={handleBelieveClick}
@@ -716,6 +749,23 @@ export function DeluluDetailsSheet({
         }}
         actionText="Done"
       />
+
+      {/* Verification Sheet - Only render if gatekeeper value is strictly defined */}
+      {delulu && 
+       delulu.gatekeeper?.enabled && 
+       delulu.gatekeeper?.value && 
+       typeof delulu.gatekeeper.value === "string" &&
+       delulu.gatekeeper.value.trim() !== "" && (
+        <VerificationSheet
+          open={showVerificationSheet}
+          onOpenChange={setShowVerificationSheet}
+          countryCode={delulu.gatekeeper.value}
+          onVerified={() => {
+            // Set verified state to true, which will show the stake buttons
+            setIsVerified(true);
+          }}
+        />
+      )}
     </Sheet>
   );
 }
