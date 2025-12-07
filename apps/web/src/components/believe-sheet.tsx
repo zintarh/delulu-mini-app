@@ -46,9 +46,14 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     error: stakeError,
   } = useStake();
 
-  // Reset form when sheet closes
+  // Reset form when sheet opens or closes
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      // Clear errors when sheet opens
+      setShowErrorModal(false);
+      setErrorMessage("");
+    } else {
+      // Reset everything when sheet closes
       setStakeAmount("");
       setShowSuccessModal(false);
       setShowErrorModal(false);
@@ -69,9 +74,23 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     }
   }, [isStakeSuccess, stakeAmount]);
 
-  // Handle errors
+  // Handle errors with comprehensive logging
+  // Only show errors for actual transaction errors, not input validation
   useEffect(() => {
     if (stakeError) {
+      // Comprehensive error logging
+      console.error("[BelieveSheet] Stake error:", {
+        error: stakeError,
+        errorType: stakeError?.constructor?.name,
+        errorCode: (stakeError as any)?.code,
+        errorMessage: stakeError?.message,
+        errorShortMessage: (stakeError as any)?.shortMessage,
+        errorData: (stakeError as any)?.data,
+        errorCause: (stakeError as any)?.cause,
+        stack: (stakeError as any)?.stack,
+        deluluId: delulu?.id,
+      });
+
       let errorMsg = "Failed to stake";
       if (stakeError.message) {
         const errorLower = stakeError.message.toLowerCase();
@@ -79,6 +98,14 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
           errorMsg = "Transaction was cancelled";
         } else if (errorLower.includes("insufficient")) {
           errorMsg = "Insufficient balance";
+        } else if (errorLower.includes("deadline")) {
+          errorMsg = "Staking deadline has passed";
+        } else if (errorLower.includes("resolved")) {
+          errorMsg = "This delulu has already been resolved";
+        } else if (errorLower.includes("cancelled")) {
+          errorMsg = "This delulu has been cancelled";
+        } else if (errorLower.includes("creator")) {
+          errorMsg = "Creators cannot stake on their own delulu";
         } else {
           errorMsg = stakeError.message.length > 100 
             ? "Staking failed. Please try again." 
@@ -88,15 +115,27 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
       setErrorMessage(errorMsg);
       setShowErrorModal(true);
     }
-  }, [stakeError]);
+  }, [stakeError, delulu?.id]);
 
   useEffect(() => {
     if (approvalError) {
+      // Comprehensive error logging
+      console.error("[BelieveSheet] Approval error:", {
+        error: approvalError,
+        errorType: approvalError?.constructor?.name,
+        errorCode: (approvalError as any)?.code,
+        errorMessage: approvalError?.message,
+        errorShortMessage: (approvalError as any)?.shortMessage,
+        errorData: (approvalError as any)?.data,
+      });
+
       let errorMsg = "Approval failed";
       if (approvalError.message) {
         const errorLower = approvalError.message.toLowerCase();
         if (errorLower.includes("user rejected") || errorLower.includes("user denied")) {
           errorMsg = "Approval was cancelled";
+        } else if (errorLower.includes("insufficient")) {
+          errorMsg = "Insufficient balance for approval";
         } else {
           errorMsg = approvalError.message.length > 100 
             ? "Approval failed. Please try again." 
@@ -109,36 +148,62 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   }, [approvalError]);
 
   const handleStake = async () => {
-    if (!delulu || !stakeAmount) return;
+    if (!delulu || !stakeAmount) {
+      console.error("[BelieveSheet] Missing delulu or stakeAmount");
+      return;
+    }
     
     const amount = parseFloat(stakeAmount);
     if (isNaN(amount) || amount <= 0) {
+      console.error("[BelieveSheet] Invalid amount:", stakeAmount);
       setErrorMessage("Please enter a valid amount");
       setShowErrorModal(true);
       return;
     }
 
     if (amount < 1) {
+      console.error("[BelieveSheet] Amount below minimum:", amount);
       setErrorMessage("Minimum stake is 1 cUSD");
       setShowErrorModal(true);
       return;
     }
 
     if (cusdBalance !== null && amount > cusdBalance) {
+      console.error("[BelieveSheet] Insufficient balance:", { amount, cusdBalance });
       setErrorMessage("Insufficient balance");
       setShowErrorModal(true);
       return;
     }
 
-    // If approval succeeded, proceed with staking
-    if (isApprovalSuccess) {
-      await stake(delulu.id, amount, true);
-    } else if (needsApproval(amount)) {
-      // First step: approve
-      await approve(amount);
-    } else {
-      // No approval needed, stake directly
-      await stake(delulu.id, amount, true);
+    try {
+      console.log("[BelieveSheet] Starting stake flow:", {
+        deluluId: delulu.id,
+        amount,
+        needsApproval: needsApproval(amount),
+        isApprovalSuccess,
+      });
+
+      // If approval succeeded, proceed with staking
+      if (isApprovalSuccess) {
+        console.log("[BelieveSheet] Approval already succeeded, proceeding to stake");
+        await stake(delulu.id, amount, true);
+      } else if (needsApproval(amount)) {
+        // First step: approve
+        console.log("[BelieveSheet] Approval needed, requesting approval");
+        await approve(amount);
+      } else {
+        // No approval needed, stake directly
+        console.log("[BelieveSheet] No approval needed, staking directly");
+        await stake(delulu.id, amount, true);
+      }
+    } catch (error) {
+      console.error("[BelieveSheet] Error in handleStake:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to stake. Please try again."
+      );
+      setShowErrorModal(true);
     }
   };
 
@@ -157,7 +222,19 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   })();
   
   const canStake = !isLoading && stakeAmount && stakeAmountNum >= 1 && !isCreator && !validationError;
-  const needsApprovalStep = delulu && stakeAmount ? needsApproval(parseFloat(stakeAmount) || 0) : false;
+  
+  // Safely check if approval is needed - only when we have a valid amount
+  const needsApprovalStep = (() => {
+    if (!delulu || !stakeAmount) return false;
+    const amount = parseFloat(stakeAmount);
+    if (isNaN(amount) || amount <= 0) return false;
+    try {
+      return needsApproval(amount);
+    } catch (error) {
+      console.warn("[BelieveSheet] Error checking approval:", error);
+      return false;
+    }
+  })();
 
   if (!delulu) return null;
 
@@ -209,7 +286,15 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
                   <input
                     type="number"
                     value={stakeAmount}
-                    onChange={(e) => setStakeAmount(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setStakeAmount(value);
+                      // Clear error state when user starts typing
+                      if (showErrorModal) {
+                        setShowErrorModal(false);
+                        setErrorMessage("");
+                      }
+                    }}
                     placeholder="0.00"
                     min="1"
                     step="0.01"
