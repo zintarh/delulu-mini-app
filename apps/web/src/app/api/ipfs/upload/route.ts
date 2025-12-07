@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, username, pfpUrl, createdAt } = await request.json();
+    const { content, username, pfpUrl, createdAt, gatekeeper } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
@@ -22,7 +22,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Build pinataContent object
-    const pinataContent: { text: string; username?: string; pfpUrl?: string; createdAt?: string } = {
+    const pinataContent: { 
+      text: string; 
+      username?: string; 
+      pfpUrl?: string; 
+      createdAt?: string;
+      gatekeeper?: {
+        enabled: boolean;
+        type: "country";
+        value: string;
+        label: string;
+      };
+    } = {
       text: content,
     };
     
@@ -36,6 +47,15 @@ export async function POST(request: NextRequest) {
     
     if (createdAt && typeof createdAt === "string") {
       pinataContent.createdAt = createdAt;
+    }
+
+    if (gatekeeper && typeof gatekeeper === "object" && gatekeeper.enabled) {
+      pinataContent.gatekeeper = {
+        enabled: gatekeeper.enabled,
+        type: gatekeeper.type || "country",
+        value: gatekeeper.value,
+        label: gatekeeper.label,
+      };
     }
 
     // Upload to Pinata
