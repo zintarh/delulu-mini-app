@@ -7,7 +7,7 @@ import {
   SelfQRcodeWrapper,
   type SelfApp,
 } from "@selfxyz/qrcode";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import isoCountries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
@@ -99,7 +99,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           }),
           disclosures: {
             minimumAge: 18,
-            excludedCountries: excludedCountriesList as any,
+            // excludedCountries: excludedCountriesList as any,
             nationality: true,
             gender: true,
           } as any,
@@ -210,11 +210,25 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
         </div>
 
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-delulu-yellow mb-4" />
-            <p className="text-sm text-white/60">
-              Generating verification code...
-            </p>
+          <div className="space-y-4">
+            {/* Mock Passport Notice */}
+            <div className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-blue-400 mb-1">
+                  Testing Mode
+                </p>
+                <p className="text-xs text-blue-300/80">
+                  Please use a <span className="font-semibold">mock passport</span> for verification during testing.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-delulu-yellow mb-4" />
+              <p className="text-sm text-white/60">
+                Generating verification code...
+              </p>
+            </div>
           </div>
         )}
 
@@ -226,6 +240,19 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
 
         {selfApp && !error && (
           <div className="space-y-4">
+            {/* Mock Passport Notice */}
+            <div className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-blue-400 mb-1">
+                  Testing Mode
+                </p>
+                <p className="text-xs text-blue-300/80">
+                  Please use a <span className="font-semibold">mock passport</span> for verification during testing.
+                </p>
+              </div>
+            </div>
+
             <div className="flex justify-center">
               <div className="p-4 bg-white rounded-xl">
                 <SelfQRcodeWrapper

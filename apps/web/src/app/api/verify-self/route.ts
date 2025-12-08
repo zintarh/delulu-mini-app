@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       AllIds,
       new DefaultConfigStore({
         minimumAge: 18,
-        excludedCountries: excludedCountriesList as any,
+        // excludedCountries: excludedCountriesList as any,
         ofac: false,
       }),
       "uuid"
