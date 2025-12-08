@@ -5,7 +5,7 @@ const SCOPE = "delulu-app-v1";
 const SELF_ENDPOINT =
   process.env.NEXT_PUBLIC_URL + "/api/verify-self" ||
   "https://playground.self.xyz/api/verify";
-const MOCK_PASSPORT = process.env.NEXT_PUBLIC_SELF_MOCK_PASSPORT === "true"; // false = mainnet, true = staging/testnet
+const MOCK_PASSPORT = true;
 
 // Reuse a single verifier instance
 const selfBackendVerifier = new SelfBackendVerifier(

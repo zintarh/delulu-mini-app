@@ -71,7 +71,7 @@ export function DeluluDetailsSheet({
   } = useTokenApproval();
   const { balance: cusdBalance, isLoading: isLoadingBalance } =
     useCUSDBalance();
-  const { hasStaked, isBeliever: userIsBeliever, stakeAmount: userStakeAmount } = useUserPosition(
+  const { hasStaked, isBeliever: userIsBeliever, stakeAmount: userStakeAmount, isClaimed } = useUserPosition(
     delulu?.id || null
   );
 
@@ -100,8 +100,10 @@ export function DeluluDetailsSheet({
   const [showStakeInput, setShowStakeInput] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [errorTitle, setErrorTitle] = useState("Staking Failed");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
+  const [showClaimErrorModal, setShowClaimErrorModal] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [showVerificationSheet, setShowVerificationSheet] = useState(false);
 
@@ -202,7 +204,7 @@ export function DeluluDetailsSheet({
         }
       }
       setErrorMessage(errorMsg);
-      setShowErrorModal(true);
+      setShowClaimErrorModal(true);
     }
   }, [claimError]);
 
@@ -559,7 +561,7 @@ export function DeluluDetailsSheet({
             </div>
 
             {/* Claimable Amount - shown when user has staked and there's something to claim */}
-            {hasStaked && isConnected && claimableAmount > 0 && (
+            {hasStaked && isConnected && claimableAmount > 0 && !isClaimed && (
               <div className="p-4 rounded-2xl bg-delulu-yellow/10 border border-delulu-yellow/20 mb-6">
                 <p className="text-xs text-delulu-yellow/80 mb-1">
                   {isLoadingClaimableAmount ? "Loading..." : "Claimable Amount"}
@@ -574,6 +576,21 @@ export function DeluluDetailsSheet({
                 </p>
                 <p className="text-xs text-delulu-yellow/60 mt-1">
                   Available to claim
+                </p>
+              </div>
+            )}
+
+            {/* Pot has been claimed message */}
+            {hasStaked && isConnected && isClaimed && (delulu.isResolved || delulu.isCancelled) && (
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-6">
+                <p className="text-xs text-white/60 mb-1">
+                  Claim Status
+                </p>
+                <p className="text-base font-black text-white/90">
+                  Pot has been claimed
+                </p>
+                <p className="text-xs text-white/50 mt-1">
+                  Your winnings have been successfully claimed
                 </p>
               </div>
             )}
@@ -622,11 +639,12 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
-        {/* Claim Button - shown when winnings are claimable (resolved or cancelled) */}
+        {/* Claim Button - shown when winnings are claimable (resolved or cancelled) and not yet claimed */}
         {isClaimable &&
           isConnected &&
           !isLoadingClaimable &&
           claimableAmount > 0 &&
+          !isClaimed &&
           (delulu.isResolved || delulu.isCancelled) && (
             <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
               <button
@@ -726,16 +744,28 @@ export function DeluluDetailsSheet({
         actionText="Done"
       />
 
-      {/* Error Modal */}
+      {/* Error Modal - for staking errors */}
       <FeedbackModal
         isOpen={showErrorModal}
         type="error"
-        title="Staking Failed"
+        title={errorTitle}
         message={errorMessage || "Failed to place stake. Please try again."}
         onClose={() => {
           setShowErrorModal(false);
         }}
         actionText="Try Again"
+      />
+
+      {/* Claim Error Modal */}
+      <FeedbackModal
+        isOpen={showClaimErrorModal}
+        type="error"
+        title="Claim Failed"
+        message={errorMessage || "Failed to claim winnings. Please try again."}
+        onClose={() => {
+          setShowClaimErrorModal(false);
+        }}
+        actionText="Close"
       />
 
       {/* Claim Success Modal */}

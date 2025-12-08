@@ -56,6 +56,19 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
         setIsLoading(true);
         setError(null);
 
+        // Convert Alpha-2 country code (e.g., 'NG') to Alpha-3 format (e.g., 'NGA')
+        // Passports use 3-letter ISO country codes (Alpha-3)
+        const countryCodeAlpha3 = countries.alpha2ToAlpha3(countryCode);
+        
+        if (!countryCodeAlpha3) {
+          console.error("[SelfGate] Failed to convert country code to Alpha-3 format", {
+            countryCode,
+          });
+          setError(`Invalid country code: ${countryCode}`);
+          setIsLoading(false);
+          return;
+        }
+
         const app = new SelfAppBuilder({
           version: 2,
           appName: APP_NAME,
@@ -66,14 +79,15 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           endpointType: "https",
           userIdType: "hex",
           userDefinedData: JSON.stringify({
-            country: countryCode,
-            requiredCountry: countryCode,
+            country: countryCodeAlpha3,
+            requiredCountry: countryCodeAlpha3,
           }),
           // Use array format with allowedCountries as specified by Self Protocol SDK
+          // Passports use Alpha-3 format, so we use the converted code
           disclosures: [
             {
               type: "nationality",
-              allowedCountries: [countryCode], // Ensure countryCode is a string like "NG"
+              allowedCountries: [countryCodeAlpha3], // Use Alpha-3 format (e.g., 'NGA')
             },
           ] as any, // Type assertion needed as SDK types may not reflect runtime API
         }).build();
@@ -101,6 +115,15 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
         return;
       }
 
+      // Convert Alpha-2 country code to Alpha-3 format for backend comparison
+      // The disclosed nationality from passport will be in Alpha-3 format
+      const countryCodeAlpha3 = countries.alpha2ToAlpha3(countryCode);
+      
+      if (!countryCodeAlpha3) {
+        setError(`Invalid country code: ${countryCode}`);
+        return;
+      }
+
       // Send proof to backend for verification
       const response = await fetch("/api/verify-self", {
         method: "POST",
@@ -112,7 +135,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           proof: data.proof,
           publicSignals: data.publicSignals,
           userContextData: data.userContextData,
-          country: countryCode,
+          country: countryCodeAlpha3, // Send Alpha-3 format for comparison with disclosed nationality
         }),
       });
 
