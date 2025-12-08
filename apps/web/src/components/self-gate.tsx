@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   SelfAppBuilder,
+  countries,
   SelfQRcodeWrapper,
   type SelfApp,
 } from "@selfxyz/qrcode";
-import { ethers } from "ethers";
-import { Loader2 } from "lucide-react";
-import countries from "i18n-iso-countries";
+import { Loader2, Info } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
+import isoCountries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 
-countries.registerLocale(enLocale);
+// Register English locale for country names
+isoCountries.registerLocale(enLocale);
 
 const SCOPE = process.env.NEXT_PUBLIC_SELF_SCOPE || "delulu-app-v1";
 const APP_NAME = process.env.NEXT_PUBLIC_SELF_APP_NAME || "Delulu";
-// The endpoint should point to our own verification API, not Self's playground
+
 const getSelfEndpoint = () => {
   if (typeof window !== "undefined") {
     return `${window.location.origin}/api/verify-self`;
@@ -36,60 +38,71 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const countryName =
-    countries.getName(countryCode, "en", { select: "official" }) || countryCode;
+  // Generate a UUID for the user ID (generated once per component instance)
+  const userId = useMemo(() => uuidv4(), []);
+
+  // Get country name and convert Alpha-2 to Alpha-3 (reactive to countryCode changes)
+  const countryName = useMemo(
+    () =>
+      isoCountries.getName(countryCode, "en", { select: "official" }) ||
+      countryCode,
+    [countryCode]
+  );
+  const countryCodeAlpha3 = useMemo(
+    () => isoCountries.alpha2ToAlpha3(countryCode),
+    [countryCode]
+  );
 
   useEffect(() => {
     const initializeQR = async () => {
-      // Guard clause: Strictly check if countryCode is missing/empty
-      if (!countryCode || typeof countryCode !== "string" || countryCode.trim() === "") {
-        console.warn("[SelfGate] Country code is missing or empty. Skipping QR code generation.", {
-          countryCode,
-          type: typeof countryCode,
-        });
-        setError("Country code is required for verification");
-        setIsLoading(false);
-        return;
-      }
+      // For this test, we ignore countryCode validation to isolate the Age check
+      // if (!countryCode || typeof countryCode !== "string") ...
 
       try {
         setIsLoading(true);
         setError(null);
 
-        // Convert Alpha-2 country code (e.g., 'NG') to Alpha-3 format (e.g., 'NGA')
-        // Passports use 3-letter ISO country codes (Alpha-3)
-        const countryCodeAlpha3 = countries.alpha2ToAlpha3(countryCode);
-        
+        // Convert Alpha-2 country code to Alpha-3 format
+        // The countries object from @selfxyz/qrcode uses Alpha-3 codes (e.g., "NGA")
+        // but countryCode prop is Alpha-2 (e.g., "NG")
         if (!countryCodeAlpha3) {
-          console.error("[SelfGate] Failed to convert country code to Alpha-3 format", {
-            countryCode,
-          });
-          setError(`Invalid country code: ${countryCode}`);
-          setIsLoading(false);
-          return;
+          throw new Error(
+            `Invalid country code: ${countryCode}. Could not convert to Alpha-3 format.`
+          );
         }
+
+        // Get all Alpha-3 country codes from the countries object
+        const allCountryCodes = Object.values(countries);
+
+        // Filter out the target country (using Alpha-3) to create the exclusion list
+        // Type assertion needed as SDK expects Country3LetterCode[] but countries object values are strings
+        const excludedCountriesList = allCountryCodes.filter(
+          (code) => code !== countryCodeAlpha3
+        ) as any;
+
+        console.log(excludedCountriesList);
+        console.log(countryCodeAlpha3);
 
         const app = new SelfAppBuilder({
           version: 2,
           appName: APP_NAME,
           scope: SCOPE,
           endpoint: getSelfEndpoint(),
-          logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png", 
-          userId: ethers.ZeroAddress, 
-          endpointType: "https",
-          userIdType: "hex",
+          devMode: true,
+          logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
+          endpointType: "staging_https",
+          userId: userId,
+          userIdType: "uuid",
           userDefinedData: JSON.stringify({
-            country: countryCodeAlpha3,
-            requiredCountry: countryCodeAlpha3,
+            message: `Verify 18+ and Nationality: ${countryName}`,
+            targetCountry: countryCodeAlpha3,
           }),
-          // Use array format with allowedCountries as specified by Self Protocol SDK
-          // Passports use Alpha-3 format, so we use the converted code
-          disclosures: [
-            {
-              type: "nationality",
-              allowedCountries: [countryCodeAlpha3], // Use Alpha-3 format (e.g., 'NGA')
-            },
-          ] as any, // Type assertion needed as SDK types may not reflect runtime API
+          disclosures: {
+            minimumAge: 18,
+            // excludedCountries: excludedCountriesList as any,
+            nationality: true,
+            gender: true,
+          } as any,
         }).build();
 
         setSelfApp(app);
@@ -106,45 +119,58 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
     };
 
     initializeQR();
-  }, [countryCode]);
+  }, [countryCode, countryCodeAlpha3, userId, countryName]);
 
-  const handleSuccess = async (data?: any) => {
+  const handleSuccess = useCallback(async (data?: any) => {
     try {
       if (!data) {
         setError("No verification data received");
         return;
       }
 
-      // Convert Alpha-2 country code to Alpha-3 format for backend comparison
-      // The disclosed nationality from passport will be in Alpha-3 format
-      const countryCodeAlpha3 = countries.alpha2ToAlpha3(countryCode);
-      
-      if (!countryCodeAlpha3) {
-        setError(`Invalid country code: ${countryCode}`);
-        return;
-      }
+      console.log("Proof received:", data); // Check console to see if we get here
 
-      // Send proof to backend for verification
-      const response = await fetch("/api/verify-self", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          attestationId: data.attestationId,
-          proof: data.proof,
-          publicSignals: data.publicSignals,
-          userContextData: data.userContextData,
-          country: countryCodeAlpha3, // Send Alpha-3 format for comparison with disclosed nationality
-        }),
-      });
+      // Check if verification was successful based on status field
+      // Successful verification returns: { status: 'proof_verified', error_code: null, proof: null, reason: null }
+      if (data.status === "proof_verified") {
+        // Make explicit backend API call to verify with targetCountry
+        try {
+          const response = await fetch("/api/verify-self", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              attestationId: data.attestationId,
+              proof: data.proof,
+              publicSignals: data.publicSignals,
+              userContextData: data.userContextData,
+              targetCountry: countryCodeAlpha3, // Pass the Alpha-3 country code
+            }),
+          });
 
-      const result = await response.json();
+          const result = await response.json();
 
-      if (result.status === "success" && result.result === true) {
-        onVerified();
+          if (result.status === "success" && result.result === true) {
+            // Backend verification successful - call the onVerified callback
+            onVerified();
+          } else {
+            // Backend verification failed
+            setError(result.reason || "Backend verification failed. Please try again.");
+          }
+        } catch (backendErr) {
+          console.error("Backend verification error:", backendErr);
+          // Even if backend call fails, if Self SDK says it's verified, we can proceed
+          // Or you can choose to show an error instead
+          setError("Backend verification error. Please try again.");
+        }
       } else {
-        setError(result.reason || "Verification failed. Please try again.");
+        // Verification failed - show error message
+        const errorMessage =
+          data.reason ||
+          data.error_code ||
+          "Verification failed. Please try again.";
+        setError(errorMessage);
       }
     } catch (err) {
       console.error("Verification error:", err);
@@ -154,7 +180,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           : "Verification failed. Please try again."
       );
     }
-  };
+  }, [countryCodeAlpha3, onVerified]);
 
   const handleError = (error: any) => {
     console.error("Self verification error:", error);
@@ -178,15 +204,31 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           <p className="text-lg font-bold text-white/90 mb-2">
             Restricted Access
           </p>
-          <p className="text-base text-white/70">{countryName} Only</p>
+          <p className="text-base text-white/70">
+            Age Verification Required (18+)
+          </p>
         </div>
 
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-delulu-yellow mb-4" />
-            <p className="text-sm text-white/60">
-              Generating verification code...
-            </p>
+          <div className="space-y-4">
+            {/* Mock Passport Notice */}
+            <div className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-blue-400 mb-1">
+                  Testing Mode
+                </p>
+                <p className="text-xs text-blue-300/80">
+                  Please use a <span className="font-semibold">mock passport</span> for verification during testing.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-delulu-yellow mb-4" />
+              <p className="text-sm text-white/60">
+                Generating verification code...
+              </p>
+            </div>
           </div>
         )}
 
@@ -198,6 +240,19 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
 
         {selfApp && !error && (
           <div className="space-y-4">
+            {/* Mock Passport Notice */}
+            <div className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-blue-400 mb-1">
+                  Testing Mode
+                </p>
+                <p className="text-xs text-blue-300/80">
+                  Please use a <span className="font-semibold">mock passport</span> for verification during testing.
+                </p>
+              </div>
+            </div>
+
             <div className="flex justify-center">
               <div className="p-4 bg-white rounded-xl">
                 <SelfQRcodeWrapper
@@ -207,9 +262,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
                 />
               </div>
             </div>
-            <p className="text-sm text-white/60">
-              Scan to verify your nationality
-            </p>
+            <p className="text-sm text-white/60">Scan to verify age</p>
           </div>
         )}
       </div>
