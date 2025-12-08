@@ -66,10 +66,18 @@ export function useTokenApproval() {
 
 
   const needsApproval = (amount: number): boolean => {
+    // Safe handling of invalid inputs
     if (!allowance || !tokenAddress) return true;
-    if (isNaN(amount) || amount <= 0) return true;
-    const amountWei = parseUnits(amount.toString(), 18);
-    return allowance < amountWei;
+    if (!amount || isNaN(amount) || amount <= 0) return true;
+    
+    try {
+      const amountWei = parseUnits(amount.toString(), 18);
+      return allowance < amountWei;
+    } catch (error) {
+      // If parsing fails, assume approval is needed
+      console.warn("[useTokenApproval] Error parsing amount in needsApproval:", error);
+      return true;
+    }
   };
 
 
