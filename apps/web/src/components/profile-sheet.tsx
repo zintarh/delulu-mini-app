@@ -12,7 +12,6 @@ import { isDeluluCreator } from "@/lib/delulu-utils";
 import { ProfileDeluluItem } from "@/components/profile-delulu-item";
 import { StakedDeluluItem } from "@/components/staked-delulu-item";
 import { formatAddress } from "@/lib/utils";
-import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 
 interface ProfileSheetProps {
   open: boolean;
@@ -54,7 +53,6 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
       >
         <SheetTitle className="sr-only">Profile</SheetTitle>
         <div className="relative h-full flex flex-col overflow-y-auto">
-          {/* Header with Username/Address */}
           <div className="px-6 pt-4 pb-3">
             <div className="flex items-center justify-center relative">
               <h2 className="text-sm text-white/60">
@@ -76,7 +74,6 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
           {/* Divider - Full Width */}
           <div className="w-full border-t border-white/10" />
           
-          {/* Delulus User Staked On - Ending Soon */}
           {address && (
             <div className="px-6 mb-6 pt-3">
               <h3 className="text-sm font-bold text-white/90 mb-3">Ending Soon</h3>
