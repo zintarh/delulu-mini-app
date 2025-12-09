@@ -5,22 +5,17 @@ import {
   DefaultConfigStore,
   countries,
 } from "@selfxyz/core";
+import { SELF_CONFIG } from "@/lib/self-config";
 
-const SCOPE = process.env.NEXT_PUBLIC_SELF_SCOPE || "delulu-app-v1";
 const SELF_ENDPOINT =
   (process.env.NEXT_PUBLIC_URL || "http://localhost:3000") + "/api/verify-self";
-// Force true for testing based on your provided context
-const MOCK_PASSPORT = true;
 
 export async function POST(request: NextRequest) {
   try {
-    const {
-      attestationId,
-      proof,
-      publicSignals,
-      userContextData,
-      targetCountry,
-    } = await request.json();
+    const targetCountry = request.nextUrl.searchParams.get("targetCountry");
+
+    const { attestationId, proof, publicSignals, userContextData } =
+      await request.json();
 
     // Verify all required fields are present
     if (!proof || !publicSignals || !attestationId || !userContextData) {
@@ -35,33 +30,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate targetCountry is provided
     if (!targetCountry) {
       return NextResponse.json(
         {
           status: "error",
           result: false,
-          reason: "Target country required for verification",
+          reason:
+            "Target country is required. Please provide targetCountry as a query parameter.",
         },
         { status: 200 }
       );
     }
+   
 
-    const allCountryCodes = Object.values(countries);
-
-    // 2. Filter out the target country to create the exclusion list
-    const excludedCountriesList = allCountryCodes.filter(
-      (code) => code !== targetCountry
-    );
-    // Reuse a single verifier instance
+    // Create verifier with dynamic excluded countries
     const selfBackendVerifier = new SelfBackendVerifier(
-      SCOPE,
+      SELF_CONFIG.SCOPE,
       SELF_ENDPOINT,
-      MOCK_PASSPORT,
+      SELF_CONFIG.MOCK_PASSPORT,
       AllIds,
       new DefaultConfigStore({
-        minimumAge: 18,
-        // excludedCountries: excludedCountriesList as any,
-        ofac: false,
+        minimumAge: SELF_CONFIG.MINIMUM_AGE,
+        ofac: SELF_CONFIG.OFAC_CHECK,
       }),
       "uuid"
     );
@@ -74,7 +65,7 @@ export async function POST(request: NextRequest) {
       userContextData
     );
 
-    // Adapted logic from Express snippet: Check specific validity flags
+    // Check specific validity flags
     const { isValid, isMinimumAgeValid } = result.isValidDetails;
 
     if (!isValid || !isMinimumAgeValid) {
@@ -86,6 +77,20 @@ export async function POST(request: NextRequest) {
           status: "error",
           result: false,
           reason,
+          details: result.isValidDetails,
+        },
+        { status: 200 }
+      );
+    }
+
+    // Verify nationality matches targetCountry if nationality is disclosed
+    const disclosedNationality = result.discloseOutput?.nationality;
+    if (disclosedNationality && disclosedNationality !== "NG") {
+      return NextResponse.json(
+        {
+          status: "error",
+          result: false,
+          reason: `Nationality mismatch. Required: ${targetCountry}, Got: ${disclosedNationality}`,
           details: result.isValidDetails,
         },
         { status: 200 }

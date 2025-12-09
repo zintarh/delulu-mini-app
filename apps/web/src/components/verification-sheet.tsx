@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SelfGate } from "@/components/self-gate";
 
@@ -16,9 +17,23 @@ export function VerificationSheet({
   countryCode,
   onVerified,
 }: VerificationSheetProps) {
+  const [key, setKey] = useState(0);
+
+  // Reset the SelfGate component when sheet closes
+  useEffect(() => {
+    if (!open) {
+      // Increment key to force remount of SelfGate when sheet reopens
+      setKey((prev) => prev + 1);
+    }
+  }, [open]);
+
   const handleVerified = () => {
+    // Call the parent callback first to update verified state
     onVerified();
-    onOpenChange(false);
+    // Close sheet after a brief delay to show success state in SelfGate
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 5000); // Give 2 seconds to see the success message
   };
 
   // Conditional rendering: Only render if countryCode is strictly defined and not empty
@@ -56,7 +71,11 @@ export function VerificationSheet({
               Please verify your nationality to stake on this delulu
             </p>
           </div>
-          <SelfGate countryCode={countryCode} onVerified={handleVerified} />
+          <SelfGate 
+            key={key} 
+            countryCode={countryCode} 
+            onVerified={handleVerified} 
+          />
         </div>
       </SheetContent>
     </Sheet>
