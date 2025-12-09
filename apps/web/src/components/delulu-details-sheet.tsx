@@ -106,6 +106,7 @@ export function DeluluDetailsSheet({
   const [showClaimErrorModal, setShowClaimErrorModal] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [showVerificationSheet, setShowVerificationSheet] = useState(false);
+  const [pendingStakeAction, setPendingStakeAction] = useState<"believe" | "doubt" | null>(null);
 
   // Calculate potential payout when user enters stake amount
   const { potentialPayout, isLoading: isLoadingPayout } = usePotentialPayout(
@@ -116,10 +117,12 @@ export function DeluluDetailsSheet({
 
   const isCreator = isDeluluCreator(address, delulu);
 
-  // Reset verification state when delulu changes or sheet closes
+  // Reset verification state only when delulu changes or main sheet closes
+  // Don't reset when verification sheet closes - we want to keep verified state
   useEffect(() => {
     if (!open || !delulu) {
       setIsVerified(false);
+      setShowVerificationSheet(false);
     }
   }, [open, delulu?.id]);
 
@@ -371,14 +374,28 @@ export function DeluluDetailsSheet({
     : false;
 
   const handleBelieveClick = () => {
-    if (onBelieve) {
-      onBelieve();
+    // If verification is needed, show verification sheet first
+    if (needsVerification) {
+      setPendingStakeAction("believe");
+      setShowVerificationSheet(true);
+    } else {
+      // If already verified, go directly to staking
+      if (onBelieve) {
+        onBelieve();
+      }
     }
   };
 
   const handleDoubtClick = () => {
-    if (onDoubt) {
-      onDoubt();
+    // If verification is needed, show verification sheet first
+    if (needsVerification) {
+      setPendingStakeAction("doubt");
+      setShowVerificationSheet(true);
+    } else {
+      // If already verified, go directly to staking
+      if (onDoubt) {
+        onDoubt();
+      }
     }
   };
 
@@ -677,27 +694,9 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
-        {/* Verify Button - shown when gated and not verified */}
-        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && needsVerification && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
-            <button
-              onClick={() => setShowVerificationSheet(true)}
-              className={cn(
-                "w-full px-4 py-3",
-                "bg-delulu-yellow rounded-full",
-                "text-delulu-dark font-black text-sm",
-                "border border-delulu-yellow/20",
-                "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-delulu-yellow/90"
-              )}
-            >
-              Verify to Stake
-            </button>
-          </div>
-        )}
-
-        {/* Floating Action Buttons - at bottom, floating on top */}
-        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && !needsVerification && (
+        {/* Floating Action Buttons - shown for all users who can stake */}
+        {/* Verification will be triggered when they click Believe/Doubt */}
+        {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
           <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 flex gap-4 z-50">
             <button
               onClick={handleBelieveClick}
@@ -791,8 +790,18 @@ export function DeluluDetailsSheet({
           onOpenChange={setShowVerificationSheet}
           countryCode={delulu.gatekeeper.value}
           onVerified={() => {
-            // Set verified state to true, which will show the stake buttons
+            // Set verified state to true
             setIsVerified(true);
+            // Close verification sheet
+            setShowVerificationSheet(false);
+            // Open the appropriate staking sheet based on pending action
+            if (pendingStakeAction === "believe" && onBelieve) {
+              setPendingStakeAction(null);
+              onBelieve();
+            } else if (pendingStakeAction === "doubt" && onDoubt) {
+              setPendingStakeAction(null);
+              onDoubt();
+            }
           }}
         />
       )}
