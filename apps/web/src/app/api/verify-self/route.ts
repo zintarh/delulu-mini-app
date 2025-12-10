@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     const { attestationId, proof, publicSignals, userContextData } =
       await request.json();
 
-    // Verify all required fields are present
     if (!proof || !publicSignals || !attestationId || !userContextData) {
       return NextResponse.json(
         {
@@ -42,9 +41,7 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     }
-   
 
-    // Create verifier with dynamic excluded countries
     const selfBackendVerifier = new SelfBackendVerifier(
       SELF_CONFIG.SCOPE,
       SELF_ENDPOINT,
@@ -85,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Verify nationality matches targetCountry if nationality is disclosed
     const disclosedNationality = result.discloseOutput?.nationality;
-    if (disclosedNationality && disclosedNationality !== "NG") {
+    if (disclosedNationality && disclosedNationality !== targetCountry) {
       return NextResponse.json(
         {
           status: "error",
