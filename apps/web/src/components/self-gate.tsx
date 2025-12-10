@@ -49,8 +49,6 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
     }
 
     const initializeQR = async () => {
-  
-
       try {
         setIsLoading(true);
         setError(null);
@@ -75,10 +73,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
           endpointType: "staging_https",
           userId: userId,
           userIdType: "uuid",
-          userDefinedData: JSON.stringify({
-            message: `Verify ${SELF_CONFIG.MINIMUM_AGE}+ and Nationality: ${countryName}`,
-            targetCountry: countryCodeAlpha3,
-          }),
+
           disclosures: {
             ...SELF_CONFIG.DISCLOSURES,
           } as any,
@@ -193,9 +188,11 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-3 bg-white rounded-xl inline-block">
-                <div className="w-40 h-40 overflow-hidden flex items-center justify-center">
-                  <div style={{ transform: 'scale(0.65)', transformOrigin: 'center' }}>
+              <div className="p-2 bg-white rounded-xl inline-block">
+                <div className="w-50 h-50 overflow-hidden flex items-center justify-center">
+                  <div
+                    style={{ transform: "scale(1)", transformOrigin: "center" }}
+                  >
                     <SelfQRcodeWrapper
                       selfApp={selfApp}
                       onSuccess={handleSuccess}
