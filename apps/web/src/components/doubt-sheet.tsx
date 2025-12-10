@@ -301,7 +301,7 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <input
                     type="number"
                     value={stakeAmount}
@@ -317,7 +317,7 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
                     placeholder="0.00"
                     min="1"
                     step="0.01"
-                    className={`flex-1 bg-transparent text-white text-2xl font-bold focus:outline-none placeholder:text-white/30 ${
+                    className={`flex-1 min-w-0 bg-transparent text-white text-2xl font-bold focus:outline-none placeholder:text-white/30 ${
                       validationError ? "text-red-400" : ""
                     }`}
                     disabled={isLoading || isCreator}
@@ -330,7 +330,7 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
                       }
                     }}
                     disabled={isLoading || isCreator || cusdBalance === null}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     MAX
                   </button>
