@@ -569,7 +569,7 @@ export function CreateDelusionSheet({
         isOpen={showSuccessModal}
         type="success"
         title="Delusion Created! 🎉"
-        message="Your delusion has been successfully manifested on the blockchain. Let's see if it comes true!"
+        message="Delulu Created! 🔮 It will appear on the feed in ~30 seconds once the blockchain confirms."
         onClose={handleSuccessClose}
         actionText="View Delusions"
       />

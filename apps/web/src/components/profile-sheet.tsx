@@ -94,7 +94,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                     const diff = deadline.getTime() - now.getTime();
                     const hours = diff / (1000 * 60 * 60);
                     return hours > 0 && hours <= 24 && !isDeluluCreator(address, d);
-                  });
+                  }).sort((a, b) => Number(b.id) - Number(a.id));
 
                   if (endingSoonDelulus.length === 0) {
                     return (
@@ -130,7 +130,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                 </div>
               ) : (
                 (() => {
-                  const myDelulus = delulus.filter((d) => isDeluluCreator(address, d));
+                  const myDelulus = delulus.filter((d) => isDeluluCreator(address, d)).sort((a, b) => Number(b.id) - Number(a.id));
 
                   if (myDelulus.length === 0) {
                     return (

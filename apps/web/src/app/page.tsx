@@ -49,7 +49,7 @@ export default function HomePage() {
   const [doubtSheetOpen, setDoubtSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
-  const trendingDelusions = delulus.slice(0, 5);
+  const trendingDelusions = [...delulus].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 5);
 
   // Show login screen if not connected
   if (!isConnected) {

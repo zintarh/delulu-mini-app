@@ -115,7 +115,7 @@ export function useDelulus() {
           isCancelled: d.isCancelled,
         };
       })
-      .sort((a, b) => b.totalStake - a.totalStake)
+      .sort((a, b) => Number(b.id) - Number(a.id))
     : [];
 
   useEffect(() => {

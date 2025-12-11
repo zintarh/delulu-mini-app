@@ -39,13 +39,9 @@ export function AllDelulusSheet({
 }: AllDelulusSheetProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
-  const endingSoon = delulus.filter((d) => isEndingSoon(d.stakingDeadline));
+  const endingSoon = [...delulus].sort((a, b) => Number(b.id) - Number(a.id)).filter((d) => isEndingSoon(d.stakingDeadline));
   const regularDelulusUnfiltered = useMemo(() => {
-    const allDelulusSorted = [...delulus].sort((a, b) => {
-      const aCreated = getCreatedAt(a);
-      const bCreated = getCreatedAt(b);
-      return aCreated.getTime() - bCreated.getTime();
-    });
+    const allDelulusSorted = [...delulus].sort((a, b) => Number(b.id) - Number(a.id));
     return allDelulusSorted.filter((d) => !isEndingSoon(d.stakingDeadline));
   }, [delulus]);
 
