@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { LeftSidebar } from "@/components/left-sidebar";
@@ -50,6 +50,40 @@ export default function HomePage() {
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolling(true);
+      
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
+    };
+
+    const mainElement = document.querySelector('main');
+    const windowElement = window;
+    
+    if (mainElement) {
+      mainElement.addEventListener('scroll', handleScroll);
+    }
+    windowElement.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      if (mainElement) {
+        mainElement.removeEventListener('scroll', handleScroll);
+      }
+      windowElement.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const filteredDelulus =
     activeTab === "vision"
@@ -75,7 +109,7 @@ export default function HomePage() {
           />
         </div>
 
-        <main className="min-h-screen lg:border-x border-gray-800">
+        <main className="min-h-screen lg:border-x border-gray-800 overflow-y-auto">
           <div className="lg:hidden">
             <Navbar
               onProfileClick={() => setProfileSheetOpen(true)}
@@ -118,7 +152,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6">
+          <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
             {isLoading ? (
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -156,9 +190,16 @@ export default function HomePage() {
 
       <button
         onClick={() => setCreateSheetOpen(true)}
-        className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-delulu-yellow-reserved text-black flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-40"
+        className={cn(
+          "lg:hidden fixed bottom-6 right-6 rounded-lg bg-delulu-yellow-reserved text-black flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300 z-40",
+          isScrolling ? "w-14 h-14 px-3" : "h-14 px-3"
+        )}
+        style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' }}
       >
-        <Plus className="w-6 h-6" />
+        <Plus className={cn("transition-all duration-300", isScrolling ? "w-8 h-8" : "w-6 h-6 mr-1")} />
+        {!isScrolling && (
+          <span className="text-base font-bold whitespace-nowrap">Board</span>
+        )}
       </button>
 
       <CreateDelusionSheet

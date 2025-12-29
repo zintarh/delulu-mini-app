@@ -7,17 +7,17 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-interface TwitterPostCardProps {
+interface DeluluCardProps {
   delusion: FormattedDelulu;
   onClick: () => void;
   className?: string;
 }
 
-export function TwitterPostCard({ 
+export function DeluluCard({ 
   delusion, 
   onClick,
-  className = "shrink-0 w-[85%] sm:w-[400px]"
-}: TwitterPostCardProps) {
+  className = ""
+}: DeluluCardProps) {
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const believerPercent =
     total > 0 ? Math.round((delusion.totalBelieverStake / total) * 100) : 0;
@@ -27,14 +27,14 @@ export function TwitterPostCard({
       onClick={onClick}
       className={cn(
         className,
-        "block p-4 rounded-2xl bg-white/5 active:scale-[0.98] transition-transform text-left border border-white/10 relative"
+        "block p-4 rounded-2xl active:scale-[0.98] transition-transform text-left relative h-auto"
       )}
     >
       {/* Gatekeeper Badge */}
       {delusion.gatekeeper?.enabled && (
         <div className="absolute top-3 right-3 z-10">
-          <div className="px-2 py-1 rounded-full bg-delulu-yellow/20 border border-delulu-yellow/30 backdrop-blur-sm">
-            <span className="text-[10px] font-bold text-delulu-yellow">
+          <div className="px-2 py-1 rounded-full bg-white/20 border border-white/30 backdrop-blur-sm">
+            <span className="text-[10px] font-bold text-white">
               {delusion.gatekeeper.label || delusion.gatekeeper.value}
             </span>
           </div>
@@ -50,15 +50,15 @@ export function TwitterPostCard({
             className="w-10 h-10 rounded-full object-cover shrink-0"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-delulu-yellow/20 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-delulu-yellow">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <span className="text-xs font-bold text-white">
               {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
             </span>
           </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-white/90">
+            <span className="text-sm font-bold text-white">
               {delusion.username ? `@${delusion.username}` : formatAddress(delusion.creator)}
             </span>
             <span className="text-xs text-white/50">·</span>
@@ -72,7 +72,7 @@ export function TwitterPostCard({
       </div>
 
       {/* Content */}
-      <p className="text-sm text-white/90 mb-4 leading-relaxed break-words whitespace-pre-wrap">
+      <p className="text-sm text-white mb-4 leading-relaxed break-words whitespace-pre-wrap">
         {delusion.content || delusion.contentHash}
       </p>
 
@@ -80,7 +80,7 @@ export function TwitterPostCard({
       <div className="mb-3">
         <p className="text-xs text-white/60">
           Staking closes in{" "}
-          <span className="text-white/90 font-bold">
+          <span className="text-white font-bold">
             {formatTimeRemaining(delusion.stakingDeadline)}
           </span>
         </p>
@@ -105,7 +105,7 @@ export function TwitterPostCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/10">
+      <div className="flex items-center justify-between pt-3 border-t border-gray-800">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -114,7 +114,7 @@ export function TwitterPostCard({
           className="flex items-center gap-2 text-white/60 hover:text-delulu-green transition-colors"
         >
           <span className="text-xs font-bold">Believe</span>
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-white/50">
             {delusion.totalBelieverStake > 0
               ? delusion.totalBelieverStake < 0.01
                 ? delusion.totalBelieverStake.toFixed(4)
@@ -130,7 +130,7 @@ export function TwitterPostCard({
           className="flex items-center gap-2 text-white/60 hover:text-delulu-purple transition-colors"
         >
           <span className="text-xs font-bold">Doubt</span>
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-white/50">
             {delusion.totalDoubterStake > 0
               ? delusion.totalDoubterStake < 0.01
                 ? delusion.totalDoubterStake.toFixed(4)

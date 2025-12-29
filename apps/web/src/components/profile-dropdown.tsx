@@ -9,14 +9,20 @@ interface ProfileDropdownProps {
   onLogoutClick: () => void;
 }
 
-export function ProfileDropdown({ onProfileClick, onLogoutClick }: ProfileDropdownProps) {
+export function ProfileDropdown({
+  onProfileClick,
+  onLogoutClick,
+}: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useUserStore();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -44,13 +50,13 @@ export function ProfileDropdown({ onProfileClick, onLogoutClick }: ProfileDropdo
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
+        className="flex items-center justify-center w-10 h-10 rounded-full transition-colors"
         aria-label="Profile menu"
       >
         {user?.pfpUrl ? (
-          <img 
-            src={user.pfpUrl} 
-            alt={user.displayName || user.username || "Profile"} 
+          <img
+            src={user.pfpUrl}
+            alt={user.displayName || user.username || "Profile"}
             className="w-10 h-10 rounded-full object-cover"
           />
         ) : (
@@ -79,4 +85,3 @@ export function ProfileDropdown({ onProfileClick, onLogoutClick }: ProfileDropdo
     </div>
   );
 }
-
