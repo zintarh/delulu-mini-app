@@ -114,7 +114,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-white/5 border border-white/10">
+    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-gray-900 border border-gray-800">
       <div className="text-center space-y-4">
         <div>
           <p className="text-xs font-semibold text-white/80 mb-1">
@@ -141,7 +141,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
               </div>
             </div>
             <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-delulu-yellow mb-4" />
+              <Loader2 className="w-8 h-8 animate-spin text-white mb-4" />
               <p className="text-sm text-white/60">
                 Generating verification code...
               </p>
@@ -161,7 +161,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
               <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
                 <CheckCircle className="w-12 h-12 text-green-500" />
               </div>
-              <p className="text-lg font-bold text-white/90 mb-2">
+              <p className="text-lg font-bold text-white mb-2">
                 Verification Successful! ✅
               </p>
               <p className="text-sm text-white/60">
@@ -188,7 +188,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-2 bg-white rounded-xl inline-block">
+              <div className="p-2 bg-gray-900 rounded-xl inline-block">
                 <div className="w-50 h-50 overflow-hidden flex items-center justify-center">
                   <div
                     style={{ transform: "scale(1)", transformOrigin: "center" }}

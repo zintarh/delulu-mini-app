@@ -32,7 +32,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           side="bottom" 
-          className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl"
+          className="bg-gray-900 border-t-2 border-gray-800 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl"
         >
           <SheetTitle className="sr-only">Profile</SheetTitle>
           <div className="relative h-full flex flex-col items-center justify-center px-6">
@@ -49,7 +49,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent 
         side="bottom" 
-        className="bg-delulu-dark border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-none"
+        className="bg-gray-900 border-t-2 border-gray-800 h-screen max-h-screen overflow-hidden p-0 rounded-none"
       >
         <SheetTitle className="sr-only">Profile</SheetTitle>
         <div className="relative h-full flex flex-col overflow-y-auto">
@@ -72,17 +72,17 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
           </div>
           
           {/* Divider - Full Width */}
-          <div className="w-full border-t border-white/10" />
+          <div className="w-full border-t border-gray-800" />
           
           {address && (
             <div className="px-6 mb-6 pt-3">
-              <h3 className="text-sm font-bold text-white/90 mb-3">Ending Soon</h3>
+              <h3 className="text-sm font-bold text-white mb-3">Ending Soon</h3>
               {isLoadingDelulus ? (
                 <div className="space-y-3">
                   {[1, 2].map((i) => (
-                    <div key={i} className="bg-white/5 rounded-2xl p-4 border border-white/10 animate-pulse">
-                      <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-white/10 rounded w-1/2" />
+                    <div key={i} className="bg-gray-900 rounded-2xl p-4 border border-gray-800 animate-pulse">
+                      <div className="h-4 bg-gray-800 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-800 rounded w-1/2" />
                     </div>
                   ))}
                 </div>
@@ -115,16 +115,16 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
           {/* Delulus User Created */}
           {address && (
             <div className="px-6 mb-6 pb-8">
-              <h3 className="text-sm font-bold text-white/90 mb-3">My Delulus</h3>
+              <h3 className="text-sm font-bold text-white mb-3">My Delulus</h3>
               {isLoadingDelulus ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white/5 rounded-2xl p-4 border border-white/10 animate-pulse">
+                    <div key={i} className="bg-gray-900 rounded-2xl p-4 border border-gray-800 animate-pulse">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="h-4 bg-white/10 rounded w-1/2" />
-                        <div className="h-6 w-6 rounded-full bg-white/10" />
+                        <div className="h-4 bg-gray-800 rounded w-1/2" />
+                        <div className="h-6 w-6 rounded-full bg-gray-800" />
                       </div>
-                      <div className="h-3 bg-white/10 rounded w-3/4" />
+                      <div className="h-3 bg-gray-800 rounded w-3/4" />
                     </div>
                   ))}
                 </div>

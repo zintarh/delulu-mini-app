@@ -41,7 +41,7 @@ function ConnectWalletComponent({ className }: ConnectWalletProps) {
       type="button"
       className={cn(
         "relative px-5 py-2",
-        "bg-gradient-to-b from-delulu-yellow via-delulu-yellow to-[#d4af37]",
+        "bg-gradient-to-b from-black via-black to-black",
         "text-delulu-dark",
         "rounded-xl font-black text-sm",
         "border-2 border-delulu-dark",
@@ -71,7 +71,7 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
 
   if (!mounted) {
     return (
-      <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
+      <div className="w-20 h-9 animate-pulse bg-gray-800 rounded-full" />
     );
   }
 

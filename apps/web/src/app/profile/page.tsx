@@ -11,9 +11,9 @@ export default function ProfilePage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-delulu-dark">
+      <div className="min-h-screen bg-black">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 pt-8 text-center">
+        <div className="max-w-lg md:max-w-4xl mx-auto px-4 md:px-6 pt-8 text-center">
           <p className="text-white/50">
             Please connect your wallet to view your profile
           </p>
@@ -23,18 +23,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-delulu-dark">
+    <div className="min-h-screen bg-black">
       <Navbar />
 
-      <main className="max-w-lg mx-auto px-4 pt-4 pb-24">
+      <main className="max-w-lg md:max-w-4xl mx-auto px-4 md:px-6 pt-4 md:pt-8 pb-24">
         <div className="mb-6">
-          <div className="bg-white/5 rounded-3xl p-6 mb-4">
+          <div className="bg-gray-900 rounded-3xl p-6 mb-4">
             {isLoading ? (
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/10 animate-pulse" />
+                <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-white/10 rounded animate-pulse w-32" />
-                  <div className="h-3 bg-white/10 rounded animate-pulse w-24" />
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-24" />
                 </div>
               </div>
             ) : user ? (
@@ -43,10 +43,10 @@ export default function ProfilePage() {
                   <img
                     src={user.pfpUrl}
                     alt={user.displayName || user.username || "Profile"}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-delulu-yellow"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-black"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-delulu-yellow flex items-center justify-center border-2 border-delulu-yellow">
+                  <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center border-2 border-black">
                     <span className="text-2xl font-black text-delulu-dark">
                       {(user.displayName || user.username || "U")
                         .charAt(0)

@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { FormattedDelulu } from "@/hooks/use-delulus";
-import { TwitterPostCard } from "./twitter-post-card";
+import { DeluluCard } from "./delulu-card";
 import { EndingSoonCard } from "./ending-soon-card";
-import {  TwitterPostCardSkeleton } from "./delulu-skeleton";
+import {  DeluluCardSkeleton } from "./delulu-skeleton";
 import { Clock, TrendingUp, Search, X } from "lucide-react";
 import Link from "next/link";
 
@@ -80,7 +80,7 @@ export function AllDelulusSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-delulu-dark border-t border-white/10 !max-h-screen !h-screen  overflow-y-auto"
+        className="bg-gray-900 border-t border-gray-800 !max-h-screen !h-screen  overflow-y-auto"
       >
         <SheetTitle className="sr-only">Delulus</SheetTitle>
 
@@ -91,16 +91,16 @@ export function AllDelulusSheet({
               className="flex  text-center justify-center items-center gap-1"
             >
               <span
-                className="text-2xl font-black text-delulu-yellow tracking-tighter"
+                className="text-2xl font-black text-white tracking-tighter"
                 style={{ fontFamily: "var(--font-gloria)" }}
               >
                 delulus
               </span>
-              <span className="w-2 h-2 rounded-full bg-delulu-yellow" />
+              <span className="w-2 h-2 rounded-full bg-black" />
             </Link>
           </div>
 
-          <div className="h-px bg-white/10 mb-6" />
+          <div className="h-px bg-gray-800 mb-6" />
 
           <div className="mb-6">
             <div className="relative">
@@ -110,7 +110,7 @@ export function AllDelulusSheet({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search delulus..."
-                className="w-full pl-10 pr-10 py-3 bg-white/5 border border-white/10 rounded-2xl text-white/90 placeholder:text-white/40 focus:outline-none focus:border-white/20 transition-colors"
+                className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-2xl text-white placeholder:text-white/40 focus:outline-none focus:border-gray-700 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -125,8 +125,8 @@ export function AllDelulusSheet({
           {isLoading ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-4 h-4 text-delulu-yellow/50" />
-                <span className="text-xs font-bold text-delulu-yellow/50 uppercase tracking-wider">
+                <Clock className="w-4 h-4 text-white/50" />
+                <span className="text-xs font-bold text-white/50 uppercase tracking-wider">
                   Ending Soon
                 </span>
               </div>
@@ -137,10 +137,10 @@ export function AllDelulusSheet({
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="shrink-0 w-[200px] sm:w-[240px] bg-white/5 rounded-xl p-3 border border-white/10 animate-pulse"
+                    className="shrink-0 w-[200px] sm:w-[240px] bg-gray-900 rounded-xl p-3 border border-gray-800 animate-pulse"
                   >
-                    <div className="h-3 bg-white/10 rounded w-3/4 mb-2" />
-                    <div className="h-2 bg-white/10 rounded w-1/2" />
+                    <div className="h-3 bg-gray-800 rounded w-3/4 mb-2" />
+                    <div className="h-2 bg-gray-800 rounded w-1/2" />
                   </div>
                 ))}
               </div>
@@ -148,8 +148,8 @@ export function AllDelulusSheet({
           ) : endingSoon.length > 0 ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-4 h-4 text-delulu-yellow/50" />
-                <span className="text-xs font-bold text-delulu-yellow/50 uppercase tracking-wider">
+                <Clock className="w-4 h-4 text-white/50" />
+                <span className="text-xs font-bold text-white/50 uppercase tracking-wider">
                   Ending Soon
                 </span>
               </div>
@@ -169,8 +169,8 @@ export function AllDelulusSheet({
           ) : !searchQuery ? (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-4 h-4 text-delulu-yellow/50" />
-                <span className="text-xs font-bold text-delulu-yellow/50 uppercase tracking-wider">
+                <Clock className="w-4 h-4 text-white/50" />
+                <span className="text-xs font-bold text-white/50 uppercase tracking-wider">
                   Ending Soon
                 </span>
               </div>
@@ -182,8 +182,8 @@ export function AllDelulusSheet({
 
           <div className="">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-delulu-yellow/50" />
-              <span className="text-xs font-bold text-delulu-yellow/50 uppercase tracking-wider">
+              <TrendingUp className="w-4 h-4 text-white/50" />
+              <span className="text-xs font-bold text-white/50 uppercase tracking-wider">
                 Trending
               </span>
             </div>
@@ -191,13 +191,13 @@ export function AllDelulusSheet({
             {isLoading ? (
               <div className="space-y-3 w-full">
                 {[1, 2, 3].map((i) => (
-                  <TwitterPostCardSkeleton key={i} className="w-full" />
+                  <DeluluCardSkeleton key={i} className="w-full" />
                 ))}
               </div>
             ) : regularDelulus.length > 0 ? (
               <div className="space-y-3 w-full">
                 {regularDelulus.map((delulu) => (
-                  <TwitterPostCard
+                  <DeluluCard
                     key={delulu.id}
                     delusion={delulu}
                     onClick={() => onDeluluClick(delulu)}

@@ -343,17 +343,17 @@ export function DeluluDetailsSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="bg-delulu-dark border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
+          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
         >
           <SheetTitle className="sr-only">Delulu Details</SheetTitle>
           <div className="px-6 pt-6 pb-8">
             <div className="space-y-4 animate-pulse">
-              <div className="h-6 bg-white/10 rounded w-1/2" />
-              <div className="h-4 bg-white/10 rounded w-3/4" />
-              <div className="h-32 bg-white/5 rounded-2xl border border-white/10" />
+              <div className="h-6 bg-gray-800 rounded w-1/2" />
+              <div className="h-4 bg-gray-800 rounded w-3/4" />
+              <div className="h-32 bg-gray-900 rounded-2xl border border-gray-800" />
               <div className="grid grid-cols-2 gap-3">
-                <div className="h-20 bg-white/5 rounded-xl border border-white/10" />
-                <div className="h-20 bg-white/5 rounded-xl border border-white/10" />
+                <div className="h-20 bg-gray-900 rounded-xl border border-gray-800" />
+                <div className="h-20 bg-gray-900 rounded-xl border border-gray-800" />
               </div>
             </div>
           </div>
@@ -492,7 +492,7 @@ export function DeluluDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-delulu-dark border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
+        className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
       >
         <SheetTitle className="sr-only">
           {delulu ? `Delulu Details: ${delulu.content || delulu.contentHash}` : "Delulu Details"}
@@ -514,16 +514,16 @@ export function DeluluDetailsSheet({
 
             {/* Content */}
             <div className="mb-6">
-              <p className="text-base text-white/90 leading-relaxed break-words whitespace-pre-wrap">
+              <p className="text-base text-white leading-relaxed break-words whitespace-pre-wrap">
                 {delulu.content || delulu.contentHash}
               </p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
                 <p className="text-xs text-white/60 mb-1">Believers</p>
-                <p className="text-lg font-black text-white/90">
+                <p className="text-lg font-black text-white">
                   {delulu.totalBelieverStake > 0
                     ? delulu.totalBelieverStake < 0.01
                       ? delulu.totalBelieverStake.toFixed(4)
@@ -532,9 +532,9 @@ export function DeluluDetailsSheet({
                   cUSD
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
                 <p className="text-xs text-white/60 mb-1">Doubters</p>
-                <p className="text-lg font-black text-white/90">
+                <p className="text-lg font-black text-white">
                   {delulu.totalDoubterStake > 0
                     ? delulu.totalDoubterStake < 0.01
                       ? delulu.totalDoubterStake.toFixed(4)
@@ -549,11 +549,11 @@ export function DeluluDetailsSheet({
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/60">Believers</span>
-                <span className="text-sm font-bold text-white/90">{believerPercent}%</span>
+                <span className="text-sm font-bold text-white">{believerPercent}%</span>
               </div>
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-delulu-yellow rounded-full transition-all duration-300"
+                  className="h-full bg-black rounded-full transition-all duration-300"
                   style={{ width: `${believerPercent}%` }}
                 />
               </div>
@@ -564,11 +564,11 @@ export function DeluluDetailsSheet({
             </div>
 
             {/* Deadline */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-6">
+            <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800 mb-6">
               <p className="text-xs text-white/60 mb-1">
                 Staking Deadline
               </p>
-              <p className="text-base font-black text-white/90">
+              <p className="text-base font-black text-white">
                 {formatTimeRemaining(delulu.stakingDeadline)} remaining
               </p>
               <p className="text-xs text-white/50 mt-1">
@@ -579,11 +579,11 @@ export function DeluluDetailsSheet({
 
             {/* Claimable Amount - shown when user has staked and there's something to claim */}
             {hasStaked && isConnected && claimableAmount > 0 && !isClaimed && (
-              <div className="p-4 rounded-2xl bg-delulu-yellow/10 border border-delulu-yellow/20 mb-6">
-                <p className="text-xs text-delulu-yellow/80 mb-1">
+              <div className="p-4 rounded-2xl bg-black/10 border border-black/20 mb-6">
+                <p className="text-xs text-white/80 mb-1">
                   {isLoadingClaimableAmount ? "Loading..." : "Claimable Amount"}
                 </p>
-                <p className="text-xl font-black text-delulu-yellow">
+                <p className="text-xl font-black text-white">
                   {isLoadingClaimableAmount 
                     ? "..." 
                     : claimableAmount > 0.01
@@ -591,7 +591,7 @@ export function DeluluDetailsSheet({
                       : claimableAmount.toFixed(4)}{" "}
                   cUSD
                 </p>
-                <p className="text-xs text-delulu-yellow/60 mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   Available to claim
                 </p>
               </div>
@@ -599,11 +599,11 @@ export function DeluluDetailsSheet({
 
             {/* Pot has been claimed message */}
             {hasStaked && isConnected && isClaimed && (delulu.isResolved || delulu.isCancelled) && (
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-6">
+              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800 mb-6">
                 <p className="text-xs text-white/60 mb-1">
                   Claim Status
                 </p>
-                <p className="text-base font-black text-white/90">
+                <p className="text-base font-black text-white">
                   Pot has been claimed
                 </p>
                 <p className="text-xs text-white/50 mt-1">
@@ -617,8 +617,8 @@ export function DeluluDetailsSheet({
 
         {/* Creator message */}
         {isCreator && isConnected && (
-          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
-            <div className="w-full px-4 py-2 bg-white/10 rounded-full text-center border border-white/20">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+            <div className="w-full px-4 py-2 bg-gray-800 rounded-full text-center border border-gray-700">
               <p className="text-xs font-medium text-white/80">
                 You can&apos;t stake on your own delusion
               </p>
@@ -628,8 +628,8 @@ export function DeluluDetailsSheet({
 
         {/* Already staked message */}
         {hasStaked && isConnected && !isCreator && (
-          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
-            <div className="w-full px-4 py-2 bg-white/10 rounded-full text-center border border-white/20">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+            <div className="w-full px-4 py-2 bg-gray-800 rounded-full text-center border border-gray-700">
               <p className="text-xs font-medium text-white/80">
                 You&apos;ve already staked {userStakeAmount > 0
                   ? userStakeAmount < 0.01
@@ -647,7 +647,7 @@ export function DeluluDetailsSheet({
           !isCreator &&
           !isLoadingBalance &&
           !hasBalance && (
-            <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
               <div className="w-full px-4 py-2 bg-red-500/20 rounded-full text-center border border-red-500/30">
                 <p className="text-xs font-medium text-red-400">
                   Insufficient balance. You need cUSD to stake.
@@ -663,17 +663,17 @@ export function DeluluDetailsSheet({
           claimableAmount > 0 &&
           !isClaimed &&
           (delulu.isResolved || delulu.isCancelled) && (
-            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
               <button
                 onClick={() => claim(delulu.id)}
                 disabled={isClaiming || isClaimConfirming || claimableAmount === 0}
                 className={cn(
                   "w-full px-4 py-3",
-                  "bg-white/10 rounded-full",
-                  "text-white/90 font-black text-sm",
-                  "border border-white/20",
+                  "bg-gray-800 rounded-full",
+                  "text-white font-black text-sm",
+                  "border border-gray-700",
                   "active:scale-[0.98]",
-                  "transition-all duration-150 hover:bg-white/15",
+                  "transition-all duration-150 hover:bg-gray-900/15",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   "flex items-center justify-center gap-2"
                 )}
@@ -697,16 +697,16 @@ export function DeluluDetailsSheet({
         {/* Floating Action Buttons - shown for all users who can stake */}
         {/* Verification will be triggered when they click Believe/Doubt */}
         {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-delulu-dark/95 backdrop-blur-sm border-t border-white/10 flex gap-4 z-50">
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 flex gap-4 z-50">
             <button
               onClick={handleBelieveClick}
               className={cn(
                 "flex-1 px-4 py-3",
-                "bg-white/10 rounded-full",
-                "text-white/90 font-black text-sm",
-                "border border-white/20",
+                "bg-gray-800 rounded-full",
+                "text-white font-black text-sm",
+                "border border-gray-700",
                 "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-white/15"
+                "transition-all duration-150 hover:bg-gray-900/15"
               )}
             >
               Believe
@@ -715,11 +715,11 @@ export function DeluluDetailsSheet({
               onClick={handleDoubtClick}
               className={cn(
                 "flex-1 px-4 py-3",
-                "bg-white/10 rounded-full",
-                "text-white/90 font-black text-sm",
-                "border border-white/20",
+                "bg-gray-800 rounded-full",
+                "text-white font-black text-sm",
+                "border border-gray-700",
                 "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-white/15"
+                "transition-all duration-150 hover:bg-gray-900/15"
               )}
             >
               Doubt

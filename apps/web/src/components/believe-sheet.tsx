@@ -243,7 +243,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="bg-delulu-dark border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
+          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
         >
           <SheetTitle className="sr-only">Believe in Delulu</SheetTitle>
           
@@ -263,7 +263,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
             </p>
 
             {/* Status Box */}
-            <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/10">
+            <div className="bg-gray-900 rounded-2xl p-4 mb-6 border border-gray-800">
               <p className="text-sm text-white/80 text-center break-words whitespace-pre-wrap">
                 {delulu.content || delulu.contentHash}
               </p>
@@ -271,8 +271,8 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
 
             {/* Input Section - DeFi Style */}
             <div className="mb-6">
-              <div className={`bg-white/5 rounded-2xl p-4 border transition-colors ${
-                validationError ? "border-red-500/50" : "border-white/10"
+              <div className={`bg-gray-900 rounded-2xl p-4 border transition-colors ${
+                validationError ? "border-red-500/50" : "border-gray-800"
               }`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-white/60">Amount</span>
@@ -311,7 +311,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
                       }
                     }}
                     disabled={isLoading || isCreator || cusdBalance === null}
-                    className="flex-shrink-0 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 px-3 py-1.5 bg-gray-800 hover:bg-gray-900/20 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     MAX
                   </button>
@@ -335,8 +335,8 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
                 "w-full py-3 font-bold text-sm",
                 "btn-game",
                 canStake && !isLoading
-                  ? "bg-white text-delulu-dark"
-                  : "bg-white/20 text-white/40 cursor-not-allowed"
+                  ? "bg-gray-900 text-delulu-dark"
+                  : "bg-gray-900/20 text-white/40 cursor-not-allowed"
               )}
             >
               {isLoading ? (

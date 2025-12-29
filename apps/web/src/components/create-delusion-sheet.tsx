@@ -179,7 +179,7 @@ export function CreateDelusionSheet({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent
           side="bottom"
-          className="border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20 relative"
+          className="border-t-2 border-delulu-dark/20 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-delulu-dark [&>button]:bg-gray-800 [&>button]:hover:bg-gray-900/20 relative"
           style={{
             backgroundImage: "url('/island2.jpg')",
             backgroundSize: "cover",
@@ -188,7 +188,7 @@ export function CreateDelusionSheet({
           }}
         >
           {/* Yellow overlay */}
-          <div className="absolute inset-0 bg-delulu-yellow/70 z-0" />
+          <div className="absolute inset-0 bg-black/70 z-0" />
           <div className="relative z-10 h-full flex flex-col [&_button[data-radix-dialog-close]]:z-[100]">
             <SheetTitle className="sr-only">Create Delusion</SheetTitle>
             <div className="relative h-full flex flex-col overflow-y-auto">
@@ -201,7 +201,7 @@ export function CreateDelusionSheet({
               className={cn(
                 "absolute top-4 left-4 z-20",
                 "w-10 h-10",
-                "bg-white text-delulu-dark",
+                "bg-gray-900 text-delulu-dark",
                 "btn-game",
                 "flex items-center justify-center"
               )}
@@ -215,10 +215,10 @@ export function CreateDelusionSheet({
                   key={step}
                   className={`h-1 rounded-full transition-all duration-300 ${
                     step === currentStep
-                      ? "w-12 bg-delulu-dark"
+                      ? "w-12 bg-gray-900"
                       : step < currentStep
-                      ? "w-12 bg-delulu-dark/80"
-                      : "w-12 bg-delulu-dark/20"
+                      ? "w-12 bg-gray-900/80"
+                      : "w-12 bg-gray-900/20"
                   }`}
                 />
               ))}
@@ -322,7 +322,7 @@ export function CreateDelusionSheet({
                         min={1}
                         max={10000}
                         step="0.01"
-                        className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-delulu-dark/5 rounded-2xl px-4 transition-colors"
+                        className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-gray-900 rounded-2xl px-4 transition-colors"
                         style={{
                           width: `${
                             Math.max(stakeAmount[0].toString().length, 2) * 0.75
@@ -423,7 +423,7 @@ export function CreateDelusionSheet({
                           })}
                         </p>
                       </div>
-                      <div className="w-px h-12 bg-delulu-dark/20" />
+                      <div className="w-px h-12 bg-gray-900/20" />
                       <div>
                         <p className="text-xs text-delulu-dark/50 uppercase tracking-wide mb-1">
                           Stake
@@ -435,14 +435,14 @@ export function CreateDelusionSheet({
                     </div>
 
                     {gatekeeper?.enabled && (
-                      <div className="inline-block px-4 py-2 bg-delulu-yellow/20 rounded-full border border-delulu-yellow/30">
+                      <div className="inline-block px-4 py-2 bg-black/20 rounded-full border border-black/30">
                         <p className="text-xs font-bold text-delulu-dark">
                           {gatekeeper.label} Only
                         </p>
                       </div>
                     )}
 
-                    <div className="inline-block px-6 py-3 bg-delulu-dark/10 rounded-full">
+                    <div className="inline-block px-6 py-3 bg-gray-800 rounded-full">
                       <p className="text-sm font-bold text-delulu-dark">
                         Staking as BELIEVER
                       </p>
@@ -452,7 +452,7 @@ export function CreateDelusionSheet({
               )}
             </div>
 
-            <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-delulu-yellow border-t border-delulu-dark/10">
+            <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-black border-t border-delulu-dark/10">
               {currentStep < 4 ? (
                 <div className="w-full max-w-md mx-auto flex items-center gap-4">
                   {currentStep > 0 && (
@@ -460,7 +460,7 @@ export function CreateDelusionSheet({
                       onClick={handleBack}
                       className={cn(
                         "w-14 h-14",
-                        "bg-delulu-dark text-white",
+                        "bg-gray-900 text-white",
                         "btn-game",
                         "flex items-center justify-center"
                       )}
@@ -474,7 +474,7 @@ export function CreateDelusionSheet({
                     className={cn(
                       "flex-1",
                       "px-8 py-4",
-                      "bg-white text-delulu-dark text-lg",
+                      "bg-gray-900 text-delulu-dark text-lg",
                       "btn-game"
                     )}
                   >
@@ -487,7 +487,7 @@ export function CreateDelusionSheet({
                     onClick={handleBack}
                     className={cn(
                       "w-14 h-14",
-                      "bg-delulu-dark text-white",
+                      "bg-gray-900 text-white",
                       "btn-game",
                       "flex items-center justify-center"
                     )}
@@ -501,7 +501,7 @@ export function CreateDelusionSheet({
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white text-delulu-dark text-lg",
+                        "bg-gray-900 text-delulu-dark text-lg",
                         "btn-game",
                         "flex items-center justify-center gap-2"
                       )}
@@ -541,7 +541,7 @@ export function CreateDelusionSheet({
                       className={cn(
                         "flex-1",
                         "px-8 py-4",
-                        "bg-white text-delulu-dark text-lg",
+                        "bg-gray-900 text-delulu-dark text-lg",
                         "btn-game",
                         "flex items-center justify-center gap-2"
                       )}

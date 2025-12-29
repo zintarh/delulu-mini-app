@@ -16,10 +16,11 @@ module.exports = {
     extend: {
       colors: {
         // Delulu brand colors
-        "delulu-yellow": "#fcff52",
+        "delulu-yellow": "#000000", // Mapped to black for now
+        "delulu-yellow-reserved": "#fcff52", // Reserved yellow color for future use
         "delulu-green": "#35d07f",
         "delulu-purple": "#8b5cf6",
-        "delulu-dark": "#0a0a0a",
+                "delulu-dark": "#000000",
         "delulu-white": "#ffffff",
         
         // Semantic colors using CSS variables
