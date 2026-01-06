@@ -29,10 +29,10 @@ export function WalletBalance({ className }: WalletBalanceProps) {
   return (
     <div className={cn(
       "flex items-center gap-2 px-3 py-2",
-      "bg-delulu-yellow/10 rounded-xl",
+      "bg-[#0a0a0a] rounded-xl",
       className
     )}>
-      <Coins className="w-4 h-4 text-delulu-yellow" />
+      <Coins className="w-4 h-4 text-white" />
       <span className="text-sm font-bold text-delulu-white">
         {isLoading ? "..." : formattedBalance}
       </span>

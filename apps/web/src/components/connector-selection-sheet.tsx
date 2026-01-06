@@ -3,12 +3,8 @@
 import { useConnect } from "wagmi";
 import { Loader2, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ModalHeader, ModalTitle } from "@/components/ui/modal";
 
 interface ConnectorSelectionSheetProps {
   open: boolean;
@@ -43,21 +39,17 @@ export function ConnectorSelectionSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="bg-delulu-yellow border-t-2 border-delulu-dark/20 rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
-      >
-        <SheetHeader>
-          <SheetTitle className="text-xl font-black text-delulu-dark text-left">
-            Connect Wallet
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="mt-6 space-y-3">
+    <ResponsiveSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Connect Wallet"
+      sheetClassName="border-t-2 border-white/20 rounded-t-3xl pb-8 bg-zinc-900 [&>button]:text-white [&>button]:bg-white/10 [&>button]:hover:bg-white/20"
+      modalClassName="max-w-md"
+    >
+      <div className="mt-6 space-y-3 lg:mt-4">
           {availableConnectors.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-delulu-dark/60">
+              <p className="text-white/60">
                 No wallets available. Please install a wallet extension.
               </p>
             </div>
@@ -69,33 +61,32 @@ export function ConnectorSelectionSheet({
                 disabled={isPending}
                 className={cn(
                   "w-full py-4 px-4",
-                  "bg-white rounded-xl",
+                  "bg-black rounded-xl",
                   "border-2 border-delulu-dark",
                   "shadow-[0_4px_0_0_#0a0a0a]",
                   "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
                   "transition-all duration-150",
                   "flex items-center justify-between",
-                  "hover:bg-delulu-dark/5",
+                  "hover:bg-black",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-delulu-dark/10 flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-delulu-dark" />
+                  <div className="w-10 h-10 rounded-full bg-black/80 flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-black text-delulu-dark">
+                  <span className="font-black text-white">
                     {getConnectorName(connector.name || connector.id)}
                   </span>
                 </div>
                 {isPending && (
-                  <Loader2 className="w-5 h-5 animate-spin text-delulu-dark" />
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
                 )}
               </button>
             ))
           )}
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </ResponsiveSheet>
   );
 }
 

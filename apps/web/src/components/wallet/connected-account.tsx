@@ -4,13 +4,9 @@ import { useState, useEffect } from "react";
 import { useAccount, useDisconnect, useBalance } from "wagmi";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { SheetTrigger } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ModalHeader, ModalTitle } from "@/components/ui/modal";
 
 interface ConnectedAccountProps {
   className?: string;
@@ -56,22 +52,23 @@ export function ConnectedAccount({
     setShowSheet(false);
   };
   return (
-    <Sheet open={showSheet} onOpenChange={setShowSheet}>
+    <>
       <SheetTrigger asChild>
         <button
           className={cn(
             "flex items-center gap-2 pl-1 pr-4 py-1",
             "bg-gradient-to-b from-white/20 via-white/10 to-white/5",
             "rounded-xl",
-            "border border-white/20",
+            "border border-gray-700",
             "shadow-[0_2px_0_0_rgba(0,0,0,0.2)]",
             "active:shadow-[0_1px_0_0_rgba(0,0,0,0.2)] active:translate-y-0.5",
             "transition-all duration-150",
             className
           )}
+          onClick={() => setShowSheet(true)}
         >
           {/* Avatar */}
-          <div className="w-7 h-7 rounded-full bg-delulu-yellow flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center">
             <span className="text-[10px] font-bold text-delulu-dark">
               {initials}
             </span>
@@ -82,25 +79,22 @@ export function ConnectedAccount({
         </button>
       </SheetTrigger>
 
-      <SheetContent
-        side="bottom"
-        className="bg-delulu-yellow flex flex-col items-center justify-center rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20"
+      <ResponsiveSheet
+        open={showSheet}
+        onOpenChange={setShowSheet}
+        title={displayName}
+        sheetClassName="bg-zinc-900 flex flex-col items-center justify-center rounded-t-3xl pb-8 [&>button]:text-white [&>button]:bg-white/10 [&>button]:hover:bg-white/20"
+        modalClassName="max-w-md"
       >
-        <SheetHeader>
-          <SheetTitle className="text-xl font-black text-delulu-dark text-left">
-            {displayName}
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-4 lg:mt-4">
           <button
             onClick={handleDisconnect}
             className={cn(
               "w-full py-3",
               "bg-gradient-to-b from-delulu-dark via-delulu-dark to-[#1a1a1a]",
-              "text-delulu-yellow",
+              "text-white",
               "rounded-xl font-black",
-              "border-2 border-delulu-yellow/30",
+              "border-2 border-black/30",
               "shadow-[0_4px_0_0_#0a0a0a]",
               "active:shadow-[0_2px_0_0_#0a0a0a] active:translate-y-0.5",
               "transition-all duration-150"
@@ -109,7 +103,7 @@ export function ConnectedAccount({
             Disconnect
           </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </ResponsiveSheet>
+    </>
   );
 }

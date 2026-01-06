@@ -44,7 +44,7 @@ export function ProfileContent() {
       </div>
       
       {/* Divider - Full Width */}
-      <div className="w-full border-t border-gray-800" />
+      <div className="w-full border-t border-white/10" />
       
       {address && (
         <div className="px-6 md:px-8 mb-6 pt-3">
@@ -52,9 +52,9 @@ export function ProfileContent() {
           {isLoadingDelulus ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-2xl p-4 border border-gray-800 animate-pulse">
-                  <div className="h-4 bg-gray-800 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-gray-800 rounded w-1/2" />
+                <div key={i} className="bg-black rounded-2xl p-4 border border-white/10 animate-pulse">
+                  <div className="h-4 bg-black/80 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-black/80 rounded w-1/2" />
                 </div>
               ))}
             </div>
@@ -91,12 +91,12 @@ export function ProfileContent() {
           {isLoadingDelulus ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-2xl p-4 border border-gray-800 animate-pulse">
+                <div key={i} className="bg-black rounded-2xl p-4 border border-white/10 animate-pulse">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="h-4 bg-gray-800 rounded w-1/2" />
-                    <div className="h-6 w-6 rounded-full bg-gray-800" />
+                    <div className="h-4 bg-black/80 rounded w-1/2" />
+                    <div className="h-6 w-6 rounded-full bg-black/80" />
                   </div>
-                  <div className="h-3 bg-gray-800 rounded w-3/4" />
+                  <div className="h-3 bg-black/80 rounded w-3/4" />
                 </div>
               ))}
             </div>

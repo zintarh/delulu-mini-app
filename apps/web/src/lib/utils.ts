@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,10 +35,53 @@ export function formatTimeAgo(date: Date): string {
   if (hours < 24) return `${hours}h`;
   if (days < 30) return `${days}d`;
   if (months < 12) {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   }
-  // For very old posts, show month, day, and year
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${
+    monthNames[date.getMonth()]
+  } ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+
+
+
+export function getCountryFlag(countryCode: string | undefined | null): string {
+  if (!countryCode || countryCode.length !== 2) {
+    return countryCode || "";
+  }
+
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 127397 + char.charCodeAt(0));
+
+  return String.fromCodePoint(...codePoints);
 }

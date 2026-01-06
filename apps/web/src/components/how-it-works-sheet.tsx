@@ -1,6 +1,6 @@
 "use client";
 
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 
 interface HowItWorksSheetProps {
   open: boolean;
@@ -97,17 +97,18 @@ export function HowItWorksSheet({
   const content = explanations[type];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="bg-delulu-dark border-t-2 border-white/10 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-white [&>button]:bg-white/10 [&>button]:hover:bg-white/20"
-      >
-        <SheetTitle className="sr-only">{content.title}</SheetTitle>
+    <ResponsiveSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={content.title}
+      sheetClassName="border-t-2 border-white/10 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl bg-black [&>button]:text-white [&>button]:bg-black/80 [&>button]:hover:bg-black/20"
+      modalClassName="max-w-2xl"
+    >
         <div className="relative flex flex-col overflow-y-auto pb-8">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
             <div className="mb-6">
-              <h2 className="text-lg font-black text-white/90">
+              <h2 className="text-lg font-black text-white">
                 {content.title}
               </h2>
             </div>
@@ -117,16 +118,16 @@ export function HowItWorksSheet({
               {content.steps.map((step, index) => (
                 <div
                   key={index}
-                  className="bg-white/5 rounded-2xl p-4 border border-white/10"
+                  className="bg-black rounded-2xl p-4 border border-white/10"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-delulu-yellow/20 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-black text-delulu-yellow">
+                    <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-black text-white">
                         {index + 1}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-black text-white/90 mb-1">
+                      <h3 className="text-sm font-black text-white mb-1">
                         {step.title}
                       </h3>
                       <p className="text-sm text-white/70 leading-relaxed">
@@ -139,7 +140,6 @@ export function HowItWorksSheet({
             </div>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+    </ResponsiveSheet>
   );
 }

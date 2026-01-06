@@ -114,7 +114,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-gray-900 border border-gray-800">
+    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-black border border-white/10">
       <div className="text-center space-y-4">
         <div>
           <p className="text-xs font-semibold text-white/80 mb-1">
@@ -188,7 +188,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-2 bg-gray-900 rounded-xl inline-block">
+              <div className="p-2 bg-black rounded-xl inline-block">
                 <div className="w-50 h-50 overflow-hidden flex items-center justify-center">
                   <div
                     style={{ transform: "scale(1)", transformOrigin: "center" }}

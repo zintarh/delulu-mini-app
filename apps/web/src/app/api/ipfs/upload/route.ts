@@ -1,8 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Retry helper for Pinata uploads
+async function uploadWithRetry(
+  pinataJWT: string,
+  pinataContent: Record<string, unknown>,
+  maxRetries = 3
+): Promise<{ IpfsHash: string }> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${pinataJWT}`,
+        },
+        body: JSON.stringify({
+          pinataContent,
+          pinataMetadata: {
+            name: "delulu-content",
+          },
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Pinata error: ${response.status} - ${errorData}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`[IPFS] Upload attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+
+      if (attempt < maxRetries) {
+        // Wait before retry (exponential backoff)
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { content, username, pfpUrl, createdAt, gatekeeper } = await request.json();
+    const { content, username, pfpUrl, createdAt, gatekeeper, bgImageUrl } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
@@ -12,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const pinataJWT = process.env.PINATA_JWT;
-    
+
     if (!pinataJWT) {
       console.error("PINATA_JWT is not set in environment variables");
       return NextResponse.json(
@@ -22,29 +72,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Build pinataContent object
-    const pinataContent: { 
-      text: string; 
-      username?: string; 
-      pfpUrl?: string; 
-      createdAt?: string;
-      gatekeeper?: {
-        enabled: boolean;
-        type: "country";
-        value: string;
-        label: string;
-      };
-    } = {
+    const pinataContent: Record<string, unknown> = {
       text: content,
     };
-    
+
     if (username && typeof username === "string") {
       pinataContent.username = username;
     }
-    
+
     if (pfpUrl && typeof pfpUrl === "string") {
       pinataContent.pfpUrl = pfpUrl;
     }
-    
+
     if (createdAt && typeof createdAt === "string") {
       pinataContent.createdAt = createdAt;
     }
@@ -58,31 +97,12 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Upload to Pinata
-    const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${pinataJWT}`,
-      },
-      body: JSON.stringify({
-        pinataContent,
-        pinataMetadata: {
-          name: "delulu-content",
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Pinata upload error:", errorData);
-      return NextResponse.json(
-        { error: "Failed to upload to IPFS", details: errorData },
-        { status: response.status }
-      );
+    if (bgImageUrl && typeof bgImageUrl === "string") {
+      pinataContent.bgImageUrl = bgImageUrl;
     }
 
-    const data = await response.json();
+    // Upload with retry
+    const data = await uploadWithRetry(pinataJWT, pinataContent);
     const ipfsHash = data.IpfsHash;
 
     if (!ipfsHash) {
@@ -104,4 +124,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

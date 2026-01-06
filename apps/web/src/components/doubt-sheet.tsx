@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -257,21 +257,14 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="bottom"
-          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
-        >
-          <SheetTitle className="sr-only">Doubt Delulu</SheetTitle>
-
-          <div className="max-w-lg mx-auto pt-8 pb-8 px-6">
-            {/* Close Button */}
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-            >
-              <span className="text-2xl">×</span>
-            </button>
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Doubt Delulu"
+        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+        modalClassName="max-w-lg"
+      >
+        <div className="max-w-lg mx-auto pt-8 pb-8 px-6 lg:pt-6">
 
             {/* Description */}
             <p className="text-sm text-white/60 mb-6 pt-10">
@@ -279,18 +272,11 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
               share in the rewards.
             </p>
 
-            {/* Status Box */}
-            <div className="bg-gray-900 rounded-2xl p-4 mb-6 border border-gray-800">
-              <p className="text-sm text-white/80 text-center break-words whitespace-pre-wrap">
-                {delulu.content || delulu.contentHash}
-              </p>
-            </div>
-
             {/* Input Section - DeFi Style */}
             <div className="mb-6">
               <div
-                className={`bg-gray-900 rounded-2xl p-4 border transition-colors ${
-                  validationError ? "border-red-500/50" : "border-gray-800"
+                className={`bg-black rounded-2xl p-4 border transition-colors ${
+                  validationError ? "border-red-500/50" : "border-white/10"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -330,7 +316,7 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
                       }
                     }}
                     disabled={isLoading || isCreator || cusdBalance === null}
-                    className="flex-shrink-0 px-3 py-1.5 bg-gray-800 hover:bg-gray-900/20 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 px-3 py-1.5 bg-black/80 hover:bg-black/20 rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000] text-xs font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     MAX
                   </button>
@@ -351,11 +337,10 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
               onClick={handleStake}
               disabled={!canStake || isLoading}
               className={cn(
-                "w-full py-3 font-bold text-sm",
-                "btn-game",
+                "w-full py-3 font-bold text-sm rounded-md border-2 shadow-[3px_3px_0px_0px_#000000]",
                 canStake && !isLoading
-                  ? "bg-gray-900 text-delulu-dark"
-                  : "bg-gray-900/20 text-white/40 cursor-not-allowed"
+                  ? "bg-black text-delulu-dark border-black"
+                  : "bg-black/20 text-white/40 cursor-not-allowed border-white/10"
               )}
             >
               {isLoading ? (
@@ -376,9 +361,8 @@ export function DoubtSheet({ open, onOpenChange, delulu }: DoubtSheetProps) {
             <p className="text-xs text-white/40 text-center mt-4">
               Staking is final. Make sure you doubt this delulu!
             </p>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </ResponsiveSheet>
 
       {/* Success Sheet */}
       <StakeSuccessSheet

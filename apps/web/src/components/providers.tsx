@@ -2,7 +2,7 @@
 
 import { MiniAppProvider } from "@/contexts/miniapp-context";
 import FrameWalletProvider from "@/contexts/frame-wallet-context";
-// import { SplashScreen } from "@/components/splash-screen";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import dynamic from "next/dynamic";
 
 const ErudaProvider = dynamic(
@@ -14,9 +14,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ErudaProvider>
       <FrameWalletProvider>
-        <MiniAppProvider addMiniAppOnLoad={true}>
-          {children}
-        </MiniAppProvider>
+        <QueryProvider>
+          <MiniAppProvider addMiniAppOnLoad={true}>
+            {children}
+          </MiniAppProvider>
+        </QueryProvider>
       </FrameWalletProvider>
     </ErudaProvider>
   );

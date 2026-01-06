@@ -17,7 +17,7 @@ const ModalOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-delulu-dark/80 backdrop-blur-sm",
+      "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -40,7 +40,7 @@ const ModalContent = React.forwardRef<
       className={cn(
         "fixed left-[50%] top-[50%] z-50 w-[calc(100%-2rem)] max-w-sm",
         "translate-x-[-50%] translate-y-[-50%]",
-        "bg-delulu-yellow rounded-3xl p-6",
+        "bg-white rounded-3xl p-6 shadow-xl border border-gray-200",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -57,9 +57,9 @@ const ModalContent = React.forwardRef<
           className={cn(
             "absolute right-4 top-4",
             "w-8 h-8 rounded-full",
-            "bg-delulu-dark text-delulu-yellow",
+            "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-delulu-charcoal",
             "flex items-center justify-center",
-            "active:scale-95 transition-transform"
+            "active:scale-95 transition-all"
           )}
         >
           <X className="h-4 w-4" strokeWidth={3} />
@@ -89,7 +89,7 @@ const ModalTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-xl font-black text-delulu-dark",
+      "text-xl font-black text-delulu-charcoal",
       className
     )}
     {...props}
@@ -103,7 +103,7 @@ const ModalDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-delulu-dark/60", className)}
+    className={cn("text-sm text-gray-500", className)}
     {...props}
   />
 ))

@@ -68,7 +68,7 @@ export function AllDelulusContent({
         </Link>
       </div>
 
-      <div className="h-px bg-gray-800 mb-6" />
+      <div className="h-px bg-black/80 mb-6" />
 
       <div className="mb-6">
         <div className="relative">
@@ -78,7 +78,7 @@ export function AllDelulusContent({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search delulus..."
-            className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-2xl text-white placeholder:text-white/40 focus:outline-none focus:border-gray-700 transition-colors"
+            className="w-full pl-10 pr-10 py-3 bg-black border border-white/10 rounded-2xl text-white placeholder:text-white/40 focus:outline-none focus:border-gray-700 transition-colors"
           />
           {searchQuery && (
             <button
@@ -103,10 +103,10 @@ export function AllDelulusContent({
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="shrink-0 w-[200px] sm:w-[240px] md:w-full bg-gray-900 rounded-xl p-3 border border-gray-800 animate-pulse"
+                className="shrink-0 w-[200px] sm:w-[240px] md:w-full bg-black rounded-xl p-3 border border-white/10 animate-pulse"
               >
-                <div className="h-3 bg-gray-800 rounded w-3/4 mb-2" />
-                <div className="h-2 bg-gray-800 rounded w-1/2" />
+                <div className="h-3 bg-black/80 rounded w-3/4 mb-2" />
+                <div className="h-2 bg-black/80 rounded w-1/2" />
               </div>
             ))}
           </div>
@@ -154,7 +154,7 @@ export function AllDelulusContent({
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 w-full">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <DeluluCardSkeleton key={i} className="w-full" />
+              <DeluluCardSkeleton key={i} index={i} className="w-full" />
             ))}
           </div>
         ) : regularDelulus.length > 0 ? (
@@ -165,6 +165,7 @@ export function AllDelulusContent({
                 delusion={delulu}
                 onClick={() => onDeluluClick(delulu)}
                 className="w-full"
+                isLast={true}
               />
             ))}
           </div>

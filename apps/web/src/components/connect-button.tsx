@@ -40,7 +40,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
   if (!mounted) {
     return (
-      <div className="w-20 h-9 animate-pulse bg-gray-800 rounded-full" />
+      <div className="w-20 h-9 animate-pulse bg-black/80 rounded-full" />
     );
   }
 
@@ -100,7 +100,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
       {/* Dropdown for Browser Testing (MetaMask, etc) */}
       {!isFarcasterEnv && showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-gray-900 border-2 border-delulu-dark rounded-xl shadow-[0_4px_0_0_#0a0a0a] z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-black border-2 border-delulu-dark rounded-xl shadow-[0_4px_0_0_#0a0a0a] z-50 overflow-hidden">
           <div className="p-2 space-y-1">
             {browserConnectors.length === 0 ? (
               <div className="px-4 py-2 text-sm text-gray-500">

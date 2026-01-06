@@ -5,12 +5,22 @@ export interface GatekeeperConfig {
   label: string; // Human readable e.g., "Nigeria"
 }
 
+export interface DeluluMetadata {
+  content: string;
+  username?: string;
+  pfpUrl?: string;
+  createdAt?: string;
+  gatekeeper?: GatekeeperConfig;
+  bgImageUrl?: string; // Background image URL (template or IPFS)
+}
+
 export async function uploadToIPFS(
   content: string,
   username?: string,
   pfpUrl?: string,
   createdAt?: Date,
-  gatekeeper?: GatekeeperConfig | null
+  gatekeeper?: GatekeeperConfig | null,
+  bgImageUrl?: string
 ): Promise<string> {
   try {
     const response = await fetch("/api/ipfs/upload", {
@@ -24,6 +34,7 @@ export async function uploadToIPFS(
         pfpUrl,
         createdAt: createdAt ? createdAt.toISOString() : undefined,
         gatekeeper: gatekeeper || undefined,
+        bgImageUrl: bgImageUrl || undefined,
       }),
     });
 

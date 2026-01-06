@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SelfGate } from "@/components/self-gate";
 
 interface VerificationSheetProps {
@@ -39,30 +39,31 @@ export function VerificationSheet({
   // Conditional rendering: Only render if countryCode is strictly defined and not empty
   if (!countryCode || typeof countryCode !== "string" || countryCode.trim() === "") {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="bottom"
-          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
-        >
-          <SheetTitle className="sr-only">Verify Your Identity</SheetTitle>
-          <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
-            <div className="text-center py-8">
-              <p className="text-sm text-white/60">Loading gate info...</p>
-            </div>
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Verify Your Identity"
+        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+        modalClassName="max-w-lg"
+      >
+        <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
+          <div className="text-center py-8">
+            <p className="text-sm text-white/60">Loading gate info...</p>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </ResponsiveSheet>
     );
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
-      >
-        <SheetTitle className="sr-only">Verify Your Identity</SheetTitle>
-        <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
+    <ResponsiveSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Verify Your Identity"
+      sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+      modalClassName="max-w-lg"
+    >
+      <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-2">
               Verify Your Identity
@@ -76,9 +77,8 @@ export function VerificationSheet({
             countryCode={countryCode} 
             onVerified={handleVerified} 
           />
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </ResponsiveSheet>
   );
 }
 

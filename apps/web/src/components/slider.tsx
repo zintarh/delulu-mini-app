@@ -45,7 +45,7 @@ function Slider({
           data-slot="slider-range"
           className={cn(
             'absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full',
-            className?.includes('delulu-slider') ? 'bg-white' : 'bg-primary'
+            className?.includes('delulu-slider') ? 'bg-black' : 'bg-primary'
           )}
         />
       </SliderPrimitive.Track>
@@ -53,7 +53,7 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-black shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

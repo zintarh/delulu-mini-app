@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { useAccount } from "wagmi";
 import { type FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
@@ -24,8 +24,7 @@ interface DeluluDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   delulu: FormattedDelulu | null;
-  onBelieve?: () => void;
-  onDoubt?: () => void;
+  onStake?: () => void;
 }
 
 function formatTimeRemaining(deadline: Date): string {
@@ -43,10 +42,10 @@ export function DeluluDetailsSheet({
   open,
   onOpenChange,
   delulu,
-  onBelieve,
-  onDoubt,
+  onStake,
 }: DeluluDetailsSheetProps) {
   const { isConnected, address } = useAccount();
+  const [showFullContent, setShowFullContent] = useState(false);
 
 
 
@@ -340,25 +339,25 @@ export function DeluluDetailsSheet({
 
   if (!delulu) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="bottom"
-          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
-        >
-          <SheetTitle className="sr-only">Delulu Details</SheetTitle>
-          <div className="px-6 pt-6 pb-8">
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Delulu Details"
+        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl bg-black"
+        modalClassName="max-w-2xl max-h-[90vh] overflow-hidden"
+      >
+        <div className="px-6 pt-6 pb-8 lg:overflow-y-auto lg:max-h-[calc(90vh-4rem)]">
             <div className="space-y-4 animate-pulse">
-              <div className="h-6 bg-gray-800 rounded w-1/2" />
-              <div className="h-4 bg-gray-800 rounded w-3/4" />
-              <div className="h-32 bg-gray-900 rounded-2xl border border-gray-800" />
+              <div className="h-6 bg-black/80 rounded w-1/2" />
+              <div className="h-4 bg-black/80 rounded w-3/4" />
+              <div className="h-32 bg-black rounded-2xl border border-white/10" />
               <div className="grid grid-cols-2 gap-3">
-                <div className="h-20 bg-gray-900 rounded-xl border border-gray-800" />
-                <div className="h-20 bg-gray-900 rounded-xl border border-gray-800" />
+                <div className="h-20 bg-black rounded-xl border border-white/10" />
+                <div className="h-20 bg-black rounded-xl border border-white/10" />
               </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </ResponsiveSheet>
     );
   }
 
@@ -373,29 +372,10 @@ export function DeluluDetailsSheet({
     ? parseFloat(cusdBalance.formatted) < parseFloat(stakeAmount || "0")
     : false;
 
-  const handleBelieveClick = () => {
-    // If verification is needed, show verification sheet first
-    if (needsVerification) {
-      setPendingStakeAction("believe");
-      setShowVerificationSheet(true);
-    } else {
-      // If already verified, go directly to staking
-      if (onBelieve) {
-        onBelieve();
-      }
-    }
-  };
-
-  const handleDoubtClick = () => {
-    // If verification is needed, show verification sheet first
-    if (needsVerification) {
-      setPendingStakeAction("doubt");
-      setShowVerificationSheet(true);
-    } else {
-      // If already verified, go directly to staking
-      if (onDoubt) {
-        onDoubt();
-      }
+  const handleStakeClick = () => {
+    // Simply open the staking sheet - user can choose Believe/Doubt there
+    if (onStake) {
+      onStake();
     }
   };
 
@@ -489,19 +469,19 @@ export function DeluluDetailsSheet({
 
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl"
+    <>
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title={delulu ? `Delulu Details: ${delulu.content || delulu.contentHash}` : "Delulu Details"}
+        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[60] rounded-t-3xl bg-black"
+        modalClassName="max-w-2xl max-h-[90vh] overflow-hidden"
       >
-        <SheetTitle className="sr-only">
-          {delulu ? `Delulu Details: ${delulu.content || delulu.contentHash}` : "Delulu Details"}
-        </SheetTitle>
-        <div className="max-w-lg mx-auto pt-6 pb-32 px-6">
+        <div className="max-w-lg mx-auto pt-4 pb-32 px-4 lg:max-w-full lg:overflow-y-auto lg:max-h-[calc(90vh-4rem)]">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-4">
             {/* Status Badge */}
-            <div className="mb-4">
+            <div className="mb-3">
               <DeluluStatusBadge
                 state={deluluState}
                 isResolved={delulu.isResolved}
@@ -514,16 +494,29 @@ export function DeluluDetailsSheet({
 
             {/* Content */}
             <div className="mb-6">
-              <p className="text-base text-white leading-relaxed break-words whitespace-pre-wrap">
+              <p 
+                className={cn(
+                  "text-sm text-white leading-relaxed break-words whitespace-pre-wrap",
+                  !showFullContent && "line-clamp-3"
+                )}
+              >
                 {delulu.content || delulu.contentHash}
               </p>
+              {delulu.content && delulu.content.length > 120 && (
+                <button
+                  onClick={() => setShowFullContent(!showFullContent)}
+                  className="mt-1.5 text-xs font-medium text-delulu-yellow-reserved hover:text-delulu-yellow-reserved/80 transition-colors"
+                >
+                  {showFullContent ? "Show less" : "Show more"}
+                </button>
+              )}
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
-                <p className="text-xs text-white/60 mb-1">Believers</p>
-                <p className="text-lg font-black text-white">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-black border border-white/10">
+                <p className="text-[10px] text-white/60 mb-0.5">Believers</p>
+                <p className="text-sm font-black text-white">
                   {delulu.totalBelieverStake > 0
                     ? delulu.totalBelieverStake < 0.01
                       ? delulu.totalBelieverStake.toFixed(4)
@@ -532,9 +525,9 @@ export function DeluluDetailsSheet({
                   cUSD
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
-                <p className="text-xs text-white/60 mb-1">Doubters</p>
-                <p className="text-lg font-black text-white">
+              <div className="p-3 rounded-xl bg-black border border-white/10">
+                <p className="text-[10px] text-white/60 mb-0.5">Doubters</p>
+                <p className="text-sm font-black text-white">
                   {delulu.totalDoubterStake > 0
                     ? delulu.totalDoubterStake < 0.01
                       ? delulu.totalDoubterStake.toFixed(4)
@@ -546,32 +539,32 @@ export function DeluluDetailsSheet({
             </div>
 
             {/* Progress Bar */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-white/60">Believers</span>
-                <span className="text-sm font-bold text-white">{believerPercent}%</span>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-white/60">Believers</span>
+                <span className="text-xs font-bold text-white">{believerPercent}%</span>
               </div>
-              <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-black/80 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-black rounded-full transition-all duration-300"
                   style={{ width: `${believerPercent}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-white/50">Doubters</span>
-                <span className="text-xs text-white/50">{100 - believerPercent}%</span>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-[10px] text-white/50">Doubters</span>
+                <span className="text-[10px] text-white/50">{100 - believerPercent}%</span>
               </div>
             </div>
 
             {/* Deadline */}
-            <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800 mb-6">
-              <p className="text-xs text-white/60 mb-1">
+            <div className="p-3 rounded-xl bg-black border border-white/10 mb-4">
+              <p className="text-[10px] text-white/60 mb-0.5">
                 Staking Deadline
               </p>
-              <p className="text-base font-black text-white">
+              <p className="text-sm font-black text-white">
                 {formatTimeRemaining(delulu.stakingDeadline)} remaining
               </p>
-              <p className="text-xs text-white/50 mt-1">
+              <p className="text-[10px] text-white/50 mt-0.5">
                 {delulu.stakingDeadline.toLocaleDateString()} at{" "}
                 {delulu.stakingDeadline.toLocaleTimeString()}
               </p>
@@ -579,7 +572,7 @@ export function DeluluDetailsSheet({
 
             {/* Claimable Amount - shown when user has staked and there's something to claim */}
             {hasStaked && isConnected && claimableAmount > 0 && !isClaimed && (
-              <div className="p-4 rounded-2xl bg-black/10 border border-black/20 mb-6">
+              <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-white/10 mb-6">
                 <p className="text-xs text-white/80 mb-1">
                   {isLoadingClaimableAmount ? "Loading..." : "Claimable Amount"}
                 </p>
@@ -599,14 +592,14 @@ export function DeluluDetailsSheet({
 
             {/* Pot has been claimed message */}
             {hasStaked && isConnected && isClaimed && (delulu.isResolved || delulu.isCancelled) && (
-              <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800 mb-6">
-                <p className="text-xs text-white/60 mb-1">
+              <div className="p-3 rounded-xl bg-black border border-white/10 mb-4">
+                <p className="text-[10px] text-white/60 mb-0.5">
                   Claim Status
                 </p>
-                <p className="text-base font-black text-white">
+                <p className="text-sm font-black text-white">
                   Pot has been claimed
                 </p>
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-[10px] text-white/50 mt-0.5">
                   Your winnings have been successfully claimed
                 </p>
               </div>
@@ -617,8 +610,8 @@ export function DeluluDetailsSheet({
 
         {/* Creator message */}
         {isCreator && isConnected && (
-          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
-            <div className="w-full px-4 py-2 bg-gray-800 rounded-full text-center border border-gray-700">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-black/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="w-full px-4 py-2 bg-black/80 rounded-full text-center border border-white/10">
               <p className="text-xs font-medium text-white/80">
                 You can&apos;t stake on your own delusion
               </p>
@@ -628,8 +621,8 @@ export function DeluluDetailsSheet({
 
         {/* Already staked message */}
         {hasStaked && isConnected && !isCreator && (
-          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
-            <div className="w-full px-4 py-2 bg-gray-800 rounded-full text-center border border-gray-700">
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-black/95 backdrop-blur-sm border-t border-white/10 z-50">
+            <div className="w-full px-4 py-2 bg-black/80 rounded-full text-center border border-white/10">
               <p className="text-xs font-medium text-white/80">
                 You&apos;ve already staked {userStakeAmount > 0
                   ? userStakeAmount < 0.01
@@ -647,7 +640,7 @@ export function DeluluDetailsSheet({
           !isCreator &&
           !isLoadingBalance &&
           !hasBalance && (
-            <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+            <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-black/95 backdrop-blur-sm border-t border-white/10 z-50">
               <div className="w-full px-4 py-2 bg-red-500/20 rounded-full text-center border border-red-500/30">
                 <p className="text-xs font-medium text-red-400">
                   Insufficient balance. You need cUSD to stake.
@@ -663,17 +656,17 @@ export function DeluluDetailsSheet({
           claimableAmount > 0 &&
           !isClaimed &&
           (delulu.isResolved || delulu.isCancelled) && (
-            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+            <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-black/95 backdrop-blur-sm border-t border-white/10 z-50">
               <button
                 onClick={() => claim(delulu.id)}
                 disabled={isClaiming || isClaimConfirming || claimableAmount === 0}
                 className={cn(
                   "w-full px-4 py-3",
-                  "bg-gray-800 rounded-full",
+                  "bg-black/80 rounded-full",
                   "text-white font-black text-sm",
                   "border border-gray-700",
                   "active:scale-[0.98]",
-                  "transition-all duration-150 hover:bg-gray-900/15",
+                  "transition-all duration-150 hover:bg-black/15",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   "flex items-center justify-center gap-2"
                 )}
@@ -694,39 +687,25 @@ export function DeluluDetailsSheet({
             </div>
           )}
 
-        {/* Floating Action Buttons - shown for all users who can stake */}
-        {/* Verification will be triggered when they click Believe/Doubt */}
+        {/* Stake Button - shown for all users who can stake */}
         {canStake && isConnected && !isCreator && hasBalance && !isClaimable && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 flex gap-4 z-50">
+          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-black/95 backdrop-blur-sm border-t border-white/10 z-50">
             <button
-              onClick={handleBelieveClick}
+              onClick={handleStakeClick}
               className={cn(
-                "flex-1 px-4 py-3",
-                "bg-gray-800 rounded-full",
-                "text-white font-black text-sm",
-                "border border-gray-700",
+                "w-full px-4 py-3",
+                "bg-delulu-yellow-reserved rounded-md",
+                "text-black font-black text-sm",
+                "border-2 border-black shadow-[3px_3px_0px_0px_#000000]",
                 "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-gray-900/15"
+                "transition-all duration-150 hover:bg-delulu-yellow-reserved/90"
               )}
             >
-              Believe
-            </button>
-            <button
-              onClick={handleDoubtClick}
-              className={cn(
-                "flex-1 px-4 py-3",
-                "bg-gray-800 rounded-full",
-                "text-white font-black text-sm",
-                "border border-gray-700",
-                "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-gray-900/15"
-              )}
-            >
-              Doubt
+              Stake
             </button>
           </div>
         )}
-      </SheetContent>
+      </ResponsiveSheet>
 
       {/* Success Modal */}
       <FeedbackModal
@@ -794,17 +773,14 @@ export function DeluluDetailsSheet({
             setIsVerified(true);
             // Close verification sheet
             setShowVerificationSheet(false);
-            // Open the appropriate staking sheet based on pending action
-            if (pendingStakeAction === "believe" && onBelieve) {
+            // Open the staking sheet
+            if (onStake) {
               setPendingStakeAction(null);
-              onBelieve();
-            } else if (pendingStakeAction === "doubt" && onDoubt) {
-              setPendingStakeAction(null);
-              onDoubt();
+              onStake();
             }
           }}
         />
       )}
-    </Sheet>
+    </>
   );
 }

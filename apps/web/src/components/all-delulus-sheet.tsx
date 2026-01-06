@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import { DeluluCard } from "./delulu-card";
 import { EndingSoonCard } from "./ending-soon-card";
@@ -77,14 +77,14 @@ export function AllDelulusSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="bg-gray-900 border-t border-gray-800 !max-h-screen !h-screen  overflow-y-auto"
-      >
-        <SheetTitle className="sr-only">Delulus</SheetTitle>
-
-        <div className="max-w-lg text-center mx-auto  pb-8">
+    <ResponsiveSheet
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Delulus"
+      sheetClassName="border-t border-white/10 !max-h-screen !h-screen overflow-y-auto bg-black"
+      modalClassName="max-w-4xl max-h-[90vh] overflow-hidden"
+    >
+      <div className="max-w-lg text-center mx-auto pb-8 lg:max-w-full lg:px-6">
           <div className="text-center mb-6">
             <Link
               href="/"
@@ -100,7 +100,7 @@ export function AllDelulusSheet({
             </Link>
           </div>
 
-          <div className="h-px bg-gray-800 mb-6" />
+          <div className="h-px bg-black/80 mb-6" />
 
           <div className="mb-6">
             <div className="relative">
@@ -110,7 +110,7 @@ export function AllDelulusSheet({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search delulus..."
-                className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-2xl text-white placeholder:text-white/40 focus:outline-none focus:border-gray-700 transition-colors"
+                className="w-full pl-10 pr-10 py-3 bg-black border border-white/10 rounded-2xl text-white placeholder:text-white/40 focus:outline-none focus:border-gray-700 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -137,10 +137,10 @@ export function AllDelulusSheet({
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="shrink-0 w-[200px] sm:w-[240px] bg-gray-900 rounded-xl p-3 border border-gray-800 animate-pulse"
+                    className="shrink-0 w-[200px] sm:w-[240px] bg-black rounded-xl p-3 border border-white/10 animate-pulse"
                   >
-                    <div className="h-3 bg-gray-800 rounded w-3/4 mb-2" />
-                    <div className="h-2 bg-gray-800 rounded w-1/2" />
+                    <div className="h-3 bg-black/80 rounded w-3/4 mb-2" />
+                    <div className="h-2 bg-black/80 rounded w-1/2" />
                   </div>
                 ))}
               </div>
@@ -191,17 +191,18 @@ export function AllDelulusSheet({
             {isLoading ? (
               <div className="space-y-3 w-full">
                 {[1, 2, 3].map((i) => (
-                  <DeluluCardSkeleton key={i} className="w-full" />
+                  <DeluluCardSkeleton key={i} index={i} className="w-full" />
                 ))}
               </div>
             ) : regularDelulus.length > 0 ? (
-              <div className="space-y-3 w-full">
-                {regularDelulus.map((delulu) => (
+              <div className="w-full">
+                {regularDelulus.map((delulu, index) => (
                   <DeluluCard
                     key={delulu.id}
                     delusion={delulu}
                     onClick={() => onDeluluClick(delulu)}
                     className="w-full"
+                    isLast={index === regularDelulus.length - 1}
                   />
                 ))}
               </div>
@@ -221,8 +222,7 @@ export function AllDelulusSheet({
               </div>
             )}
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </ResponsiveSheet>
   );
 }

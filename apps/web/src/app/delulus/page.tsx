@@ -35,8 +35,7 @@ export default function AllDelulusPage() {
   return (
     <div className="min-h-screen bg-home-gradient">
       <Navbar 
-        onProfileClick={() => router.push("/profile")} 
-        onLogoutClick={() => {}}
+        onProfileClick={() => router.push("/profile")}
       />
       <main className="max-w-lg md:max-w-7xl mx-auto pt-4 md:pt-8 pb-8">
         <div className="px-4 md:px-8">

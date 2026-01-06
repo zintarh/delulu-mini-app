@@ -3,60 +3,64 @@
 @tailwind utilities;
 
 :root {
-  /* Delulu color palette */
-  --delulu-yellow-reserved: #fcff52; /* Reserved for future use */
+  /* Delulu color palette - Light Theme */
+  --delulu-yellow: #fcff52; /* Brand yellow - for buttons/accents only */
+  --delulu-yellow-reserved: #fcff52;
   --delulu-green: #35d07f;
-  --delulu-purple: #8b5cf6;
-  --delulu-dark: #000000;
+  --delulu-charcoal: #111111; /* Primary text color - Pinterest sharp black */
   --delulu-white: #ffffff;
+  --delulu-light-gray: #F8F9FA; /* Secondary background */
+  --delulu-border: #E5E7EB; /* Light border color */
 
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #000000;
-  --card-foreground: #ffffff;
-  --popover: #000000;
-  --popover-foreground: #ffffff;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #ffffff;
-  --secondary-foreground: #000000;
-  --muted: #171717;
-  --muted-foreground: #a3a3a3;
-  --accent: #1a1a1a;
-  --accent-foreground: #ffffff;
+  /* Light theme defaults */
+  --background: #ffffff;
+  --foreground: #1A1A1A;
+  --card: #ffffff;
+  --card-foreground: #1A1A1A;
+  --popover: #ffffff;
+  --popover-foreground: #1A1A1A;
+  --primary: #fcff52; /* Yellow for primary actions */
+  --primary-foreground: #1A1A1A; /* Black text on yellow */
+  --secondary: #F8F9FA;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #F8F9FA;
+  --accent-foreground: #1A1A1A;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #262626;
-  --input: #171717;
-  --ring: #ffffff;
-  --chart-1: #ffffff;
+  --border: #E5E7EB;
+  --input: #F3F4F6;
+  --ring: #fcff52;
+  --chart-1: #1A1A1A;
   --chart-2: #35d07f;
-  --chart-3: #ffffff;
-  --chart-4: #8b5cf6;
-  --chart-5: #262626;
+  --chart-3: #6B7280;
+  --chart-4: #fcff52;
+  --chart-5: #E5E7EB;
   --radius: 1rem;
 }
 
+/* Dark mode is disabled - light theme only */
 .dark {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #000000;
-  --card-foreground: #ffffff;
-  --popover: #000000;
-  --popover-foreground: #ffffff;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #ffffff;
-  --secondary-foreground: #000000;
-  --muted: #171717;
-  --muted-foreground: #a3a3a3;
-  --accent: #1a1a1a;
-  --accent-foreground: #ffffff;
+  --background: #ffffff;
+  --foreground: #1A1A1A;
+  --card: #ffffff;
+  --card-foreground: #1A1A1A;
+  --popover: #ffffff;
+  --popover-foreground: #1A1A1A;
+  --primary: #fcff52;
+  --primary-foreground: #1A1A1A;
+  --secondary: #F8F9FA;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #F8F9FA;
+  --accent-foreground: #1A1A1A;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #262626;
-  --input: #171717;
-  --ring: #ffffff;
+  --border: #E5E7EB;
+  --input: #F3F4F6;
+  --ring: #fcff52;
 }
 
 @layer base {
@@ -70,30 +74,27 @@
 
 /* Custom color utilities for Tailwind */
 @layer utilities {
-  .bg-delulu-yellow { background-color: var(--delulu-dark); }
+  .bg-delulu-yellow { background-color: var(--delulu-yellow); }
   .bg-delulu-yellow-reserved { background-color: var(--delulu-yellow-reserved); }
   .bg-delulu-green { background-color: var(--delulu-green); }
-  .bg-delulu-purple { background-color: var(--delulu-purple); }
-  .bg-delulu-dark { background-color: var(--delulu-dark); }
+  .bg-delulu-charcoal { background-color: var(--delulu-charcoal); }
   .bg-delulu-white { background-color: var(--delulu-white); }
+  .bg-delulu-light-gray { background-color: var(--delulu-light-gray); }
   
-  .text-delulu-yellow { color: var(--delulu-dark); }
-  .text-delulu-yellow-reserved { color: var(--delulu-yellow-reserved); }
+  /* Text colors - Yellow text should NEVER be used on light backgrounds */
+  .text-delulu-charcoal { color: var(--delulu-charcoal); }
   .text-delulu-green { color: var(--delulu-green); }
-  .text-delulu-purple { color: var(--delulu-purple); }
-  .text-delulu-dark { color: var(--delulu-dark); }
   .text-delulu-white { color: var(--delulu-white); }
   
-  .border-delulu-yellow { border-color: var(--delulu-dark); }
+  .border-delulu-yellow { border-color: var(--delulu-yellow); }
   .border-delulu-yellow-reserved { border-color: var(--delulu-yellow-reserved); }
   .border-delulu-green { border-color: var(--delulu-green); }
-  .border-delulu-purple { border-color: var(--delulu-purple); }
-  .border-delulu-dark { border-color: var(--delulu-dark); }
+  .border-delulu-charcoal { border-color: var(--delulu-charcoal); }
   .border-delulu-white { border-color: var(--delulu-white); }
 
-  /* Home page gradient background */
+  /* Home page gradient background - Light version */
   .bg-home-gradient {
-    background: linear-gradient(180deg, #000000 0%, #0a0a0a 40%, #000000 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #F8F9FA 40%, #ffffff 100%);
   }
 
   /* Game-like button style - delulusion buttons */
@@ -103,33 +104,23 @@
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border: 4px solid;
-    border-top-color: rgba(255, 255, 255, 0.3);
-    border-left-color: rgba(255, 255, 255, 0.3);
-    border-right-color: rgba(0, 0, 0, 0.3);
-    border-bottom-color: rgba(0, 0, 0, 0.3);
+    border: 3px solid #1A1A1A;
     box-shadow: 
-      0 6px 0 rgba(0, 0, 0, 0.4),
-      inset 0 2px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+      4px 4px 0 #1A1A1A;
     transition: all 0.1s ease;
     transform-style: preserve-3d;
   }
 
   .btn-game:hover {
-    transform: translateY(2px);
+    transform: translate(2px, 2px);
     box-shadow: 
-      0 4px 0 rgba(0, 0, 0, 0.4),
-      inset 0 2px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+      2px 2px 0 #1A1A1A;
   }
 
   .btn-game:active {
-    transform: translateY(4px);
+    transform: translate(4px, 4px);
     box-shadow: 
-      0 2px 0 rgba(0, 0, 0, 0.4),
-      inset 0 2px 0 rgba(255, 255, 255, 0.1),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+      0px 0px 0 #1A1A1A;
   }
 
   .btn-game:disabled {
@@ -137,8 +128,7 @@
     cursor: not-allowed;
     transform: none;
     box-shadow: 
-      0 2px 0 rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      2px 2px 0 rgba(26, 26, 26, 0.3);
   }
 }
 
@@ -196,10 +186,10 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(10, 10, 10, 0.3);
+    box-shadow: 0 0 20px rgba(252, 255, 82, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(10, 10, 10, 0.6);
+    box-shadow: 0 0 40px rgba(252, 255, 82, 0.6);
   }
 }
 
@@ -271,23 +261,23 @@
   animation-fill-mode: both;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar for light theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #171717;
+  background: #F3F4F6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #404040;
+  background: #D1D5DB;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #525252;
+  background: #9CA3AF;
 }
 
 /* Hide scrollbar utility */
@@ -310,15 +300,15 @@ textarea {
   -ms-overflow-style: none;
 }
 
-/* Custom Date Picker Styles */
+/* Custom Date Picker Styles - Light Theme */
 .rdp {
   --rdp-cell-size: 32px;
-  --rdp-accent-color: var(--delulu-purple);
-  --rdp-background-color: var(--delulu-dark);
-  --rdp-accent-color-dark: var(--delulu-purple);
-  --rdp-background-color-dark: var(--delulu-dark);
-  --rdp-outline: 2px solid var(--delulu-purple);
-  --rdp-outline-selected: 2px solid var(--delulu-purple);
+  --rdp-accent-color: var(--delulu-yellow-reserved);
+  --rdp-background-color: #ffffff;
+  --rdp-accent-color-dark: var(--delulu-yellow-reserved);
+  --rdp-background-color-dark: #ffffff;
+  --rdp-outline: 2px solid var(--delulu-yellow-reserved);
+  --rdp-outline-selected: 2px solid var(--delulu-yellow-reserved);
   margin: 0;
 }
 
@@ -340,19 +330,25 @@ textarea {
 .rdp-day {
   width: var(--rdp-cell-size);
   height: var(--rdp-cell-size);
+  color: #1A1A1A;
 }
 
-/* Override any blue colors to purple */
+/* Override any blue colors to yellow */
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: var(--delulu-purple) !important;
-  color: white !important;
+  background-color: var(--delulu-yellow-reserved) !important;
+  color: #1A1A1A !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: var(--delulu-purple) !important;
-  color: white !important;
+  background-color: var(--delulu-yellow-reserved) !important;
+  color: #1A1A1A !important;
+}
+
+
+.rdp-selected .rdp-day_button{
+  border-color: var(--delulu-yellow-reserved) !important;
 }
 
 /* Custom date picker navigation icons */
@@ -373,14 +369,27 @@ textarea {
   display: none;
 }
 
-/* Custom Slider Styles */
+/* Override chevron fill color - charcoal for visibility */
+.rdp-chevron {
+  fill: white !important;
+}
+
+/* Override today indicator - charcoal underline instead of yellow text */
+.rdp-today:not(.rdp-outside) {
+  font-weight: bold;
+  text-decoration: underline;
+  text-decoration-color: var(--delulu-yellow-reserved);
+  color: #1A1A1A !important;
+}
+
+/* Custom Slider Styles - Light Theme */
 .delulu-slider [data-slot="slider-range"] {
-  background-color: white !important;
+  background-color: var(--delulu-yellow-reserved) !important;
 }
 
 .delulu-slider [data-slot="slider-thumb"] {
-  border-color: var(--delulu-dark) !important;
-  background-color: white !important;
+  border-color: #1A1A1A !important;
+  background-color: var(--delulu-yellow-reserved) !important;
 }
 
 /* Blinking caret animation */
@@ -394,18 +403,18 @@ textarea {
 }
 
 /* Custom caret color */
-.caret-delulu-dark {
-  caret-color: var(--delulu-dark);
+.caret-delulu-charcoal {
+  caret-color: var(--delulu-charcoal);
 }
 
-/* Card hover effects */
+/* Card hover effects - Light Theme */
 .card-hover {
   transition: all 0.3s ease;
 }
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(10, 10, 10, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 /* Button press effect */
@@ -417,15 +426,15 @@ textarea {
   transform: scale(0.97);
 }
 
-/* Gradient text */
+/* Gradient text - using charcoal base */
 .gradient-text {
-  background: linear-gradient(135deg, var(--delulu-dark), var(--delulu-green));
+  background: linear-gradient(135deg, #1A1A1A, var(--delulu-green));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glass effect */
+/* Glass effect - Light Theme */
 .glass {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);

@@ -1,47 +1,106 @@
+import { useQuery } from "@tanstack/react-query";
 import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { type FormattedDelulu } from "./use-delulus";
+import { api } from "@/lib/api-client";
 
-export function useSingleDelulu(deluluId: number | null) {
+/**
+ * Fetch a single delulu by ID (supports both database ID and onChainId)
+ */
+export function useSingleDelulu(deluluId: string | number | null) {
+  // Try to fetch from backend API first
   const {
-    data: delulu,
-    isLoading,
-    error,
+    data: apiDelulu,
+    isLoading: isLoadingApi,
+    error: apiError,
+  } = useQuery({
+    queryKey: ["delulu", deluluId],
+    queryFn: async () => {
+      if (!deluluId) return null;
+      return api.getDelulu(String(deluluId));
+    },
+    enabled: !!deluluId,
+    staleTime: 30 * 1000,
+  });
+
+  // Fallback to contract if API fails and ID is numeric
+  const numericId = typeof deluluId === "number" ? deluluId : 
+                    typeof deluluId === "string" && /^\d+$/.test(deluluId) ? parseInt(deluluId) : null;
+  
+  const {
+    data: contractDelulu,
+    isLoading: isLoadingContract,
+    error: contractError,
   } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getDelulu",
-    args: deluluId !== null ? [BigInt(deluluId)] : undefined,
+    args: numericId !== null ? [BigInt(numericId)] : undefined,
     query: {
-      enabled: deluluId !== null,
+      enabled: numericId !== null && !apiDelulu && !isLoadingApi,
     },
   });
 
-  if (!delulu) {
+  // If we have API data, format and return it
+  if (apiDelulu) {
+    const formatted: FormattedDelulu = {
+      id: parseInt(apiDelulu.onChainId) || 0,
+      creator: apiDelulu.creatorAddress as `0x${string}`,
+      contentHash: apiDelulu.contentHash,
+      content: apiDelulu.content,
+      stakingDeadline: new Date(apiDelulu.stakingDeadline),
+      resolutionDeadline: new Date(apiDelulu.resolutionDeadline),
+      totalBelieverStake: apiDelulu.totalBelieverStake,
+      totalDoubterStake: apiDelulu.totalDoubterStake,
+      totalStake: apiDelulu.totalStake,
+      outcome: apiDelulu.outcome,
+      isResolved: apiDelulu.isResolved,
+      isCancelled: apiDelulu.isCancelled,
+      username: apiDelulu.creator?.username,
+      pfpUrl: apiDelulu.creator?.pfpUrl,
+      bgImageUrl: apiDelulu.bgImageUrl,
+      gatekeeper: apiDelulu.gatekeeperEnabled ? {
+        enabled: true,
+        type: apiDelulu.gatekeeperType,
+        value: apiDelulu.gatekeeperValue,
+        label: apiDelulu.gatekeeperLabel,
+      } : undefined,
+      createdAt: new Date(apiDelulu.createdAt),
+    };
+
     return {
-      delulu: null,
-      isLoading,
-      error,
+      delulu: formatted,
+      isLoading: false,
+      error: null,
     };
   }
 
-  // Handle both array and object formats
-  const d = Array.isArray(delulu)
+  // If no contract data either, return loading or error state
+  if (!contractDelulu) {
+    return {
+      delulu: null,
+      isLoading: isLoadingApi || isLoadingContract,
+      error: apiError || contractError,
+    };
+  }
+
+  // Handle contract data (both array and object formats)
+  const d = Array.isArray(contractDelulu)
     ? {
-        id: delulu[0],
-        creator: delulu[1],
-        contentHash: delulu[2],
-        stakingDeadline: delulu[3],
-        resolutionDeadline: delulu[4],
-        totalBelieverStake: delulu[5],
-        totalDoubterStake: delulu[6],
-        outcome: delulu[7],
-        isResolved: delulu[8],
-        isCancelled: delulu[9],
+        id: contractDelulu[0],
+        creator: contractDelulu[1],
+        contentHash: contractDelulu[2],
+        stakingDeadline: contractDelulu[3],
+        resolutionDeadline: contractDelulu[4],
+        totalBelieverStake: contractDelulu[5],
+        totalDoubterStake: contractDelulu[6],
+        outcome: contractDelulu[7],
+        isResolved: contractDelulu[8],
+        isCancelled: contractDelulu[9],
       }
-    : (delulu as {
+    : (contractDelulu as {
         id: bigint;
         creator: `0x${string}`;
         contentHash: string;
@@ -74,8 +133,8 @@ export function useSingleDelulu(deluluId: number | null) {
 
   return {
     delulu: formatted,
-    isLoading,
-    error,
+    isLoading: false,
+    error: null,
   };
 }
 

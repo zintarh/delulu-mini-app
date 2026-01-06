@@ -71,27 +71,27 @@ export function LoginScreen() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Yellow overlay */}
-      <div className="absolute inset-0 bg-delulu-yellow/60" />
+      {/* Light overlay for optimistic feel */}
+      <div className="absolute inset-0 bg-white/70" />
       
       <div className="w-full max-w-md flex flex-col items-center relative z-10">
         {/* Logo */}
         <div
           className={cn(
-            "text-6xl md:text-8xl font-black text-delulu-dark tracking-tighter mb-4",
+            "text-6xl md:text-8xl font-black text-delulu-charcoal tracking-tighter mb-4",
             "animate-slide-up-from-bottom"
           )}
           style={{
             fontFamily: "var(--font-gloria), cursive",
           }}
         >
-          delulu<span className="text-white -ml-1">.</span>
+          delulu<span className="text-delulu-charcoal -ml-1">.</span>
         </div>
 
         {/* Tagline */}
         <div
           className={cn(
-            "text-sm md:text-lg font-bold text-delulu-dark/90 mb-12",
+            "text-sm md:text-lg font-bold text-delulu-charcoal/80 mb-12",
             "animate-slide-up-from-bottom-delayed"
           )}
           style={{
@@ -101,17 +101,20 @@ export function LoginScreen() {
           it&apos;s your world be delusional bestie :)
         </div>
 
-        {/* Login/Connect Button */}
+        {/* Login/Connect Button - Yellow primary button */}
         <button
           onClick={handleLogin}
           disabled={isLoginDisabled}
           className={cn(
             "w-full max-w-xs",
             "px-8 py-4",
-            "bg-white",
-            "text-delulu-dark text-lg",
-            "btn-game",
-            "flex items-center justify-center gap-2"
+            "bg-delulu-yellow-reserved",
+            "text-delulu-charcoal text-lg font-bold",
+            "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+            "flex items-center justify-center gap-2",
+            "hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
+            "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+            "transition-all duration-100"
           )}
         >
           {isLoading && isInFarcasterFrame ? (
@@ -125,13 +128,13 @@ export function LoginScreen() {
         </button>
 
         {/* Terms */}
-        <p className="mt-8 text-xs text-delulu-dark/70 text-center max-w-xs">
+        <p className="mt-8 text-xs text-gray-500 text-center max-w-xs">
           By signing in, you agree to the{" "}
-          <a href="#" className="text-delulu-dark/90 underline">
+          <a href="#" className="text-delulu-charcoal underline">
             Terms of Service
           </a>{" "}
           and{" "}
-          <a href="#" className="text-delulu-dark/90 underline">
+          <a href="#" className="text-delulu-charcoal underline">
             Privacy Policy
           </a>
         </p>

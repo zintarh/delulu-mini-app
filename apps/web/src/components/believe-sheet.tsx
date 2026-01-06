@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -19,7 +19,11 @@ interface BelieveSheetProps {
   delulu: FormattedDelulu | null;
 }
 
-export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) {
+export function BelieveSheet({
+  open,
+  onOpenChange,
+  delulu,
+}: BelieveSheetProps) {
   const { address } = useAccount();
   const [stakeAmount, setStakeAmount] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -27,8 +31,11 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   const [errorMessage, setErrorMessage] = useState("");
   const [stakedAmount, setStakedAmount] = useState(0);
 
-  const { balance: cusdBalanceData, isLoading: isLoadingBalance } = useCUSDBalance();
-  const cusdBalance = cusdBalanceData ? parseFloat(cusdBalanceData.formatted) : null;
+  const { balance: cusdBalanceData, isLoading: isLoadingBalance } =
+    useCUSDBalance();
+  const cusdBalance = cusdBalanceData
+    ? parseFloat(cusdBalanceData.formatted)
+    : null;
   const {
     approve,
     needsApproval,
@@ -46,14 +53,11 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     error: stakeError,
   } = useStake();
 
-  // Reset form when sheet opens or closes
   useEffect(() => {
     if (open) {
-      // Clear errors when sheet opens
       setShowErrorModal(false);
       setErrorMessage("");
     } else {
-      // Reset everything when sheet closes
       setStakeAmount("");
       setShowSuccessModal(false);
       setShowErrorModal(false);
@@ -74,27 +78,15 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     }
   }, [isStakeSuccess, stakeAmount]);
 
-  // Handle errors with comprehensive logging
-  // Only show errors for actual transaction errors, not input validation
   useEffect(() => {
     if (stakeError) {
-      // Comprehensive error logging
-      console.error("[BelieveSheet] Stake error:", {
-        error: stakeError,
-        errorType: stakeError?.constructor?.name,
-        errorCode: (stakeError as any)?.code,
-        errorMessage: stakeError?.message,
-        errorShortMessage: (stakeError as any)?.shortMessage,
-        errorData: (stakeError as any)?.data,
-        errorCause: (stakeError as any)?.cause,
-        stack: (stakeError as any)?.stack,
-        deluluId: delulu?.id,
-      });
-
       let errorMsg = "Failed to stake";
       if (stakeError.message) {
         const errorLower = stakeError.message.toLowerCase();
-        if (errorLower.includes("user rejected") || errorLower.includes("user denied")) {
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied")
+        ) {
           errorMsg = "Transaction was cancelled";
         } else if (errorLower.includes("insufficient")) {
           errorMsg = "Insufficient balance";
@@ -107,9 +99,10 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
         } else if (errorLower.includes("creator")) {
           errorMsg = "Creators cannot stake on their own delulu";
         } else {
-          errorMsg = stakeError.message.length > 100 
-            ? "Staking failed. Please try again." 
-            : stakeError.message;
+          errorMsg =
+            stakeError.message.length > 100
+              ? "Staking failed. Please try again."
+              : stakeError.message;
         }
       }
       setErrorMessage(errorMsg);
@@ -132,14 +125,18 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
       let errorMsg = "Approval failed";
       if (approvalError.message) {
         const errorLower = approvalError.message.toLowerCase();
-        if (errorLower.includes("user rejected") || errorLower.includes("user denied")) {
+        if (
+          errorLower.includes("user rejected") ||
+          errorLower.includes("user denied")
+        ) {
           errorMsg = "Approval was cancelled";
         } else if (errorLower.includes("insufficient")) {
           errorMsg = "Insufficient balance for approval";
         } else {
-          errorMsg = approvalError.message.length > 100 
-            ? "Approval failed. Please try again." 
-            : approvalError.message;
+          errorMsg =
+            approvalError.message.length > 100
+              ? "Approval failed. Please try again."
+              : approvalError.message;
         }
       }
       setErrorMessage(errorMsg);
@@ -152,7 +149,7 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
       console.error("[BelieveSheet] Missing delulu or stakeAmount");
       return;
     }
-    
+
     const amount = parseFloat(stakeAmount);
     if (isNaN(amount) || amount <= 0) {
       console.error("[BelieveSheet] Invalid amount:", stakeAmount);
@@ -169,7 +166,10 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     }
 
     if (cusdBalance !== null && amount > cusdBalance) {
-      console.error("[BelieveSheet] Insufficient balance:", { amount, cusdBalance });
+      console.error("[BelieveSheet] Insufficient balance:", {
+        amount,
+        cusdBalance,
+      });
       setErrorMessage("Insufficient balance");
       setShowErrorModal(true);
       return;
@@ -185,7 +185,9 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
 
       // If approval succeeded, proceed with staking
       if (isApprovalSuccess) {
-        console.log("[BelieveSheet] Approval already succeeded, proceeding to stake");
+        console.log(
+          "[BelieveSheet] Approval already succeeded, proceeding to stake"
+        );
         await stake(delulu.id, amount, true);
       } else if (needsApproval(amount)) {
         // First step: approve
@@ -208,158 +210,133 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
   };
 
   const isCreator = isDeluluCreator(address, delulu);
-  const isLoading = isApproving || isApprovingConfirming || isStaking || isStakingConfirming;
+  const isLoading =
+    isApproving || isApprovingConfirming || isStaking || isStakingConfirming;
   const stakeAmountNum = stakeAmount ? parseFloat(stakeAmount) : 0;
-  
-  // Validation errors
+
   const validationError = (() => {
     if (!stakeAmount) return null;
     const amount = stakeAmountNum;
     if (isNaN(amount) || amount <= 0) return null; // Don't show error for empty/invalid
     if (amount < 1) return "Minimum stake is 1 cUSD";
-    if (cusdBalance !== null && amount > cusdBalance) return "Insufficient balance";
+    if (cusdBalance !== null && amount > cusdBalance)
+      return "Insufficient balance";
     return null;
   })();
-  
-  const canStake = !isLoading && stakeAmount && stakeAmountNum >= 1 && !isCreator && !validationError;
-  
-  // Safely check if approval is needed - only when we have a valid amount
-  const needsApprovalStep = (() => {
-    if (!delulu || !stakeAmount) return false;
-    const amount = parseFloat(stakeAmount);
-    if (isNaN(amount) || amount <= 0) return false;
-    try {
-      return needsApproval(amount);
-    } catch (error) {
-      console.warn("[BelieveSheet] Error checking approval:", error);
-      return false;
-    }
-  })();
+
+  const canStake =
+    !isLoading &&
+    stakeAmount &&
+    stakeAmountNum >= 1 &&
+    !isCreator &&
+    !validationError;
 
   if (!delulu) return null;
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="bottom"
-          className="bg-gray-900 border-t border-gray-800 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
-        >
-          <SheetTitle className="sr-only">Believe in Delulu</SheetTitle>
-          
-          <div className="max-w-lg mx-auto pt-8 pb-8 px-6">
-            {/* Close Button */}
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Believe in Delulu"
+        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+        modalClassName="max-w-lg"
+      >
+        <div className="max-w-lg mx-auto pt-8 pb-8 px-6 lg:pt-6">
+          <p className="text-sm text-white/60 mb-6 pt-10">
+            Stake your belief in this delulu. If it comes true, you&apos;ll
+            share in the rewards.
+          </p>
+
+          <div className="mb-6">
+            <div
+              className={`bg-black rounded-2xl p-4 border transition-colors ${
+                validationError ? "border-red-500/50" : "border-white/10"
+              }`}
             >
-              <span className="text-2xl">×</span>
-            </button>
-
-  
-            {/* Description */}
-            <p className="text-sm text-white/60 mb-6 pt-10">
-              Stake your belief in this delulu. If it comes true, you&apos;ll share in the rewards.
-            </p>
-
-            {/* Status Box */}
-            <div className="bg-gray-900 rounded-2xl p-4 mb-6 border border-gray-800">
-              <p className="text-sm text-white/80 text-center break-words whitespace-pre-wrap">
-                {delulu.content || delulu.contentHash}
-              </p>
-            </div>
-
-            {/* Input Section - DeFi Style */}
-            <div className="mb-6">
-              <div className={`bg-gray-900 rounded-2xl p-4 border transition-colors ${
-                validationError ? "border-red-500/50" : "border-gray-800"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-white/60">Amount</span>
-                  {cusdBalance !== null && (
-                    <span className="text-xs text-white/60">
-                      Balance: {cusdBalance.toFixed(2)} cUSD
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <input
-                    type="number"
-                    value={stakeAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setStakeAmount(value);
-                      // Clear error state when user starts typing
-                      if (showErrorModal) {
-                        setShowErrorModal(false);
-                        setErrorMessage("");
-                      }
-                    }}
-                    placeholder="0.00"
-                    min="1"
-                    step="0.01"
-                    className={`flex-1 min-w-0 bg-transparent text-white text-2xl font-bold focus:outline-none placeholder:text-white/30 ${
-                      validationError ? "text-red-400" : ""
-                    }`}
-                    disabled={isLoading || isCreator || false}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (cusdBalance !== null) {
-                        setStakeAmount(cusdBalance.toFixed(2));
-                      }
-                    }}
-                    disabled={isLoading || isCreator || cusdBalance === null}
-                    className="flex-shrink-0 px-3 py-1.5 bg-gray-800 hover:bg-gray-900/20 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    MAX
-                  </button>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-xs text-white/60">cUSD</span>
-                  {validationError && (
-                    <span className="text-xs text-red-400 font-medium">
-                      {validationError}
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Amount</span>
+                {cusdBalance !== null && (
+                  <span className="text-xs text-white/60">
+                    Balance: {cusdBalance.toFixed(2)} cUSD
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <input
+                  type="number"
+                  value={stakeAmount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setStakeAmount(value);
+                    // Clear error state when user starts typing
+                    if (showErrorModal) {
+                      setShowErrorModal(false);
+                      setErrorMessage("");
+                    }
+                  }}
+                  placeholder="0.00"
+                  min="1"
+                  step="0.01"
+                  className={`flex-1 min-w-0 bg-transparent text-white text-2xl font-bold focus:outline-none placeholder:text-white/30 ${
+                    validationError ? "text-red-400" : ""
+                  }`}
+                  disabled={isLoading || isCreator || false}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cusdBalance !== null) {
+                      setStakeAmount(cusdBalance.toFixed(2));
+                    }
+                  }}
+                  disabled={isLoading || isCreator || cusdBalance === null}
+                  className="flex-shrink-0 px-3 py-1.5 bg-black/80 hover:bg-black/20 rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000] text-xs font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  MAX
+                </button>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-white/60">cUSD</span>
+                {validationError && (
+                  <span className="text-xs text-red-400 font-medium">
+                    {validationError}
+                  </span>
+                )}
               </div>
             </div>
-
-            {/* Action Button */}
-            <button
-              onClick={handleStake}
-              disabled={!canStake || isLoading}
-              className={cn(
-                "w-full py-3 font-bold text-sm",
-                "btn-game",
-                canStake && !isLoading
-                  ? "bg-gray-900 text-delulu-dark"
-                  : "bg-gray-900/20 text-white/40 cursor-not-allowed"
-              )}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {isApproving || isApprovingConfirming ? "Approving..." : "Staking..."}
-                </span>
-              ) : isApprovalSuccess ? (
-                "Continue"
-              ) : (
-                "Believe"
-              )}
-            </button>
-
-            {/* Footer */}
-            <p className="text-xs text-white/40 text-center mt-4">
-              Staking is final. Make sure you believe in this delulu!
-            </p>
           </div>
-        </SheetContent>
-      </Sheet>
 
-      {/* Success Sheet */}
+          <button
+            onClick={handleStake}
+            disabled={!canStake || isLoading}
+            className={cn(
+              "w-full py-3 font-bold text-sm rounded-md border-2 shadow-[3px_3px_0px_0px_#000000]",
+              canStake && !isLoading
+                ? "bg-black text-delulu-dark border-black"
+                : "bg-black/20 text-white/40 cursor-not-allowed border-white/10"
+            )}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {isApproving || isApprovingConfirming
+                  ? "Approving..."
+                  : "Staking..."}
+              </span>
+            ) : isApprovalSuccess ? (
+              "Continue"
+            ) : (
+              "Believe"
+            )}
+          </button>
+
+          <p className="text-xs text-white/40 text-center mt-4">
+            Staking is final. Make sure you believe in this delulu!
+          </p>
+        </div>
+      </ResponsiveSheet>
+
       <StakeSuccessSheet
         open={showSuccessModal}
         onOpenChange={(open) => {
@@ -373,7 +350,6 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
         amount={stakedAmount}
       />
 
-      {/* Error Sheet */}
       <StakeErrorSheet
         open={showErrorModal}
         onOpenChange={setShowErrorModal}
@@ -382,4 +358,3 @@ export function BelieveSheet({ open, onOpenChange, delulu }: BelieveSheetProps) 
     </>
   );
 }
-

@@ -44,7 +44,7 @@ export function DeluluStatusBadge({
     return (
       <div
         className={cn(
-          "inline-flex items-center px-2 py-0.5 rounded-full bg-delulu-purple/20 text-delulu-purple text-xs font-bold",
+          "inline-flex items-center px-2 py-0.5 rounded-full bg-delulu-yellow-reserved/20 text-delulu-yellow-reserved text-xs font-bold",
           className
         )}
       >
@@ -57,7 +57,7 @@ export function DeluluStatusBadge({
     return (
       <div
         className={cn(
-          "inline-flex items-center px-2 py-0.5 rounded-full bg-delulu-yellow/50 text-delulu-dark text-xs font-bold",
+          "inline-flex items-center px-2 py-0.5 rounded-full bg-black/50 text-delulu-dark text-xs font-bold",
           className
         )}
       >

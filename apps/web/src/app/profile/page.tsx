@@ -1,20 +1,31 @@
 "use client";
-
-import { useAccount } from "wagmi";
-import { Navbar } from "@/components/navbar";
-import { ConnectedAccount } from "@/components/wallet";
+import React, { useState } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
+import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus";
+import { isDeluluCreator } from "@/lib/delulu-utils";
+import { StakingSheet } from "@/components/staking-sheet";
+import { LogoutSheet } from "@/components/logout-sheet";
+import { formatAddress } from "@/lib/utils";
+import { ArrowLeft, LogOut } from "lucide-react";
+import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 
 export default function ProfilePage() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { disconnect } = useDisconnect();
   const { user, isLoading } = useUserStore();
+  const { delulus, isLoading: isLoadingDelulus } = useDelulus();
+  const router = useRouter();
+  const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(null);
+  const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
+  const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black">
-        <Navbar />
-        <div className="max-w-lg md:max-w-4xl mx-auto px-4 md:px-6 pt-8 text-center">
-          <p className="text-white/50">
+      <div className="border-t-2 border-gray-200 h-screen p-0 rounded-t-3xl bg-white max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="relative h-full flex flex-col items-center justify-center px-6 lg:h-auto lg:min-h-[200px]">
+          <p className="text-gray-500">
             Please connect your wallet to view your profile
           </p>
         </div>
@@ -23,62 +34,109 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <Navbar />
-
-      <main className="max-w-lg md:max-w-4xl mx-auto px-4 md:px-6 pt-4 md:pt-8 pb-24">
-        <div className="mb-6">
-          <div className="bg-gray-900 rounded-3xl p-6 mb-4">
-            {isLoading ? (
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
-                  <div className="h-3 bg-gray-200 rounded animate-pulse w-24" />
-                </div>
-              </div>
-            ) : user ? (
-              <div className="flex items-center gap-4">
-                {user.pfpUrl ? (
-                  <img
-                    src={user.pfpUrl}
-                    alt={user.displayName || user.username || "Profile"}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-black"
-                  />
+    <div className="min-h-screen bg-white">
+      <div className="max-w-2xl mx-auto overflow-hidden">
+        <div className="relative h-full flex flex-col overflow-y-auto">
+          <div className="px-6 pt-4 pb-3 flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="rounded-full w-12 h-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-delulu-charcoal transition-colors"
+              title="Back"
+              aria-label="Back"
+            >
+              <ArrowLeft className="h-7 w-7" />
+            </button>
+            <div className="flex items-center justify-center flex-1">
+              <h2 className="text-sm text-gray-500">
+                {isLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : user?.username ? (
+                  `@${user.username}`
+                ) : user?.displayName ? (
+                  user.displayName
+                ) : address ? (
+                  formatAddress(address)
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center border-2 border-black">
-                    <span className="text-2xl font-black text-delulu-dark">
-                      {(user.displayName || user.username || "U")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  </div>
+                  "User"
                 )}
-                <div className="flex-1">
-                  <h2 className="text-xl font-black text-white">
-                    {user.displayName || user.username || "Anonymous"}
-                  </h2>
-                  {user.username && (
-                    <p className="text-sm text-white/60">@{user.username}</p>
-                  )}
-                  {user.fid && (
-                    <p className="text-xs text-white/40 mt-1">
-                      FID: {user.fid}
-                    </p>
-                  )}
-                </div>
+              </h2>
+            </div>
+            <button
+              onClick={() => setLogoutSheetOpen(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+              title="Disconnect"
+              aria-label="Disconnect"
+            >
+              <LogOut className="w-6 h-6" />
+            </button>
+          </div>
+
+        <div className="w-full border-t border-gray-200" />
+
+        {address && (
+          <div className="px-6 mb-6 pb-8 pt-3">
+            {isLoadingDelulus ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-full aspect-[4/5] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
+                  />
+                ))}
               </div>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-white/50">
-                  No Farcaster user data available
-                </p>
-              </div>
+              (() => {
+                const myDelulus = delulus.filter((d) =>
+                  isDeluluCreator(address, d)
+                );
+
+                if (myDelulus.length === 0) {
+                  return (
+                    <p className="text-xs text-gray-400 text-center py-4">
+                      You haven&apos;t created any delulus yet
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 gap-2">
+                    {myDelulus.map((delulu) => (
+                      <ProfileDeluluCard
+                        key={delulu.id}
+                        delusion={delulu}
+                        onClick={() => {
+                          router.push(`/delulu/${delulu.id}`);
+                        }}
+                        onStake={() => {
+                          setSelectedDelulu(delulu);
+                          setStakingSheetOpen(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </div>
-          <ConnectedAccount />
+        )}
         </div>
-      </main>
+      </div>
+
+      <StakingSheet
+        open={stakingSheetOpen}
+        onOpenChange={setStakingSheetOpen}
+        delulu={selectedDelulu}
+      />
+
+      <LogoutSheet
+        open={logoutSheetOpen}
+        onOpenChange={setLogoutSheetOpen}
+        onLogout={() => {
+          disconnect();
+          useUserStore.getState().logout();
+          setLogoutSheetOpen(false);
+        }}
+      />
     </div>
   );
 }

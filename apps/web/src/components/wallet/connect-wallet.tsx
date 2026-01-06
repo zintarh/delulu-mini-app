@@ -71,7 +71,7 @@ export function ConnectWallet({ className }: ConnectWalletProps) {
 
   if (!mounted) {
     return (
-      <div className="w-20 h-9 animate-pulse bg-gray-800 rounded-full" />
+      <div className="w-20 h-9 animate-pulse bg-black/80 rounded-full" />
     );
   }
 

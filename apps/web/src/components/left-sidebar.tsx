@@ -1,132 +1,76 @@
 "use client";
 
-import { useAccount } from "wagmi";
-import { useRouter, usePathname } from "next/navigation";
-import { Home, Search, Plus, User, LogOut } from "lucide-react";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { ConnectWallet } from "@/components/wallet";
-import { useUserStore } from "@/stores/useUserStore";
+import { usePathname } from "next/navigation";
+import { Home, Plus, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LeftSidebarProps {
   onProfileClick?: () => void;
-  onLogoutClick?: () => void;
   onCreateClick?: () => void;
 }
 
 export function LeftSidebar({
   onProfileClick,
-  onLogoutClick,
   onCreateClick,
 }: LeftSidebarProps) {
-  const { isConnected } = useAccount();
-  const router = useRouter();
   const pathname = usePathname();
-  const { user } = useUserStore();
 
   const navItems = [
     {
       icon: Home,
       label: "Home",
-      path: "/",
       active: pathname === "/",
-    },
-    {
-      icon: Search,
-      label: "Explore",
-      path: "/delulus",
-      active: pathname === "/delulus",
+      onClick: undefined as (() => void) | undefined,
     },
     {
       icon: Plus,
       label: "Create",
-      path: "/create",
-      active: pathname === "/create",
+      active: false,
       onClick: onCreateClick,
     },
     {
       icon: User,
       label: "Profile",
-      path: "/profile",
-      active: pathname === "/profile",
+      active: false,
       onClick: onProfileClick,
     },
   ];
 
-  const handleNavClick = (item: typeof navItems[0]) => {
-    if (item.onClick) {
-      item.onClick();
-    } else {
-      router.push(item.path);
-    }
-  };
-
   return (
-    <aside className="h-screen flex flex-col px-3 py-4 border-r border-gray-800 bg-black">
+    <aside className="h-screen sticky top-0 flex flex-col px-3 py-4 border-r border-gray-200 bg-white">
       <div className="mb-8 px-3">
-        <h1 className="text-2xl font-black text-white">Delulu</h1>
+        <h1 
+          className="text-4xl font-black text-delulu-yellow-reserved"
+          style={{
+            fontFamily: "var(--font-gloria), cursive",
+            textShadow: "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A"
+          }}
+        >
+          Delulu
+        </h1>
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 flex flex-col gap-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <button
-              key={item.path}
-              onClick={() => handleNavClick(item)}
+              key={item.label}
+              onClick={item.onClick}
+              title={item.label}
               className={cn(
-                "w-full flex items-center gap-4 px-4 py-3 rounded-full transition-colors text-left",
+                "flex items-center justify-center w-12 h-12 rounded-full transition-colors",
                 item.active
-                  ? "bg-gray-900 text-white font-bold"
-                  : "text-white/60 hover:bg-gray-900/50 hover:text-white"
+                  ? "bg-gray-200 text-delulu-charcoal"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-delulu-charcoal"
               )}
+              aria-label={item.label}
             >
-              <Icon className="w-6 h-6" />
-              <span className="text-xl">{item.label}</span>
+              <Icon className="w-8 h-8" />
             </button>
           );
         })}
       </nav>
-
-      <div className="mt-auto pt-4">
-        {isConnected ? (
-          <button
-            onClick={onProfileClick}
-            className={cn(
-              "w-full flex items-center gap-4 px-4 py-3 rounded-full transition-colors text-left",
-              pathname === "/profile"
-                ? "bg-gray-900 text-white font-bold"
-                : "text-white/60 hover:bg-gray-900/50 hover:text-white"
-            )}
-          >
-            {user?.pfpUrl ? (
-              <img
-                src={user.pfpUrl}
-                alt={user.displayName || user.username || "Profile"}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-bold truncate">
-                {user?.displayName || user?.username || "Profile"}
-              </p>
-              {user?.username && (
-                <p className="text-sm text-white/50 truncate">
-                  @{user.username}
-                </p>
-              )}
-            </div>
-          </button>
-        ) : (
-          <div className="px-3">
-            <ConnectWallet />
-          </div>
-        )}
-      </div>
     </aside>
   );
 }
