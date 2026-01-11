@@ -209,7 +209,7 @@ export default function HomePage() {
               <button
                 onClick={() => setActiveTab("vision")}
                 className={cn(
-                  "px-4 h-full flex items-center justify-center text-base font-bold transition-colors relative",
+                  "px-4 h-full flex items-center justify-center text-sm font-bold transition-colors relative",
                   activeTab === "vision"
                     ? "text-delulu-charcoal"
                     : "text-gray-400 hover:text-delulu-charcoal"
@@ -223,7 +223,7 @@ export default function HomePage() {
               <button
                 onClick={() => setActiveTab("fyp")}
                 className={cn(
-                  "px-4 h-full flex items-center justify-center text-base font-medium transition-colors relative",
+                  "px-4 h-full flex items-center justify-center text-sm font-medium transition-colors relative",
                   activeTab === "fyp"
                     ? "text-delulu-charcoal"
                     : "text-gray-400 hover:text-delulu-charcoal"

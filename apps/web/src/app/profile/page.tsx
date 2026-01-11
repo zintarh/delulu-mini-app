@@ -93,7 +93,7 @@ export default function ProfilePage() {
               <ArrowLeft className="h-7 w-7" />
             </button>
             <div className="flex items-center justify-center flex-1">
-              <h2 className="text-base text-gray-500">
+              <h2 className="text-sm text-gray-500">
                 {isLoading ? (
                   <span className="text-gray-400">Loading...</span>
                 ) : user?.username ? (
@@ -127,7 +127,7 @@ export default function ProfilePage() {
             <button
               onClick={() => setActiveTab("ongoing")}
               className={cn(
-                "px-6 py-3 text-base font-medium transition-colors relative",
+                "px-6 py-3 text-sm font-medium transition-colors relative",
                 activeTab === "ongoing"
                   ? "text-delulu-charcoal"
                   : "text-gray-400 hover:text-delulu-charcoal"
@@ -141,7 +141,7 @@ export default function ProfilePage() {
             <button
               onClick={() => setActiveTab("past")}
               className={cn(
-                "px-6 py-3 text-base font-medium transition-colors relative",
+                "px-6 py-3 text-sm font-medium transition-colors relative",
                 activeTab === "past"
                   ? "text-delulu-charcoal"
                   : "text-gray-400 hover:text-delulu-charcoal"
@@ -166,7 +166,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
               ) : delulus.length === 0 ? (
-                <p className="text-base text-gray-400 text-center py-4">
+                <p className="text-sm text-gray-400 text-center py-4">
                   {activeTab === "ongoing"
                     ? "You haven't created any ongoing delulus yet"
                     : "You haven't created any past delulus yet"}
@@ -202,7 +202,7 @@ export default function ProfilePage() {
 
                   {!hasNextPage && delulus.length > 0 && (
                     <div className="text-center py-4 mt-2">
-                      <p className="text-base text-gray-400">
+                      <p className="text-sm text-gray-400">
                         You&apos;ve reached the end
                       </p>
                     </div>

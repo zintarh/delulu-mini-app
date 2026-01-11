@@ -281,11 +281,11 @@ export function DeluluCard({
           <img
             src={displayPfpUrl}
             alt={displayUsername || delusion.creator}
-            className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200"
+            className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-delulu-charcoal">
+          <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+            <span className="text-[9px] font-bold text-delulu-charcoal">
               {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
             </span>
           </div>

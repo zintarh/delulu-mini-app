@@ -694,7 +694,7 @@ export default function DeluluPage() {
           {/* Deadline */}
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
             <p className="text-xs text-gray-500 mb-1">Staking Deadline</p>
-            <p className="text-base font-black text-delulu-charcoal">
+            <p className="text-sm font-black text-delulu-charcoal">
               {(() => {
                 if (delulu.isCancelled) {
                   return "Cancelled";

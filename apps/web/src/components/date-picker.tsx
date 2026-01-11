@@ -54,7 +54,7 @@ export function DatePicker({
               "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
             month: "space-y-2",
             caption: "flex justify-center pt-1 relative items-center",
-            caption_label: "text-base font-bold text-white",
+            caption_label: "text-sm font-bold text-white",
             nav: "space-x-1 flex items-center",
             nav_button: cn(
               "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100",
