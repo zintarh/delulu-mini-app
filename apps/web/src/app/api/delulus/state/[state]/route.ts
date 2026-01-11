@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const delulus = await getDelulusByState(state as DeluluState, { limit, cursor });
 
     // Add computed totalStake (TVL) to each delulu
-    const delulusWithTVL = delulus.map((d) => ({
+    const delulusWithTVL = delulus.map((d: (typeof delulus)[number]) => ({
       ...d,
       totalStake: d.totalBelieverStake + d.totalDoubterStake,
     }));

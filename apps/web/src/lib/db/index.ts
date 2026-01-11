@@ -10,11 +10,10 @@
  * 3. Run `pnpm db:push` to sync schema with database
  */
 
-// @ts-expect-error - PrismaClient may not exist until `prisma generate` is run
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line
   prisma: any | undefined;
 };
 

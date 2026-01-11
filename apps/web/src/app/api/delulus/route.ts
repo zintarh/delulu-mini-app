@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add computed totalStake (TVL) to each delulu
-    const delulusWithTVL = delulus.map((d) => ({
+    const delulusWithTVL = delulus.map((d: (typeof delulus)[number]) => ({
       ...d,
       totalStake: d.totalBelieverStake + d.totalDoubterStake,
     }));

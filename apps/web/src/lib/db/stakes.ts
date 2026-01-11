@@ -34,6 +34,32 @@ export async function createStake(input: CreateStakeInput) {
     throw new Error("Delulu not found");
   }
 
+  // Idempotency check: Check if stake with this txHash already exists
+  const existingByTxHash = await db.stake.findUnique({
+    where: { txHash: input.txHash },
+  });
+
+  if (existingByTxHash) {
+    console.log(`[createStake] Stake with txHash ${input.txHash} already exists, returning existing stake`);
+    return existingByTxHash;
+  }
+
+  // Idempotency check: Check if user already has a stake on this delulu for this side
+  const existingStake = await db.stake.findUnique({
+    where: {
+      userId_deluluId_side: {
+        userId: user.id,
+        deluluId: delulu.id,
+        side: input.side,
+      },
+    },
+  });
+
+  if (existingStake) {
+    console.log(`[createStake] User already has a stake on delulu ${delulu.id} for side ${input.side}, returning existing stake`);
+    return existingStake;
+  }
+
   const stake = await db.stake.create({
     data: {
       userId: user.id,
@@ -93,11 +119,11 @@ export async function getUserPosition(userAddress: string, deluluId: string) {
   if (stakes.length === 0) return null;
 
   const believerStake = stakes
-    .filter((s) => s.side)
-    .reduce((acc, s) => acc + s.amount, 0);
+    .filter((s: (typeof stakes)[number]) => s.side)
+    .reduce((acc: number, s: (typeof stakes)[number]) => acc + s.amount, 0);
   const doubterStake = stakes
-    .filter((s) => !s.side)
-    .reduce((acc, s) => acc + s.amount, 0);
+    .filter((s: (typeof stakes)[number]) => !s.side)
+    .reduce((acc: number, s: (typeof stakes)[number]) => acc + s.amount, 0);
 
   return { believerStake, doubterStake };
 }
@@ -117,7 +143,7 @@ export async function getStakedDelulusByUser(address: string) {
   if (stakes.length === 0) return [];
 
   // Get unique delulu IDs
-  const deluluIds = [...new Set(stakes.map((s) => s.deluluId))];
+  const deluluIds = [...new Set(stakes.map((s: (typeof stakes)[number]) => s.deluluId))];
 
   // Fetch full delulu data
   const delulus = await db.delulu.findMany({
@@ -129,14 +155,14 @@ export async function getStakedDelulusByUser(address: string) {
   });
 
   // Aggregate user's position for each delulu
-  return delulus.map((delulu) => {
-    const userStakes = stakes.filter((s) => s.deluluId === delulu.id);
+  return delulus.map((delulu: (typeof delulus)[number]) => {
+    const userStakes = stakes.filter((s: (typeof stakes)[number]) => s.deluluId === delulu.id);
     const believerStake = userStakes
-      .filter((s) => s.side)
-      .reduce((acc, s) => acc + s.amount, 0);
+      .filter((s: (typeof userStakes)[number]) => s.side)
+      .reduce((acc: number, s: (typeof userStakes)[number]) => acc + s.amount, 0);
     const doubterStake = userStakes
-      .filter((s) => !s.side)
-      .reduce((acc, s) => acc + s.amount, 0);
+      .filter((s: (typeof userStakes)[number]) => !s.side)
+      .reduce((acc: number, s: (typeof userStakes)[number]) => acc + s.amount, 0);
 
     return {
       ...delulu,

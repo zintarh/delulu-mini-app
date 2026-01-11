@@ -8,7 +8,6 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { LoginScreen } from "@/components/login-screen";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
-import { AllDelulusSheet } from "@/components/all-delulus-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { StakingSheet } from "@/components/staking-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
@@ -18,24 +17,29 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus";
 import { useUserStats } from "@/hooks/use-user-stats";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
-import { createPublicClient, http } from "viem";
-import { celo } from "viem/chains";
+import { useUserStakedDelulus } from "@/hooks/use-user-staked-delulus";
+import type { ApiDelulu } from "@/lib/api/fetchers";
 import { TrendingUp, Plus } from "lucide-react";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const router = useRouter();
-  const { delulus, isLoading } = useDelulus();
+  const { 
+    delulus, 
+    isLoading, 
+    isFetchingNextPage, 
+    hasNextPage, 
+    fetchNextPage 
+  } = useDelulus();
+  
+  // Fetch user's staked delulus for Vision tab
+  const { 
+    data: stakedDelulusApi, 
+    isLoading: isLoadingStakedDelulus 
+  } = useUserStakedDelulus();
 
-  const {
-    totalDelulus: createdCount,
-    totalStaked: totalStakes,
-    totalClaimed: totalEarnings,
-    isLoading: isLoadingStats,
-  } = useUserStats();
+
 
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
     null
@@ -44,18 +48,65 @@ export default function HomePage() {
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
-  const [allDelulusSheetOpen, setAllDelulusSheetOpen] = useState(false);
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [stakedDeluluIds, setStakedDeluluIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [isLoadingStaked, setIsLoadingStaked] = useState(false);
-  const prevDeluluIdsRef = useRef<string>("");
+  // Transform staked delulus from API format to FormattedDelulu format
+  const transformStakedDelulu = (d: ApiDelulu): FormattedDelulu => {
+    const believerStake = d.totalBelieverStake ?? 0;
+    const doubterStake = d.totalDoubterStake ?? 0;
+
+    return {
+      id: parseInt(d.onChainId) || parseInt(d.id) || 0,
+      onChainId: d.onChainId,
+      creator: d.creatorAddress,
+      contentHash: d.contentHash,
+      content: d.content ?? undefined,
+      username: d.creator?.username ?? undefined,
+      pfpUrl: d.creator?.pfpUrl ?? undefined,
+      createdAt: d.createdAt ? new Date(d.createdAt) : undefined,
+      bgImageUrl: d.bgImageUrl ?? undefined,
+      gatekeeper: d.gatekeeperEnabled
+        ? {
+            enabled: true,
+            type: "country",
+            value: d.gatekeeperValue ?? "",
+            label: d.gatekeeperLabel ?? "",
+          }
+        : undefined,
+      stakingDeadline: new Date(d.stakingDeadline),
+      resolutionDeadline: new Date(d.resolutionDeadline),
+      totalBelieverStake: believerStake,
+      totalDoubterStake: doubterStake,
+      totalStake: believerStake + doubterStake,
+      outcome: d.outcome ?? false,
+      isResolved: d.isResolved,
+      isCancelled: d.isCancelled,
+    };
+  };
+
+  // Transform staked delulus to FormattedDelulu format
+  const stakedDelulus = useMemo(() => {
+    if (!stakedDelulusApi || stakedDelulusApi.length === 0) {
+      return [];
+    }
+    return stakedDelulusApi
+      .filter((d) => !d.isCancelled)
+      .map(transformStakedDelulu)
+      .sort((a, b) => {
+        // Sort by latest first
+        if (a.createdAt && b.createdAt) {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+        return b.id - a.id;
+      });
+  }, [stakedDelulusApi]);
+
+  // Infinite scroll detection
+  const scrollContainerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,6 +119,27 @@ export default function HomePage() {
       scrollTimeoutRef.current = setTimeout(() => {
         setIsScrolling(false);
       }, 150);
+
+      // Check if user has scrolled to bottom (within 200px)
+      // The main element is the scrollable container
+      const mainElement = document.querySelector("main");
+      const container = mainElement || document.documentElement;
+      
+      const scrollTop = container.scrollTop || window.scrollY;
+      const scrollHeight = container.scrollHeight || document.documentElement.scrollHeight;
+      const clientHeight = container.clientHeight || window.innerHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Load more when within 200px of bottom
+      if (
+        distanceFromBottom < 200 &&
+        hasNextPage &&
+        !isFetchingNextPage &&
+        !isLoading &&
+        activeTab === "fyp" // Only for FYP tab
+      ) {
+        fetchNextPage();
+      }
     };
 
     const mainElement = document.querySelector("main");
@@ -87,107 +159,31 @@ export default function HomePage() {
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, []);
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
-  // Check user positions for all delulus when vision tab is active
-  useEffect(() => {
-    // Skip if delulu IDs haven't actually changed
-    const currentIds = delulus
-      .map((d) => d.id)
-      .sort((a, b) => a - b)
-      .join(",");
-    if (prevDeluluIdsRef.current === currentIds && currentIds !== "") {
-      return;
-    }
-    prevDeluluIdsRef.current = currentIds;
-
-    if (
-      activeTab === "vision" &&
-      isConnected &&
-      address &&
-      delulus.length > 0
-    ) {
-      setIsLoadingStaked(true);
-      const checkStakes = async () => {
-        const stakedIds = new Set<number>();
-
-        // Check each delulu to see if user has staked using contract reads
-        // Note: This makes multiple contract calls - in production you'd want to batch these
-        // Create public client once
-        const publicClient = createPublicClient({
-          chain: celo,
-          transport: http(),
-        });
-
-        const checks = delulus.map(async (delulu) => {
-          try {
-            const result = await publicClient.readContract({
-              address: DELULU_CONTRACT_ADDRESS,
-              abi: DELULU_ABI,
-              functionName: "getUserPosition",
-              args: [BigInt(delulu.id), address as `0x${string}`],
-            });
-
-            // Check if user has staked (amount > 0)
-            if (Array.isArray(result)) {
-              const [amount] = result;
-              if (amount > 0n) {
-                stakedIds.add(delulu.id);
-              }
-            } else if (
-              result &&
-              typeof result === "object" &&
-              "amount" in result
-            ) {
-              if ((result as { amount: bigint }).amount > 0n) {
-                stakedIds.add(delulu.id);
-              }
-            }
-          } catch (error) {
-            // Silently fail for individual checks
-            console.error(
-              `Error checking stake for delulu ${delulu.id}:`,
-              error
-            );
-          }
-        });
-
-        await Promise.all(checks);
-        setStakedDeluluIds(stakedIds);
-        setIsLoadingStaked(false);
-      };
-
-      checkStakes();
-    } else if (activeTab !== "vision") {
-      setStakedDeluluIds(new Set());
-      setIsLoadingStaked(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isConnected, address, delulus.length]);
 
   // Filter delulus based on active tab
+  // Note: Backend already returns delulus sorted by createdAt desc (latest first)
   const filteredDelulus = useMemo(() => {
     if (activeTab === "vision") {
-      // For Vision tab, show only delulus where user has staked
+      // For Vision tab, show all delulus the user has staked on (from contract/backend)
       if (!isConnected || !address) {
         return [];
       }
-      return delulus.filter((delulu) => stakedDeluluIds.has(delulu.id));
+      return stakedDelulus;
     } else {
-      // For "For You" tab, show all delulus (randomized)
-      const shuffled = [...delulus].sort(() => Math.random() - 0.5);
-      return shuffled;
+      // For "For You" tab, show all delulus (already sorted by latest first from backend)
+      return delulus;
     }
-  }, [delulus, activeTab, stakedDeluluIds, isConnected, address]);
+  }, [delulus, activeTab, stakedDelulus, isConnected, address]);
 
-  const trendingDelusions = filteredDelulus.slice(0, 5);
 
   if (!isConnected) {
     return <LoginScreen />;
   }
 
   return (
-    <div className="h-screen bg-white overflow-hidden">
+    <div className="h-screen  overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
@@ -196,7 +192,10 @@ export default function HomePage() {
           />
         </div>
 
-        <main className="h-screen lg:border-x border-gray-200 overflow-y-auto">
+        <main 
+          ref={scrollContainerRef}
+          className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide"
+        >
           <div className="lg:hidden">
             <Navbar
               onProfileClick={() => router.push("/profile")}
@@ -239,7 +238,7 @@ export default function HomePage() {
           </div>
 
           <div className="px- lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
-            {isLoading || (activeTab === "vision" && isLoadingStaked) ? (
+            {isLoading || (activeTab === "vision" && isLoadingStakedDelulus) ? (
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <DeluluCardSkeleton key={i} index={i} />
@@ -249,10 +248,10 @@ export default function HomePage() {
               <div className="flex flex-col">
                 {filteredDelulus.map((delusion, index) => {
                   // Use a composite key to ensure uniqueness (id + onChainId)
-                  const uniqueKey = delusion.onChainId 
-                    ? `${delusion.id}-${delusion.onChainId}` 
+                  const uniqueKey = delusion.onChainId
+                    ? `${delusion.id}-${delusion.onChainId}`
                     : `delulu-${delusion.id}-${index}`;
-                  
+
                   return (
                     <DeluluCard
                       key={uniqueKey}
@@ -266,6 +265,22 @@ export default function HomePage() {
                     />
                   );
                 })}
+                {/* Loading indicator for next page */}
+                {isFetchingNextPage && (
+                  <div className="flex flex-col gap-3 mt-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <DeluluCardSkeleton key={`loading-${i}`} index={i} />
+                    ))}
+                  </div>
+                )}
+                {/* End of feed message */}
+                {!hasNextPage && filteredDelulus.length > 0 && activeTab === "fyp" && (
+                  <div className="text-center py-8 mt-4">
+                    <p className="text-gray-500 text-sm">
+                      You&apos;ve reached the end of the feed
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -304,16 +319,6 @@ export default function HomePage() {
         type={howItWorksType}
       />
 
-      <AllDelulusSheet
-        open={allDelulusSheetOpen}
-        onOpenChange={setAllDelulusSheetOpen}
-        delulus={delulus}
-        isLoading={isLoading}
-        onDeluluClick={(delulu) => {
-          router.push(`/delulu/${delulu.id}`);
-        }}
-      />
-
       <StakingSheet
         open={stakingSheetOpen}
         onOpenChange={setStakingSheetOpen}
@@ -327,6 +332,7 @@ export default function HomePage() {
           disconnect();
           useUserStore.getState().logout();
           setLogoutSheetOpen(false);
+          router.push("/");
         }}
       />
 

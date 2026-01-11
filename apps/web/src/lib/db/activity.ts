@@ -50,7 +50,7 @@ export async function getRecentActivity(limit = 20): Promise<ActivityItem[]> {
 
   // Combine and format
   const activities: ActivityItem[] = [
-    ...stakes.map((s) => ({
+    ...stakes.map((s: (typeof stakes)[number]) => ({
       id: s.id,
       type: "stake" as const,
       userAddress: s.user.address,
@@ -62,7 +62,7 @@ export async function getRecentActivity(limit = 20): Promise<ActivityItem[]> {
       side: s.side,
       createdAt: s.createdAt,
     })),
-    ...claims.map((c) => ({
+    ...claims.map((c: (typeof claims)[number]) => ({
       id: c.id,
       type: "claim" as const,
       userAddress: c.user.address,
@@ -74,7 +74,7 @@ export async function getRecentActivity(limit = 20): Promise<ActivityItem[]> {
       side: null,
       createdAt: c.createdAt,
     })),
-    ...creations.map((d) => ({
+    ...creations.map((d: (typeof creations)[number]) => ({
       id: d.id,
       type: "create" as const,
       userAddress: d.creator.address,
@@ -132,7 +132,7 @@ export async function getUserActivity(
   });
 
   const activities: ActivityItem[] = [
-    ...stakes.map((s) => ({
+    ...stakes.map((s: (typeof stakes)[number]) => ({
       id: s.id,
       type: "stake" as const,
       userAddress: address,
@@ -144,7 +144,7 @@ export async function getUserActivity(
       side: s.side,
       createdAt: s.createdAt,
     })),
-    ...claims.map((c) => ({
+    ...claims.map((c: (typeof claims)[number]) => ({
       id: c.id,
       type: "claim" as const,
       userAddress: address,
@@ -156,7 +156,7 @@ export async function getUserActivity(
       side: null,
       createdAt: c.createdAt,
     })),
-    ...creations.map((d) => ({
+    ...creations.map((d: (typeof creations)[number]) => ({
       id: d.id,
       type: "create" as const,
       userAddress: address,

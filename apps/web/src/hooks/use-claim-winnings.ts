@@ -11,35 +11,63 @@ interface ClaimParams {
 
 export function useClaimWinnings() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess, error: receiptError } =
-    useWaitForTransactionReceipt({ hash });
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    data: receipt,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
   const { syncClaim } = useBackendSync();
 
   // Track pending claim for backend sync
   const pendingClaim = useRef<ClaimParams | null>(null);
+  const lastSyncedHash = useRef<string | null>(null);
 
   // Sync to backend after successful transaction
   useEffect(() => {
-    if (isSuccess && hash && pendingClaim.current) {
-      const { deluluId, amount } = pendingClaim.current;
-      syncClaim({ deluluId, amount, txHash: hash });
+    const txHash = receipt?.transactionHash;
+    if (
+      isSuccess &&
+      txHash &&
+      pendingClaim.current &&
+      txHash !== lastSyncedHash.current
+    ) {
+      lastSyncedHash.current = txHash;
+      syncClaim({
+        deluluId: pendingClaim.current.deluluId,
+        amount: pendingClaim.current.amount,
+        txHash: txHash,
+      });
       pendingClaim.current = null;
     }
-  }, [isSuccess, hash, syncClaim]);
+  }, [isSuccess, receipt?.transactionHash, syncClaim]);
 
-  const claim = (deluluId: number, expectedAmount = 0) => {
+  const claim = (deluluId: number, amount: number) => {
     if (!deluluId) return;
+    if (amount <= 0) {
+      console.warn("[useClaimWinnings] Claim amount must be greater than 0");
+      return;
+    }
 
-    // Store for backend sync
-    pendingClaim.current = { deluluId: deluluId.toString(), amount: expectedAmount };
+    pendingClaim.current = {
+      deluluId: deluluId.toString(),
+      amount: amount,
+    };
 
     writeContract({
       address: DELULU_CONTRACT_ADDRESS,
       abi: DELULU_ABI,
       functionName: "claimWinnings",
-      args: [BigInt(deluluId)],
+      args: [deluluId],
     });
   };
 
-  return { claim, hash, isPending, isConfirming, isSuccess, error: error || receiptError };
+  return {
+    claim,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error: error || receiptError,
+  };
 }

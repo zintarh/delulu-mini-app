@@ -1,9 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Heart, MoreHorizontal, CheckCircle, Copy } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import { formatTimeRemaining, cn, getCountryFlag } from "@/lib/utils";
+import { useCancelDelulu } from "@/hooks/use-cancel-delulu";
+import { useResolveDelulu } from "@/hooks/use-resolve-delulu";
+import { useAccount } from "wagmi";
+import { isDeluluCreator } from "@/lib/delulu-utils";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 
 function getCardBackground(delusion: FormattedDelulu): {
   bg: string;
@@ -49,13 +60,35 @@ export function ProfileDeluluCard({
   onResolve,
   className = "",
 }: ProfileDeluluCardProps) {
+  const { address } = useAccount();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showDeadlineNotification, setShowDeadlineNotification] = useState(false);
+  const [resolveOutcome, setResolveOutcome] = useState<boolean | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const {
+    cancel,
+    isPending: isCancelling,
+    isConfirming: isCancellingConfirming,
+    isSuccess: isCancelSuccess,
+    error: cancelError,
+  } = useCancelDelulu();
+  const {
+    resolve,
+    isPending: isResolving,
+    isConfirming: isResolvingConfirming,
+    isSuccess: isResolveSuccess,
+    isBackendSynced: isResolveBackendSynced,
+    isBackendSyncing: isResolveBackendSyncing,
+    error: resolveError,
+  } = useResolveDelulu();
 
-  const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const isDeadlinePassed = new Date() > delusion.stakingDeadline;
   const canResolve =
     isDeadlinePassed && !delusion.isResolved && !delusion.isCancelled;
+  const isCreator = isDeluluCreator(address, delusion);
+  const canCancel = isCreator && !delusion.isResolved && !delusion.isCancelled;
 
   const headlineRaw = delusion.content || delusion.contentHash || "";
   const headline = headlineRaw.trim();
@@ -102,104 +135,6 @@ export function ProfileDeluluCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showShareMenu]);
 
-  const getShareUrl = () => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    return `${baseUrl}/delulu/${delusion.id}`;
-  };
-
-  const getShareText = () => {
-    return `Check out this delulu: ${headline}`;
-  };
-
-  const shareLink = async (
-    platform: "whatsapp" | "twitter" | "instagram" | "native"
-  ) => {
-    const url = getShareUrl();
-    const text = getShareText();
-
-    if (platform === "native" && navigator.share) {
-      try {
-        await navigator.share({
-          title: headline,
-          text: text,
-          url: url,
-        });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    }
-
-    if (platform === "whatsapp") {
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-        `${text} ${url}`
-      )}`;
-      window.open(whatsappUrl, "_blank");
-      return true;
-    }
-
-    if (platform === "twitter") {
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        text
-      )}&url=${encodeURIComponent(url)}`;
-      window.open(twitterUrl, "_blank");
-      return true;
-    }
-
-    if (platform === "instagram") {
-      try {
-        await navigator.clipboard.writeText(url);
-        alert("Link copied! You can paste it in your Instagram story or post.");
-        return true;
-      } catch (err) {
-        console.error("Failed to copy link:", err);
-        return false;
-      }
-    }
-
-    return false;
-  };
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsMenuOpen(false);
-    setShowShareMenu(true);
-  };
-
-  const handleShareWhatsApp = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowShareMenu(false);
-    setIsMenuOpen(false);
-    await shareLink("whatsapp");
-  };
-
-  const handleShareTwitter = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowShareMenu(false);
-    setIsMenuOpen(false);
-    await shareLink("twitter");
-  };
-
-  const handleShareInstagram = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowShareMenu(false);
-    setIsMenuOpen(false);
-    await shareLink("instagram");
-  };
-
-  const handleCopyLink = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = getShareUrl();
-    try {
-      await navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard!");
-    } catch (err) {
-      console.error("Failed to copy link:", err);
-    }
-    setShowShareMenu(false);
-    setIsMenuOpen(false);
-  };
-
   const handleStake = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsMenuOpen(false);
@@ -213,9 +148,92 @@ export function ProfileDeluluCard({
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsMenuOpen(false);
-    if (onResolve) {
-      onResolve();
+    if (delusion.isResolved || delusion.isCancelled) {
+      return;
     }
+    if (!isDeadlinePassed) {
+      setShowDeadlineNotification(true);
+      return;
+    }
+    setShowResolveModal(true);
+  };
+
+  const handleConfirmResolve = async () => {
+    if (!address || resolveOutcome === null) {
+      return;
+    }
+
+    if (delusion.isResolved || delusion.isCancelled) {
+      return;
+    }
+
+    const deluluIdForContract = delusion.onChainId
+      ? parseInt(delusion.onChainId)
+      : delusion.id;
+
+    try {
+      await resolve(deluluIdForContract, resolveOutcome, address);
+    } catch (error) {
+      console.error("[ProfileDeluluCard] Error resolving delulu:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isResolveSuccess && isResolveBackendSynced && showResolveModal) {
+      const timer = setTimeout(() => {
+        setShowResolveModal(false);
+        setResolveOutcome(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isResolveSuccess, isResolveBackendSynced, showResolveModal]);
+
+  const handleResolveModalOpenChange = (open: boolean) => {
+    if (
+      !open &&
+      (isResolving || isResolvingConfirming || isResolveBackendSyncing)
+    ) {
+      return;
+    }
+    if (!open && isResolveSuccess && !isResolveBackendSynced) {
+      return;
+    }
+    setShowResolveModal(open);
+    if (!open) {
+      setResolveOutcome(null);
+    }
+  };
+
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!address || !isCreator) {
+      return;
+    }
+
+    try {
+      const deluluIdForContract = delusion.id;
+      await cancel(deluluIdForContract, address);
+    } catch (error) {
+      console.error("[ProfileDeluluCard] Error cancelling delulu:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isCancelSuccess && showCancelModal) {
+      setShowCancelModal(false);
+    }
+  }, [isCancelSuccess, showCancelModal]);
+
+  const handleModalOpenChange = (open: boolean) => {
+    if (!open && (isCancelling || isCancellingConfirming)) {
+      return;
+    }
+    setShowCancelModal(open);
   };
 
   return (
@@ -247,31 +265,32 @@ export function ProfileDeluluCard({
           )}
         </div>
 
-        <div className="absolute top-2 right-2 z-30" ref={menuRef}>
-          <button
-            onClick={handleMenuToggle}
-            className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-              textColorClass === "text-black"
-                ? "bg-black/20 hover:bg-black/40 text-black"
-                : "bg-white/20 hover:bg-white/40 text-white"
-            )}
-            title="Menu"
-            aria-label="Menu"
-          >
-            <MoreHorizontal className="w-6 h-6" />
-          </button>
+        {!delusion.isResolved && !delusion.isCancelled && (
+          <div className="absolute top-2 right-2 z-30" ref={menuRef}>
+            <button
+              onClick={handleMenuToggle}
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                textColorClass === "text-black"
+                  ? "bg-black/20 hover:bg-black/40 text-black"
+                  : "bg-white/20 hover:bg-white/40 text-white"
+              )}
+              title="Menu"
+              aria-label="Menu"
+            >
+              <MoreHorizontal className="w-6 h-6" />
+            </button>
 
-          {isMenuOpen && (
-            <div className="absolute top-9 right-0 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50">
-              <div className="relative" ref={shareMenuRef}>
+            {isMenuOpen && (
+              <div className="absolute top-9 right-0 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50 min-w-[120px]">
+                {/* <div className="relative" ref={shareMenuRef}>
                 <button
                   onClick={handleShare}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
                   title="Share"
                   aria-label="Share"
                 >
-                  <Send className="w-6 h-6 text-gray-500" />
+                  Share
                 </button>
 
                 {showShareMenu && (
@@ -346,38 +365,47 @@ export function ProfileDeluluCard({
                         className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-gray-50 transition-colors col-span-3 border-t border-gray-200 mt-2 pt-3"
                         title="Copy Link"
                       >
-                        <Copy className="w-5 h-5 text-gray-500" />
                         <span className="text-[10px] font-medium text-delulu-charcoal">
                           Copy Link
                         </span>
                       </button>
                     </div>
                   </div>
+                  )}
+                </div> */}
+
+                {!delusion.isResolved && !delusion.isCancelled && (
+                  <button
+                    onClick={handleResolve}
+                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-200 flex items-center"
+                    title="Resolve"
+                    aria-label="Resolve"
+                  >
+                    Resolve
+                  </button>
+                )}
+                {false && canCancel && (
+                  <button
+                    onClick={handleCancelClick}
+                    disabled={isCancelling || isCancellingConfirming}
+                    className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-gray-50 transition-colors border-t border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    title="Cancel"
+                    aria-label="Cancel"
+                  >
+                    {isCancelling || isCancellingConfirming ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                        Cancelling...
+                      </span>
+                    ) : (
+                      "Cancel"
+                    )}
+                  </button>
                 )}
               </div>
-              {!isDeadlinePassed && (
-                <button
-                  onClick={handleStake}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-gray-50 transition-colors border-t border-gray-200"
-                  title="Stake"
-                  aria-label="Stake"
-                >
-                  <Heart className="w-6 h-6 text-gray-500" />
-                </button>
-              )}
-              {canResolve && (
-                <button
-                  onClick={handleResolve}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-gray-50 transition-colors border-t border-gray-200"
-                  title="Resolve"
-                  aria-label="Resolve"
-                >
-                  <CheckCircle className="w-6 h-6 text-delulu-green" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="absolute inset-3 flex items-center justify-center text-center z-10">
           <div className="bg-white w-fit h-fit rounded-sm py-2 px-2">
@@ -396,23 +424,38 @@ export function ProfileDeluluCard({
           <div
             className={cn(
               "px-2 py-1 rounded-full text-[9px] font-medium flex items-center gap-1",
-              canResolve
+              delusion.isCancelled
+                ? "bg-red-500 text-white"
+                : delusion.isResolved
+                ? "bg-delulu-green text-black"
+                : canResolve
                 ? "bg-delulu-green text-black"
                 : textColorClass === "text-black"
                 ? "bg-black/80 text-white"
                 : "bg-black text-white"
             )}
           >
-            {canResolve ? (
-              <span className="font-semibold">Ready to resolve</span>
-            ) : (
-              <>
-                <span className="opacity-70">Ends in</span>
-                <span className="font-semibold">
-                  {formatTimeRemaining(delusion.stakingDeadline)}
-                </span>
-              </>
-            )}
+            {(() => {
+              if (delusion.isCancelled) {
+                return <span className="font-semibold">Cancelled</span>;
+              }
+              if (delusion.isResolved) {
+                return <span className="font-semibold">Resolved</span>;
+              }
+              if (canResolve) {
+                return <span className="font-semibold">Ready to resolve</span>;
+              }
+              const timeRemaining = formatTimeRemaining(
+                delusion.stakingDeadline
+              );
+              const isEnded = timeRemaining === "Ended";
+              return (
+                <>
+                  {!isEnded && <span className="opacity-70">Ends in</span>}
+                  <span className="font-semibold">{timeRemaining}</span>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -429,6 +472,201 @@ export function ProfileDeluluCard({
           </span>
         </div>
       </div>
+
+      <Modal open={showCancelModal} onOpenChange={handleModalOpenChange}>
+        <ModalContent className="max-w-md">
+          <ModalHeader>
+            <ModalTitle className="text-delulu-charcoal text-xl font-bold">
+              Cancel Delulu
+            </ModalTitle>
+          </ModalHeader>
+          <div className="mt-4 space-y-4">
+            {!isCancelSuccess && !cancelError && (
+              <p className="text-gray-600">
+                Are you sure you want to cancel this delulu? This action cannot
+                be undone.
+              </p>
+            )}
+            {isCancelSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">
+                  ✓ Delulu cancelled successfully!
+                </p>
+              </div>
+            )}
+            {cancelError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">
+                  {cancelError instanceof Error
+                    ? cancelError.message
+                    : "Transaction failed"}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => handleModalOpenChange(false)}
+                disabled={isCancelling || isCancellingConfirming}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                No, Keep It
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={isCancelling || isCancellingConfirming}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCancelling || isCancellingConfirming ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel"
+                )}
+              </button>
+            </div>
+          </div>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        open={showResolveModal}
+        onOpenChange={handleResolveModalOpenChange}
+      >
+        <ModalContent className="max-w-md">
+          <ModalHeader>
+            <ModalTitle className="text-delulu-charcoal text-xl font-bold">
+              Resolve Delulu
+            </ModalTitle>
+          </ModalHeader>
+          <div className="mt-4 space-y-4">
+            {!isResolveSuccess && !resolveError && resolveOutcome === null && (
+              <div className="space-y-3">
+                <p className="text-gray-600">
+                  Select the outcome for this delulu:
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setResolveOutcome(true)}
+                    className="p-4 rounded-lg border-2 border-gray-200 hover:border-delulu-green hover:bg-delulu-green/5 transition-colors text-left"
+                  >
+                    <div className="font-semibold text-delulu-charcoal mb-1">
+                      Believers Win
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      The delulu came true
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setResolveOutcome(false)}
+                    className="p-4 rounded-lg border-2 border-gray-200 hover:border-red-500 hover:bg-red-50 transition-colors text-left"
+                  >
+                    <div className="font-semibold text-delulu-charcoal mb-1">
+                      Doubters Win
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      The delulu did not come true
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+            {!isResolveSuccess && !resolveError && resolveOutcome !== null && (
+              <p className="text-gray-600">
+                Are you sure you want to resolve this delulu as{" "}
+                <span className="font-semibold">
+                  {resolveOutcome ? "Believers Win" : "Doubters Win"}
+                </span>
+                ? This action cannot be undone.
+              </p>
+            )}
+            {isResolveSuccess && isResolveBackendSynced && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">
+                  ✓ Delulu resolved successfully!
+                </p>
+              </div>
+            )}
+            {resolveError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">
+                  {resolveError instanceof Error
+                    ? resolveError.message
+                    : "Transaction failed"}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => handleResolveModalOpenChange(false)}
+                disabled={
+                  isResolving ||
+                  isResolvingConfirming ||
+                  isResolveBackendSyncing
+                }
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resolveOutcome === null ? "Cancel" : "Back"}
+              </button>
+              {resolveOutcome !== null && (
+                <button
+                  onClick={handleConfirmResolve}
+                  disabled={
+                    isResolving ||
+                    isResolvingConfirming ||
+                    isResolveBackendSyncing ||
+                    isResolveSuccess ||
+                    resolveOutcome === null ||
+                    delusion.isResolved ||
+                    delusion.isCancelled
+                  }
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-delulu-charcoal bg-delulu-yellow-reserved hover:bg-delulu-yellow-reserved/90 rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isResolving || isResolvingConfirming ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-delulu-charcoal border-t-transparent rounded-full animate-spin" />
+                      Resolving...
+                    </>
+                  ) : isResolveBackendSyncing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-delulu-charcoal border-t-transparent rounded-full animate-spin" />
+                      Syncing...
+                    </>
+                  ) : isResolveSuccess && isResolveBackendSynced ? (
+                    "Done"
+                  ) : (
+                    "Confirm Resolve"
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </ModalContent>
+      </Modal>
+
+      <ResponsiveSheet
+        open={showDeadlineNotification}
+        onOpenChange={setShowDeadlineNotification}
+        sheetClassName="border-t border-gray-200 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[80] rounded-t-3xl bg-white"
+      >
+        <div className="px-6 py-8">
+          <div className="text-center">
+            <h3 className="text-lg font-black text-delulu-charcoal mb-3">
+              Not Ready Yet
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              You can resolve this delulu after the staking deadline has passed.
+            </p>
+            <button
+              onClick={() => setShowDeadlineNotification(false)}
+              className="w-full px-4 py-3 text-sm font-medium text-delulu-charcoal bg-delulu-yellow-reserved hover:bg-delulu-yellow-reserved/90 rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </ResponsiveSheet>
     </div>
   );
 }

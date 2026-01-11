@@ -182,6 +182,10 @@ export function useBackendSync() {
         queryClient.invalidateQueries({ queryKey: queryKeys.users.stakedDelulus(address) });
         queryClient.invalidateQueries({ queryKey: queryKeys.users.stakes(address) });
         queryClient.invalidateQueries({ queryKey: ["activity"] });
+        // Invalidate delulu-stakes query for the specific delulu
+        queryClient.invalidateQueries({ queryKey: ["delulu-stakes", data.deluluId] });
+        // Also invalidate the delulu data to refresh stats
+        queryClient.invalidateQueries({ queryKey: ["delulu", data.deluluId] });
         
         return result;
       } catch (error) {

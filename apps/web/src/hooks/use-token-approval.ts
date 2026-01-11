@@ -53,12 +53,10 @@ export function useTokenApproval() {
     if (!tokenAddress) {
       throw new Error("Token address not available");
     }
-    if (isNaN(amount) || amount <= 0) {
+    if (!isFinite(amount) || isNaN(amount) || amount <= 0) {
       throw new Error("Invalid amount");
     }
     
-    // Approve a slightly larger amount to account for any rounding or future transactions
-    // This prevents needing to approve again for small additional stakes
     const bufferMultiplier = 1.1; // 10% buffer
     const amountWithBuffer = amount * bufferMultiplier;
     const amountWei = parseUnits(amountWithBuffer.toString(), 18);

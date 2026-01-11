@@ -1,33 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 import { queryKeys, fetchDelulus, type ApiDelulu } from "@/lib/api/fetchers";
-
-export interface GatekeeperConfig {
-  enabled: boolean;
-  type: "country";
-  value: string;
-  label: string;
-}
-
-export interface FormattedDelulu {
-  id: number;
-  onChainId?: string;
-  creator: string;
-  contentHash: string;
-  content?: string;
-  username?: string;
-  pfpUrl?: string;
-  createdAt?: Date;
-  gatekeeper?: GatekeeperConfig;
-  bgImageUrl?: string;
-  stakingDeadline: Date;
-  resolutionDeadline: Date;
-  totalBelieverStake: number;
-  totalDoubterStake: number;
-  totalStake: number;
-  outcome: boolean;
-  isResolved: boolean;
-  isCancelled: boolean;
-}
+import type { FormattedDelulu } from "./use-delulus";
 
 // Transform backend API response to FormattedDelulu
 function transformApiDelulu(d: ApiDelulu): FormattedDelulu {
@@ -35,11 +9,8 @@ function transformApiDelulu(d: ApiDelulu): FormattedDelulu {
   const doubterStake = d.totalDoubterStake ?? 0;
 
   return {
-    // Parse onChainId if it exists and is not empty, otherwise fallback to parsing DB id
-    // Note: onChainId should always be present for synced delulus, but may be missing for unsynced ones
-    id: (d.onChainId && d.onChainId.trim() !== "") ? parseInt(d.onChainId) : (parseInt(d.id) || 0),
-    // Preserve onChainId as string if it exists and is not empty, otherwise undefined
-    onChainId: (d.onChainId && d.onChainId.trim() !== "") ? d.onChainId : undefined,
+    id: parseInt(d.onChainId) || parseInt(d.id) || 0,
+    onChainId: d.onChainId,
     creator: d.creatorAddress,
     contentHash: d.contentHash,
     content: d.content ?? undefined,
@@ -68,43 +39,53 @@ function transformApiDelulu(d: ApiDelulu): FormattedDelulu {
 
 const PAGE_SIZE = 10;
 
-export function useDelulus() {
+type DeluluStatus = "ongoing" | "past";
+
+export function useUserDelulus(status: DeluluStatus = "ongoing") {
+  const { address, isConnected } = useAccount();
   const queryClient = useQueryClient();
 
   const query = useInfiniteQuery({
-    queryKey: queryKeys.delulus.list({
-      limit: PAGE_SIZE,
-      includeResolved: false,
-    }),
+    queryKey: ["user-delulus", address, status],
     queryFn: async ({
       pageParam,
     }): Promise<{ data: FormattedDelulu[]; nextCursor: string | null }> => {
+      if (!address) {
+        return { data: [], nextCursor: null };
+      }
+
       const response = await fetchDelulus({
         limit: PAGE_SIZE,
         cursor: pageParam,
-        includeResolved: false,
+        creator: address,
+        includeResolved: true, // Get all delulus (resolved and unresolved)
       });
 
-      const transformed = response.data
-        .filter((d) => !d.isCancelled)
-        .map(transformApiDelulu);
+      const transformed = response.data.map(transformApiDelulu);
 
-      // Deduplicate by onChainId (most reliable unique identifier)
+      // Filter by status
+      const filtered = transformed.filter((d) => {
+        if (status === "ongoing") {
+          // Ongoing: not resolved and not cancelled
+          return !d.isResolved && !d.isCancelled;
+        } else {
+          // Past: resolved or cancelled
+          return d.isResolved || d.isCancelled;
+        }
+      });
+
+      // Deduplicate by onChainId
       const seenOnChainIds = new Set<string>();
-      const uniqueDelulus = transformed.filter((d) => {
-        // Use onChainId as the unique identifier, fallback to id
+      const uniqueDelulus = filtered.filter((d) => {
         const uniqueId = d.onChainId || `db-${d.id}`;
         if (seenOnChainIds.has(uniqueId)) {
-          console.warn(
-            `Duplicate delulu detected: id=${d.id}, onChainId=${d.onChainId}`
-          );
           return false;
         }
         seenOnChainIds.add(uniqueId);
         return true;
       });
 
-      // Backend already sorts by createdAt desc, but ensure consistency
+      // Sort by latest first
       const sorted = uniqueDelulus.sort((a, b) => {
         if (a.createdAt && b.createdAt) {
           return b.createdAt.getTime() - a.createdAt.getTime();
@@ -119,11 +100,14 @@ export function useDelulus() {
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    staleTime: 30 * 1000, // 30 seconds for feed freshness
+    enabled: isConnected && !!address,
+    staleTime: 30 * 1000, // 30 seconds
   });
 
+  // Flatten all pages
   const allDelulus = query.data?.pages.flatMap((page) => page.data) ?? [];
 
+  // Deduplicate across all pages
   const seenOnChainIds = new Set<string>();
   const deduplicatedDelulus = allDelulus.filter((d) => {
     const uniqueId = d.onChainId || `db-${d.id}`;
@@ -148,3 +132,4 @@ export function useDelulus() {
     refetch,
   };
 }
+

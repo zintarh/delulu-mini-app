@@ -6,6 +6,7 @@ import { FormattedDelulu } from "@/hooks/use-delulus";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useUserPosition } from "@/hooks/use-user-position";
 import { StakeSuccessSheet } from "@/components/stake-success-sheet";
 import { StakeErrorSheet } from "@/components/stake-error-sheet";
 import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -37,6 +38,7 @@ export function StakingSheet({
   const cusdBalance = cusdBalanceData
     ? parseFloat(cusdBalanceData.formatted)
     : null;
+
   const {
     approve,
     needsApproval,
@@ -44,6 +46,7 @@ export function StakingSheet({
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     error: approvalError,
+    refetchAllowance,
   } = useTokenApproval();
 
   const {
@@ -53,6 +56,11 @@ export function StakingSheet({
     isSuccess: isStakeSuccess,
     error: stakeError,
   } = useStake();
+
+  // Check if user has already staked on this delulu
+  const { hasStaked, isLoading: isLoadingPosition } = useUserPosition(
+    delulu?.id || null
+  );
 
   // Reset form when sheet opens or closes
   useEffect(() => {
@@ -87,18 +95,6 @@ export function StakingSheet({
   // Handle errors
   useEffect(() => {
     if (stakeError) {
-      console.error("[StakingSheet] Stake error:", {
-        error: stakeError,
-        errorType: stakeError?.constructor?.name,
-        errorCode: (stakeError as any)?.code,
-        errorMessage: stakeError?.message,
-        errorShortMessage: (stakeError as any)?.shortMessage,
-        errorData: (stakeError as any)?.data,
-        errorCause: (stakeError as any)?.cause,
-        stack: (stakeError as any)?.stack,
-        deluluId: delulu?.id,
-      });
-
       let errorMsg = "Failed to stake";
       if (stakeError.message) {
         const errorLower = stakeError.message.toLowerCase();
@@ -131,15 +127,6 @@ export function StakingSheet({
 
   useEffect(() => {
     if (approvalError) {
-      console.error("[StakingSheet] Approval error:", {
-        error: approvalError,
-        errorType: approvalError?.constructor?.name,
-        errorCode: (approvalError as any)?.code,
-        errorMessage: approvalError?.message,
-        errorShortMessage: (approvalError as any)?.shortMessage,
-        errorData: (approvalError as any)?.data,
-      });
-
       let errorMsg = "Approval failed";
       if (approvalError.message) {
         const errorLower = approvalError.message.toLowerCase();
@@ -168,6 +155,33 @@ export function StakingSheet({
       return;
     }
 
+    // Check if user has already staked
+    if (hasStaked) {
+      setErrorMessage("You have already staked on this delulu");
+      setShowErrorModal(true);
+      return;
+    }
+
+    
+    const deluluId = delulu.id;
+    if (!deluluId || isNaN(deluluId) || deluluId <= 0) {
+      console.error("[StakingSheet] Invalid delulu ID:", {
+        id: delulu.id,
+        onChainId: delulu.onChainId,
+      });
+      setErrorMessage("Invalid delulu ID. Please refresh and try again.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Warn if onChainId is missing but id is set (might indicate sync issue)
+    if (!delulu.onChainId && delulu.id > 0) {
+      console.warn("[StakingSheet] onChainId is undefined but id is set:", {
+        id: delulu.id,
+        onChainId: delulu.onChainId,
+      });
+    }
+
     const amount = parseFloat(stakeAmount);
     if (isNaN(amount) || amount <= 0) {
       console.error("[StakingSheet] Invalid amount:", stakeAmount);
@@ -194,31 +208,19 @@ export function StakingSheet({
     }
 
     try {
-      console.log("[StakingSheet] Starting stake flow:", {
-        deluluId: delulu.id,
-        amount,
-        side: side === "believe",
-        needsApproval: needsApproval(amount),
-        isApprovalSuccess,
-      });
-
       const isBeliever = side === "believe";
-
-      // If approval succeeded, proceed with staking
-      if (isApprovalSuccess) {
-        console.log(
-          "[StakingSheet] Approval already succeeded, proceeding to stake"
-        );
-        await stake(delulu.id, amount, isBeliever);
-      } else if (needsApproval(amount)) {
-        // First step: approve
-        console.log("[StakingSheet] Approval needed, requesting approval");
-        await approve(amount);
-      } else {
-        // No approval needed, stake directly
-        console.log("[StakingSheet] No approval needed, staking directly");
-        await stake(delulu.id, amount, isBeliever);
+      if (needsApproval(amount)) {
+        if (!isApprovalSuccess) {
+          // Request approval - user must click stake again after approval
+          console.log("[StakingSheet] Approval needed, requesting approval");
+          await approve(amount);
+          // Refetch allowance to update UI
+          refetchAllowance();
+          return; // Exit - user must click stake again after approval
+        }
       }
+
+      await stake(deluluId, amount, isBeliever);
     } catch (error) {
       console.error("[StakingSheet] Error in handleStake:", error);
       setErrorMessage(
@@ -232,7 +234,11 @@ export function StakingSheet({
 
   const isCreator = isDeluluCreator(address, delulu);
   const isLoading =
-    isApproving || isApprovingConfirming || isStaking || isStakingConfirming;
+    isApproving ||
+    isApprovingConfirming ||
+    isStaking ||
+    isStakingConfirming ||
+    isLoadingPosition;
   const stakeAmountNum = stakeAmount ? parseFloat(stakeAmount) : 0;
 
   // Validation errors - show error for invalid amounts (including < 1)
@@ -255,26 +261,15 @@ export function StakingSheet({
     stakeAmount &&
     stakeAmountNum >= 1 &&
     !isCreator &&
-    !validationError;
-
-  const needsApprovalStep = (() => {
-    if (!delulu || !stakeAmount) return false;
-    const amount = parseFloat(stakeAmount);
-    if (isNaN(amount) || amount <= 0) return false;
-    try {
-      return needsApproval(amount);
-    } catch (error) {
-      console.warn("[StakingSheet] Error checking approval:", error);
-      return false;
-    }
-  })();
+    !validationError &&
+    !hasStaked;
 
   if (!delulu) return null;
 
   const isBeliever = side === "believe";
   const ButtonIcon = isBeliever ? ThumbsUp : ThumbsDown;
   const description = isBeliever
-    ? "Stake your belief in this delulu. If it comes true, you'll share in the rewards."
+    ? "Stake your belief in this delulu. If it comes true, you'll share in the rewards"
     : "Stake your doubt in this delulu. If it doesn't come true, you'll share in the rewards.";
 
   return (
@@ -287,126 +282,149 @@ export function StakingSheet({
         modalClassName="max-w-lg"
       >
         <div className="max-w-lg mx-auto pt-8 pb-8 px-6 lg:pt-6">
-          {/* Segmented Control - Text Labels */}
-          <div className="flex items-center justify-center gap-1 mb-6">
-            <button
-              type="button"
-              onClick={() => setSide("believe")}
-              className={cn(
-                "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
-                side === "believe"
-                  ? "bg-gray-200 text-delulu-charcoal"
-                  : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
-              )}
-              aria-label="Believe"
-            >
-              Believe
-            </button>
-            <button
-              type="button"
-              onClick={() => setSide("doubt")}
-              className={cn(
-                "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
-                side === "doubt"
-                  ? "bg-gray-200 text-delulu-charcoal"
-                  : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
-              )}
-              aria-label="Doubt"
-            >
-              Doubt
-            </button>
-          </div>
-
-          <p className="text-sm text-gray-500 mb-6">{description}</p>
-
-          {/* Input Section - DeFi Style */}
-          <div className="mb-6">
-            <div
-              className={cn(
-                "bg-gray-50 rounded-2xl p-4 border transition-colors",
-                hasInputError ? "border-red-400" : "border-gray-200",
-                isBeliever && !hasInputError ? "border-delulu-charcoal/30" : ""
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-500">Amount</span>
-                {cusdBalance !== null && (
-                  <span className="text-xs text-gray-500">
-                    Balance: {cusdBalance.toFixed(2)} cUSD
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <input
-                  type="number"
-                  value={stakeAmount}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setStakeAmount(value);
-                    if (showErrorModal) {
-                      setShowErrorModal(false);
-                      setErrorMessage("");
-                    }
-                  }}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  className={cn(
-                    "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
-                    hasInputError ? "text-red-500" : "text-delulu-charcoal"
-                  )}
-                  disabled={isLoading}
-                />
+          {/* Show message if user has already staked */}
+          {hasStaked ? (
+            <div className="text-center py-8">
+              <p className="text-lg font-bold text-delulu-charcoal mb-2">
+                You&apos;ve already staked on this delulu
+              </p>
+              <p className="text-sm text-gray-500">
+                You can only stake once per delulu
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Segmented Control - Text Labels */}
+              <div className="flex items-center justify-center gap-1 mb-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (cusdBalance !== null) {
-                      setStakeAmount(cusdBalance.toFixed(2));
-                    }
-                  }}
-                  disabled={isLoading || isCreator || cusdBalance === null}
-                  className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setSide("believe")}
+                  className={cn(
+                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
+                    side === "believe"
+                      ? "bg-gray-200 text-delulu-charcoal"
+                      : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
+                  )}
+                  aria-label="Believe"
                 >
-                  MAX
+                  Believe
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSide("doubt")}
+                  className={cn(
+                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
+                    side === "doubt"
+                      ? "bg-gray-200 text-delulu-charcoal"
+                      : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
+                  )}
+                  aria-label="Doubt"
+                >
+                  Doubt
                 </button>
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-gray-500">cUSD</span>
-              </div>
-            </div>
-          </div>
 
-          <button
-            onClick={handleStake}
-            disabled={!canStake || isLoading}
-            className={cn(
-              "w-full py-3 font-bold text-sm transition-all rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-              canStake && !isLoading
-                ? isBeliever
-                  ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
-                  : "bg-gray-200 text-delulu-charcoal hover:bg-gray-300"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
-            )}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {isApproving || isApprovingConfirming
-                  ? "Approving..."
-                  : "Staking..."}
-              </span>
-            ) : isApprovalSuccess ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5" />
-                Continue
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                <ButtonIcon className="w-5 h-5" />
-                {isBeliever ? "Believe" : "Doubt"}
-              </span>
-            )}
-          </button>
+              <p className="text-sm text-gray-500 mb-6">{description}</p>
+
+              {/* Input Section - DeFi Style */}
+              <div className="mb-6">
+                <div
+                  className={cn(
+                    "bg-gray-50 rounded-2xl p-4 border transition-colors",
+                    hasInputError ? "border-red-400" : "border-gray-200",
+                    isBeliever && !hasInputError
+                      ? "border-delulu-charcoal/30"
+                      : ""
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500">Amount</span>
+                    {cusdBalance !== null && (
+                      <span className="text-xs text-gray-500">
+                        Balance: {cusdBalance.toFixed(2)} cUSD
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <input
+                      type="number"
+                      value={stakeAmount}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setStakeAmount(value);
+                        if (showErrorModal) {
+                          setShowErrorModal(false);
+                          setErrorMessage("");
+                        }
+                      }}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={cn(
+                        "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
+                        hasInputError ? "text-red-500" : "text-delulu-charcoal"
+                      )}
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cusdBalance !== null) {
+                          setStakeAmount(cusdBalance.toFixed(2));
+                        }
+                      }}
+                      disabled={isLoading || isCreator || cusdBalance === null}
+                      className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">cUSD</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (canStake && !isLoading) {
+                    handleStake();
+                  }
+                }}
+                disabled={!canStake || isLoading}
+                className={cn(
+                  "w-full py-3 font-bold text-sm transition-all rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                  canStake && !isLoading
+                    ? isBeliever
+                      ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] cursor-pointer"
+                      : "bg-gray-200 text-delulu-charcoal hover:bg-gray-300 active:scale-[0.98] cursor-pointer"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
+                )}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    {isApproving || isApprovingConfirming
+                      ? "Approving..."
+                      : "Staking..."}
+                  </span>
+                ) : isApprovalSuccess ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5" />
+                    Continue
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <ButtonIcon className="w-5 h-5" />
+                    {isBeliever ? "Believe" : "Doubt"}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </ResponsiveSheet>
 

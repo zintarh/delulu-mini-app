@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload, Heart, CircleDollarSign, Copy } from "lucide-react";
+import { Upload, CircleDollarSign, Copy } from "lucide-react";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import {
   formatTimeRemaining,
@@ -43,7 +43,7 @@ function getCardBackground(delusion: FormattedDelulu): {
     ) {
       return {
         bg: `url(${delusion.bgImageUrl})`,
-        text: "text-white", // Default to white text for images
+        text: "text-white", 
         isImage: true,
       };
     }
@@ -136,7 +136,7 @@ export function DeluluCard({
   };
 
   const shareLink = async (
-    platform: "whatsapp" | "twitter" | "instagram" | "native"
+    platform: "whatsapp" | "twitter" | "native"
   ) => {
     const url = getShareUrl();
     const text = getShareText();
@@ -171,45 +171,31 @@ export function DeluluCard({
       return true;
     }
 
-    if (platform === "instagram") {
-      // Instagram doesn't support direct link sharing, so we'll just copy the link
-      try {
-        await navigator.clipboard.writeText(url);
-        alert("Link copied! You can paste it in your Instagram story or post.");
-        return true;
-      } catch (err) {
-        console.error("Failed to copy link:", err);
-        return false;
-      }
-    }
-
     return false;
   };
 
   const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setShowShareMenu(!showShareMenu);
   };
 
   const handleShareWhatsApp = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setShowShareMenu(false);
     await shareLink("whatsapp");
   };
 
   const handleShareTwitter = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setShowShareMenu(false);
     await shareLink("twitter");
   };
 
-  const handleShareInstagram = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowShareMenu(false);
-    await shareLink("instagram");
-  };
-
   const handleCopyLink = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     const url = getShareUrl();
     try {
@@ -222,6 +208,7 @@ export function DeluluCard({
   };
 
   const handleStake = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (onStake) {
       onStake();
@@ -255,10 +242,10 @@ export function DeluluCard({
           <img
             src={delusion.pfpUrl}
             alt={delusion.username || delusion.creator}
-            className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+            className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
             <span className="text-[10px] font-bold text-delulu-charcoal">
               {formatAddress(delusion.creator).slice(0, 2).toUpperCase()}
             </span>
@@ -266,13 +253,13 @@ export function DeluluCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-delulu-charcoal">
+            <span className="text-sm font-bold text-delulu-charcoal">
               {delusion.username
                 ? `@${delusion.username}`
                 : formatAddress(delusion.creator)}
             </span>
-            <span className="text-[10px] text-gray-400">·</span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-400">·</span>
+            <span className="text-xs text-gray-400">
               {formatTimeAgo(
                 delusion.createdAt ||
                   new Date(
@@ -353,15 +340,31 @@ export function DeluluCard({
           <div
             className={cn(
               "px-3 py-1 rounded-full text-[11px] font-medium flex items-center gap-1",
-              textColorClass === "text-black"
+              delusion.isCancelled
+                ? "bg-red-500 text-white"
+                : delusion.isResolved
+                ? "bg-delulu-green text-black"
+                : textColorClass === "text-black"
                 ? "bg-black/80 text-white"
                 : "bg-black text-white"
             )}
           >
-            <span className="opacity-70">Ends in</span>
-            <span className="font-semibold">
-              {formatTimeRemaining(delusion.stakingDeadline)}
-            </span>
+            {(() => {
+              if (delusion.isCancelled) {
+                return <span className="font-semibold">Cancelled</span>;
+              }
+              if (delusion.isResolved) {
+                return <span className="font-semibold">Resolved</span>;
+              }
+              const timeRemaining = formatTimeRemaining(delusion.stakingDeadline);
+              const isEnded = timeRemaining === "Ended";
+              return (
+                <>
+                  {!isEnded && <span className="opacity-70">Ends in</span>}
+                  <span className="font-semibold">{timeRemaining}</span>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -381,7 +384,13 @@ export function DeluluCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-1">
+      <div 
+        className="flex items-center justify-between pt-1"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <div className="relative" ref={shareMenuRef}>
           <button
             onClick={handleShareClick}
@@ -423,37 +432,8 @@ export function DeluluCard({
                   </span>
                 </button>
                 <button
-                  onClick={handleShareInstagram}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  title="Share to Instagram"
-                >
-                  <svg
-                    className="w-7 h-7"
-                    viewBox="0 0 24 24"
-                    fill="url(#instagram-gradient-delulu-card)"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="instagram-gradient-delulu-card"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop offset="0%" stopColor="#833AB4" />
-                        <stop offset="50%" stopColor="#FD1D1D" />
-                        <stop offset="100%" stopColor="#FCB045" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                  </svg>
-                  <span className="text-[10px] font-medium text-delulu-charcoal">
-                    Instagram
-                  </span>
-                </button>
-                <button
                   onClick={handleCopyLink}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-gray-50 transition-colors col-span-3 border-t border-gray-200 mt-2 pt-3"
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                   title="Copy Link"
                 >
                   <Copy className="w-5 h-5 text-gray-500" />
@@ -465,13 +445,16 @@ export function DeluluCard({
             </div>
           )}
         </div>
-        <button
-          onClick={handleStake}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
-          aria-label="Stake"
-        >
-          <CircleDollarSign className="w-6 h-6" />
-        </button>
+        {/* Hide staking button if delulu is cancelled or resolved */}
+        {!delusion.isCancelled && !delusion.isResolved && (
+          <button
+            onClick={handleStake}
+            className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+            aria-label="Stake"
+          >
+            <CircleDollarSign className="w-6 h-6" />
+          </button>
+        )}
       </div>
       {!isLast && <div className="border-b border-gray-200 mt-2" />}
     </>

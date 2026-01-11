@@ -55,7 +55,7 @@ export function useSingleDelulu(deluluId: string | number | null) {
       totalBelieverStake: apiDelulu.totalBelieverStake,
       totalDoubterStake: apiDelulu.totalDoubterStake,
       totalStake: apiDelulu.totalStake,
-      outcome: apiDelulu.outcome,
+      outcome: apiDelulu.outcome ?? false,
       isResolved: apiDelulu.isResolved,
       isCancelled: apiDelulu.isCancelled,
       username: apiDelulu.creator?.username,
@@ -63,9 +63,9 @@ export function useSingleDelulu(deluluId: string | number | null) {
       bgImageUrl: apiDelulu.bgImageUrl,
       gatekeeper: apiDelulu.gatekeeperEnabled ? {
         enabled: true,
-        type: apiDelulu.gatekeeperType,
-        value: apiDelulu.gatekeeperValue,
-        label: apiDelulu.gatekeeperLabel,
+        type: (apiDelulu.gatekeeperType ?? "country") as "country",
+        value: apiDelulu.gatekeeperValue ?? "",
+        label: apiDelulu.gatekeeperLabel ?? "",
       } : undefined,
       createdAt: new Date(apiDelulu.createdAt),
     };

@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, X, Upload, DollarSign } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
-import { useAccount } from "wagmi";
-import { useRouter } from "next/navigation";
-import { parseUnits } from "viem";
 import { FeedbackModal } from "@/components/feedback-modal";
-import { DatePicker } from "@/components/date-picker";
+// import { DatePicker } from "@/components/date-picker";
 import { Slider } from "@/components/slider";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -16,6 +13,19 @@ import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
 import { GatekeeperStep } from "@/components/create/gatekeeper-step";
+import {
+  MAX_DELULU_LENGTH,
+  MIN_STAKE,
+  MAX_STAKE,
+  getDefaultDeadline,
+  validateDeluluInputs,
+  clampStakeValue,
+  calculateMaxStakeValue,
+  getErrorMessage,
+  checkAllowanceWithRetry,
+  getProgressStep,
+  getOrigin,
+} from "@/lib/create-delulu-helpers";
 
 interface CreateDelusionContentProps {
   onClose: () => void;
@@ -47,14 +57,13 @@ const TEMPLATES = [
 
 type Step = "gallery" | "customize" | "duration" | "stake" | "submit";
 
-const MAX_DELULU_LENGTH = 140;
-const MIN_STAKE = 1;
-const MAX_STAKE = 1000;
-
 export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
-  const { isConnected } = useAccount();
-  const router = useRouter();
   const { user } = useUserStore();
+
+  // Validate user exists
+  if (!user) {
+    console.warn("[CreateDelusionContent] User not authenticated");
+  }
 
   // Step management
   const [step, setStep] = useState<Step>("gallery");
@@ -71,6 +80,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     deadline: Date;
     finalImageUrl: string;
   } | null>(null);
+
   const [isWaitingForApproval, setIsWaitingForApproval] = useState(false);
 
   // Form state
@@ -79,27 +89,12 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [inputText, setInputText] = useState<string>("1.0");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
 
-  // Date helpers
-  const getDefaultDeadline = () => {
+  const [deadline, setDeadline] = useState<Date>(() => {
     const date = new Date();
-    date.setDate(date.getDate() + 7);
-    date.setHours(12, 0, 0, 0);
+    date.setMinutes(date.getMinutes() + 60); // Default to 60 minutes
     return date;
-  };
-
-  const getMinDeadline = () => {
-    const date = new Date();
-    date.setHours(date.getHours() + 24);
-    return date;
-  };
-
-  const getMaxDeadline = () => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
-    return date;
-  };
-
-  const [deadline, setDeadline] = useState<Date>(getDefaultDeadline());
+  });
+  const [selectedDuration, setSelectedDuration] = useState<number>(60);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -109,13 +104,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const {
     createDelulu,
     isPending: isCreating,
-    isConfirming,
     isSuccess,
-    error: createError,
-    backendSyncStatus,
-    backendSyncError,
-    isBackendSyncing,
-    isFullyComplete,
+    isError,
+    errorMessage: createErrorMessage,
+    isConfirming,
   } = useCreateDelulu();
 
   const {
@@ -125,107 +117,53 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     refetchAllowance,
-    isLoadingAllowance,
   } = useTokenApproval();
 
-  const { balance: cusdBalance, isLoading: isLoadingBalance } =
-    useCUSDBalance();
+  const { balance: cusdBalance } = useCUSDBalance();
 
   // Effects
   useEffect(() => {
-    if (isFullyComplete) {
+    if (isSuccess) {
       setShowSuccessModal(true);
     }
-  }, [isFullyComplete]);
+  }, [isSuccess]);
 
   useEffect(() => {
-    if (backendSyncStatus === "failed" && backendSyncError) {
-      setErrorMessage(
-        `Transaction succeeded but backend sync failed: ${backendSyncError}. Your delulu is on-chain but may not appear in the feed.`
-      );
+    if (isError && createErrorMessage) {
+      const friendlyMessage = getErrorMessage(new Error(createErrorMessage));
+      setErrorMessage(friendlyMessage);
       setShowErrorModal(true);
     }
-  }, [backendSyncStatus, backendSyncError]);
+  }, [isError, createErrorMessage]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    if (createError) {
-      setErrorMessage(createError.message || "Failed to create delusion");
-      setShowErrorModal(true);
-    }
-  }, [createError]);
+    return () => {
+      setPendingCreation(null);
+      setIsWaitingForApproval(false);
+      approvalProcessingRef.current = false;
+    };
+  }, []);
 
-  // After approval succeeds, wait for allowance to update then proceed with creation
+  // After approval succeeds, clear the waiting state so user can manually click "Manifest" to create
+  // NO AUTO-TRIGGER - user must click "Manifest" button themselves
   useEffect(() => {
-    if (isApprovalSuccess && pendingCreation && !approvalProcessingRef.current) {
-      // Prevent duplicate execution
-      approvalProcessingRef.current = true;
-      setIsWaitingForApproval(true);
-      
-      // Poll for allowance update instead of fixed delay
-      const checkAllowance = async () => {
-        let attempts = 0;
-        const maxAttempts = 10; // 5 seconds max (500ms * 10)
-        
-        const poll = async () => {
-          const result = await refetchAllowance();
-          attempts++;
-          
-          if (result.data) {
-            const amountWei = parseUnits(stakeAmount.toString(), 18);
-            if (result.data >= amountWei) {
-              // Allowance is sufficient, proceed with creation
-              createDelulu(
-                delusionText,
-                pendingCreation.deadline,
-                stakeAmount,
-                user?.username,
-                user?.pfpUrl,
-                gatekeeper,
-                pendingCreation.finalImageUrl
-              );
-              setPendingCreation(null);
-              setIsWaitingForApproval(false);
-              approvalProcessingRef.current = false;
-              return;
-            }
-          }
-          
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 500); // Check every 500ms
-          } else {
-            // Timeout - proceed anyway (allowance should be updated by now)
-            createDelulu(
-              delusionText,
-              pendingCreation.deadline,
-              stakeAmount,
-              user?.username,
-              user?.pfpUrl,
-              gatekeeper,
-              pendingCreation.finalImageUrl
-            );
-            setPendingCreation(null);
-            setIsWaitingForApproval(false);
-            approvalProcessingRef.current = false;
-          }
-        };
-        
-        // Start polling after a brief initial delay
-        setTimeout(poll, 300);
-      };
-      
-      checkAllowance();
+    if (isApprovalSuccess && pendingCreation) {
+      // Clear waiting state - user must manually click "Manifest" button to proceed with creation
+      setIsWaitingForApproval(false);
+      approvalProcessingRef.current = false;
     }
-  }, [isApprovalSuccess, pendingCreation, refetchAllowance, stakeAmount, delusionText, user?.username, user?.pfpUrl, gatekeeper, createDelulu]);
+  }, [isApprovalSuccess, pendingCreation]);
 
   useEffect(() => {
     if (step === "customize" && titleInputRef.current) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         titleInputRef.current?.focus();
       }, 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [step]);
 
-  
   const handleTemplateSelect = (template: (typeof TEMPLATES)[0]) => {
     setSelectedTemplate(template);
     setSelectedImage(template.image);
@@ -235,21 +173,47 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   const handleCustomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Store the File object for later upload
-      setCustomUploadFile(file);
-      
-      // Also create a preview URL for display
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        setCustomImage(imageUrl);
-        setSelectedImage(imageUrl);
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setErrorMessage("Please select an image file");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setErrorMessage("Image size must be less than 10MB");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Store the File object for later upload
+    setCustomUploadFile(file);
+
+    // Also create a preview URL for display
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (result && typeof result === "string") {
+        setCustomImage(result);
+        setSelectedImage(result);
         setSelectedTemplate(null);
         setStep("customize");
-      };
-      reader.readAsDataURL(file);
-    }
+      } else {
+        console.error("Failed to read file");
+        setErrorMessage("Failed to load image. Please try again.");
+        setShowErrorModal(true);
+      }
+    };
+    reader.onerror = () => {
+      console.error("FileReader error");
+      setErrorMessage("Failed to read image file. Please try again.");
+      setShowErrorModal(true);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleBack = () => {
@@ -267,7 +231,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setStakeAmount(1);
     setInputText("1.0");
     setDelusionText("");
-    setDeadline(getDefaultDeadline());
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + 60);
+    setDeadline(date);
+    setSelectedDuration(60);
     setGatekeeper(null);
     setSelectedTemplate(null);
     setCustomImage(null);
@@ -285,42 +252,163 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     handleClose();
   };
 
+  // Calculate validation values using helpers (moved before handleCreate)
+  const maxStakeValue = calculateMaxStakeValue(cusdBalance);
+  const validation = validateDeluluInputs(
+    delusionText,
+    stakeAmount,
+    maxStakeValue,
+    selectedImage
+  );
+
+  const canCreate = validation.canCreate && !isUploadingImage;
+  const hasInputError = !validation.isValid;
+  const exceedsBalance = stakeAmount > maxStakeValue;
+  const hasInsufficientBalanceForStake = maxStakeValue < MIN_STAKE;
+
+  const progressStep = getProgressStep(
+    isUploadingImage,
+    isApproving,
+    isApprovingConfirming,
+    isCreating,
+    isConfirming
+  );
+
+  const isProcessing =
+    isCreating ||
+    isApproving ||
+    isApprovingConfirming ||
+    isUploadingImage ||
+    (isWaitingForApproval && !isApprovalSuccess);
+
   const handleCreate = async () => {
+    // Prevent multiple simultaneous calls
+    if (isProcessing) {
+      return;
+    }
+
+    // Set loading state IMMEDIATELY at the start to show feedback to user
+    // This prevents the user from clicking multiple times and gives immediate visual feedback
+    setIsUploadingImage(true);
+
     try {
-      setIsUploadingImage(true);
-      
-      const deadlineDate = new Date(deadline);
+      // Validate inputs first
+      const maxStakeValue = calculateMaxStakeValue(cusdBalance);
+      const validation = validateDeluluInputs(
+        delusionText,
+        stakeAmount,
+        maxStakeValue,
+        selectedImage
+      );
+
+      if (!validation.isValid) {
+        const firstError =
+          validation.errors.text ||
+          validation.errors.stake ||
+          validation.errors.balance ||
+          validation.errors.image;
+        setIsUploadingImage(false);
+        throw new Error(firstError || "Please check your inputs");
+      }
+
+      // User manually clicked "Manifest" button after approval - proceed with creation
+      if (pendingCreation && !isApproving && !isApprovingConfirming) {
+        // Validate pending creation data
+        if (
+          !pendingCreation.deadline ||
+          !(pendingCreation.deadline instanceof Date) ||
+          isNaN(pendingCreation.deadline.getTime()) ||
+          !pendingCreation.finalImageUrl ||
+          typeof pendingCreation.finalImageUrl !== "string"
+        ) {
+          setIsUploadingImage(false);
+          throw new Error("Invalid creation data. Please start over.");
+        }
+
+        // Use helper function for allowance check with retry
+        let hasAllowance = false;
+        try {
+          hasAllowance = await checkAllowanceWithRetry(
+            refetchAllowance,
+            stakeAmount
+          );
+        } catch (error) {
+          console.error("[handleCreate] Allowance check failed:", error);
+          setIsUploadingImage(false);
+          throw new Error(
+            "Failed to verify token allowance. Please try again."
+          );
+        }
+
+        if (hasAllowance) {
+          await createDelulu(
+            delusionText,
+            pendingCreation.deadline,
+            stakeAmount,
+            user?.username,
+            user?.pfpUrl,
+            gatekeeper,
+            pendingCreation.finalImageUrl
+          );
+          setPendingCreation(null);
+          setIsUploadingImage(false);
+          return;
+        } else {
+          setIsUploadingImage(false);
+          throw new Error("Token allowance not updated. Please try again.");
+        }
+      }
+
+      // Validate deadline
+      const deadlineDate =
+        deadline instanceof Date && !isNaN(deadline.getTime())
+          ? deadline
+          : getDefaultDeadline();
+
       let finalImageUrl: string;
 
       // Determine final image URL
       if (customUploadFile) {
-        // Upload custom file to IPFS
-        const formData = new FormData();
-        formData.append("file", customUploadFile);
+        try {
+          // Upload custom file with timeout protection
+          const formData = new FormData();
+          formData.append("file", customUploadFile);
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to upload image");
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "Failed to upload image");
+          }
+
+          const data = (await response.json()) as { url?: string };
+          if (!data?.url || typeof data.url !== "string") {
+            throw new Error("No image URL returned from upload");
+          }
+          finalImageUrl = data.url;
+        } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") {
+            throw new Error("Image upload timed out. Please try again.");
+          }
+          throw error;
         }
-
-        const data = await response.json();
-        finalImageUrl = data.url;
       } else if (selectedTemplate?.image) {
-        // Use template - construct absolute URL
-        const origin = typeof window !== "undefined" && window.location.origin 
-          ? window.location.origin 
-          : "";
+        // Use template - construct absolute URL using helper
+        const origin = getOrigin();
         finalImageUrl = `${origin}${selectedTemplate.image}`;
       } else {
+        setIsUploadingImage(false);
         throw new Error("Please select a template or upload an image");
       }
-
-      setIsUploadingImage(false);
 
       // Check if approval is needed before creating
       if (needsApproval(stakeAmount)) {
@@ -330,12 +418,15 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           finalImageUrl,
         });
         setIsWaitingForApproval(true);
-        // Trigger approval - creation will proceed after approval succeeds
+        // Reset image upload state since we're waiting for approval
+        setIsUploadingImage(false);
+        // Trigger approval ONLY - user must manually click "Manifest" button again after approval completes
         await approve(stakeAmount);
-        return;
+        return; // Exit - do NOT create automatically
       }
 
       // Approval not needed, proceed directly with creation
+      // Note: isUploadingImage stays true during creation to show loading state
       await createDelulu(
         delusionText,
         deadlineDate,
@@ -345,64 +436,17 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         gatekeeper,
         finalImageUrl
       );
+      // Reset loading state after successful creation
+      setIsUploadingImage(false);
     } catch (error) {
       setIsUploadingImage(false);
       setPendingCreation(null);
       setIsWaitingForApproval(false);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to create delusion"
-      );
+      const friendlyMessage = getErrorMessage(error);
+      setErrorMessage(friendlyMessage);
       setShowErrorModal(true);
     }
   };
-
-  const hasInsufficientBalance = cusdBalance
-    ? parseFloat(cusdBalance.formatted) < stakeAmount
-    : false;
-
-  const canCreate =
-    delusionText.trim().length > 0 &&
-    stakeAmount >= MIN_STAKE &&
-    !hasInsufficientBalance &&
-    !isUploadingImage;
-
-  // Calculate max stake value (for balance validation only, not UI range)
-  const maxStakeValue = useMemo(() => {
-    if (cusdBalance?.formatted) {
-      const balance = parseFloat(cusdBalance.formatted);
-      if (!isNaN(balance)) {
-        // Return actual balance (even if 0 or less than 1) for validation
-        return Math.min(Math.max(balance, 0), MAX_STAKE);
-      }
-    }
-    // If no balance data, assume 0 for validation purposes
-    return 0;
-  }, [cusdBalance?.formatted]);
-
-  const clampValue = (val: number) => {
-    return Math.min(Math.max(val, MIN_STAKE), MAX_STAKE);
-  };
-
-  // Check if stake amount is below minimum for error display
-  const isBelowMinimum = stakeAmount < MIN_STAKE;
-  
-  // Check if stake amount exceeds balance
-  const exceedsBalance = stakeAmount > maxStakeValue;
-  
-  // Check if balance is less than minimum stake
-  const hasInsufficientBalanceForStake = maxStakeValue < MIN_STAKE;
-  
-  // Combined error state: red if below minimum, exceeds balance, or balance too low
-  const hasInputError = isBelowMinimum || exceedsBalance || hasInsufficientBalanceForStake;
-
-  const isProcessing =
-    isCreating ||
-    isConfirming ||
-    isApproving ||
-    isApprovingConfirming ||
-    isBackendSyncing ||
-    isUploadingImage ||
-    isWaitingForApproval;
 
   return (
     <>
@@ -414,6 +458,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 src={selectedImage}
                 alt="Background"
                 className="w-full h-full object-cover bg-center no-repeat"
+                onError={(e) => {
+                  console.error("Failed to load background image");
+                  e.currentTarget.style.display = "none";
+                }}
               />
             </div>
             <div className="fixed inset-0 z-0 bg-black/60 pointer-events-none" />
@@ -612,16 +660,34 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             <div className="relative min-h-screen flex items-center justify-center px-4 py-20">
               <div className="w-full max-w-2xl mx-auto">
                 <h2 className="text-2xl font-black text-white/90 mb-6 text-center">
-                  Resolution Deadline
+                  Staking Duration
                 </h2>
 
                 <div className="mb-6">
-                  <DatePicker
-                    value={deadline}
-                    onChange={(date) => date && setDeadline(date)}
-                    minDate={getMinDeadline()}
-                    maxDate={getMaxDeadline()}
-                  />
+                  <div className="grid grid-cols-3 gap-3">
+                    {[10, 20, 30, 40, 50, 60].map((minutes) => (
+                      <button
+                        key={minutes}
+                        onClick={() => {
+                          const date = new Date();
+                          date.setMinutes(date.getMinutes() + minutes);
+                          setDeadline(date);
+                          setSelectedDuration(minutes);
+                        }}
+                        className={cn(
+                          "py-4 px-6 rounded-lg font-bold text-lg transition-all border-2",
+                          selectedDuration === minutes
+                            ? "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]"
+                            : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                        )}
+                      >
+                        {minutes} min
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-white/50 text-center mt-4">
+                    Max 1 hour
+                  </p>
                 </div>
               </div>
             </div>
@@ -660,10 +726,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       style={{ position: "relative", zIndex: 10 }}
                     >
                       <Slider
-                        value={[clampValue(stakeAmount)]}
+                        value={[clampStakeValue(stakeAmount)]}
                         onValueChange={(values) => {
                           if (values && values[0] !== undefined) {
-                            const newVal = clampValue(values[0]);
+                            const newVal = clampStakeValue(values[0]);
                             setStakeAmount(newVal);
                             setInputText(newVal.toFixed(1));
                           }
@@ -694,7 +760,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                               setInputText(text);
                               const num = parseFloat(text);
                               if (!isNaN(num) && num > 0) {
-                                setStakeAmount(clampValue(num));
+                                setStakeAmount(clampStakeValue(num));
                               }
                             }
                           }}
@@ -706,7 +772,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                             const clamped =
                               isNaN(num) || num < MIN_STAKE
                                 ? MIN_STAKE
-                                : clampValue(num);
+                                : clampStakeValue(num);
                             setStakeAmount(clamped);
                             setInputText(clamped.toFixed(1));
                           }}
@@ -726,7 +792,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                           {hasInsufficientBalanceForStake
                             ? `Insufficient balance. You need at least ${MIN_STAKE} cUSD to stake.`
                             : exceedsBalance
-                            ? `Amount exceeds your balance of ${maxStakeValue.toFixed(2)} cUSD.`
+                            ? `Amount exceeds your balance of ${maxStakeValue.toFixed(
+                                2
+                              )} cUSD.`
                             : "Minimum stake is 1.0 cUSD."}
                         </p>
                       )}
@@ -734,7 +802,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
                     {cusdBalance && (
                       <p className="text-xs text-white/60 mt-2">
-                        Balance: {parseFloat(cusdBalance.formatted).toFixed(2)}{" "}
+                        Balance:{" "}
+                        {(() => {
+                          const balance = parseFloat(cusdBalance.formatted);
+                          return isNaN(balance) ? "0.00" : balance.toFixed(2);
+                        })()}{" "}
                         cUSD
                       </p>
                     )}
@@ -765,18 +837,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 {isProcessing ? (
                   <span className="flex items-center justify-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    {isUploadingImage
-                      ? "Preparing image..."
-                      : isApproving || isApprovingConfirming
-                      ? "Approving tokens..."
-                      : isWaitingForApproval
-                      ? "Waiting for approval..."
-                      : isBackendSyncing
-                      ? "Syncing..."
-                      : "Creating..."}
+                    {progressStep?.label || "Processing..."}
                   </span>
                 ) : (
-                  "Manifest It"
+                  "Manifest"
                 )}
               </button>
             </div>

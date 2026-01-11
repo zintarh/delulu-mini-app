@@ -21,7 +21,7 @@ export function StakeSuccessSheet({
       open={open}
       onOpenChange={onOpenChange}
       title="Stake Success"
-      sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[80] rounded-t-3xl bg-black"
+      sheetClassName="border-t border-gray-200 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[80] rounded-t-3xl bg-white"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-12 pb-8 px-6 lg:pt-6">
@@ -33,24 +33,24 @@ export function StakeSuccessSheet({
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-bold text-white text-center mb-2">
+          <h2 className="text-xl font-bold text-delulu-charcoal text-center mb-2">
             Success!
           </h2>
 
           {/* Message */}
-          <p className="text-sm text-white/60 text-center mb-6">
+          <p className="text-sm text-delulu-charcoal/80 text-center mb-6">
             You&apos;ve successfully placed a stake of{" "}
-            <span className="font-bold text-white">{amount.toFixed(2)} cUSD</span> as a{" "}
+            <span className="font-bold text-delulu-charcoal">{amount.toFixed(2)} cUSD</span> as a{" "}
             {isBeliever ? "believer" : "doubter"}.
           </p>
 
           {/* Divider */}
-          <div className="w-full border-t border-white/10 mb-6" />
+          <div className="w-full border-t border-gray-200 mb-6" />
 
           {/* Close Button */}
           <button
             onClick={() => onOpenChange(false)}
-            className="w-full py-3 font-bold text-sm rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000] bg-black text-delulu-dark"
+            className="w-full py-3 font-bold text-sm rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all duration-100"
           >
             Close
           </button>

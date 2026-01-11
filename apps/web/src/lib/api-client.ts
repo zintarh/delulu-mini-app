@@ -254,6 +254,20 @@ class ApiClient {
     );
   }
 
+  async cancelDelulu(id: string, creatorAddress: string): Promise<ApiDelulu> {
+    return this.request<ApiDelulu>(`/delulus/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "cancel", creatorAddress }),
+    });
+  }
+
+  async resolveDelulu(id: string, outcome: boolean): Promise<ApiDelulu> {
+    return this.request<ApiDelulu>(`/delulus/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "resolve", outcome }),
+    });
+  }
+
   // ============ Stakes ============
 
   async getUserStakes(address: string): Promise<ApiStake[]> {

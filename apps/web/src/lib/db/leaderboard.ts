@@ -27,7 +27,7 @@ export async function getTopStakers(limit = 10): Promise<LeaderboardEntry[]> {
     LIMIT ${limit}
   `;
 
-  return results.map((r) => ({
+  return results.map((r: (typeof results)[number]) => ({
     address: r.address,
     username: r.username,
     pfpUrl: r.pfpUrl,
@@ -55,7 +55,7 @@ export async function getTopEarners(limit = 10): Promise<LeaderboardEntry[]> {
     LIMIT ${limit}
   `;
 
-  return results.map((r) => ({
+  return results.map((r: (typeof results)[number]) => ({
     address: r.address,
     username: r.username,
     pfpUrl: r.pfpUrl,
@@ -83,7 +83,7 @@ export async function getMostActiveUsers(limit = 10): Promise<LeaderboardEntry[]
     LIMIT ${limit}
   `;
 
-  return results.map((r) => ({
+  return results.map((r: (typeof results)[number]) => ({
     address: r.address,
     username: r.username,
     pfpUrl: r.pfpUrl,
@@ -111,7 +111,7 @@ export async function getTopCreators(limit = 10): Promise<LeaderboardEntry[]> {
     LIMIT ${limit}
   `;
 
-  return results.map((r) => ({
+  return results.map((r: (typeof results)[number]) => ({
     address: r.address,
     username: r.username,
     pfpUrl: r.pfpUrl,

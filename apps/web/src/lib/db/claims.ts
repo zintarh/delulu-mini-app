@@ -10,10 +10,38 @@ export async function createClaim(input: CreateClaimInput) {
     throw new Error("User not found");
   }
 
+  const isOnChainId = /^\d+$/.test(input.deluluId);
+
+  let delulu;
+  if (isOnChainId) {
+    delulu = await db.delulu.findUnique({
+      where: { onChainId: BigInt(input.deluluId) },
+    });
+  } else {
+    delulu = await db.delulu.findUnique({
+      where: { id: input.deluluId },
+    });
+  }
+
+  if (!delulu) {
+    throw new Error("Delulu not found");
+  }
+
+  const existingClaim = await db.claim.findUnique({
+    where: { txHash: input.txHash },
+  });
+
+  if (existingClaim) {
+    console.log(
+      `[createClaim] Claim with txHash ${input.txHash} already exists, returning existing claim`
+    );
+    return existingClaim;
+  }
+
   return db.claim.create({
     data: {
       userId: user.id,
-      deluluId: input.deluluId,
+      deluluId: delulu.id, // Always use the database ID (UUID)
       amount: input.amount,
       txHash: input.txHash,
     },

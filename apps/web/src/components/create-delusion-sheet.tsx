@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useAccount } from "wagmi";
-import { useRouter } from "next/navigation";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
-import { DatePicker } from "@/components/date-picker";
+// import { DatePicker } from "@/components/date-picker";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
@@ -16,6 +15,12 @@ import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { GatekeeperStep } from "@/components/create/gatekeeper-step";
 import { type GatekeeperConfig } from "@/lib/ipfs";
+import {
+  getErrorMessage,
+  getDefaultDeadline,
+  getMinDeadline,
+  getMaxDeadline,
+} from "@/lib/create-delulu-helpers";
 
 const HYPE_TEXT = [
   {
@@ -51,7 +56,6 @@ export function CreateDelusionSheet({
   onOpenChange,
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
-  const router = useRouter();
   const { user } = useUserStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
@@ -92,9 +96,10 @@ export function CreateDelusionSheet({
   const {
     createDelulu,
     isPending: isCreating,
-    isConfirming,
     isSuccess,
-    error: createError,
+    isError,
+    errorMessage: createErrorMessage,
+    isConfirming,
   } = useCreateDelulu();
 
   const {
@@ -117,47 +122,38 @@ export function CreateDelusionSheet({
   }, [isSuccess]);
 
   useEffect(() => {
-    if (createError) {
-      setErrorMessage(createError.message || "Failed to create delusion");
+    if (isError && createErrorMessage) {
+      const friendlyMessage = getErrorMessage(new Error(createErrorMessage));
+      setErrorMessage(friendlyMessage);
       setShowErrorModal(true);
     }
-  }, [createError]);
+  }, [isError, createErrorMessage]);
 
   useEffect(() => {
     if (isApprovalSuccess) {
-      // Refetch allowance and wait a bit for the blockchain state to update
       const refetch = async () => {
         await refetchAllowance();
-        // Small delay to ensure the refetch completes and state updates
         await new Promise((resolve) => setTimeout(resolve, 500));
       };
-      refetch();
+      const timeoutId = setTimeout(() => {
+        refetch();
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [isApprovalSuccess, refetchAllowance]);
 
-  const getDefaultDeadline = () => {
+  const [deadline, setDeadline] = useState<Date>(() => {
     const date = new Date();
-    date.setDate(date.getDate() + 7);
-    date.setHours(12, 0, 0, 0);
+    date.setMinutes(date.getMinutes() + 60); // Default to 60 minutes
     return date;
-  };
+  });
+  const [selectedDuration, setSelectedDuration] = useState<number>(60);
 
-  const getMinDeadline = () => {
-    const date = new Date();
-    date.setHours(date.getHours() + 24);
-    return date;
-  };
-
-  const getMaxDeadline = () => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
-    return date;
-  };
-
-  const [deadline, setDeadline] = useState<Date>(getDefaultDeadline());
+  const currentStakeAmount =
+    stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 1;
 
   const hasInsufficientBalance = cusdBalance
-    ? parseFloat(cusdBalance.formatted) < stakeAmount[0]
+    ? parseFloat(cusdBalance.formatted) < currentStakeAmount
     : false;
 
   const canGoNext = () => {
@@ -168,7 +164,7 @@ export function CreateDelusionSheet({
       );
     if (currentStep === 1) return true;
     if (currentStep === 2)
-      return stakeAmount[0] >= 1 && !hasInsufficientBalance;
+      return currentStakeAmount >= 1 && !hasInsufficientBalance;
     if (currentStep === 3) return true;
     return false;
   };
@@ -191,11 +187,13 @@ export function CreateDelusionSheet({
   };
 
   const handleClose = () => {
-    // Reset form when closing
     setCurrentStep(0);
     setStakeAmount([1]);
     setDelusionText("");
-    setDeadline(getDefaultDeadline());
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + 60);
+    setDeadline(date);
+    setSelectedDuration(60);
     setGatekeeper(null);
     onOpenChange(false);
   };
@@ -213,7 +211,7 @@ export function CreateDelusionSheet({
           className="border-t-2 border-white/10 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-white [&>button]:bg-black/80 [&>button]:hover:bg-black/20 relative bg-black !animate-none !transition-none data-[state=open]:!slide-in-from-bottom-0 data-[state=closed]:!slide-out-to-bottom-0"
         >
           <div className="relative z-10 h-full flex flex-col [&_button[data-radix-dialog-close]]:z-[100]">
-            <SheetTitle className="sr-only">Create Board</SheetTitle>
+            <SheetTitle className="sr-only">Manifest</SheetTitle>
             <div className="relative h-full flex flex-col overflow-hidden">
               {/* Next Button - Top Left */}
               {currentStep < 4 && (
@@ -251,7 +249,7 @@ export function CreateDelusionSheet({
                       className="text-sm font-bold text-white/80 "
                       style={{ fontFamily: "var(--font-gloria)" }}
                     >
-                      {HYPE_TEXT[currentStep].subtitle}
+                      {HYPE_TEXT[currentStep]?.subtitle || "Continue"}
                     </p>
                   </div>
                 </>
@@ -318,14 +316,32 @@ export function CreateDelusionSheet({
                 {currentStep === 1 && (
                   <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 overflow-y-auto">
                     <div className="w-full max-w-2xl">
-                      <DatePicker
-                        value={deadline}
-                        onChange={(date) => date && setDeadline(date)}
-                        minDate={getMinDeadline()}
-                        maxDate={getMaxDeadline()}
-                      />
-                      <p className="text-sm text-white/50 text-center mt-6">
-                        24h minimum • 1 year max
+                      <h2 className="text-2xl font-black text-white/90 mb-6 text-center">
+                        Staking Duration
+                      </h2>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[10, 20, 30, 40, 50, 60].map((minutes) => (
+                          <button
+                            key={minutes}
+                            onClick={() => {
+                              const date = new Date();
+                              date.setMinutes(date.getMinutes() + minutes);
+                              setDeadline(date);
+                              setSelectedDuration(minutes);
+                            }}
+                            className={cn(
+                              "py-4 px-6 rounded-lg font-bold text-lg transition-all border-2",
+                              selectedDuration === minutes
+                                ? "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]"
+                                : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                            )}
+                          >
+                            {minutes} min
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-sm text-white/50 text-center mt-4">
+                        Max 1 hour
                       </p>
                     </div>
                   </div>
@@ -426,7 +442,14 @@ export function CreateDelusionSheet({
                             <span className="font-bold">Loading...</span>
                           ) : cusdBalance ? (
                             <span className="font-bold">
-                              {parseFloat(cusdBalance.formatted).toFixed(2)}{" "}
+                              {(() => {
+                                const balance = parseFloat(
+                                  cusdBalance.formatted
+                                );
+                                return isNaN(balance)
+                                  ? "0.00"
+                                  : balance.toFixed(2);
+                              })()}{" "}
                               cUSD
                             </span>
                           ) : (
@@ -440,7 +463,7 @@ export function CreateDelusionSheet({
                             Check console for details
                           </p>
                         )}
-                        {isConnected && stakeAmount[0] < 1 && (
+                        {isConnected && currentStakeAmount < 1 && (
                           <p className="text-sm text-red-600 mt-2 font-bold">
                             Minimum stake is 1 cUSD
                           </p>
@@ -485,10 +508,13 @@ export function CreateDelusionSheet({
                               Deadline
                             </p>
                             <p className="text-lg font-bold text-delulu-dark">
-                              {deadline.toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
+                              {deadline instanceof Date &&
+                              !isNaN(deadline.getTime())
+                                ? deadline.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })
+                                : "Invalid date"}
                             </p>
                           </div>
                           <div className="w-px h-12 bg-black/20" />
@@ -497,7 +523,11 @@ export function CreateDelusionSheet({
                               Stake
                             </p>
                             <p className="text-lg font-bold text-delulu-dark">
-                              {stakeAmount[0]} cUSD
+                              {stakeAmount[0] != null &&
+                              isFinite(stakeAmount[0])
+                                ? stakeAmount[0]
+                                : "1.00"}{" "}
+                              cUSD
                             </p>
                           </div>
                         </div>
@@ -551,11 +581,20 @@ export function CreateDelusionSheet({
                     >
                       <ArrowLeft className="w-6 h-6" />
                     </button>
-                    {needsApproval(stakeAmount[0]) &&
+                    {stakeAmount[0] != null &&
+                    isFinite(stakeAmount[0]) &&
+                    needsApproval(stakeAmount[0]) &&
                     !isApprovalSuccess &&
                     !isLoadingAllowance ? (
                       <button
-                        onClick={() => approve(stakeAmount[0])}
+                        onClick={() => {
+                          if (
+                            stakeAmount[0] != null &&
+                            isFinite(stakeAmount[0])
+                          ) {
+                            approve(stakeAmount[0]);
+                          }
+                        }}
                         disabled={
                           isApproving ||
                           isApprovingConfirming ||
@@ -577,14 +616,38 @@ export function CreateDelusionSheet({
                             <span>Approving...</span>
                           </>
                         ) : (
-                          <span>Approve cUSD</span>
+                          <span>Approve</span>
                         )}
                       </button>
                     ) : (
                       <button
                         onClick={async () => {
+                          if (isCreating || isConfirming) {
+                            return;
+                          }
+
                           try {
-                            const deadlineDate = new Date(deadline);
+                            // Validate inputs
+                            if (!delusionText.trim()) {
+                              throw new Error("Please enter your delulu text");
+                            }
+
+                            if (
+                              !isFinite(stakeAmount[0]) ||
+                              stakeAmount[0] < 1
+                            ) {
+                              throw new Error(
+                                "Stake amount must be at least 1 cUSD"
+                              );
+                            }
+
+                            // Validate deadline
+                            const deadlineDate =
+                              deadline instanceof Date &&
+                              !isNaN(deadline.getTime())
+                                ? deadline
+                                : getDefaultDeadline();
+
                             await createDelulu(
                               delusionText,
                               deadlineDate,
@@ -594,11 +657,8 @@ export function CreateDelusionSheet({
                               gatekeeper
                             );
                           } catch (error) {
-                            setErrorMessage(
-                              error instanceof Error
-                                ? error.message
-                                : "Failed to create delusion"
-                            );
+                            const friendlyMessage = getErrorMessage(error);
+                            setErrorMessage(friendlyMessage);
                             setShowErrorModal(true);
                           }
                         }}
@@ -617,7 +677,7 @@ export function CreateDelusionSheet({
                             <span>Creating...</span>
                           </>
                         ) : (
-                          <span>CREATE DELUSION</span>
+                          <span>Manifest</span>
                         )}
                       </button>
                     )}

@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import { useAccount, useConnect } from "wagmi";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-// ============================================
-// LOCAL TESTING MODE
-// ============================================
-// When NOT in Farcaster frame, show connector selection modal
-// Comment out the ConnectorSelectionSheet import and usage to disable this feature
-const ENABLE_LOCAL_WALLET_SELECTION = true; // Set to false to disable local wallet selection
 
-// Import for local wallet selection (comment out to disable)
+const ENABLE_LOCAL_WALLET_SELECTION = true;
+
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useMiniApp } from "@/contexts/miniapp-context";
 
@@ -36,7 +31,6 @@ export function LoginScreen() {
   );
   const isLoading = isConnecting || isPending;
 
-  // Farcaster frame flow (original behavior)
   const handleFarcasterLogin = () => {
     if (frameConnector && !isLoading && !hasAttemptedConnect) {
       setHasAttemptedConnect(true);
@@ -44,14 +38,12 @@ export function LoginScreen() {
     }
   };
 
-  // Local testing flow - open connector selection
   const handleLocalConnect = () => {
     if (ENABLE_LOCAL_WALLET_SELECTION) {
       setShowConnectorSheet(true);
     }
   };
 
-  // Determine which handler to use
   const handleLogin = isInFarcasterFrame ? handleFarcasterLogin : handleLocalConnect;
   const isLoginDisabled = isInFarcasterFrame 
     ? (isLoading || !frameConnector || hasAttemptedConnect)
@@ -71,11 +63,9 @@ export function LoginScreen() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Light overlay for optimistic feel */}
-      <div className="absolute inset-0 bg-white/70" />
+      <div className="absolute inset-0 bg-delulu-yellow/20" />
       
       <div className="w-full max-w-md flex flex-col items-center relative z-10">
-        {/* Logo */}
         <div
           className={cn(
             "text-6xl md:text-8xl font-black text-delulu-charcoal tracking-tighter mb-4",
@@ -83,9 +73,10 @@ export function LoginScreen() {
           )}
           style={{
             fontFamily: "var(--font-gloria), cursive",
+            textShadow: "3px 3px 0px #fcff52, -2px -2px 0px #fcff52, 2px -2px 0px #fcff52, -2px 2px 0px #fcff52",
           }}
         >
-          delulu<span className="text-delulu-charcoal -ml-1">.</span>
+          delulu<span className="text-delulu-charcoal -ml-1" style={{ textShadow: "3px 3px 0px #fcff52, -2px -2px 0px #fcff52, 2px -2px 0px #fcff52, -2px 2px 0px #fcff52" }}>.</span>
         </div>
 
         {/* Tagline */}

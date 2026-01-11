@@ -9,11 +9,13 @@ export function formatTimeRemaining(deadline: Date): string {
   const now = new Date();
   const diff = deadline.getTime() - now.getTime();
   if (diff <= 0) return "Ended";
+  const minutes = Math.floor(diff / (1000 * 60));
+  if (minutes <= 0) return "Ended";
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(hours / 24);
   if (days > 0) return `${days}d`;
   if (hours > 0) return `${hours}h`;
-  return `${Math.floor(diff / (1000 * 60))}m`;
+  return `${minutes}m`;
 }
 
 export function formatAddress(address: string): string {
