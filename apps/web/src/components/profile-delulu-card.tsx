@@ -22,24 +22,50 @@ function getCardBackground(delusion: FormattedDelulu): {
   isImage: boolean;
 } {
   if (delusion.bgImageUrl) {
+    let imageUrl = delusion.bgImageUrl;
+    
+    // Convert relative paths to absolute URLs
+    if (imageUrl.startsWith("/")) {
+      if (typeof window !== "undefined") {
+        imageUrl = `${window.location.origin}${imageUrl}`;
+      } else {
+        // Server-side: use environment variable or default
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+        imageUrl = `${baseUrl}${imageUrl}`;
+      }
+    }
+    
+    // Replace localhost URLs with current origin (handles production)
+    if (typeof window !== "undefined") {
+      const currentOrigin = window.location.origin;
+      // Replace any localhost URLs with current origin
+      imageUrl = imageUrl.replace(/https?:\/\/localhost:\d+/g, currentOrigin);
+      
+      // Ensure HTTPS if page is served over HTTPS
+      if (window.location.protocol === "https:") {
+        imageUrl = imageUrl.replace(/^http:/, "https:");
+      }
+    }
+    
     if (
-      delusion.bgImageUrl.startsWith("http://") ||
-      delusion.bgImageUrl.startsWith("https://") ||
-      delusion.bgImageUrl.startsWith("/")
+      imageUrl.startsWith("http://") ||
+      imageUrl.startsWith("https://")
     ) {
       return {
-        bg: delusion.bgImageUrl,
+        bg: imageUrl,
         text: "text-white",
         isImage: true,
       };
     }
   }
 
+  // Default fallback
+  const baseUrl = typeof window !== "undefined" 
+    ? window.location.origin 
+    : process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+  
   return {
-    bg:
-      typeof window !== "undefined"
-        ? `${window.location.origin}/templates/t0.png`
-        : "/templates/t0.png",
+    bg: `${baseUrl}/templates/t0.png`,
     text: "text-white",
     isImage: true,
   };

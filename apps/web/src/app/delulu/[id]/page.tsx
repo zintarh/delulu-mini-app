@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUserStore } from "@/stores/useUserStore";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
@@ -38,7 +39,8 @@ export default function DeluluPage() {
   const params = useParams();
   const deluluId = params.id as string;
 
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { user } = useUserStore();
 
   const { delulu, isLoading: isLoadingDelulu } = useSingleDelulu(deluluId);
 
@@ -95,6 +97,7 @@ export default function DeluluPage() {
         acc[key] = {
           address: stake.user?.address || "",
           username: stake.user?.username,
+          pfpUrl: (stake.user as { pfpUrl?: string })?.pfpUrl,
           believerStake: 0,
           doubterStake: 0,
           totalStake: 0,
@@ -107,7 +110,7 @@ export default function DeluluPage() {
       }
       acc[key].totalStake += stake.amount;
       return acc;
-    }, {} as Record<string, { address: string; username?: string; believerStake: number; doubterStake: number; totalStake: number }>);
+    }, {} as Record<string, { address: string; username?: string; pfpUrl?: string; believerStake: number; doubterStake: number; totalStake: number }>);
 
     return Object.values(grouped)
       .sort((a, b) => b.totalStake - a.totalStake)
@@ -761,19 +764,39 @@ export default function DeluluPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {leaderboard.map((entry) => (
+                {leaderboard.map((entry) => {
+                  // Check if this entry belongs to the connected user
+                  const isCurrentUser = address?.toLowerCase() === entry.address.toLowerCase();
+                  
+                  // Use connected user's profile data if available and it's their entry, otherwise use entry data
+                  const displayUsername = isCurrentUser && user?.username 
+                    ? user.username 
+                    : entry.username || null;
+                  const displayPfpUrl = isCurrentUser && user?.pfpUrl 
+                    ? user.pfpUrl 
+                    : entry.pfpUrl || null;
+                  
+                  return (
                   <div
                     key={entry.address}
                     className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-delulu-charcoal text-white flex items-center justify-center font-black text-sm">
-                        {entry.rank}
-                      </div>
+                      {displayPfpUrl ? (
+                        <img
+                          src={displayPfpUrl}
+                          alt={displayUsername || entry.address}
+                          className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-delulu-charcoal text-white flex items-center justify-center font-black text-sm">
+                          {entry.rank}
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-bold text-delulu-charcoal">
-                          {entry.username
-                            ? `@${entry.username}`
+                          {displayUsername
+                            ? `@${displayUsername}`
                             : formatAddress(entry.address)}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -808,7 +831,8 @@ export default function DeluluPage() {
                       <p className="text-xs text-gray-500">Total</p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
