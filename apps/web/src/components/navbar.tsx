@@ -33,14 +33,25 @@ export function Navbar({
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-200">
       <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
-        <button
-          onClick={handleSearchClick}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
-          title="Search"
-          aria-label="Search"
-        >
-          <Search className="w-6 h-6" />
-        </button>
+      {isConnected ? (
+          <button
+            onClick={handleProfileClick}
+            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors border border-gray-200 hover:bg-gray-50"
+            aria-label="Profile"
+          >
+            {user?.pfpUrl ? (
+              <img
+                src={user.pfpUrl}
+                alt={user.displayName || user.username || "Profile"}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <User className="w-6 h-6 text-gray-500" />
+            )}
+          </button>
+        ) : (
+          <ConnectWallet />
+        )}
 
         <div className="flex items-center gap-1">
           <button
@@ -72,25 +83,15 @@ export function Navbar({
             )}
           </button>
         </div>
-        {isConnected ? (
-          <button
-            onClick={handleProfileClick}
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors border border-gray-200 hover:bg-gray-50"
-            aria-label="Profile"
-          >
-            {user?.pfpUrl ? (
-              <img
-                src={user.pfpUrl}
-                alt={user.displayName || user.username || "Profile"}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-6 h-6 text-gray-500" />
-            )}
-          </button>
-        ) : (
-          <ConnectWallet />
-        )}
+        <button
+          onClick={handleSearchClick}
+          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search className="w-6 h-6" />
+        </button>
+      
       </nav>
     </header>
   );
