@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { Upload, CircleDollarSign, Copy } from "lucide-react";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import {
@@ -13,7 +12,6 @@ import {
   getCountryFlag,
 } from "@/lib/utils";
 import { api } from "@/lib/api-client";
-import { useUserStore } from "@/stores/useUserStore";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -119,20 +117,12 @@ export function DeluluCard({
   className = "",
   isLast = false,
 }: DeluluCardProps) {
-  const { address } = useAccount();
-  const { user } = useUserStore();
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
   
-  // Check if this delulu belongs to the connected user
-  const isCurrentUser = address?.toLowerCase() === delusion.creator.toLowerCase();
-  
-  // Use connected user's profile data if available and it's their delulu, otherwise use delulu's creator data
-  const displayPfpUrl = isCurrentUser && user?.pfpUrl 
-    ? user.pfpUrl 
-    : delusion.pfpUrl || null;
-  const displayUsername = isCurrentUser && user?.username 
-    ? user.username 
-    : delusion.username || null;
+  // Always use the creator's profile data from the delulu object
+  // This comes from the API and includes the creator's profile information
+  const displayPfpUrl = delusion.pfpUrl || null;
+  const displayUsername = delusion.username || null;
 
   const headlineRaw = delusion.content || delusion.contentHash || "";
   const headline = headlineRaw.trim();
