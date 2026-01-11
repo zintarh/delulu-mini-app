@@ -68,11 +68,12 @@ export function useStake() {
 
     try {
       const amountWei = parseUnits(amount.toString(), 18);
+      const minPayout = 0n; // Minimum payout protection (0 = no protection)
       writeContract({
         address: DELULU_CONTRACT_ADDRESS,
         abi: DELULU_ABI,
         functionName: "stakeOnDelulu",
-        args: [deluluId, Number(amountWei), isBeliever],
+        args: [BigInt(deluluId), isBeliever, amountWei, minPayout],
       });
     } catch (err) {
       pendingStake.current = null;
