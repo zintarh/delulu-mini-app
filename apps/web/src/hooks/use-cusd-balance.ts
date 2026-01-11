@@ -16,6 +16,8 @@ export function useCUSDBalance() {
     functionName: "stablecoin",
   });
 
+
+
   // Fallback: use known cUSD addresses based on chain
   const fallbackTokenAddress =
     chainId === 44787
@@ -36,6 +38,9 @@ export function useCUSDBalance() {
     token: finalTokenAddress as `0x${string}` | undefined,
     query: { enabled: !!finalTokenAddress && !!address },
   });
+
+  console.log(tokenAddress, balance, "token address")
+
 
   return {
     balance,

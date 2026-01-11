@@ -1,8 +1,10 @@
 // Contract addresses by network
 const DELULU_CONTRACT_ADDRESSES = {
-  mainnet: process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET || "", 
-  mainnet_v0: "0xE03B2Bb1aA149DedEFfc91398f477bb7Ddd278aF", 
-  testnet_v0: "0x14C808cFf20F431Fb8E94099967b4a10eA83D870", 
+  mainnet:
+    process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET ||
+    "0x84217d67b85Ef028bb32B494B7477Ab8E9b2fEcd",
+  mainnet_v0: "0xE03B2Bb1aA149DedEFfc91398f477bb7Ddd278aF",
+  testnet_v0: "0x14C808cFf20F431Fb8E94099967b4a10eA83D870",
   testnet: "0xcfDd3EbEad6175663dC59A7acae24BB70b604822",
 } as const;
 
