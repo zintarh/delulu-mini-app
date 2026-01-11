@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  fid       Int?     @unique
+  username  String?
+  displayName String?
+  pfpUrl    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  delulus   Delulu[]
+  stakes    Stake[]
+  claims    Claim[]
+
+  @@index([address])
+  @@index([fid])
+}
+
+model Delulu {
+  id              String   @id @default(cuid())
+  onChainId       BigInt   @unique
+  contentHash     String
+  content         String?
+  creator         User     @relation(fields: [creatorId], references: [id])
+  creatorId       String
+  creatorAddress  String
+  stakingDeadline DateTime
+  resolutionDeadline DateTime
+  isResolved      Boolean  @default(false)
+  isCancelled     Boolean  @default(false)
+  outcome         Boolean?
+  
+  // Gatekeeper
+  gatekeeperEnabled Boolean @default(false)
+  gatekeeperType    String?
+  gatekeeperValue   String?
+  gatekeeperLabel   String?
+  
+  // Display
+  bgImageUrl        String?
+  
+  // Aggregated stats (cached for performance)
+  totalBelieverStake Float @default(0)
+  totalDoubterStake  Float @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stakes Stake[]
+  claims Claim[]
+
+  @@index([creatorAddress])
+  @@index([onChainId])
+  @@index([stakingDeadline])
+  @@index([isResolved])
+}
+
+model Stake {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  delulu    Delulu   @relation(fields: [deluluId], references: [id])
+  deluluId  String
+  amount    Float
+  side      Boolean  // true = believe, false = doubt
+  txHash    String   @unique
+  createdAt DateTime @default(now())
+
+  @@unique([userId, deluluId, side])
+  @@index([userId])
+  @@index([deluluId])
+}
+
+model Claim {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  delulu    Delulu   @relation(fields: [deluluId], references: [id])
+  deluluId  String
+  amount    Float
+  txHash    String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([deluluId])
+}

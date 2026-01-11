@@ -1,49 +1,73 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useEffect, useRef } from "react";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { useState, useEffect } from "react";
+import { useBackendSync } from "./use-backend-sync";
+
+interface ClaimParams {
+  deluluId: string;
+  amount: number;
+}
 
 export function useClaimWinnings() {
-  const [deluluId, setDeluluId] = useState<number | null>(null);
-
-  const {
-    writeContract,
-    data: hash,
-    isPending,
-    error,
-  } = useWriteContract();
-
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
   const {
     isLoading: isConfirming,
     isSuccess,
+    data: receipt,
     error: receiptError,
-  } = useWaitForTransactionReceipt({
-    hash,
-  });
+  } = useWaitForTransactionReceipt({ hash });
+  const { syncClaim } = useBackendSync();
 
-  const claim = (id: number) => {
-    if (!id) return;
-    setDeluluId(id);
+  // Track pending claim for backend sync
+  const pendingClaim = useRef<ClaimParams | null>(null);
+  const lastSyncedHash = useRef<string | null>(null);
+
+  // Sync to backend after successful transaction
+  useEffect(() => {
+    const txHash = receipt?.transactionHash;
+    if (
+      isSuccess &&
+      txHash &&
+      pendingClaim.current &&
+      txHash !== lastSyncedHash.current
+    ) {
+      lastSyncedHash.current = txHash;
+      syncClaim({
+        deluluId: pendingClaim.current.deluluId,
+        amount: pendingClaim.current.amount,
+        txHash: txHash,
+      });
+      pendingClaim.current = null;
+    }
+  }, [isSuccess, receipt?.transactionHash, syncClaim]);
+
+  const claim = (deluluId: number, amount: number) => {
+    if (!deluluId) return;
+    if (amount <= 0) {
+      console.warn("[useClaimWinnings] Claim amount must be greater than 0");
+      return;
+    }
+
+    pendingClaim.current = {
+      deluluId: deluluId.toString(),
+      amount: amount,
+    };
+
     writeContract({
       address: DELULU_CONTRACT_ADDRESS,
       abi: DELULU_ABI,
       functionName: "claimWinnings",
-      args: [BigInt(id)],
+      args: [deluluId],
     });
   };
 
-  useEffect(() => {
-    if (isSuccess) {
-      setDeluluId(null);
-    }
-  }, [isSuccess]);
-
   return {
     claim,
+    hash,
     isPending,
     isConfirming,
     isSuccess,
     error: error || receiptError,
   };
 }
-

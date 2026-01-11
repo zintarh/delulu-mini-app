@@ -54,7 +54,7 @@ export async function getFarcasterManifest() {
       imageUrl: `${appUrl}/opengraph-image.png`,
       buttonTitle: `Launch App`,
       splashImageUrl: `${appUrl}/opengraph-image.png`,
-      splashBackgroundColor: "#fcff52",
+      splashBackgroundColor: "#0a0a0a",
       webhookUrl: `${appUrl}/api/webhook`,
       // Metadata https://github.com/farcasterxyz/miniapps/discussions/191
       subtitle: "Bet on delusional goals", // 30 characters, no emojis or special characters, short description under app name

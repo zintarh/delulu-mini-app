@@ -1,12 +1,8 @@
 "use client";
 
 import { CheckCircle, XCircle } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ModalHeader, ModalTitle } from "@/components/ui/modal";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -26,41 +22,38 @@ export function FeedbackModal({
   actionText = "Close"
 }: FeedbackModalProps) {
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="bg-delulu-yellow rounded-t-3xl pb-8 [&>button]:text-delulu-dark [&>button]:bg-delulu-dark/10 [&>button]:hover:bg-delulu-dark/20">
-        <SheetHeader>
-          <div className="flex justify-center mb-6">
-            {type === "success" ? (
-              <div className="w-20 h-20 rounded-full bg-delulu-green/10 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-delulu-green" />
-              </div>
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center">
-                <XCircle className="w-12 h-12 text-red-500" />
-              </div>
-            )}
+    <ResponsiveSheet
+      open={isOpen}
+      onOpenChange={onClose}
+      title={title}
+      sheetClassName="bg-white rounded-t-3xl pb-8 [&>button]:text-gray-500 [&>button]:bg-gray-100 [&>button]:hover:bg-gray-200"
+      modalClassName="max-w-md"
+    >
+      <div className="flex justify-center mb-6 lg:mb-4">
+        {type === "success" ? (
+          <div className="w-20 h-20 rounded-full bg-delulu-green/10 flex items-center justify-center">
+            <CheckCircle className="w-12 h-12 text-delulu-green" />
           </div>
-          <SheetTitle className="text-2xl font-bold text-delulu-dark text-center font-gloria">
-            {title}
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="mt-6 space-y-6">
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center">
+            <XCircle className="w-12 h-12 text-red-500" />
+          </div>
+        )}
+      </div>
+      <div className="mt-6 space-y-6 lg:mt-4">
           {/* Message */}
-          <p className="text-delulu-dark/70 text-center leading-relaxed">
+          <p className="text-gray-600 text-center leading-relaxed">
             {message}
           </p>
 
           {/* Action Button */}
           <button
             onClick={onClose}
-            className="w-full h-14 rounded-full bg-delulu-dark hover:bg-delulu-dark/90 text-white font-bold text-lg transition-all"
+            className="w-full h-14 rounded-md bg-delulu-yellow-reserved hover:bg-delulu-yellow-reserved/90 text-delulu-charcoal font-bold text-lg transition-all border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]"
           >
             {actionText}
           </button>
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </ResponsiveSheet>
   );
 }
-

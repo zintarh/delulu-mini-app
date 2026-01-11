@@ -50,12 +50,17 @@ export function useTokenApproval() {
 
 
   const approve = async (amount: number) => {
-    if (!tokenAddress) return;
-    if (isNaN(amount) || amount <= 0) {
+    if (!tokenAddress) {
+      throw new Error("Token address not available");
+    }
+    if (!isFinite(amount) || isNaN(amount) || amount <= 0) {
       throw new Error("Invalid amount");
     }
     
-    const amountWei = parseUnits(amount.toString(), 18);
+    const bufferMultiplier = 1.1; // 10% buffer
+    const amountWithBuffer = amount * bufferMultiplier;
+    const amountWei = parseUnits(amountWithBuffer.toString(), 18);
+    
     writeContract({
       address: tokenAddress as `0x${string}`,
       abi: ERC20_ABI,

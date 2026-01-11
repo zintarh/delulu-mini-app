@@ -9,14 +9,20 @@ interface ProfileDropdownProps {
   onLogoutClick: () => void;
 }
 
-export function ProfileDropdown({ onProfileClick, onLogoutClick }: ProfileDropdownProps) {
+export function ProfileDropdown({
+  onProfileClick,
+  onLogoutClick,
+}: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useUserStore();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -44,43 +50,40 @@ export function ProfileDropdown({ onProfileClick, onLogoutClick }: ProfileDropdo
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center transition-transform active:scale-95"
+        className="flex items-center justify-center w-12 h-12 rounded-full transition-colors border border-gray-200"
         aria-label="Profile menu"
       >
         {user?.pfpUrl ? (
-          <img 
-            src={user.pfpUrl} 
-            alt={user.displayName || user.username || "Profile"} 
-            className="w-9 h-9 rounded-full object-cover border-2 border-delulu-dark/20 hover:border-delulu-dark/40 transition-colors"
+          <img
+            src={user.pfpUrl}
+            alt={user.displayName || user.username || "Profile"}
+            className="w-12 h-12 rounded-full object-cover"
           />
         ) : (
-          <div className="w-9 h-9 rounded-full bg-delulu-yellow/20 flex items-center justify-center border-2 border-white/20 hover:border-white/40 transition-colors">
-            <span className="text-sm font-black text-delulu-yellow">
-              {(user?.displayName || user?.username || "U").charAt(0).toUpperCase()}
-            </span>
-          </div>
+          <User className="w-7 h-7 text-gray-500" />
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 w-48 bg-delulu-dark border border-white/10 rounded-2xl shadow-lg overflow-hidden z-50">
+        <div className="absolute left-0 md:right-0 md:left-auto top-12 w-14 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden z-50">
           <button
             onClick={handleProfile}
-            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/5 transition-colors"
+            className="w-full h-14 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            title="Profile"
+            aria-label="Profile"
           >
-            <User className="w-4 h-4 text-white/60" />
-            <span className="text-sm text-white/90 font-medium">Profile</span>
+            <User className="w-7 h-7 text-gray-500" />
           </button>
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/5 transition-colors border-t border-white/10"
+            className="w-full h-14 flex items-center justify-center hover:bg-gray-50 transition-colors border-t border-gray-200"
+            title="Disconnect"
+            aria-label="Disconnect"
           >
-            <LogOut className="w-4 h-4 text-white/60" />
-            <span className="text-sm text-white/90 font-medium">Disconnect</span>
+            <LogOut className="w-7 h-7 text-gray-500" />
           </button>
         </div>
       )}
     </div>
   );
 }
-

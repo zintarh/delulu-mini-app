@@ -40,7 +40,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
   if (!mounted) {
     return (
-      <div className="w-20 h-9 animate-pulse bg-delulu-dark/10 rounded-full" />
+      <div className="w-20 h-9 animate-pulse bg-black/80 rounded-full" />
     );
   }
 
@@ -77,7 +77,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
         type="button"
         className={cn(
           "relative px-5 py-2 flex items-center gap-2",
-          "bg-gradient-to-b from-delulu-yellow via-delulu-yellow to-[#d4af37]",
+          "bg-gradient-to-b from-black via-black to-black",
           "text-delulu-dark",
           "rounded-xl font-black text-sm",
           "border-2 border-delulu-dark",
@@ -100,7 +100,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
       {/* Dropdown for Browser Testing (MetaMask, etc) */}
       {!isFarcasterEnv && showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-white border-2 border-delulu-dark rounded-xl shadow-[0_4px_0_0_#0a0a0a] z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-black border-2 border-delulu-dark rounded-xl shadow-[0_4px_0_0_#0a0a0a] z-50 overflow-hidden">
           <div className="p-2 space-y-1">
             {browserConnectors.length === 0 ? (
               <div className="px-4 py-2 text-sm text-gray-500">
@@ -114,7 +114,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
                     connect({ connector });
                     setShowDropdown(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-delulu-yellow/20 rounded-lg transition-colors flex items-center gap-3"
+                  className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-black/20 rounded-lg transition-colors flex items-center gap-3"
                 >
                   {/* You can add icons here based on connector.id if you want */}
                   <Wallet className="w-4 h-4" />

@@ -6,36 +6,18 @@ import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { celo, celoSepolia } from "wagmi/chains";
 
-// ============================================
-// LOCAL TESTING MODE - WALLET CONNECTORS
-// ============================================
-// Uncomment the lines below to enable standard wallet connectors (MetaMask, etc.) for local testing
-// Comment out when deploying to Farcaster
-const ENABLE_LOCAL_WALLETS = false; // Set to true to enable MetaMask and other wallets
 
-// Import standard connectors for local testing
-// Uncomment these imports when ENABLE_LOCAL_WALLETS is true
-// import { injected, metaMask } from "wagmi/connectors";
-
+const ENABLE_LOCAL_WALLETS = false; 
 const connectors = ENABLE_LOCAL_WALLETS
-  ? [
-      // Standard wallets for local testing (uncomment when needed)
-      // injected(),
-      // metaMask(),
-      // Keep Farcaster connector as fallback
-      farcasterMiniApp(),
-    ]
-  : [
-      // Farcaster connector only (production mode)
-      farcasterMiniApp(),
-    ];
+  ? [farcasterMiniApp()]
+  : [farcasterMiniApp()];
 
 const config = createConfig({
   chains: [celo, celoSepolia],
   connectors,
   transports: {
-    [celo.id]: http(),
-    [celoSepolia.id]: http(),
+    [celo.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
+    [celoSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
   },
 });
 

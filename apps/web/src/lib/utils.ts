@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -9,11 +9,13 @@ export function formatTimeRemaining(deadline: Date): string {
   const now = new Date();
   const diff = deadline.getTime() - now.getTime();
   if (diff <= 0) return "Ended";
+  const minutes = Math.floor(diff / (1000 * 60));
+  if (minutes <= 0) return "Ended";
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(hours / 24);
   if (days > 0) return `${days}d`;
   if (hours > 0) return `${hours}h`;
-  return `${Math.floor(diff / (1000 * 60))}m`;
+  return `${minutes}m`;
 }
 
 export function formatAddress(address: string): string {
@@ -35,10 +37,53 @@ export function formatTimeAgo(date: Date): string {
   if (hours < 24) return `${hours}h`;
   if (days < 30) return `${days}d`;
   if (months < 12) {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   }
-  // For very old posts, show month, day, and year
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${
+    monthNames[date.getMonth()]
+  } ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+
+
+
+export function getCountryFlag(countryCode: string | undefined | null): string {
+  if (!countryCode || countryCode.length !== 2) {
+    return countryCode || "";
+  }
+
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 127397 + char.charCodeAt(0));
+
+  return String.fromCodePoint(...codePoints);
 }

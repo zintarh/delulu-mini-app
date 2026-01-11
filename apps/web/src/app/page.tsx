@@ -1,300 +1,330 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
+import { LeftSidebar } from "@/components/left-sidebar";
+import { RightSidebar } from "@/components/right-sidebar";
 import { LoginScreen } from "@/components/login-screen";
-import { CreateDelusionSheet } from "@/components/create-delusion-sheet";
-import { ProfileSheet } from "@/components/profile-sheet";
-import {  TwitterPostCardSkeleton } from "@/components/delulu-skeleton";
-import { DeluluDetailsSheet } from "@/components/delulu-details-sheet";
+import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
-import { AllDelulusSheet } from "@/components/all-delulus-sheet";
-import { TwitterPostCard } from "@/components/twitter-post-card";
-import { BelieveSheet } from "@/components/believe-sheet";
-import { DoubtSheet } from "@/components/doubt-sheet";
+import { DeluluCard } from "@/components/delulu-card";
+import { StakingSheet } from "@/components/staking-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { useAccount, useDisconnect } from "wagmi";
+import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus";
 import { useUserStats } from "@/hooks/use-user-stats";
-import {  TrendingUp } from "lucide-react";
-
+import { useUserStakedDelulus } from "@/hooks/use-user-staked-delulus";
+import type { ApiDelulu } from "@/lib/api/fetchers";
+import { TrendingUp, Plus } from "lucide-react";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
-  const { delulus, isLoading } = useDelulus();
-  const {
-    createdCount,
-    totalStakes,
-    totalEarnings,
-    isLoading: isLoadingStats,
-  } = useUserStats();
+  const router = useRouter();
+  const { 
+    delulus, 
+    isLoading, 
+    isFetchingNextPage, 
+    hasNextPage, 
+    fetchNextPage 
+  } = useDelulus();
+  
+  // Fetch user's staked delulus for Vision tab
+  const { 
+    data: stakedDelulusApi, 
+    isLoading: isLoadingStakedDelulus 
+  } = useUserStakedDelulus();
 
 
-  const [createSheetOpen, setCreateSheetOpen] = useState(false);
-  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
     null
   );
-  const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
   const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
-  const [allDelulusSheetOpen, setAllDelulusSheetOpen] = useState(false);
-  const [believeSheetOpen, setBelieveSheetOpen] = useState(false);
-  const [doubtSheetOpen, setDoubtSheetOpen] = useState(false);
+  const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
-  const trendingDelusions = delulus.slice(0, 5);
+  const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Transform staked delulus from API format to FormattedDelulu format
+  const transformStakedDelulu = (d: ApiDelulu): FormattedDelulu => {
+    const believerStake = d.totalBelieverStake ?? 0;
+    const doubterStake = d.totalDoubterStake ?? 0;
 
-  // Show login screen if not connected
+    return {
+      id: parseInt(d.onChainId) || parseInt(d.id) || 0,
+      onChainId: d.onChainId,
+      creator: d.creatorAddress,
+      contentHash: d.contentHash,
+      content: d.content ?? undefined,
+      username: d.creator?.username ?? undefined,
+      pfpUrl: d.creator?.pfpUrl ?? undefined,
+      createdAt: d.createdAt ? new Date(d.createdAt) : undefined,
+      bgImageUrl: d.bgImageUrl ?? undefined,
+      gatekeeper: d.gatekeeperEnabled
+        ? {
+            enabled: true,
+            type: "country",
+            value: d.gatekeeperValue ?? "",
+            label: d.gatekeeperLabel ?? "",
+          }
+        : undefined,
+      stakingDeadline: new Date(d.stakingDeadline),
+      resolutionDeadline: new Date(d.resolutionDeadline),
+      totalBelieverStake: believerStake,
+      totalDoubterStake: doubterStake,
+      totalStake: believerStake + doubterStake,
+      outcome: d.outcome ?? false,
+      isResolved: d.isResolved,
+      isCancelled: d.isCancelled,
+    };
+  };
+
+  // Transform staked delulus to FormattedDelulu format
+  const stakedDelulus = useMemo(() => {
+    if (!stakedDelulusApi || stakedDelulusApi.length === 0) {
+      return [];
+    }
+    return stakedDelulusApi
+      .filter((d) => !d.isCancelled)
+      .map(transformStakedDelulu)
+      .sort((a, b) => {
+        // Sort by latest first
+        if (a.createdAt && b.createdAt) {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+        return b.id - a.id;
+      });
+  }, [stakedDelulusApi]);
+
+  // Infinite scroll detection
+  const scrollContainerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolling(true);
+
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
+
+      // Check if user has scrolled to bottom (within 200px)
+      // The main element is the scrollable container
+      const mainElement = document.querySelector("main");
+      const container = mainElement || document.documentElement;
+      
+      const scrollTop = container.scrollTop || window.scrollY;
+      const scrollHeight = container.scrollHeight || document.documentElement.scrollHeight;
+      const clientHeight = container.clientHeight || window.innerHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Load more when within 200px of bottom
+      if (
+        distanceFromBottom < 200 &&
+        hasNextPage &&
+        !isFetchingNextPage &&
+        !isLoading &&
+        activeTab === "fyp" // Only for FYP tab
+      ) {
+        fetchNextPage();
+      }
+    };
+
+    const mainElement = document.querySelector("main");
+    const windowElement = window;
+
+    if (mainElement) {
+      mainElement.addEventListener("scroll", handleScroll);
+    }
+    windowElement.addEventListener("scroll", handleScroll);
+
+    return () => {
+      if (mainElement) {
+        mainElement.removeEventListener("scroll", handleScroll);
+      }
+      windowElement.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
+
+
+  // Filter delulus based on active tab
+  // Note: Backend already returns delulus sorted by createdAt desc (latest first)
+  const filteredDelulus = useMemo(() => {
+    if (activeTab === "vision") {
+      // For Vision tab, show all delulus the user has staked on (from contract/backend)
+      if (!isConnected || !address) {
+        return [];
+      }
+      return stakedDelulus;
+    } else {
+      // For "For You" tab, show all delulus (already sorted by latest first from backend)
+      return delulus;
+    }
+  }, [delulus, activeTab, stakedDelulus, isConnected, address]);
+
+
   if (!isConnected) {
     return <LoginScreen />;
   }
 
   return (
-    <div className="min-h-screen bg-home-gradient">
-      <Navbar 
-        onProfileClick={() => setProfileSheetOpen(true)} 
-        onLogoutClick={() => setLogoutSheetOpen(true)}
-      />
+    <div className="h-screen  overflow-hidden">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
+        <div className="hidden lg:block">
+          <LeftSidebar
+            onProfileClick={() => router.push("/profile")}
+            onCreateClick={() => router.push("/board")}
+          />
+        </div>
 
-      <main className="max-w-lg mx-auto pt-4 pb-32">
-        <div className="px-4 space-y-6">
-       
-          <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10">
-            <div>
-              <p className="text-xs text-white/60 mb-2">Rewards</p>
-              <p className="text-2xl font-black text-white/90">
-                {isLoadingStats ? "..." : `$${totalEarnings.toFixed(2)}`}
-              </p>
-              <p className="text-xs text-white/40 mt-1">earned</p>
+        <main 
+          ref={scrollContainerRef}
+          className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide"
+        >
+          <div className="lg:hidden">
+            <Navbar
+              onProfileClick={() => router.push("/profile")}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
+
+          <div className="hidden lg:block sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+            <div className="flex items-center justify-center gap-1 h-14">
+              <button
+                onClick={() => setActiveTab("vision")}
+                className={cn(
+                  "px-4 h-full flex items-center justify-center text-base font-bold transition-colors relative",
+                  activeTab === "vision"
+                    ? "text-delulu-charcoal"
+                    : "text-gray-400 hover:text-delulu-charcoal"
+                )}
+              >
+                Vision
+                {activeTab === "vision" && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-delulu-charcoal rounded-full" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("fyp")}
+                className={cn(
+                  "px-4 h-full flex items-center justify-center text-base font-medium transition-colors relative",
+                  activeTab === "fyp"
+                    ? "text-delulu-charcoal"
+                    : "text-gray-400 hover:text-delulu-charcoal"
+                )}
+              >
+                For you
+                {activeTab === "fyp" && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-delulu-charcoal rounded-full" />
+                )}
+              </button>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-delulu-yellow/50" />
-                <span className="text-xs font-bold text-delulu-yellow/50 uppercase tracking-wider">
-                  Trending
-                </span>
-              </div>
-              {delulus.length > 0 && (
-                <button
-                  onClick={() => setAllDelulusSheetOpen(true)}
-                  className="text-xs text-delulu-yellow font-bold hover:text-delulu-yellow/80 transition-colors underline"
-                >
-                  See All
-                </button>
-              )}
-            </div>
-            {isLoading ? (
-              <div
-                className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <TwitterPostCardSkeleton key={i} />
+          <div className="px- lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
+            {isLoading || (activeTab === "vision" && isLoadingStakedDelulus) ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <DeluluCardSkeleton key={i} index={i} />
                 ))}
               </div>
-            ) : trendingDelusions.length > 0 ? (
-              <div
-                className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {trendingDelusions.map((delusion) => (
-                  <TwitterPostCard
-                    key={delusion.id}
-                    delusion={delusion}
-                    onClick={() => {
-                      setSelectedDelulu(delusion);
-                      setDetailsSheetOpen(true);
-                    }}
-                  />
-                ))}
+            ) : filteredDelulus.length > 0 ? (
+              <div className="flex flex-col">
+                {filteredDelulus.map((delusion, index) => {
+                  // Use a composite key to ensure uniqueness (id + onChainId)
+                  const uniqueKey = delusion.onChainId
+                    ? `${delusion.id}-${delusion.onChainId}`
+                    : `delulu-${delusion.id}-${index}`;
+
+                  return (
+                    <DeluluCard
+                      key={uniqueKey}
+                      delusion={delusion}
+                      href={`/delulu/${delusion.id}`}
+                      onStake={() => {
+                        setSelectedDelulu(delusion);
+                        setStakingSheetOpen(true);
+                      }}
+                      isLast={index === filteredDelulus.length - 1}
+                    />
+                  );
+                })}
+                {/* Loading indicator for next page */}
+                {isFetchingNextPage && (
+                  <div className="flex flex-col gap-3 mt-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <DeluluCardSkeleton key={`loading-${i}`} index={i} />
+                    ))}
+                  </div>
+                )}
+                {/* End of feed message */}
+                {!hasNextPage && filteredDelulus.length > 0 && activeTab === "fyp" && (
+                  <div className="text-center py-8 mt-4">
+                    <p className="text-gray-500 text-sm">
+                      You&apos;ve reached the end of the feed
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-white/50 text-sm">No delulus yet</p>
-                <p className="text-white/30 text-xs mt-1">
-                  Start by creating your first delulu
+                <p className="text-gray-500 text-sm">
+                  {activeTab === "vision"
+                    ? "You haven't staked on any delulus yet"
+                    : "No delulus yet"}
+                </p>
+                <p className="text-gray-400 text-xs mt-1">
+                  {activeTab === "vision"
+                    ? "Stake on a delulu to see it here"
+                    : "Start by creating your first delulu"}
                 </p>
               </div>
             )}
           </div>
+        </main>
 
-          {/* Explore Delulu Section */}
-          <div>
-            <h2 className="text-xl font-black text-white/90 mb-4">
-              Explore Delulu
-            </h2>
-            <div
-              className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {/* Card 1: What is Delulu */}
-              <button
-                onClick={() => {
-                  setHowItWorksType("concept");
-                  setHowItWorksSheetOpen(true);
-                }}
-                className="shrink-0 w-[85%] sm:w-[400px] bg-white/5 rounded-2xl p-5 border border-white/10 active:scale-[0.98] transition-transform text-left h-[280px] flex flex-col"
-              >
-                <div className="flex-1">
-                  <p className="text-xs text-white/60 mb-1">Concept</p>
-                  <p className="text-lg font-black text-white/90 mb-1">
-                    What is Delulu?
-                  </p>
-                  <p className="text-sm text-white/60 leading-relaxed">
-                    Turn your wild goals and opinions into high-stakes prediction markets. Monetize your delusions.
-                  </p>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  {/* <img
-                    src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=200&h=200&fit=crop&q=80"
-                    alt="What is Delulu"
-                    className="w-32 h-32 rounded-2xl object-cover"
-                  /> */}
-                </div>
-              </button>
-
-              {/* Card 2: The Market */}
-              <button
-                onClick={() => {
-                  setHowItWorksType("market");
-                  setHowItWorksSheetOpen(true);
-                }}
-                className="shrink-0 w-[85%] sm:w-[400px] bg-white/5 rounded-2xl p-5 border border-white/10 active:scale-[0.98] transition-transform text-left h-[280px] flex flex-col"
-              >
-                <div className="flex-1">
-                  <p className="text-xs text-white/60 mb-1">The Market</p>
-                  <p className="text-lg font-black text-white/90 mb-1">
-                    Prediction Markets
-                  </p>
-                  <p className="text-sm text-white/60 leading-relaxed">
-                    Stake to believe or doubt. The ratio reflects collective conviction. Winners take the pot.
-                  </p>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  {/* <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&q=80"
-                    alt="The Market"
-                    className="w-32 h-32 rounded-2xl object-cover"
-                  /> */}
-                </div>
-              </button>
-
-              {/* Card 3: Your Conviction */}
-              <button
-                onClick={() => {
-                  setHowItWorksType("conviction");
-                  setHowItWorksSheetOpen(true);
-                }}
-                className="shrink-0 w-[85%] sm:w-[400px] bg-white/5 rounded-2xl p-5 border border-white/10 active:scale-[0.98] transition-transform text-left h-[280px] flex flex-col"
-              >
-                <div className="flex-1">
-                  <p className="text-xs text-white/60 mb-1">Rewards</p>
-                  <p className="text-lg font-black text-white/90 mb-1">
-                    Your Conviction
-                  </p>
-                  <p className="text-sm text-white/60 leading-relaxed">
-                    Back your beliefs with real stakes. Win financial rewards and social validation when you&apos;re right.
-                  </p>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  {/* <img
-                    src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=200&h=200&fit=crop&q=80"
-                    alt="Your Conviction"
-                    className="w-32 h-32 rounded-2xl object-cover"
-                  /> */}
-                </div>
-              </button>
-            </div>
-          </div>
+        <div className="hidden lg:block">
+          <RightSidebar />
         </div>
-      </main>
-
-      {/* Create Delulu Button - Fixed Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-delulu-dark border-t border-white/10 z-40">
-        <button
-          onClick={() => setCreateSheetOpen(true)}
-          className={cn(
-            "w-full",
-            "px-8 py-4",
-            "bg-delulu-yellow text-delulu-dark text-lg",
-            "btn-game"
-          )}
-        >
-          Create Delulu
-        </button>
       </div>
 
-      {/* Create Delusion Bottom Sheet */}
-      <CreateDelusionSheet
-        open={createSheetOpen}
-        onOpenChange={setCreateSheetOpen}
-      />
+      <button
+        onClick={() => router.push("/board")}
+        className="lg:hidden fixed bottom-6 right-6 w-16 h-16 rounded-md bg-delulu-yellow-reserved text-delulu-charcoal flex items-center justify-center border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:scale-110 transition-all duration-300 z-40"
+        title="Create"
+        aria-label="Create"
+      >
+        <Plus className="w-8 h-8" />
+      </button>
 
-      {/* Profile Bottom Sheet */}
-      <ProfileSheet
-        open={profileSheetOpen}
-        onOpenChange={setProfileSheetOpen}
-      />
-
-      {/* Delulu Details Bottom Sheet */}
-      <DeluluDetailsSheet
-        open={detailsSheetOpen}
-        onOpenChange={setDetailsSheetOpen}
-        delulu={selectedDelulu}
-        onBelieve={() => {
-          setDetailsSheetOpen(false);
-          setBelieveSheetOpen(true);
-        }}
-        onDoubt={() => {
-          setDetailsSheetOpen(false);
-          setDoubtSheetOpen(true);
-        }}
-      />
-
-      {/* How It Works Bottom Sheet */}
       <HowItWorksSheet
         open={howItWorksSheetOpen}
         onOpenChange={setHowItWorksSheetOpen}
         type={howItWorksType}
       />
 
-      {/* All Delulus Bottom Sheet */}
-      <AllDelulusSheet
-        open={allDelulusSheetOpen}
-        onOpenChange={setAllDelulusSheetOpen}
-        delulus={delulus}
-        isLoading={isLoading}
-        onDeluluClick={(delulu) => {
-          setSelectedDelulu(delulu);
-          setDetailsSheetOpen(true);
-        }}
-      />
-
-      {/* Believe Sheet */}
-      <BelieveSheet
-        open={believeSheetOpen}
-        onOpenChange={setBelieveSheetOpen}
+      <StakingSheet
+        open={stakingSheetOpen}
+        onOpenChange={setStakingSheetOpen}
         delulu={selectedDelulu}
       />
 
-      {/* Doubt Sheet */}
-      <DoubtSheet
-        open={doubtSheetOpen}
-        onOpenChange={setDoubtSheetOpen}
-        delulu={selectedDelulu}
-      />
-
-      {/* Logout Sheet */}
       <LogoutSheet
         open={logoutSheetOpen}
         onOpenChange={setLogoutSheetOpen}
@@ -302,10 +332,10 @@ export default function HomePage() {
           disconnect();
           useUserStore.getState().logout();
           setLogoutSheetOpen(false);
+          router.push("/");
         }}
       />
 
-      {/* Claim Rewards Sheet */}
       <ClaimRewardsSheet
         open={claimRewardsSheetOpen}
         onOpenChange={setClaimRewardsSheetOpen}
@@ -313,4 +343,3 @@ export default function HomePage() {
     </div>
   );
 }
-

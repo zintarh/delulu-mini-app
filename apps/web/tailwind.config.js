@@ -15,12 +15,14 @@ module.exports = {
     },
     extend: {
       colors: {
-        // Delulu brand colors
-        "delulu-yellow": "#fcff52",
+        // Delulu brand colors - Light Theme
+        "delulu-yellow": "#fcff52", // Brand yellow - buttons/accents only
+        "delulu-yellow-reserved": "#fcff52",
         "delulu-green": "#35d07f",
-        "delulu-purple": "#8b5cf6",
-        "delulu-dark": "#0a0a0a",
+        "delulu-charcoal": "#111111", // Primary text color - Pinterest sharp black
         "delulu-white": "#ffffff",
+        "delulu-light-gray": "#F8F9FA", // Secondary background
+        "delulu-border": "#E5E7EB", // Border color
         
         // Semantic colors using CSS variables
         border: "var(--border)",

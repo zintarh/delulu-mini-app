@@ -13,8 +13,7 @@ export function useClaimable(deluluId: number | null) {
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "isClaimable",
-    args:
-      deluluId !== null && address ? [BigInt(deluluId), address] : undefined,
+    args: deluluId !== null && address ? [deluluId, address] : undefined,
     query: {
       enabled: deluluId !== null && !!address,
     },
@@ -26,4 +25,3 @@ export function useClaimable(deluluId: number | null) {
     error,
   };
 }
-

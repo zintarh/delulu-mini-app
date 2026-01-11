@@ -1,0 +1,80 @@
+import { db } from "./index";
+import type { CreateClaimInput } from "@/lib/validations/claim";
+
+export async function createClaim(input: CreateClaimInput) {
+  const user = await db.user.findUnique({
+    where: { address: input.userAddress.toLowerCase() },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const isOnChainId = /^\d+$/.test(input.deluluId);
+
+  let delulu;
+  if (isOnChainId) {
+    delulu = await db.delulu.findUnique({
+      where: { onChainId: BigInt(input.deluluId) },
+    });
+  } else {
+    delulu = await db.delulu.findUnique({
+      where: { id: input.deluluId },
+    });
+  }
+
+  if (!delulu) {
+    throw new Error("Delulu not found");
+  }
+
+  const existingClaim = await db.claim.findUnique({
+    where: { txHash: input.txHash },
+  });
+
+  if (existingClaim) {
+    console.log(
+      `[createClaim] Claim with txHash ${input.txHash} already exists, returning existing claim`
+    );
+    return existingClaim;
+  }
+
+  return db.claim.create({
+    data: {
+      userId: user.id,
+      deluluId: delulu.id, // Always use the database ID (UUID)
+      amount: input.amount,
+      txHash: input.txHash,
+    },
+  });
+}
+
+export async function getClaimsByUser(address: string) {
+  const user = await db.user.findUnique({
+    where: { address: address.toLowerCase() },
+  });
+
+  if (!user) return [];
+
+  return db.claim.findMany({
+    where: { userId: user.id },
+    include: {
+      delulu: { select: { content: true, onChainId: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getTotalClaimedByUser(address: string) {
+  const user = await db.user.findUnique({
+    where: { address: address.toLowerCase() },
+  });
+
+  if (!user) return 0;
+
+  const result = await db.claim.aggregate({
+    where: { userId: user.id },
+    _sum: { amount: true },
+  });
+
+  return result._sum.amount ?? 0;
+}

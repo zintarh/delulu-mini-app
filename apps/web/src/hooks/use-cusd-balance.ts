@@ -24,6 +24,7 @@ export function useCUSDBalance() {
       ? CUSD_ADDRESSES.mainnet
       : undefined;
 
+
   const finalTokenAddress = tokenAddress || fallbackTokenAddress;
 
   const {

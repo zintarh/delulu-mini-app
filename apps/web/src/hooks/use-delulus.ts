@@ -1,31 +1,16 @@
-import { useReadContract } from "wagmi";
-import { formatUnits } from "viem";
-import { useEffect, useState } from "react";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
-
-export interface Delulu {
-  id: bigint;
-  creator: `0x${string}`;
-  contentHash: string;
-  stakingDeadline: bigint;
-  resolutionDeadline: bigint;
-  totalBelieverStake: bigint;
-  totalDoubterStake: bigint;
-  outcome: boolean;
-  isResolved: boolean;
-  isCancelled: boolean;
-}
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys, fetchDelulus, type ApiDelulu } from "@/lib/api/fetchers";
 
 export interface GatekeeperConfig {
   enabled: boolean;
   type: "country";
-  value: string; // ISO Code e.g., "NG"
-  label: string; // Human readable e.g., "Nigeria"
+  value: string;
+  label: string;
 }
 
 export interface FormattedDelulu {
   id: number;
+  onChainId?: string;
   creator: string;
   contentHash: string;
   content?: string;
@@ -33,6 +18,7 @@ export interface FormattedDelulu {
   pfpUrl?: string;
   createdAt?: Date;
   gatekeeper?: GatekeeperConfig;
+  bgImageUrl?: string;
   stakingDeadline: Date;
   resolutionDeadline: Date;
   totalBelieverStake: number;
@@ -43,107 +29,122 @@ export interface FormattedDelulu {
   isCancelled: boolean;
 }
 
-interface IPFSContent {
-  text?: string;
-  username?: string;
-  pfpUrl?: string;
-  createdAt?: string;
-  gatekeeper?: GatekeeperConfig;
+// Transform backend API response to FormattedDelulu
+function transformApiDelulu(d: ApiDelulu): FormattedDelulu {
+  const believerStake = d.totalBelieverStake ?? 0;
+  const doubterStake = d.totalDoubterStake ?? 0;
+
+  return {
+    // Parse onChainId if it exists and is not empty, otherwise fallback to parsing DB id
+    // Note: onChainId should always be present for synced delulus, but may be missing for unsynced ones
+    id: (d.onChainId && d.onChainId.trim() !== "") ? parseInt(d.onChainId) : (parseInt(d.id) || 0),
+    // Preserve onChainId as string if it exists and is not empty, otherwise undefined
+    onChainId: (d.onChainId && d.onChainId.trim() !== "") ? d.onChainId : undefined,
+    creator: d.creatorAddress,
+    contentHash: d.contentHash,
+    content: d.content ?? undefined,
+    username: d.creator?.username ?? undefined,
+    pfpUrl: d.creator?.pfpUrl ?? undefined,
+    createdAt: d.createdAt ? new Date(d.createdAt) : undefined,
+    bgImageUrl: d.bgImageUrl ?? undefined,
+    gatekeeper: d.gatekeeperEnabled
+      ? {
+          enabled: true,
+          type: "country",
+          value: d.gatekeeperValue ?? "",
+          label: d.gatekeeperLabel ?? "",
+        }
+      : undefined,
+    stakingDeadline: new Date(d.stakingDeadline),
+    resolutionDeadline: new Date(d.resolutionDeadline),
+    totalBelieverStake: believerStake,
+    totalDoubterStake: doubterStake,
+    totalStake: believerStake + doubterStake,
+    outcome: d.outcome ?? false,
+    isResolved: d.isResolved,
+    isCancelled: d.isCancelled,
+  };
 }
 
-async function fetchIPFSContent(hash: string): Promise<IPFSContent | null> {
-  try {
-    const response = await fetch(`https://ipfs.io/ipfs/${hash}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    if (!response.ok) {
-      console.warn(`IPFS fetch failed for ${hash}: ${response.status}`);
-      return null;
-    }
-    const data = await response.json();
-    const pinataContent = data.pinataContent || data;
-    return {
-      text: pinataContent.text || data.text || data.content || null,
-      username: pinataContent.username || data.username || null,
-      pfpUrl: pinataContent.pfpUrl || data.pfpUrl || null,
-      createdAt: pinataContent.createdAt || data.createdAt || null,
-      gatekeeper: pinataContent.gatekeeper || data.gatekeeper || null,
-    };
-  } catch (error) {
-    console.error(`Failed to fetch IPFS content for ${hash}:`, error);
-    return null;
-  }
-}
+const PAGE_SIZE = 10;
 
 export function useDelulus() {
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
-    abi: DELULU_ABI,
-    functionName: "getDelulus",
-    args: [1n, 100n],
+  const query = useInfiniteQuery({
+    queryKey: queryKeys.delulus.list({
+      limit: PAGE_SIZE,
+      includeResolved: false,
+    }),
+    queryFn: async ({
+      pageParam,
+    }): Promise<{ data: FormattedDelulu[]; nextCursor: string | null }> => {
+      const response = await fetchDelulus({
+        limit: PAGE_SIZE,
+        cursor: pageParam,
+        includeResolved: false,
+      });
+
+      const transformed = response.data
+        .filter((d) => !d.isCancelled)
+        .map(transformApiDelulu);
+
+      // Deduplicate by onChainId (most reliable unique identifier)
+      const seenOnChainIds = new Set<string>();
+      const uniqueDelulus = transformed.filter((d) => {
+        // Use onChainId as the unique identifier, fallback to id
+        const uniqueId = d.onChainId || `db-${d.id}`;
+        if (seenOnChainIds.has(uniqueId)) {
+          console.warn(
+            `Duplicate delulu detected: id=${d.id}, onChainId=${d.onChainId}`
+          );
+          return false;
+        }
+        seenOnChainIds.add(uniqueId);
+        return true;
+      });
+
+      // Backend already sorts by createdAt desc, but ensure consistency
+      const sorted = uniqueDelulus.sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+        return b.id - a.id;
+      });
+
+      return {
+        data: sorted,
+        nextCursor: response.nextCursor ?? null,
+      };
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 30 * 1000, // 30 seconds for feed freshness
   });
 
-  const [delulusWithContent, setDelulusWithContent] = useState<
-    FormattedDelulu[]
-  >([]);
+  const allDelulus = query.data?.pages.flatMap((page) => page.data) ?? [];
 
-  const rawDelulus: FormattedDelulu[] = data
-    ? (data as Delulu[])
-      .filter((d) => !d.isCancelled)
-      .map((d) => {
-        const believerStake = parseFloat(
-          formatUnits(d.totalBelieverStake, 18)
-        );
-        const doubterStake = parseFloat(formatUnits(d.totalDoubterStake, 18));
-        const totalStake = believerStake + doubterStake;
-
-        return {
-          id: Number(d.id),
-          creator: d.creator,
-          contentHash: d.contentHash,
-          stakingDeadline: new Date(Number(d.stakingDeadline) * 1000),
-          resolutionDeadline: new Date(Number(d.resolutionDeadline) * 1000),
-          totalBelieverStake: believerStake,
-          totalDoubterStake: doubterStake,
-          totalStake,
-          outcome: d.outcome,
-          isResolved: d.isResolved,
-          isCancelled: d.isCancelled,
-        };
-      })
-      .sort((a, b) => b.totalStake - a.totalStake)
-    : [];
-
-  useEffect(() => {
-    if (rawDelulus.length === 0) {
-      setDelulusWithContent([]);
-      return;
+  const seenOnChainIds = new Set<string>();
+  const deduplicatedDelulus = allDelulus.filter((d) => {
+    const uniqueId = d.onChainId || `db-${d.id}`;
+    if (seenOnChainIds.has(uniqueId)) {
+      return false;
     }
+    seenOnChainIds.add(uniqueId);
+    return true;
+  });
 
-    const fetchContents = async () => {
-      const delulusWithDecoded = await Promise.all(
-        rawDelulus.map(async (delulu) => {
-          const ipfsData = await fetchIPFSContent(delulu.contentHash);
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.delulus.all });
+  };
 
-          return {
-            ...delulu,
-            content: ipfsData?.text || delulu.contentHash,
-            username: ipfsData?.username,
-            pfpUrl: ipfsData?.pfpUrl,
-            createdAt: ipfsData?.createdAt ? new Date(ipfsData.createdAt) : undefined,
-            gatekeeper: ipfsData?.gatekeeper || undefined,
-          };
-        })
-      );
-      setDelulusWithContent(delulusWithDecoded);
-    };
-
-    fetchContents();
-  }, [data]);
-
-  return { delulus: delulusWithContent, isLoading, error };
+  return {
+    delulus: deduplicatedDelulus,
+    isLoading: query.isLoading,
+    isFetchingNextPage: query.isFetchingNextPage,
+    hasNextPage: query.hasNextPage,
+    fetchNextPage: query.fetchNextPage,
+    error: query.error,
+    refetch,
+  };
 }

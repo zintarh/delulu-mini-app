@@ -28,18 +28,17 @@ export function DatePicker({
       onChange(null);
       return;
     }
-    
-    // Set time to end of day (23:59:59) for the deadline
+
     const newDate = new Date(date);
     newDate.setHours(23, 59, 59, 999);
-    
+
     setSelectedDate(newDate);
     onChange(newDate);
   };
 
   return (
-    <div className={cn("w-full max-w-sm mx-auto", className)}>
-      <div className="bg-white rounded-2xl border-2 border-delulu-dark p-4 shadow-[0_4px_0_0_#0a0a0a]">
+    <div className={cn("w-full max-w-md mx-auto", className)}>
+      <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 border py-6 border-white/20 text-white shadow-sm">
         <DayPicker
           mode="single"
           selected={selectedDate || undefined}
@@ -51,38 +50,40 @@ export function DatePicker({
           }}
           className="w-full"
           classNames={{
-            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+            months:
+              "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
             month: "space-y-2",
             caption: "flex justify-center pt-1 relative items-center",
-            caption_label: "text-base font-bold text-delulu-dark",
+            caption_label: "text-base font-bold text-white",
             nav: "space-x-1 flex items-center",
             nav_button: cn(
               "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100",
-              "text-delulu-dark hover:bg-delulu-purple/10 rounded-full",
+              "text-white hover:bg-gray-100 rounded-full",
               "transition-all duration-150"
             ),
             nav_button_previous: "absolute left-1",
             nav_button_next: "absolute right-1",
             table: "w-full border-collapse space-y-1",
             head_row: "flex",
-            head_cell: "text-delulu-dark/50 font-bold text-xs w-8",
+            head_cell: "text-gray-500 font-bold text-xs w-8",
             row: "flex w-full mt-1",
-            cell: "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-delulu-purple/10 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
+            cell: "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-gray-100 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
             day: cn(
-              "h-8 w-8 p-0 font-bold text-delulu-dark text-sm",
-              "hover:bg-delulu-purple/10 rounded-full",
+              "h-8 w-8 p-0 font-bold text-white/80 text-sm",
+              "hover:bg-black/20 rounded-full",
               "transition-all duration-150",
               "aria-selected:opacity-100",
-              "focus:bg-delulu-purple/20 focus:outline-none"
+              "focus:bg-gray-200 focus:outline-none"
             ),
             day_selected: cn(
-              "bg-delulu-purple text-white",
-              "hover:bg-delulu-purple hover:text-white",
-              "focus:bg-delulu-purple focus:text-white"
+              "bg-delulu-yellow-reserved text-delulu-charcoal",
+              "hover:bg-delulu-yellow-reserved hover:text-delulu-charcoal",
+              "focus:bg-delulu-yellow-reserved focus:text-delulu-charcoal"
             ),
-            day_today: "bg-delulu-yellow/20 text-delulu-dark font-black border-2 border-delulu-purple",
-            day_disabled: "text-delulu-dark/20 cursor-not-allowed",
-            day_outside: "text-delulu-dark/30",
+            day_today:
+              "bg-white text-delulu-charcoal font-black border-2 border-delulu-yellow-reserved",
+            day_disabled: "text-gray-300 cursor-not-allowed",
+            day_outside: "text-gray-400",
             day_hidden: "invisible",
           }}
         />
@@ -90,4 +91,3 @@ export function DatePicker({
     </div>
   );
 }
-
