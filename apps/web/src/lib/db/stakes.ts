@@ -100,7 +100,7 @@ export async function getStakesByDelulu(deluluId: string) {
   return db.stake.findMany({
     where: { deluluId },
     include: {
-      user: { select: { address: true, username: true } },
+      user: { select: { address: true, username: true, pfpUrl: true } },
     },
   });
 }

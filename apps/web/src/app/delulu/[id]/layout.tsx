@@ -12,7 +12,12 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  // Use environment variable or default, ensuring HTTPS in production
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+  // Ensure HTTPS if not localhost
+  if (!baseUrl.includes("localhost") && baseUrl.startsWith("http:")) {
+    baseUrl = baseUrl.replace(/^http:/, "https:");
+  }
 
   try {
     const delulu = await getDeluluById(id);
@@ -28,7 +33,12 @@ export async function generateMetadata(
     const dbImageSource = delulu.bgImageUrl;
 
     if (dbImageSource?.startsWith("http")) {
-      finalBgImageUrl = dbImageSource;
+      // Replace localhost URLs with production URL
+      finalBgImageUrl = dbImageSource.replace(/https?:\/\/localhost:\d+/g, baseUrl);
+      // Ensure HTTPS if baseUrl is HTTPS
+      if (baseUrl.startsWith("https:")) {
+        finalBgImageUrl = finalBgImageUrl.replace(/^http:/, "https:");
+      }
     } else if (dbImageSource && dbImageSource.includes("templates/")) {
       const cleanPath = dbImageSource.startsWith("/")
         ? dbImageSource

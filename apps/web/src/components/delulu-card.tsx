@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 import { Upload, CircleDollarSign, Copy } from "lucide-react";
 import { FormattedDelulu } from "@/hooks/use-delulus";
 import {
@@ -12,6 +13,7 @@ import {
   getCountryFlag,
 } from "@/lib/utils";
 import { api } from "@/lib/api-client";
+import { useUserStore } from "@/stores/useUserStore";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -36,13 +38,37 @@ function getCardBackground(delusion: FormattedDelulu): {
   isImage: boolean;
 } {
   if (delusion.bgImageUrl) {
+    let imageUrl = delusion.bgImageUrl;
+    
+    // Convert relative paths to absolute URLs
+    if (imageUrl.startsWith("/")) {
+      if (typeof window !== "undefined") {
+        imageUrl = `${window.location.origin}${imageUrl}`;
+      } else {
+        // Server-side: use environment variable or default
+        const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+        imageUrl = `${baseUrl}${imageUrl}`;
+      }
+    }
+    
+    // Replace localhost URLs with current origin (handles production)
+    if (typeof window !== "undefined") {
+      const currentOrigin = window.location.origin;
+      // Replace any localhost URLs with current origin
+      imageUrl = imageUrl.replace(/https?:\/\/localhost:\d+/g, currentOrigin);
+      
+      // Ensure HTTPS if page is served over HTTPS
+      if (window.location.protocol === "https:") {
+        imageUrl = imageUrl.replace(/^http:/, "https:");
+      }
+    }
+    
     if (
-      delusion.bgImageUrl.startsWith("http://") ||
-      delusion.bgImageUrl.startsWith("https://") ||
-      delusion.bgImageUrl.startsWith("/")
+      imageUrl.startsWith("http://") ||
+      imageUrl.startsWith("https://")
     ) {
       return {
-        bg: `url(${delusion.bgImageUrl})`,
+        bg: `url(${imageUrl})`,
         text: "text-white", 
         isImage: true,
       };
@@ -93,7 +119,20 @@ export function DeluluCard({
   className = "",
   isLast = false,
 }: DeluluCardProps) {
+  const { address } = useAccount();
+  const { user } = useUserStore();
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
+  
+  // Check if this delulu belongs to the connected user
+  const isCurrentUser = address?.toLowerCase() === delusion.creator.toLowerCase();
+  
+  // Use connected user's profile data if available and it's their delulu, otherwise use delulu's creator data
+  const displayPfpUrl = isCurrentUser && user?.pfpUrl 
+    ? user.pfpUrl 
+    : delusion.pfpUrl || null;
+  const displayUsername = isCurrentUser && user?.username 
+    ? user.username 
+    : delusion.username || null;
 
   const headlineRaw = delusion.content || delusion.contentHash || "";
   const headline = headlineRaw.trim();
@@ -238,10 +277,10 @@ export function DeluluCard({
   const cardContent = (
     <>
       <div className="flex items-center gap-2 mb-2 border-gray-200">
-        {delusion.pfpUrl ? (
+        {displayPfpUrl ? (
           <img
-            src={delusion.pfpUrl}
-            alt={delusion.username || delusion.creator}
+            src={displayPfpUrl}
+            alt={displayUsername || delusion.creator}
             className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200"
           />
         ) : (
@@ -254,8 +293,8 @@ export function DeluluCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-delulu-charcoal">
-              {delusion.username
-                ? `@${delusion.username}`
+              {displayUsername
+                ? `@${displayUsername}`
                 : formatAddress(delusion.creator)}
             </span>
             <span className="text-xs text-gray-400">·</span>
