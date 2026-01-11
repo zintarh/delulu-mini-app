@@ -300,7 +300,7 @@ export function StakingSheet({
                   type="button"
                   onClick={() => setSide("believe")}
                   className={cn(
-                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
+                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-sm",
                     side === "believe"
                       ? "bg-gray-200 text-delulu-charcoal"
                       : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
@@ -313,7 +313,7 @@ export function StakingSheet({
                   type="button"
                   onClick={() => setSide("doubt")}
                   className={cn(
-                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-base",
+                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-sm",
                     side === "doubt"
                       ? "bg-gray-200 text-delulu-charcoal"
                       : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
