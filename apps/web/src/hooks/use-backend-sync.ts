@@ -247,6 +247,8 @@ export function useBackendSync() {
         queryClient.invalidateQueries({ queryKey: queryKeys.users.stats(address) });
         queryClient.invalidateQueries({ queryKey: queryKeys.users.claims(address) });
         queryClient.invalidateQueries({ queryKey: ["activity"] });
+        // Invalidate user claim for the specific delulu
+        queryClient.invalidateQueries({ queryKey: ["user-claim", address, data.deluluId] });
         
         return result;
       } catch (error) {

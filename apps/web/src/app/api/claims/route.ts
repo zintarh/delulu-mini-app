@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { createClaim, getClaimsByUser, getTotalClaimedByUser } from "@/lib/db/claims";
+import { createClaim, getClaimsByUser, getTotalClaimedByUser, getUserClaimForDelulu } from "@/lib/db/claims";
 import { jsonResponse, formatZodError, errorResponse } from "@/lib/api";
 import { createClaimSchema } from "@/lib/validations/claim";
 
@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const address = request.nextUrl.searchParams.get("address");
     const total = request.nextUrl.searchParams.get("total") === "true";
+    const deluluId = request.nextUrl.searchParams.get("deluluId");
 
     if (!address) {
       return errorResponse("Address required", 400);
@@ -16,6 +17,11 @@ export async function GET(request: NextRequest) {
     if (total) {
       const amount = await getTotalClaimedByUser(address);
       return jsonResponse({ total: amount });
+    }
+
+    if (deluluId) {
+      const claim = await getUserClaimForDelulu(address, deluluId);
+      return jsonResponse(claim);
     }
 
     const claims = await getClaimsByUser(address);

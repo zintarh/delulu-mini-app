@@ -78,3 +78,40 @@ export async function getTotalClaimedByUser(address: string) {
 
   return result._sum.amount ?? 0;
 }
+
+export async function getUserClaimForDelulu(
+  address: string,
+  deluluId: string
+) {
+  const user = await db.user.findUnique({
+    where: { address: address.toLowerCase() },
+  });
+
+  if (!user) return null;
+
+  // Determine if deluluId is an onChainId (numeric) or database id (UUID)
+  const isOnChainId = /^\d+$/.test(deluluId);
+  
+  let delulu;
+  if (isOnChainId) {
+    delulu = await db.delulu.findUnique({
+      where: { onChainId: BigInt(deluluId) },
+    });
+  } else {
+    delulu = await db.delulu.findUnique({
+      where: { id: deluluId },
+    });
+  }
+
+  if (!delulu) return null;
+
+  const claim = await db.claim.findFirst({
+    where: {
+      userId: user.id,
+      deluluId: delulu.id,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return claim;
+}

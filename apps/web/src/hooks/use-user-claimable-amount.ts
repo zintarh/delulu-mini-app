@@ -22,14 +22,9 @@ export function useUserClaimableAmount(deluluId: number | null) {
     },
   });
 
-  const position = userPosition as
-    | { amount: bigint; side: boolean; claimed: boolean }
-    | undefined;
 
-  const userStakeAmount = position?.amount
-    ? parseFloat(formatUnits(position.amount, 18))
-    : 0;
-  const userSide = position?.side ?? null;
+
+
 
   const {
     data: potentialAmount,
@@ -48,9 +43,13 @@ export function useUserClaimableAmount(deluluId: number | null) {
     },
   });
 
+
+
   const claimableAmount = potentialAmount
     ? parseFloat(formatUnits(potentialAmount as bigint, 18))
     : 0;
+
+
 
   return {
     claimableAmount,

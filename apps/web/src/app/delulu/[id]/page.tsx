@@ -13,6 +13,7 @@ import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
+import { useUserClaimAmount } from "@/hooks/use-user-claim-amount";
 import { useSingleDelulu } from "@/hooks/use-single-delulu";
 import { useDeluluStakes } from "@/hooks/use-delulu-stakes";
 import { FeedbackModal } from "@/components/feedback-modal";
@@ -74,6 +75,8 @@ export default function DeluluPage() {
   );
   const { claimableAmount, isLoading: isLoadingClaimableAmount } =
     useUserClaimableAmount(isConnected && delulu?.id ? delulu.id : null);
+  const { claimedAmount, isLoading: isLoadingClaimedAmount } =
+    useUserClaimAmount(isConnected && delulu?.id ? delulu.id.toString() : null);
   const {
     claim,
     isPending: isClaiming,
@@ -512,6 +515,9 @@ export default function DeluluPage() {
     !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
 
 
+    console.log(claimableAmount, "claimableAmount");
+
+
   return (
     <div className="min-h-screen bg-white">
       <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between bg-white border-b border-gray-200">
@@ -721,20 +727,26 @@ export default function DeluluPage() {
                 <p className="text-xs font-black text-delulu-charcoal uppercase mb-2">Claimed</p>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-base font-black text-delulu-charcoal">
-                      {claimableAmount !== null && claimableAmount > 0
-                        ? claimableAmount < 0.01
-                          ? claimableAmount.toFixed(4)
-                          : claimableAmount.toFixed(2)
-                        : "0.00"}{" "}
-                      <span className="text-sm text-gray-600">cUSD</span>
-                    </p>
+                    {isLoadingClaimedAmount ? (
+                      <div className="h-5 w-20 bg-gray-200 rounded animate-pulse" />
+                    ) : (
+                      <p className="text-base font-black text-delulu-charcoal">
+                        {claimedAmount !== null && claimedAmount > 0
+                          ? claimedAmount < 0.01
+                            ? claimedAmount.toFixed(4)
+                            : claimedAmount.toFixed(2)
+                          : "0.00"}{" "}
+                        <span className="text-sm text-gray-600">cUSD</span>
+                      </p>
+                    )}
                   </div>
                   <div className="text-2xl text-delulu-charcoal font-black">✓</div>
                 </div>
               </div>
             )}
         </div>
+
+
 
         {/* Leaderboard - Only show if there's data or loading */}
         {(isLoadingStakes || leaderboard.length > 0) && (

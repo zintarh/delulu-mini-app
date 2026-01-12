@@ -74,7 +74,7 @@ export function useDelulus() {
   const query = useInfiniteQuery({
     queryKey: queryKeys.delulus.list({
       limit: PAGE_SIZE,
-      includeResolved: false,
+      includeResolved: true,
     }),
     queryFn: async ({
       pageParam,
@@ -82,7 +82,7 @@ export function useDelulus() {
       const response = await fetchDelulus({
         limit: PAGE_SIZE,
         cursor: pageParam,
-        includeResolved: false,
+        includeResolved: true,
       });
 
       const transformed = response.data

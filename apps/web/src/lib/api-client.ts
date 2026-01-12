@@ -306,6 +306,19 @@ class ApiClient {
     return this.request<ApiClaim[]>(`/claims?address=${address}`);
   }
 
+  async getUserClaimForDelulu(
+    address: string,
+    deluluId: string
+  ): Promise<ApiClaim | null> {
+    try {
+      return await this.request<ApiClaim>(
+        `/claims?address=${address}&deluluId=${deluluId}`
+      );
+    } catch {
+      return null;
+    }
+  }
+
   async getTotalClaimed(address: string): Promise<number> {
     const res = await this.request<{ total: number }>(
       `/claims?address=${address}&total=true`
