@@ -306,12 +306,12 @@ export function DeluluCard({
         className="relative w-full aspect-[4/5] rounded-xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer shadow-sm border border-gray-100"
       >
         <div
-          className={cn("absolute inset-0 !bg-contain bg-no-repeat bg-center")}
+          className={cn("absolute inset-0 bg-cover bg-no-repeat bg-center")}
           style={
             cardBackground.isImage
               ? {
                   backgroundImage: cardBackground.bg,
-                  backgroundSize: "contain",
+                  backgroundSize: "cover",
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
                 }
