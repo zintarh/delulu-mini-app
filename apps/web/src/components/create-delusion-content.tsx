@@ -34,23 +34,47 @@ interface CreateDelusionContentProps {
 const TEMPLATES = [
   {
     id: 1,
-    name: "Content Creator",
+    name: "New Job",
     image: "/templates/t0.png",
-    font: "var(--font-gloria)",
-    fontWeight: "400",
+    fontWeight: "700",
   },
   {
     id: 2,
-    name: "Solo Trip",
-    image: "/templates/t1.png",
-    font: "var(--font-dancing)",
+    name: "Software Engineer",
+    image: "/templates/t1.jpg",
     fontWeight: "700",
   },
   {
     id: 3,
-    name: "Luxury Traveler",
+    name: "Traveller",
     image: "/templates/t2.png",
-    font: "var(--font-caveat)",
+    fontWeight: "700",
+  },
+
+  {
+    id: 4,
+    name: "Startup",
+    image: "/templates/t9.jpg",
+    fontWeight: "700",
+  },
+  {
+    id: 5,
+    name: "Relationship",
+    image: "/templates/t3.png",
+    fontWeight: "700",
+  },
+
+  {
+    id: 6,
+    name: "Graduate",
+    image: "/templates/t6.jpg",
+    fontWeight: "700",
+  },
+
+  {
+    id: 7,
+    name: "Workout",
+    image: "/templates/t8.jpg",
     fontWeight: "700",
   },
 ];
@@ -286,13 +310,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     if (isProcessing) {
       return;
     }
-
-    // Set loading state IMMEDIATELY at the start to show feedback to user
-    // This prevents the user from clicking multiple times and gives immediate visual feedback
     setIsUploadingImage(true);
 
     try {
-      // Validate inputs first
       const maxStakeValue = calculateMaxStakeValue(cusdBalance);
       const validation = validateDeluluInputs(
         delusionText,
@@ -543,7 +563,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
         {/* Step 1: Template Gallery */}
         {step === "gallery" && (
-          <div className="pt-20 pb-8 px-4 lg:px-8">
+          <div className="pt-20 pb-8 px-4 lg:px-8 h-screen overflow-y-auto">
             <div className="max-w-6xl mx-auto">
               <h1 className="text-3xl font-black text-delulu-charcoal mb-8 text-center">
                 Choose your board aesthetic.
@@ -590,9 +610,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <p
-                          className="text-white font-bold text-2xl sm:text-2xl text-center px-4 drop-shadow-lg"
+                          className="text-white font-bold text-xl  text-center px-4 drop-shadow-lg"
                           style={{
-                            fontFamily: template.font,
                             fontWeight: template.fontWeight,
                           }}
                         >
