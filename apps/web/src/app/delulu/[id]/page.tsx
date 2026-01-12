@@ -515,9 +515,6 @@ export default function DeluluPage() {
     !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
 
 
-    console.log(claimableAmount, "claimableAmount");
-
-
   return (
     <div className="min-h-screen bg-white">
       <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between bg-white border-b border-gray-200">
@@ -561,6 +558,18 @@ export default function DeluluPage() {
 
         {/* Main Content Section */}
         <div className="space-y-4 mb-8">
+          {/* Resolution Status - Show which side won */}
+          {delulu?.isResolved && (
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-sm font-black text-delulu-charcoal text-center">
+                This delulu was resolved in favor of{" "}
+                <span className={delulu.outcome ? "text-green-600" : "text-red-600"}>
+                  {delulu.outcome ? "Believers" : "Doubters"}
+                </span>
+              </p>
+            </div>
+          )}
+
           {/* User's Position - Fun & Visual */}
           {hasStaked && isConnected && delulu && !isClaimed && (
             <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
