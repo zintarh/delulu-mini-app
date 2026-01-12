@@ -5,7 +5,7 @@ const DELULU_CONTRACT_ADDRESSES = {
     "0x84217d67b85Ef028bb32B494B7477Ab8E9b2fEcd",
   mainnet_v0: "0xE03B2Bb1aA149DedEFfc91398f477bb7Ddd278aF",
   testnet_v0: "0x14C808cFf20F431Fb8E94099967b4a10eA83D870",
-  testnet: "0xb10dFA2e2DAd8d229BF154a7Aa8f63d6E8dFB7dB",
+  testnet: "0x76e4103983cCe1cF88415209ccc5b1b95Ad2c7a2",
 } as const;
 
 const isProduction =

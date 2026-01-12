@@ -138,6 +138,7 @@ export default function DeluluPage() {
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
 
   // Get potential payout for active markets (for existing stakes - doesn't add stake to pool)
+  // Uses getPotentialPayoutForExistingStake contract function
   const { potentialPayout: activeMarketPayout, isLoading: isLoadingActivePayout } = usePotentialPayoutForExistingStake(
     hasStaked && !delulu?.isResolved && !delulu?.isCancelled && delulu?.id ? delulu.id : null
   );
@@ -593,7 +594,7 @@ export default function DeluluPage() {
                     </p>
                     <p className={`text-2xl font-black ${
                       (displayPayout ?? 0) > 0 
-                        ? "text-delulu-yellow-reserved" 
+                        ? "text-delulu-charcoal" 
                         : "text-gray-300"
                     }`}>
                       {(displayPayout ?? 0) > 0
