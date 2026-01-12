@@ -98,8 +98,6 @@ export default function ProfilePage() {
                   <span className="text-gray-400">Loading...</span>
                 ) : user?.username ? (
                   `@${user.username}`
-                ) : user?.displayName ? (
-                  user.displayName
                 ) : address ? (
                   formatAddress(address)
                 ) : (
