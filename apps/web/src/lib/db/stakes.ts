@@ -8,11 +8,21 @@ export type StakeWithDelulu = Prisma.StakeGetPayload<{
 }>;
 
 export async function createStake(input: CreateStakeInput) {
+  console.log(`[createStake] Starting stake creation:`, {
+    userAddress: input.userAddress,
+    deluluId: input.deluluId,
+    amount: input.amount,
+    side: input.side,
+    sideType: typeof input.side,
+    txHash: input.txHash,
+  });
+
   const user = await db.user.findUnique({
     where: { address: input.userAddress.toLowerCase() },
   });
 
   if (!user) {
+    console.error(`[createStake] User not found: ${input.userAddress}`);
     throw new Error("User not found");
   }
 
@@ -31,8 +41,14 @@ export async function createStake(input: CreateStakeInput) {
   }
 
   if (!delulu) {
+    console.error(`[createStake] Delulu not found: ${input.deluluId} (isOnChainId: ${isOnChainId})`);
     throw new Error("Delulu not found");
   }
+
+  console.log(`[createStake] Found delulu:`, {
+    deluluId: delulu.id,
+    onChainId: delulu.onChainId.toString(),
+  });
 
   // Idempotency check: Check if stake with this txHash already exists
   const existingByTxHash = await db.stake.findUnique({
@@ -60,6 +76,15 @@ export async function createStake(input: CreateStakeInput) {
     return existingStake;
   }
 
+  console.log(`[createStake] Creating stake with data:`, {
+    userId: user.id,
+    deluluId: delulu.id,
+    amount: input.amount,
+    side: input.side,
+    sideType: typeof input.side,
+    txHash: input.txHash,
+  });
+
   const stake = await db.stake.create({
     data: {
       userId: user.id,
@@ -70,13 +95,31 @@ export async function createStake(input: CreateStakeInput) {
     },
   });
 
+  console.log(`[createStake] Stake created successfully:`, {
+    id: stake.id,
+    userId: stake.userId,
+    deluluId: stake.deluluId,
+    amount: stake.amount,
+    side: stake.side,
+    sideType: typeof stake.side,
+    txHash: stake.txHash,
+  });
+
   // Update delulu stats
   const field = input.side ? "totalBelieverStake" : "totalDoubterStake";
+  console.log(`[createStake] Updating delulu stats:`, {
+    field,
+    increment: input.amount,
+    currentBeliever: delulu.totalBelieverStake,
+    currentDoubter: delulu.totalDoubterStake,
+  });
+
   await db.delulu.update({
     where: { id: delulu.id },
     data: { [field]: { increment: input.amount } },
   });
 
+  console.log(`[createStake] Delulu stats updated successfully`);
   return stake;
 }
 

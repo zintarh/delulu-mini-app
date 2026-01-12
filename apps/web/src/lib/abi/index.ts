@@ -459,6 +459,26 @@ export const DELULU_ABI = [
     type: "function",
   },
   {
+    inputs: [
+      { internalType: "uint256", name: "deluluId", type: "uint256" },
+      { internalType: "address", name: "user", type: "address" },
+    ],
+    name: "getPotentialPayoutForExistingStake",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "deluluId", type: "uint256" },
+      { internalType: "address", name: "user", type: "address" },
+    ],
+    name: "getClaimableAmount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "getTokenAddress",
     outputs: [{ internalType: "address", name: "", type: "address" }],

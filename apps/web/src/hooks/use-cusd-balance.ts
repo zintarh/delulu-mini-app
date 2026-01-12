@@ -11,12 +11,10 @@ export function useCUSDBalance() {
     isLoading: isLoadingTokenAddress,
     error: tokenAddressError,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS ,
+    address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "stablecoin",
   });
-
-
 
   // Fallback: use known cUSD addresses based on chain
   const fallbackTokenAddress =
@@ -25,7 +23,6 @@ export function useCUSDBalance() {
       : chainId === 42220
       ? CUSD_ADDRESSES.mainnet
       : undefined;
-
 
   const finalTokenAddress = tokenAddress || fallbackTokenAddress;
 
@@ -38,9 +35,6 @@ export function useCUSDBalance() {
     token: finalTokenAddress as `0x${string}` | undefined,
     query: { enabled: !!finalTokenAddress && !!address },
   });
-
-  console.log(tokenAddress, balance, "token address")
-
 
   return {
     balance,

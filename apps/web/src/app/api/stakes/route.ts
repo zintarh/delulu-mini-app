@@ -30,16 +30,46 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("[POST /api/stakes] Received request:", {
+      userAddress: body.userAddress,
+      deluluId: body.deluluId,
+      amount: body.amount,
+      side: body.side,
+      sideType: typeof body.side,
+      txHash: body.txHash,
+    });
+
     const validated = createStakeSchema.parse(body);
+    console.log("[POST /api/stakes] Validated data:", {
+      userAddress: validated.userAddress,
+      deluluId: validated.deluluId,
+      amount: validated.amount,
+      side: validated.side,
+      sideType: typeof validated.side,
+      txHash: validated.txHash,
+    });
 
     const stake = await createStake(validated);
+    console.log("[POST /api/stakes] Created stake:", {
+      id: stake.id,
+      userId: stake.userId,
+      deluluId: stake.deluluId,
+      amount: stake.amount,
+      side: stake.side,
+      txHash: stake.txHash,
+    });
 
     return jsonResponse(stake, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
+      console.error("[POST /api/stakes] Validation error:", formatZodError(error));
       return NextResponse.json(formatZodError(error), { status: 400 });
     }
-    console.error("POST /api/stakes error:", error);
+    console.error("POST /api/stakes error:", {
+      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     return errorResponse("Internal error");
   }
 }

@@ -164,6 +164,14 @@ export function useBackendSync() {
         txHash: data.txHash,
       };
 
+      console.log(`[SyncStake] Syncing stake:`, {
+        deluluId: payload.deluluId,
+        amount: payload.amount,
+        side: payload.side,
+        sideType: typeof payload.side,
+        txHash: payload.txHash,
+      });
+
       try {
         const result = await withRetry(
           () => api.createStake(payload),
@@ -175,6 +183,8 @@ export function useBackendSync() {
             },
           }
         );
+
+        console.log(`[SyncStake] Successfully synced stake:`, result);
 
         // Success - invalidate queries
         queryClient.invalidateQueries({ queryKey: queryKeys.delulus.all });
@@ -189,7 +199,12 @@ export function useBackendSync() {
         
         return result;
       } catch (error) {
-        console.error("[SyncStake] Failed after retries, saving to pending:", error);
+        console.error("[SyncStake] Failed after retries, saving to pending:", {
+          error,
+          payload,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        });
         
         // Save to localStorage for retry on next page load
         savePendingSync({

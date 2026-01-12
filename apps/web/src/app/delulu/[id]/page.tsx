@@ -9,10 +9,10 @@ import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useCUSDBalance } from "@/hooks/use-cusd-balance";
 import { useUserPosition } from "@/hooks/use-user-position";
-import { usePotentialPayout } from "@/hooks/use-potential-payout";
 import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
+import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
 import { useSingleDelulu } from "@/hooks/use-single-delulu";
 import { useDeluluStakes } from "@/hooks/use-delulu-stakes";
 import { FeedbackModal } from "@/components/feedback-modal";
@@ -20,7 +20,7 @@ import { VerificationSheet } from "@/components/verification-sheet";
 import { StakingSheet } from "@/components/staking-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
-import { Loader2, ArrowLeft, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { Loader2, ArrowLeft, ThumbsUp, ThumbsDown, X, Clock, Trophy } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 
 function formatTimeRemaining(deadline: Date): string {
@@ -137,11 +137,9 @@ export default function DeluluPage() {
 
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
 
-  // Get potential payout for user's actual stake
-  const { potentialPayout, isLoading: isLoadingPayout } = usePotentialPayout(
-    delulu?.id || null,
-    hasStaked && userStakeAmount > 0 ? userStakeAmount : null,
-    hasStaked ? userIsBeliever : null
+  // Get potential payout for active markets (for existing stakes - doesn't add stake to pool)
+  const { potentialPayout: activeMarketPayout, isLoading: isLoadingActivePayout } = usePotentialPayoutForExistingStake(
+    hasStaked && !delulu?.isResolved && !delulu?.isCancelled && delulu?.id ? delulu.id : null
   );
 
   // Calculate totals from actual stakes data (source of truth)
@@ -167,6 +165,20 @@ export default function DeluluPage() {
       totalDoubterStake: doubterTotal,
     };
   }, [stakes, delulu?.totalBelieverStake, delulu?.totalDoubterStake]);
+
+  // Determine which payout value to display based on market state
+  const displayPayout = useMemo(() => {
+    // For resolved/cancelled markets, use claimableAmount
+    if (delulu?.isResolved || delulu?.isCancelled) {
+      return claimableAmount;
+    }
+    // For active markets, use potentialPayout
+    return activeMarketPayout;
+  }, [delulu?.isResolved, delulu?.isCancelled, claimableAmount, activeMarketPayout]);
+
+  const isLoadingPayout = delulu?.isResolved || delulu?.isCancelled
+    ? isLoadingClaimableAmount
+    : isLoadingActivePayout;
 
   useEffect(() => {
     if (!delulu) return;
@@ -533,213 +545,193 @@ export default function DeluluPage() {
         </button>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 pt-24 pb-32">
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-2">
         {/* Delulu Card */}
-        <div className="mb-8">
+        <div className="mb-4">
           {delulu && (
             <DeluluCard delusion={delulu} onStake={handleStakeClick} />
           )}
         </div>
 
-        {/* User's Stake & Payout - Hide if claimed */}
-        {hasStaked && isConnected && delulu && !isClaimed && (
-          <div className="mb-6">
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-              {/* Header */}
-              <div className="flex items-center gap-2 mb-4">
-                {userIsBeliever ? (
-                  <ThumbsUp className="w-4 h-4 text-delulu-green" />
-                ) : (
-                  <ThumbsDown className="w-4 h-4 text-gray-400" />
-                )}
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  Your Position: {userIsBeliever ? "Believer" : "Doubter"}
-                </h3>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Your Stake */}
-                <div className="bg-white rounded-lg border border-gray-200 p-3">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-medium">
-                    Your Stake
-                  </p>
-                  <p className="text-xl font-black text-delulu-charcoal leading-none">
-                    {userStakeAmount > 0
-                      ? userStakeAmount < 0.01
-                        ? userStakeAmount.toFixed(4)
-                        : userStakeAmount.toFixed(2)
-                      : "0.00"}
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                    cUSD
-                  </p>
-                </div>
-
-                {/* Potential Payout */}
-                <div className="bg-white rounded-lg border border-gray-200 p-3">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-medium">
-                    {delulu.isResolved || delulu.isCancelled
-                      ? "Your Payout"
-                      : "Potential Payout"}
-                  </p>
-                  {isLoadingPayout ? (
-                    <div className="h-6 bg-gray-100 rounded animate-pulse" />
-                  ) : potentialPayout !== null && potentialPayout > 0 ? (
-                    <>
-                      <p className="text-xl font-black text-delulu-green leading-none">
-                        {potentialPayout < 0.01
-                          ? potentialPayout.toFixed(4)
-                          : potentialPayout.toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                        cUSD
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xl font-black text-gray-300 leading-none">
-                        0.00
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                        cUSD
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Info Note */}
-              {!delulu.isResolved &&
-                !delulu.isCancelled &&
-                potentialPayout !== null &&
-                potentialPayout > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-[10px] text-gray-500 leading-relaxed">
-                      If you win:{" "}
-                      <span className="font-bold text-delulu-charcoal">
-                        {potentialPayout < 0.01
-                          ? potentialPayout.toFixed(4)
-                          : potentialPayout.toFixed(2)}{" "}
-                        cUSD
-                      </span>
+        {/* Main Content Section */}
+        <div className="space-y-4 mb-8">
+          {/* User's Position - Fun & Visual */}
+          {hasStaked && isConnected && delulu && !isClaimed && (
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-xs font-black text-gray-500 uppercase mb-3">Your Position</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-14 h-14 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${
+                    userIsBeliever ? "bg-delulu-yellow-reserved/20" : "bg-gray-100"
+                  }`}>
+                    {userIsBeliever ? (
+                      <ThumbsUp className="w-7 h-7 text-delulu-charcoal" />
+                    ) : (
+                      <ThumbsDown className="w-7 h-7 text-delulu-charcoal" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">
+                      {userIsBeliever ? "Believe" : "Doubt"}
+                    </p>
+                    <p className="text-lg font-black text-delulu-charcoal">
+                      {userStakeAmount > 0
+                        ? userStakeAmount < 0.01
+                          ? userStakeAmount.toFixed(4)
+                          : userStakeAmount.toFixed(2)
+                        : "0.00"}{" "}
+                      <span className="text-xs text-gray-500">cUSD</span>
                     </p>
                   </div>
+                </div>
+                {isLoadingPayout ? (
+                  <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+                ) : (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 mb-0.5">
+                      {delulu.isResolved ? "Payout" : "Potential Payout"}
+                    </p>
+                    <p className={`text-2xl font-black ${
+                      (displayPayout ?? 0) > 0 
+                        ? "text-delulu-yellow-reserved" 
+                        : "text-gray-300"
+                    }`}>
+                      {(displayPayout ?? 0) > 0
+                        ? (displayPayout ?? 0) < 0.01
+                          ? (displayPayout ?? 0).toFixed(4)
+                          : (displayPayout ?? 0).toFixed(2)
+                        : "0.00"}
+                    </p>
+                    <p className="text-xs text-gray-500">cUSD</p>
+                  </div>
                 )}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-4 mb-8">
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <ThumbsUp className="w-5 h-5 text-gray-500" />
-                <p className="text-xs text-gray-500">Believers</p>
-              </div>
-              <p className="text-lg font-black text-delulu-charcoal">
-                {calculatedStats.totalBelieverStake > 0
-                  ? calculatedStats.totalBelieverStake < 0.01
-                    ? calculatedStats.totalBelieverStake.toFixed(4)
-                    : calculatedStats.totalBelieverStake.toFixed(2)
-                  : "0.00"}{" "}
-                cUSD
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <ThumbsDown className="w-5 h-5 text-gray-500" />
-                <p className="text-xs text-gray-500">Doubters</p>
-              </div>
-              <p className="text-lg font-black text-delulu-charcoal">
-                {calculatedStats.totalDoubterStake > 0
-                  ? calculatedStats.totalDoubterStake < 0.01
-                    ? calculatedStats.totalDoubterStake.toFixed(4)
-                    : calculatedStats.totalDoubterStake.toFixed(2)
-                  : "0.00"}{" "}
-                cUSD
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Indicator */}
-          {total > 0 && (
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <ThumbsUp className="w-4 h-4 text-gray-500" />
-                  <span className="text-xs text-gray-500">Believers</span>
-                </div>
-                <span className="text-sm font-bold text-delulu-charcoal">
-                  {believerPercent}%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
-                <div
-                  className="h-full bg-delulu-green rounded-full transition-all duration-300"
-                  style={{ width: `${believerPercent}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ThumbsDown className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs text-gray-400">Doubters</span>
-                </div>
-                <span className="text-xs text-gray-400">{doubterPercent}%</span>
               </div>
             </div>
           )}
 
-          {/* Deadline */}
-          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Staking Deadline</p>
-            <p className="text-sm font-black text-delulu-charcoal">
-              {(() => {
-                if (delulu.isCancelled) {
-                  return "Cancelled";
-                }
-                if (delulu.isResolved) {
-                  return "Resolved";
-                }
-                const timeRemaining = formatTimeRemaining(
-                  delulu.stakingDeadline
-                );
-                if (timeRemaining === "Ended") {
-                  return "Ended";
-                }
-                return `${timeRemaining} remaining`;
-              })()}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {delulu.stakingDeadline.toLocaleDateString()} at{" "}
-              {delulu.stakingDeadline.toLocaleTimeString()}
-            </p>
+          {/* Market Stats - Fun & Visual */}
+          <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
+            <p className="text-xs font-black text-gray-500 uppercase mb-3">Market Stats</p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
+                  <p className="text-xs font-black text-gray-500">Believe</p>
+                </div>
+                <p className="text-xl font-black text-delulu-charcoal">
+                  {calculatedStats.totalBelieverStake > 0
+                    ? calculatedStats.totalBelieverStake < 0.01
+                      ? calculatedStats.totalBelieverStake.toFixed(4)
+                      : calculatedStats.totalBelieverStake.toFixed(2)
+                    : "0.00"}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
+                  <p className="text-xs font-black text-gray-500">Doubt</p>
+                </div>
+                <p className="text-xl font-black text-delulu-charcoal">
+                  {calculatedStats.totalDoubterStake > 0
+                    ? calculatedStats.totalDoubterStake < 0.01
+                      ? calculatedStats.totalDoubterStake.toFixed(4)
+                      : calculatedStats.totalDoubterStake.toFixed(2)
+                    : "0.00"}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Bar - Visual Only */}
+            {total > 0 && (
+              <div className="relative">
+                <div className="w-full h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">
+                  <div
+                    className="h-full bg-delulu-yellow-reserved rounded-full transition-all duration-300"
+                    style={{ width: `${believerPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-xs font-black text-delulu-charcoal">
+                    {believerPercent}%
+                  </span>
+                  <span className="text-xs font-black text-gray-500">{doubterPercent}%</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Claimed Indicator */}
+          {/* Outcome & Deadline - Side by Side */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Outcome */}
+            {delulu.isResolved && (
+              <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
+                <p className="text-xs font-black text-gray-500 uppercase mb-2">Outcome</p>
+                <div className="flex items-center gap-2 mb-2">
+                  {delulu.outcome ? (
+                    <ThumbsUp className="w-6 h-6 text-delulu-charcoal" />
+                  ) : (
+                    <ThumbsDown className="w-6 h-6 text-delulu-charcoal" />
+                  )}
+                </div>
+                <p className="text-lg font-black text-delulu-charcoal">
+                  {delulu.outcome ? "Believers" : "Doubters"} Won
+                </p>
+                {hasStaked && isConnected && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {userIsBeliever === delulu.outcome && (
+                      <Trophy className="w-4 h-4 text-green-600" />
+                    )}
+                    <p className={`text-xs font-medium ${
+                      userIsBeliever === delulu.outcome 
+                        ? "text-green-600" 
+                        : "text-red-600"
+                    }`}>
+                      {userIsBeliever === delulu.outcome ? "You won!" : "You lost"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Deadline */}
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-xs font-black text-gray-500 uppercase mb-2">Deadline</p>
+             <div className="flex items-center gap-x-1">
+             <div className="flex items-center gap-2 ">
+                <Clock className="w-5 h-5 text-delulu-charcoal" />
+              </div>
+              <p className="text-lg font-black text-delulu-charcoal">
+                {(() => {
+                  if (delulu.isCancelled) return "Cancelled";
+                  if (delulu.isResolved) return "Resolved";
+                  const timeRemaining = formatTimeRemaining(delulu.stakingDeadline);
+                  return timeRemaining === "Ended" ? "Ended" : timeRemaining;
+                })()}
+              </p>
+             </div>
+            </div>
+          </div>
+
+          {/* Claimed Status - Fun */}
           {hasStaked &&
             isConnected &&
             isClaimed &&
             (delulu.isResolved || delulu.isCancelled) && (
-              <div className="p-4 rounded-2xl bg-delulu-green/10 border border-delulu-green/30">
-                <p className="text-xs text-delulu-charcoal/80 mb-1">
-                  Claim Status
-                </p>
-                <p className="text-xl font-black text-delulu-charcoal">
-                  ✓ Claimed
-                </p>
-                {potentialPayout !== null && potentialPayout > 0 && (
-                  <p className="text-lg font-black text-delulu-green mt-2">
-                    {potentialPayout < 0.01
-                      ? potentialPayout.toFixed(4)
-                      : potentialPayout.toFixed(2)}{" "}
-                    cUSD
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Winnings have been claimed
-                </p>
+              <div className="rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved/10 p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
+                <p className="text-xs font-black text-delulu-charcoal uppercase mb-3">Claimed</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xl font-black text-delulu-charcoal">
+                      {claimableAmount !== null && claimableAmount > 0
+                        ? claimableAmount < 0.01
+                          ? claimableAmount.toFixed(4)
+                          : claimableAmount.toFixed(2)
+                        : "0.00"}{" "}
+                      <span className="text-sm text-gray-600">cUSD</span>
+                    </p>
+                  </div>
+                  <div className="text-3xl text-delulu-charcoal font-black">✓</div>
+                </div>
               </div>
             )}
         </div>
