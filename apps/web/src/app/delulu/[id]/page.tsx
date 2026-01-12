@@ -38,7 +38,7 @@ export default function DeluluPage() {
   const router = useRouter();
   const params = useParams();
   const deluluId = params.id as string;
-
+  
   const { isConnected, address } = useAccount();
   const { user } = useUserStore();
 
@@ -58,7 +58,7 @@ export default function DeluluPage() {
     error: approvalError,
     refetchAllowance,
   } = useTokenApproval();
-
+  
   // Only fetch user-specific data if connected
   const { balance: cusdBalance, isLoading: isLoadingBalance } =
     useCUSDBalance();
@@ -90,7 +90,7 @@ export default function DeluluPage() {
 
   const leaderboard = useMemo(() => {
     if (!stakes || stakes.length === 0) return [];
-
+    
     const grouped = stakes.reduce((acc, stake) => {
       const key = stake.user?.address || stake.userId;
       if (!acc[key]) {
@@ -156,7 +156,7 @@ export default function DeluluPage() {
     const believerTotal = stakes
       .filter((s) => s.side === true)
       .reduce((sum, s) => sum + s.amount, 0);
-
+    
     const doubterTotal = stakes
       .filter((s) => s.side === false)
       .reduce((sum, s) => sum + s.amount, 0);
@@ -436,31 +436,31 @@ export default function DeluluPage() {
           </div>
 
           {isLoadingStakes && (
-            <div className="mt-12">
-              <div className="h-6 bg-gray-200 rounded w-32 mb-4 animate-pulse" />
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200" />
-                        <div>
-                          <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
-                          <div className="h-3 bg-gray-200 rounded w-32" />
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="h-4 bg-gray-200 rounded w-16 mb-1" />
-                        <div className="h-3 bg-gray-200 rounded w-12" />
+          <div className="mt-12">
+            <div className="h-6 bg-gray-200 rounded w-32 mb-4 animate-pulse" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-200" />
+                      <div>
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
+                        <div className="h-3 bg-gray-200 rounded w-32" />
                       </div>
                     </div>
+                    <div className="text-right">
+                      <div className="h-4 bg-gray-200 rounded w-16 mb-1" />
+                      <div className="h-3 bg-gray-200 rounded w-12" />
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
+          </div>
           )}
         </div>
       </div>
@@ -479,7 +479,7 @@ export default function DeluluPage() {
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-
+          
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-2">Delulu not found</p>
             <p className="text-gray-400 text-sm">
@@ -558,41 +558,41 @@ export default function DeluluPage() {
         <div className="space-y-4 mb-8">
           {/* User's Position - Fun & Visual */}
           {hasStaked && isConnected && delulu && !isClaimed && (
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
-              <p className="text-xs font-black text-gray-500 uppercase mb-3">Your Position</p>
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-xs font-black text-gray-500 uppercase mb-2">Your Position</p>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-14 h-14 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${
+                <div className="flex items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${
                     userIsBeliever ? "bg-delulu-yellow-reserved/20" : "bg-gray-100"
                   }`}>
-                    {userIsBeliever ? (
-                      <ThumbsUp className="w-7 h-7 text-delulu-charcoal" />
-                    ) : (
-                      <ThumbsDown className="w-7 h-7 text-delulu-charcoal" />
-                    )}
-                  </div>
+                {userIsBeliever ? (
+                      <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
+                ) : (
+                      <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
+                )}
+              </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">
                       {userIsBeliever ? "Believe" : "Doubt"}
                     </p>
-                    <p className="text-lg font-black text-delulu-charcoal">
-                      {userStakeAmount > 0
-                        ? userStakeAmount < 0.01
-                          ? userStakeAmount.toFixed(4)
-                          : userStakeAmount.toFixed(2)
+                    <p className="text-base font-black text-delulu-charcoal">
+                    {userStakeAmount > 0
+                      ? userStakeAmount < 0.01
+                        ? userStakeAmount.toFixed(4)
+                        : userStakeAmount.toFixed(2)
                         : "0.00"}{" "}
                       <span className="text-xs text-gray-500">cUSD</span>
-                    </p>
-                  </div>
+                  </p>
                 </div>
-                {isLoadingPayout ? (
-                  <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+                </div>
+                  {isLoadingPayout ? (
+                  <div className="h-6 w-20 bg-gray-200 rounded animate-pulse" />
                 ) : (
                   <div className="text-right">
                     <p className="text-xs text-gray-500 mb-0.5">
                       {delulu.isResolved ? "Payout" : "Potential Payout"}
                     </p>
-                    <p className={`text-2xl font-black ${
+                    <p className={`text-lg font-black ${
                       (displayPayout ?? 0) > 0 
                         ? "text-delulu-charcoal" 
                         : "text-gray-300"
@@ -604,83 +604,83 @@ export default function DeluluPage() {
                         : "0.00"}
                     </p>
                     <p className="text-xs text-gray-500">cUSD</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
           {/* Market Stats - Fun & Visual */}
-          <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
-            <p className="text-xs font-black text-gray-500 uppercase mb-3">Market Stats</p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
+          <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+            <p className="text-xs font-black text-gray-500 uppercase mb-2">Market Stats</p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-2">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <ThumbsUp className="w-4 h-4 text-delulu-charcoal" />
                   <p className="text-xs font-black text-gray-500">Believe</p>
-                </div>
-                <p className="text-xl font-black text-delulu-charcoal">
-                  {calculatedStats.totalBelieverStake > 0
-                    ? calculatedStats.totalBelieverStake < 0.01
-                      ? calculatedStats.totalBelieverStake.toFixed(4)
-                      : calculatedStats.totalBelieverStake.toFixed(2)
-                    : "0.00"}
-                </p>
               </div>
-              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
-                  <p className="text-xs font-black text-gray-500">Doubt</p>
-                </div>
-                <p className="text-xl font-black text-delulu-charcoal">
-                  {calculatedStats.totalDoubterStake > 0
-                    ? calculatedStats.totalDoubterStake < 0.01
-                      ? calculatedStats.totalDoubterStake.toFixed(4)
-                      : calculatedStats.totalDoubterStake.toFixed(2)
+                <p className="text-base font-black text-delulu-charcoal">
+                {calculatedStats.totalBelieverStake > 0
+                  ? calculatedStats.totalBelieverStake < 0.01
+                    ? calculatedStats.totalBelieverStake.toFixed(4)
+                    : calculatedStats.totalBelieverStake.toFixed(2)
                     : "0.00"}
-                </p>
-              </div>
+              </p>
             </div>
+              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-2">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <ThumbsDown className="w-4 h-4 text-delulu-charcoal" />
+                  <p className="text-xs font-black text-gray-500">Doubt</p>
+              </div>
+                <p className="text-base font-black text-delulu-charcoal">
+                {calculatedStats.totalDoubterStake > 0
+                  ? calculatedStats.totalDoubterStake < 0.01
+                    ? calculatedStats.totalDoubterStake.toFixed(4)
+                    : calculatedStats.totalDoubterStake.toFixed(2)
+                    : "0.00"}
+              </p>
+            </div>
+          </div>
 
             {/* Progress Bar - Visual Only */}
-            {total > 0 && (
+          {total > 0 && (
               <div className="relative">
-                <div className="w-full h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">
+                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">
                   <div
                     className="h-full bg-delulu-yellow-reserved rounded-full transition-all duration-300"
-                    style={{ width: `${believerPercent}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-1.5">
+                  style={{ width: `${believerPercent}%` }}
+                />
+              </div>
+                <div className="flex items-center justify-between mt-1">
                   <span className="text-xs font-black text-delulu-charcoal">
                     {believerPercent}%
                   </span>
                   <span className="text-xs font-black text-gray-500">{doubterPercent}%</span>
-                </div>
               </div>
-            )}
+            </div>
+          )}
           </div>
 
           {/* Outcome & Deadline - Side by Side */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {/* Outcome */}
             {delulu.isResolved && (
-              <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
-                <p className="text-xs font-black text-gray-500 uppercase mb-2">Outcome</p>
-                <div className="flex items-center gap-2 mb-2">
+              <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+                <p className="text-xs font-black text-gray-500 uppercase mb-1.5">Outcome</p>
+                <div className="flex items-center gap-1.5 mb-1.5">
                   {delulu.outcome ? (
-                    <ThumbsUp className="w-6 h-6 text-delulu-charcoal" />
+                    <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
                   ) : (
-                    <ThumbsDown className="w-6 h-6 text-delulu-charcoal" />
+                    <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
                   )}
                 </div>
-                <p className="text-lg font-black text-delulu-charcoal">
+                <p className="text-sm font-black text-delulu-charcoal">
                   {delulu.outcome ? "Believers" : "Doubters"} Won
                 </p>
                 {hasStaked && isConnected && (
                   <div className="flex items-center gap-1.5 mt-1">
                     {userIsBeliever === delulu.outcome && (
-                      <Trophy className="w-4 h-4 text-green-600" />
+                      <Trophy className="w-3.5 h-3.5 text-green-600" />
                     )}
                     <p className={`text-xs font-medium ${
                       userIsBeliever === delulu.outcome 
@@ -695,13 +695,13 @@ export default function DeluluPage() {
             )}
 
             {/* Deadline */}
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
-              <p className="text-xs font-black text-gray-500 uppercase mb-2">Deadline</p>
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-xs font-black text-gray-500 uppercase mb-1.5">Deadline</p>
              <div className="flex items-center gap-x-1">
-             <div className="flex items-center gap-2 ">
-                <Clock className="w-5 h-5 text-delulu-charcoal" />
+             <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-delulu-charcoal" />
               </div>
-              <p className="text-lg font-black text-delulu-charcoal">
+              <p className="text-sm font-black text-delulu-charcoal">
                 {(() => {
                   if (delulu.isCancelled) return "Cancelled";
                   if (delulu.isResolved) return "Resolved";
@@ -718,11 +718,11 @@ export default function DeluluPage() {
             isConnected &&
             isClaimed &&
             (delulu.isResolved || delulu.isCancelled) && (
-              <div className="rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved/10 p-4 shadow-[1px_1px_0px_0px_#1A1A1A]">
-                <p className="text-xs font-black text-delulu-charcoal uppercase mb-3">Claimed</p>
+              <div className="rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved/10 p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+                <p className="text-xs font-black text-delulu-charcoal uppercase mb-2">Claimed</p>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xl font-black text-delulu-charcoal">
+                    <p className="text-base font-black text-delulu-charcoal">
                       {claimableAmount !== null && claimableAmount > 0
                         ? claimableAmount < 0.01
                           ? claimableAmount.toFixed(4)
@@ -731,7 +731,7 @@ export default function DeluluPage() {
                       <span className="text-sm text-gray-600">cUSD</span>
                     </p>
                   </div>
-                  <div className="text-3xl text-delulu-charcoal font-black">✓</div>
+                  <div className="text-2xl text-delulu-charcoal font-black">✓</div>
                 </div>
               </div>
             )}
@@ -739,24 +739,24 @@ export default function DeluluPage() {
 
         {/* Leaderboard - Only show if there's data or loading */}
         {(isLoadingStakes || leaderboard.length > 0) && (
-          <div className="mt-12">
+        <div className="mt-12">
             <h2 className="text-xl font-black text-delulu-charcoal mb-4">
               Leaderboard
             </h2>
-            {isLoadingStakes ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
-                  >
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
+          {isLoadingStakes ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
+                >
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
             ) : (
-              <div className="space-y-2">
+            <div className="space-y-2">
                 {leaderboard.map((entry) => {
                   // Check if this entry belongs to the connected user
                   const isCurrentUser = address?.toLowerCase() === entry.address.toLowerCase();
@@ -770,11 +770,11 @@ export default function DeluluPage() {
                     : entry.pfpUrl || null;
                   
                   return (
-                  <div
-                    key={entry.address}
-                    className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
+                <div
+                  key={entry.address}
+                  className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
                       {displayPfpUrl ? (
                         <img
                           src={displayPfpUrl}
@@ -782,68 +782,68 @@ export default function DeluluPage() {
                           className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-delulu-charcoal text-white flex items-center justify-center font-black text-sm">
-                          {entry.rank}
-                        </div>
+                    <div className="w-8 h-8 rounded-full bg-delulu-charcoal text-white flex items-center justify-center font-black text-sm">
+                      {entry.rank}
+                    </div>
                       )}
-                      <div>
-                        <p className="text-sm font-bold text-delulu-charcoal">
+                    <div>
+                      <p className="text-sm font-bold text-delulu-charcoal">
                           {displayUsername
                             ? `@${displayUsername}`
                             : formatAddress(entry.address)}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {entry.believerStake > 0 && (
-                            <span className="text-xs text-gray-600">
-                              <ThumbsUp className="w-3 h-3 inline mr-1" />
-                              {entry.believerStake < 0.01
-                                ? entry.believerStake.toFixed(4)
-                                : entry.believerStake.toFixed(2)}{" "}
-                              cUSD
-                            </span>
-                          )}
-                          {entry.doubterStake > 0 && (
-                            <span className="text-xs text-gray-600">
-                              <ThumbsDown className="w-3 h-3 inline mr-1" />
-                              {entry.doubterStake < 0.01
-                                ? entry.doubterStake.toFixed(4)
-                                : entry.doubterStake.toFixed(2)}{" "}
-                              cUSD
-                            </span>
-                          )}
-                        </div>
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {entry.believerStake > 0 && (
+                          <span className="text-xs text-gray-600">
+                            <ThumbsUp className="w-3 h-3 inline mr-1" />
+                            {entry.believerStake < 0.01
+                              ? entry.believerStake.toFixed(4)
+                              : entry.believerStake.toFixed(2)}{" "}
+                            cUSD
+                          </span>
+                        )}
+                        {entry.doubterStake > 0 && (
+                          <span className="text-xs text-gray-600">
+                            <ThumbsDown className="w-3 h-3 inline mr-1" />
+                            {entry.doubterStake < 0.01
+                              ? entry.doubterStake.toFixed(4)
+                              : entry.doubterStake.toFixed(2)}{" "}
+                            cUSD
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-black text-delulu-charcoal">
-                        {entry.totalStake < 0.01
-                          ? entry.totalStake.toFixed(4)
-                          : entry.totalStake.toFixed(2)}{" "}
-                        cUSD
-                      </p>
-                      <p className="text-xs text-gray-500">Total</p>
-                    </div>
                   </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-delulu-charcoal">
+                      {entry.totalStake < 0.01
+                        ? entry.totalStake.toFixed(4)
+                        : entry.totalStake.toFixed(2)}{" "}
+                      cUSD
+                    </p>
+                    <p className="text-xs text-gray-500">Total</p>
+                  </div>
+                </div>
                   );
                 })}
-              </div>
+            </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
       </div>
 
       {/* Insufficient Balance Message */}
       {canStake && isConnected && !isLoadingBalance && !hasBalance && (
-        <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
-          <div className="max-w-2xl mx-auto">
-            <div className="w-full px-4 py-2 bg-red-50 rounded-full text-center border border-red-200">
-              <p className="text-xs font-medium text-red-600">
-                Insufficient balance. You need cUSD to stake.
-              </p>
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
+            <div className="max-w-2xl mx-auto">
+              <div className="w-full px-4 py-2 bg-red-50 rounded-full text-center border border-red-200">
+                <p className="text-xs font-medium text-red-600">
+                  Insufficient balance. You need cUSD to stake.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Claim Button - Only show if user has staked AND isClaimable returns true from contract */}
       {hasStaked &&
@@ -890,7 +890,7 @@ export default function DeluluPage() {
                   <span>
                     Claim{" "}
                     {claimableAmount > 0.01
-                      ? `${claimableAmount.toFixed(2)}`
+                      ? `${claimableAmount.toFixed(2)}` 
                       : claimableAmount.toFixed(4)}{" "}
                     cUSD
                   </span>
@@ -935,9 +935,9 @@ export default function DeluluPage() {
         title="Stake Placed! 🎉"
         message={`You've successfully staked ${
           lastStakeAmount > 0
-            ? lastStakeAmount < 0.01
-              ? lastStakeAmount.toFixed(4)
-              : lastStakeAmount.toFixed(2)
+          ? lastStakeAmount < 0.01
+            ? lastStakeAmount.toFixed(4)
+            : lastStakeAmount.toFixed(2)
             : stakeAmount
         } cUSD as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
         onClose={() => {
@@ -984,22 +984,22 @@ export default function DeluluPage() {
       />
 
       {/* Verification Sheet */}
-      {delulu &&
-        delulu.gatekeeper?.enabled &&
-        delulu.gatekeeper?.value &&
-        typeof delulu.gatekeeper.value === "string" &&
-        delulu.gatekeeper.value.trim() !== "" && (
-          <VerificationSheet
-            open={showVerificationSheet}
-            onOpenChange={setShowVerificationSheet}
-            countryCode={delulu.gatekeeper.value}
-            onVerified={() => {
-              setIsVerified(true);
-              setShowVerificationSheet(false);
-              setStakingSheetOpen(true);
-            }}
-          />
-        )}
+      {delulu && 
+       delulu.gatekeeper?.enabled && 
+       delulu.gatekeeper?.value && 
+       typeof delulu.gatekeeper.value === "string" &&
+       delulu.gatekeeper.value.trim() !== "" && (
+        <VerificationSheet
+          open={showVerificationSheet}
+          onOpenChange={setShowVerificationSheet}
+          countryCode={delulu.gatekeeper.value}
+          onVerified={() => {
+            setIsVerified(true);
+            setShowVerificationSheet(false);
+            setStakingSheetOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }
