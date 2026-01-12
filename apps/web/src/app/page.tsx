@@ -89,12 +89,14 @@ export default function HomePage() {
   };
 
   // Transform staked delulus to FormattedDelulu format
+  // Show ALL staked delulus regardless of resolution status or outcome (win/loss)
+  // Only filter out cancelled delulus
   const stakedDelulus = useMemo(() => {
     if (!stakedDelulusApi || stakedDelulusApi.length === 0) {
       return [];
     }
     return stakedDelulusApi
-      .filter((d) => !d.isCancelled)
+      .filter((d) => !d.isCancelled) // Only exclude cancelled, include all resolved/unresolved
       .map(transformStakedDelulu)
       .sort((a, b) => {
         // Sort by latest first

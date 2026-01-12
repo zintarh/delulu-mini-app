@@ -38,24 +38,13 @@ export function useUserClaimableAmount(deluluId: number | null) {
   } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
-    functionName: "getPotentialPayout",
+    functionName: "getClaimableAmount",
     args:
-      deluluId !== null &&
-      address &&
-      userStakeAmount > 0 &&
-      userSide !== null
-        ? [
-            BigInt(deluluId),
-            parseUnits(userStakeAmount.toString(), 18),
-            userSide,
-          ]
+      deluluId !== null && address
+        ? [BigInt(deluluId), address]
         : undefined,
     query: {
-      enabled:
-        deluluId !== null &&
-        !!address &&
-        userStakeAmount > 0 &&
-        userSide !== null,
+      enabled: deluluId !== null && !!address,
     },
   });
 
