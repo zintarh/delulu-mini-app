@@ -511,7 +511,6 @@ export default function DeluluPage() {
   const canStake =
     !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
 
-  console.log(hasStaked, isLoadingClaimable, isClaimable);
 
   return (
     <div className="min-h-screen bg-white">
