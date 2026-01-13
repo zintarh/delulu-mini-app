@@ -269,12 +269,19 @@ export function ProfileDeluluCard({
         className="relative w-full aspect-[4/5] rounded-lg overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
       >
         <div
-          className={cn("absolute inset-0 !bg-contain bg-no-repeat")}
-          style={{
-            backgroundImage: cardBackground.isImage
-              ? `url(${cardBackground.bg})`
-              : undefined,
-          }}
+          className={cn("absolute inset-0 bg-cover bg-no-repeat bg-center")}
+          style={
+            cardBackground.isImage
+              ? {
+                  backgroundImage: `url(${cardBackground.bg})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }
+              : {
+                  background: cardBackground.bg,
+                }
+          }
         />
 
         {cardBackground.isImage && (

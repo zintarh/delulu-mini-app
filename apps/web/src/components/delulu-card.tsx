@@ -12,6 +12,7 @@ import {
   getCountryFlag,
 } from "@/lib/utils";
 import { api } from "@/lib/api-client";
+import { FARCASTER_MINIAPP_BASE_URL } from "@/lib/constant";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -156,8 +157,8 @@ export function DeluluCard({
   }, [showShareMenu]);
 
   const getShareUrl = () => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    return `${baseUrl}/delulu/${delusion.id}`;
+    // Use Farcaster miniapp base URL for sharing
+    return `${FARCASTER_MINIAPP_BASE_URL}/delulu/${delusion.id}`;
   };
 
   const getShareText = () => {

@@ -13,6 +13,7 @@ import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import { useAccount } from "wagmi";
+import type { StakeSide } from "@/lib/types";
 
 interface StakingSheetProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function StakingSheet({
   delulu,
 }: StakingSheetProps) {
   const { address } = useAccount();
-  const [side, setSide] = useState<"believe" | "doubt">("believe");
+  const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);

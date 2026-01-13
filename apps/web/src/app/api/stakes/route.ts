@@ -30,22 +30,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("[POST /api/stakes] Received request:", {
+    console.log("[POST /api/stakes] Received request (before validation):", {
       userAddress: body.userAddress,
       deluluId: body.deluluId,
       amount: body.amount,
       side: body.side,
       sideType: typeof body.side,
+      sideValue: body.side,
       txHash: body.txHash,
     });
 
     const validated = createStakeSchema.parse(body);
-    console.log("[POST /api/stakes] Validated data:", {
+    console.log("[POST /api/stakes] Validated data (after transform to boolean):", {
       userAddress: validated.userAddress,
       deluluId: validated.deluluId,
       amount: validated.amount,
       side: validated.side,
       sideType: typeof validated.side,
+      sideValue: validated.side,
       txHash: validated.txHash,
     });
 

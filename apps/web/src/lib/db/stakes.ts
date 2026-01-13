@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { db } from "./index";
+import { findOrCreateUser } from "./users";
 import type { CreateStakeInput } from "@/lib/validations/stake";
 
-// Type for stake with included delulu
 export type StakeWithDelulu = Prisma.StakeGetPayload<{
   include: { delulu: { select: { content: true; onChainId: true; stakingDeadline: true } } };
 }>;
@@ -17,14 +17,15 @@ export async function createStake(input: CreateStakeInput) {
     txHash: input.txHash,
   });
 
-  const user = await db.user.findUnique({
-    where: { address: input.userAddress.toLowerCase() },
+  // Find or create user if they don't exist
+  const user = await findOrCreateUser({
+    address: input.userAddress,
   });
 
-  if (!user) {
-    console.error(`[createStake] User not found: ${input.userAddress}`);
-    throw new Error("User not found");
-  }
+  console.log(`[createStake] User found/created:`, {
+    userId: user.id,
+    address: user.address,
+  });
 
   // Determine if deluluId is an onChainId (numeric) or database id (UUID)
   const isOnChainId = /^\d+$/.test(input.deluluId);
@@ -185,10 +186,8 @@ export async function getStakedDelulusByUser(address: string) {
 
   if (stakes.length === 0) return [];
 
-  // Get unique delulu IDs
   const deluluIds = [...new Set(stakes.map((s: (typeof stakes)[number]) => s.deluluId))];
 
-  // Fetch full delulu data
   const delulus = await db.delulu.findMany({
     where: { id: { in: deluluIds } },
     include: {
@@ -197,7 +196,6 @@ export async function getStakedDelulusByUser(address: string) {
     orderBy: { stakingDeadline: "asc" },
   });
 
-  // Aggregate user's position for each delulu
   return delulus.map((delulu: (typeof delulus)[number]) => {
     const userStakes = stakes.filter((s: (typeof stakes)[number]) => s.deluluId === delulu.id);
     const believerStake = userStakes

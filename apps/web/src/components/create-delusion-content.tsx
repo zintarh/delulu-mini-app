@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, X, Upload, DollarSign } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { FeedbackModal } from "@/components/feedback-modal";
-// import { DatePicker } from "@/components/date-picker";
 import { Slider } from "@/components/slider";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";

@@ -10,6 +10,7 @@ import {
   getPendingSyncs,
   cleanupOldPendingSyncs,
 } from "@/lib/retry";
+import type { StakeSide } from "@/lib/types";
 
 /**
  * Hook to sync blockchain transactions with backend
@@ -151,7 +152,7 @@ export function useBackendSync() {
     async (data: {
       deluluId: string;
       amount: number;
-      side: boolean;
+      side: StakeSide;
       txHash: string;
     }) => {
       if (!address) return null;
@@ -169,6 +170,7 @@ export function useBackendSync() {
         amount: payload.amount,
         side: payload.side,
         sideType: typeof payload.side,
+        sideValue: payload.side,
         txHash: payload.txHash,
       });
 
@@ -219,6 +221,9 @@ export function useBackendSync() {
     },
     [address, queryClient]
   );
+
+
+  
 
   const syncClaim = useCallback(
     async (data: { deluluId: string; amount: number; txHash: string }) => {

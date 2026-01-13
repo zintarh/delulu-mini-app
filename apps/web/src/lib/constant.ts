@@ -26,3 +26,8 @@ export const CUSD_ADDRESSES = {
   mainnet: "0x765DE816845861e75A25fCA122bb6898B8B1282a" as const,
   alfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as const,
 } as const;
+
+// Farcaster miniapp base URL for sharing
+export const FARCASTER_MINIAPP_BASE_URL =
+  process.env.NEXT_PUBLIC_FARCASTER_MINIAPP_URL ||
+  "https://farcaster.xyz/miniapps/6TpUBtkLM1a3/delulu";

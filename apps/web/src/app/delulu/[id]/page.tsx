@@ -16,6 +16,7 @@ import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout
 import { useUserClaimAmount } from "@/hooks/use-user-claim-amount";
 import { useSingleDelulu } from "@/hooks/use-single-delulu";
 import { useDeluluStakes } from "@/hooks/use-delulu-stakes";
+import type { StakeSide } from "@/lib/types";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { VerificationSheet } from "@/components/verification-sheet";
 import { StakingSheet } from "@/components/staking-sheet";
@@ -129,12 +130,8 @@ export default function DeluluPage() {
   }, [stakes]);
 
   const [stakeAmount, setStakeAmount] = useState("1");
-  const [pendingAction, setPendingAction] = useState<
-    "believe" | "doubt" | null
-  >(null);
-  const [lastStakeAction, setLastStakeAction] = useState<
-    "believe" | "doubt" | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<StakeSide | null>(null);
+  const [lastStakeAction, setLastStakeAction] = useState<StakeSide | null>(null);
   const [lastStakeAmount, setLastStakeAmount] = useState<number>(0);
   const [showStakeInput, setShowStakeInput] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);

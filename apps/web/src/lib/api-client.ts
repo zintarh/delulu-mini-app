@@ -2,6 +2,8 @@
  * Typed API Client for Backend Integration
  */
 
+import type { StakeSide } from "@/lib/types";
+
 // ============ Types ============
 
 export interface ApiUser {
@@ -287,7 +289,7 @@ class ApiClient {
     userAddress: string;
     deluluId: string;
     amount: number;
-    side: boolean;
+    side: StakeSide;
     txHash: string;
   }): Promise<ApiStake> {
     return this.request<ApiStake>("/stakes", {

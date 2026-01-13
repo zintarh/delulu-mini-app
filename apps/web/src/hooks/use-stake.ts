@@ -4,11 +4,12 @@ import { useEffect, useRef } from "react";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { useBackendSync } from "./use-backend-sync";
+import type { StakeSide } from "@/lib/types";
 
 interface StakeParams {
   deluluId: string;
   amount: number;
-  isBeliever: boolean;
+  side: StakeSide;
 }
 
 export function useStake() {
@@ -35,17 +36,18 @@ export function useStake() {
       pendingStake.current &&
       txHash !== lastSyncedHash.current
     ) {
-      const { deluluId, amount, isBeliever } = pendingStake.current;
+      const { deluluId, amount, side } = pendingStake.current;
       lastSyncedHash.current = txHash;
       pendingStake.current = null;
 
       syncStake({
         deluluId,
         amount,
-        side: isBeliever,
+        side: side,
         txHash: txHash,
       });
     }
+    
   }, [isSuccess, receipt?.transactionHash, syncStake]);
 
   const stake = async (
@@ -60,10 +62,13 @@ export function useStake() {
       throw new Error("Stake amount must be greater than 0");
     }
 
+    // Convert boolean to explicit string to avoid data loss bugs
+    const side: StakeSide = isBeliever ? "believe" : "doubt";
+    
     pendingStake.current = {
       deluluId: deluluId.toString(),
       amount,
-      isBeliever,
+      side,
     };
 
     try {

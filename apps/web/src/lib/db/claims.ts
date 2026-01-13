@@ -1,14 +1,12 @@
 import { db } from "./index";
+import { findOrCreateUser } from "./users";
 import type { CreateClaimInput } from "@/lib/validations/claim";
 
 export async function createClaim(input: CreateClaimInput) {
-  const user = await db.user.findUnique({
-    where: { address: input.userAddress.toLowerCase() },
+  // Find or create user if they don't exist
+  const user = await findOrCreateUser({
+    address: input.userAddress,
   });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
 
   const isOnChainId = /^\d+$/.test(input.deluluId);
 
