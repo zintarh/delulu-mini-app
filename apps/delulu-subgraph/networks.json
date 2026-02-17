@@ -1,0 +1,8 @@
+{
+  "celo-sepolia": {
+    "DeluluMarket": {
+      "address": "0x76e4103983cCe1cF88415209ccc5b1b95Ad2c7a2",
+      "startBlock": 14937022
+    }
+  }
+}

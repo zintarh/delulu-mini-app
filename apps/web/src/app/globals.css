@@ -18,9 +18,8 @@
   --card: #ffffff;
   --card-foreground: #1A1A1A;
   --popover: #ffffff;
-  --popover-foreground: #1A1A1A;
-  --primary: #fcff52; /* Yellow for primary actions */
-  --primary-foreground: #1A1A1A; /* Black text on yellow */
+  --popover-foreground: #1A1A1A; 
+  --primary-foreground: #1A1A1A; 
   --secondary: #F8F9FA;
   --secondary-foreground: #1A1A1A;
   --muted: #F3F4F6;
@@ -97,7 +96,6 @@
     background: linear-gradient(180deg, #ffffff 0%, #F8F9FA 40%, #ffffff 100%);
   }
 
-  /* Game-like button style - delulusion buttons */
   .btn-game {
     position: relative;
     font-family: var(--font-gloria), cursive;

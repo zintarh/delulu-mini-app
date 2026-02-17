@@ -1,0 +1,89 @@
+type DeluluCancelled @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  cancelledBy: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeluluCreated @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  creator: Bytes! # address
+  contentHash: String! # string
+  stakingDeadline: BigInt! # uint256
+  resolutionDeadline: BigInt! # uint256
+  creatorStake: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeluluResolved @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  outcome: Boolean! # bool
+  winningPool: BigInt! # uint256
+  losingPool: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type EmergencyRefund @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  user: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Paused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type StakePlaced @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  user: Bytes! # address
+  amount: BigInt! # uint256
+  side: Boolean! # bool
+  newTotalPoolStake: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Unpaused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WinningsClaimed @entity(immutable: true) {
+  id: Bytes!
+  deluluId: BigInt! # uint256
+  user: Bytes! # address
+  payout: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
