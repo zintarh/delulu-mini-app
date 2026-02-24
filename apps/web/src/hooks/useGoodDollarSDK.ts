@@ -14,7 +14,6 @@ let ClaimSDK: any;
 try {
   const identitySDK = require("@goodsdks/identity-sdk");
   const citizenSDK = require("@goodsdks/citizen-sdk");
-  // Store the hook-like function under a non-hook name to satisfy ESLint rules
   identitySDKFn =
     identitySDK.useIdentitySDK || identitySDK.default?.useIdentitySDK;
   ClaimSDK =

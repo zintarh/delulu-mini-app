@@ -1,65 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Wallet, Info, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Wallet, Info, Loader2 } from "lucide-react";
+import { formatUnits } from "viem";
 import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
-import { LoginScreen } from "@/components/login-screen";
-import { useGoodDollarSDK } from "@/hooks/useGoodDollarSDK";
-import { FeedbackModal } from "@/components/feedback-modal";
+import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useIdentity } from "@/hooks/identityHook";
+import { IdentityModal } from "@/components/identity-modal";
 
 export default function GoodDollarClaimPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
   const {
-    entitlement,
-    nextClaimDate,
-    canClaim,
-    claim,
     isLoading,
     isClaiming,
-    error,
-    isReady,
-  } = useGoodDollarSDK();
+    entitlement,
+    hasClaimed,
+    nextClaimTime,
+    claim,
+  } = useGoodDollarClaim();
+
+  const {
+    status: identityStatus,
+    isVerified,
+    fvLink,
+    isVerifying,
+    setIsVerifying,
+    refresh,
+    isLoading: isIdentityLoading,
+  } = useIdentity();
+
+  const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const handleConnectClick = () => {
-    router.push("/");
+    setShowLoginSheet(true);
   };
 
   const handleClaim = async () => {
-    try {
-      await claim();
-      setShowSuccessModal(true);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to claim G$";
-      setErrorMessage(message);
-      setShowErrorModal(true);
+    if (!isConnected) {
+      setShowLoginSheet(true);
+      return;
     }
+
+    if (!isVerified) {
+      setIsVerifying(true);
+      return;
+    }
+
+    await claim();
   };
 
-  // Format next claim time
-  const nextClaimTimeText = nextClaimDate
-    ? new Date(nextClaimDate).toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    : null;
-
-  if (!isConnected) {
-    return <LoginScreen />;
-  }
+  // Format entitlement from BigInt (display only)
+  const formattedEntitlement = useMemo(() => {
+    if (entitlement === null) return null;
+    return formatUnits(entitlement, 18);
+  }, [entitlement]);
 
   return (
-    <div className="h-screen overflow-hidden bg-white">
+    <div className="h-screen overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
@@ -70,127 +73,150 @@ export default function GoodDollarClaimPage() {
 
         <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
           <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
-            <button
-              onClick={() => router.back()}
-              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-delulu-charcoal mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() => router.back()}
+                className={cn(
+                  "inline-flex items-center gap-2 text-xs font-bold",
+                  "px-3 py-1.5 rounded-full border-2 border-delulu-charcoal",
+                  "bg-delulu-yellow-reserved shadow-[2px_2px_0px_0px_#1A1A1A]",
+                  "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
+                  "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                  "text-delulu-charcoal transition-all"
+                )}
+              >
+                <ArrowLeft className="w-3 h-3" />
+                Back
+              </button>
 
-            <div className="mb-6">
-              <h1 className="text-2xl font-black text-delulu-charcoal">
-                Claim your G$ UBI
+              <span className="hidden sm:inline-flex items-center rounded-full border border-delulu-charcoal/20 bg-white/70 px-3 py-1 text-[11px] font-semibold text-delulu-charcoal/80">
+                daily good vibes · powered by GoodDollar
+              </span>
+            </div>
+
+            <div className="mb-8">
+              <h1 className="text-3xl md:text-4xl font-black text-delulu-charcoal tracking-tight mb-2">
+                Claim your daily G$ UBI
               </h1>
+              <p className="text-sm text-delulu-charcoal/80 max-w-md">
+                Wake up, claim G$, and keep being deliciously delusional. Your
+                basic income, straight from the Delulu island.
+              </p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-              <section className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs font-black text-gray-500 uppercase mb-1">
-                  Your GoodDollar wallet
-                </p>
-                <p className="text-sm font-medium text-delulu-charcoal">
-                  {isConnected && address
-                    ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                    : "Not connected"}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-delulu-charcoal" />
-              </div>
-            </div>
-
-            {!isConnected ? (
-              <button
-                onClick={handleConnectClick}
-                className={cn(
-                  "w-full px-4 py-3 text-sm font-medium",
-                  "bg-delulu-yellow-reserved text-delulu-charcoal",
-                  "rounded-md border-2 border-delulu-charcoal",
-                  "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all"
-                )}
-              >
-                Connect wallet to claim
-              </button>
-            ) : (
-              <div className="space-y-4">
-                {/* Entitlement Card */}
-                <div className="rounded-xl border border-gray-200 bg-white p-3 flex items-center justify-between">
+              <section className="rounded-3xl border-2 border-delulu-charcoal bg-gradient-to-br from-delulu-yellow-reserved/80 via-white to-white p-4 lg:p-6 shadow-[4px_4px_0px_0px_#1A1A1A]">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-xs font-black text-gray-500 uppercase mb-1">
-                      Today&apos;s entitlement
+                    <p className="text-[11px] font-black text-delulu-charcoal/60 uppercase mb-1 tracking-[0.08em]">
+                      Your GoodDollar wallet
                     </p>
-                    {isLoading ? (
-                      <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
-                    ) : error ? (
-                      <p className="text-sm text-red-600">Error loading</p>
-                    ) : (
-                      <p className="text-lg font-black text-delulu-charcoal">
-                        {entitlement !== null
-                          ? `${parseFloat(entitlement).toFixed(2)}`
-                          : "--"}{" "}
-                        <span className="text-xs text-gray-500">G$</span>
-                      </p>
-                    )}
+                    <p className="text-sm font-semibold text-delulu-charcoal">
+                      {isConnected && address
+                        ? `${address.slice(0, 6)}...${address.slice(-4)}`
+                        : "Not connected"}
+                    </p>
                   </div>
-                  {canClaim && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-green-600" />
-                      Ready
-                    </span>
-                  )}
+                  <div className="w-11 h-11 rounded-full bg-delulu-charcoal text-delulu-yellow-reserved flex items-center justify-center shadow-[3px_3px_0px_0px_#1A1A1A]">
+                    <Wallet className="w-5 h-5" />
+                  </div>
                 </div>
 
-                {/* Claim Button */}
-                {error && !isReady ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
-                    <p className="text-xs text-red-600">
-                      {error.message || "GoodDollar SDK not available"}
-                    </p>
-                  </div>
-                ) : !isReady ? (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
-                    <p className="text-xs text-gray-500">
-                      Initializing GoodDollar SDK...
-                    </p>
-                  </div>
-                ) : canClaim ? (
+                {!isConnected ? (
                   <button
-                    onClick={handleClaim}
-                    disabled={isClaiming}
+                    onClick={handleConnectClick}
                     className={cn(
                       "w-full px-4 py-3 text-sm font-medium",
                       "bg-delulu-yellow-reserved text-delulu-charcoal",
                       "rounded-md border-2 border-delulu-charcoal",
                       "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                      "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "flex items-center justify-center gap-2"
+                      "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all"
                     )}
                   >
-                    {isClaiming ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Claiming...
-                      </>
-                    ) : (
-                      `Claim ${entitlement ? parseFloat(entitlement).toFixed(2) : "0.00"} G$`
-                    )}
+                    Connect wallet to claim
                   </button>
                 ) : (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                    <p className="text-xs text-gray-600 text-center">
-                      {nextClaimTimeText
-                        ? `Next claim available: ${nextClaimTimeText}`
-                        : "No entitlement available at this time"}
-                    </p>
+                  <div className="space-y-4">
+                    {/* Entitlement Card */}
+                    {entitlement !== null && (
+                      <div className="rounded-xl border border-gray-200 bg-white p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-black text-gray-500 uppercase mb-1">
+                            {/* Entitlement from SDK is the *next* amount you can claim, not what you've already claimed */}
+                            Entitlement
+                          </p>
+                          {isLoading ? (
+                            <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
+                          ) : (
+                            <p className="text-lg font-black text-delulu-charcoal">
+                              {formattedEntitlement !== null
+                                ? `${parseFloat(formattedEntitlement).toFixed(2)}`
+                                : "--"}{" "}
+                              <span className="text-xs text-gray-500">G$</span>
+                            </p>
+                          )}
+                        </div>
+                        {!hasClaimed && entitlement > 0n && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                            <span className="w-2 h-2 rounded-full bg-green-600" />
+                            Ready
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Loading State */}
+                    {isLoading || isIdentityLoading ? (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
+                        <p className="text-xs text-gray-500">
+                          Initializing GoodDollar SDK...
+                        </p>
+                      </div>
+                    ) : hasClaimed ? (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center space-y-1.5">
+                        <p className="text-sm font-semibold text-gray-800">
+                          You&apos;ve already claimed today.
+                        </p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          Check back tomorrow!
+                        </p>
+                        {nextClaimTime && (
+                          <p className="text-sm font-medium text-gray-600">
+                            Next claim:&nbsp;
+                            <span className="font-semibold text-gray-900">
+                              {nextClaimTime.toLocaleString()}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleClaim}
+                        disabled={isClaiming || hasClaimed}
+                        className={cn(
+                          "w-full px-4 py-3 text-sm font-medium",
+                          "bg-delulu-yellow-reserved text-delulu-charcoal",
+                          "rounded-md border-2 border-delulu-charcoal",
+                          "shadow-[3px_3px_0px_0px_#1A1A1A]",
+                          "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
+                          "disabled:opacity-50 disabled:cursor-not-allowed",
+                          "flex items-center justify-center gap-2"
+                        )}
+                      >
+                        {isClaiming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Claiming...
+                          </>
+                        ) : entitlement !== null && entitlement > 0n ? (
+                          `Claim ${parseFloat(formattedEntitlement || "0.00").toFixed(2)} G$`
+                        ) : (
+                          "Claim G$"
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
               </section>
 
               <aside className="space-y-4">
@@ -217,24 +243,18 @@ export default function GoodDollarClaimPage() {
         </div>
       </div>
 
-      {/* Success Modal */}
-      <FeedbackModal
-        isOpen={showSuccessModal}
-        type="success"
-        title="G$ Claimed Successfully! 🎉"
-        message="Your GoodDollar UBI has been claimed and added to your wallet."
-        onClose={() => setShowSuccessModal(false)}
-        actionText="Done"
+
+      <IdentityModal
+        isOpen={isVerifying}
+        onClose={() => setIsVerifying(false)}
+        fvLink={fvLink}
+        status={identityStatus}
+        onRefresh={refresh}
       />
 
-      {/* Error Modal */}
-      <FeedbackModal
-        isOpen={showErrorModal}
-        type="error"
-        title="Claim Failed"
-        message={errorMessage || "Failed to claim G$. Please try again."}
-        onClose={() => setShowErrorModal(false)}
-        actionText="Try Again"
+      <ConnectorSelectionSheet
+        open={showLoginSheet}
+        onOpenChange={setShowLoginSheet}
       />
     </div>
   );

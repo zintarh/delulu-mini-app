@@ -17,6 +17,43 @@ export function ConnectorSelectionSheet({
 }: ConnectorSelectionSheetProps) {
   const { connect, connectors, isPending } = useConnect();
 
+  // Filter out the Farcaster connector from this local wallet selection UI
+  const nonFarcasterConnectors = connectors.filter(
+    (connector) => connector.id !== "farcaster"
+  );
+
+  // Separate injected vs non-injected connectors
+  const injectedConnectors = nonFarcasterConnectors.filter(
+    (connector) => connector.type === "injected"
+  );
+  const nonInjectedConnectors = nonFarcasterConnectors.filter(
+    (connector) => connector.type !== "injected"
+  );
+
+  // If we have specific injected wallets (MetaMask, Coinbase, etc.),
+  // hide generic "Injected"/"Browser Wallet"/"Brave" style entries.
+  const GENERIC_INJECTED_NAMES = [
+    "Injected",
+    "Browser Wallet",
+    "Brave Wallet",
+    "Brave",
+  ];
+
+  const hasSpecificInjectedWallets = injectedConnectors.some(
+    (connector) => !GENERIC_INJECTED_NAMES.includes(connector.name)
+  );
+
+  const filteredInjectedConnectors = hasSpecificInjectedWallets
+    ? injectedConnectors.filter(
+        (connector) => !GENERIC_INJECTED_NAMES.includes(connector.name)
+      )
+    : injectedConnectors;
+
+  const availableConnectors = [
+    ...filteredInjectedConnectors,
+    ...nonInjectedConnectors,
+  ];
+
   const handleConnect = (connectorId: string) => {
     const connector = connectors.find((c) => c.id === connectorId);
     if (connector) {
@@ -27,15 +64,58 @@ export function ConnectorSelectionSheet({
     }
   };
 
-  const availableConnectors = connectors.filter(
-    (connector) => connector.id !== "farcaster"
-  );
+  const getConnectorLabel = (connector: (typeof connectors)[number]) => {
+    // WalletConnect: explicitly guide GoodDollar users
+    if (
+      connector.id === "walletConnect" ||
+      connector.id.toLowerCase().includes("walletconnect")
+    ) {
+      return "WalletConnect";
+    }
 
-  const getConnectorName = (id: string) => {
-    if (id === "io.metamask" || id.includes("metamask")) return "MetaMask";
-    if (id === "injected" || id.includes("injected")) return "Browser Wallet";
-    if (id.includes("walletconnect")) return "WalletConnect";
-    return id.charAt(0).toUpperCase() + id.slice(1);
+    // Injected wallets: use the specific wallet name from EIP-6963 metadata
+    if (connector.type === "injected") {
+      return connector.name;
+    }
+
+    return connector.name;
+  };
+
+  const getConnectorIcon = (connector: (typeof connectors)[number]) => {
+    // Use custom WalletConnect logo if it's WalletConnect
+    if (
+      connector.id === "walletConnect" ||
+      connector.id.toLowerCase().includes("walletconnect")
+    ) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/wallet-connect.png"
+          alt="WalletConnect"
+          className="w-6 h-6 rounded-full object-cover"
+        />
+      );
+    }
+
+    const anyConnector = connector as any;
+    const iconUrl: string | undefined =
+      anyConnector?.icon ??
+      anyConnector?.iconUrl ??
+      anyConnector?.iconDark ??
+      anyConnector?.iconLight;
+
+    if (iconUrl) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={iconUrl}
+          alt={connector.name}
+          className="w-6 h-6 rounded-full object-cover"
+        />
+      );
+    }
+
+    return <Wallet className="w-5 h-5 text-delulu-charcoal" />;
   };
 
   return (
@@ -56,7 +136,7 @@ export function ConnectorSelectionSheet({
           ) : (
             availableConnectors.map((connector) => (
               <button
-                key={connector.id}
+                key={connector.uid ?? connector.id}
                 onClick={() => handleConnect(connector.id)}
                 disabled={isPending}
                 className={cn(
@@ -72,11 +152,11 @@ export function ConnectorSelectionSheet({
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-delulu-charcoal/10 flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-delulu-charcoal" />
+                  <div className="w-10 h-10 rounded-full bg-delulu-charcoal/10 flex items-center justify-center overflow-hidden">
+                    {getConnectorIcon(connector)}
                   </div>
                   <span className="font-bold text-delulu-charcoal text-lg">
-                    {getConnectorName(connector.name || connector.id)}
+                    {getConnectorLabel(connector)}
                   </span>
                 </div>
                 {isPending && (

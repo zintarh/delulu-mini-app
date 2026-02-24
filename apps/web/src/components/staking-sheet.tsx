@@ -12,6 +12,7 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { StakeSuccessSheet } from "@/components/stake-success-sheet";
 import { StakeErrorSheet } from "@/components/stake-error-sheet";
+import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
@@ -29,7 +30,7 @@ export function StakingSheet({
   onOpenChange,
   delulu,
 }: StakingSheetProps) {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const apolloClient = useApolloClient();
   const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
@@ -37,6 +38,7 @@ export function StakingSheet({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [stakedAmount, setStakedAmount] = useState(0);
+  const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const marketToken = delulu?.tokenAddress || undefined;
   
@@ -77,6 +79,12 @@ export function StakingSheet({
   // Reset form when sheet opens or closes
   useEffect(() => {
     if (open) {
+      // If not connected, show login sheet and close staking sheet
+      if (!isConnected) {
+        setShowLoginSheet(true);
+        onOpenChange(false);
+        return;
+      }
       // Clear errors when sheet opens
       setShowErrorModal(false);
       setErrorMessage("");
@@ -90,7 +98,7 @@ export function StakingSheet({
       setStakedAmount(0);
       setSide("believe");
     }
-  }, [open]);
+  }, [open, isConnected, onOpenChange]);
 
   // Handle success
   useEffect(() => {
@@ -479,6 +487,12 @@ export function StakingSheet({
         open={showErrorModal}
         onOpenChange={setShowErrorModal}
         errorMessage={errorMessage}
+      />
+
+      {/* Login Sheet */}
+      <ConnectorSelectionSheet
+        open={showLoginSheet}
+        onOpenChange={setShowLoginSheet}
       />
     </>
   );
