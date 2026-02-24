@@ -1,0 +1,39 @@
+# ============================================================
+# CLAIM QUERIES
+# Used by: User claims stats, Profile page
+# ============================================================
+
+# All claims by a specific user — used for UserClaimsStats component
+query GetClaimsByUser(
+  $userId: String!
+  $first: Int = 200
+  $orderBy: Claim_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+) {
+  claims(
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: { user: $userId }
+  ) {
+    id
+    amount
+    txHash
+    createdAt
+    delulu {
+      id
+      onChainId
+      contentHash
+    }
+  }
+}
+
+# Check if user has claimed for a specific delulu
+query GetUserClaimForDelulu($userId: String!, $deluluId: String!) {
+  claims(where: { user: $userId, delulu: $deluluId }) {
+    id
+    amount
+    txHash
+    createdAt
+  }
+}

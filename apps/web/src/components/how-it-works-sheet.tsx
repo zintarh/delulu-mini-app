@@ -67,7 +67,7 @@ const explanations = {
       {
         title: "Back Your Beliefs",
         description:
-          "Stake cUSD to show you genuinely believe in a delulu. The more you stake, the more you can win.",
+          "Stake USDm to show you genuinely believe in a delulu. The more you stake, the more you can win.",
       },
       {
         title: "Potential Payouts",

@@ -4,7 +4,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAccount } from "wagmi";
 import { formatAddress } from "@/lib/utils";
-import { useUserStats } from "@/hooks/use-user-stats";
+import { useGraphUserStats } from "@/hooks/graph";
 
 interface ClaimRewardsSheetProps {
   open: boolean;
@@ -14,7 +14,7 @@ interface ClaimRewardsSheetProps {
 export function ClaimRewardsSheet({ open, onOpenChange }: ClaimRewardsSheetProps) {
   const { user } = useUserStore();
   const { address } = useAccount();
-  const { totalClaimed, isLoading: isLoadingStats } = useUserStats();
+  const { totalClaimed, isLoading: isLoadingStats } = useGraphUserStats();
 
   const displayName = user?.username 
     ? `@${user.username}` 

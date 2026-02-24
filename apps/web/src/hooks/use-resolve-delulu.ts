@@ -1,99 +1,38 @@
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useEffect } from "react";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { api } from "@/lib/api-client";
-import { queryKeys } from "@/lib/api/fetchers";
 import { decodeErrorResult } from "viem";
 
 export function useResolveDelulu() {
+  const chainId = useChainId();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const {
     isLoading: isConfirming,
     isSuccess,
-    data: receipt,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
-  const queryClient = useQueryClient();
-
-  const pendingResolveRef = useRef<{
-    deluluId: string;
-    outcome: boolean;
-  } | null>(null);
-  const lastSyncedHash = useRef<string | null>(null);
-
-  const syncMutation = useMutation({
-    mutationFn: async ({
-      deluluId,
-      outcome,
-    }: {
-      deluluId: string;
-      outcome: boolean;
-    }) => {
-      return api.resolveDelulu(deluluId, outcome);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.delulus.all });
-      if (pendingResolveRef.current) {
-        queryClient.invalidateQueries({
-          queryKey: ["delulu", pendingResolveRef.current.deluluId],
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ["user-delulus"] });
-    },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-  });
-
-  useEffect(() => {
-    const txHash = receipt?.transactionHash;
-    if (
-      isSuccess &&
-      txHash &&
-      pendingResolveRef.current &&
-      txHash !== lastSyncedHash.current &&
-      !syncMutation.isPending &&
-      !syncMutation.isSuccess
-    ) {
-      lastSyncedHash.current = txHash;
-      syncMutation.mutate({
-        deluluId: pendingResolveRef.current.deluluId,
-        outcome: pendingResolveRef.current.outcome,
-      });
-      pendingResolveRef.current = null;
-    }
-  }, [isSuccess, receipt?.transactionHash, syncMutation]);
 
   const resolve = async (
     deluluId: number,
     outcome: boolean,
-    creatorAddress: string
+    _creatorAddress: string
   ) => {
     if (isNaN(deluluId) || deluluId <= 0) {
       throw new Error("Invalid delulu ID");
     }
 
-    // Store for backend sync
-    pendingResolveRef.current = {
-      deluluId: deluluId.toString(),
-      outcome,
-    };
-
     try {
       writeContract({
-        address: DELULU_CONTRACT_ADDRESS,
+        address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
         functionName: "resolveDelulu",
         args: [deluluId, outcome],
       });
     } catch (err) {
-      pendingResolveRef.current = null;
       throw formatErrorForDisplay(err);
     }
   };
 
-  // Format error for display
   const formattedError = error || receiptError;
   const displayError = formattedError
     ? formatErrorForDisplay(formattedError)
@@ -105,8 +44,6 @@ export function useResolveDelulu() {
     isPending,
     isConfirming,
     isSuccess,
-    isBackendSynced: syncMutation.isSuccess,
-    isBackendSyncing: syncMutation.isPending,
     error: displayError,
   };
 }
@@ -134,7 +71,6 @@ function formatErrorForDisplay(error: unknown): Error {
     return new Error("Transaction cancelled");
   }
 
-  // Network issues
   if (
     code === -32019 ||
     msg.includes("out of range") ||
@@ -146,15 +82,15 @@ function formatErrorForDisplay(error: unknown): Error {
 
   // Try to decode contract error data
   let errorData: string | undefined;
-  const errorAny = err as any;
+  const errorAny = err as Record<string, unknown>;
 
-  if (typeof errorAny?.data === "string" && errorAny.data.startsWith("0x")) {
-    errorData = errorAny.data;
+  if (typeof errorAny?.data === "string" && (errorAny.data as string).startsWith("0x")) {
+    errorData = errorAny.data as string;
   } else if (
-    typeof errorAny?.cause?.data === "string" &&
-    errorAny.cause.data.startsWith("0x")
+    typeof (errorAny?.cause as Record<string, unknown>)?.data === "string" &&
+    ((errorAny.cause as Record<string, unknown>).data as string).startsWith("0x")
   ) {
-    errorData = errorAny.cause.data;
+    errorData = (errorAny.cause as Record<string, unknown>).data as string;
   }
 
   if (errorData) {
@@ -175,7 +111,7 @@ function formatErrorForDisplay(error: unknown): Error {
         errorMessages[decoded.errorName] ||
           `Transaction failed: ${decoded.errorName}`
       );
-    } catch (decodeErr) {
+    } catch {
       // Fall through to generic error handling if decoding fails
     }
   }
@@ -215,6 +151,5 @@ function formatErrorForDisplay(error: unknown): Error {
     );
   }
 
-  // Final fallback
   return new Error(err?.shortMessage || err?.message || "Transaction failed");
 }

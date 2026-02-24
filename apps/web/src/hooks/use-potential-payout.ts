@@ -1,6 +1,6 @@
-import { useReadContract } from "wagmi";
+import { useReadContract, useChainId } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function usePotentialPayout(
@@ -8,12 +8,13 @@ export function usePotentialPayout(
   amount: number | null,
   isBeliever: boolean | null
 ) {
+  const chainId = useChainId();
   const {
     data: payout,
     isLoading,
     error,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+    address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
     functionName: "getPotentialPayout",
     args:

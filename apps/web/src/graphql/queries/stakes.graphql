@@ -1,0 +1,76 @@
+# ============================================================
+# STAKE QUERIES
+# Used by: Delulu detail leaderboard, User positions
+# ============================================================
+
+# All stakes for a specific delulu — used for leaderboard on detail page
+query GetStakesByDelulu(
+  $deluluId: String!
+  $first: Int = 100
+  $orderBy: Stake_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+) {
+  stakes(
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: { delulu: $deluluId }
+  ) {
+    id
+    user {
+      id
+    }
+    amount
+    side
+    txHash
+    createdAt
+  }
+}
+
+# All stakes by a specific user — used for Vision tab and user history
+query GetStakesByUser(
+  $userId: String!
+  $first: Int = 200
+  $orderBy: Stake_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+) {
+  stakes(
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: { user: $userId }
+  ) {
+    id
+    amount
+    side
+    txHash
+    createdAt
+    delulu {
+      id
+      onChainId
+      contentHash
+      creatorAddress
+      stakingDeadline
+      resolutionDeadline
+      totalBelieverStake
+      totalDoubterStake
+      isResolved
+      isCancelled
+      outcome
+      createdAt
+    }
+  }
+}
+
+# Check if a user has staked on a specific delulu
+# Note: user position (hasStaked, side, claimed) is still read from the contract
+# This query provides the subgraph-level stake records for display purposes
+query GetUserStakesForDelulu($userId: String!, $deluluId: String!) {
+  stakes(where: { user: $userId, delulu: $deluluId }) {
+    id
+    amount
+    side
+    txHash
+    createdAt
+  }
+}

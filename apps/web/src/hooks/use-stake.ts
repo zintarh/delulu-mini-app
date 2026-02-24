@@ -1,59 +1,24 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useChainId } from "wagmi";
 import { parseUnits, decodeErrorResult } from "viem";
-import { useEffect, useRef } from "react";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { useBackendSync } from "./use-backend-sync";
-import type { StakeSide } from "@/lib/types";
-
-interface StakeParams {
-  deluluId: string;
-  amount: number;
-  side: StakeSide;
-}
 
 export function useStake() {
+  const chainId = useChainId();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 
   const {
     isLoading: isConfirming,
     isSuccess,
-    data: receipt,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
-
-  const { syncStake } = useBackendSync();
-
-  const pendingStake = useRef<StakeParams | null>(null);
-  const lastSyncedHash = useRef<string | null>(null);
-
-  useEffect(() => {
-    const txHash = receipt?.transactionHash;
-
-    if (
-      isSuccess &&
-      txHash &&
-      pendingStake.current &&
-      txHash !== lastSyncedHash.current
-    ) {
-      const { deluluId, amount, side } = pendingStake.current;
-      lastSyncedHash.current = txHash;
-      pendingStake.current = null;
-
-      syncStake({
-        deluluId,
-        amount,
-        side: side,
-        txHash: txHash,
-      });
-    }
-    
-  }, [isSuccess, receipt?.transactionHash, syncStake]);
 
   const stake = async (
     deluluId: number,
     amount: number,
-    isBeliever: boolean
+    isBeliever: boolean,
+    tokenAddress?: string
   ) => {
     if (isNaN(deluluId) || deluluId <= 0) {
       throw new Error("Invalid delulu ID");
@@ -62,26 +27,21 @@ export function useStake() {
       throw new Error("Stake amount must be greater than 0");
     }
 
-    // Convert boolean to explicit string to avoid data loss bugs
-    const side: StakeSide = isBeliever ? "believe" : "doubt";
-    
-    pendingStake.current = {
-      deluluId: deluluId.toString(),
-      amount,
-      side,
-    };
+    // Validate: G$ is only supported on mainnet
+    if (tokenAddress && isGoodDollarToken(tokenAddress) && !isGoodDollarSupported(chainId)) {
+      throw new Error("G$ (GoodDollar) is only available on Celo Mainnet. Please switch to mainnet to stake with G$.");
+    }
 
     try {
       const amountWei = parseUnits(amount.toString(), 18);
       const minPayout = 0n; // Minimum payout protection (0 = no protection)
       writeContract({
-        address: DELULU_CONTRACT_ADDRESS,
+        address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
         functionName: "stakeOnDelulu",
         args: [BigInt(deluluId), isBeliever, amountWei, minPayout],
       });
     } catch (err) {
-      pendingStake.current = null;
       handleStakeError(err);
     }
   };
@@ -128,15 +88,15 @@ function handleStakeError(error: unknown): never {
   }
 
   let errorData: string | undefined;
-  const errorAny = err as any;
+  const errorAny = err as Record<string, unknown>;
 
-  if (typeof errorAny?.data === "string" && errorAny.data.startsWith("0x")) {
-    errorData = errorAny.data;
+  if (typeof errorAny?.data === "string" && (errorAny.data as string).startsWith("0x")) {
+    errorData = errorAny.data as string;
   } else if (
-    typeof errorAny?.cause?.data === "string" &&
-    errorAny.cause.data.startsWith("0x")
+    typeof (errorAny?.cause as Record<string, unknown>)?.data === "string" &&
+    ((errorAny.cause as Record<string, unknown>).data as string).startsWith("0x")
   ) {
-    errorData = errorAny.cause.data;
+    errorData = (errorAny.cause as Record<string, unknown>).data as string;
   }
 
   if (errorData) {
@@ -150,7 +110,7 @@ function handleStakeError(error: unknown): never {
         DeluluNotFound: "Delulu not found",
         StakingIsClosed: "Staking deadline has passed",
         AlreadyResolved: "Delulu already resolved or cancelled",
-        StakeTooSmall: "Stake amount is too small (minimum 1 cUSD)",
+        StakeTooSmall: "Stake amount is too small (minimum 1 USDm)",
         StakeTooLarge: "Stake amount exceeds maximum limit",
         StakeLimitExceeded:
           "You've reached the maximum stake limit for this delulu",
@@ -165,11 +125,13 @@ function handleStakeError(error: unknown): never {
         `Transaction failed: ${decoded.errorName}`;
       throw new Error(errorMessage);
     } catch (decodeErr) {
+      if (decodeErr instanceof Error && decodeErr.message !== "Transaction failed") {
+        throw decodeErr;
+      }
       // If decoding fails, fall through to generic error handling
     }
   }
 
-  // Generic error message matching
   const combinedMsg = `${msg} ${shortMsg}`.toLowerCase();
   if (
     combinedMsg.includes("execution reverted") ||
@@ -186,12 +148,12 @@ function handleStakeError(error: unknown): never {
       combinedMsg.includes("balance")
     ) {
       throw new Error(
-        "Insufficient balance or approval. Please check your cUSD balance and ensure you've approved the contract."
+        "Insufficient balance or approval. Please check your USDm balance and ensure you've approved the contract."
       );
     }
     if (combinedMsg.includes("allowance") || combinedMsg.includes("approve")) {
       throw new Error(
-        "Token approval required. Please approve the contract to spend your cUSD."
+        "Token approval required. Please approve the contract to spend your USDm."
       );
     }
     throw new Error(
@@ -199,6 +161,5 @@ function handleStakeError(error: unknown): never {
     );
   }
 
-  // Final fallback
   throw new Error(err?.shortMessage || err?.message || "Transaction failed");
 }

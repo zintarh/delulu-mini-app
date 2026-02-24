@@ -3,6 +3,7 @@
 import { MiniAppProvider } from "@/contexts/miniapp-context";
 import FrameWalletProvider from "@/contexts/frame-wallet-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ApolloProvider } from "@/components/providers/ApolloProvider";
 import dynamic from "next/dynamic";
 
 const ErudaProvider = dynamic(
@@ -14,11 +15,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ErudaProvider>
       <FrameWalletProvider>
-        <QueryProvider>
-          <MiniAppProvider addMiniAppOnLoad={true}>
-            {children}
-          </MiniAppProvider>
-        </QueryProvider>
+        <ApolloProvider>
+          <QueryProvider>
+            <MiniAppProvider addMiniAppOnLoad={true}>
+              {children}
+            </MiniAppProvider>
+          </QueryProvider>
+        </ApolloProvider>
       </FrameWalletProvider>
     </ErudaProvider>
   );

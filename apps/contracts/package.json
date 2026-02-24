@@ -4,15 +4,14 @@
   "description": "Smart contracts for delulu-v0",
   "main": "index.js",
   "scripts": {
-    "build": "hardhat compile",
-    "compile": "hardhat compile",
-    "test": "hardhat test",
+    "build": "HARDHAT_TELEMETRY_DISABLED=1 hardhat compile --config hardhat.config.cjs",
+    "compile": "HARDHAT_TELEMETRY_DISABLED=1 hardhat compile --config hardhat.config.cjs",
+    "test": "HARDHAT_TELEMETRY_DISABLED=1 hardhat test test/Delulu.js --config hardhat.config.cjs",
     "deploy": "hardhat ignition deploy ignition/modules/Lock.ts",
-    "deploy:alfajores": "hardhat ignition deploy ignition/modules/Lock.ts --network alfajores",
     "deploy:sepolia": "hardhat ignition deploy ignition/modules/Lock.ts --network sepolia",
     "deploy:celo": "hardhat ignition deploy ignition/modules/Lock.ts --network celo",
     "verify": "hardhat verify",
-    "clean": "hardhat clean",
+    "clean": "HARDHAT_TELEMETRY_DISABLED=1 hardhat clean --config hardhat.config.cjs",
     "typechain": "hardhat typechain"
   },
   "keywords": [
@@ -48,6 +47,7 @@
     "viem": "^2.0.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.0"
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
   }
 }

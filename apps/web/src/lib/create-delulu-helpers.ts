@@ -71,17 +71,17 @@ export function validateDeluluInputs(
 
   // Stake validation
   if (stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE} cUSD`;
+    errors.stake = `Minimum stake is ${MIN_STAKE}`;
   }
 
   // Balance validation
   if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
-    errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} cUSD to stake.`;
+    errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
   } else if (stakeAmount > maxStakeValue) {
     const displayBalance = isFinite(maxStakeValue)
       ? maxStakeValue.toFixed(2)
       : "0.00";
-    errors.balance = `Amount exceeds your balance of ${displayBalance} cUSD.`;
+    errors.balance = `Amount exceeds your balance of ${displayBalance}.`;
   }
 
   // Image validation

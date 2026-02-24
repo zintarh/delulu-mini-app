@@ -4,18 +4,20 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
+import { useApolloClient } from "@apollo/client/react";
+import { refetchDeluluData, refetchAfterClaim } from "@/lib/graph/refetch-utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
-import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
 import { useUserClaimAmount } from "@/hooks/use-user-claim-amount";
-import { useSingleDelulu } from "@/hooks/use-single-delulu";
-import { useDeluluStakes } from "@/hooks/use-delulu-stakes";
+import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import type { StakeSide } from "@/lib/types";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { VerificationSheet } from "@/components/verification-sheet";
@@ -51,8 +53,10 @@ export default function DeluluPage() {
 
   const { isConnected, address } = useAccount();
   const { user } = useUserStore();
+  const apolloClient = useApolloClient();
+  const queryClient = useQueryClient();
 
-  const { delulu, isLoading: isLoadingDelulu } = useSingleDelulu(deluluId);
+  const { delulu, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
 
   const {
     stake,
@@ -61,17 +65,17 @@ export default function DeluluPage() {
     error: stakeError,
   } = useStake();
 
+  const marketToken = delulu?.tokenAddress;
   const {
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     error: approvalError,
     refetchAllowance,
-  } = useTokenApproval();
+  } = useTokenApproval(marketToken);
 
-  // Only fetch user-specific data if connected
-  const { balance: cusdBalance, isLoading: isLoadingBalance } =
-    useCUSDBalance();
+  const { balance: tokenBalance, isLoading: isLoadingBalance } =
+    useTokenBalance(marketToken);
   const {
     hasStaked,
     isBeliever: userIsBeliever,
@@ -98,7 +102,7 @@ export default function DeluluPage() {
     data: stakes,
     isLoading: isLoadingStakes,
     refetch: refetchStakes,
-  } = useDeluluStakes(deluluId || null);
+  } = useGraphDeluluStakes(deluluId || null);
 
   const leaderboard = useMemo(() => {
     if (!stakes || stakes.length === 0) return [];
@@ -214,9 +218,9 @@ export default function DeluluPage() {
         setLastStakeAction(pendingAction);
         setLastStakeAmount(amount);
         if (isBeliever) {
-          stake(delulu.id, amount, true);
+          stake(delulu.id, amount, true, marketToken);
         } else {
-          stake(delulu.id, amount, false);
+          stake(delulu.id, amount, false, marketToken);
         }
         setPendingAction(null);
         refetchAllowance();
@@ -240,26 +244,28 @@ export default function DeluluPage() {
     refetchAllowance,
   ]);
 
-  const queryClient = useQueryClient();
   useEffect(() => {
     if (isStakeSuccess) {
       setShowSuccessModal(true);
       setShowStakeInput(false);
       setStakeAmount("1");
-      queryClient.invalidateQueries({ queryKey: ["delulu-stakes", deluluId] });
-      queryClient.invalidateQueries({ queryKey: ["delulu", deluluId] });
+      // Refetch stakes and all Graph queries after indexing delay
       setTimeout(() => {
         refetchStakes();
-      }, 1000);
+      }, 2000);
+      // Refetch delulu data (will also refetch stakes via GetDeluluByIdDocument)
+      refetchDeluluData(apolloClient, deluluId);
     }
-  }, [isStakeSuccess, queryClient, deluluId, refetchStakes]);
+  }, [isStakeSuccess, deluluId, refetchStakes, apolloClient]);
 
   // Handle claim success
   useEffect(() => {
     if (isClaimSuccess) {
       setShowClaimSuccessModal(true);
+      // Refetch all Graph queries and invalidate contract reads
+      refetchAfterClaim(apolloClient, queryClient, deluluId);
     }
-  }, [isClaimSuccess]);
+  }, [isClaimSuccess, apolloClient, queryClient, deluluId]);
 
   useEffect(() => {
     if (claimError) {
@@ -289,7 +295,7 @@ export default function DeluluPage() {
 
   useEffect(() => {
     if (approvalError) {
-      let errorMsg = "Failed to approve cUSD";
+      let errorMsg = "Failed to approve token";
 
       if (approvalError.message) {
         const errorLower = approvalError.message.toLowerCase();
@@ -334,7 +340,7 @@ export default function DeluluPage() {
           errorLower.includes("insufficient") ||
           errorLower.includes("balance too low")
         ) {
-          errorMsg = "Insufficient cUSD balance";
+          errorMsg = "Insufficient token balance";
         } else if (errorLower.includes("revert")) {
           const revertMatch = stakeError.message.match(
             /revert\s+(.+?)(?:\s|$)/i
@@ -515,8 +521,8 @@ export default function DeluluPage() {
 
   const doubterPercent = total > 0 ? 100 - believerPercent : 0;
 
-  const hasBalance = cusdBalance
-    ? parseFloat(cusdBalance.formatted) > 0
+  const hasBalance = tokenBalance
+    ? parseFloat(tokenBalance.formatted) > 0
     : false;
 
   const handleStakeClick = () => {
@@ -585,7 +591,7 @@ export default function DeluluPage() {
 
           {/* User's Position - Fun & Visual */}
           {hasStaked && isConnected && delulu && !isClaimed && (
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
               <p className="text-xs font-black text-gray-500 uppercase mb-2">
                 Your Position
               </p>
@@ -608,13 +614,13 @@ export default function DeluluPage() {
                     <p className="text-xs text-gray-500 mb-0.5">
                       {userIsBeliever ? "Believe" : "Doubt"}
                     </p>
-                    <p className="text-base font-black text-delulu-charcoal">
+                    <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
                       {userStakeAmount > 0
                         ? userStakeAmount < 0.01
                           ? userStakeAmount.toFixed(4)
                           : userStakeAmount.toFixed(2)
                         : "0.00"}{" "}
-                      <span className="text-xs text-gray-500">cUSD</span>
+                      {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                     </p>
                   </div>
                 </div>
@@ -626,7 +632,7 @@ export default function DeluluPage() {
                       {delulu.isResolved ? "Payout" : "Potential Payout"}
                     </p>
                     <p
-                      className={`text-lg font-black ${
+                      className={`text-lg font-black inline-flex items-center gap-1 ${
                         (displayPayout ?? 0) > 0
                           ? "text-delulu-charcoal"
                           : "text-gray-300"
@@ -637,26 +643,27 @@ export default function DeluluPage() {
                           ? (displayPayout ?? 0).toFixed(4)
                           : (displayPayout ?? 0).toFixed(2)
                         : "0.00"}
+                      {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                     </p>
-                    <p className="text-xs text-gray-500">cUSD</p>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Market Stats - Fun & Visual */}
-          <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+          {/* Market Stats - Compact summary */}
+          <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
             <p className="text-xs font-black text-gray-500 uppercase mb-2">
               Market Stats
             </p>
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-2">
+              <div className="bg-white rounded-lg border border-gray-200 p-2">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <ThumbsUp className="w-4 h-4 text-delulu-charcoal" />
                   <p className="text-xs font-black text-gray-500">Believe</p>
                 </div>
-                <p className="text-base font-black text-delulu-charcoal">
+                <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
+                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" showText={false} />}
                   {calculatedStats.totalBelieverStake > 0
                     ? calculatedStats.totalBelieverStake < 0.01
                       ? calculatedStats.totalBelieverStake.toFixed(4)
@@ -664,12 +671,13 @@ export default function DeluluPage() {
                     : "0.00"}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-2">
+              <div className="bg-white rounded-lg border border-gray-200 p-2">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <ThumbsDown className="w-4 h-4 text-delulu-charcoal" />
                   <p className="text-xs font-black text-gray-500">Doubt</p>
                 </div>
-                <p className="text-base font-black text-delulu-charcoal">
+                <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
+                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" showText={false} />}
                   {calculatedStats.totalDoubterStake > 0
                     ? calculatedStats.totalDoubterStake < 0.01
                       ? calculatedStats.totalDoubterStake.toFixed(4)
@@ -682,7 +690,7 @@ export default function DeluluPage() {
             {/* Progress Bar - Visual Only */}
             {total > 0 && (
               <div className="relative">
-                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-delulu-yellow-reserved rounded-full transition-all duration-300"
                     style={{ width: `${believerPercent}%` }}
@@ -700,11 +708,11 @@ export default function DeluluPage() {
             )}
           </div>
 
-          {/* Outcome & Deadline - Side by Side */}
+          {/* Outcome & Deadline - Side by Side, informational only */}
           <div className="grid grid-cols-2 gap-2">
             {/* Outcome */}
             {delulu.isResolved && (
-              <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
                 <p className="text-xs font-black text-gray-500 uppercase mb-1.5">
                   Outcome
                 </p>
@@ -740,7 +748,7 @@ export default function DeluluPage() {
             )}
 
             {/* Deadline */}
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
               <p className="text-xs font-black text-gray-500 uppercase mb-1.5">
                 Deadline
               </p>
@@ -776,13 +784,13 @@ export default function DeluluPage() {
                     {isLoadingClaimedAmount ? (
                       <div className="h-5 w-20 bg-gray-200 rounded animate-pulse" />
                     ) : (
-                      <p className="text-base font-black text-delulu-charcoal">
+                      <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
                         {claimedAmount !== null && claimedAmount > 0
                           ? claimedAmount < 0.01
                             ? claimedAmount.toFixed(4)
                             : claimedAmount.toFixed(2)
                           : "0.00"}{" "}
-                        <span className="text-sm text-gray-600">cUSD</span>
+                        {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                       </p>
                     )}
                   </div>
@@ -854,32 +862,32 @@ export default function DeluluPage() {
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {entry.believerStake > 0 && (
-                              <span className="text-xs text-gray-600">
-                                <ThumbsUp className="w-3 h-3 inline mr-1" />
+                              <span className="text-xs text-gray-600 inline-flex items-center gap-1">
+                                <ThumbsUp className="w-3 h-3" />
                                 {entry.believerStake < 0.01
                                   ? entry.believerStake.toFixed(4)
                                   : entry.believerStake.toFixed(2)}{" "}
-                                cUSD
+                                {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                               </span>
                             )}
                             {entry.doubterStake > 0 && (
-                              <span className="text-xs text-gray-600">
-                                <ThumbsDown className="w-3 h-3 inline mr-1" />
+                              <span className="text-xs text-gray-600 inline-flex items-center gap-1">
+                                <ThumbsDown className="w-3 h-3" />
                                 {entry.doubterStake < 0.01
                                   ? entry.doubterStake.toFixed(4)
                                   : entry.doubterStake.toFixed(2)}{" "}
-                                cUSD
+                                {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-black text-delulu-charcoal">
+                        <p className="text-sm font-black text-delulu-charcoal inline-flex items-center gap-1">
                           {entry.totalStake < 0.01
                             ? entry.totalStake.toFixed(4)
                             : entry.totalStake.toFixed(2)}{" "}
-                          cUSD
+                          {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                         </p>
                         <p className="text-xs text-gray-500">Total</p>
                       </div>
@@ -898,7 +906,7 @@ export default function DeluluPage() {
           <div className="max-w-2xl mx-auto">
             <div className="w-full px-4 py-2 bg-red-50 rounded-full text-center border border-red-200">
               <p className="text-xs font-medium text-red-600">
-                Insufficient balance. You need cUSD to stake.
+                Insufficient balance. You need tokens to stake.
               </p>
             </div>
           </div>
@@ -915,7 +923,7 @@ export default function DeluluPage() {
           <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
             <div className="max-w-2xl mx-auto">
               <button
-                onClick={() => claim(delulu.id, claimableAmount)}
+                onClick={() => claim(delulu.id, claimableAmount, marketToken)}
                 disabled={
                   isClaiming ||
                   isClaimConfirming ||
@@ -947,12 +955,12 @@ export default function DeluluPage() {
                 ) : claimableAmount === 0 ? (
                   <span>No winnings to claim</span>
                 ) : (
-                  <span>
+                  <span className="inline-flex items-center gap-1">
                     Claim{" "}
                     {claimableAmount > 0.01
                       ? `${claimableAmount.toFixed(2)}`
                       : claimableAmount.toFixed(4)}{" "}
-                    cUSD
+                    {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                   </span>
                 )}
               </button>
@@ -999,7 +1007,7 @@ export default function DeluluPage() {
               ? lastStakeAmount.toFixed(4)
               : lastStakeAmount.toFixed(2)
             : stakeAmount
-        } cUSD as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
+        } as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
         onClose={() => {
           setShowSuccessModal(false);
           setPendingAction(null);

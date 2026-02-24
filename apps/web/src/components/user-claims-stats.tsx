@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserClaims } from "@/hooks/use-user-claims";
+import { useGraphUserClaims } from "@/hooks/graph";
 import { Trophy, Sparkles } from "lucide-react";
 
 interface UserClaimsStatsProps {
@@ -8,7 +8,7 @@ interface UserClaimsStatsProps {
 }
 
 export function UserClaimsStats({ address }: UserClaimsStatsProps) {
-  const { totalClaimed, isLoading } = useUserClaims(address);
+  const { totalClaimed, isLoading } = useGraphUserClaims(address);
 
   if (!address) return null;
 
@@ -38,7 +38,7 @@ export function UserClaimsStats({ address }: UserClaimsStatsProps) {
                         : totalClaimed.toFixed(2)
                       : "0.00"}
                   </p>
-                  <span className="text-sm font-bold text-gray-600">cUSD</span>
+                  <span className="text-sm font-bold text-gray-600">tokens</span>
                 </div>
               )}
             </div>

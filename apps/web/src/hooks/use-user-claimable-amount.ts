@@ -1,18 +1,20 @@
-import { useReadContract } from "wagmi";
+import { useReadContract, useChainId } from "wagmi";
 import { useAccount } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useUserClaimableAmount(deluluId: number | null) {
   const { address } = useAccount();
+  const chainId = useChainId();
+  const contractAddress = getDeluluContractAddress(chainId);
 
   const {
     data: userPosition,
     isLoading: isLoadingPosition,
     error: positionError,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+    address: contractAddress,
     abi: DELULU_ABI,
     functionName: "getUserPosition",
     args:
@@ -31,7 +33,7 @@ export function useUserClaimableAmount(deluluId: number | null) {
     isLoading: isLoadingPotential,
     error: potentialError,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+    address: contractAddress,
     abi: DELULU_ABI,
     functionName: "getClaimableAmount",
     args:

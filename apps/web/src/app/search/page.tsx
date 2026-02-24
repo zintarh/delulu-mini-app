@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus";
+import { useAllDelulus } from "@/hooks/graph";
+import type { FormattedDelulu } from "@/lib/types";
 import { DeluluCard } from "@/components/delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { Search, X, ArrowLeft, TrendingUp } from "lucide-react";
@@ -12,7 +13,7 @@ export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isConnected } = useAccount();
-  const { delulus, isLoading } = useDelulus();
+  const { delulus, isLoading } = useAllDelulus();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {

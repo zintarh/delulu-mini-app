@@ -1,0 +1,64 @@
+# Matches Prisma model: User
+# Note: Prisma uses cuid() for id + separate `address` field.
+# In the subgraph, we use the wallet address (Bytes) as the id directly.
+type User @entity(immutable: false) {
+  id: Bytes! # Wallet address (maps to Prisma's `address` field)
+  totalStaked: BigInt!
+  # Reverse lookups — named to match Prisma relations
+  delulus: [Delulu!]! @derivedFrom(field: "creator")
+  stakes: [Stake!]! @derivedFrom(field: "user")
+  claims: [Claim!]! @derivedFrom(field: "user")
+}
+
+# Matches Prisma model: Delulu
+# Renamed from "Market" to align with backend naming.
+type Delulu @entity(immutable: false) {
+  id: ID! # The onChainId.toString() — maps to Prisma's `onChainId`
+  onChainId: BigInt! # Raw on-chain ID for numeric queries
+  creator: User! # Relation to User entity
+  creatorAddress: String! # Lowercase address string — matches Prisma's `creatorAddress`
+  contentHash: String! # IPFS hash — matches Prisma's `contentHash`
+  token: Bytes! # ERC20 token address for this market (multi-token support)
+
+  # Timestamps and Deadlines (BigInt in subgraph = DateTime in Prisma)
+  stakingDeadline: BigInt! # Prisma: `stakingDeadline: DateTime`
+  resolutionDeadline: BigInt! # Prisma: `resolutionDeadline: DateTime`
+  createdAt: BigInt! # Block timestamp — maps to Prisma's `createdAt`
+
+  # Financials
+  creatorStake: BigInt! # The creator's initial stake amount
+  totalBelieverStake: BigInt! # Matches Prisma's `totalBelieverStake`
+  totalDoubterStake: BigInt! # Matches Prisma's `totalDoubterStake`
+  winningPool: BigInt! # Set upon resolution
+  losingPool: BigInt! # Set upon resolution
+
+  # Status trackers — exact same names as Prisma
+  isResolved: Boolean! # Prisma: `isResolved: Boolean @default(false)`
+  isCancelled: Boolean! # Prisma: `isCancelled: Boolean @default(false)`
+  outcome: Boolean # Nullable — Prisma: `outcome: Boolean?`
+
+  # Reverse lookups — named to match Prisma relations
+  stakes: [Stake!]! @derivedFrom(field: "delulu")
+  claims: [Claim!]! @derivedFrom(field: "delulu")
+}
+
+# Matches Prisma model: Stake
+type Stake @entity(immutable: true) {
+  id: ID! # txHash-logIndex (Prisma uses cuid)
+  delulu: Delulu! # Matches Prisma's `delulu` relation / `deluluId`
+  user: User! # Matches Prisma's `user` relation / `userId`
+  amount: BigInt! # Raw wei amount (Prisma stores as Float after conversion)
+  side: Boolean! # true = believe, false = doubt — same as Prisma
+  txHash: Bytes! # Matches Prisma's `txHash`
+  createdAt: BigInt! # Block timestamp — maps to Prisma's `createdAt`
+}
+
+# Matches Prisma model: Claim
+type Claim @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  delulu: Delulu! # Matches Prisma's `delulu` relation / `deluluId`
+  user: User! # Matches Prisma's `user` relation / `userId`
+  amount: BigInt! # Raw wei payout (Prisma stores as Float)
+  txHash: Bytes! # Matches Prisma's `txHash`
+  createdAt: BigInt! # Block timestamp — maps to Prisma's `createdAt`
+}

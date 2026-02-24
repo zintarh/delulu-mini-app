@@ -74,7 +74,6 @@ Smart Contract Scripts
 pnpm contracts:compile | Compile smart contracts in apps/hardhat.
 pnpm contracts:test | Run smart contract tests.
 pnpm contracts:deploy | Deploy contracts to local network.
-pnpm contracts:deploy:alfajores | Deploy to Celo Alfajores testnet.
 pnpm contracts:deploy:sepolia | Deploy to Celo Sepolia testnet.
 pnpm contracts:deploy:celo | Deploy to Celo mainnet.
 

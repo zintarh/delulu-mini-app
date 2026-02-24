@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MoreHorizontal } from "lucide-react";
-import { FormattedDelulu } from "@/hooks/use-delulus";
+import { useApolloClient } from "@apollo/client/react";
+import { refetchDeluluData } from "@/lib/graph/refetch-utils";
+import { FormattedDelulu } from "@/lib/types";
 import { formatTimeRemaining, cn, getCountryFlag } from "@/lib/utils";
 import { useCancelDelulu } from "@/hooks/use-cancel-delulu";
 import { useResolveDelulu } from "@/hooks/use-resolve-delulu";
@@ -24,25 +26,19 @@ function getCardBackground(delusion: FormattedDelulu): {
   if (delusion.bgImageUrl) {
     let imageUrl = delusion.bgImageUrl;
     
-    // Convert relative paths to absolute URLs
     if (imageUrl.startsWith("/")) {
       if (typeof window !== "undefined") {
         imageUrl = `${window.location.origin}${imageUrl}`;
       } else {
-        // Server-side: use environment variable or default
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
         imageUrl = `${baseUrl}${imageUrl}`;
       }
     }
     
-    // Replace localhost URLs with current origin (handles production)
     if (typeof window !== "undefined") {
       const currentOrigin = window.location.origin;
-      // Replace any localhost URLs with current origin
       imageUrl = imageUrl.replace(/https?:\/\/localhost:\d+/g, currentOrigin);
-      
-      // Ensure HTTPS if page is served over HTTPS
-      if (window.location.protocol === "https:") {
+            if (window.location.protocol === "https:") {
         imageUrl = imageUrl.replace(/^http:/, "https:");
       }
     }
@@ -87,6 +83,7 @@ export function ProfileDeluluCard({
   className = "",
 }: ProfileDeluluCardProps) {
   const { address } = useAccount();
+  const apolloClient = useApolloClient();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
@@ -105,22 +102,28 @@ export function ProfileDeluluCard({
     isPending: isResolving,
     isConfirming: isResolvingConfirming,
     isSuccess: isResolveSuccess,
-    isBackendSynced: isResolveBackendSynced,
-    isBackendSyncing: isResolveBackendSyncing,
     error: resolveError,
   } = useResolveDelulu();
 
   const isDeadlinePassed = new Date() > delusion.stakingDeadline;
   const canResolve =
-    isDeadlinePassed && !delusion.isResolved && !delusion.isCancelled;
+    isDeadlinePassed && !delusion.isResolved && !delusion.isCancelled && !isResolveSuccess;
   const isCreator = isDeluluCreator(address, delusion);
   const canCancel = isCreator && !delusion.isResolved && !delusion.isCancelled;
 
-  const headlineRaw = delusion.content || delusion.contentHash || "";
+  // Only use content if it exists and is not a hash
+  const isHash = (str: string) => {
+    return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
+  };
+  
+  const headlineRaw = delusion.content && !isHash(delusion.content) 
+    ? delusion.content 
+    : "";
   const headline = headlineRaw.trim();
   const headlineLength = headline.length;
   const truncatedHeadline =
     headlineLength > 20 ? headline.slice(0, 20) + "..." : headline;
+  const isLoadingContent = !delusion.content || isHash(delusion.content);
 
   const cardBackground = getCardBackground(delusion);
   const textColorClass =
@@ -174,7 +177,7 @@ export function ProfileDeluluCard({
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsMenuOpen(false);
-    if (delusion.isResolved || delusion.isCancelled) {
+    if (delusion.isResolved || delusion.isCancelled || isResolveSuccess) {
       return;
     }
     if (!isDeadlinePassed) {
@@ -189,7 +192,7 @@ export function ProfileDeluluCard({
       return;
     }
 
-    if (delusion.isResolved || delusion.isCancelled) {
+    if (delusion.isResolved || delusion.isCancelled || isResolveSuccess) {
       return;
     }
 
@@ -205,23 +208,27 @@ export function ProfileDeluluCard({
   };
 
   useEffect(() => {
-    if (isResolveSuccess && isResolveBackendSynced && showResolveModal) {
-      const timer = setTimeout(() => {
+    if (isResolveSuccess && showResolveModal) {
+      const closeTimer = setTimeout(() => {
         setShowResolveModal(false);
         setResolveOutcome(null);
-      }, 2000);
-      return () => clearTimeout(timer);
+      }, 4000);
+      
+      const deluluId = delusion.onChainId || delusion.id;
+      refetchDeluluData(apolloClient, deluluId);
+      
+      return () => clearTimeout(closeTimer);
     }
-  }, [isResolveSuccess, isResolveBackendSynced, showResolveModal]);
+  }, [isResolveSuccess, showResolveModal, apolloClient, delusion.id, delusion.onChainId]);
 
   const handleResolveModalOpenChange = (open: boolean) => {
     if (
       !open &&
-      (isResolving || isResolvingConfirming || isResolveBackendSyncing)
+      (isResolving || isResolvingConfirming)
     ) {
       return;
     }
-    if (!open && isResolveSuccess && !isResolveBackendSynced) {
+    if (!open && isResolving) {
       return;
     }
     setShowResolveModal(open);
@@ -252,8 +259,10 @@ export function ProfileDeluluCard({
   useEffect(() => {
     if (isCancelSuccess && showCancelModal) {
       setShowCancelModal(false);
+      const deluluId = delusion.onChainId || delusion.id;
+      refetchDeluluData(apolloClient, deluluId);
     }
-  }, [isCancelSuccess, showCancelModal]);
+  }, [isCancelSuccess, showCancelModal, apolloClient, delusion.id, delusion.onChainId]);
 
   const handleModalOpenChange = (open: boolean) => {
     if (!open && (isCancelling || isCancellingConfirming)) {
@@ -442,14 +451,21 @@ export function ProfileDeluluCard({
 
         <div className="absolute inset-3 flex items-center justify-center text-center z-10">
           <div className="bg-white w-fit h-fit rounded-sm py-2 px-2">
-            <p
-              className={cn(
-                "font-black leading-tight text-delulu-charcoal text-xs"
-              )}
-              title={headline || "YOUR DELULU HEADLINE"}
-            >
-              {truncatedHeadline || "YOUR DELULU HEADLINE"}
-            </p>
+            {isLoadingContent ? (
+              <div className="flex items-center gap-2 px-4 py-2">
+                <div className="animate-pulse h-3 w-3 rounded-full bg-gray-300"></div>
+                <span className="text-xs text-gray-500">Loading...</span>
+              </div>
+            ) : (
+              <p
+                className={cn(
+                  "font-black leading-tight text-delulu-charcoal text-xs"
+                )}
+                title={headline || "YOUR DELULU HEADLINE"}
+              >
+                {truncatedHeadline || "YOUR DELULU HEADLINE"}
+              </p>
+            )}
           </div>
         </div>
 
@@ -614,10 +630,13 @@ export function ProfileDeluluCard({
                 ? This action cannot be undone.
               </p>
             )}
-            {isResolveSuccess && isResolveBackendSynced && (
+            {isResolveSuccess && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">
-                  ✓ Delulu resolved successfully!
+                <p className="text-sm text-green-600 font-medium mb-2">
+                  ✓ Transaction confirmed! Your resolve request was successful.
+                </p>
+                <p className="text-xs text-gray-600">
+                  It may take up to 10 minutes for the market to be fully resolved and reflected in the UI.
                 </p>
               </div>
             )}
@@ -633,11 +652,7 @@ export function ProfileDeluluCard({
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => handleResolveModalOpenChange(false)}
-                disabled={
-                  isResolving ||
-                  isResolvingConfirming ||
-                  isResolveBackendSyncing
-                }
+                disabled={isResolving || isResolvingConfirming}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resolveOutcome === null ? "Cancel" : "Back"}
@@ -648,7 +663,6 @@ export function ProfileDeluluCard({
                   disabled={
                     isResolving ||
                     isResolvingConfirming ||
-                    isResolveBackendSyncing ||
                     isResolveSuccess ||
                     resolveOutcome === null ||
                     delusion.isResolved ||
@@ -661,12 +675,7 @@ export function ProfileDeluluCard({
                       <div className="w-4 h-4 border-2 border-delulu-charcoal border-t-transparent rounded-full animate-spin" />
                       Resolving...
                     </>
-                  ) : isResolveBackendSyncing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-delulu-charcoal border-t-transparent rounded-full animate-spin" />
-                      Syncing...
-                    </>
-                  ) : isResolveSuccess && isResolveBackendSynced ? (
+                  ) : isResolveSuccess ? (
                     "Done"
                   ) : (
                     "Confirm Resolve"

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useApolloClient } from "@apollo/client/react";
+import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
-import { FormattedDelulu } from "@/hooks/use-delulus";
+import { FormattedDelulu } from "@/lib/types";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenApproval } from "@/hooks/use-token-approval";
-import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { StakeSuccessSheet } from "@/components/stake-success-sheet";
 import { StakeErrorSheet } from "@/components/stake-error-sheet";
@@ -27,6 +30,7 @@ export function StakingSheet({
   delulu,
 }: StakingSheetProps) {
   const { address } = useAccount();
+  const apolloClient = useApolloClient();
   const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -34,10 +38,11 @@ export function StakingSheet({
   const [errorMessage, setErrorMessage] = useState("");
   const [stakedAmount, setStakedAmount] = useState(0);
 
-  const { balance: cusdBalanceData, isLoading: isLoadingBalance } =
-    useCUSDBalance();
-  const cusdBalance = cusdBalanceData
-    ? parseFloat(cusdBalanceData.formatted)
+  const marketToken = delulu?.tokenAddress || undefined;
+  const { balance: tokenBalanceData, isLoading: isLoadingBalance } =
+    useTokenBalance(marketToken);
+  const tokenBalance = tokenBalanceData
+    ? parseFloat(tokenBalanceData.formatted)
     : null;
 
   const {
@@ -48,7 +53,7 @@ export function StakingSheet({
     isSuccess: isApprovalSuccess,
     error: approvalError,
     refetchAllowance,
-  } = useTokenApproval();
+  } = useTokenApproval(marketToken);
 
   const {
     stake,
@@ -90,8 +95,13 @@ export function StakingSheet({
         setShowSuccessModal(true);
         setStakeAmount("");
       }
+      // Refetch delulu data after indexing delay
+      const deluluId = delulu?.onChainId || delulu?.id;
+      if (deluluId) {
+        refetchDeluluData(apolloClient, deluluId);
+      }
     }
-  }, [isStakeSuccess, stakeAmount]);
+  }, [isStakeSuccess, stakeAmount, delulu?.id, delulu?.onChainId, apolloClient]);
 
   // Handle errors
   useEffect(() => {
@@ -193,15 +203,15 @@ export function StakingSheet({
 
     if (amount < 1) {
       console.error("[StakingSheet] Amount below minimum:", amount);
-      setErrorMessage("Minimum stake is 1 cUSD");
+      setErrorMessage("Minimum stake is 1");
       setShowErrorModal(true);
       return;
     }
 
-    if (cusdBalance !== null && amount > cusdBalance) {
+    if (tokenBalance !== null && amount > tokenBalance) {
       console.error("[StakingSheet] Insufficient balance:", {
         amount,
-        cusdBalance,
+        tokenBalance,
       });
       setErrorMessage("Insufficient balance");
       setShowErrorModal(true);
@@ -221,7 +231,7 @@ export function StakingSheet({
         }
       }
 
-      await stake(deluluId, amount, isBeliever);
+      await stake(deluluId, amount, isBeliever, marketToken);
     } catch (error) {
       console.error("[StakingSheet] Error in handleStake:", error);
       setErrorMessage(
@@ -247,8 +257,8 @@ export function StakingSheet({
     if (!stakeAmount || stakeAmount === "") return null;
     const amount = stakeAmountNum;
     if (isNaN(amount) || amount <= 0) return "Please enter a valid amount";
-    if (amount < 1) return "Minimum stake is 1 cUSD";
-    if (cusdBalance !== null && amount > cusdBalance)
+    if (amount < 1) return "Minimum stake is 1";
+    if (tokenBalance !== null && amount > tokenBalance)
       return "Insufficient balance";
     return null;
   })();
@@ -340,9 +350,10 @@ export function StakingSheet({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500">Amount</span>
-                    {cusdBalance !== null && (
-                      <span className="text-xs text-gray-500">
-                        Balance: {cusdBalance.toFixed(2)} cUSD
+                    {tokenBalance !== null && marketToken && (
+                      <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                        Balance: {tokenBalance.toFixed(2)}{" "}
+                        <TokenBadge tokenAddress={marketToken} size="sm" />
                       </span>
                     )}
                   </div>
@@ -370,19 +381,21 @@ export function StakingSheet({
                     <button
                       type="button"
                       onClick={() => {
-                        if (cusdBalance !== null) {
-                          setStakeAmount(cusdBalance.toFixed(2));
+                        if (tokenBalance !== null) {
+                          setStakeAmount(tokenBalance.toFixed(2));
                         }
                       }}
-                      disabled={isLoading || isCreator || cusdBalance === null}
+                      disabled={isLoading || isCreator || tokenBalance === null}
                       className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       MAX
                     </button>
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">cUSD</span>
-                  </div>
+                  {marketToken && (
+                    <div className="mt-2 flex items-center justify-between">
+                      <TokenBadge tokenAddress={marketToken} size="sm" />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -441,6 +454,7 @@ export function StakingSheet({
         }}
         isBeliever={isBeliever}
         amount={stakedAmount}
+        tokenAddress={delulu?.tokenAddress}
       />
 
       {/* Error Sheet */}

@@ -72,20 +72,43 @@ export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderP
 
   const handleAddMiniApp = useCallback(async () => {
     try {
-      const result = await sdk.actions.addFrame();
-      if (result) {
-        return result;
+      // Check if SDK is available and ready
+      if (!sdk || !sdk.actions) {
+        console.warn("SDK not available for addFrame");
+        return null;
       }
-      return null;
+      
+      const result = await sdk.actions.addFrame();
+      // Handle different return types from SDK
+      if (result && typeof result === "object") {
+        // If the object has a nested result, use it; otherwise use the object directly
+        const innerResult = (result as any).result;
+        return innerResult !== undefined ? innerResult : result;
+      }
+      return result || null;
     } catch (error) {
-      console.error("[error] adding frame", error);
+      // Silently handle errors - this is expected in some environments
+      if (error instanceof Error && error.message.includes('result')) {
+        console.warn("[miniapp] addFrame not available in this context");
+      } else {
+        console.error("[error] adding frame", error);
+      }
       return null;
     }
   }, []);
 
   useEffect(() => {
     if (isMiniAppReady && !context?.client?.added && addMiniAppOnLoad) {
-      handleAddMiniApp();
+      // Add a small delay to ensure SDK is fully ready
+      const timer = setTimeout(() => {
+        handleAddMiniApp().catch((err) => {
+          // Silently handle - this is expected in some environments
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("addMiniApp failed (this is normal outside Farcaster):", err);
+          }
+        });
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [
     isMiniAppReady,

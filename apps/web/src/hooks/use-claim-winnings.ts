@@ -1,61 +1,31 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useEffect, useRef } from "react";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { useChainId } from "wagmi";
+import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { useBackendSync } from "./use-backend-sync";
-
-interface ClaimParams {
-  deluluId: string;
-  amount: number;
-}
 
 export function useClaimWinnings() {
+  const chainId = useChainId();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const {
     isLoading: isConfirming,
     isSuccess,
-    data: receipt,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
-  const { syncClaim } = useBackendSync();
 
-  // Track pending claim for backend sync
-  const pendingClaim = useRef<ClaimParams | null>(null);
-  const lastSyncedHash = useRef<string | null>(null);
-
-  // Sync to backend after successful transaction
-  useEffect(() => {
-    const txHash = receipt?.transactionHash;
-    if (
-      isSuccess &&
-      txHash &&
-      pendingClaim.current &&
-      txHash !== lastSyncedHash.current
-    ) {
-      lastSyncedHash.current = txHash;
-      syncClaim({
-        deluluId: pendingClaim.current.deluluId,
-        amount: pendingClaim.current.amount,
-        txHash: txHash,
-      });
-      pendingClaim.current = null;
-    }
-  }, [isSuccess, receipt?.transactionHash, syncClaim]);
-
-  const claim = (deluluId: number, amount: number) => {
+  const claim = (deluluId: number, amount: number, tokenAddress?: string) => {
     if (!deluluId) return;
     if (amount <= 0) {
       console.warn("[useClaimWinnings] Claim amount must be greater than 0");
       return;
     }
 
-    pendingClaim.current = {
-      deluluId: deluluId.toString(),
-      amount: amount,
-    };
+    // Validate: G$ is only supported on mainnet
+    if (tokenAddress && isGoodDollarToken(tokenAddress) && !isGoodDollarSupported(chainId)) {
+      throw new Error("G$ (GoodDollar) is only available on Celo Mainnet. Please switch to mainnet to claim G$ winnings.");
+    }
 
     writeContract({
-      address: DELULU_CONTRACT_ADDRESS,
+      address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
       functionName: "claimWinnings",
       args: [deluluId],

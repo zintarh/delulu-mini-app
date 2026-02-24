@@ -2,16 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
 import { Upload, CircleDollarSign, Copy } from "lucide-react";
-import { FormattedDelulu } from "@/hooks/use-delulus";
+import { FormattedDelulu } from "@/lib/types";
+import { TokenBadge } from "@/components/token-badge";
 import {
   formatTimeRemaining,
   formatTimeAgo,
   cn,
   getCountryFlag,
 } from "@/lib/utils";
-import { api } from "@/lib/api-client";
 import { FARCASTER_MINIAPP_BASE_URL } from "@/lib/constant";
 
 function formatAddress(address: string): string {
@@ -125,9 +124,17 @@ export function DeluluCard({
   const displayPfpUrl = delusion.pfpUrl || null;
   const displayUsername = delusion.username || null;
 
-  const headlineRaw = delusion.content || delusion.contentHash || "";
+  // Only use content if it exists and is not a hash (IPFS hashes start with Qm or are long hex strings)
+  const isHash = (str: string) => {
+    return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
+  };
+  
+  const headlineRaw = delusion.content && !isHash(delusion.content) 
+    ? delusion.content 
+    : "";
   const headline = headlineRaw.trim();
   const headlineLength = headline.length;
+  const isLoadingContent = !delusion.content || isHash(delusion.content);
 
   const tvl = total;
   const formattedTVL =
@@ -137,7 +144,6 @@ export function DeluluCard({
   const textColorClass =
     cardBackground.text === "text-black" ? "text-black" : "text-balck";
 
-  const queryClient = useQueryClient();
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
 
@@ -247,16 +253,8 @@ export function DeluluCard({
     }
   };
 
-  // Prefetch delulu data on hover for instant navigation
-  const handleMouseEnter = () => {
-    if (href) {
-      queryClient.prefetchQuery({
-        queryKey: ["delulu", delusion.id],
-        queryFn: () => api.getDelulu(String(delusion.id)),
-        staleTime: 30 * 1000,
-      });
-    }
-  };
+  // Apollo cache already stores data from list queries
+  const handleMouseEnter = () => {};
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -336,10 +334,13 @@ export function DeluluCard({
           </div>
         )}
 
-        <div className="absolute top-3 right-3 z-20">
-          <div className="bg-delulu-yellow-reserved text-delulu-charcoal px-3 py-1.5 rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]">
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          <div className="bg-delulu-yellow-reserved text-delulu-charcoal px-3 py-1.5 rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] flex items-center gap-1">
+            {delusion.tokenAddress && (
+              <TokenBadge tokenAddress={delusion.tokenAddress} size="sm" showText={false} />
+            )}
             <span className="text-[11px] font-black tracking-tight">
-              ${formattedTVL} TVL
+              {formattedTVL} TVL
             </span>
           </div>
         </div>
@@ -347,21 +348,28 @@ export function DeluluCard({
         {/* Headline - Centered */}
         <div className="absolute inset-6 flex items-center justify-center  text-center z-10">
           <div className="bg-white w-fit h-fit rounded-md py-2 px-2">
-            <p
-              className={cn(
-                "  break-words text-pretty text-center font-black  whitespace-pre-wrap",
-                textColorClass,
-                headlineLength <= 40
-                  ? "text-xl"
-                  : headlineLength <= 80
-                  ? "text-lg"
-                  : headlineLength <= 140
-                  ? "text-base"
-                  : "text-sm"
-              )}
-            >
-              {headline || "YOUR DELULU HEADLINE"}
-            </p>
+            {isLoadingContent ? (
+              <div className="flex items-center gap-2 px-4 py-2">
+                <div className="animate-pulse h-4 w-4 rounded-full bg-gray-300"></div>
+                <span className="text-sm text-gray-500">Loading content...</span>
+              </div>
+            ) : (
+              <p
+                className={cn(
+                  "  break-words text-pretty text-center font-black  whitespace-pre-wrap",
+                  textColorClass,
+                  headlineLength <= 40
+                    ? "text-xl"
+                    : headlineLength <= 80
+                    ? "text-lg"
+                    : headlineLength <= 140
+                    ? "text-base"
+                    : "text-sm"
+                )}
+              >
+                {headline || "YOUR DELULU HEADLINE"}
+              </p>
+            )}
           </div>
         </div>
 
