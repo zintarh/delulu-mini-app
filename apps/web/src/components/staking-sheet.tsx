@@ -39,6 +39,12 @@ export function StakingSheet({
   const [stakedAmount, setStakedAmount] = useState(0);
 
   const marketToken = delulu?.tokenAddress || undefined;
+  
+  // Ensure we have a token address - staking requires knowing which token to use
+  if (!marketToken && delulu) {
+    console.warn("[StakingSheet] Delulu missing tokenAddress:", delulu);
+  }
+  
   const { balance: tokenBalanceData, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
   const tokenBalance = tokenBalanceData
@@ -249,7 +255,8 @@ export function StakingSheet({
     isApprovingConfirming ||
     isStaking ||
     isStakingConfirming ||
-    isLoadingPosition;
+    isLoadingPosition ||
+    isLoadingBalance;
   const stakeAmountNum = stakeAmount ? parseFloat(stakeAmount) : 0;
 
   // Validation errors - show error for invalid amounts (including < 1)
@@ -258,7 +265,8 @@ export function StakingSheet({
     const amount = stakeAmountNum;
     if (isNaN(amount) || amount <= 0) return "Please enter a valid amount";
     if (amount < 1) return "Minimum stake is 1";
-    if (tokenBalance !== null && amount > tokenBalance)
+    // Only check balance if it's loaded (not null) and we have a valid amount
+    if (tokenBalance !== null && !isLoadingBalance && amount > tokenBalance)
       return "Insufficient balance";
     return null;
   })();
@@ -267,7 +275,16 @@ export function StakingSheet({
   const hasInputError =
     validationError !== null && stakeAmount !== "" && stakeAmount !== "0";
 
+  // Button is enabled when:
+  // - Market token is defined (required for staking)
+  // - Not loading (including balance and position)
+  // - Has stake amount entered
+  // - Amount is at least 1
+  // - Not the creator
+  // - No validation errors
+  // - User hasn't already staked
   const canStake =
+    !!marketToken &&
     !isLoading &&
     stakeAmount &&
     stakeAmountNum >= 1 &&
