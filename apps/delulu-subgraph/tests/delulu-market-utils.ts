@@ -18,7 +18,7 @@ export function createDeluluCancelledEvent(
 ): DeluluCancelled {
   let deluluCancelledEvent = changetype<DeluluCancelled>(newMockEvent())
 
-  deluluCancelledEvent.parameters = new Array()
+  deluluCancelledEvent.parameters = []
 
   deluluCancelledEvent.parameters.push(
     new ethereum.EventParam(
@@ -46,7 +46,7 @@ export function createDeluluCreatedEvent(
 ): DeluluCreated {
   let deluluCreatedEvent = changetype<DeluluCreated>(newMockEvent())
 
-  deluluCreatedEvent.parameters = new Array()
+  deluluCreatedEvent.parameters = []
 
   deluluCreatedEvent.parameters.push(
     new ethereum.EventParam(
@@ -93,7 +93,7 @@ export function createDeluluResolvedEvent(
 ): DeluluResolved {
   let deluluResolvedEvent = changetype<DeluluResolved>(newMockEvent())
 
-  deluluResolvedEvent.parameters = new Array()
+  deluluResolvedEvent.parameters = []
 
   deluluResolvedEvent.parameters.push(
     new ethereum.EventParam(
@@ -127,7 +127,7 @@ export function createEmergencyRefundEvent(
 ): EmergencyRefund {
   let emergencyRefundEvent = changetype<EmergencyRefund>(newMockEvent())
 
-  emergencyRefundEvent.parameters = new Array()
+  emergencyRefundEvent.parameters = []
 
   emergencyRefundEvent.parameters.push(
     new ethereum.EventParam(
@@ -152,7 +152,7 @@ export function createOwnershipTransferredEvent(
   let ownershipTransferredEvent =
     changetype<OwnershipTransferred>(newMockEvent())
 
-  ownershipTransferredEvent.parameters = new Array()
+  ownershipTransferredEvent.parameters = []
 
   ownershipTransferredEvent.parameters.push(
     new ethereum.EventParam(
@@ -170,7 +170,7 @@ export function createOwnershipTransferredEvent(
 export function createPausedEvent(account: Address): Paused {
   let pausedEvent = changetype<Paused>(newMockEvent())
 
-  pausedEvent.parameters = new Array()
+  pausedEvent.parameters = []
 
   pausedEvent.parameters.push(
     new ethereum.EventParam("account", ethereum.Value.fromAddress(account))
@@ -188,7 +188,7 @@ export function createStakePlacedEvent(
 ): StakePlaced {
   let stakePlacedEvent = changetype<StakePlaced>(newMockEvent())
 
-  stakePlacedEvent.parameters = new Array()
+  stakePlacedEvent.parameters = []
 
   stakePlacedEvent.parameters.push(
     new ethereum.EventParam(
@@ -218,7 +218,7 @@ export function createStakePlacedEvent(
 export function createUnpausedEvent(account: Address): Unpaused {
   let unpausedEvent = changetype<Unpaused>(newMockEvent())
 
-  unpausedEvent.parameters = new Array()
+  unpausedEvent.parameters = []
 
   unpausedEvent.parameters.push(
     new ethereum.EventParam("account", ethereum.Value.fromAddress(account))
@@ -234,7 +234,7 @@ export function createWinningsClaimedEvent(
 ): WinningsClaimed {
   let winningsClaimedEvent = changetype<WinningsClaimed>(newMockEvent())
 
-  winningsClaimedEvent.parameters = new Array()
+  winningsClaimedEvent.parameters = []
 
   winningsClaimedEvent.parameters.push(
     new ethereum.EventParam(

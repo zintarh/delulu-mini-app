@@ -1,7 +1,8 @@
-import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
+"use client";
+
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount, useChainId } from "wagmi";
 import { parseUnits } from "viem";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
+import { getDeluluContractAddress } from "@/lib/constant";
 
 const ERC20_ABI = [
   {
@@ -26,71 +27,63 @@ const ERC20_ABI = [
   },
 ] as const;
 
-export function useTokenApproval() {
+/** Per-market token approval. Pass the market's token address. */
+export function useTokenApproval(tokenAddress: string | undefined) {
   const { address } = useAccount();
-  
-  const { data: tokenAddress } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
-    abi: DELULU_ABI,
-    functionName: "stablecoin",
-  });
+  const chainId = useChainId();
+  const token = tokenAddress as `0x${string}` | undefined;
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({
     hash,
   });
 
+  const contractAddress = getDeluluContractAddress(chainId);
+
   const { data: allowance, refetch: refetchAllowance, isLoading: isLoadingAllowance } = useReadContract({
-    address: tokenAddress as `0x${string}`,
+    address: token,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: address && tokenAddress ? [address, DELULU_CONTRACT_ADDRESS] : undefined,
-    query: { enabled: !!tokenAddress && !!address },
+    args: address && token ? [address, contractAddress] : undefined,
+    query: { enabled: !!token && !!address },
   });
 
-
   const approve = async (amount: number) => {
-    if (!tokenAddress) {
+    if (!token) {
       throw new Error("Token address not available");
     }
     if (!isFinite(amount) || isNaN(amount) || amount <= 0) {
       throw new Error("Invalid amount");
     }
-    
-    const bufferMultiplier = 1.1; // 10% buffer
+
+    const bufferMultiplier = 1.1;
     const amountWithBuffer = amount * bufferMultiplier;
     const amountWei = parseUnits(amountWithBuffer.toString(), 18);
-    
+
     writeContract({
-      address: tokenAddress as `0x${string}`,
+      address: token,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [DELULU_CONTRACT_ADDRESS, amountWei],
+      args: [contractAddress, amountWei],
     });
   };
 
-
   const needsApproval = (amount: number): boolean => {
-    // Safe handling of invalid inputs
-    if (!allowance || !tokenAddress) return true;
+    if (!allowance || !token) return true;
     if (!amount || isNaN(amount) || amount <= 0) return true;
-    
+
     try {
       const amountWei = parseUnits(amount.toString(), 18);
       return allowance < amountWei;
-    } catch (error) {
-      // If parsing fails, assume approval is needed
-      console.warn("[useTokenApproval] Error parsing amount in needsApproval:", error);
+    } catch {
       return true;
     }
   };
 
-
-
   return {
     approve,
     needsApproval,
-    tokenAddress,
+    tokenAddress: token,
     hash,
     isPending,
     isConfirming,
@@ -100,4 +93,3 @@ export function useTokenApproval() {
     isLoadingAllowance,
   };
 }
-

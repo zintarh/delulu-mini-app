@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Loader2, X, Upload, DollarSign } from "lucide-react";
+import { ArrowLeft, Loader2, X, Upload, DollarSign, ChevronDown } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
+import { useApolloClient } from "@apollo/client/react";
+import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
-import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { TokenBadge } from "@/components/token-badge";
+import { useSupportedTokens } from "@/hooks/use-supported-tokens";
+import { TOKEN_LOGOS } from "@/lib/constant";
+import { useAccount } from "wagmi";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
@@ -82,6 +88,7 @@ type Step = "gallery" | "customize" | "duration" | "stake" | "submit";
 
 export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const { user } = useUserStore();
+  const apolloClient = useApolloClient();
 
   // Validate user exists
   if (!user) {
@@ -109,8 +116,34 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   // Form state
   const [delusionText, setDelusionText] = useState("");
   const [stakeAmount, setStakeAmount] = useState<number>(1);
+  const supportedTokens = useSupportedTokens();
+  // Prefer G$ if available, otherwise use first token
+  const initialToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
+  const [selectedToken, setSelectedToken] = useState<string>(initialToken);
+  const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
+  const tokenDropdownRef = useRef<HTMLDivElement>(null);
+  const { isConnected } = useAccount();
   const [inputText, setInputText] = useState<string>("1.0");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        tokenDropdownRef.current &&
+        !tokenDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsTokenDropdownOpen(false);
+      }
+    };
+
+    if (isTokenDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isTokenDropdownOpen]);
 
   const [deadline, setDeadline] = useState<Date>(() => {
     const date = new Date();
@@ -140,16 +173,53 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
     refetchAllowance,
-  } = useTokenApproval();
+  } = useTokenApproval(selectedToken);
 
-  const { balance: cusdBalance } = useCUSDBalance();
+  // Simple per-token balances using useTokenBalance
+  const cusdToken = supportedTokens.find((t) => t.symbol === "USDm");
+  const gToken = supportedTokens.find((t) => t.symbol === "G$");
+
+  const cusd = useTokenBalance(cusdToken?.address);
+  const good = useTokenBalance(gToken?.address);
+
+  const tokenBalances = [
+    ...(cusdToken
+      ? [
+          {
+            token: cusdToken,
+            balance: cusd.balance,
+            formatted: cusd.formatted,
+            isLoading: cusd.isLoading,
+            error: cusd.error,
+          },
+        ]
+      : []),
+    ...(gToken
+      ? [
+          {
+            token: gToken,
+            balance: good.balance,
+            formatted: good.formatted,
+            isLoading: good.isLoading,
+            error: good.error,
+          },
+        ]
+      : []),
+  ];
+
+  const selectedTokenBalance = tokenBalances.find(
+    (tb) => tb.token.address === selectedToken
+  );
+  const tokenBalance = selectedTokenBalance?.balance;
 
   // Effects
   useEffect(() => {
     if (isSuccess) {
       setShowSuccessModal(true);
+      // Refetch all Graph queries after indexing delay
+      refetchAllActiveQueries(apolloClient);
     }
-  }, [isSuccess]);
+  }, [isSuccess, apolloClient]);
 
   useEffect(() => {
     if (isError && createErrorMessage) {
@@ -276,7 +346,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   };
 
   // Calculate validation values using helpers (moved before handleCreate)
-  const maxStakeValue = calculateMaxStakeValue(cusdBalance);
+  const maxStakeValue = calculateMaxStakeValue(tokenBalance);
   const validation = validateDeluluInputs(
     delusionText,
     stakeAmount,
@@ -312,7 +382,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setIsUploadingImage(true);
 
     try {
-      const maxStakeValue = calculateMaxStakeValue(cusdBalance);
+      const maxStakeValue = calculateMaxStakeValue(tokenBalance);
       const validation = validateDeluluInputs(
         delusionText,
         stakeAmount,
@@ -361,6 +431,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
         if (hasAllowance) {
           await createDelulu(
+            selectedToken,
             delusionText,
             pendingCreation.deadline,
             stakeAmount,
@@ -447,6 +518,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
       // Approval not needed, proceed directly with creation
       // Note: isUploadingImage stays true during creation to show loading state
       await createDelulu(
+        selectedToken,
         delusionText,
         deadlineDate,
         stakeAmount,
@@ -734,8 +806,126 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 space-y-6">
                   <div>
+                    <label className="block text-sm font-bold text-white/90 mb-2">
+                      Market Currency
+                    </label>
+                    <div className="mb-4" ref={tokenDropdownRef}>
+                      <div className="relative">
+                        <button
+                          onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
+                          className={cn(
+                            "w-full px-4 py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-3 justify-between",
+                            "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const selectedTokenInfo = supportedTokens.find(
+                                (t) => t.address === selectedToken
+                              );
+                              const selectedBalanceInfo = tokenBalances.find(
+                                (tb) => tb.token.address === selectedToken
+                              );
+                              const logoUrl = selectedToken
+                                ? TOKEN_LOGOS[selectedToken.toLowerCase()]
+                                : undefined;
+                              return (
+                                <>
+                                  {logoUrl && (
+                                    <img
+                                      src={logoUrl}
+                                      alt=""
+                                      className="h-5 w-5 rounded-full"
+                                    />
+                                  )}
+                                  <span>{selectedTokenInfo?.symbol || "Select"}</span>
+                                  {isConnected && selectedBalanceInfo && (
+                                    <span className="text-xs opacity-70 whitespace-nowrap">
+                                      {selectedBalanceInfo.isLoading
+                                        ? "..."
+                                        : `${parseFloat(selectedBalanceInfo.formatted).toFixed(2)} ${selectedTokenInfo?.symbol || ""}`}
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              isTokenDropdownOpen && "rotate-180"
+                            )}
+                          />
+                        </button>
+                        {isTokenDropdownOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50 overflow-hidden">
+                            {supportedTokens
+                              .filter((t) => !!t && !!t.address)
+                              .map((t) => {
+                                const tAddressLower = t.address
+                                  ? t.address.toLowerCase()
+                                  : "";
+                                const tokenBalanceInfo = tokenBalances.find(
+                                  (tb) =>
+                                    !!tb.token?.address &&
+                                    tb.token.address.toLowerCase() ===
+                                      tAddressLower
+                                );
+                                const balance = tokenBalanceInfo
+                                  ? parseFloat(tokenBalanceInfo.formatted)
+                                  : 0;
+                                const isLoading =
+                                  tokenBalanceInfo?.isLoading ?? false;
+                                const addressKey = tAddressLower;
+                                const logoUrl = addressKey
+                                  ? TOKEN_LOGOS[addressKey]
+                                  : undefined;
+                                const isSelected =
+                                  !!selectedToken &&
+                                  selectedToken.toLowerCase() === tAddressLower;
+
+                                return (
+                                  <button
+                                    key={t.address}
+                                    onClick={() => {
+                                      setSelectedToken(t.address);
+                                      setIsTokenDropdownOpen(false);
+                                    }}
+                                    className={cn(
+                                      "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
+                                      isSelected
+                                        ? "bg-delulu-yellow-reserved text-delulu-charcoal font-bold"
+                                        : "bg-white text-delulu-charcoal hover:bg-gray-100"
+                                    )}
+                                  >
+                                    {logoUrl && (
+                                      <img
+                                        src={logoUrl}
+                                        alt={t.symbol}
+                                        className="h-5 w-5 rounded-full flex-shrink-0"
+                                      />
+                                    )}
+                                    <div className="flex-1 flex items-center justify-between gap-2">
+                                      <span className="font-bold">
+                                        {t.symbol}
+                                      </span>
+                                      {isConnected && (
+                                        <span className="text-xs opacity-70 whitespace-nowrap">
+                                          {isLoading
+                                            ? "..."
+                                            : `${balance.toFixed(2)} ${t.symbol}`}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <label className="block text-sm font-bold text-white/90 mb-4">
-                      Initial Stake Amount (cUSD)
+                      Initial Stake Amount
                     </label>
 
                     {/* Slider */}
@@ -808,24 +998,21 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       {hasInputError && (
                         <p className="text-xs text-red-400">
                           {hasInsufficientBalanceForStake
-                            ? `Insufficient balance. You need at least ${MIN_STAKE} cUSD to stake.`
+                            ? `Insufficient balance. You need at least ${MIN_STAKE} to stake.`
                             : exceedsBalance
                             ? `Amount exceeds your balance of ${maxStakeValue.toFixed(
                                 2
-                              )} cUSD.`
-                            : "Minimum stake is 1.0 cUSD."}
+                              )}.`
+                            : "Minimum stake is 1.0."}
                         </p>
                       )}
                     </div>
 
-                    {cusdBalance && (
-                      <p className="text-xs text-white/60 mt-2">
+                    {tokenBalance && (
+                      <p className="text-xs text-white/60 mt-2 inline-flex items-center gap-2">
                         Balance:{" "}
-                        {(() => {
-                          const balance = parseFloat(cusdBalance.formatted);
-                          return isNaN(balance) ? "0.00" : balance.toFixed(2);
-                        })()}{" "}
-                        cUSD
+                        {parseFloat(tokenBalance.formatted).toFixed(2)}{" "}
+                        <TokenBadge tokenAddress={selectedToken} size="sm" />
                       </p>
                     )}
                   </div>

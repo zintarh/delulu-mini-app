@@ -2,13 +2,19 @@
 
 import { useState, useMemo } from "react";
 import { Search, X, TrendingUp } from "lucide-react";
-import { useDelulus } from "@/hooks/use-delulus";
+import { useAllDelulus } from "@/hooks/graph";
+import { TokenBadge } from "@/components/token-badge";
 import { useRouter } from "next/navigation";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { delulus, isLoading } = useDelulus();
+  const { delulus, isLoading } = useAllDelulus();
   const router = useRouter();
+
+  // Helper to check if string is a hash
+  const isHash = (str: string) => {
+    return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
+  };
 
   const filteredDelulus = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -17,7 +23,7 @@ export function RightSidebar() {
 
     const query = searchQuery.toLowerCase().trim();
     return delulus.filter((d) => {
-      const content = (d.content || d.contentHash || "").toLowerCase();
+      const content = (d.content && !isHash(d.content) ? d.content : "").toLowerCase();
       const username = (d.username || "").toLowerCase();
       const creator = d.creator.toLowerCase();
 
@@ -30,7 +36,7 @@ export function RightSidebar() {
   }, [delulus, searchQuery]);
 
   const trendingDelulus = useMemo(() => {
-    return filteredDelulus
+    return [...filteredDelulus]
       .sort((a, b) => b.totalStake - a.totalStake)
       .slice(0, 3);
   }, [filteredDelulus]);
@@ -39,7 +45,7 @@ export function RightSidebar() {
     const available = filteredDelulus.filter(
       (d) => !trendingDelulus.some((td) => td.id === d.id)
     );
-    return available.sort(() => Math.random() - 0.5).slice(0, 4);
+    return [...available].sort(() => Math.random() - 0.5).slice(0, 4);
   }, [filteredDelulus, trendingDelulus]);
 
   const handleDeluluClick = (id: string | number) => {
@@ -94,18 +100,22 @@ export function RightSidebar() {
             </div>
           ) : filteredDelulus.length > 0 ? (
             <div className="space-y-3">
-              {filteredDelulus.map((delulu) => (
+              {filteredDelulus.map((delulu, idx) => (
                 <button
-                  key={delulu.id}
+                  key={`search-${delulu.onChainId || delulu.id}-${idx}`}
                   onClick={() => handleDeluluClick(delulu.id)}
                   className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                 >
                   <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                    {delulu.content || delulu.contentHash}
+                    {delulu.content && !isHash(delulu.content) 
+                      ? delulu.content 
+                      : <span className="text-gray-400 italic">Loading content...</span>}
                   </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full">
-                      $
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                      {delulu.tokenAddress && (
+                        <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
+                      )}
                       {delulu.totalStake > 0
                         ? delulu.totalStake < 0.01
                           ? delulu.totalStake.toFixed(4)
@@ -156,18 +166,22 @@ export function RightSidebar() {
               </div>
             ) : trendingDelulus.length > 0 ? (
               <div className="space-y-3">
-                {trendingDelulus.map((delulu) => (
+                {trendingDelulus.map((delulu, idx) => (
                   <button
-                    key={delulu.id}
+                    key={`trending-${delulu.onChainId || delulu.id}-${idx}`}
                     onClick={() => handleDeluluClick(delulu.id)}
                     className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                   >
                     <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                      {delulu.content || delulu.contentHash}
+                      {delulu.content && !isHash(delulu.content) 
+                        ? delulu.content 
+                        : <span className="text-gray-400 italic">Loading...</span>}
                     </p>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full">
-                        $
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        {delulu.tokenAddress && (
+                          <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
+                        )}
                         {delulu.totalStake > 0
                           ? delulu.totalStake < 0.01
                             ? delulu.totalStake.toFixed(4)
@@ -195,18 +209,22 @@ export function RightSidebar() {
               </div>
 
               <div className="space-y-3">
-                {recommendedDelulus.map((delulu) => (
+                {recommendedDelulus.map((delulu, idx) => (
                   <button
-                    key={delulu.id}
+                    key={`rec-${delulu.onChainId || delulu.id}-${idx}`}
                     onClick={() => handleDeluluClick(delulu.id)}
                     className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                   >
                     <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                      {delulu.content || delulu.contentHash}
+                      {delulu.content && !isHash(delulu.content) 
+                        ? delulu.content 
+                        : <span className="text-gray-400 italic">Loading...</span>}
                     </p>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full">
-                        $
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        {delulu.tokenAddress && (
+                          <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
+                        )}
                         {delulu.totalStake > 0
                           ? delulu.totalStake < 0.01
                             ? delulu.totalStake.toFixed(4)

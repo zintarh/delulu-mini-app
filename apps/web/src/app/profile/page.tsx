@@ -3,12 +3,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
-import { useUserDelulus } from "@/hooks/use-user-delulus";
-import type { FormattedDelulu } from "@/hooks/use-delulus";
+import { useGraphUserDelulus } from "@/hooks/graph";
+import type { FormattedDelulu } from "@/lib/types";
 import { StakingSheet } from "@/components/staking-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { formatAddress } from "@/lib/utils";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft, LogOut, Coins } from "lucide-react";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { UserClaimsStats } from "@/components/user-claims-stats";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ export default function ProfilePage() {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
-  } = useUserDelulus(activeTab);
+  } = useGraphUserDelulus(activeTab);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +119,28 @@ export default function ProfilePage() {
 
           {/* User Claims Stats */}
           <UserClaimsStats address={address} />
+
+          {/* GoodDollar Claim entry point (mobile) */}
+          <div className="px-6 pt-3 pb-1">
+            <button
+              onClick={() => router.push("/ubi")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-black text-delulu-yellow-reserved flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-delulu-charcoal">
+                    Claim G$ UBI
+                  </p>
+                  <p className="text-[11px] text-gray-600">
+                    Open the GoodDollar claim interface.
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
 
           {/* Tabs */}
           <div className="flex items-center justify-center gap-1 border-b border-gray-200 bg-white sticky top-0 z-10">

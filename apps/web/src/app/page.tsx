@@ -15,10 +15,8 @@ import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
-import { useDelulus, type FormattedDelulu } from "@/hooks/use-delulus";
-import { useUserStats } from "@/hooks/use-user-stats";
-import { useUserStakedDelulus } from "@/hooks/use-user-staked-delulus";
-import type { ApiDelulu } from "@/lib/api/fetchers";
+import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
+import type { FormattedDelulu } from "@/lib/types";
 import { TrendingUp, Plus } from "lucide-react";
 
 export default function HomePage() {
@@ -31,15 +29,13 @@ export default function HomePage() {
     isFetchingNextPage, 
     hasNextPage, 
     fetchNextPage 
-  } = useDelulus();
+  } = useAllDelulus();
   
-  // Fetch user's staked delulus for Vision tab
+  // Fetch user's created delulus for Vision tab (from The Graph)
   const { 
-    data: stakedDelulusApi, 
-    isLoading: isLoadingStakedDelulus 
-  } = useUserStakedDelulus();
-
-
+    delulus: userCreatedDelulus, 
+    isLoading: isLoadingUserDelulus 
+  } = useGraphUserDelulus("ongoing");
 
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
     null
@@ -54,58 +50,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Transform staked delulus from API format to FormattedDelulu format
-  const transformStakedDelulu = (d: ApiDelulu): FormattedDelulu => {
-    const believerStake = d.totalBelieverStake ?? 0;
-    const doubterStake = d.totalDoubterStake ?? 0;
-
-    return {
-      id: parseInt(d.onChainId) || parseInt(d.id) || 0,
-      onChainId: d.onChainId,
-      creator: d.creatorAddress,
-      contentHash: d.contentHash,
-      content: d.content ?? undefined,
-      username: d.creator?.username ?? undefined,
-      pfpUrl: d.creator?.pfpUrl ?? undefined,
-      createdAt: d.createdAt ? new Date(d.createdAt) : undefined,
-      bgImageUrl: d.bgImageUrl ?? undefined,
-      gatekeeper: d.gatekeeperEnabled
-        ? {
-            enabled: true,
-            type: "country",
-            value: d.gatekeeperValue ?? "",
-            label: d.gatekeeperLabel ?? "",
-          }
-        : undefined,
-      stakingDeadline: new Date(d.stakingDeadline),
-      resolutionDeadline: new Date(d.resolutionDeadline),
-      totalBelieverStake: believerStake,
-      totalDoubterStake: doubterStake,
-      totalStake: believerStake + doubterStake,
-      outcome: d.outcome ?? false,
-      isResolved: d.isResolved,
-      isCancelled: d.isCancelled,
-    };
-  };
-
-  // Transform staked delulus to FormattedDelulu format
-  // Show ALL staked delulus regardless of resolution status or outcome (win/loss)
-  // Only filter out cancelled delulus
-  const stakedDelulus = useMemo(() => {
-    if (!stakedDelulusApi || stakedDelulusApi.length === 0) {
-      return [];
-    }
-    return stakedDelulusApi
-      .filter((d) => !d.isCancelled) // Only exclude cancelled, include all resolved/unresolved
-      .map(transformStakedDelulu)
-      .sort((a, b) => {
-        // Sort by latest first
-        if (a.createdAt && b.createdAt) {
-          return b.createdAt.getTime() - a.createdAt.getTime();
-        }
-        return b.id - a.id;
-      });
-  }, [stakedDelulusApi]);
 
   // Infinite scroll detection
   const scrollContainerRef = useRef<HTMLElement>(null);
@@ -165,19 +109,18 @@ export default function HomePage() {
 
 
   // Filter delulus based on active tab
-  // Note: Backend already returns delulus sorted by createdAt desc (latest first)
   const filteredDelulus = useMemo(() => {
     if (activeTab === "vision") {
-      // For Vision tab, show all delulus the user has staked on (from contract/backend)
+      // For Vision tab, show delulus created by the connected user
       if (!isConnected || !address) {
         return [];
       }
-      return stakedDelulus;
+      return userCreatedDelulus;
     } else {
-      // For "For You" tab, show all delulus (already sorted by latest first from backend)
+      // For "For You" tab, show all delulus (sorted by latest first)
       return delulus;
     }
-  }, [delulus, activeTab, stakedDelulus, isConnected, address]);
+  }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
 
   if (!isConnected) {
@@ -239,8 +182,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="px- lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
-            {isLoading || (activeTab === "vision" && isLoadingStakedDelulus) ? (
+          <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
+            {isLoading || (activeTab === "vision" && isLoadingUserDelulus) ? (
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <DeluluCardSkeleton key={i} index={i} />
@@ -249,14 +192,9 @@ export default function HomePage() {
             ) : filteredDelulus.length > 0 ? (
               <div className="flex flex-col">
                 {filteredDelulus.map((delusion, index) => {
-                  // Use a composite key to ensure uniqueness (id + onChainId)
-                  const uniqueKey = delusion.onChainId
-                    ? `${delusion.id}-${delusion.onChainId}`
-                    : `delulu-${delusion.id}-${index}`;
-
                   return (
                     <DeluluCard
-                      key={uniqueKey}
+                      key={`delulu-${delusion.onChainId || delusion.id}-${index}`}
                       delusion={delusion}
                       href={`/delulu/${delusion.id}`}
                       onStake={() => {

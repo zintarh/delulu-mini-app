@@ -1,0 +1,70 @@
+# ============================================================
+# USER QUERIES
+# Used by: Profile page, Vision tab, User stats
+# ============================================================
+
+# Full user profile with all relations
+# Used by: Profile page, Vision tab (staked delulus), User claims stats
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    totalStaked
+    delulus(first: 100, orderBy: createdAt, orderDirection: desc) {
+      id
+      onChainId
+      contentHash
+      creatorAddress
+      stakingDeadline
+      resolutionDeadline
+      createdAt
+      creatorStake
+      totalBelieverStake
+      totalDoubterStake
+      winningPool
+      losingPool
+      isResolved
+      isCancelled
+      outcome
+    }
+    stakes(first: 200, orderBy: createdAt, orderDirection: desc) {
+      id
+      amount
+      side
+      txHash
+      createdAt
+      delulu {
+        id
+        onChainId
+        contentHash
+        creatorAddress
+        stakingDeadline
+        resolutionDeadline
+        totalBelieverStake
+        totalDoubterStake
+        isResolved
+        isCancelled
+        outcome
+        createdAt
+      }
+    }
+    claims(first: 200, orderBy: createdAt, orderDirection: desc) {
+      id
+      amount
+      txHash
+      createdAt
+      delulu {
+        id
+        onChainId
+        contentHash
+      }
+    }
+  }
+}
+
+# Lightweight user lookup — just stats, no nested relations
+query GetUserStats($id: ID!) {
+  user(id: $id) {
+    id
+    totalStaked
+  }
+}

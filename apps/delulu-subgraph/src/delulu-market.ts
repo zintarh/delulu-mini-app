@@ -1,3 +1,4 @@
+import { BigInt } from "@graphprotocol/graph-ts"
 import {
   DeluluCancelled as DeluluCancelledEvent,
   DeluluCreated as DeluluCreatedEvent,
@@ -9,151 +10,141 @@ import {
   Unpaused as UnpausedEvent,
   WinningsClaimed as WinningsClaimedEvent
 } from "../generated/DeluluMarket/DeluluMarket"
-import {
-  DeluluCancelled,
-  DeluluCreated,
-  DeluluResolved,
-  EmergencyRefund,
-  OwnershipTransferred,
-  Paused,
-  StakePlaced,
-  Unpaused,
-  WinningsClaimed
-} from "../generated/schema"
-
-export function handleDeluluCancelled(event: DeluluCancelledEvent): void {
-  let entity = new DeluluCancelled(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.cancelledBy = event.params.cancelledBy
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
+import { User, Delulu, Stake, Claim } from "../generated/schema"
 
 export function handleDeluluCreated(event: DeluluCreatedEvent): void {
-  let entity = new DeluluCreated(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.creator = event.params.creator
-  entity.contentHash = event.params.contentHash
-  entity.stakingDeadline = event.params.stakingDeadline
-  entity.resolutionDeadline = event.params.resolutionDeadline
-  entity.creatorStake = event.params.creatorStake
+  let userId = event.params.creator
+  let user = User.load(userId)
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (user == null) {
+    user = new User(userId)
+    user.totalStaked = BigInt.fromI32(0)
+  }
 
-  entity.save()
-}
+  user.totalStaked = user.totalStaked.plus(event.params.creatorStake)
+  user.save()
 
-export function handleDeluluResolved(event: DeluluResolvedEvent): void {
-  let entity = new DeluluResolved(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.outcome = event.params.outcome
-  entity.winningPool = event.params.winningPool
-  entity.losingPool = event.params.losingPool
+  let deluluId = event.params.deluluId.toString()
+  let delulu = new Delulu(deluluId)
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  delulu.onChainId = event.params.deluluId
+  delulu.creator = userId
+  delulu.creatorAddress = event.params.creator.toHexString()
+  delulu.token = event.params.token
+  delulu.contentHash = event.params.contentHash
+  delulu.stakingDeadline = event.params.stakingDeadline
+  delulu.resolutionDeadline = event.params.resolutionDeadline
+  delulu.createdAt = event.block.timestamp
+  delulu.creatorStake = event.params.creatorStake
+  // IMPORTANT: initialize pools to zero; stakes are added in handleStakePlaced
+  delulu.totalBelieverStake = BigInt.fromI32(0)
+  delulu.totalDoubterStake = BigInt.fromI32(0)
+  delulu.winningPool = BigInt.fromI32(0)
+  delulu.losingPool = BigInt.fromI32(0)
+  delulu.isResolved = false
+  delulu.isCancelled = false
 
-  entity.save()
-}
-
-export function handleEmergencyRefund(event: EmergencyRefundEvent): void {
-  let entity = new EmergencyRefund(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.user = event.params.user
-  entity.amount = event.params.amount
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handleOwnershipTransferred(
-  event: OwnershipTransferredEvent
-): void {
-  let entity = new OwnershipTransferred(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.previousOwner = event.params.previousOwner
-  entity.newOwner = event.params.newOwner
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handlePaused(event: PausedEvent): void {
-  let entity = new Paused(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  delulu.save()
 }
 
 export function handleStakePlaced(event: StakePlacedEvent): void {
-  let entity = new StakePlaced(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.user = event.params.user
-  entity.amount = event.params.amount
-  entity.side = event.params.side
-  entity.newTotalPoolStake = event.params.newTotalPoolStake
+  let userId = event.params.user
+  let user = User.load(userId)
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (user == null) {
+    user = new User(userId)
+    user.totalStaked = BigInt.fromI32(0)
+  }
 
-  entity.save()
+  user.totalStaked = user.totalStaked.plus(event.params.amount)
+  user.save()
+
+  let deluluId = event.params.deluluId.toString()
+  let delulu = Delulu.load(deluluId)
+
+  if (delulu != null) {
+    if (event.params.side) {
+      delulu.totalBelieverStake = delulu.totalBelieverStake.plus(
+        event.params.amount
+      )
+    } else {
+      delulu.totalDoubterStake = delulu.totalDoubterStake.plus(
+        event.params.amount
+      )
+    }
+    delulu.save()
+  }
+
+  let stakeId =
+    event.transaction.hash.toHexString() +
+    "-" +
+    event.logIndex.toString()
+  let stake = new Stake(stakeId)
+
+  stake.delulu = deluluId
+  stake.user = userId
+  stake.amount = event.params.amount
+  stake.side = event.params.side
+  stake.txHash = event.transaction.hash
+  stake.createdAt = event.block.timestamp
+
+  stake.save()
 }
 
-export function handleUnpaused(event: UnpausedEvent): void {
-  let entity = new Unpaused(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
+export function handleDeluluResolved(event: DeluluResolvedEvent): void {
+  let deluluId = event.params.deluluId.toString()
+  let delulu = Delulu.load(deluluId)
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (delulu != null) {
+    delulu.isResolved = true
+    delulu.outcome = event.params.outcome
+    delulu.winningPool = event.params.winningPool
+    delulu.losingPool = event.params.losingPool
+    delulu.save()
+  }
+}
 
-  entity.save()
+export function handleDeluluCancelled(event: DeluluCancelledEvent): void {
+  let deluluId = event.params.deluluId.toString()
+  let delulu = Delulu.load(deluluId)
+
+  if (delulu != null) {
+    delulu.isCancelled = true
+    delulu.save()
+  }
 }
 
 export function handleWinningsClaimed(event: WinningsClaimedEvent): void {
-  let entity = new WinningsClaimed(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.deluluId = event.params.deluluId
-  entity.user = event.params.user
-  entity.payout = event.params.payout
+  let userId = event.params.user
+  let user = User.load(userId)
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (user == null) {
+    user = new User(userId)
+    user.totalStaked = BigInt.fromI32(0)
+    user.save()
+  }
 
-  entity.save()
+  let claimId =
+    event.transaction.hash.toHexString() +
+    "-" +
+    event.logIndex.toString()
+  let claim = new Claim(claimId)
+
+  claim.delulu = event.params.deluluId.toString()
+  claim.user = userId
+  claim.amount = event.params.payout
+  claim.txHash = event.transaction.hash
+  claim.createdAt = event.block.timestamp
+
+  claim.save()
 }
+
+export function handleEmergencyRefund(event: EmergencyRefundEvent): void { }
+
+export function handleOwnershipTransferred(
+  event: OwnershipTransferredEvent
+): void { }
+
+export function handlePaused(event: PausedEvent): void { }
+
+export function handleUnpaused(event: UnpausedEvent): void { }

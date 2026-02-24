@@ -4,7 +4,7 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { celo, celoSepolia } from "wagmi/chains";
+import { celo } from "wagmi/chains";
 
 
 const ENABLE_LOCAL_WALLETS = false; 
@@ -13,11 +13,11 @@ const connectors = ENABLE_LOCAL_WALLETS
   : [farcasterMiniApp()];
 
 const config = createConfig({
-  chains: [celo, celoSepolia],
+  // Only support Celo mainnet in the app
+  chains: [celo],
   connectors,
   transports: {
     [celo.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
-    [celoSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
   },
 });
 

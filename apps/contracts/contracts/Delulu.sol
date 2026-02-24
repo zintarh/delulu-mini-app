@@ -1,23 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/**
- * @title DeluluMarket (Production Ready - No Platform Fee)
- * @notice Parimutuel prediction market with zero platform fees
- * @dev Winners split the entire pool proportionally based on their stake
- * @author DeluluMarket Team
- */
-contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
+contract Delulu is 
+    Initializable, 
+    UUPSUpgradeable, 
+    OwnableUpgradeable, 
+    ReentrancyGuardUpgradeable, 
+    PausableUpgradeable 
+{
     using SafeERC20 for IERC20;
 
+    // --- ERRORS ---
     error StakingIsClosed();
-    error StakingNotYetClosed();
     error AlreadyResolved();
     error NotResolved();
     error UserIsNotWinner();
@@ -27,33 +29,34 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
     error NotRefundable();
     error NoStakeToRefund();
     error InvalidTokenAddress();
+    error TokenNotSupported();
     error EmptyContentHash();
     error StakeTooSmall();
     error StakeTooLarge();
     error StakeLimitExceeded();
-    error QueryTooLarge();
-    error SlippageTooHigh();
-    error StakingDeadlineTooFar();
-    error ResolutionDeadlineTooFar();
     error MarketCancelled();
     error PayoutCalculationError();
     error CannotSwitchSides();
     error Unauthorized();
+    error StakingDeadlineTooFar();      
+    error ResolutionDeadlineTooFar();  
+    error SlippageTooHigh();            
 
     uint256 public constant EMERGENCY_REFUND_DELAY = 7 days;
     uint256 private constant PRECISION = 1e18;
-    uint256 public constant MIN_STAKE = 1e18;
-    uint256 public constant MAX_STAKE = 1_000_000_000 * 1e18;
-    uint256 public constant MAX_STAKE_PER_USER = 100_000 * 1e18;
+    uint256 public constant MIN_STAKE = 1e18; 
+    uint256 public constant MAX_STAKE = 1_000_000_000 * 1e18; 
+    uint256 public constant MAX_STAKE_PER_USER = 100_000 * 1e18; 
     uint256 public constant MAX_STAKING_DURATION = 365 days;
     uint256 public constant MAX_RESOLUTION_DURATION = 730 days;
-    uint256 public constant MAX_DELULUS_PER_QUERY = 100;
-    IERC20 public immutable stablecoin;
-    uint256 public nextDeluluId = 1;
 
-    struct Delulu {
+    IERC20 public currency; 
+    uint256 public nextDeluluId; 
+
+    struct Market {
         uint256 id;
         address creator;
+        address token; 
         string contentHash;
         uint256 stakingDeadline;
         uint256 resolutionDeadline;
@@ -70,99 +73,69 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         bool claimed;
     }
 
-    enum DeluluState {
-        OPEN,
-        LOCKED,
-        RESOLVED,
-        CANCELLED
-    }
+    enum DeluluState { OPEN, LOCKED, RESOLVED, CANCELLED }
 
-    mapping(uint256 => Delulu) public delulus;
+    mapping(uint256 => Market) public delulus;
     mapping(uint256 => mapping(address => UserPosition)) public userStakes;
     mapping(uint256 => mapping(address => uint256)) public userTotalStaked;
+    mapping(address => bool) public isSupportedToken;
 
-    event DeluluCreated(
-        uint256 indexed deluluId,
-        address indexed creator,
-        string contentHash,
-        uint256 stakingDeadline,
-        uint256 resolutionDeadline,
-        uint256 creatorStake
-    );
+    uint256[49] private __gap; 
 
-    event StakePlaced(
-        uint256 indexed deluluId,
-        address indexed user,
-        uint256 amount,
-        bool side,
-        uint256 newTotalPoolStake
-    );
+    event DeluluCreated(uint256 indexed deluluId, address indexed creator, address indexed token, string contentHash, uint256 stakingDeadline, uint256 resolutionDeadline, uint256 creatorStake);
+    event StakePlaced(uint256 indexed deluluId, address indexed user, uint256 amount, bool side, uint256 newTotalPoolStake);
+    event DeluluResolved(uint256 indexed deluluId, bool outcome, uint256 winningPool, uint256 losingPool);
+    event WinningsClaimed(uint256 indexed deluluId, address indexed user, uint256 payout);
+    event EmergencyRefund(uint256 indexed deluluId, address indexed user, uint256 amount);
+    event DeluluCancelled(uint256 indexed deluluId, address indexed cancelledBy);
+    event TokenSupportStatusChanged(address indexed token, bool status);
 
-    event DeluluResolved(
-        uint256 indexed deluluId,
-        bool outcome,
-        uint256 winningPool,
-        uint256 losingPool
-    );
-
-    event WinningsClaimed(
-        uint256 indexed deluluId,
-        address indexed user,
-        uint256 payout
-    );
-
-    event EmergencyRefund(
-        uint256 indexed deluluId,
-        address indexed user,
-        uint256 amount
-    );
-
-    event DeluluCancelled(
-        uint256 indexed deluluId,
-        address indexed cancelledBy
-    );
-
-    /**
-     * @param stablecoinAddress Address of stablecoin (USDC/cUSD)
-     * @dev Mainnet USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
-     * @dev Celo cUSD: 0x765DE816845861e75A25fCA122bb6898B8B1282a
-     * @dev Base Sepolia USDC: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
-     */
-    constructor(address stablecoinAddress) Ownable(msg.sender) {
-        if (stablecoinAddress == address(0)) revert InvalidTokenAddress();
-        stablecoin = IERC20(stablecoinAddress);
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
-    /**
-     * @notice Create a new Delulu prediction market
-     * @param contentHash IPFS hash of prediction details
-     * @param stakingDeadline Timestamp when staking closes
-     * @param resolutionDeadline Timestamp when resolution must occur by
-     * @param amount Creator's initial stake (automatically placed on Believer side)
-     * @return deluluId The ID of the newly created market
-     */
+    function initialize(address _defaultCurrency) public initializer {
+        if (_defaultCurrency == address(0)) revert InvalidTokenAddress();
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
+        __Pausable_init();
+        currency = IERC20(_defaultCurrency);
+        isSupportedToken[_defaultCurrency] = true;
+        nextDeluluId = 1; 
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function setTokenSupport(address _token, bool _status) external onlyOwner {
+        if (_token == address(0)) revert InvalidTokenAddress();
+        isSupportedToken[_token] = _status;
+        emit TokenSupportStatusChanged(_token, _status);
+    }
+
     function createDelulu(
+        address token, 
         string calldata contentHash,
         uint256 stakingDeadline,
         uint256 resolutionDeadline,
         uint256 amount
     ) external nonReentrant whenNotPaused returns (uint256) {
+        if (!isSupportedToken[token]) revert TokenNotSupported();
         if (bytes(contentHash).length == 0) revert EmptyContentHash();
         if (amount < MIN_STAKE) revert StakeTooSmall();
-        if (amount > MAX_STAKE) revert StakeTooLarge();
-
+        
         if (stakingDeadline <= block.timestamp) revert InvalidDeadlines();
-        if (stakingDeadline > block.timestamp + MAX_STAKING_DURATION)
-            revert StakingDeadlineTooFar();
+        if (stakingDeadline > block.timestamp + MAX_STAKING_DURATION) revert StakingDeadlineTooFar();
         if (resolutionDeadline <= stakingDeadline) revert InvalidDeadlines();
-        if (resolutionDeadline > stakingDeadline + MAX_RESOLUTION_DURATION)
-            revert ResolutionDeadlineTooFar();
+        if (resolutionDeadline > stakingDeadline + MAX_RESOLUTION_DURATION) revert ResolutionDeadlineTooFar();
 
         uint256 deluluId = nextDeluluId++;
 
-        delulus[deluluId] = Delulu({
+        delulus[deluluId] = Market({
             id: deluluId,
             creator: msg.sender,
+            token: token, 
             contentHash: contentHash,
             stakingDeadline: stakingDeadline,
             resolutionDeadline: resolutionDeadline,
@@ -173,67 +146,29 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
             isCancelled: false
         });
 
-        userStakes[deluluId][msg.sender] = UserPosition({
-            amount: amount,
-            side: true,
-            claimed: false
-        });
-
+        userStakes[deluluId][msg.sender] = UserPosition({amount: amount, side: true, claimed: false});
         userTotalStaked[deluluId][msg.sender] = amount;
 
-        stablecoin.safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
-        emit DeluluCreated(
-            deluluId,
-            msg.sender,
-            contentHash,
-            stakingDeadline,
-            resolutionDeadline,
-            amount
-        );
-
+        emit DeluluCreated(deluluId, msg.sender, token, contentHash, stakingDeadline, resolutionDeadline, amount);
         emit StakePlaced(deluluId, msg.sender, amount, true, amount);
 
         return deluluId;
     }
 
-    /**
-     * @notice Stake on a Delulu outcome with slippage protection
-     * @param deluluId Market ID to stake on
-     * @param side true = Believer (prediction will happen), false = Doubter (won't happen)
-     * @param amount Amount of tokens to stake
-     * @param minPayout Minimum acceptable payout (slippage protection)
-     */
-    function stakeOnDelulu(
-        uint256 deluluId,
-        bool side,
-        uint256 amount,
-        uint256 minPayout
-    ) external nonReentrant whenNotPaused {
-        Delulu storage delulu = delulus[deluluId];
-
+    function stakeOnDelulu(uint256 deluluId, bool side, uint256 amount, uint256 minPayout) external nonReentrant whenNotPaused {
+        Market storage delulu = delulus[deluluId];
         if (delulu.id == 0) revert DeluluNotFound();
         if (block.timestamp >= delulu.stakingDeadline) revert StakingIsClosed();
         if (delulu.isResolved || delulu.isCancelled) revert AlreadyResolved();
-        if (amount < MIN_STAKE) revert StakeTooSmall();
-        if (amount > MAX_STAKE) revert StakeTooLarge();
+        if (userTotalStaked[deluluId][msg.sender] + amount > MAX_STAKE_PER_USER) revert StakeLimitExceeded();
 
-        if (userTotalStaked[deluluId][msg.sender] + amount > MAX_STAKE_PER_USER)
-            revert StakeLimitExceeded();
-
-        uint256 expectedPayout = _calculatePotentialPayout(
-            delulu.totalBelieverStake,
-            delulu.totalDoubterStake,
-            amount,
-            side
-        );
+        uint256 expectedPayout = _calculatePotentialPayout(delulu.totalBelieverStake, delulu.totalDoubterStake, amount, side);
         if (expectedPayout < minPayout) revert SlippageTooHigh();
 
-        if (side) {
-            delulu.totalBelieverStake += amount;
-        } else {
-            delulu.totalDoubterStake += amount;
-        }
+        if (side) delulu.totalBelieverStake += amount;
+        else delulu.totalDoubterStake += amount;
 
         UserPosition storage position = userStakes[deluluId][msg.sender];
         if (position.amount == 0) {
@@ -245,387 +180,92 @@ contract DeluluMarket is ReentrancyGuard, Pausable, Ownable {
         }
 
         userTotalStaked[deluluId][msg.sender] += amount;
+        IERC20(delulu.token).safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 newTotalPoolStake = side
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-
-        stablecoin.safeTransferFrom(msg.sender, address(this), amount);
-
-        emit StakePlaced(deluluId, msg.sender, amount, side, newTotalPoolStake);
+        emit StakePlaced(deluluId, msg.sender, amount, side, side ? delulu.totalBelieverStake : delulu.totalDoubterStake);
     }
 
-    /**
-     * @notice Resolve a market (Admin only)
-     * @param deluluId Market ID to resolve
-     * @param outcome true = Believers win, false = Doubters win
-     */
-    function resolveDelulu(uint256 deluluId, bool outcome) external {
-        Delulu storage delulu = delulus[deluluId];
-        if (msg.sender != owner() && msg.sender != delulu.creator) {
-            revert Unauthorized();
-        }
-
-        if (delulu.isResolved) revert AlreadyResolved();
-        delulu.outcome = outcome;
-        delulu.isResolved = true;
-
-        uint256 winningPool = outcome
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-        uint256 losingPool = outcome
-            ? delulu.totalDoubterStake
-            : delulu.totalBelieverStake;
-
-        emit DeluluResolved(deluluId, outcome, winningPool, losingPool);
-    }
-
-    /**
-     * @notice Claim winnings after market resolution (NO PLATFORM FEE)
-     * @param deluluId Market ID to claim from
-     * @dev Winners receive their proportional share of the ENTIRE pool
-     * @dev Formula: netPayout = (userStake * totalPool) / winningPool
-     */
-    function claimWinnings(
-        uint256 deluluId
-    ) external nonReentrant whenNotPaused {
-        Delulu storage delulu = delulus[deluluId];
-
-        if (delulu.id == 0) revert DeluluNotFound();
+    function claimWinnings(uint256 deluluId) external nonReentrant whenNotPaused {
+        Market storage delulu = delulus[deluluId];
         if (!delulu.isResolved) revert NotResolved();
         if (delulu.isCancelled) revert MarketCancelled();
 
         UserPosition storage position = userStakes[deluluId][msg.sender];
-
         if (position.amount == 0) revert NoStakeToRefund();
         if (position.claimed) revert AlreadyClaimed();
         if (position.side != delulu.outcome) revert UserIsNotWinner();
 
         position.claimed = true;
-
-        uint256 winningPool = delulu.outcome
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-        uint256 losingPool = delulu.outcome
-            ? delulu.totalDoubterStake
-            : delulu.totalBelieverStake;
-
-        uint256 netPayout;
-
-        if (losingPool == 0) {
-            netPayout = position.amount;
-        } else {
-            netPayout =
-                (position.amount * (winningPool + losingPool)) /
-                winningPool;
-
-            if (netPayout < position.amount) revert PayoutCalculationError();
-        }
-
-        stablecoin.safeTransfer(msg.sender, netPayout);
-
+        uint256 winningPool = delulu.outcome ? delulu.totalBelieverStake : delulu.totalDoubterStake;
+        uint256 totalPool = delulu.totalBelieverStake + delulu.totalDoubterStake;
+        uint256 netPayout = (position.amount * totalPool) / winningPool;
+        
+        IERC20(delulu.token).safeTransfer(msg.sender, netPayout);
         emit WinningsClaimed(deluluId, msg.sender, netPayout);
     }
 
-    /**
-     * @notice Emergency refund for cancelled or unresolved markets
-     * @param deluluId Market ID to refund from
-     * @dev Users can claim refunds if:
-     *      1. Market is cancelled by admin, OR
-     *      2. Market not resolved 7 days after resolution deadline
-     */
     function emergencyRefund(uint256 deluluId) external nonReentrant {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) revert DeluluNotFound();
-
-        bool isRefundable = delulu.isCancelled ||
-            (block.timestamp >
-                delulu.resolutionDeadline + EMERGENCY_REFUND_DELAY &&
-                !delulu.isResolved);
+        Market storage delulu = delulus[deluluId];
+        bool isRefundable = delulu.isCancelled || 
+            (block.timestamp > delulu.resolutionDeadline + EMERGENCY_REFUND_DELAY && !delulu.isResolved);
 
         if (!isRefundable) revert NotRefundable();
 
         UserPosition storage position = userStakes[deluluId][msg.sender];
         if (position.amount == 0 || position.claimed) revert NoStakeToRefund();
 
-        uint256 refundAmount = position.amount;
+        uint256 amount = position.amount;
         position.claimed = true;
 
-        stablecoin.safeTransfer(msg.sender, refundAmount);
-
-        emit EmergencyRefund(deluluId, msg.sender, refundAmount);
+        IERC20(delulu.token).safeTransfer(msg.sender, amount);
+        emit EmergencyRefund(deluluId, msg.sender, amount);
     }
 
-    /**
-     * @notice Cancel a market and allow refunds (Admin only)
-     * @param deluluId Market ID to cancel
-     */
-    function cancelDelulu(uint256 deluluId) external {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) revert DeluluNotFound();
+    function resolveDelulu(uint256 deluluId, bool outcome) external {
+        Market storage delulu = delulus[deluluId];
+        if (msg.sender != owner() && msg.sender != delulu.creator) revert Unauthorized();
         if (delulu.isResolved) revert AlreadyResolved();
-        if (msg.sender != owner() && msg.sender != delulu.creator) {
-            revert Unauthorized();
-        }
+        delulu.outcome = outcome;
+        delulu.isResolved = true;
+        emit DeluluResolved(deluluId, outcome, delulu.totalBelieverStake, delulu.totalDoubterStake);
+    }
+
+    function cancelDelulu(uint256 deluluId) external {
+        Market storage delulu = delulus[deluluId];
+        if (msg.sender != owner() && msg.sender != delulu.creator) revert Unauthorized();
         delulu.isCancelled = true;
         emit DeluluCancelled(deluluId, msg.sender);
     }
 
-    /**
-     * @notice Pause all market operations (Admin only)
-     */
-    function pause() external onlyOwner {
-        _pause();
+    function _calculatePotentialPayout(uint256 bPool, uint256 dPool, uint256 amt, bool isBel) internal pure returns (uint256) {
+        uint256 cur = isBel ? bPool : dPool;
+        uint256 opp = isBel ? dPool : bPool;
+        if (opp == 0) return amt;
+        uint256 nP = cur + amt;
+        return (amt * (nP + opp)) / nP;
     }
 
-    /**
-     * @notice Unpause market operations (Admin only)
-     */
-    function unpause() external onlyOwner {
-        _unpause();
+    function getMarketToken(uint256 deluluId) external view returns (address) {
+        return delulus[deluluId].token;
     }
 
-    /**
-     * @notice Calculate potential payout for a stake (BEFORE staking - for slippage protection)
-     * @param deluluId Market ID
-     * @param amount Amount to potentially stake
-     * @param isBeliever true for Believer side, false for Doubter side
-     * @return Expected payout if this side wins (includes original stake)
-     */
-    function getPotentialPayout(
-        uint256 deluluId,
-        uint256 amount,
-        bool isBeliever
-    ) external view returns (uint256) {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) return 0;
-
-        return
-            _calculatePotentialPayout(
-                delulu.totalBelieverStake,
-                delulu.totalDoubterStake,
-                amount,
-                isBeliever
-            );
+    function getTokenAddress() external view returns (address) {
+        return address(currency);
     }
 
-    /**
-     * @notice Calculate potential payout for an EXISTING stake position (for active markets)
-     * @param deluluId Market ID
-     * @param user User address to check
-     * @return Potential payout if user's side wins (0 if no stake or market resolved/cancelled)
-     */
-    function getPotentialPayoutForExistingStake(
-        uint256 deluluId,
-        address user
-    ) external view returns (uint256) {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) return 0;
-        if (delulu.isCancelled) return userStakes[deluluId][user].amount;
-        UserPosition storage position = userStakes[deluluId][user];
-        if (position.amount == 0) return 0;
-        if (position.claimed) return 0;
-
-        uint256 winningPool = position.side
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-        uint256 losingPool = position.side
-            ? delulu.totalDoubterStake
-            : delulu.totalBelieverStake;
-
-        if (losingPool == 0) {
-            return position.amount;
-        }
-
-        if (winningPool == 0) return 0;
-
-        uint256 totalPool = winningPool + losingPool;
-        return (position.amount * totalPool) / winningPool;
-    }
-
-
-
-    
-
-    /**
-     * @notice Calculate claimable amount for an EXISTING stake position
-     * @param deluluId Market ID
-     * @param user User address to check
-     * @return Claimable amount (0 if market not resolved, user lost, or already claimed)
-     */
-    function getClaimableAmount(
-        uint256 deluluId,
-        address user
-    ) external view returns (uint256) {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) return 0;
-        if (!delulu.isResolved) return 0;
-
-        UserPosition storage position = userStakes[deluluId][user];
-        if (position.amount == 0) return 0;
-        if (position.claimed) return 0;
-        if (delulu.isCancelled) return 0;
-        if (position.side != delulu.outcome) return 0;
-
-        uint256 winningPool = position.side
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-        uint256 losingPool = position.side
-            ? delulu.totalDoubterStake
-            : delulu.totalBelieverStake;
-
-        if (losingPool == 0) {
-            return position.amount;
-        }
-
-        if (winningPool == 0) return 0;
-
-        uint256 totalPool = winningPool + losingPool;
-        return (position.amount * totalPool) / winningPool;
-    }
-
-    /**
-     * @notice Internal payout calculation (NO PLATFORM FEE)
-     * @dev Formula: (amount / newPoolSize) * totalPool
-     */
-    function _calculatePotentialPayout(
-        uint256 believerPool,
-        uint256 doubterPool,
-        uint256 amount,
-        bool isBeliever
-    ) internal pure returns (uint256) {
-        uint256 currentPool = isBeliever ? believerPool : doubterPool;
-        uint256 opposingPool = isBeliever ? doubterPool : believerPool;
-
-        if (opposingPool == 0) return amount;
-
-        uint256 newPool = currentPool + amount;
-        if (newPool == 0) return 0;
-
-        uint256 totalPool = newPool + opposingPool;
-        uint256 userShare = (amount * PRECISION) / newPool;
-        uint256 grossPayout = (userShare * totalPool) / PRECISION;
-
-        return grossPayout;
-    }
-
-    /**
-     * @notice Calculate current odds multiplier for a side
-     * @param deluluId Market ID
-     * @param isBeliever true for Believer odds, false for Doubter odds
-     * @return Multiplier in 18 decimals (e.g., 1.5e18 = 1.5x)
-     */
-    function getOddsMultiplier(
-        uint256 deluluId,
-        bool isBeliever
-    ) external view returns (uint256) {
-        Delulu storage delulu = delulus[deluluId];
-        if (delulu.id == 0) return 0;
-
-        uint256 winningPool = isBeliever
-            ? delulu.totalBelieverStake
-            : delulu.totalDoubterStake;
-        uint256 totalPool = delulu.totalBelieverStake +
-            delulu.totalDoubterStake;
-
-        if (winningPool == 0 || totalPool == 0) return PRECISION;
-
-        return (totalPool * PRECISION) / winningPool;
-    }
-
-    /**
-     * @notice Check if user can claim winnings
-     * @param deluluId Market ID
-     * @param user User address
-     * @return true if user can claim
-     */
-    function isClaimable(
-        uint256 deluluId,
-        address user
-    ) public view returns (bool) {
-        Delulu storage delulu = delulus[deluluId];
-
-        if (!delulu.isResolved || delulu.isCancelled) return false;
-
-        UserPosition storage position = userStakes[deluluId][user];
-        if (position.claimed) return false;
-        if (position.amount == 0) return false;
-
-        return position.side == delulu.outcome;
-    }
-
-    /**
-     * @notice Get user's position in a market
-     * @param deluluId Market ID
-     * @param user User address
-     * @return UserPosition struct with amount, side, and claimed status
-     */
-    function getUserPosition(
-        uint256 deluluId,
-        address user
-    ) external view returns (UserPosition memory) {
-        return userStakes[deluluId][user];
-    }
-
-    /**
-     * @notice Get current state of a market
-     * @param deluluId Market ID
-     * @return DeluluState enum (OPEN, LOCKED, RESOLVED, CANCELLED)
-     */
-    function getDeluluState(
-        uint256 deluluId
-    ) external view returns (DeluluState) {
-        Delulu storage delulu = delulus[deluluId];
+    function getDeluluState(uint256 deluluId) external view returns (DeluluState) {
+        Market storage delulu = delulus[deluluId];
         if (delulu.id == 0) revert DeluluNotFound();
-
         if (delulu.isCancelled) return DeluluState.CANCELLED;
         if (delulu.isResolved) return DeluluState.RESOLVED;
-        if (block.timestamp >= delulu.stakingDeadline)
-            return DeluluState.LOCKED;
+        if (block.timestamp >= delulu.stakingDeadline) return DeluluState.LOCKED;
         return DeluluState.OPEN;
     }
 
-    /**
-     * @notice Get market details
-     * @param deluluId Market ID
-     * @return Delulu struct with all market information
-     */
-    function getDelulu(uint256 deluluId) external view returns (Delulu memory) {
+    function getDelulu(uint256 deluluId) external view returns (Market memory) {
         return delulus[deluluId];
     }
 
-    /**
-     * @notice Get multiple markets (pagination support)
-     * @param startId Starting market ID
-     * @param count Number of markets to fetch (max 100)
-     * @return Array of Delulu structs
-     */
-    function getDelulus(
-        uint256 startId,
-        uint256 count
-    ) external view returns (Delulu[] memory) {
-        if (count > MAX_DELULUS_PER_QUERY) revert QueryTooLarge();
-
-        uint256 endId = startId + count;
-        if (endId > nextDeluluId) {
-            endId = nextDeluluId;
-        }
-
-        uint256 resultCount = endId - startId;
-        Delulu[] memory result = new Delulu[](resultCount);
-
-        for (uint256 i = 0; i < resultCount; i++) {
-            result[i] = delulus[startId + i];
-        }
-
-        return result;
-    }
-
-    /**
-     * @notice Get stablecoin token address
-     * @return Token contract address
-     */
-    function getTokenAddress() external view returns (address) {
-        return address(stablecoin);
-    }
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
 }

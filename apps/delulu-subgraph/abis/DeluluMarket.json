@@ -93,6 +93,12 @@
         "internalType": "address"
       },
       {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "contentHash",
         "type": "string",
         "indexed": false,

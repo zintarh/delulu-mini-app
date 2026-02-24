@@ -1,0 +1,155 @@
+# ============================================================
+# DELULU QUERIES
+# Used by: Home feed, Search, Right sidebar, Profile page
+# ============================================================
+
+# Home feed — paginated list of all delulus
+query GetDelulus(
+  $first: Int = 20
+  $skip: Int = 0
+  $orderBy: Delulu_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+  $where: Delulu_filter
+) {
+  delulus(
+    first: $first
+    skip: $skip
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+  ) {
+    id
+    onChainId
+    token
+    creator {
+      id
+    }
+    creatorAddress
+    contentHash
+    stakingDeadline
+    resolutionDeadline
+    createdAt
+    creatorStake
+    totalBelieverStake
+    totalDoubterStake
+    winningPool
+    losingPool
+    isResolved
+    isCancelled
+    outcome
+  }
+}
+
+# Single delulu detail page — includes nested stakes and claims
+query GetDeluluById($id: ID!) {
+  delulu(id: $id) {
+    id
+    onChainId
+    token
+    creator {
+      id
+      totalStaked
+    }
+    creatorAddress
+    contentHash
+    stakingDeadline
+    resolutionDeadline
+    createdAt
+    creatorStake
+    totalBelieverStake
+    totalDoubterStake
+    winningPool
+    losingPool
+    isResolved
+    isCancelled
+    outcome
+    stakes(first: 100, orderBy: createdAt, orderDirection: desc) {
+      id
+      user {
+        id
+      }
+      amount
+      side
+      txHash
+      createdAt
+    }
+    claims(first: 100, orderBy: createdAt, orderDirection: desc) {
+      id
+      user {
+        id
+      }
+      amount
+      txHash
+      createdAt
+    }
+  }
+}
+
+# Trending: top delulus sorted by total stake (believer + doubter)
+# Client-side: sort by totalBelieverStake + totalDoubterStake
+query GetTrendingDelulus($first: Int = 10) {
+  delulus(
+    first: $first
+    orderBy: totalBelieverStake
+    orderDirection: desc
+    where: { isResolved: false, isCancelled: false }
+  ) {
+    id
+    onChainId
+    token
+    creatorAddress
+    contentHash
+    totalBelieverStake
+    totalDoubterStake
+    stakingDeadline
+    createdAt
+    isResolved
+    isCancelled
+  }
+}
+
+# Active (not resolved, not cancelled) delulus for "ongoing" filtering
+query GetActiveDelulus(
+  $first: Int = 20
+  $skip: Int = 0
+  $orderBy: Delulu_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+) {
+  delulus(
+    first: $first
+    skip: $skip
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: { isResolved: false, isCancelled: false }
+  ) {
+    id
+    onChainId
+    token
+    creator {
+      id
+    }
+    creatorAddress
+    contentHash
+    stakingDeadline
+    resolutionDeadline
+    createdAt
+    creatorStake
+    totalBelieverStake
+    totalDoubterStake
+    isResolved
+    isCancelled
+    outcome
+  }
+}
+
+# Subgraph metadata — useful for checking sync status
+query GetSubgraphMeta {
+  _meta {
+    block {
+      number
+      timestamp
+    }
+    deployment
+    hasIndexingErrors
+  }
+}

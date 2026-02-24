@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Loader2, ChevronDown } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useAccount } from "wagmi";
+import { useApolloClient } from "@apollo/client/react";
+import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { Slider } from "@/components/slider";
-// import { DatePicker } from "@/components/date-picker";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
-import { useCUSDBalance } from "@/hooks/use-cusd-balance";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { TokenBadge } from "@/components/token-badge";
+import { useSupportedTokens } from "@/hooks/use-supported-tokens";
+import { TOKEN_LOGOS } from "@/lib/constant";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
@@ -18,8 +22,6 @@ import { type GatekeeperConfig } from "@/lib/ipfs";
 import {
   getErrorMessage,
   getDefaultDeadline,
-  getMinDeadline,
-  getMaxDeadline,
 } from "@/lib/create-delulu-helpers";
 
 const HYPE_TEXT = [
@@ -57,10 +59,28 @@ export function CreateDelusionSheet({
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
   const { user } = useUserStore();
+  const apolloClient = useApolloClient();
   const [currentStep, setCurrentStep] = useState(0);
   const [stakeAmount, setStakeAmount] = useState([1]);
   const [delusionText, setDelusionText] = useState("");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
+  const supportedTokens = useSupportedTokens();
+  // Prefer G$ if available, otherwise use first token
+  const initialToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
+  const [selectedToken, setSelectedToken] = useState<string>(initialToken);
+  const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
+  const tokenDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync selectedToken when chain changes (e.g. mainnet → sepolia)
+  useEffect(() => {
+    const preferredToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address;
+    if (preferredToken && selectedToken && !supportedTokens.some((t) => t.address === selectedToken)) {
+      setSelectedToken(preferredToken);
+    } else if (preferredToken && !selectedToken) {
+      setSelectedToken(preferredToken);
+    }
+  }, [supportedTokens, selectedToken]);
+
   const MAX_DELULU_LENGTH = 280;
 
   const PALETTE = [
@@ -110,16 +130,70 @@ export function CreateDelusionSheet({
     isSuccess: isApprovalSuccess,
     refetchAllowance,
     isLoadingAllowance,
-  } = useTokenApproval();
+  } = useTokenApproval(selectedToken);
 
-  const { balance: cusdBalance, isLoading: isLoadingBalance } =
-    useCUSDBalance();
+  // Simple per-token balances using useTokenBalance
+  const cusdToken = supportedTokens.find((t) => t.symbol === "USDm");
+  const gToken = supportedTokens.find((t) => t.symbol === "G$");
+
+  const cusd = useTokenBalance(cusdToken?.address);
+  const good = useTokenBalance(gToken?.address);
+
+  // Debug logging for balances
+  useEffect(() => {
+    console.log('[CreateDelusionSheet] Token balances:', {
+      supportedTokens: supportedTokens.map(t => ({ symbol: t.symbol, address: t.address })),
+      cusdToken: cusdToken?.address,
+      gToken: gToken?.address,
+      cusdBalance: cusd.balance?.value?.toString(),
+      cusdFormatted: cusd.formatted,
+      cusdLoading: cusd.isLoading,
+      cusdError: cusd.error?.message,
+      goodBalance: good.balance?.value?.toString(),
+      goodFormatted: good.formatted,
+      goodLoading: good.isLoading,
+      goodError: good.error?.message,
+      goodBalanceData: good.balance,
+    });
+  }, [supportedTokens, cusdToken, gToken, cusd, good]);
+
+  const tokenBalances = [
+    ...(cusdToken
+      ? [
+          {
+            token: cusdToken,
+            balance: cusd.balance,
+            formatted: cusd.formatted,
+            isLoading: cusd.isLoading,
+            error: cusd.error,
+          },
+        ]
+      : []),
+    ...(gToken
+      ? [
+          {
+            token: gToken,
+            balance: good.balance,
+            formatted: good.formatted,
+            isLoading: good.isLoading,
+            error: good.error,
+          },
+        ]
+      : []),
+  ];
+
+  const selectedTokenBalance = tokenBalances.find(
+    (tb) => tb.token.address === selectedToken
+  );
+  const tokenBalance = selectedTokenBalance?.balance;
+  const isLoadingBalance = tokenBalances.some((tb) => tb.isLoading);
 
   useEffect(() => {
     if (isSuccess) {
       setShowSuccessModal(true);
+      refetchAllActiveQueries(apolloClient);
     }
-  }, [isSuccess]);
+  }, [isSuccess, apolloClient]);
 
   useEffect(() => {
     if (isError && createErrorMessage) {
@@ -152,8 +226,8 @@ export function CreateDelusionSheet({
   const currentStakeAmount =
     stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 1;
 
-  const hasInsufficientBalance = cusdBalance
-    ? parseFloat(cusdBalance.formatted) < currentStakeAmount
+  const hasInsufficientBalance = selectedTokenBalance?.balance
+    ? parseFloat(selectedTokenBalance.formatted) < currentStakeAmount
     : false;
 
   const canGoNext = () => {
@@ -190,6 +264,9 @@ export function CreateDelusionSheet({
     setCurrentStep(0);
     setStakeAmount([1]);
     setDelusionText("");
+    const preferredToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
+    setSelectedToken(preferredToken);
+    setIsTokenDropdownOpen(false);
     const date = new Date();
     date.setMinutes(date.getMinutes() + 60);
     setDeadline(date);
@@ -197,6 +274,25 @@ export function CreateDelusionSheet({
     setGatekeeper(null);
     onOpenChange(false);
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        tokenDropdownRef.current &&
+        !tokenDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsTokenDropdownOpen(false);
+      }
+    };
+
+    if (isTokenDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isTokenDropdownOpen]);
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
@@ -351,6 +447,128 @@ export function CreateDelusionSheet({
                   <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 overflow-y-auto">
                     <div className="w-full max-w-2xl space-y-8">
                       <div className="text-center">
+                        <p className="text-xs text-delulu-dark/60 uppercase tracking-wide mb-3">
+                          Market Currency
+                        </p>
+                        <div className="flex justify-center mb-6" ref={tokenDropdownRef}>
+                          <div className="relative">
+                            <button
+                              onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
+                              className={cn(
+                                "px-4 py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-3 min-w-[200px] justify-between",
+                                "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const selectedTokenInfo = supportedTokens.find(
+                                    (t) => t.address === selectedToken
+                                  );
+                                  const selectedBalanceInfo = tokenBalances.find(
+                                    (tb) => tb.token.address === selectedToken
+                                  );
+                                  const logoUrl = selectedToken
+                                    ? TOKEN_LOGOS[selectedToken.toLowerCase()]
+                                    : undefined;
+                                  return (
+                                    <>
+                                      {logoUrl && (
+                                        <img
+                                          src={logoUrl}
+                                          alt=""
+                                          className="h-5 w-5 rounded-full"
+                                        />
+                                      )}
+                                      <span>{selectedTokenInfo?.symbol || "Select"}</span>
+                                      {isConnected && selectedBalanceInfo && (
+                                        <span className="text-xs opacity-70 whitespace-nowrap">
+                                          {selectedBalanceInfo.isLoading
+                                            ? "..."
+                                            : `${parseFloat(selectedBalanceInfo.formatted).toFixed(2)} ${selectedTokenInfo?.symbol || ""}`}
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                              <ChevronDown
+                                className={cn(
+                                  "h-4 w-4 transition-transform",
+                                  isTokenDropdownOpen && "rotate-180"
+                                )}
+                              />
+                            </button>
+                            {isTokenDropdownOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50 overflow-hidden">
+                                {supportedTokens.map((t) => {
+                                  const tokenBalanceInfo = tokenBalances.find(
+                                    (tb) => tb.token.address.toLowerCase() === t.address.toLowerCase()
+                                  );
+                                  const balance = tokenBalanceInfo
+                                    ? parseFloat(tokenBalanceInfo.formatted)
+                                    : 0;
+                                  const isLoading = tokenBalanceInfo?.isLoading ?? false;
+                                  const logoUrl = TOKEN_LOGOS[t.address.toLowerCase()];
+                                  const isSelected = selectedToken?.toLowerCase() === t.address.toLowerCase();
+                                  
+                                  // Debug logging for G$ specifically
+                                  if (t.symbol === "G$") {
+                                    console.log('[CreateDelusionSheet] G$ Balance Debug:', {
+                                      tokenAddress: t.address,
+                                      tokenBalanceInfo: tokenBalanceInfo ? {
+                                        address: tokenBalanceInfo.token.address,
+                                        formatted: tokenBalanceInfo.formatted,
+                                        isLoading: tokenBalanceInfo.isLoading,
+                                        error: tokenBalanceInfo.error?.message,
+                                        balanceValue: tokenBalanceInfo.balance?.value?.toString(),
+                                      } : null,
+                                      allTokenBalances: tokenBalances.map(tb => ({
+                                        symbol: tb.token.symbol,
+                                        address: tb.token.address,
+                                        formatted: tb.formatted,
+                                      })),
+                                    });
+                                  }
+                                  return (
+                                    <button
+                                      key={t.address}
+                                      onClick={() => {
+                                        setSelectedToken(t.address);
+                                        setIsTokenDropdownOpen(false);
+                                      }}
+                                      className={cn(
+                                        "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
+                                        isSelected
+                                          ? "bg-delulu-yellow-reserved text-delulu-charcoal font-bold"
+                                          : "bg-white text-delulu-charcoal hover:bg-gray-100"
+                                      )}
+                                    >
+                                      {logoUrl && (
+                                        <img
+                                          src={logoUrl}
+                                          alt={t.symbol}
+                                          className="h-5 w-5 rounded-full flex-shrink-0"
+                                        />
+                                      )}
+                                      <div className="flex-1 flex items-center justify-between gap-2">
+                                        <span className="font-bold">{t.symbol}</span>
+                                        {isConnected && (
+                                          <span className="text-xs opacity-70 whitespace-nowrap">
+                                            {isLoading
+                                              ? "..."
+                                              : tokenBalanceInfo && parseFloat(tokenBalanceInfo.formatted) > 0
+                                              ? `${parseFloat(tokenBalanceInfo.formatted).toFixed(2)} ${t.symbol}`
+                                              : "0.00"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         <div className="relative inline-block">
                           <span className="text-6xl font-black text-delulu-dark">
                             $
@@ -410,7 +628,7 @@ export function CreateDelusionSheet({
                           />
                         </div>
                         <p className="text-xl text-delulu-dark/70 font-medium mt-2">
-                          cUSD
+                          <TokenBadge tokenAddress={selectedToken} size="md" />
                         </p>
                       </div>
 
@@ -440,17 +658,10 @@ export function CreateDelusionSheet({
                             </span>
                           ) : isLoadingBalance ? (
                             <span className="font-bold">Loading...</span>
-                          ) : cusdBalance ? (
-                            <span className="font-bold">
-                              {(() => {
-                                const balance = parseFloat(
-                                  cusdBalance.formatted
-                                );
-                                return isNaN(balance)
-                                  ? "0.00"
-                                  : balance.toFixed(2);
-                              })()}{" "}
-                              cUSD
+                          ) : selectedTokenBalance?.balance ? (
+                            <span className="font-bold inline-flex items-center gap-2">
+                              {parseFloat(selectedTokenBalance.formatted).toFixed(2)}{" "}
+                              <TokenBadge tokenAddress={selectedToken} size="sm" />
                             </span>
                           ) : (
                             <span className="font-bold text-red-600">
@@ -458,14 +669,14 @@ export function CreateDelusionSheet({
                             </span>
                           )}
                         </p>
-                        {isConnected && !isLoadingBalance && !cusdBalance && (
+                        {isConnected && !isLoadingBalance && !tokenBalance && (
                           <p className="text-xs text-delulu-dark/40 mt-1">
                             Check console for details
                           </p>
                         )}
                         {isConnected && currentStakeAmount < 1 && (
                           <p className="text-sm text-red-600 mt-2 font-bold">
-                            Minimum stake is 1 cUSD
+                            Minimum stake is 1
                           </p>
                         )}
                         {isConnected && hasInsufficientBalance && (
@@ -522,12 +733,12 @@ export function CreateDelusionSheet({
                             <p className="text-xs text-delulu-dark/50 uppercase tracking-wide mb-1">
                               Stake
                             </p>
-                            <p className="text-lg font-bold text-delulu-dark">
+                            <p className="text-lg font-bold text-delulu-dark inline-flex items-center gap-2">
                               {stakeAmount[0] != null &&
                               isFinite(stakeAmount[0])
                                 ? stakeAmount[0]
                                 : "1.00"}{" "}
-                              cUSD
+                              <TokenBadge tokenAddress={selectedToken} size="sm" />
                             </p>
                           </div>
                         </div>
@@ -631,13 +842,12 @@ export function CreateDelusionSheet({
                             if (!delusionText.trim()) {
                               throw new Error("Please enter your delulu text");
                             }
-
                             if (
                               !isFinite(stakeAmount[0]) ||
                               stakeAmount[0] < 1
                             ) {
                               throw new Error(
-                                "Stake amount must be at least 1 cUSD"
+                                "Stake amount must be at least 1"
                               );
                             }
 
@@ -649,6 +859,7 @@ export function CreateDelusionSheet({
                                 : getDefaultDeadline();
 
                             await createDelulu(
+                              selectedToken,
                               delusionText,
                               deadlineDate,
                               stakeAmount[0],

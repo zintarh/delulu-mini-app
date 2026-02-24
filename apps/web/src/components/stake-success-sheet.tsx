@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { TokenBadge } from "@/components/token-badge";
 import { CheckCircle } from "lucide-react";
 
 interface StakeSuccessSheetProps {
@@ -8,6 +9,7 @@ interface StakeSuccessSheetProps {
   onOpenChange: (open: boolean) => void;
   isBeliever: boolean;
   amount: number;
+  tokenAddress?: string;
 }
 
 export function StakeSuccessSheet({
@@ -15,6 +17,7 @@ export function StakeSuccessSheet({
   onOpenChange,
   isBeliever,
   amount,
+  tokenAddress,
 }: StakeSuccessSheetProps) {
   return (
     <ResponsiveSheet
@@ -38,10 +41,11 @@ export function StakeSuccessSheet({
           </h2>
 
           {/* Message */}
-          <p className="text-sm text-delulu-charcoal/80 text-center mb-6">
+          <p className="text-sm text-delulu-charcoal/80 text-center mb-6 inline-flex items-center justify-center gap-1 flex-wrap">
             You&apos;ve successfully placed a stake of{" "}
-            <span className="font-bold text-delulu-charcoal">{amount.toFixed(2)} cUSD</span> as a{" "}
-            {isBeliever ? "believer" : "doubter"}.
+            <span className="font-bold text-delulu-charcoal">{amount.toFixed(2)}</span>
+            {tokenAddress && <TokenBadge tokenAddress={tokenAddress} size="sm" />}
+            {" "}as a {isBeliever ? "believer" : "doubter"}.
           </p>
 
           {/* Divider */}

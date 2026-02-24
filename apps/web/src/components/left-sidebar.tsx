@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Home, Plus, User } from "lucide-react";
+import { Home, Plus, User, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LeftSidebarProps {
@@ -27,6 +27,14 @@ export function LeftSidebar({
       label: "Create",
       active: false,
       onClick: onCreateClick,
+    },
+    {
+      icon: Coins,
+      label: "Claim G$",
+      active: pathname === "/ubi",
+      onClick: () => {
+        window.location.href = "/ubi";
+      },
     },
     {
       icon: User,

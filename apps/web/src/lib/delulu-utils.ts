@@ -1,4 +1,4 @@
-import { type FormattedDelulu } from "@/hooks/use-delulus";
+import { type FormattedDelulu } from "@/lib/types";
 
 /**
  * Checks if the given address is the creator of the delulu

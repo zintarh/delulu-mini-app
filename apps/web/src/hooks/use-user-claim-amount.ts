@@ -1,32 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@apollo/client/react";
 import { useAccount } from "wagmi";
-import { api } from "@/lib/api-client";
+import { formatUnits } from "viem";
+import type {
+  GetUserClaimForDeluluQuery,
+  GetUserClaimForDeluluQueryVariables,
+} from "@/generated/graphql";
+import { GetUserClaimForDeluluDocument } from "@/generated/graphql";
 
 /**
- * Hook to get the amount a user claimed for a specific delulu from the backend
- * This is used to display the claimed amount after a user has claimed their winnings
+ * Hook to get the amount a user claimed for a specific delulu from The Graph
  */
 export function useUserClaimAmount(deluluId: string | null) {
   const { address } = useAccount();
 
-  const {
-    data: claim,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["user-claim", address, deluluId],
-    queryFn: async () => {
-      if (!address || !deluluId) return null;
-      return api.getUserClaimForDelulu(address, deluluId);
+  const { data, loading, error } = useQuery<
+    GetUserClaimForDeluluQuery,
+    GetUserClaimForDeluluQueryVariables
+  >(GetUserClaimForDeluluDocument, {
+    variables: {
+      userId: address?.toLowerCase() ?? "",
+      deluluId: deluluId ?? "",
     },
-    enabled: !!address && !!deluluId,
-    staleTime: 30 * 1000, // 30 seconds
+    skip: !address || !deluluId,
+    fetchPolicy: "cache-and-network",
   });
 
+  const claimedAmount =
+    data?.claims && data.claims.length > 0
+      ? Number(formatUnits(BigInt(data.claims[0].amount), 18))
+      : null;
+
   return {
-    claimedAmount: claim?.amount ?? null,
-    isLoading,
-    error,
+    claimedAmount,
+    isLoading: loading,
+    error: error ?? null,
   };
 }
-

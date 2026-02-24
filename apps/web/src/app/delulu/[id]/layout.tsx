@@ -64,7 +64,7 @@ export async function generateMetadata(
     ogApiUrl.searchParams.set("font", fontName);
 
     const finalOgImageUrlString = ogApiUrl.toString();
-    const description = `Created a vision board on Delulu and staked ${formattedStakeAmount} cUSD`;
+    const description = `Created a vision board on Delulu and staked ${formattedStakeAmount} USDm`;
 
     return {
       title: title,

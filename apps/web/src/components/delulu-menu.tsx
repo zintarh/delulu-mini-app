@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MoreVertical, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FormattedDelulu } from "@/hooks/use-delulus";
+import { FormattedDelulu } from "@/lib/types";
 
 interface DeluluMenuProps {
   delulu: FormattedDelulu;

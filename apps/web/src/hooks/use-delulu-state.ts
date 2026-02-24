@@ -1,5 +1,5 @@
-import { useReadContract } from "wagmi";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { useReadContract, useChainId } from "wagmi";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export enum DeluluState {
@@ -10,12 +10,13 @@ export enum DeluluState {
 }
 
 export function useDeluluState(deluluId: number | null) {
+  const chainId = useChainId();
   const {
     data: state,
     isLoading,
     error,
   } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
+    address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
     functionName: "getDeluluState",
     args: deluluId !== null ? [BigInt(deluluId)] : undefined,

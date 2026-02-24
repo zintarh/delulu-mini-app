@@ -1,4 +1,17 @@
 {
-  "extends": "@graphprotocol/graph-ts/types/tsconfig.base.json",
-  "include": ["src", "tests"]
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@graphprotocol/graph-ts": ["./node_modules/@graphprotocol/graph-ts"]
+    }
+  },
+  "include": ["src", "tests", "generated"]
 }
