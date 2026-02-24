@@ -108,18 +108,32 @@ export default function HomePage() {
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
 
-  // Filter delulus based on active tab
+  // Helper to check if content is loaded (not a hash)
+  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
+    if (!delulu.content) return false;
+    // Check if content is an IPFS hash
+    const isHash = delulu.content.startsWith("Qm") || 
+      (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
+    return !isHash;
+  };
+
+  // Filter delulus based on active tab and content loading status
   const filteredDelulus = useMemo(() => {
+    let delulusToFilter: FormattedDelulu[] = [];
+    
     if (activeTab === "vision") {
       // For Vision tab, show delulus created by the connected user
       if (!isConnected || !address) {
         return [];
       }
-      return userCreatedDelulus;
+      delulusToFilter = userCreatedDelulus;
     } else {
       // For "For You" tab, show all delulus (sorted by latest first)
-      return delulus;
+      delulusToFilter = delulus;
     }
+    
+    // Only show delulus with loaded content (wait for IPFS to resolve)
+    return delulusToFilter.filter(isContentLoaded);
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
 

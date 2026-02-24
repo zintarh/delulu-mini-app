@@ -116,14 +116,13 @@ export function ProfileDeluluCard({
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
   };
   
-  const headlineRaw = delusion.content && !isHash(delusion.content) 
-    ? delusion.content 
+  const headlineRaw = delusion.content && !isHash(delusion.content)
+    ? delusion.content
     : "";
-  const headline = headlineRaw.trim();
+  const headline = headlineRaw.trim() || "YOUR DELULU HEADLINE";
   const headlineLength = headline.length;
   const truncatedHeadline =
     headlineLength > 20 ? headline.slice(0, 20) + "..." : headline;
-  const isLoadingContent = !delusion.content || isHash(delusion.content);
 
   const cardBackground = getCardBackground(delusion);
   const textColorClass =
@@ -451,21 +450,14 @@ export function ProfileDeluluCard({
 
         <div className="absolute inset-3 flex items-center justify-center text-center z-10">
           <div className="bg-white w-fit h-fit rounded-sm py-2 px-2">
-            {isLoadingContent ? (
-              <div className="flex items-center gap-2 px-4 py-2">
-                <div className="animate-pulse h-3 w-3 rounded-full bg-gray-300"></div>
-                <span className="text-xs text-gray-500">Loading...</span>
-              </div>
-            ) : (
-              <p
-                className={cn(
-                  "font-black leading-tight text-delulu-charcoal text-xs"
-                )}
-                title={headline || "YOUR DELULU HEADLINE"}
-              >
-                {truncatedHeadline || "YOUR DELULU HEADLINE"}
-              </p>
-            )}
+            <p
+              className={cn(
+                "font-black leading-tight text-delulu-charcoal text-xs"
+              )}
+              title={headline}
+            >
+              {truncatedHeadline}
+            </p>
           </div>
         </div>
 
