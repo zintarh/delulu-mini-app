@@ -35,6 +35,17 @@ export default function ProfilePage() {
     fetchNextPage,
   } = useGraphUserDelulus(activeTab);
 
+  // Helper to check if content is loaded (not a hash)
+  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
+    if (!delulu.content) return false;
+    const isHash = delulu.content.startsWith("Qm") || 
+      (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
+    return !isHash;
+  };
+
+  // Filter out delulus without loaded content
+  const delulusWithContent = delulus.filter(isContentLoaded);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -185,7 +196,7 @@ export default function ProfilePage() {
                     />
                   ))}
                 </div>
-              ) : delulus.length === 0 ? (
+              ) : delulusWithContent.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">
                   {activeTab === "ongoing"
                     ? "You haven't created any ongoing delulus yet"
@@ -194,7 +205,7 @@ export default function ProfilePage() {
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2">
-                    {delulus.map((delulu) => (
+                    {delulusWithContent.map((delulu) => (
                       <ProfileDeluluCard
                         key={delulu.id}
                         delusion={delulu}
@@ -220,7 +231,7 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {!hasNextPage && delulus.length > 0 && (
+                  {!hasNextPage && delulusWithContent.length > 0 && (
                     <div className="text-center py-4 mt-2">
                       <p className="text-sm text-gray-400">
                         You&apos;ve reached the end

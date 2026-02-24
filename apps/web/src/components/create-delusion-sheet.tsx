@@ -22,7 +22,10 @@ import { type GatekeeperConfig } from "@/lib/ipfs";
 import {
   getErrorMessage,
   getDefaultDeadline,
+  getMinDeadline,
+  getMaxDeadline,
 } from "@/lib/create-delulu-helpers";
+import { DateTimePicker } from "@/components/date-time-picker";
 
 const HYPE_TEXT = [
   {
@@ -217,11 +220,8 @@ export function CreateDelusionSheet({
   }, [isApprovalSuccess, refetchAllowance]);
 
   const [deadline, setDeadline] = useState<Date>(() => {
-    const date = new Date();
-    date.setMinutes(date.getMinutes() + 60); // Default to 60 minutes
-    return date;
+    return getDefaultDeadline();
   });
-  const [selectedDuration, setSelectedDuration] = useState<number>(60);
 
   const currentStakeAmount =
     stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 1;
@@ -267,10 +267,7 @@ export function CreateDelusionSheet({
     const preferredToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
     setSelectedToken(preferredToken);
     setIsTokenDropdownOpen(false);
-    const date = new Date();
-    date.setMinutes(date.getMinutes() + 60);
-    setDeadline(date);
-    setSelectedDuration(60);
+    setDeadline(getDefaultDeadline());
     setGatekeeper(null);
     onOpenChange(false);
   };
@@ -413,32 +410,21 @@ export function CreateDelusionSheet({
                   <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 overflow-y-auto">
                     <div className="w-full max-w-2xl">
                       <h2 className="text-2xl font-black text-white/90 mb-6 text-center">
-                        Staking Duration
+                        Staking Deadline
                       </h2>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[10, 20, 30, 40, 50, 60].map((minutes) => (
-                          <button
-                            key={minutes}
-                            onClick={() => {
-                              const date = new Date();
-                              date.setMinutes(date.getMinutes() + minutes);
-                              setDeadline(date);
-                              setSelectedDuration(minutes);
-                            }}
-                            className={cn(
-                              "py-4 px-6 rounded-lg font-bold text-lg transition-all border-2",
-                              selectedDuration === minutes
-                                ? "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]"
-                                : "bg-white/10 text-white border-white/20 hover:bg-white/20"
-                            )}
-                          >
-                            {minutes} min
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-sm text-white/50 text-center mt-4">
-                        Max 1 hour
+                      <p className="text-sm text-white/60 text-center mb-6">
+                        Select when staking will end for this delulu
                       </p>
+                      <DateTimePicker
+                        value={deadline}
+                        onChange={(date) => {
+                          if (date) {
+                            setDeadline(date);
+                          }
+                        }}
+                        minDate={getMinDeadline()}
+                        maxDate={getMaxDeadline()}
+                      />
                     </div>
                   </div>
                 )}
@@ -721,9 +707,12 @@ export function CreateDelusionSheet({
                             <p className="text-lg font-bold text-delulu-dark">
                               {deadline instanceof Date &&
                               !isNaN(deadline.getTime())
-                                ? deadline.toLocaleDateString("en-US", {
+                                ? deadline.toLocaleString("en-US", {
                                     month: "short",
                                     day: "numeric",
+                                    year: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
                                   })
                                 : "Invalid date"}
                             </p>

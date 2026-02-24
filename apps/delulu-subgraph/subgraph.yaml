@@ -9,7 +9,7 @@ dataSources:
     network: celo
     source:
       abi: DeluluMarket
-      address: "0xa1b1f8E58169DeC32c6C085F382e12A20b73e754"
+      address: "0xF87757bDf0986F4bBFAb6eD92EB2E627fb95ad46"
       startBlock: 60016510
     mapping:
       kind: ethereum/events

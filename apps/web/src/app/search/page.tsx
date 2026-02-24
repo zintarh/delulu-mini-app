@@ -9,6 +9,14 @@ import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { Search, X, ArrowLeft, TrendingUp } from "lucide-react";
 import { useAccount } from "wagmi";
 
+// Helper to check if content is loaded (not a hash)
+const isContentLoaded = (delulu: FormattedDelulu): boolean => {
+  if (!delulu.content) return false;
+  const isHash = delulu.content.startsWith("Qm") || 
+    (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
+  return !isHash;
+};
+
 export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,23 +31,28 @@ export default function SearchPage() {
     }
   }, [searchParams]);
 
-  const trendingDelulus = useMemo(() => {
-    return delulus
-      .sort((a, b) => b.totalStake - a.totalStake)
-      .slice(0, 3);
+  // Filter out delulus without loaded content
+  const delulusWithContent = useMemo(() => {
+    return delulus.filter(isContentLoaded);
   }, [delulus]);
 
+  const trendingDelulus = useMemo(() => {
+    return delulusWithContent
+      .sort((a, b) => b.totalStake - a.totalStake)
+      .slice(0, 3);
+  }, [delulusWithContent]);
+
   const recommendedDelulus = useMemo(() => {
-    if (delulus.length === 0) return [];
+    if (delulusWithContent.length === 0) return [];
     
     // Exclude trending delulus from recommendations
     const trendingIds = new Set(trendingDelulus.map(d => d.id));
-    const availableDelulus = delulus.filter(d => !trendingIds.has(d.id));
+    const availableDelulus = delulusWithContent.filter(d => !trendingIds.has(d.id));
     
     // Randomly shuffle and take 4
     const shuffled = [...availableDelulus].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 4);
-  }, [delulus, trendingDelulus]);
+  }, [delulusWithContent, trendingDelulus]);
 
   const filteredDelulus = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -47,8 +60,8 @@ export default function SearchPage() {
     }
 
     const query = searchQuery.toLowerCase().trim();
-    return delulus.filter((d) => {
-      const content = (d.content || d.contentHash || "").toLowerCase();
+    return delulusWithContent.filter((d) => {
+      const content = (d.content || "").toLowerCase();
       const username = (d.username || "").toLowerCase();
       const creator = d.creator.toLowerCase();
 
@@ -58,7 +71,7 @@ export default function SearchPage() {
         creator.includes(query)
       );
     });
-  }, [delulus, searchQuery]);
+  }, [delulusWithContent, searchQuery]);
 
   const handleDeluluClick = (id: string | number) => {
     router.push(`/delulu/${id}`);
@@ -193,7 +206,7 @@ export default function SearchPage() {
                       className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                     >
                       <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                        {delulu.content || delulu.contentHash}
+                        {delulu.content || "YOUR DELULU HEADLINE"}
                       </p>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full">
@@ -232,7 +245,7 @@ export default function SearchPage() {
                       className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                     >
                       <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                        {delulu.content || delulu.contentHash}
+                        {delulu.content || "YOUR DELULU HEADLINE"}
                       </p>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full">

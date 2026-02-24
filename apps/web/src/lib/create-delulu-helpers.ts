@@ -32,7 +32,7 @@ export interface ProgressStep {
 export function getDefaultDeadline(): Date {
   const date = new Date();
   date.setDate(date.getDate() + 7);
-  date.setHours(12, 0, 0, 0);
+  date.setHours(23, 59, 59, 999); // End of day - industry standard for prediction markets
   return date;
 }
 

@@ -5,6 +5,7 @@ import { Search, X, TrendingUp } from "lucide-react";
 import { useAllDelulus } from "@/hooks/graph";
 import { TokenBadge } from "@/components/token-badge";
 import { useRouter } from "next/navigation";
+import type { FormattedDelulu } from "@/lib/types";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,14 +17,25 @@ export function RightSidebar() {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
   };
 
+  // Helper to check if content is loaded (not a hash)
+  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
+    if (!delulu.content) return false;
+    return !isHash(delulu.content);
+  };
+
+  // Filter out delulus without loaded content
+  const delulusWithContent = useMemo(() => {
+    return delulus.filter(isContentLoaded);
+  }, [delulus]);
+
   const filteredDelulus = useMemo(() => {
     if (!searchQuery.trim()) {
-      return delulus;
+      return delulusWithContent;
     }
 
     const query = searchQuery.toLowerCase().trim();
-    return delulus.filter((d) => {
-      const content = (d.content && !isHash(d.content) ? d.content : "").toLowerCase();
+    return delulusWithContent.filter((d) => {
+      const content = (d.content || "").toLowerCase();
       const username = (d.username || "").toLowerCase();
       const creator = d.creator.toLowerCase();
 
@@ -33,7 +45,7 @@ export function RightSidebar() {
         creator.includes(query)
       );
     });
-  }, [delulus, searchQuery]);
+  }, [delulusWithContent, searchQuery]);
 
   const trendingDelulus = useMemo(() => {
     return [...filteredDelulus]
@@ -107,9 +119,7 @@ export function RightSidebar() {
                   className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                 >
                   <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                    {delulu.content && !isHash(delulu.content) 
-                      ? delulu.content 
-                      : <span className="text-gray-400 italic">Loading content...</span>}
+                    {delulu.content || "YOUR DELULU HEADLINE"}
                   </p>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
@@ -173,9 +183,7 @@ export function RightSidebar() {
                     className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                   >
                     <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                      {delulu.content && !isHash(delulu.content) 
-                        ? delulu.content 
-                        : <span className="text-gray-400 italic">Loading...</span>}
+                      {delulu.content || "YOUR DELULU HEADLINE"}
                     </p>
                     <div className="flex items-center gap-2 text-xs flex-wrap">
                       <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -216,9 +224,7 @@ export function RightSidebar() {
                     className="w-full text-left p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors border border-gray-200 hover:border-gray-300"
                   >
                     <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
-                      {delulu.content && !isHash(delulu.content) 
-                        ? delulu.content 
-                        : <span className="text-gray-400 italic">Loading...</span>}
+                      {delulu.content || "YOUR DELULU HEADLINE"}
                     </p>
                     <div className="flex items-center gap-2 text-xs flex-wrap">
                       <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
