@@ -175,6 +175,9 @@ export function StakingSheet({
     }
   }, [stakeError, delulu?.id]);
 
+
+  console.log(delulu)
+
   useEffect(() => {
     if (approvalError) {
       let errorMsg = "Approval failed";
@@ -212,114 +215,22 @@ export function StakingSheet({
       return;
     }
 
-    // Debug: Log deadline information and fetch on-chain data
-    if (process.env.NODE_ENV === "development" && publicClient) {
-      const now = new Date();
-      const deadline = delulu.stakingDeadline;
-      const nowTimestamp = Math.floor(now.getTime() / 1000);
-      const deadlineTimestamp = Math.floor(deadline.getTime() / 1000);
-      const timeRemaining = deadlineTimestamp - nowTimestamp;
-      
-      // Fetch on-chain deadline and block timestamp
-      const deluluId = delulu.onChainId 
-        ? parseInt(delulu.onChainId, 10) 
-        : delulu.id;
-      
-      if (deluluId && !isNaN(deluluId) && deluluId > 0) {
-        Promise.all([
-          readContract(publicClient, {
-            address: getDeluluContractAddress(chainId),
-            abi: DELULU_ABI,
-            functionName: "getDelulu",
-            args: [BigInt(deluluId)],
-          }) as Promise<{
-            id: bigint;
-            creator: `0x${string}`;
-            token: `0x${string}`;
-            contentHash: string;
-            stakingDeadline: bigint;
-            resolutionDeadline: bigint;
-            totalBelieverStake: bigint;
-            totalDoubterStake: bigint;
-            outcome: boolean;
-            isResolved: boolean;
-            isCancelled: boolean;
-          }>,
-          publicClient.getBlock().then(block => block.timestamp),
-        ]).then(([onChainDelulu, blockTimestamp]) => {
-          const onChainDeadline = Number(onChainDelulu.stakingDeadline);
-          const blockTime = Number(blockTimestamp);
-          const onChainDeadlineDate = new Date(onChainDeadline * 1000);
-          
-          console.log("🔍 [StakingSheet] Deadline comparison:", {
-            frontend: {
-              now: now.toISOString(),
-              deadline: deadline.toISOString(),
-              nowTimestamp,
-              deadlineTimestamp,
-              timeRemainingSeconds: timeRemaining,
-              isDeadlinePassed: nowTimestamp >= deadlineTimestamp,
-            },
-            onChain: {
-              blockTimestamp: blockTime,
-              blockTimeDate: new Date(blockTime * 1000).toISOString(),
-              onChainDeadline: onChainDeadline,
-              onChainDeadlineDate: onChainDeadlineDate.toISOString(),
-              isDeadlinePassedOnChain: blockTime >= onChainDeadline,
-              difference: onChainDeadline - deadlineTimestamp,
-              differenceHours: (onChainDeadline - deadlineTimestamp) / 3600,
-            },
-          });
-          
-          // Warn if there's a mismatch
-          if (onChainDeadline !== deadlineTimestamp) {
-            console.warn("⚠️ [StakingSheet] Deadline mismatch detected!", {
-              frontendDeadline: deadlineTimestamp,
-              onChainDeadline: onChainDeadline,
-              differenceSeconds: onChainDeadline - deadlineTimestamp,
-              differenceHours: (onChainDeadline - deadlineTimestamp) / 3600,
-            });
-          }
-          
-          // Warn if block time is ahead
-          if (blockTime > nowTimestamp + 60) {
-            console.warn("⚠️ [StakingSheet] Block timestamp is ahead of system time!", {
-              systemTime: nowTimestamp,
-              blockTime: blockTime,
-              differenceSeconds: blockTime - nowTimestamp,
-            });
-          }
-        }).catch(err => {
-          console.error("❌ [StakingSheet] Error fetching on-chain data:", err);
-        });
-      }
-    }
+ 
 
     // Use onChainId if available (contract expects on-chain ID), otherwise fall back to id
-    const deluluId = delulu.onChainId 
-      ? parseInt(delulu.onChainId, 10) 
-      : delulu.id;
+    const deluluId = Number(delulu.onChainId )
     
     if (!deluluId || isNaN(deluluId) || deluluId <= 0) {
-      console.error("[StakingSheet] Invalid delulu ID:", {
-        id: delulu.id,
-        onChainId: delulu.onChainId,
-        computedId: deluluId,
-      });
+     
       setErrorMessage("Invalid delulu ID. Please refresh and try again.");
       setShowErrorModal(true);
       return;
     }
 
-    // Warn if onChainId is missing but id is set (might indicate sync issue)
-    if (!delulu.onChainId && delulu.id > 0) {
-      console.warn("[StakingSheet] onChainId is undefined but id is set:", {
-        id: delulu.id,
-        onChainId: delulu.onChainId,
-      });
-    }
+    
 
     const amount = parseFloat(stakeAmount);
+
     if (isNaN(amount) || amount <= 0) {
       console.error("[StakingSheet] Invalid amount:", stakeAmount);
       setErrorMessage("Please enter a valid amount");
@@ -348,16 +259,15 @@ export function StakingSheet({
       const isBeliever = side === "believe";
       if (needsApproval(amount)) {
         if (!isApprovalSuccess) {
-          // Request approval - user must click stake again after approval
-          console.log("[StakingSheet] Approval needed, requesting approval");
           await approve(amount);
-          // Refetch allowance to update UI
           refetchAllowance();
-          return; // Exit - user must click stake again after approval
+          return; 
         }
       }
 
       await stake(deluluId, amount, isBeliever, marketToken);
+
+      
     } catch (error) {
       console.error("[StakingSheet] Error in handleStake:", error);
       setErrorMessage(
@@ -368,6 +278,16 @@ export function StakingSheet({
       setShowErrorModal(true);
     }
   };
+
+
+
+
+
+
+
+
+
+
 
   const isCreator = isDeluluCreator(address, delulu);
   const isLoading =
@@ -385,24 +305,14 @@ export function StakingSheet({
     const amount = stakeAmountNum;
     if (isNaN(amount) || amount <= 0) return "Please enter a valid amount";
     if (amount < 1) return "Minimum stake is 1";
-    // Only check balance if it's loaded (not null) and we have a valid amount
     if (tokenBalance !== null && !isLoadingBalance && amount > tokenBalance)
       return "Insufficient balance";
     return null;
   })();
 
-  // Check if input should be red (has validation error and user has typed something)
   const hasInputError =
     validationError !== null && stakeAmount !== "" && stakeAmount !== "0";
 
-  // Button is enabled when:
-  // - Market token is defined (required for staking)
-  // - Not loading (including balance and position)
-  // - Has stake amount entered
-  // - Amount is at least 1
-  // - Not the creator
-  // - No validation errors
-  // - User hasn't already staked
   const canStake =
     !!marketToken &&
     !isLoading &&
