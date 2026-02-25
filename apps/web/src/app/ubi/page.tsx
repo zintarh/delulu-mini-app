@@ -174,12 +174,7 @@ export default function GoodDollarClaimPage() {
                       </div>
                     ) : hasClaimed ? (
                       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center space-y-1.5">
-                        <p className="text-sm font-semibold text-gray-800">
-                          You&apos;ve already claimed today.
-                        </p>
-                        <p className="text-sm font-semibold text-gray-800">
-                          Check back tomorrow!
-                        </p>
+                        
                         {nextClaimTime && (
                           <p className="text-sm font-medium text-gray-600">
                             Next claim:&nbsp;
