@@ -36,9 +36,10 @@ export function DateTimePicker({
       return;
     }
 
-    // Set to end of day (23:59:59) - industry standard for prediction markets
+    // Set to end of day (23:59:59 UTC) - industry standard for prediction markets
+    // Use UTC methods to avoid timezone issues
     const newDate = new Date(date);
-    newDate.setHours(23, 59, 59, 999);
+    newDate.setUTCHours(23, 59, 59, 999);
 
     setSelectedDate(newDate);
     onChange(newDate);

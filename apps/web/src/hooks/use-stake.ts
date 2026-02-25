@@ -1,11 +1,14 @@
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, usePublicClient, useAccount } from "wagmi";
 import { useChainId } from "wagmi";
 import { parseUnits, decodeErrorResult } from "viem";
+import { simulateContract } from "viem/actions";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useStake() {
   const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { address } = useAccount();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 
   const {
@@ -35,11 +38,31 @@ export function useStake() {
     try {
       const amountWei = parseUnits(amount.toString(), 18);
       const minPayout = 0n; // Minimum payout protection (0 = no protection)
+      const contractAddress = getDeluluContractAddress(chainId);
+      const args = [BigInt(deluluId), isBeliever, amountWei, minPayout] as const;
+
+      // Simulate the contract call first to get better error messages
+      if (publicClient && address) {
+        try {
+          await simulateContract(publicClient, {
+            address: contractAddress,
+            abi: DELULU_ABI,
+            functionName: "stakeOnDelulu",
+            args,
+            account: address as `0x${string}`,
+          });
+        } catch (simulateError) {
+          // If simulation fails, we get a better error message
+          handleStakeError(simulateError);
+          return;
+        }
+      }
+
       writeContract({
-        address: getDeluluContractAddress(chainId),
+        address: contractAddress,
         abi: DELULU_ABI,
         functionName: "stakeOnDelulu",
-        args: [BigInt(deluluId), isBeliever, amountWei, minPayout],
+        args,
       });
     } catch (err) {
       handleStakeError(err);
@@ -57,17 +80,22 @@ export function useStake() {
 }
 
 function handleStakeError(error: unknown): never {
+  // Log full error for debugging
+  console.error("[useStake] Full error object:", error);
+  
   const err = error as {
     message?: string;
     code?: number;
     shortMessage?: string;
     data?: string;
-    cause?: { data?: string };
+    cause?: any;
+    name?: string;
   };
 
   const msg = (err?.message?.toLowerCase() ?? "").trim();
   const shortMsg = (err?.shortMessage?.toLowerCase() ?? "").trim();
   const code = err?.code;
+  const errorName = err?.name;
 
   if (
     msg.includes("user rejected") ||
@@ -90,6 +118,7 @@ function handleStakeError(error: unknown): never {
   let errorData: string | undefined;
   const errorAny = err as Record<string, unknown>;
 
+  // Try to extract error data from various locations
   if (typeof errorAny?.data === "string" && (errorAny.data as string).startsWith("0x")) {
     errorData = errorAny.data as string;
   } else if (
@@ -97,6 +126,43 @@ function handleStakeError(error: unknown): never {
     ((errorAny.cause as Record<string, unknown>).data as string).startsWith("0x")
   ) {
     errorData = (errorAny.cause as Record<string, unknown>).data as string;
+  } else if (
+    typeof (errorAny?.cause as Record<string, unknown>)?.cause === "object" &&
+    typeof ((errorAny.cause as Record<string, unknown>).cause as Record<string, unknown>)?.data === "string"
+  ) {
+    const nestedCause = (errorAny.cause as Record<string, unknown>).cause as Record<string, unknown>;
+    if (typeof nestedCause.data === "string" && nestedCause.data.startsWith("0x")) {
+      errorData = nestedCause.data as string;
+    }
+  }
+
+  // Try to extract from deeper nested structures (viem simulation errors)
+  const extractErrorData = (obj: any, depth = 0): string | undefined => {
+    if (depth > 5) return undefined; // Prevent infinite recursion
+    if (!obj || typeof obj !== "object") return undefined;
+    
+    if (typeof obj.data === "string" && obj.data.startsWith("0x")) {
+      return obj.data;
+    }
+    
+    if (obj.cause) {
+      const fromCause = extractErrorData(obj.cause, depth + 1);
+      if (fromCause) return fromCause;
+    }
+    
+    // Check all properties
+    for (const key in obj) {
+      if (typeof obj[key] === "object" && obj[key] !== null) {
+        const found = extractErrorData(obj[key], depth + 1);
+        if (found) return found;
+      }
+    }
+    
+    return undefined;
+  };
+
+  if (!errorData) {
+    errorData = extractErrorData(errorAny);
   }
 
   if (errorData) {
@@ -107,15 +173,17 @@ function handleStakeError(error: unknown): never {
       });
 
       const errorMessages: Record<string, string> = {
-        DeluluNotFound: "Delulu not found",
+        DeluluNotFound: "Delulu not found. Please refresh and try again.",
         StakingIsClosed: "Staking deadline has passed",
         AlreadyResolved: "Delulu already resolved or cancelled",
-        StakeTooSmall: "Stake amount is too small (minimum 1 USDm)",
+        MarketCancelled: "This delulu has been cancelled",
+        StakeTooSmall: "Stake amount is too small (minimum 1 token)",
         StakeTooLarge: "Stake amount exceeds maximum limit",
         StakeLimitExceeded:
-          "You've reached the maximum stake limit for this delulu",
+          "You've reached the maximum stake limit for this delulu (100,000 tokens)",
         SlippageTooHigh:
           "Slippage protection: payout would be less than expected",
+        CannotSwitchSides: "You've already staked on the opposite side. You cannot switch sides.",
         SafeERC20FailedOperation:
           "Token transfer failed. Please check your balance and approval.",
       };
@@ -132,30 +200,85 @@ function handleStakeError(error: unknown): never {
     }
   }
 
+  // Extract error name from cause message (format: "Error: ErrorName()")
+  let extractedErrorName: string | undefined;
+  if (err?.cause) {
+    const causeMessage = (err.cause as any)?.message || "";
+    const causeMatch = causeMessage.match(/Error:\s*(\w+)\(\)/);
+    if (causeMatch && causeMatch[1]) {
+      extractedErrorName = causeMatch[1];
+    }
+  }
+
+  // Check if error name or message contains known error names
+  const allMessages = `${msg} ${shortMsg} ${errorName || ""} ${extractedErrorName || ""}`.toLowerCase();
+  
+  // Check for specific error names in the message
+  const errorNameMap: Record<string, string> = {
+    "delulunotfound": "Delulu not found. Please refresh and try again.",
+    "stakingisclosed": "Staking deadline has passed",
+    "alreadyresolved": "Delulu already resolved or cancelled",
+    "marketcancelled": "This delulu has been cancelled",
+    "staketoosmall": "Stake amount is too small (minimum 1 token)",
+    "staketoolarge": "Stake amount exceeds maximum limit",
+    "stakelimitexceeded": "You've reached the maximum stake limit for this delulu (100,000 tokens)",
+    "slippagetoothigh": "Slippage protection: payout would be less than expected",
+    "cannotswitchsides": "You've already staked on the opposite side. You cannot switch sides.",
+    "safeerc20failedoperation": "Token transfer failed. Please check your balance and approval.",
+  };
+
+  // First check extracted error name (most reliable)
+  if (extractedErrorName) {
+    const errorKey = extractedErrorName.toLowerCase();
+    if (errorNameMap[errorKey]) {
+      throw new Error(errorNameMap[errorKey]);
+    }
+  }
+
+  // Then check all messages
+  for (const [key, message] of Object.entries(errorNameMap)) {
+    if (allMessages.includes(key)) {
+      throw new Error(message);
+    }
+  }
+
   const combinedMsg = `${msg} ${shortMsg}`.toLowerCase();
   if (
     combinedMsg.includes("execution reverted") ||
     combinedMsg.includes("revert")
   ) {
-    if (combinedMsg.includes("deadline"))
+    if (combinedMsg.includes("deadline") || combinedMsg.includes("stakingisclosed"))
       throw new Error("Staking deadline has passed");
-    if (combinedMsg.includes("resolved"))
+    if (combinedMsg.includes("resolved") || combinedMsg.includes("alreadyresolved"))
       throw new Error("Delulu already resolved or cancelled");
-    if (combinedMsg.includes("cancelled"))
-      throw new Error("Delulu was cancelled");
+    if (combinedMsg.includes("cancelled") || combinedMsg.includes("marketcancelled"))
+      throw new Error("This delulu has been cancelled");
     if (
       combinedMsg.includes("insufficient") ||
-      combinedMsg.includes("balance")
+      combinedMsg.includes("balance") ||
+      combinedMsg.includes("safeerc20")
     ) {
       throw new Error(
-        "Insufficient balance or approval. Please check your USDm balance and ensure you've approved the contract."
+        "Insufficient balance or approval. Please check your token balance and ensure you've approved the contract."
       );
     }
     if (combinedMsg.includes("allowance") || combinedMsg.includes("approve")) {
       throw new Error(
-        "Token approval required. Please approve the contract to spend your USDm."
+        "Token approval required. Please approve the contract to spend your tokens."
       );
     }
+    if (combinedMsg.includes("cannotswitchsides") || combinedMsg.includes("switch sides")) {
+      throw new Error("You've already staked on the opposite side. You cannot switch sides.");
+    }
+    // Log the full error message for debugging
+    console.error("[useStake] Generic revert error:", {
+      message: err?.message,
+      shortMessage: err?.shortMessage,
+      name: err?.name,
+      code: err?.code,
+      data: err?.data,
+      cause: err?.cause,
+    });
     throw new Error(
       "Transaction failed. Please check your balance, approval, and try again."
     );

@@ -58,6 +58,54 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
   // Filter out farcaster from the list for the dropdown
   const browserConnectors = connectors.filter((c) => c.id !== "farcaster");
 
+  const getConnectorLabel = (connector: (typeof connectors)[number]) => {
+    if (
+      connector.id === "walletConnect" ||
+      connector.id.toLowerCase().includes("walletconnect")
+    ) {
+      return "WalletConnect";
+    }
+    return connector.name;
+  };
+
+  const getConnectorIcon = (connector: (typeof connectors)[number]) => {
+    // Use custom WalletConnect logo if it's WalletConnect
+    if (
+      connector.id === "walletConnect" ||
+      connector.id.toLowerCase().includes("walletconnect")
+    ) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/wallet-connect.png"
+          alt="WalletConnect"
+          className="w-4 h-4 rounded-full object-cover"
+        />
+      );
+    }
+
+    // For other connectors, try to get their icon from metadata
+    const anyConnector = connector as any;
+    const iconUrl: string | undefined =
+      anyConnector?.icon ??
+      anyConnector?.iconUrl ??
+      anyConnector?.iconDark ??
+      anyConnector?.iconLight;
+
+    if (iconUrl) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={iconUrl}
+          alt={connector.name}
+          className="w-4 h-4 rounded-full object-cover"
+        />
+      );
+    }
+
+    return <Wallet className="w-4 h-4" />;
+  };
+
   const handleConnect = () => {
     if (isFarcasterEnv && frameConnector) {
       connect({ connector: frameConnector });
@@ -116,9 +164,8 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
                   }}
                   className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-black/20 rounded-lg transition-colors flex items-center gap-3"
                 >
-                  {/* You can add icons here based on connector.id if you want */}
-                  <Wallet className="w-4 h-4" />
-                  {connector.name}
+                  {getConnectorIcon(connector)}
+                  {getConnectorLabel(connector)}
                 </button>
               ))
             )}

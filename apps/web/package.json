@@ -27,6 +27,7 @@
     "@farcaster/quick-auth": "latest",
     "@goodsdks/citizen-sdk": "^1.2.3",
     "@goodsdks/identity-sdk": "^1.0.5",
+    "canvas-confetti": "^1.9.3",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@prisma/client": "^6.9.0",
     "@radix-ui/react-dialog": "^1.0.5",

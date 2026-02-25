@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
-import { LoginScreen } from "@/components/login-screen";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { StakingSheet } from "@/components/staking-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
+import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
@@ -49,6 +49,7 @@ export default function HomePage() {
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
   const [isScrolling, setIsScrolling] = useState(false);
+  const [showLoginSheet, setShowLoginSheet] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Infinite scroll detection
@@ -137,17 +138,25 @@ export default function HomePage() {
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
 
-  if (!isConnected) {
-    return <LoginScreen />;
-  }
-
   return (
     <div className="h-screen  overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => router.push("/profile")}
-            onCreateClick={() => router.push("/board")}
+            onProfileClick={() => {
+              if (!isConnected) {
+                setShowLoginSheet(true);
+              } else {
+                router.push("/profile");
+              }
+            }}
+            onCreateClick={() => {
+              if (!isConnected) {
+                setShowLoginSheet(true);
+              } else {
+                router.push("/board");
+              }
+            }}
           />
         </div>
 
@@ -157,7 +166,13 @@ export default function HomePage() {
         >
           <div className="lg:hidden">
             <Navbar
-              onProfileClick={() => router.push("/profile")}
+              onProfileClick={() => {
+                if (!isConnected) {
+                  setShowLoginSheet(true);
+                } else {
+                  router.push("/profile");
+                }
+              }}
               activeTab={activeTab}
               onTabChange={setActiveTab}
             />
@@ -212,8 +227,12 @@ export default function HomePage() {
                       delusion={delusion}
                       href={`/delulu/${delusion.id}`}
                       onStake={() => {
-                        setSelectedDelulu(delusion);
-                        setStakingSheetOpen(true);
+                        if (!isConnected) {
+                          setShowLoginSheet(true);
+                        } else {
+                          setSelectedDelulu(delusion);
+                          setStakingSheetOpen(true);
+                        }
                       }}
                       isLast={index === filteredDelulus.length - 1}
                     />
@@ -259,7 +278,13 @@ export default function HomePage() {
       </div>
 
       <button
-        onClick={() => router.push("/board")}
+        onClick={() => {
+          if (!isConnected) {
+            setShowLoginSheet(true);
+          } else {
+            router.push("/board");
+          }
+        }}
         className="lg:hidden fixed bottom-6 right-6 w-16 h-16 rounded-md bg-delulu-yellow-reserved text-delulu-charcoal flex items-center justify-center border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:scale-110 transition-all duration-300 z-40"
         title="Create"
         aria-label="Create"
@@ -293,6 +318,11 @@ export default function HomePage() {
       <ClaimRewardsSheet
         open={claimRewardsSheetOpen}
         onOpenChange={setClaimRewardsSheetOpen}
+      />
+
+      <ConnectorSelectionSheet
+        open={showLoginSheet}
+        onOpenChange={setShowLoginSheet}
       />
     </div>
   );

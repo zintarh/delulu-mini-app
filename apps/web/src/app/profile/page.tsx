@@ -7,6 +7,7 @@ import { useGraphUserDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
 import { StakingSheet } from "@/components/staking-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
+import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { formatAddress } from "@/lib/utils";
 import { ArrowLeft, LogOut, Coins } from "lucide-react";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
@@ -26,6 +27,7 @@ export default function ProfilePage() {
   );
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
+  const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const {
     delulus,
@@ -75,17 +77,12 @@ export default function ProfilePage() {
     };
   }, [hasNextPage, isFetchingNextPage, isLoadingDelulus, fetchNextPage]);
 
-  if (!isConnected) {
-    return (
-      <div className="border-t-2 border-gray-200 h-screen p-0 rounded-t-3xl bg-white max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="relative h-full flex flex-col items-center justify-center px-6 lg:h-auto lg:min-h-[200px]">
-          <p className="text-gray-500">
-            Please connect your wallet to view your profile
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Show login prompt if not connected
+  useEffect(() => {
+    if (!isConnected) {
+      setShowLoginSheet(true);
+    }
+  }, [isConnected]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -259,6 +256,17 @@ export default function ProfilePage() {
           useUserStore.getState().logout();
           setLogoutSheetOpen(false);
           router.push("/");
+        }}
+      />
+
+      <ConnectorSelectionSheet
+        open={showLoginSheet}
+        onOpenChange={(open) => {
+          setShowLoginSheet(open);
+          // If login sheet is closed and still not connected, go back
+          if (!open && !isConnected) {
+            router.back();
+          }
         }}
       />
     </div>

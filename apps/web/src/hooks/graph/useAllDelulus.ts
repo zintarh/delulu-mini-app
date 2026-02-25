@@ -32,7 +32,7 @@ export function useAllDelulus() {
       first: PAGE_SIZE,
       skip: 0,
     },
-    fetchPolicy: "network-only",
+    fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
 
