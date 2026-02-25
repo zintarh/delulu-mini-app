@@ -15,10 +15,7 @@ import { StakeErrorSheet } from "@/components/stake-error-sheet";
 import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
-import { useAccount, usePublicClient, useChainId } from "wagmi";
-import { readContract } from "viem/actions";
-import { getDeluluContractAddress } from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
+import { useAccount } from "wagmi";
 import type { StakeSide } from "@/lib/types";
 
 interface StakingSheetProps {
@@ -33,8 +30,6 @@ export function StakingSheet({
   delulu,
 }: StakingSheetProps) {
   const { address } = useAccount();
-  const publicClient = usePublicClient();
-  const chainId = useChainId();
   const apolloClient = useApolloClient();
   const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
@@ -79,9 +74,11 @@ export function StakingSheet({
   const deluluIdForPosition = delulu?.onChainId 
     ? parseInt(delulu.onChainId, 10) 
     : delulu?.id || null;
-  const { hasStaked, isLoading: isLoadingPosition } = useUserPosition(
-    deluluIdForPosition
-  );
+  const {
+    hasStaked,
+    isBeliever: userIsBeliever,
+    isLoading: isLoadingPosition,
+  } = useUserPosition(deluluIdForPosition);
 
   // Reset form when sheet opens or closes
   useEffect(() => {
@@ -121,16 +118,7 @@ export function StakingSheet({
   // Handle errors
   useEffect(() => {
     if (stakeError) {
-      // Log full error for debugging
-      console.error("[StakingSheet] Stake error:", {
-        error: stakeError,
-        message: stakeError.message,
-        shortMessage: (stakeError as any)?.shortMessage,
-        code: (stakeError as any)?.code,
-        data: (stakeError as any)?.data,
-        cause: (stakeError as any)?.cause,
-      });
-
+   
       let errorMsg = "Failed to stake";
       const errorMessage = stakeError.message || (stakeError as any)?.shortMessage || "";
       const errorLower = errorMessage.toLowerCase();
@@ -175,8 +163,29 @@ export function StakingSheet({
     }
   }, [stakeError, delulu?.id]);
 
+  // When user re-opens staking after already staking, show a celebratory confetti
+  useEffect(() => {
+    if (!open || !hasStaked) return;
 
-  console.log(delulu)
+    (async () => {
+      try {
+        const confettiModule = await import("canvas-confetti");
+        const confetti = confettiModule.default || confettiModule;
+        if (typeof confetti === "function") {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#22c55e", "#0ea5e9", "#f97316", "#a855f7"],
+          });
+        }
+      } catch {
+        // Confetti is purely visual; ignore failures
+      }
+    })();
+  }, [open, hasStaked]);
+
+
 
   useEffect(() => {
     if (approvalError) {
@@ -341,14 +350,17 @@ export function StakingSheet({
         modalClassName="max-w-lg"
       >
         <div className="max-w-lg mx-auto pt-8 pb-8 px-6 lg:pt-6">
-          {/* Show message if user has already staked */}
+          {/* If user has already staked, show summary instead of staking UI */}
           {hasStaked ? (
-            <div className="text-center py-8">
-              <p className="text-lg font-bold text-delulu-charcoal mb-2">
-                You&apos;ve already staked on this delulu
+            <div className="text-center py-10 space-y-3">
+              <p className="text-xs tracking-[0.35em] uppercase text-gray-400">
+                Staked as
               </p>
-              <p className="text-sm text-gray-500">
-                You can only stake once per delulu
+              <p className="text-2xl font-black text-delulu-charcoal">
+                {userIsBeliever ? "Believer" : "Doubter"}
+              </p>
+              <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                You can only stake once per delulu. You&apos;re already locked in on this side of the market.
               </p>
             </div>
           ) : (
@@ -471,7 +483,6 @@ export function StakingSheet({
                   </span>
                 ) : isApprovalSuccess ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5" />
                     Continue
                   </span>
                 ) : (

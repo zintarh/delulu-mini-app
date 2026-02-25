@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
-import { StakingSheet } from "@/components/staking-sheet";
+import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { formatAddress } from "@/lib/utils";
@@ -242,7 +242,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <StakingSheet
+      <StakeFlowSheet
         open={stakingSheetOpen}
         onOpenChange={setStakingSheetOpen}
         delulu={selectedDelulu}

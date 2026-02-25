@@ -14,7 +14,7 @@ export function useUserPosition(deluluId: number | null) {
   } = useReadContract({
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
-    functionName: "getUserPosition",
+    functionName: "userStakes",
     args:
       deluluId !== null && address ? [BigInt(deluluId), address] : undefined,
     query: {

@@ -21,7 +21,7 @@ import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import type { StakeSide } from "@/lib/types";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { VerificationSheet } from "@/components/verification-sheet";
-import { StakingSheet } from "@/components/staking-sheet";
+import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import {
@@ -988,7 +988,7 @@ export default function DeluluPage() {
       )} */}
 
       {/* Staking Sheet */}
-      <StakingSheet
+      <StakeFlowSheet
         open={stakingSheetOpen}
         onOpenChange={setStakingSheetOpen}
         delulu={delulu}
