@@ -37,18 +37,20 @@ export function useStake() {
 
     try {
       const amountWei = parseUnits(amount.toString(), 18);
-      const minPayout = 0n; // Minimum payout protection (0 = no protection)
+      const minPayout = 0n;
       const contractAddress = getDeluluContractAddress(chainId);
       const args = [BigInt(deluluId), isBeliever, amountWei, minPayout] as const;
 
-      // Simulate the contract call first to get better error messages
+
+      console.log(args)
+
       if (publicClient && address) {
         try {
           await simulateContract(publicClient, {
             address: contractAddress,
             abi: DELULU_ABI,
             functionName: "stakeOnDelulu",
-            args,
+            args: [deluluId, isBeliever, amountWei, minPayout],
             account: address as `0x${string}`,
           });
         } catch (simulateError) {
@@ -58,12 +60,12 @@ export function useStake() {
         }
       }
 
-      writeContract({
-        address: contractAddress,
-        abi: DELULU_ABI,
-        functionName: "stakeOnDelulu",
-        args,
-      });
+      // writeContract({
+      //   address: contractAddress,
+      //   abi: DELULU_ABI,
+      //   functionName: "stakeOnDelulu",
+      //   args,
+      // });
     } catch (err) {
       handleStakeError(err);
     }

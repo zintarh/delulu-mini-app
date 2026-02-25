@@ -21,10 +21,9 @@ const PAGE_SIZE = 20;
 
 export function useAllDelulus() {
   const [page, setPage] = useState(0);
-  const [allDelulus, setAllDelulus] = useState<FormattedDelulu[]>([]);
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
-  const { data, loading, error, fetchMore, refetch: apolloRefetch } = useQuery<
+  const { data, loading, error, fetchMore, refetch: apolloRefetch, previousData } = useQuery<
     GetDelulusQuery,
     GetDelulusQueryVariables
   >(GetDelulusDocument, {
@@ -36,48 +35,25 @@ export function useAllDelulus() {
     notifyOnNetworkStatusChange: true,
   });
 
-  const rawDelulus = useMemo(() => {
-    if (!data?.delulus || data.delulus.length === 0) {
-      return [];
-    }
+  // Use current data, or fallback to previousData while loading to prevent flickering
+  const displayData = data?.delulus || previousData?.delulus || [];
 
-    try {
-      return data.delulus
-        .map((d) => {
-          try {
-            const cached = getCachedContent(d.contentHash);
-            return transformSubgraphDelulu(d as SubgraphDeluluRaw, cached);
-          } catch {
-            return null;
-          }
-        })
-        .filter((d): d is FormattedDelulu => d !== null)
-        .filter((d) => !d.isCancelled);
-    } catch {
-      return [];
-    }
-  }, [data?.delulus, ipfsResolved]);
+  const delulus = useMemo(() => {
+    if (displayData.length === 0) return [];
 
-  // Accumulate delulus across pages
-  useEffect(() => {
-    if (page === 0) {
-      // First page - replace all
-      setAllDelulus(rawDelulus);
-    } else {
-      // Pagination - append new items
-      setAllDelulus((prev) => {
-        const seenIds = new Set(prev.map((d) => d.onChainId || `${d.id}`));
-        const newItems = rawDelulus.filter(
-          (d) => !seenIds.has(d.onChainId || `${d.id}`)
-        );
-        return newItems.length > 0 ? [...prev, ...newItems] : prev;
-      });
-    }
-  }, [rawDelulus, page]);
+    return displayData
+      .map((d) => {
+        try {
+          const cached = getCachedContent(d.contentHash);
+          return transformSubgraphDelulu(d as SubgraphDeluluRaw, cached);
+        } catch {
+          return null;
+        }
+      })
+      .filter((d): d is FormattedDelulu => d !== null && !d.isCancelled);
+  }, [displayData, ipfsResolved]);
 
-
-
-
+  // IPFS Resolution Logic
   useEffect(() => {
     if (!data?.delulus || data.delulus.length === 0) return;
     const hashes = data.delulus.map((d) => d.contentHash);
@@ -91,23 +67,21 @@ export function useAllDelulus() {
     setPage(nextPage);
     fetchMore({
       variables: {
-        first: PAGE_SIZE,
         skip: nextPage * PAGE_SIZE,
       },
     });
   }, [page, fetchMore]);
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback(async () => {
     setPage(0);
-    setAllDelulus([]);
-    apolloRefetch();
+    await apolloRefetch({ first: PAGE_SIZE, skip: 0 });
   }, [apolloRefetch]);
 
-  const hasNextPage = data?.delulus !== undefined && data.delulus.length === PAGE_SIZE;
+  const hasNextPage = data?.delulus !== undefined && data.delulus.length >= PAGE_SIZE;
 
   return {
-    delulus: allDelulus,
-    isLoading: loading && page === 0,
+    delulus, // Now always stable
+    isLoading: loading && !data && !previousData, // Only true on absolute first load
     isFetchingNextPage: loading && page > 0,
     hasNextPage,
     fetchNextPage,
