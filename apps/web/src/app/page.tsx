@@ -8,7 +8,7 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { DeluluCard } from "@/components/delulu-card";
-import { StakingSheet } from "@/components/staking-sheet";
+import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
@@ -298,7 +298,7 @@ export default function HomePage() {
         type={howItWorksType}
       />
 
-      <StakingSheet
+      <StakeFlowSheet
         open={stakingSheetOpen}
         onOpenChange={setStakingSheetOpen}
         delulu={selectedDelulu}

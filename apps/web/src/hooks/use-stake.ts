@@ -1,14 +1,11 @@
-import { useWriteContract, useWaitForTransactionReceipt, usePublicClient, useAccount } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useChainId } from "wagmi";
 import { parseUnits, decodeErrorResult } from "viem";
-import { simulateContract } from "viem/actions";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useStake() {
   const chainId = useChainId();
-  const publicClient = usePublicClient();
-  const { address } = useAccount();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 
   const {
@@ -39,33 +36,13 @@ export function useStake() {
       const amountWei = parseUnits(amount.toString(), 18);
       const minPayout = 0n;
       const contractAddress = getDeluluContractAddress(chainId);
-      const args = [BigInt(deluluId), isBeliever, amountWei, minPayout] as const;
 
-
-      console.log(args)
-
-      if (publicClient && address) {
-        try {
-          await simulateContract(publicClient, {
-            address: contractAddress,
-            abi: DELULU_ABI,
-            functionName: "stakeOnDelulu",
-            args: [deluluId, isBeliever, amountWei, minPayout],
-            account: address as `0x${string}`,
-          });
-        } catch (simulateError) {
-          // If simulation fails, we get a better error message
-          handleStakeError(simulateError);
-          return;
-        }
-      }
-
-      // writeContract({
-      //   address: contractAddress,
-      //   abi: DELULU_ABI,
-      //   functionName: "stakeOnDelulu",
-      //   args,
-      // });
+      writeContract({
+        address: contractAddress,
+        abi: DELULU_ABI,
+        functionName: "stakeOnDelulu",
+        args: [BigInt(deluluId), isBeliever, amountWei, minPayout],
+      });
     } catch (err) {
       handleStakeError(err);
     }

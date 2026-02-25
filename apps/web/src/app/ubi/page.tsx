@@ -17,12 +17,12 @@ export default function GoodDollarClaimPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
   const {
-    isLoading,
     isClaiming,
     entitlement,
     hasClaimed,
     nextClaimTime,
     claim,
+    isInitialized,
   } = useGoodDollarClaim();
 
   const {
@@ -145,7 +145,7 @@ export default function GoodDollarClaimPage() {
                             {/* Entitlement from SDK is the *next* amount you can claim, not what you've already claimed */}
                             Entitlement
                           </p>
-                          {isLoading ? (
+                          {!isInitialized ? (
                             <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
                           ) : (
                             <p className="text-lg font-black text-delulu-charcoal">
@@ -158,23 +158,16 @@ export default function GoodDollarClaimPage() {
                         </div>
                         {!hasClaimed && entitlement > 0n && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                            <span className="w-2 h-2 rounded-full bg-green-600" />
-                            Ready
+                            <span className="w-2 h-2 rounded-full " />
+                            Daily claim available
                           </span>
                         )}
                       </div>
                     )}
 
-                    {/* Loading State */}
-                    {isLoading || isIdentityLoading ? (
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
-                        <p className="text-xs text-gray-500">
-                          Initializing GoodDollar SDK...
-                        </p>
-                      </div>
-                    ) : hasClaimed ? (
+                    {/* Only render button/next claim when all checks are complete */}
+                    {!isInitialized ? null : hasClaimed ? (
                       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center space-y-1.5">
-                        
                         {nextClaimTime && (
                           <p className="text-sm font-medium text-gray-600">
                             Next claim:&nbsp;

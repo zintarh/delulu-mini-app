@@ -39,6 +39,7 @@ export interface UseGoodDollarClaimReturn {
   nextClaimTime: Date | null;
   claim: () => Promise<void>;
   error: Error | null;
+  isInitialized: boolean;
 }
 
 export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
@@ -55,6 +56,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [hasClaimed, setHasClaimed] = useState(false);
   const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -161,14 +163,25 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
 
 
-  // Initial whitelisted check on mount and refresh claim status
+  // Initialize SDK and check status on mount (silently, no loading state shown to user)
   useEffect(() => {
+    if (isLoading) {
+      setIsInitialized(false);
+      return;
+    }
+
     (async () => {
-      const whitelisted = await checkWhitelisted();
-      setIsWhitelisted(whitelisted);
-      await checkClaimStatus();
+      try {
+        const whitelisted = await checkWhitelisted();
+        setIsWhitelisted(whitelisted);
+        await checkClaimStatus();
+        setIsInitialized(true);
+      } catch (err) {
+        // Silently handle errors during initialization
+        setIsInitialized(true); // Still mark as initialized to avoid blocking UI
+      }
     })();
-  }, [checkWhitelisted, checkClaimStatus]);
+  }, [isLoading, checkWhitelisted, checkClaimStatus]);
 
   // Poll claim status periodically to keep it updated
   useEffect(() => {
@@ -277,5 +290,6 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     nextClaimTime,
     claim,
     error,
+    isInitialized, // Track when all checks are complete
   };
 }
