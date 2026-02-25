@@ -12,11 +12,13 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { StakeSuccessSheet } from "@/components/stake-success-sheet";
 import { StakeErrorSheet } from "@/components/stake-error-sheet";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient, useChainId } from "wagmi";
+import { readContract } from "viem/actions";
+import { getDeluluContractAddress } from "@/lib/constant";
+import { DELULU_ABI } from "@/lib/abi";
 import type { StakeSide } from "@/lib/types";
 
 interface StakingSheetProps {
@@ -30,7 +32,9 @@ export function StakingSheet({
   onOpenChange,
   delulu,
 }: StakingSheetProps) {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  const chainId = useChainId();
   const apolloClient = useApolloClient();
   const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
@@ -38,7 +42,6 @@ export function StakingSheet({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [stakedAmount, setStakedAmount] = useState(0);
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const marketToken = delulu?.tokenAddress || undefined;
   
@@ -72,19 +75,17 @@ export function StakingSheet({
   } = useStake();
 
   // Check if user has already staked on this delulu
+  // Use onChainId if available (contract expects on-chain ID), otherwise fall back to id
+  const deluluIdForPosition = delulu?.onChainId 
+    ? parseInt(delulu.onChainId, 10) 
+    : delulu?.id || null;
   const { hasStaked, isLoading: isLoadingPosition } = useUserPosition(
-    delulu?.id || null
+    deluluIdForPosition
   );
 
   // Reset form when sheet opens or closes
   useEffect(() => {
     if (open) {
-      // If not connected, show login sheet and close staking sheet
-      if (!isConnected) {
-        setShowLoginSheet(true);
-        onOpenChange(false);
-        return;
-      }
       // Clear errors when sheet opens
       setShowErrorModal(false);
       setErrorMessage("");
@@ -98,7 +99,7 @@ export function StakingSheet({
       setStakedAmount(0);
       setSide("believe");
     }
-  }, [open, isConnected, onOpenChange]);
+  }, [open]);
 
   // Handle success
   useEffect(() => {
@@ -120,31 +121,55 @@ export function StakingSheet({
   // Handle errors
   useEffect(() => {
     if (stakeError) {
+      // Log full error for debugging
+      console.error("[StakingSheet] Stake error:", {
+        error: stakeError,
+        message: stakeError.message,
+        shortMessage: (stakeError as any)?.shortMessage,
+        code: (stakeError as any)?.code,
+        data: (stakeError as any)?.data,
+        cause: (stakeError as any)?.cause,
+      });
+
       let errorMsg = "Failed to stake";
-      if (stakeError.message) {
-        const errorLower = stakeError.message.toLowerCase();
-        if (
-          errorLower.includes("user rejected") ||
-          errorLower.includes("user denied")
-        ) {
-          errorMsg = "Transaction was cancelled";
-        } else if (errorLower.includes("insufficient")) {
-          errorMsg = "Insufficient balance";
-        } else if (errorLower.includes("deadline")) {
-          errorMsg = "Staking deadline has passed";
-        } else if (errorLower.includes("resolved")) {
-          errorMsg = "This delulu has already been resolved";
-        } else if (errorLower.includes("cancelled")) {
-          errorMsg = "This delulu has been cancelled";
-        } else if (errorLower.includes("creator")) {
-          errorMsg = "Creators cannot stake on their own delulu";
-        } else {
-          errorMsg =
-            stakeError.message.length > 100
-              ? "Staking failed. Please try again."
-              : stakeError.message;
-        }
+      const errorMessage = stakeError.message || (stakeError as any)?.shortMessage || "";
+      const errorLower = errorMessage.toLowerCase();
+
+      if (
+        errorLower.includes("user rejected") ||
+        errorLower.includes("user denied") ||
+        (stakeError as any)?.code === 4001
+      ) {
+        errorMsg = "Transaction was cancelled";
+      } else if (errorLower.includes("insufficient")) {
+        errorMsg = "Insufficient balance or approval. Please check your balance and ensure you've approved the contract.";
+      } else if (errorLower.includes("deadline") || errorLower.includes("staking is closed")) {
+        errorMsg = "Staking deadline has passed";
+      } else if (errorLower.includes("resolved") || errorLower.includes("already resolved")) {
+        errorMsg = "This delulu has already been resolved";
+      } else if (errorLower.includes("cancelled") || errorLower.includes("was cancelled")) {
+        errorMsg = "This delulu has been cancelled";
+      } else if (errorLower.includes("creator") || errorLower.includes("cannot stake")) {
+        errorMsg = "Creators cannot stake on their own delulu";
+      } else if (errorLower.includes("not found") || errorLower.includes("delulu not found")) {
+        errorMsg = "Delulu not found. Please refresh and try again.";
+      } else if (errorLower.includes("too small") || errorLower.includes("minimum")) {
+        errorMsg = "Stake amount is too small. Minimum stake is 1 token.";
+      } else if (errorLower.includes("allowance") || errorLower.includes("approval") || errorLower.includes("approve")) {
+        errorMsg = "Token approval required. Please approve the contract to spend your tokens.";
+      } else if (errorLower.includes("slippage")) {
+        errorMsg = "Slippage protection: payout would be less than expected. Try a smaller amount.";
+      } else if (errorLower.includes("limit exceeded") || errorLower.includes("maximum")) {
+        errorMsg = "You've reached the maximum stake limit for this delulu.";
+      } else if (errorLower.includes("execution reverted") || errorLower.includes("revert")) {
+        errorMsg = "Transaction failed. Please check your balance, approval, and try again.";
+      } else if (errorMessage && errorMessage.length > 0 && errorMessage.length <= 200) {
+        // Use the actual error message if it's reasonable length
+        errorMsg = errorMessage;
+      } else {
+        errorMsg = "Staking failed. Please check your balance, approval, and try again.";
       }
+
       setErrorMessage(errorMsg);
       setShowErrorModal(true);
     }
@@ -187,12 +212,99 @@ export function StakingSheet({
       return;
     }
 
+    // Debug: Log deadline information and fetch on-chain data
+    if (process.env.NODE_ENV === "development" && publicClient) {
+      const now = new Date();
+      const deadline = delulu.stakingDeadline;
+      const nowTimestamp = Math.floor(now.getTime() / 1000);
+      const deadlineTimestamp = Math.floor(deadline.getTime() / 1000);
+      const timeRemaining = deadlineTimestamp - nowTimestamp;
+      
+      // Fetch on-chain deadline and block timestamp
+      const deluluId = delulu.onChainId 
+        ? parseInt(delulu.onChainId, 10) 
+        : delulu.id;
+      
+      if (deluluId && !isNaN(deluluId) && deluluId > 0) {
+        Promise.all([
+          readContract(publicClient, {
+            address: getDeluluContractAddress(chainId),
+            abi: DELULU_ABI,
+            functionName: "getDelulu",
+            args: [BigInt(deluluId)],
+          }) as Promise<{
+            id: bigint;
+            creator: `0x${string}`;
+            token: `0x${string}`;
+            contentHash: string;
+            stakingDeadline: bigint;
+            resolutionDeadline: bigint;
+            totalBelieverStake: bigint;
+            totalDoubterStake: bigint;
+            outcome: boolean;
+            isResolved: boolean;
+            isCancelled: boolean;
+          }>,
+          publicClient.getBlock().then(block => block.timestamp),
+        ]).then(([onChainDelulu, blockTimestamp]) => {
+          const onChainDeadline = Number(onChainDelulu.stakingDeadline);
+          const blockTime = Number(blockTimestamp);
+          const onChainDeadlineDate = new Date(onChainDeadline * 1000);
+          
+          console.log("🔍 [StakingSheet] Deadline comparison:", {
+            frontend: {
+              now: now.toISOString(),
+              deadline: deadline.toISOString(),
+              nowTimestamp,
+              deadlineTimestamp,
+              timeRemainingSeconds: timeRemaining,
+              isDeadlinePassed: nowTimestamp >= deadlineTimestamp,
+            },
+            onChain: {
+              blockTimestamp: blockTime,
+              blockTimeDate: new Date(blockTime * 1000).toISOString(),
+              onChainDeadline: onChainDeadline,
+              onChainDeadlineDate: onChainDeadlineDate.toISOString(),
+              isDeadlinePassedOnChain: blockTime >= onChainDeadline,
+              difference: onChainDeadline - deadlineTimestamp,
+              differenceHours: (onChainDeadline - deadlineTimestamp) / 3600,
+            },
+          });
+          
+          // Warn if there's a mismatch
+          if (onChainDeadline !== deadlineTimestamp) {
+            console.warn("⚠️ [StakingSheet] Deadline mismatch detected!", {
+              frontendDeadline: deadlineTimestamp,
+              onChainDeadline: onChainDeadline,
+              differenceSeconds: onChainDeadline - deadlineTimestamp,
+              differenceHours: (onChainDeadline - deadlineTimestamp) / 3600,
+            });
+          }
+          
+          // Warn if block time is ahead
+          if (blockTime > nowTimestamp + 60) {
+            console.warn("⚠️ [StakingSheet] Block timestamp is ahead of system time!", {
+              systemTime: nowTimestamp,
+              blockTime: blockTime,
+              differenceSeconds: blockTime - nowTimestamp,
+            });
+          }
+        }).catch(err => {
+          console.error("❌ [StakingSheet] Error fetching on-chain data:", err);
+        });
+      }
+    }
+
+    // Use onChainId if available (contract expects on-chain ID), otherwise fall back to id
+    const deluluId = delulu.onChainId 
+      ? parseInt(delulu.onChainId, 10) 
+      : delulu.id;
     
-    const deluluId = delulu.id;
     if (!deluluId || isNaN(deluluId) || deluluId <= 0) {
       console.error("[StakingSheet] Invalid delulu ID:", {
         id: delulu.id,
         onChainId: delulu.onChainId,
+        computedId: deluluId,
       });
       setErrorMessage("Invalid delulu ID. Please refresh and try again.");
       setShowErrorModal(true);
@@ -300,6 +412,7 @@ export function StakingSheet({
     !validationError &&
     !hasStaked;
 
+ 
   if (!delulu) return null;
 
   const isBeliever = side === "believe";
@@ -378,7 +491,7 @@ export function StakingSheet({
                     {tokenBalance !== null && marketToken && (
                       <span className="text-xs text-gray-500 inline-flex items-center gap-1">
                         Balance: {tokenBalance.toFixed(2)}{" "}
-                        <TokenBadge tokenAddress={marketToken} size="sm" />
+                        <TokenBadge tokenAddress={marketToken} size="lg" showText={false} />
                       </span>
                     )}
                   </div>
@@ -416,11 +529,7 @@ export function StakingSheet({
                       MAX
                     </button>
                   </div>
-                  {marketToken && (
-                    <div className="mt-2 flex items-center justify-between">
-                      <TokenBadge tokenAddress={marketToken} size="sm" />
-                    </div>
-                  )}
+                  
                 </div>
               </div>
 
@@ -487,12 +596,6 @@ export function StakingSheet({
         open={showErrorModal}
         onOpenChange={setShowErrorModal}
         errorMessage={errorMessage}
-      />
-
-      {/* Login Sheet */}
-      <ConnectorSelectionSheet
-        open={showLoginSheet}
-        onOpenChange={setShowLoginSheet}
       />
     </>
   );

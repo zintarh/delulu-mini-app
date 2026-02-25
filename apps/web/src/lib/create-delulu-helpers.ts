@@ -31,8 +31,8 @@ export interface ProgressStep {
 // Date helpers
 export function getDefaultDeadline(): Date {
   const date = new Date();
-  date.setDate(date.getDate() + 7);
-  date.setHours(23, 59, 59, 999); // End of day - industry standard for prediction markets
+  date.setUTCDate(date.getUTCDate() + 7);
+  date.setUTCHours(23, 59, 59, 999); // End of day UTC - industry standard for prediction markets
   return date;
 }
 

@@ -28,7 +28,24 @@ export function timestampToDate(
   timestampStr: string | undefined | null
 ): Date {
   if (!timestampStr || timestampStr === "0") return new Date(0);
-  return new Date(Number(timestampStr) * 1000);
+  const timestamp = Number(timestampStr);
+  const date = new Date(timestamp * 1000);
+  
+  // Debug logging in development to catch conversion issues
+  if (process.env.NODE_ENV === "development" && timestamp > 0) {
+    const expectedTimestamp = Math.floor(date.getTime() / 1000);
+    if (Math.abs(expectedTimestamp - timestamp) > 1) {
+      console.warn("[timestampToDate] Potential conversion issue:", {
+        input: timestampStr,
+        parsedTimestamp: timestamp,
+        createdDate: date.toISOString(),
+        revertedTimestamp: expectedTimestamp,
+        difference: expectedTimestamp - timestamp,
+      });
+    }
+  }
+  
+  return date;
 }
 
 // ─── Subgraph → FormattedDelulu ─────────────────────────────────

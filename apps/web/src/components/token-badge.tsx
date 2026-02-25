@@ -9,7 +9,7 @@ interface TokenBadgeProps {
   className?: string;
   showLogo?: boolean;
   showText?: boolean;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }
 
 export function TokenBadge({
@@ -26,7 +26,9 @@ export function TokenBadge({
   const sizeClasses =
     size === "sm"
       ? "text-[10px] px-1.5 py-0.5 gap-1"
-      : "text-xs px-2 py-1 gap-1.5";
+      : size === "md"
+      ? "text-xs px-2 py-1 gap-1.5"
+      : "text-sm px-2.5 py-1.5 gap-2";
 
   if (!showLogo || !logoUrl) {
     return null;
@@ -44,7 +46,13 @@ export function TokenBadge({
       <img
         src={logoUrl}
         alt=""
-        className={size === "sm" ? "h-3 w-3 rounded-full" : "h-4 w-4 rounded-full"}
+        className={
+          size === "sm"
+            ? "h-3 w-3 rounded-full"
+            : size === "md"
+            ? "h-4 w-4 rounded-full"
+            : "h-6 w-6 rounded-full"
+        }
       />
       {showText && <span>{symbol}</span>}
     </span>

@@ -663,7 +663,6 @@ export default function DeluluPage() {
                   <p className="text-xs font-black text-gray-500">Believe</p>
                 </div>
                 <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" showText={false} />}
                   {calculatedStats.totalBelieverStake > 0
                     ? calculatedStats.totalBelieverStake < 0.01
                       ? calculatedStats.totalBelieverStake.toFixed(4)
@@ -677,7 +676,6 @@ export default function DeluluPage() {
                   <p className="text-xs font-black text-gray-500">Doubt</p>
                 </div>
                 <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" showText={false} />}
                   {calculatedStats.totalDoubterStake > 0
                     ? calculatedStats.totalDoubterStake < 0.01
                       ? calculatedStats.totalDoubterStake.toFixed(4)
@@ -804,7 +802,7 @@ export default function DeluluPage() {
 
         {/* Leaderboard - Only show if there's data or loading */}
         {(isLoadingStakes || leaderboard.length > 0) && (
-          <div className="mt-12">
+          <div className="mt-12 mb-8">
             <h2 className="text-xl font-black text-delulu-charcoal mb-4">
               Leaderboard
             </h2>
@@ -867,7 +865,7 @@ export default function DeluluPage() {
                                 {entry.believerStake < 0.01
                                   ? entry.believerStake.toFixed(4)
                                   : entry.believerStake.toFixed(2)}{" "}
-                                {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
+                                {/* {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />} */}
                               </span>
                             )}
                             {entry.doubterStake > 0 && (
@@ -876,18 +874,18 @@ export default function DeluluPage() {
                                 {entry.doubterStake < 0.01
                                   ? entry.doubterStake.toFixed(4)
                                   : entry.doubterStake.toFixed(2)}{" "}
-                                {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
+                                {/* {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />} */}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-black text-delulu-charcoal inline-flex items-center gap-1">
+                        <p className="text-sm font-black text-delulu-charcoal inline-flex items-center ">
                           {entry.totalStake < 0.01
                             ? entry.totalStake.toFixed(4)
                             : entry.totalStake.toFixed(2)}{" "}
-                          {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
+                          {marketToken && <TokenBadge showText={false} tokenAddress={marketToken} size="lg" />}
                         </p>
                         <p className="text-xs text-gray-500">Total</p>
                       </div>
@@ -969,7 +967,7 @@ export default function DeluluPage() {
         )}
 
       {/* Stake Button */}
-      {canStake && isConnected && hasBalance && (
+      {/* {canStake && isConnected && hasBalance && (
         <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
           <div className="max-w-2xl mx-auto">
             <button
@@ -987,7 +985,7 @@ export default function DeluluPage() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Staking Sheet */}
       <StakingSheet

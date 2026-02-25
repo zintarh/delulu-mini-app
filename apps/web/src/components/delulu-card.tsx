@@ -333,10 +333,10 @@ export function DeluluCard({
           </div>
         )}
 
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
-          <div className="bg-delulu-yellow-reserved text-delulu-charcoal px-3 py-1.5 rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] flex items-center gap-1">
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-[-2px]">
+          <div className="bg-white text-delulu-charcoal px-1 py-1 gap-[-2px] rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] flex items-center">
             {delusion.tokenAddress && (
-              <TokenBadge tokenAddress={delusion.tokenAddress} size="sm" showText={false} />
+              <TokenBadge tokenAddress={delusion.tokenAddress} size="md" showText={false} />
             )}
             <span className="text-[11px] font-black tracking-tight">
               {formattedTVL} TVL
