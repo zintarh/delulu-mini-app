@@ -75,10 +75,10 @@ export default function DeluluPage() {
   } = useStake();
 
   const marketToken = delulu?.tokenAddress;
-  
+
   // Lazy load hooks that depend on delulu data - only enable when delulu is loaded
   const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
-  
+
   const {
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
@@ -89,7 +89,7 @@ export default function DeluluPage() {
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
-    
+
   const {
     hasStaked,
     isBeliever: userIsBeliever,
@@ -100,13 +100,13 @@ export default function DeluluPage() {
   const { isClaimable, isLoading: isLoadingClaimable } = useClaimable(
     deluluIdForHooks
   );
-  
+
   const { claimableAmount, isLoading: isLoadingClaimableAmount } =
     useUserClaimableAmount(deluluIdForHooks);
-    
+
   const { claimedAmount, isLoading: isLoadingClaimedAmount } =
     useUserClaimAmount(deluluIdForHooks?.toString() ?? null);
-    
+
   const {
     claim,
     isPending: isClaiming,
@@ -596,10 +596,19 @@ export default function DeluluPage() {
         <div className="space-y-4 mb-8">
           {/* Market State - Show current state from contract */}
           {!isLoadingState && contractState !== null && (
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
-              <p className="text-sm font-black text-delulu-charcoal text-center">
-                Market Status:{" "}
-                <span className="text-delulu-yellow-reserved">
+            <div className="px-2">
+              <p className="text-sm font-black">
+                <span
+                  className={cn(
+                    "uppercase text-black",
+                    contractState === DeluluState.Open && "text-[#01B1FF]", // GoodDollar blue
+                    contractState === DeluluState.Review && "text-green-600",
+                    contractState === DeluluState.Resolved && "text-green-600",
+                    (contractState === DeluluState.Locked ||
+                      contractState === DeluluState.Cancelled) &&
+                      "text-red-600"
+                  )}
+                >
                   {contractState === DeluluState.Open && "OPEN"}
                   {contractState === DeluluState.Locked && "LOCKED"}
                   {contractState === DeluluState.Review && "IN REVIEW"}
@@ -609,7 +618,7 @@ export default function DeluluPage() {
               </p>
             </div>
           )}
-          
+
           {/* Resolution Status - Show which side won */}
           {delulu?.isResolved && (
             <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
@@ -633,11 +642,10 @@ export default function DeluluPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-10 h-10 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${
-                      userIsBeliever
+                    className={`w-10 h-10 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${userIsBeliever
                         ? "bg-delulu-yellow-reserved/20"
                         : "bg-gray-100"
-                    }`}
+                      }`}
                   >
                     {userIsBeliever ? (
                       <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
@@ -667,11 +675,10 @@ export default function DeluluPage() {
                       {delulu.isResolved ? "Payout" : "Potential Payout"}
                     </p>
                     <p
-                      className={`text-lg font-black inline-flex items-center gap-1 ${
-                        (displayPayout ?? 0) > 0
+                      className={`text-lg font-black inline-flex items-center gap-1 ${(displayPayout ?? 0) > 0
                           ? "text-delulu-charcoal"
                           : "text-gray-300"
-                      }`}
+                        }`}
                     >
                       {(displayPayout ?? 0) > 0
                         ? (displayPayout ?? 0) < 0.01
@@ -765,11 +772,10 @@ export default function DeluluPage() {
                       <Trophy className="w-3.5 h-3.5 text-green-600" />
                     )}
                     <p
-                      className={`text-xs font-medium ${
-                        userIsBeliever === delulu.outcome
+                      className={`text-xs font-medium ${userIsBeliever === delulu.outcome
                           ? "text-green-600"
                           : "text-red-600"
-                      }`}
+                        }`}
                     >
                       {userIsBeliever === delulu.outcome
                         ? "You won!"
@@ -1034,13 +1040,12 @@ export default function DeluluPage() {
         isOpen={showSuccessModal}
         type="success"
         title="Stake Placed! 🎉"
-        message={`You've successfully staked ${
-          lastStakeAmount > 0
+        message={`You've successfully staked ${lastStakeAmount > 0
             ? lastStakeAmount < 0.01
               ? lastStakeAmount.toFixed(4)
               : lastStakeAmount.toFixed(2)
             : stakeAmount
-        } as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
+          } as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
         onClose={() => {
           setShowSuccessModal(false);
           setPendingAction(null);

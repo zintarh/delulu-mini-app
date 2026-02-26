@@ -17,6 +17,7 @@ export default function GoodDollarClaimPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
   const {
+    isLoading: isClaimDataLoading,
     isClaiming,
     entitlement,
     hasClaimed,
@@ -145,7 +146,7 @@ export default function GoodDollarClaimPage() {
                             {/* Entitlement from SDK is the *next* amount you can claim, not what you've already claimed */}
                             Entitlement
                           </p>
-                          {!isInitialized ? (
+                          {isClaimDataLoading || !isInitialized ? (
                             <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
                           ) : (
                             <p className="text-lg font-black text-delulu-charcoal">
@@ -165,8 +166,13 @@ export default function GoodDollarClaimPage() {
                       </div>
                     )}
 
-                    {/* Only render button/next claim when all checks are complete */}
-                    {!isInitialized ? null : hasClaimed ? (
+                    {/* Eligibility / next-claim section */}
+                    {isClaimDataLoading || !isInitialized ? (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-center gap-2 text-sm text-gray-600">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                        <span>Checking your claim eligibility…</span>
+                      </div>
+                    ) : hasClaimed ? (
                       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center space-y-1.5">
                         {nextClaimTime && (
                           <p className="text-sm font-medium text-gray-600">
@@ -197,7 +203,9 @@ export default function GoodDollarClaimPage() {
                             Claiming...
                           </>
                         ) : entitlement !== null && entitlement > 0n ? (
-                          `Claim ${parseFloat(formattedEntitlement || "0.00").toFixed(2)} G$`
+                          `Claim ${parseFloat(
+                            formattedEntitlement || "0.00"
+                          ).toFixed(2)} G$`
                         ) : (
                           "Claim G$"
                         )}
