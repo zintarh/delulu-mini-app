@@ -22,6 +22,7 @@ const PAGE_SIZE = 20;
 export function useAllDelulus() {
   const [page, setPage] = useState(0);
   const [ipfsResolved, setIpfsResolved] = useState(0);
+  const [isIpfsLoading, setIsIpfsLoading] = useState(false);
 
   const { data, loading, error, fetchMore, refetch: apolloRefetch, previousData } = useQuery<
     GetDelulusQuery,
@@ -56,10 +57,16 @@ export function useAllDelulus() {
   // IPFS Resolution Logic
   useEffect(() => {
     if (!data?.delulus || data.delulus.length === 0) return;
+
+    setIsIpfsLoading(true);
     const hashes = data.delulus.map((d) => d.contentHash);
-    batchResolveIPFS(hashes).then(() => {
-      setIpfsResolved((prev) => prev + 1);
-    });
+    batchResolveIPFS(hashes)
+      .then(() => {
+        setIpfsResolved((prev) => prev + 1);
+      })
+      .finally(() => {
+        setIsIpfsLoading(false);
+      });
   }, [data?.delulus]);
 
   const fetchNextPage = useCallback(() => {
@@ -83,6 +90,7 @@ export function useAllDelulus() {
     delulus, // Now always stable
     isLoading: loading && !data && !previousData, // Only true on absolute first load
     isFetchingNextPage: loading && page > 0,
+    isIpfsLoading,
     hasNextPage,
     fetchNextPage,
     error: error ?? null,
