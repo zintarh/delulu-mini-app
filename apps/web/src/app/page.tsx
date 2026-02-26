@@ -29,6 +29,7 @@ export default function HomePage() {
     delulus, 
     isLoading, 
     isFetchingNextPage, 
+    isIpfsLoading,
     hasNextPage, 
     fetchNextPage 
   } = useAllDelulus();
@@ -136,22 +137,18 @@ export default function HomePage() {
     return !isHash;
   };
 
-  // Filter delulus based on active tab and content loading status
   const filteredDelulus = useMemo(() => {
     let delulusToFilter: FormattedDelulu[] = [];
     
     if (activeTab === "vision") {
-      // For Vision tab, show delulus created by the connected user
       if (!isConnected || !address) {
         return [];
       }
       delulusToFilter = userCreatedDelulus;
     } else {
-      // For "For You" tab, show all delulus (sorted by latest first)
       delulusToFilter = delulus;
     }
     
-    // Only show delulus with loaded content (wait for IPFS to resolve)
     return delulusToFilter.filter(isContentLoaded);
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
@@ -189,6 +186,13 @@ export default function HomePage() {
                   setShowLoginSheet(true);
                 } else {
                   router.push("/profile");
+                }
+              }}
+              onCreateClick={() => {
+                if (!isConnected) {
+                  setShowLoginSheet(true);
+                } else {
+                  router.push("/board");
                 }
               }}
               activeTab={activeTab}
@@ -230,7 +234,8 @@ export default function HomePage() {
           </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
-            {isLoading || (activeTab === "vision" && isLoadingUserDelulus) ? (
+            {(activeTab === "fyp" && (isLoading || isIpfsLoading)) ||
+            (activeTab === "vision" && isLoadingUserDelulus) ? (
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <DeluluCardSkeleton key={i} index={i} />
