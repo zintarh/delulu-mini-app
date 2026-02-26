@@ -3,10 +3,11 @@ import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export enum DeluluState {
-  Active = 0,
-  StakingClosed = 1,
-  Resolved = 2,
-  Cancelled = 3,
+  Open = 0,
+  Locked = 1,
+  Review = 2,
+  Resolved = 3,
+  Cancelled = 4,
 }
 
 export function useDeluluState(deluluId: number | null) {
@@ -19,15 +20,20 @@ export function useDeluluState(deluluId: number | null) {
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
     functionName: "getDeluluState",
-    args: deluluId !== null ? [BigInt(deluluId)] : undefined,
+    args: deluluId !== null && deluluId > 0 ? [BigInt(deluluId)] : undefined,
     query: {
-      enabled: deluluId !== null,
+      enabled: deluluId !== null && deluluId > 0,
     },
   });
 
+  // Convert BigInt to number if needed (state is always a number 0-4)
+  const stateValue = state !== undefined && state !== null 
+    ? Number(state) 
+    : null;
+
   return {
-    state: state !== undefined ? (state as number) : null,
-    stateEnum: state !== undefined ? (state as DeluluState) : null,
+    state: stateValue,
+    stateEnum: stateValue !== null ? (stateValue as DeluluState) : null,
     isLoading,
     error,
   };

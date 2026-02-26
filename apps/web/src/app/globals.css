@@ -446,3 +446,10 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Single delulu page - reduce card height on desktop */
+@media (min-width: 1024px) {
+  .single-delulu-card-wrapper div[class*="aspect-[4/5]"] {
+    aspect-ratio: 3/2 !important;
+  }
+}

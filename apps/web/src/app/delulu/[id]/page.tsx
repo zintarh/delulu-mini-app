@@ -18,6 +18,7 @@ import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
 import { useUserClaimAmount } from "@/hooks/use-user-claim-amount";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
+import { useDeluluState, DeluluState } from "@/hooks/use-delulu-state";
 import type { StakeSide } from "@/lib/types";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { VerificationSheet } from "@/components/verification-sheet";
@@ -58,14 +59,26 @@ export default function DeluluPage() {
 
   const { delulu, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
 
+  // Get the current state from the contract using the on-chain ID
+  // Prefer onChainId (string) when available, otherwise fall back to numeric id
+  const deluluIdForState =
+    delulu?.onChainId && !Number.isNaN(Number(delulu.onChainId))
+      ? Number(delulu.onChainId)
+      : delulu?.id ?? null;
+  const { state: contractState, isLoading: isLoadingState } = useDeluluState(deluluIdForState);
+
+  // Only initialize hooks that are needed immediately
   const {
     stake,
-
     isSuccess: isStakeSuccess,
     error: stakeError,
   } = useStake();
 
   const marketToken = delulu?.tokenAddress;
+  
+  // Lazy load hooks that depend on delulu data - only enable when delulu is loaded
+  const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
+  
   const {
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
@@ -76,20 +89,24 @@ export default function DeluluPage() {
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
+    
   const {
     hasStaked,
     isBeliever: userIsBeliever,
     stakeAmount: userStakeAmount,
     isClaimed,
-  } = useUserPosition(isConnected && delulu?.id ? delulu.id : null);
+  } = useUserPosition(deluluIdForHooks);
 
   const { isClaimable, isLoading: isLoadingClaimable } = useClaimable(
-    isConnected && delulu?.id ? delulu.id : null
+    deluluIdForHooks
   );
+  
   const { claimableAmount, isLoading: isLoadingClaimableAmount } =
-    useUserClaimableAmount(isConnected && delulu?.id ? delulu.id : null);
+    useUserClaimableAmount(deluluIdForHooks);
+    
   const { claimedAmount, isLoading: isLoadingClaimedAmount } =
-    useUserClaimAmount(isConnected && delulu?.id ? delulu.id.toString() : null);
+    useUserClaimAmount(deluluIdForHooks?.toString() ?? null);
+    
   const {
     claim,
     isPending: isClaiming,
@@ -402,7 +419,9 @@ export default function DeluluPage() {
     }
   }, [stakeError]);
 
-  if (isLoadingDelulu) {
+  // Show loading only if we have no data at all (first load)
+  // If we have cached data, show it immediately
+  if (isLoadingDelulu && !delulu) {
     return (
       <div className="min-h-screen bg-white">
         <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between bg-white border-b border-gray-200">
@@ -567,7 +586,7 @@ export default function DeluluPage() {
 
       <div className="max-w-4xl mx-auto px-4 pt-24 pb-2">
         {/* Delulu Card */}
-        <div className="mb-4">
+        <div className="mb-4 w-full single-delulu-card-wrapper">
           {delulu && (
             <DeluluCard delusion={delulu} onStake={handleStakeClick} />
           )}
@@ -575,6 +594,22 @@ export default function DeluluPage() {
 
         {/* Main Content Section */}
         <div className="space-y-4 mb-8">
+          {/* Market State - Show current state from contract */}
+          {!isLoadingState && contractState !== null && (
+            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
+              <p className="text-sm font-black text-delulu-charcoal text-center">
+                Market Status:{" "}
+                <span className="text-delulu-yellow-reserved">
+                  {contractState === DeluluState.Open && "OPEN"}
+                  {contractState === DeluluState.Locked && "LOCKED"}
+                  {contractState === DeluluState.Review && "IN REVIEW"}
+                  {contractState === DeluluState.Resolved && "RESOLVED"}
+                  {contractState === DeluluState.Cancelled && "CANCELLED"}
+                </span>
+              </p>
+            </div>
+          )}
+          
           {/* Resolution Status - Show which side won */}
           {delulu?.isResolved && (
             <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">

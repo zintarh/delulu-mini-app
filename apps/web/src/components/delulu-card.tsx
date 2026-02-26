@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Upload, CircleDollarSign, Copy } from "lucide-react";
+import {  CircleDollarSign, Copy,  Share2 } from "lucide-react";
 import { FormattedDelulu } from "@/lib/types";
 import { TokenBadge } from "@/components/token-badge";
 import {
@@ -12,6 +12,7 @@ import {
   getCountryFlag,
 } from "@/lib/utils";
 import { FARCASTER_MINIAPP_BASE_URL } from "@/lib/constant";
+import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -37,37 +38,31 @@ function getCardBackground(delusion: FormattedDelulu): {
 } {
   if (delusion.bgImageUrl) {
     let imageUrl = delusion.bgImageUrl;
-    
-    // Convert relative paths to absolute URLs
+
     if (imageUrl.startsWith("/")) {
       if (typeof window !== "undefined") {
         imageUrl = `${window.location.origin}${imageUrl}`;
       } else {
-        // Server-side: use environment variable or default
         const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
         imageUrl = `${baseUrl}${imageUrl}`;
       }
     }
-    
-    // Replace localhost URLs with current origin (handles production)
+
     if (typeof window !== "undefined") {
       const currentOrigin = window.location.origin;
-      // Replace any localhost URLs with current origin
       imageUrl = imageUrl.replace(/https?:\/\/localhost:\d+/g, currentOrigin);
-      
-      // Ensure HTTPS if page is served over HTTPS
       if (window.location.protocol === "https:") {
         imageUrl = imageUrl.replace(/^http:/, "https:");
       }
     }
-    
+
     if (
       imageUrl.startsWith("http://") ||
       imageUrl.startsWith("https://")
     ) {
       return {
         bg: `url(${imageUrl})`,
-        text: "text-white", 
+        text: "text-white",
         isImage: true,
       };
     }
@@ -118,19 +113,17 @@ export function DeluluCard({
   isLast = false,
 }: DeluluCardProps) {
   const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
-  
-  // Always use the creator's profile data from the delulu object
-  // This comes from the API and includes the creator's profile information
-  const displayPfpUrl = delusion.pfpUrl || null;
-  const displayUsername = delusion.username || null;
+  const creatorAddress = delusion.creator as `0x${string}`;
+  const { username: contractUsername } = useUsernameByAddress(creatorAddress);
+  const displayUsername = contractUsername || delusion.username || null;
 
-  // Only use content if it exists and is not a hash (IPFS hashes start with Qm or are long hex strings)
+  const displayPfpUrl = delusion.pfpUrl || null;
   const isHash = (str: string) => {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
   };
-  
-  const headlineRaw = delusion.content && !isHash(delusion.content) 
-    ? delusion.content 
+
+  const headlineRaw = delusion.content && !isHash(delusion.content)
+    ? delusion.content
     : "";
   const headline = headlineRaw.trim() || "YOUR DELULU HEADLINE";
   const headlineLength = headline.length;
@@ -162,7 +155,6 @@ export function DeluluCard({
   }, [showShareMenu]);
 
   const getShareUrl = () => {
-    // Use Farcaster miniapp base URL for sharing
     return `${FARCASTER_MINIAPP_BASE_URL}/delulu/${delusion.id}`;
   };
 
@@ -253,7 +245,7 @@ export function DeluluCard({
   };
 
   // Apollo cache already stores data from list queries
-  const handleMouseEnter = () => {};
+  const handleMouseEnter = () => { };
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -289,9 +281,9 @@ export function DeluluCard({
             <span className="text-xs text-gray-400">
               {formatTimeAgo(
                 delusion.createdAt ||
-                  new Date(
-                    delusion.stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000
-                  )
+                new Date(
+                  delusion.stakingDeadline.getTime() - 7 * 24 * 60 * 60 * 1000
+                )
               )}
             </span>
           </div>
@@ -301,21 +293,22 @@ export function DeluluCard({
       <div
         onClick={href ? undefined : handleCardClick}
         onMouseEnter={handleMouseEnter}
-        className="relative w-full aspect-[4/5] rounded-xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer shadow-sm border border-gray-100"
+        className="relative w-full aspect-[4/5] rounded-xl overflow-hidden active:scale-[0.98] transition-transform shadow-sm border border-gray-100"
+        style={href ? { cursor: 'pointer' } : {}}
       >
         <div
           className={cn("absolute inset-0 bg-cover bg-no-repeat bg-center")}
           style={
             cardBackground.isImage
               ? {
-                  backgroundImage: cardBackground.bg,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }
+                backgroundImage: cardBackground.bg,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }
               : {
-                  background: cardBackground.bg,
-                }
+                background: cardBackground.bg,
+              }
           }
         />
 
@@ -354,10 +347,10 @@ export function DeluluCard({
                 headlineLength <= 40
                   ? "text-xl"
                   : headlineLength <= 80
-                  ? "text-lg"
-                  : headlineLength <= 140
-                  ? "text-base"
-                  : "text-sm"
+                    ? "text-lg"
+                    : headlineLength <= 140
+                      ? "text-base"
+                      : "text-sm"
               )}
             >
               {headline}
@@ -373,10 +366,10 @@ export function DeluluCard({
               delusion.isCancelled
                 ? "bg-red-500 text-white"
                 : delusion.isResolved
-                ? "bg-delulu-green text-black"
-                : textColorClass === "text-black"
-                ? "bg-black/80 text-white"
-                : "bg-black text-white"
+                  ? "bg-delulu-green text-black"
+                  : textColorClass === "text-black"
+                    ? "bg-black/80 text-white"
+                    : "bg-black text-white"
             )}
           >
             {(() => {
@@ -414,7 +407,7 @@ export function DeluluCard({
       </div>
 
       {/* Action Buttons */}
-      <div 
+      <div
         className="flex items-center justify-between pt-1"
         onClick={(e) => {
           e.preventDefault();
@@ -427,7 +420,7 @@ export function DeluluCard({
             className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
             aria-label="Share"
           >
-            <Upload className="w-6 h-6" />
+            <Share2 className="w-6 h-6" />
           </button>
 
           {/* Share Menu */}
@@ -499,7 +492,8 @@ export function DeluluCard({
           className,
           "block p-3 rounded-lg h-auto space-y-2 border-gray-200"
         )}
-        prefetch={true}
+        prefetch={false}
+        scroll={true}
       >
         {cardContent}
       </Link>

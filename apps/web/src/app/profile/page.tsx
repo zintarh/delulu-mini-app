@@ -40,7 +40,7 @@ export default function ProfilePage() {
   // Helper to check if content is loaded (not a hash)
   const isContentLoaded = (delulu: FormattedDelulu): boolean => {
     if (!delulu.content) return false;
-    const isHash = delulu.content.startsWith("Qm") || 
+    const isHash = delulu.content.startsWith("Qm") ||
       (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
     return !isHash;
   };
@@ -77,12 +77,12 @@ export default function ProfilePage() {
     };
   }, [hasNextPage, isFetchingNextPage, isLoadingDelulus, fetchNextPage]);
 
-  // Show login prompt if not connected
+  // Show login prompt if not connected - but don't block render
   useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected && !showLoginSheet) {
       setShowLoginSheet(true);
     }
-  }, [isConnected]);
+  }, [isConnected, showLoginSheet]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -125,18 +125,20 @@ export default function ProfilePage() {
 
           <div className="w-full border-t border-gray-200" />
 
-          {/* User Claims Stats */}
           <UserClaimsStats address={address} />
 
-          {/* GoodDollar Claim entry point (mobile) */}
           <div className="px-6 pt-3 pb-1">
             <button
-              onClick={() => router.push("/ubi")}
+              onClick={() => router.push("/daily-claim")}
               className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-black text-delulu-yellow-reserved flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
-                  <Coins className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-full">
+                  <img
+                    src="/gooddollar-logo.png"
+                    alt="G$"
+                    className="w-full h-full flex-shrink-0 object-contain"
+                  />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-delulu-charcoal">
@@ -150,7 +152,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Tabs */}
           <div className="flex items-center justify-center gap-1 border-b border-gray-200 bg-white sticky top-0 z-10">
             <button
               onClick={() => setActiveTab("ongoing")}
@@ -185,11 +186,11 @@ export default function ProfilePage() {
           {address && (
             <div className="px-6 mb-6 pb-8 pt-3">
               {isLoadingDelulus ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {[1, 2, 3, 4].map((i) => (
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div
                       key={i}
-                      className="w-full aspect-[4/5] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
+                      className="w-full aspect-[3/4] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
                     />
                   ))}
                 </div>
@@ -201,7 +202,7 @@ export default function ProfilePage() {
                 </p>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {delulusWithContent.map((delulu) => (
                       <ProfileDeluluCard
                         key={delulu.id}
@@ -218,11 +219,11 @@ export default function ProfilePage() {
                   </div>
 
                   {isFetchingNextPage && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {[1, 2].map((i) => (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {[1, 2, 3].map((i) => (
                         <div
                           key={`loading-${i}`}
-                          className="w-full aspect-[4/5] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
+                          className="w-full aspect-[3/4] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
                         />
                       ))}
                     </div>

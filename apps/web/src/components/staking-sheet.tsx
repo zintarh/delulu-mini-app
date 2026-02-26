@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import { useAccount } from "wagmi";
 import type { StakeSide } from "@/lib/types";
+import { UserSetupModal } from "@/components/user-setup-modal";
+import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
 
 interface StakingSheetProps {
   open: boolean;
@@ -37,6 +39,20 @@ export function StakingSheet({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [stakedAmount, setStakedAmount] = useState(0);
+  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
+  const { needsSetup, isChecking } = useUserSetupCheck();
+
+  // Show setup modal immediately when sheet opens if setup is needed
+  // Close it when setup is no longer needed
+  useEffect(() => {
+    if (!isChecking) {
+      if (open && needsSetup) {
+        setShowUserSetupModal(true);
+      } else if (!needsSetup) {
+        setShowUserSetupModal(false);
+      }
+    }
+  }, [open, needsSetup, isChecking]);
 
   const marketToken = delulu?.tokenAddress || undefined;
   
@@ -517,6 +533,23 @@ export function StakingSheet({
         open={showErrorModal}
         onOpenChange={setShowErrorModal}
         errorMessage={errorMessage}
+      />
+
+      {/* User Setup Modal */}
+      <UserSetupModal
+        open={showUserSetupModal}
+        onOpenChange={(open) => {
+          setShowUserSetupModal(open);
+          // If user closes modal without completing, close the staking sheet
+          if (!open && needsSetup) {
+            onOpenChange(false);
+          }
+        }}
+        onComplete={(username, email) => {
+          // TODO: Save username and email when implementation is ready
+          console.log("User setup completed:", { username, email });
+          setShowUserSetupModal(false);
+        }}
       />
     </>
   );

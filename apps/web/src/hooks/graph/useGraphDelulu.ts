@@ -35,10 +35,10 @@ export function useGraphDelulu(deluluId: string | number | null) {
   const { data, loading, error, refetch } = useQuery<GetDeluluByIdQuery, GetDeluluByIdQueryVariables>(GetDeluluByIdDocument, {
     variables: { id },
     skip: !id,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-and-network",
   });
 
-  // Resolve IPFS content for this delulu
   useEffect(() => {
     if (!data?.delulu?.contentHash) return;
     resolveIPFSContent(data.delulu.contentHash).then(() => {
@@ -46,14 +46,12 @@ export function useGraphDelulu(deluluId: string | number | null) {
     });
   }, [data?.delulu?.contentHash]);
 
-  // Transform subgraph data → FormattedDelulu
   const delulu: FormattedDelulu | null = useMemo(() => {
     if (!data?.delulu) return null;
     const raw = data.delulu as SubgraphDeluluRaw;
     return transformSubgraphDelulu(raw, getCachedContent(raw.contentHash));
   }, [data?.delulu, ipfsResolved]);
 
-  // Transform nested stakes for the leaderboard
   const stakes: GraphStake[] = useMemo(() => {
     if (!data?.delulu?.stakes) return [];
     return data.delulu.stakes.map((s) => ({
