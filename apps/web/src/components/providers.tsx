@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { MiniAppProvider } from "@/contexts/miniapp-context";
 import FrameWalletProvider from "@/contexts/frame-wallet-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -12,6 +13,8 @@ const ErudaProvider = dynamic(
 );
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+
+
   return (
     <ErudaProvider>
       <FrameWalletProvider>

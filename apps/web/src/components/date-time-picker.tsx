@@ -123,22 +123,7 @@ export function DateTimePicker({
         />
       </div>
 
-      {/* Deadline Preview */}
-      {selectedDate && (
-        <div className="mt-4 text-center">
-          <p className="text-xs text-white/60 mb-1">
-            Staking ends at end of day
-          </p>
-          <p className="text-sm font-bold text-white">
-            {selectedDate.toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })} at 11:59 PM
-          </p>
-        </div>
-      )}
+   
     </div>
   );
 }

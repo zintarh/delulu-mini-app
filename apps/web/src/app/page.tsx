@@ -16,6 +16,7 @@ import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
+import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { TrendingUp, Plus } from "lucide-react";
 
@@ -23,6 +24,7 @@ export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const router = useRouter();
+  const { updateUsername, updateAddress, user } = useUserStore();
   const { 
     delulus, 
     isLoading, 
@@ -36,6 +38,22 @@ export default function HomePage() {
     delulus: userCreatedDelulus, 
     isLoading: isLoadingUserDelulus 
   } = useGraphUserDelulus("ongoing");
+
+  // Fetch username from contract when address is available
+  const { username: onChainUsername, isLoading: isLoadingUsername } = useUsernameByAddress(
+    address as `0x${string}` | undefined
+  );
+
+  // Update store when username is fetched from contract
+  useEffect(() => {
+    if (address && onChainUsername && onChainUsername !== user?.username) {
+      updateUsername(onChainUsername, user?.email);
+    }
+    // Also update address if it's not set
+    if (address && address !== user?.address) {
+      updateAddress(address);
+    }
+  }, [address, onChainUsername, user?.username, user?.email, user?.address, updateUsername, updateAddress]);
 
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
     null

@@ -1,6 +1,7 @@
 {
   "name": "delulu-subgraph",
   "license": "UNLICENSED",
+  "packageManager": "pnpm@8.10.0",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",

@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { GatekeeperStep } from "@/components/create/gatekeeper-step";
 import { type GatekeeperConfig } from "@/lib/ipfs";
+import { UserSetupModal } from "@/components/user-setup-modal";
+import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
 import {
   getErrorMessage,
   getDefaultDeadline,
@@ -115,6 +117,20 @@ export function CreateDelusionSheet({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
+  const { needsSetup, isChecking } = useUserSetupCheck();
+
+  // Show setup modal immediately when sheet opens if setup is needed
+  // Close it when setup is no longer needed
+  useEffect(() => {
+    if (!isChecking) {
+      if (open && needsSetup) {
+        setShowUserSetupModal(true);
+      } else if (!needsSetup) {
+        setShowUserSetupModal(false);
+      }
+    }
+  }, [open, needsSetup, isChecking]);
 
   const {
     createDelulu,
@@ -909,6 +925,23 @@ export function CreateDelusionSheet({
           setShowErrorModal(false);
         }}
         actionText="Try Again"
+      />
+
+      {/* User Setup Modal */}
+      <UserSetupModal
+        open={showUserSetupModal}
+        onOpenChange={(open) => {
+          setShowUserSetupModal(open);
+          // If user closes modal without completing, close the create sheet
+          if (!open && needsSetup) {
+            onOpenChange(false);
+          }
+        }}
+        onComplete={(username, email) => {
+          // TODO: Save username and email when implementation is ready
+          console.log("User setup completed:", { username, email });
+          setShowUserSetupModal(false);
+        }}
       />
     </>
   );

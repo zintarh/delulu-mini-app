@@ -6,7 +6,7 @@ export const CELO_SEPOLIA_ID = 11142220;
 export const DELULU_CONTRACT_ADDRESSES = {
   mainnet:
     process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET ||
-    "0xF87757bDf0986F4bBFAb6eD92EB2E627fb95ad46",
+    "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98",
   sepolia: "0xba562cf9aC1Cb180EcE06dd9C86800B3F1EE51B8",
 } as const;
 

@@ -9,8 +9,8 @@ dataSources:
     network: celo
     source:
       abi: DeluluMarket
-      address: "0xF87757bDf0986F4bBFAb6eD92EB2E627fb95ad46"
-      startBlock: 60016510
+      address: "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98"
+      startBlock: 60183999
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -29,7 +29,8 @@ dataSources:
         - event: DeluluCreated(indexed uint256,indexed address,indexed
             address,string,uint256,uint256,uint256)
           handler: handleDeluluCreated
-        - event: DeluluResolved(indexed uint256,bool,uint256,uint256)
+        - event: DeluluResolved(indexed
+            uint256,bool,uint256,uint256,uint256,uint256,uint256)
           handler: handleDeluluResolved
         - event: EmergencyRefund(indexed uint256,indexed address,uint256)
           handler: handleEmergencyRefund
@@ -43,4 +44,28 @@ dataSources:
           handler: handleUnpaused
         - event: WinningsClaimed(indexed uint256,indexed address,uint256)
           handler: handleWinningsClaimed
+        - event: ProfileUpdated(indexed address,string,string)
+          handler: handleProfileUpdated
+        - event: SenateUpdated(indexed address,indexed address)
+          handler: handleSenateUpdated
       file: ./src/delulu-market.ts
+  - kind: ethereum
+    name: ERC1967Proxy
+    network: celo
+    source:
+      abi: ERC1967Proxy
+      address: "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98"
+      startBlock: 60183999
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Upgraded
+      abis:
+        - name: ERC1967Proxy
+          file: ./abis/ERC1967Proxy.json
+      eventHandlers:
+        - event: Upgraded(indexed address)
+          handler: handleUpgraded
+      file: ./src/erc-1967-proxy.ts

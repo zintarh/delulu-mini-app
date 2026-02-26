@@ -40,7 +40,20 @@ export function DeluluStatusBadge({
     );
   }
 
-  if (state === DeluluState.StakingClosed) {
+  if (state === DeluluState.Review) {
+    return (
+      <div
+        className={cn(
+          "inline-flex items-center px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-xs font-bold",
+          className
+        )}
+      >
+        In Review
+      </div>
+    );
+  }
+
+  if (state === DeluluState.Locked) {
     return (
       <div
         className={cn(
@@ -48,12 +61,12 @@ export function DeluluStatusBadge({
           className
         )}
       >
-        Staking Closed
+        Locked
       </div>
     );
   }
 
-  if (state === DeluluState.Active) {
+  if (state === DeluluState.Open) {
     return (
       <div
         className={cn(
@@ -61,7 +74,7 @@ export function DeluluStatusBadge({
           className
         )}
       >
-        Active
+        Open
       </div>
     );
   }

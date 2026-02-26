@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Loader2, X, Upload, DollarSign, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ArrowLeft, Loader2, X, Upload, DollarSign, ChevronDown, Check } from "lucide-react";
+import * as Select from "@radix-ui/react-select";
 import TextareaAutosize from "react-textarea-autosize";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
@@ -19,6 +20,8 @@ import { DateTimePicker } from "@/components/date-time-picker";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
 import { GatekeeperStep } from "@/components/create/gatekeeper-step";
+import { UserSetupModal } from "@/components/user-setup-modal";
+import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
 import {
   MAX_DELULU_LENGTH,
   MIN_STAKE,
@@ -92,8 +95,19 @@ type Step = "gallery" | "customize" | "duration" | "stake" | "submit";
 export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const { user } = useUserStore();
   const apolloClient = useApolloClient();
+  const { needsSetup, isChecking } = useUserSetupCheck();
+  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
 
-  // Validate user exists
+  useEffect(() => {
+    if (!isChecking) {
+      if (needsSetup) {
+        setShowUserSetupModal(true);
+      } else {
+        setShowUserSetupModal(false);
+      }
+    }
+  }, [needsSetup, isChecking]);
+
   if (!user) {
     console.warn("[CreateDelusionContent] User not authenticated");
   }
@@ -101,7 +115,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   // Step management
   const [step, setStep] = useState<Step>("gallery");
 
-  // Template/Image state
   const [selectedTemplate, setSelectedTemplate] = useState<
     (typeof TEMPLATES)[0] | null
   >(null);
@@ -129,7 +142,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [inputText, setInputText] = useState<string>("1.0");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -151,6 +163,55 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [deadline, setDeadline] = useState<Date>(() => {
     return getDefaultDeadline();
   });
+
+  const [durationMode, setDurationMode] = useState<"fast" | "calendar">("calendar");
+  const [fastDurationValue, setFastDurationValue] = useState<string>("7");
+  const [fastDurationUnit, setFastDurationUnit] = useState<"minutes" | "hours" | "days">("days");
+
+  const updateDeadlineFromFastMode = useCallback((
+    value: string,
+    unit: "minutes" | "hours" | "days"
+  ) => {
+    if (!value || value === "" || isNaN(Number(value)) || Number(value) <= 0) {
+      return;
+    }
+
+    const numValue = Number(value);
+    const now = new Date();
+    const newDeadline = new Date(now);
+
+    // Calculate milliseconds to add based on unit
+    let millisecondsToAdd = 0;
+    if (unit === "minutes") {
+      millisecondsToAdd = numValue * 60 * 1000;
+    } else if (unit === "hours") {
+      millisecondsToAdd = numValue * 60 * 60 * 1000;
+    } else if (unit === "days") {
+      millisecondsToAdd = numValue * 24 * 60 * 60 * 1000;
+    }
+
+    newDeadline.setTime(now.getTime() + millisecondsToAdd);
+
+    const minDeadline = getMinDeadline();
+    const maxDeadline = getMaxDeadline();
+
+    if (newDeadline.getTime() < minDeadline.getTime()) {
+      setDeadline(minDeadline);
+    } else if (newDeadline.getTime() > maxDeadline.getTime()) {
+      setDeadline(maxDeadline);
+    } else {
+      if (unit === "days") {
+        newDeadline.setUTCHours(23, 59, 59, 999);
+      }
+      setDeadline(newDeadline);
+    }
+  }, [setDeadline]);
+
+  useEffect(() => {
+    if (step === "duration" && durationMode === "fast" && fastDurationValue !== "") {
+      updateDeadlineFromFastMode(fastDurationValue, fastDurationUnit);
+    }
+  }, [step, durationMode, fastDurationValue, fastDurationUnit, updateDeadlineFromFastMode]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -185,25 +246,25 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const tokenBalances = [
     ...(cusdToken
       ? [
-          {
-            token: cusdToken,
-            balance: cusd.balance,
-            formatted: cusd.formatted,
-            isLoading: cusd.isLoading,
-            error: cusd.error,
-          },
-        ]
+        {
+          token: cusdToken,
+          balance: cusd.balance,
+          formatted: cusd.formatted,
+          isLoading: cusd.isLoading,
+          error: cusd.error,
+        },
+      ]
       : []),
     ...(gToken
       ? [
-          {
-            token: gToken,
-            balance: good.balance,
-            formatted: good.formatted,
-            isLoading: good.isLoading,
-            error: good.error,
-          },
-        ]
+        {
+          token: gToken,
+          balance: good.balance,
+          formatted: good.formatted,
+          isLoading: good.isLoading,
+          error: good.error,
+        },
+      ]
       : []),
   ];
 
@@ -325,6 +386,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setInputText("1.0");
     setDelusionText("");
     setDeadline(getDefaultDeadline());
+    setDurationMode("calendar");
+    setFastDurationValue("7");
+    setFastDurationUnit("days");
     setGatekeeper(null);
     setSelectedTemplate(null);
     setCustomImage(null);
@@ -397,9 +461,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         throw new Error(firstError || "Please check your inputs");
       }
 
-      // User manually clicked "Manifest" button after approval - proceed with creation
       if (pendingCreation && !isApproving && !isApprovingConfirming) {
-        // Validate pending creation data
         if (
           !pendingCreation.deadline ||
           !(pendingCreation.deadline instanceof Date) ||
@@ -411,7 +473,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           throw new Error("Invalid creation data. Please start over.");
         }
 
-        // Use helper function for allowance check with retry
         let hasAllowance = false;
         try {
           hasAllowance = await checkAllowanceWithRetry(
@@ -446,7 +507,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         }
       }
 
-      // Validate deadline
       const deadlineDate =
         deadline instanceof Date && !isNaN(deadline.getTime())
           ? deadline
@@ -454,10 +514,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
       let finalImageUrl: string;
 
-      // Determine final image URL
       if (customUploadFile) {
         try {
-          // Upload custom file with timeout protection
           const formData = new FormData();
           formData.append("file", customUploadFile);
 
@@ -489,7 +547,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           throw error;
         }
       } else if (selectedTemplate?.image) {
-        // Use template - construct absolute URL using helper
         const origin = getOrigin();
         finalImageUrl = `${origin}${selectedTemplate.image}`;
       } else {
@@ -742,26 +799,160 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           </>
         )}
 
+
+
+
+
+
         {step === "duration" && selectedImage && (
           <>
             <div className="relative min-h-screen flex items-center justify-center px-4 py-20">
               <div className="w-full max-w-2xl mx-auto">
-                <h2 className="text-2xl font-black text-white/90 mb-6 text-center">
-                  Staking Deadline
-                </h2>
-                <p className="text-sm text-white/60 text-center mb-6">
-                  Select when staking will end for this delulu
-                </p>
-                <DateTimePicker
-                  value={deadline}
-                  onChange={(date) => {
-                    if (date) {
-                      setDeadline(date);
-                    }
-                  }}
-                  minDate={getMinDeadline()}
-                  maxDate={getMaxDeadline()}
-                />
+                {/* Title Section */}
+                <div className="mb-8 text-center">
+                  <h2 className="text-2xl font-black text-white/90 mb-2">
+                    Staking Deadline
+                  </h2>
+                  <p className="text-sm text-white/60">
+                    When will staking end for this delulu?
+                  </p>
+                </div>
+
+                {/* Main Input Section */}
+                <div className="mb-6">
+                  {/* Calendar Mode - Default */}
+                  {durationMode === "calendar" && (
+                    <div className="space-y-4">
+                      <DateTimePicker
+                        value={deadline}
+                        onChange={(date) => {
+                          if (date) {
+                            setDeadline(date);
+                          }
+                        }}
+                        minDate={getMinDeadline()}
+                        maxDate={getMaxDeadline()}
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => {
+                            setDurationMode("fast");
+                            updateDeadlineFromFastMode(fastDurationValue, fastDurationUnit);
+                          }}
+                          className="text-sm text-white/70 hover:text-white underline"
+                        >
+                          Use custom date instead
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fast Mode */}
+                  {durationMode === "fast" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+                        <input
+                          min="1"
+                          value={fastDurationValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || (!isNaN(Number(val)) && Number(val) > 0)) {
+                              setFastDurationValue(val);
+                              if (val !== "") {
+                                updateDeadlineFromFastMode(val, fastDurationUnit);
+                              }
+                            }
+                          }}
+                          className="flex-1 min-w-0 px-2 sm:px-4 py-2 sm:py-3 rounded-lg bg-transparent border-0 border-white/30 text-white placeholder-white/60 font-bold text-base sm:text-lg focus:outline-none focus:border-transparent"
+                          placeholder="Number"
+                        />
+                        <Select.Root
+                          value={fastDurationUnit}
+                          onValueChange={(value) => {
+                            const unit = value as "minutes" | "hours" | "days";
+                            setFastDurationUnit(unit);
+                            if (fastDurationValue !== "") {
+                              updateDeadlineFromFastMode(fastDurationValue, unit);
+                            }
+                          }}
+                        >
+                          <Select.Trigger className="flex-shrink-0 inline-flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 rounded-lg bg-white/20 border border-white/30 text-white font-bold text-xs sm:text-base focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved focus:border-transparent cursor-pointer min-w-[80px] sm:min-w-[100px]">
+                            <Select.Value />
+                            <Select.Icon className="ml-2">
+                              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Select.Icon>
+                          </Select.Trigger>
+                          <Select.Portal>
+                            <Select.Content className="overflow-hidden bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50">
+                              <Select.Viewport className="p-1">
+                                <Select.Item
+                                  value="minutes"
+                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                >
+                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                    <Check className="w-4 h-4" />
+                                  </Select.ItemIndicator>
+                                  <Select.ItemText className="pl-8">Min</Select.ItemText>
+                                </Select.Item>
+                                <Select.Item
+                                  value="hours"
+                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                >
+                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                    <Check className="w-4 h-4" />
+                                  </Select.ItemIndicator>
+                                  <Select.ItemText className="pl-8">Hrs</Select.ItemText>
+                                </Select.Item>
+                                <Select.Item
+                                  value="days"
+                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                >
+                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                    <Check className="w-4 h-4" />
+                                  </Select.ItemIndicator>
+                                  <Select.ItemText className="pl-8">Days</Select.ItemText>
+                                </Select.Item>
+                              </Select.Viewport>
+                            </Select.Content>
+                          </Select.Portal>
+                        </Select.Root>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => {
+                            setDurationMode("calendar");
+                          }}
+                          className="text-sm text-white/70 hover:text-white underline"
+                        >
+                          Use calendar instead
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Deadline Preview - Card style */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
+                  <div className="text-center">
+                    <p className="text-xs text-white/70 mb-3 uppercase tracking-wider font-semibold">
+                      Deadline
+                    </p>
+                    <p className="text-2xl font-black text-white mb-1">
+                      {deadline.toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="text-sm text-white/80">
+                      {deadline.toLocaleString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZoneName: "short",
+                      })}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -852,7 +1043,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                                   (tb) =>
                                     !!tb.token?.address &&
                                     tb.token.address.toLowerCase() ===
-                                      tAddressLower
+                                    tAddressLower
                                 );
                                 const balance = tokenBalanceInfo
                                   ? parseFloat(tokenBalanceInfo.formatted)
@@ -983,10 +1174,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                           {hasInsufficientBalanceForStake
                             ? `Insufficient balance. You need at least ${MIN_STAKE} to stake.`
                             : exceedsBalance
-                            ? `Amount exceeds your balance of ${maxStakeValue.toFixed(
+                              ? `Amount exceeds your balance of ${maxStakeValue.toFixed(
                                 2
                               )}.`
-                            : "Minimum stake is 1.0."}
+                              : "Minimum stake is 1.0."}
                         </p>
                       )}
                     </div>
@@ -1052,6 +1243,23 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         message={errorMessage || "Failed to create delulu. Please try again."}
         onClose={() => setShowErrorModal(false)}
         actionText="Try Again"
+      />
+
+      {/* User Setup Modal */}
+      <UserSetupModal
+        open={showUserSetupModal}
+        onOpenChange={(open) => {
+          setShowUserSetupModal(open);
+          // If user closes modal without completing, close the create page
+          if (!open && needsSetup) {
+            onClose();
+          }
+        }}
+        onComplete={(username, email) => {
+          // TODO: Save username and email when implementation is ready
+          console.log("User setup completed:", { username, email });
+          setShowUserSetupModal(false);
+        }}
       />
     </>
   );
