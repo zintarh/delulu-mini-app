@@ -4,6 +4,8 @@
 type User @entity(immutable: false) {
   id: Bytes! # Wallet address (maps to Prisma's `address` field)
   totalStaked: BigInt!
+  username: String # Username set via ProfileUpdated event
+  metadataHash: String # IPFS CID for encrypted metadata (e.g., email)
   # Reverse lookups — named to match Prisma relations
   delulus: [Delulu!]! @derivedFrom(field: "creator")
   stakes: [Stake!]! @derivedFrom(field: "user")
@@ -61,4 +63,11 @@ type Claim @entity(immutable: true) {
   amount: BigInt! # Raw wei payout (Prisma stores as Float)
   txHash: Bytes! # Matches Prisma's `txHash`
   createdAt: BigInt! # Block timestamp — maps to Prisma's `createdAt`
+}
+type Upgraded @entity(immutable: true) {
+  id: Bytes!
+  implementation: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
 }

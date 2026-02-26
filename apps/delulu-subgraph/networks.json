@@ -7,8 +7,13 @@
   },
   "celo": {
     "DeluluMarket": {
-      "address": "0xF87757bDf0986F4bBFAb6eD92EB2E627fb95ad46",
-      "startBlock": 60016510
+      "address": "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98",
+      "startBlock": 60183999
+    },
+    "ERC1967Proxy": {
+      "address": "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98",
+      "startBlock": 60183999
     }
+   
   }
 }

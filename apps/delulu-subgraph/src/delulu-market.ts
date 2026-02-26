@@ -6,6 +6,8 @@ import {
   EmergencyRefund as EmergencyRefundEvent,
   OwnershipTransferred as OwnershipTransferredEvent,
   Paused as PausedEvent,
+  ProfileUpdated as ProfileUpdatedEvent,
+  SenateUpdated as SenateUpdatedEvent,
   StakePlaced as StakePlacedEvent,
   Unpaused as UnpausedEvent,
   WinningsClaimed as WinningsClaimedEvent
@@ -148,3 +150,22 @@ export function handleOwnershipTransferred(
 export function handlePaused(event: PausedEvent): void { }
 
 export function handleUnpaused(event: UnpausedEvent): void { }
+
+export function handleProfileUpdated(event: ProfileUpdatedEvent): void {
+  let userId = event.params.user
+  let user = User.load(userId)
+
+  if (user == null) {
+    user = new User(userId)
+    user.totalStaked = BigInt.fromI32(0)
+  }
+
+  user.username = event.params.username
+  user.metadataHash = event.params.metadataHash
+  user.save()
+}
+
+export function handleSenateUpdated(event: SenateUpdatedEvent): void {
+  // Senate updates are administrative events
+  // Can be tracked if needed, but not required for core functionality
+}
