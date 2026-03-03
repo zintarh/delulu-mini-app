@@ -21,7 +21,6 @@ query GetStakesByDelulu(
       id
     }
     amount
-    side
     txHash
     createdAt
   }
@@ -42,7 +41,6 @@ query GetStakesByUser(
   ) {
     id
     amount
-    side
     txHash
     createdAt
     delulu {
@@ -52,11 +50,8 @@ query GetStakesByUser(
       creatorAddress
       stakingDeadline
       resolutionDeadline
-      totalBelieverStake
-      totalDoubterStake
       isResolved
       isCancelled
-      outcome
       createdAt
     }
   }
@@ -69,7 +64,6 @@ query GetUserStakesForDelulu($userId: String!, $deluluId: String!) {
   stakes(where: { user: $userId, delulu: $deluluId }) {
     id
     amount
-    side
     txHash
     createdAt
   }

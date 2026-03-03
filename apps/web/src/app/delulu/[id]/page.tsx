@@ -1,51 +1,50 @@
-"use client";
 
+
+
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchDeluluData, refetchAfterClaim } from "@/lib/graph/refetch-utils";
-import { useUserStore } from "@/stores/useUserStore";
 import { useStake } from "@/hooks/use-stake";
-import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
-import { useClaimable } from "@/hooks/use-claimable";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
-import { useUserClaimAmount } from "@/hooks/use-user-claim-amount";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
-import { useDeluluState, DeluluState } from "@/hooks/use-delulu-state";
-import type { StakeSide } from "@/lib/types";
+import { useChallenges } from "@/hooks/use-challenges";
+import { useJoinChallenge } from "@/hooks/use-join-challenge";
 import { FeedbackModal } from "@/components/feedback-modal";
-import { VerificationSheet } from "@/components/verification-sheet";
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
-import { DeluluCard } from "@/components/delulu-card";
-import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
+import { LeftSidebar } from "@/components/left-sidebar";
+import { RightSidebar } from "@/components/right-sidebar";
+import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
+import { ChallengesHeader } from "@/components/challenges-header";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Loader2,
   ArrowLeft,
   ThumbsUp,
-  ThumbsDown,
-  X,
-  Clock,
   Trophy,
+  CheckCircle2,
+  XCircle,
+  Target,
+  Users,
+  XIcon,
+  Circle,
+  Menu,
+  Search,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
+import { getDeluluContractAddress } from "@/lib/constant";
+import { DELULU_ABI } from "@/lib/abi";
+import { keccak256, stringToBytes } from "viem";
 
-function formatTimeRemaining(deadline: Date): string {
-  const now = new Date();
-  const diff = deadline.getTime() - now.getTime();
-  if (diff <= 0) return "Ended";
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  if (hours > 0) return `${hours}h`;
-  return `${Math.floor(diff / (1000 * 60))}m`;
-}
+
 
 export default function DeluluPage() {
   const router = useRouter();
@@ -53,77 +52,51 @@ export default function DeluluPage() {
   const deluluId = params.id as string;
 
   const { isConnected, address } = useAccount();
-  const { user } = useUserStore();
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
-  const { delulu, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
+  const { delulu, milestones, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
 
-  // Get the current state from the contract using the on-chain ID
-  // Prefer onChainId (string) when available, otherwise fall back to numeric id
+
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !delulu?.contentHash) return;
+
+    (async () => {
+      try {
+        const { resolveIPFSContent } = await import("@/lib/graph/ipfs-cache");
+        const metadata = await resolveIPFSContent(delulu.contentHash);
+        // eslint-disable-next-line no-console
+        console.log("[DeluluPage] decoded IPFS content", {
+          contentHash: delulu.contentHash,
+          metadata,
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("[DeluluPage] failed to decode IPFS content", e);
+      }
+    })();
+  }, [delulu?.contentHash]);
+
   const deluluIdForState =
     delulu?.onChainId && !Number.isNaN(Number(delulu.onChainId))
       ? Number(delulu.onChainId)
       : delulu?.id ?? null;
-  const { state: contractState, isLoading: isLoadingState } = useDeluluState(deluluIdForState);
 
-  // Only initialize hooks that are needed immediately
-  const {
-    stake,
-    isSuccess: isStakeSuccess,
-    error: stakeError,
-  } = useStake();
-
+  const { stake, isSuccess: isStakeSuccess, error: stakeError } = useStake();
   const marketToken = delulu?.tokenAddress;
-
-  // Lazy load hooks that depend on delulu data - only enable when delulu is loaded
   const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
 
-  const {
-    isPending: isApproving,
-    isConfirming: isApprovingConfirming,
-    isSuccess: isApprovalSuccess,
-    error: approvalError,
-    refetchAllowance,
-  } = useTokenApproval(marketToken);
+  const { balance: tokenBalance, isLoading: isLoadingBalance } = useTokenBalance(marketToken);
+  const { hasStaked, isClaimed } = useUserPosition(deluluIdForHooks);
+  const { claimableAmount, isLoading: isLoadingClaimableAmount } = useUserClaimableAmount(deluluIdForHooks);
 
-  const { balance: tokenBalance, isLoading: isLoadingBalance } =
-    useTokenBalance(marketToken);
+  const { claim, isPending: isClaiming, isConfirming: isClaimConfirming, isSuccess: isClaimSuccess, error: claimError } = useClaimWinnings();
 
-  const {
-    hasStaked,
-    isBeliever: userIsBeliever,
-    stakeAmount: userStakeAmount,
-    isClaimed,
-  } = useUserPosition(deluluIdForHooks);
-
-  const { isClaimable, isLoading: isLoadingClaimable } = useClaimable(
-    deluluIdForHooks
-  );
-
-  const { claimableAmount, isLoading: isLoadingClaimableAmount } =
-    useUserClaimableAmount(deluluIdForHooks);
-
-  const { claimedAmount, isLoading: isLoadingClaimedAmount } =
-    useUserClaimAmount(deluluIdForHooks?.toString() ?? null);
-
-  const {
-    claim,
-    isPending: isClaiming,
-    isConfirming: isClaimConfirming,
-    isSuccess: isClaimSuccess,
-    error: claimError,
-  } = useClaimWinnings();
-
-  const {
-    data: stakes,
-    isLoading: isLoadingStakes,
-    refetch: refetchStakes,
-  } = useGraphDeluluStakes(deluluId || null);
+  const { data: stakes, isLoading: isLoadingStakes, refetch: refetchStakes } = useGraphDeluluStakes(deluluId || null);
 
   const leaderboard = useMemo(() => {
     if (!stakes || stakes.length === 0) return [];
-
     const grouped = stakes.reduce((acc, stake) => {
       const key = stake.user?.address || stake.userId;
       if (!acc[key]) {
@@ -132,18 +105,13 @@ export default function DeluluPage() {
           username: stake.user?.username,
           pfpUrl: (stake.user as { pfpUrl?: string })?.pfpUrl,
           believerStake: 0,
-          doubterStake: 0,
           totalStake: 0,
         };
       }
-      if (stake.side) {
-        acc[key].believerStake += stake.amount;
-      } else {
-        acc[key].doubterStake += stake.amount;
-      }
+      acc[key].believerStake += stake.amount;
       acc[key].totalStake += stake.amount;
       return acc;
-    }, {} as Record<string, { address: string; username?: string; pfpUrl?: string; believerStake: number; doubterStake: number; totalStake: number }>);
+    }, {} as Record<string, { address: string; username?: string; pfpUrl?: string; believerStake: number; totalStake: number }>);
 
     return Object.values(grouped)
       .sort((a, b) => b.totalStake - a.totalStake)
@@ -151,961 +119,860 @@ export default function DeluluPage() {
   }, [stakes]);
 
   const [stakeAmount, setStakeAmount] = useState("1");
-  const [pendingAction, setPendingAction] = useState<StakeSide | null>(null);
-  const [lastStakeAction, setLastStakeAction] = useState<StakeSide | null>(null);
-  const [lastStakeAmount, setLastStakeAmount] = useState<number>(0);
-  const [showStakeInput, setShowStakeInput] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("Staking Failed");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
-  const [showClaimErrorModal, setShowClaimErrorModal] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [showVerificationSheet, setShowVerificationSheet] = useState(false);
 
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
+  const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Default to details tab for single delulu page
+  const [activeTab, setActiveTab] = useState<"details" | "milestones">("details");
+
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [newMilestones, setNewMilestones] = useState<{ description: string; days: string }[]>([{ description: "", days: "" }]);
+  const [milestoneProofLinks, setMilestoneProofLinks] = useState<Record<string, string>>({});
+  const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<string | null>(null);
+
+  const { challenges } = useChallenges();
+
 
   const {
-    potentialPayout: activeMarketPayout,
-    isLoading: isLoadingActivePayout,
-  } = usePotentialPayoutForExistingStake(
-    hasStaked && !delulu?.isResolved && !delulu?.isCancelled && delulu?.id
-      ? delulu.id
-      : null
-  );
+    joinChallenge,
+    isJoining,
+    isConfirming: isConfirmingJoin,
+    isSuccess: isJoinSuccess,
+    errorMessage: joinErrorMessage,
+  } = useJoinChallenge();
 
 
-  const calculatedStats = useMemo(() => {
-    if (!stakes || stakes.length === 0) {
-      return {
-        totalBelieverStake: delulu?.totalBelieverStake || 0,
-        totalDoubterStake: delulu?.totalDoubterStake || 0,
-      };
+  const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(null);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+
+  const currentCampaign = useMemo(() => {
+    if (!delulu?.challengeId || !challenges?.length) return null;
+    return challenges.find((c: { id: number }) => c.id === delulu.challengeId) ?? null;
+  }, [delulu?.challengeId, challenges]);
+
+
+
+
+
+
+  const supportAmount =
+    delulu?.totalSupportCollected || 0
+
+  const rawContent = delulu?.content ?? "";
+  const [deluluTitle, ...deluluDescriptionParts] = rawContent.split("\n\n");
+  const deluluDescription = deluluDescriptionParts.join("\n\n").trim();
+
+  const supportersCount =
+    delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
+
+
+  const chainId = useChainId();
+  const isCreator = isConnected && address && delulu?.creator && address.toLowerCase() === delulu.creator.toLowerCase();
+
+  const { writeContract: writeAddMilestones, data: addMilestonesHash, isPending: isAddingMilestones, error: addMilestonesError } = useWriteContract();
+  const { isLoading: isConfirmingAddMilestones, isSuccess: isAddMilestonesSuccess } = useWaitForTransactionReceipt({ hash: addMilestonesHash });
+  const { writeContract: writeSubmitMilestone, data: submitMilestoneHash, isPending: isSubmittingMilestone, error: submitMilestoneError } = useWriteContract();
+  const { isLoading: isConfirmingSubmitMilestone, isSuccess: isSubmitMilestoneSuccess } = useWaitForTransactionReceipt({ hash: submitMilestoneHash });
+
+  const handleAddMilestoneRow = () => setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
+  const handleRemoveMilestoneRow = (index: number) => setNewMilestones((prev) => prev.filter((_, i) => i !== index));
+  const handleNewMilestoneChange = (index: number, field: "description" | "days", value: string) => {
+    setNewMilestones((prev) => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+  };
+
+  const handleCreateMilestones = () => {
+    if (!isCreator) return;
+    if (milestones && milestones.length > 0) return;
+    const cleaned = newMilestones.filter((m) => m.description.trim().length > 0 && m.days.trim().length > 0);
+    const mHashes = cleaned.map((m) => keccak256(stringToBytes(m.description)));
+    const mDurations = cleaned.map((m) => BigInt(Math.floor(Number(m.days) * 24 * 60 * 60)));
+    writeAddMilestones({
+      address: getDeluluContractAddress(chainId),
+      abi: DELULU_ABI,
+      functionName: "addMilestones",
+      args: [BigInt(delulu!.id), mHashes, mDurations],
+    });
+  };
+
+  const handleSubmitMilestoneProof = (milestoneId: string, linkOverride?: string) => {
+    const link = (linkOverride ?? milestoneProofLinks[milestoneId] ?? "").trim();
+    writeSubmitMilestone({
+      address: getDeluluContractAddress(chainId),
+      abi: DELULU_ABI,
+      functionName: "submitMilestone",
+      args: [BigInt(delulu!.id), BigInt(milestoneId), link],
+    });
+  };
+
+  const openProofModal = (milestoneId: string, existingProof?: string | null) => {
+    setMilestoneProofLinks((prev) => ({
+      ...prev,
+      [milestoneId]: prev[milestoneId] ?? existingProof ?? "",
+    }));
+    setActiveProofMilestoneId(milestoneId);
+  };
+
+  const handleJoinCampaign = async () => {
+    if (!isCreator || !deluluIdForState || !selectedChallengeId) return;
+    try {
+      await joinChallenge(Number(deluluIdForState), selectedChallengeId);
+    } catch {
+      // errors handled via hook state
     }
+  };
 
-    const believerTotal = stakes
-      .filter((s) => s.side === true)
-      .reduce((sum, s) => sum + s.amount, 0);
-
-    const doubterTotal = stakes
-      .filter((s) => s.side === false)
-      .reduce((sum, s) => sum + s.amount, 0);
-
-    return {
-      totalBelieverStake: believerTotal,
-      totalDoubterStake: doubterTotal,
-    };
-  }, [stakes, delulu?.totalBelieverStake, delulu?.totalDoubterStake]);
-
-  // Determine which payout value to display based on market state
-  const displayPayout = useMemo(() => {
-    // For resolved/cancelled markets, use claimableAmount
-    if (delulu?.isResolved || delulu?.isCancelled) {
-      return claimableAmount;
-    }
-    // For active markets, use potentialPayout
-    return activeMarketPayout;
-  }, [
-    delulu?.isResolved,
-    delulu?.isCancelled,
-    claimableAmount,
-    activeMarketPayout,
-  ]);
-
-  const isLoadingPayout =
-    delulu?.isResolved || delulu?.isCancelled
-      ? isLoadingClaimableAmount
-      : isLoadingActivePayout;
-
-  useEffect(() => {
-    if (!delulu) return;
-    if (isApprovalSuccess && pendingAction) {
-      const amount = parseFloat(stakeAmount);
-
-      if (isNaN(amount) || amount <= 0) {
-        setErrorMessage("Invalid stake amount");
-        setShowErrorModal(true);
-        setPendingAction(null);
-        return;
-      }
-
-      try {
-        const isBeliever = pendingAction === "believe";
-        setLastStakeAction(pendingAction);
-        setLastStakeAmount(amount);
-        if (isBeliever) {
-          stake(delulu.id, amount, true, marketToken);
-        } else {
-          stake(delulu.id, amount, false, marketToken);
-        }
-        setPendingAction(null);
-        refetchAllowance();
-      } catch (error) {
-        console.error("Auto-stake error:", error);
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Failed to stake after approval"
-        );
-        setShowErrorModal(true);
-        setPendingAction(null);
-      }
-    }
-  }, [
-    isApprovalSuccess,
-    pendingAction,
-    stakeAmount,
-    delulu,
-    stake,
-    refetchAllowance,
-  ]);
-
+  // Sync Logic
   useEffect(() => {
     if (isStakeSuccess) {
       setShowSuccessModal(true);
-      setShowStakeInput(false);
       setStakeAmount("1");
-      // Refetch stakes and all Graph queries after indexing delay
-      setTimeout(() => {
-        refetchStakes();
-      }, 2000);
-      // Refetch delulu data (will also refetch stakes via GetDeluluByIdDocument)
+      refetchStakes();
       refetchDeluluData(apolloClient, deluluId);
     }
-  }, [isStakeSuccess, deluluId, refetchStakes, apolloClient]);
+  }, [isStakeSuccess, deluluId, apolloClient]);
 
-  // Handle claim success
   useEffect(() => {
     if (isClaimSuccess) {
       setShowClaimSuccessModal(true);
-      // Refetch all Graph queries and invalidate contract reads
       refetchAfterClaim(apolloClient, queryClient, deluluId);
     }
-  }, [isClaimSuccess, apolloClient, queryClient, deluluId]);
+  }, [isClaimSuccess, deluluId, apolloClient, queryClient]);
 
   useEffect(() => {
-    if (claimError) {
-      let errorMsg = "Failed to claim winnings";
-      if (claimError.message) {
-        const errorLower = claimError.message.toLowerCase();
-        if (
-          errorLower.includes("user rejected") ||
-          errorLower.includes("user denied")
-        ) {
-          errorMsg = "Claim was cancelled";
-        } else if (errorLower.includes("already claimed")) {
-          errorMsg = "Winnings have already been claimed";
-        } else if (errorLower.includes("not claimable")) {
-          errorMsg = "Winnings are not yet claimable";
-        } else {
-          errorMsg =
-            claimError.message.length > 100
-              ? "Claim failed. Please try again."
-              : claimError.message;
-        }
+    if (!selectedChallengeId && challenges.length > 0) {
+      const now = new Date();
+      const activeChallenges = challenges.filter(
+        (c: { active: boolean; startTime: Date; endTime: Date }) =>
+          c.active && c.startTime <= now && c.endTime > now
+      );
+      const initial = activeChallenges[0] ?? challenges[0];
+      if (initial) {
+        setSelectedChallengeId(initial.id);
       }
-      setErrorMessage(errorMsg);
-      setShowClaimErrorModal(true);
     }
-  }, [claimError]);
+  }, [challenges, selectedChallengeId]);
 
   useEffect(() => {
-    if (approvalError) {
-      let errorMsg = "Failed to approve token";
+    if (isJoinSuccess) {
+      refetchDeluluData(apolloClient, deluluId);
+      setJoinModalOpen(false);
 
-      if (approvalError.message) {
-        const errorLower = approvalError.message.toLowerCase();
-
-        if (
-          errorLower.includes("user rejected") ||
-          errorLower.includes("user denied") ||
-          errorLower.includes("rejected the request")
-        ) {
-          errorMsg = "Approval was cancelled";
-        } else if (errorLower.includes("insufficient")) {
-          errorMsg = "Insufficient balance for approval";
-        } else if (errorLower.includes("revert")) {
-          errorMsg = "Approval failed. Please try again.";
-        } else {
-          errorMsg =
-            approvalError.message.length > 100
-              ? "Approval failed. Please try again."
-              : approvalError.message;
-        }
-      }
-
-      setErrorMessage(errorMsg);
-      setShowErrorModal(true);
-      setPendingAction(null);
-    }
-  }, [approvalError]);
-
-  useEffect(() => {
-    if (stakeError) {
-      let errorMsg = "Failed to stake";
-
-      if (stakeError.message) {
-        const errorLower = stakeError.message.toLowerCase();
-        if (
-          errorLower.includes("user rejected") ||
-          errorLower.includes("user denied") ||
-          errorLower.includes("rejected the request")
-        ) {
-          errorMsg = "Transaction was cancelled";
-        } else if (
-          errorLower.includes("insufficient") ||
-          errorLower.includes("balance too low")
-        ) {
-          errorMsg = "Insufficient token balance";
-        } else if (errorLower.includes("revert")) {
-          const revertMatch = stakeError.message.match(
-            /revert\s+(.+?)(?:\s|$)/i
-          );
-          if (revertMatch && revertMatch[1]) {
-            const reason = revertMatch[1].trim();
-            if (
-              reason.includes("StakingDeadlinePassed") ||
-              reason.includes("deadline")
-            ) {
-              errorMsg = "Staking deadline has passed";
-            } else if (
-              reason.includes("DeluluResolved") ||
-              reason.includes("resolved")
-            ) {
-              errorMsg = "This delulu has already been resolved";
-            } else if (
-              reason.includes("DeluluCancelled") ||
-              reason.includes("cancelled")
-            ) {
-              errorMsg = "This delulu has been cancelled";
-            } else if (
-              reason.includes("InvalidAmount") ||
-              reason.includes("amount")
-            ) {
-              errorMsg = "Invalid stake amount";
-            } else {
-              errorMsg = `Transaction failed: ${reason}`;
-            }
-          } else {
-            errorMsg = "Transaction failed. Please try again.";
+      // Fire confetti on successful campaign join
+      (async () => {
+        try {
+          const confettiModule = await import("canvas-confetti");
+          const confetti = (confettiModule as any).default || confettiModule;
+          if (typeof confetti === "function") {
+            confetti({
+              particleCount: 80,
+              spread: 60,
+              origin: { y: 0.4 },
+              colors: ["#FCD34D", "#4B5563", "#A855F7"],
+            });
           }
-        } else if (
-          errorLower.includes("network") ||
-          errorLower.includes("connection") ||
-          errorLower.includes("timeout") ||
-          errorLower.includes("block is out of range") ||
-          errorLower.includes("synchronization") ||
-          errorLower.includes("rpc")
-        ) {
-          errorMsg =
-            "Network synchronization issue. The RPC node is catching up. Please wait a moment and try again.";
-        } else if (
-          errorLower.includes("gas") ||
-          errorLower.includes("execution reverted")
-        ) {
-          errorMsg =
-            "Transaction would fail. Please check your balance and try again.";
-        } else {
-          errorMsg =
-            stakeError.message.length > 100
-              ? "Transaction failed. Please try again."
-              : stakeError.message;
+        } catch {
+          // Confetti is optional and purely visual
         }
-      }
-
-      setErrorMessage(errorMsg);
-      setShowErrorModal(true);
+      })();
     }
-  }, [stakeError]);
+  }, [isJoinSuccess, apolloClient, deluluId]);
 
-  // Show loading only if we have no data at all (first load)
-  // If we have cached data, show it immediately
+  useEffect(() => {
+    if (isAddMilestonesSuccess) {
+      setShowMilestoneForm(false);
+      refetchDeluluData(apolloClient, deluluId);
+    }
+  }, [isAddMilestonesSuccess, apolloClient, deluluId]);
+
+  // Initial load: show skeleton layout instead of spinner
   if (isLoadingDelulu && !delulu) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between bg-white border-b border-gray-200">
-          <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
-          <h1
-            className="text-4xl font-black text-delulu-yellow-reserved"
-            style={{
-              fontFamily: "var(--font-gloria), cursive",
-              textShadow:
-                "3px 3px 0px #000000, -2px -2px 0px #000000, 2px -2px 0px #000000, -2px 2px 0px #000000",
-            }}
-          >
-            Delulu
-          </h1>
-          <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
-        </div>
-
-        <div className="max-w-4xl mx-auto px-4 pt-24 pb-32">
-          <div className="mb-8">
-            <DeluluCardSkeleton className="w-full" index={0} />
+      <div className="h-screen overflow-hidden bg-white">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
+          <div className="hidden lg:block">
+            <LeftSidebar
+              onProfileClick={() =>
+                !isConnected ? setShowLoginSheet(true) : router.push("/profile")
+              }
+              onCreateClick={() =>
+                !isConnected ? setShowLoginSheet(true) : router.push("/board")
+              }
+            />
           </div>
 
-          <div className="space-y-4 mb-8">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
-                <div className="h-6 bg-gray-200 rounded w-24" />
-              </div>
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
-                <div className="h-6 bg-gray-200 rounded w-24" />
-              </div>
+          <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
+            <div className="lg:hidden">
+              <ChallengesHeader
+                onProfileClick={() =>
+                  !isConnected
+                    ? setShowLoginSheet(true)
+                    : router.push("/profile")
+                }
+                onCreateClick={() =>
+                  !isConnected ? setShowLoginSheet(true) : router.push("/board")
+                }
+              />
             </div>
 
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse">
-              <div className="flex items-center justify-between mb-2">
-                <div className="h-3 bg-gray-200 rounded w-16" />
-                <div className="h-4 bg-gray-200 rounded w-8" />
+            <div className="px-4 lg:px-6 py-6 space-y-6">
+              {/* Banner skeleton */}
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="h-48 bg-gray-200 animate-pulse" />
+                <div className="p-6 space-y-3">
+                  <div className="h-6 w-2/3 bg-gray-200 rounded-md animate-pulse" />
+                  <div className="h-4 w-1/3 bg-gray-200 rounded-md animate-pulse" />
+                  <div className="h-16 w-full bg-gray-100 rounded-md animate-pulse" />
+                </div>
               </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full mb-2" />
-              <div className="flex items-center justify-between">
-                <div className="h-3 bg-gray-200 rounded w-16" />
-                <div className="h-3 bg-gray-200 rounded w-8" />
-              </div>
-            </div>
 
-            {/* Deadline */}
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse">
-              <div className="h-3 bg-gray-200 rounded w-24 mb-2" />
-              <div className="h-5 bg-gray-200 rounded w-32 mb-1" />
-              <div className="h-3 bg-gray-200 rounded w-40" />
-            </div>
-          </div>
-
-          {isLoadingStakes && (
-            <div className="mt-12">
-              <div className="h-6 bg-gray-200 rounded w-32 mb-4 animate-pulse" />
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200" />
-                        <div>
-                          <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
-                          <div className="h-3 bg-gray-200 rounded w-32" />
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="h-4 bg-gray-200 rounded w-16 mb-1" />
-                        <div className="h-3 bg-gray-200 rounded w-12" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {/* Details skeleton */}
+              <div className="space-y-4">
+                <div className="h-10 w-40 bg-gray-100 rounded-full animate-pulse" />
+                <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+                <div className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+          </main>
 
-  if (!delulu) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-32">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-500 hover:text-delulu-charcoal mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg mb-2">Delulu not found</p>
-            <p className="text-gray-400 text-sm">
-              This delulu may have been removed or doesn&apos;t exist.
-            </p>
+          <div className="hidden lg:block">
+            <RightSidebar />
           </div>
         </div>
       </div>
     );
   }
 
-  const total =
-    calculatedStats.totalBelieverStake + calculatedStats.totalDoubterStake;
-  const believerPercent =
-    total > 0
-      ? Math.round((calculatedStats.totalBelieverStake / total) * 100)
-      : 0;
+  if (!delulu) return <div className="p-20 text-center">Delulu not found</div>;
 
-  const doubterPercent = total > 0 ? 100 - believerPercent : 0;
-
-  const hasBalance = tokenBalance
-    ? parseFloat(tokenBalance.formatted) > 0
-    : false;
-
-  const handleStakeClick = () => {
-    setStakingSheetOpen(true);
-  };
-
-  const canStake =
-    !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
+  const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
+  const bannerImage = delulu.bgImageUrl || "/templates/t0.png";
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between bg-white border-b border-gray-200">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center justify-center w-12 h-12 rounded-full text-black hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
-          title="Back"
-          aria-label="Back"
-        >
-          <ArrowLeft className="w-7 h-7" />
-        </button>
-
-        <h1
-          className="text-4xl font-black text-delulu-yellow-reserved"
-          style={{
-            fontFamily: "var(--font-gloria), cursive",
-            textShadow:
-              "3px 3px 0px #000000, -2px -2px 0px #000000, 2px -2px 0px #000000, -2px 2px 0px #000000",
-          }}
-        >
-          Delulu
-        </h1>
-
-        <button
-          onClick={() => router.back()}
-          className="flex items-center justify-center w-12 h-12 rounded-full text-black hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
-          title="Close"
-          aria-label="Close"
-        >
-          <X className="w-7 h-7" />
-        </button>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 pt-24 pb-2">
-        {/* Delulu Card */}
-        <div className="mb-4 w-full single-delulu-card-wrapper">
-          {delulu && (
-            <DeluluCard delusion={delulu} onStake={handleStakeClick} />
-          )}
+    <div className="h-screen overflow-hidden bg-white">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
+        <div className="hidden lg:block">
+          <LeftSidebar
+            onProfileClick={() => !isConnected ? setShowLoginSheet(true) : router.push("/profile")}
+            onCreateClick={() => !isConnected ? setShowLoginSheet(true) : router.push("/board")}
+          />
         </div>
 
-        {/* Main Content Section */}
-        <div className="space-y-4 mb-8">
-          {/* Market State - Show current state from contract */}
-          {!isLoadingState && contractState !== null && (
-            <div className="px-2">
-              <p className="text-sm font-black">
-                <span
-                  className={cn(
-                    "uppercase text-black",
-                    contractState === DeluluState.Open && "text-[#01B1FF]", // GoodDollar blue
-                    contractState === DeluluState.Review && "text-green-600",
-                    contractState === DeluluState.Resolved && "text-green-600",
-                    (contractState === DeluluState.Locked ||
-                      contractState === DeluluState.Cancelled) &&
-                      "text-red-600"
-                  )}
+        <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
+          {/* Mobile header without tabs (tabs are shown below like desktop) */}
+          <div className="lg:hidden">
+            <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-200">
+              <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
+                {/* Mobile hamburger menu */}
+                <button
+                  onClick={() => setIsMenuOpen(true)}
+                  className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+                  aria-label="Open navigation menu"
                 >
-                  {contractState === DeluluState.Open && "OPEN"}
-                  {contractState === DeluluState.Locked && "LOCKED"}
-                  {contractState === DeluluState.Review && "IN REVIEW"}
-                  {contractState === DeluluState.Resolved && "RESOLVED"}
-                  {contractState === DeluluState.Cancelled && "CANCELLED"}
-                </span>
-              </p>
-            </div>
-          )}
+                  <Menu className="w-6 h-6 text-gray-700" />
+                </button>
 
-          {/* Resolution Status - Show which side won */}
-          {delulu?.isResolved && (
-            <div className="rounded-xl border-2 border-delulu-charcoal bg-white p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
-              <p className="text-sm font-black text-delulu-charcoal text-center">
-                This delulu was resolved in favor of{" "}
-                <span
-                  className={delulu.outcome ? "text-green-600" : "text-red-600"}
+                {/* Spacer in the middle (no tabs here on mobile) */}
+                <div className="flex-1" />
+
+                <button
+                  onClick={() => router.push("/search")}
+                  className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                  title="Search"
+                  aria-label="Search"
                 >
-                  {delulu.outcome ? "Believers" : "Doubters"}
-                </span>
-              </p>
-            </div>
-          )}
+                  <Search className="w-6 h-6" />
+                </button>
+              </nav>
+            </header>
 
-          {/* User's Position - Fun & Visual */}
-          {hasStaked && isConnected && delulu && !isClaimed && (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
-              <p className="text-xs font-black text-gray-500 uppercase mb-2">
-                Your Position
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-10 h-10 rounded-full border-2 border-delulu-charcoal flex items-center justify-center ${userIsBeliever
-                        ? "bg-delulu-yellow-reserved/20"
-                        : "bg-gray-100"
-                      }`}
-                  >
-                    {userIsBeliever ? (
-                      <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
-                    ) : (
-                      <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-0.5">
-                      {userIsBeliever ? "Believe" : "Doubt"}
-                    </p>
-                    <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                      {userStakeAmount > 0
-                        ? userStakeAmount < 0.01
-                          ? userStakeAmount.toFixed(4)
-                          : userStakeAmount.toFixed(2)
-                        : "0.00"}{" "}
-                      {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
-                    </p>
-                  </div>
-                </div>
-                {isLoadingPayout ? (
-                  <div className="h-6 w-20 bg-gray-200 rounded animate-pulse" />
-                ) : (
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 mb-0.5">
-                      {delulu.isResolved ? "Payout" : "Potential Payout"}
-                    </p>
-                    <p
-                      className={`text-lg font-black inline-flex items-center gap-1 ${(displayPayout ?? 0) > 0
-                          ? "text-delulu-charcoal"
-                          : "text-gray-300"
-                        }`}
-                    >
-                      {(displayPayout ?? 0) > 0
-                        ? (displayPayout ?? 0) < 0.01
-                          ? (displayPayout ?? 0).toFixed(4)
-                          : (displayPayout ?? 0).toFixed(2)
-                        : "0.00"}
-                      {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Market Stats - Compact summary */}
-          <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
-            <p className="text-xs font-black text-gray-500 uppercase mb-2">
-              Market Stats
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="bg-white rounded-lg border border-gray-200 p-2">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <ThumbsUp className="w-4 h-4 text-delulu-charcoal" />
-                  <p className="text-xs font-black text-gray-500">Believe</p>
-                </div>
-                <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                  {calculatedStats.totalBelieverStake > 0
-                    ? calculatedStats.totalBelieverStake < 0.01
-                      ? calculatedStats.totalBelieverStake.toFixed(4)
-                      : calculatedStats.totalBelieverStake.toFixed(2)
-                    : "0.00"}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-2">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <ThumbsDown className="w-4 h-4 text-delulu-charcoal" />
-                  <p className="text-xs font-black text-gray-500">Doubt</p>
-                </div>
-                <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                  {calculatedStats.totalDoubterStake > 0
-                    ? calculatedStats.totalDoubterStake < 0.01
-                      ? calculatedStats.totalDoubterStake.toFixed(4)
-                      : calculatedStats.totalDoubterStake.toFixed(2)
-                    : "0.00"}
-                </p>
-              </div>
-            </div>
-
-            {/* Progress Bar - Visual Only */}
-            {total > 0 && (
-              <div className="relative">
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-delulu-yellow-reserved rounded-full transition-all duration-300"
-                    style={{ width: `${believerPercent}%` }}
+            {/* Mobile drawer with left sidebar content */}
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetContent side="left" className="p-0">
+                <div className="h-full">
+                  <LeftSidebar
+                    onProfileClick={() => {
+                      if (!isConnected) {
+                        setShowLoginSheet(true);
+                      } else {
+                        router.push("/profile");
+                      }
+                      setIsMenuOpen(false);
+                    }}
+                    onCreateClick={() => {
+                      if (!isConnected) {
+                        setShowLoginSheet(true);
+                      } else {
+                        router.push("/board");
+                      }
+                      setIsMenuOpen(false);
+                    }}
                   />
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs font-black text-delulu-charcoal">
-                    {believerPercent}%
-                  </span>
-                  <span className="text-xs font-black text-gray-500">
-                    {doubterPercent}%
-                  </span>
-                </div>
-              </div>
-            )}
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Outcome & Deadline - Side by Side, informational only */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Outcome */}
-            {delulu.isResolved && (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
-                <p className="text-xs font-black text-gray-500 uppercase mb-1.5">
-                  Outcome
-                </p>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  {delulu.outcome ? (
-                    <ThumbsUp className="w-5 h-5 text-delulu-charcoal" />
-                  ) : (
-                    <ThumbsDown className="w-5 h-5 text-delulu-charcoal" />
-                  )}
-                </div>
-                <p className="text-sm font-black text-delulu-charcoal">
-                  {delulu.outcome ? "Believers" : "Doubters"} Won
-                </p>
-                {hasStaked && isConnected && (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {userIsBeliever === delulu.outcome && (
-                      <Trophy className="w-3.5 h-3.5 text-green-600" />
-                    )}
-                    <p
-                      className={`text-xs font-medium ${userIsBeliever === delulu.outcome
-                          ? "text-green-600"
-                          : "text-red-600"
-                        }`}
-                    >
-                      {userIsBeliever === delulu.outcome
-                        ? "You won!"
-                        : "You lost"}
-                    </p>
-                  </div>
+          {/* Desktop header */}
+          <div className="hidden lg:flex items-center gap-4 px-6 py-4 border-b border-gray-200 sticky top-0 z-30 bg-white/95 backdrop-blur-sm">
+            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="px-4 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
+            {/* Banner */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="relative h-48 bg-cover bg-center" style={{ backgroundImage: `url(${bannerImage})` }}>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+                {canStake && (
+                  <button
+                    onClick={() =>
+                      !isConnected ? setShowLoginSheet(true) : setStakingSheetOpen(true)
+                    }
+                    className="w-fit right-0 bottom-0 absolute px-4 py-3 bg-delulu-yellow-reserved border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg"
+                  >
+                    Support
+                  </button>
                 )}
               </div>
-            )}
-
-            {/* Deadline */}
-            <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
-              <p className="text-xs font-black text-gray-500 uppercase mb-1.5">
-                Deadline
-              </p>
-              <div className="flex items-center gap-x-1">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-delulu-charcoal" />
+              <div className="p-6">
+                <h1 className="text-2xl font-black mb-2">
+                  {deluluTitle || delulu?.content}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                  <span className="font-bold text-delulu-charcoal">@{delulu.username || formatAddress(delulu.creator)}</span>
+                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                 </div>
-                <p className="text-sm font-black text-delulu-charcoal">
-                  {(() => {
-                    if (delulu.isCancelled) return "Cancelled";
-                    if (delulu.isResolved) return "Resolved";
-                    const timeRemaining = formatTimeRemaining(
-                      delulu.stakingDeadline
-                    );
-                    return timeRemaining === "Ended" ? "Ended" : timeRemaining;
-                  })()}
-                </p>
+
+                <div className="flex items-center gap-6 mb-2">
+                  <div className="flex items-center gap-2">
+                    <ThumbsUp className="w-4 h-4" />
+                    <span className="font-bold text-sm">
+                      {supportAmount > 0
+                        ? supportAmount < 0.01
+                          ? supportAmount.toFixed(4)
+                          : supportAmount.toFixed(2)
+                        : "0.00"}
+                    </span>
+                    <span className="text-gray-500 text-sm">Total support</span>
+                  </div>
+                </div>
+
+                {deluluDescription && (
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {deluluDescription}
+                  </p>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Claimed Status - Fun */}
-          {hasStaked &&
-            isConnected &&
-            isClaimed &&
-            (delulu.isResolved || delulu.isCancelled) && (
-              <div className="rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved/10 p-3 shadow-[1px_1px_0px_0px_#1A1A1A]">
-                <p className="text-xs font-black text-delulu-charcoal uppercase mb-2">
-                  Claimed
-                </p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    {isLoadingClaimedAmount ? (
-                      <div className="h-5 w-20 bg-gray-200 rounded animate-pulse" />
-                    ) : (
-                      <p className="text-base font-black text-delulu-charcoal inline-flex items-center gap-1">
-                        {claimedAmount !== null && claimedAmount > 0
-                          ? claimedAmount < 0.01
-                            ? claimedAmount.toFixed(4)
-                            : claimedAmount.toFixed(2)
-                          : "0.00"}{" "}
-                        {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
-                      </p>
+            {/* Tabs (same position on desktop and mobile) */}
+            <div className="flex border-b border-gray-200 gap-4">
+              <button onClick={() => setActiveTab("details")} className={cn("pb-2 font-bold border-b-2 transition-all", activeTab === "details" ? "border-black" : "border-transparent text-gray-400")}>Details</button>
+
+              <button onClick={() => setActiveTab("milestones")} className={cn("pb-2 font-bold border-b-2 transition-all", activeTab === "milestones" ? "border-black" : "border-transparent text-gray-400")}>Milestones</button>
+            </div>
+
+            {activeTab === "details" ? (
+              <div className="space-y-6">
+                {/* Token support section */}
+                <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-delulu-yellow-reserved/20 border border-delulu-yellow-reserved/60">
+                        <Users className="w-4 h-4 text-delulu-charcoal" />
+                      </span>
+                      <h3 className="text-sm md:text-base font-black text-delulu-charcoal">
+                        Token support
+                      </h3>
+                    </div>
+                    {marketToken && (
+                      <div className="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-gray-500 uppercase">
+                        <span>Token</span>
+                        <TokenBadge tokenAddress={marketToken} size="sm" />
+                      </div>
                     )}
                   </div>
-                  <div className="text-2xl text-delulu-charcoal font-black">
-                    ✓
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-sm">
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                        Total support
+                      </p>
+                      <p className="text-2xl md:text-3xl font-black text-delulu-charcoal flex items-center gap-2">
+                        {supportAmount > 0
+                          ? supportAmount < 0.01
+                            ? supportAmount.toFixed(4)
+                            : supportAmount.toFixed(2)
+                          : "0.00"}
+                        {marketToken && (
+                          <span className="inline-flex sm:hidden">
+                            <TokenBadge tokenAddress={marketToken} size="sm" />
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="md:border-l md:border-gray-100 md:pl-6">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                        Supporters
+                      </p>
+                      <p className="text-lg md:text-2xl font-black text-delulu-charcoal">
+                        {supportersCount}
+                      </p>
+                    </div>
+
+                    <div className="md:border-l md:border-gray-100 md:pl-6">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                        Avg. per supporter
+                      </p>
+                      <p className="text-lg font-semibold text-delulu-charcoal">
+                        {supportersCount > 0
+                          ? supportAmount / supportersCount < 0.01
+                            ? (supportAmount / supportersCount).toFixed(4)
+                            : (supportAmount / supportersCount).toFixed(2)
+                          : "0.00"}
+                      </p>
+                    </div>
                   </div>
+                </div>
+
+                {leaderboard.length > 0 && (
+                  <div className="">
+                    <h2 className="text-base font-black mb-4">Top Supporters</h2>
+                    <div className="space-y-3">
+                      {leaderboard.map((entry) => (
+                        <div
+                          key={entry.address}
+                          className="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-delulu-yellow-reserved rounded-full flex items-center justify-center font-black">
+                              {entry.rank}
+                            </div>
+                            <div>
+                              <p className="font-bold">
+                                @{entry.username || formatAddress(entry.address)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {entry.totalStake.toFixed(2)} staked
+                              </p>
+                            </div>
+                          </div>
+                          <Trophy
+                            className={cn(
+                              "w-5 h-5",
+                              entry.rank === 1 ? "text-yellow-500" : "text-gray-300"
+                            )}
+                          />
+                        </div>  
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Campaign section */}
+                <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 border border-purple-300">
+                        <Trophy className="w-4 h-4 text-purple-700" />
+                      </span>
+                      <h3 className="text-sm md:text-base font-black text-delulu-charcoal">
+                        Campaign
+                      </h3>
+                    </div>
+                    {delulu.challengeId && (
+                      <span className="text-xs md:text-sm font-semibold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
+                        {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
+                      </span>
+                    )}
+                  </div>
+                  {!delulu.challengeId ? (
+                    <>
+                      {isCreator && (
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <p className="text-sm text-gray-600 flex-1">
+                            Join a campaign to compete on leaderboards and earn rewards.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setJoinModalOpen(true)}
+                            className="inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:scale-[0.98] transition-transform"
+                          >
+                            Join campaign
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <span>
+                        This delulu is participating in{" "}
+                        {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Milestones Card */}
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base md:text-lg font-black text-delulu-charcoal flex items-center gap-2">
+                        <Target className="w-4 h-4 md:w-5 md:h-5" />
+                        Milestones
+                      </h2>
+                      {milestones && milestones.length > 0 && (
+                        <span className="text-xs md:text-sm text-gray-500 font-medium">
+                          {milestones.filter((m) => m.isVerified).length} of {milestones.length}{" "}
+                          completed
+                        </span>
+                      )}
+                    </div>
+
+                    {isCreator && (!milestones || milestones.length === 0) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowMilestoneForm((open) => !open)}
+                        className=" w-fit  inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                      >
+                        {showMilestoneForm ? "Close" : "Create milestones"}
+                      </button>
+                    )}
+                  </div>
+
+                  {isCreator && showMilestoneForm && (
+                    <div className="mb-4 border border-dashed border-gray-300 rounded-2xl p-3 md:p-4 bg-gray-50/60">
+                      <p className="text-xs md:text-sm text-gray-500 mb-3">
+                        Add all of your milestones for this delulu now. You can&apos;t edit or add more milestones later, but you can always submit or update proof links for each one.
+                      </p>
+                      <div className="space-y-3 md:space-y-4">
+                        {newMilestones.map((m, index) => (
+                          <div
+                            key={index}
+                            className="rounded-xl border border-gray-200 bg-white p-3 md:p-4 space-y-2"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-black text-gray-500 uppercase">
+                                Milestone {index + 1}
+                              </span>
+                              {newMilestones.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveMilestoneRow(index)}
+                                  className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                >
+                                  <XIcon className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Describe this milestone..."
+                                  value={m.description}
+                                  onChange={(e) =>
+                                    handleNewMilestoneChange(
+                                      index,
+                                      "description",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                                />
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="1"
+                                  value={m.days}
+                                  onChange={(e) =>
+                                    handleNewMilestoneChange(index, "days", e.target.value)
+                                  }
+                                  className="w-20 px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+
+                                <span className="text-xs text-gray-600">
+                                  days to complete (from now, sequentially after previous
+                                  milestones)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                        <button
+                          type="button"
+                          onClick={handleAddMilestoneRow}
+                          className="inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                        >
+                          + Add another milestone
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateMilestones}
+                          disabled={isAddingMilestones || isConfirmingAddMilestones}
+                          className={cn(
+                            "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                            "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
+                            (isAddingMilestones || isConfirmingAddMilestones) &&
+                            "opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          {isAddingMilestones || isConfirmingAddMilestones ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save milestones"
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Milestones list */}
+                  {milestones && milestones.length > 0 ? (
+                    <>
+                      <div className="space-y-3 md:space-y-4">
+                        {milestones.map((m, i) => (
+                          <div
+                            key={m.id}
+                            className="p-4 border-2 border-gray-100 rounded-xl flex gap-4"
+                          >
+                            <div className="pt-1">
+                              {m.isVerified ? (
+                                <CheckCircle2 className="text-green-500" />
+                              ) : (
+                                <Circle className="text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-bold text-delulu-charcoal">
+                                  Milestone {i + 1}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    !m.isVerified && isCreator && openProofModal(m.milestoneId, m.proofLink)
+                                  }
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                    m.isVerified
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
+                                      : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
+                                  )}
+                                >
+                                  {m.isVerified ? "Completed" : "Pending"}
+                                </button>
+                              </div>
+                              <p className="text-xs md:text-sm text-gray-500">
+                                {m.deadline.toLocaleDateString()}
+                              </p>
+                              {m.proofLink && (
+                                <a
+                                  href={m.proofLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 text-xs font-bold underline"
+                                >
+                                  View Evidence
+                                </a>
+                              )}
+
+                              {isCreator && !m.isVerified && (
+                                <button
+                                  type="button"
+                                  onClick={() => openProofModal(m.milestoneId, m.proofLink)}
+                                  className="mt-2 inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
+                                >
+                                  {m.proofLink ? "Update proof & change status" : "Submit proof to change status"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Optional: progress summary could go here */}
+                    </>
+                  ) : (
+                    <div className="rounded-2xl bg-gray-50 p-8 text-center mt-2">
+                      <Target className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm md:text-base font-black text-gray-600 mb-1">
+                        No milestones yet
+                      </p>
+                      <p className="text-xs md:text-sm text-gray-400">
+                        {isCreator
+                          ? "Use the button above to create milestones for this delulu."
+                          : "Milestones will appear here once the creator adds them."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-        </div>
-
-        {/* Leaderboard - Only show if there's data or loading */}
-        {(isLoadingStakes || leaderboard.length > 0) && (
-          <div className="mt-12 mb-8">
-            <h2 className="text-xl font-black text-delulu-charcoal mb-4">
-              Leaderboard
-            </h2>
-            {isLoadingStakes ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-gray-50 border border-gray-200 animate-pulse"
-                  >
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {leaderboard.map((entry) => {
-                  // Check if this entry belongs to the connected user
-                  const isCurrentUser =
-                    address?.toLowerCase() === entry.address.toLowerCase();
-
-                  // Use connected user's profile data if available and it's their entry, otherwise use entry data
-                  const displayUsername =
-                    isCurrentUser && user?.username
-                      ? user.username
-                      : entry.username || null;
-                  const displayPfpUrl =
-                    isCurrentUser && user?.pfpUrl
-                      ? user.pfpUrl
-                      : entry.pfpUrl || null;
-
-                  return (
-                    <div
-                      key={entry.address}
-                      className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        {displayPfpUrl ? (
-                          <img
-                            src={displayPfpUrl}
-                            alt={displayUsername || entry.address}
-                            className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-delulu-charcoal text-white flex items-center justify-center font-black text-sm">
-                            {entry.rank}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-bold text-delulu-charcoal">
-                            {displayUsername
-                              ? `@${displayUsername}`
-                              : formatAddress(entry.address)}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {entry.believerStake > 0 && (
-                              <span className="text-xs text-gray-600 inline-flex items-center gap-1">
-                                <ThumbsUp className="w-3 h-3" />
-                                {entry.believerStake < 0.01
-                                  ? entry.believerStake.toFixed(4)
-                                  : entry.believerStake.toFixed(2)}{" "}
-                                {/* {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />} */}
-                              </span>
-                            )}
-                            {entry.doubterStake > 0 && (
-                              <span className="text-xs text-gray-600 inline-flex items-center gap-1">
-                                <ThumbsDown className="w-3 h-3" />
-                                {entry.doubterStake < 0.01
-                                  ? entry.doubterStake.toFixed(4)
-                                  : entry.doubterStake.toFixed(2)}{" "}
-                                {/* {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />} */}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-black text-delulu-charcoal inline-flex items-center ">
-                          {entry.totalStake < 0.01
-                            ? entry.totalStake.toFixed(4)
-                            : entry.totalStake.toFixed(2)}{" "}
-                          {marketToken && <TokenBadge showText={false} tokenAddress={marketToken} size="lg" />}
-                        </p>
-                        <p className="text-xs text-gray-500">Total</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        )}
+        </main>
+
+        <div className="hidden lg:block">
+          <RightSidebar />
+        </div>
       </div>
 
-      {/* Insufficient Balance Message */}
-      {canStake && isConnected && !isLoadingBalance && !hasBalance && (
-        <div className="fixed bottom-0 left-0 right-0 px-4 py-2 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
-          <div className="max-w-2xl mx-auto">
-            <div className="w-full px-4 py-2 bg-red-50 rounded-full text-center border border-red-200">
-              <p className="text-xs font-medium text-red-600">
-                Insufficient balance. You need tokens to stake.
-              </p>
+      <StakeFlowSheet open={stakingSheetOpen} onOpenChange={setStakingSheetOpen} delulu={delulu} />
+      
+      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
+      {isCreator && activeProofMilestoneId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base md:text-lg font-black text-delulu-charcoal mb-2">
+              Submit proof
+            </h3>
+            <p className="text-xs md:text-sm text-gray-500 mb-4">
+              Add a link that proves this milestone has been completed. Once submitted, the status can be updated by the protocol/admins.
+            </p>
+            <input
+              type="url"
+              placeholder="https://example.com/proof"
+              value={milestoneProofLinks[activeProofMilestoneId] ?? ""}
+              onChange={(e) =>
+                setMilestoneProofLinks((prev) => ({
+                  ...prev,
+                  [activeProofMilestoneId]: e.target.value,
+                }))
+              }
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveProofMilestoneId(null)}
+                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleSubmitMilestoneProof(activeProofMilestoneId);
+                  setActiveProofMilestoneId(null);
+                }}
+                disabled={isSubmittingMilestone || isConfirmingSubmitMilestone}
+                className={cn(
+                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                  "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
+                  (isSubmittingMilestone || isConfirmingSubmitMilestone) &&
+                  "opacity-60 cursor-not-allowed"
+                )}
+              >
+                {isSubmittingMilestone || isConfirmingSubmitMilestone ? "Submitting..." : "Submit proof"}
+              </button>
             </div>
           </div>
         </div>
       )}
+      <FeedbackModal isOpen={showSuccessModal} type="success" title="Stake Success!" message="Your conviction has been recorded." onClose={() => setShowSuccessModal(false)} />
+      <FeedbackModal isOpen={showErrorModal} type="error" title={errorTitle} message={errorMessage} onClose={() => setShowErrorModal(false)} />
 
-      {/* Claim Button - Only show if user has staked AND isClaimable returns true from contract */}
-      {hasStaked &&
-        isConnected &&
-        !isLoadingClaimable &&
-        isClaimable &&
-        !isClaimed &&
-        (delulu.isResolved || delulu.isCancelled) && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
-            <div className="max-w-2xl mx-auto">
+      {/* Join campaign modal */}
+      {isCreator && joinModalOpen && !delulu.challengeId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl border border-gray-200">
+            <h3 className="text-base md:text-lg font-black text-delulu-charcoal mb-2">
+              Join a campaign
+            </h3>
+            <p className="text-xs md:text-sm text-gray-500 mb-4">
+              Select an active campaign to join with this delulu. Once joined, it can earn
+              points and appear on the campaign leaderboard.
+            </p>
+
+            <div className="mb-4">
+              {challenges.length === 0 ? (
+                <p className="text-xs text-gray-500">
+                  No active campaigns available to join right now.
+                </p>
+              ) : (
+                <select
+                  className="w-full px-3 py-2 h-[46px] text-sm rounded-sm border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                  value={selectedChallengeId ?? ""}
+                  onChange={(e) =>
+                    setSelectedChallengeId(e.target.value ? Number(e.target.value) : null)
+                  }
+                >
+                  <option value="">Select a campaign</option>
+                  {challenges.map((c: { id: number; title?: string }) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title || `Campaign #${c.id}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {joinErrorMessage && (
+              <p className="mb-2 text-xs text-red-500">{joinErrorMessage}</p>
+            )}
+
+            <div className="mt-3 flex justify-end gap-2">
               <button
-                onClick={() => claim(delulu.id, claimableAmount, marketToken)}
+                type="button"
+                disabled={isJoining || isConfirmingJoin}
+                onClick={() => {
+                  if (!isJoining && !isConfirmingJoin) {
+                    setJoinModalOpen(false);
+                  }
+                }}
+                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
                 disabled={
-                  isClaiming ||
-                  isClaimConfirming ||
-                  isLoadingClaimableAmount ||
-                  claimableAmount === 0 ||
-                  isClaimed
+                  !selectedChallengeId ||
+                  isJoining ||
+                  isConfirmingJoin ||
+                  challenges.length === 0
                 }
+                onClick={handleJoinCampaign}
                 className={cn(
-                  "w-full px-4 py-3",
-                  "bg-delulu-yellow-reserved rounded-md",
-                  "text-delulu-charcoal font-black text-sm",
-                  "border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "active:scale-[0.98]",
-                  "transition-all duration-150 hover:bg-delulu-yellow-reserved/90",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "flex items-center justify-center gap-2"
+                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                  "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
+                  (!selectedChallengeId || isJoining || isConfirmingJoin) &&
+                  "opacity-60 cursor-not-allowed"
                 )}
               >
-                {isClaiming || isClaimConfirming ? (
+                {isJoining || isConfirmingJoin ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Claiming...</span>
+                    <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" />
+                    Joining...
                   </>
-                ) : isLoadingClaimableAmount ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Loading...</span>
-                  </>
-                ) : claimableAmount === 0 ? (
-                  <span>No winnings to claim</span>
                 ) : (
-                  <span className="inline-flex items-center gap-1">
-                    Claim{" "}
-                    {claimableAmount > 0.01
-                      ? `${claimableAmount.toFixed(2)}`
-                      : claimableAmount.toFixed(4)}{" "}
-                    {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
-                  </span>
+                  "Join campaign"
                 )}
               </button>
             </div>
           </div>
-        )}
-
-      {/* Stake Button */}
-      {/* {canStake && isConnected && hasBalance && (
-        <div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
-          <div className="max-w-2xl mx-auto">
-            <button
-              onClick={handleStakeClick}
-              className={cn(
-                "w-full px-4 py-3",
-                "bg-delulu-yellow-reserved rounded-md",
-                "text-delulu-charcoal font-black text-sm",
-                "border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                "active:scale-[0.98]",
-                "transition-all duration-150 hover:bg-delulu-yellow-reserved/90"
-              )}
-            >
-              Stake
-            </button>
-          </div>
         </div>
-      )} */}
-
-      {/* Staking Sheet */}
-      <StakeFlowSheet
-        open={stakingSheetOpen}
-        onOpenChange={setStakingSheetOpen}
-        delulu={delulu}
-      />
-
-      {/* Success Modal */}
-      <FeedbackModal
-        isOpen={showSuccessModal}
-        type="success"
-        title="Stake Placed! 🎉"
-        message={`You've successfully staked ${lastStakeAmount > 0
-            ? lastStakeAmount < 0.01
-              ? lastStakeAmount.toFixed(4)
-              : lastStakeAmount.toFixed(2)
-            : stakeAmount
-          } as a ${lastStakeAction === "believe" ? "believer" : "doubter"}!`}
-        onClose={() => {
-          setShowSuccessModal(false);
-          setPendingAction(null);
-        }}
-        actionText="Done"
-      />
-
-      {/* Error Modal */}
-      <FeedbackModal
-        isOpen={showErrorModal}
-        type="error"
-        title={errorTitle}
-        message={errorMessage || "Failed to place stake. Please try again."}
-        onClose={() => {
-          setShowErrorModal(false);
-        }}
-        actionText="Try Again"
-      />
-
-      {/* Claim Error Modal */}
-      <FeedbackModal
-        isOpen={showClaimErrorModal}
-        type="error"
-        title="Claim Failed"
-        message={errorMessage || "Failed to claim winnings. Please try again."}
-        onClose={() => {
-          setShowClaimErrorModal(false);
-        }}
-        actionText="Close"
-      />
-
-      {/* Claim Success Modal */}
-      <FeedbackModal
-        isOpen={showClaimSuccessModal}
-        type="success"
-        title="Winnings Claimed! 🎉"
-        message="Your winnings have been successfully claimed and sent to your wallet!"
-        onClose={() => {
-          setShowClaimSuccessModal(false);
-        }}
-        actionText="Done"
-      />
-
-      {/* Verification Sheet */}
-      {delulu &&
-        delulu.gatekeeper?.enabled &&
-        delulu.gatekeeper?.value &&
-        typeof delulu.gatekeeper.value === "string" &&
-        delulu.gatekeeper.value.trim() !== "" && (
-          <VerificationSheet
-            open={showVerificationSheet}
-            onOpenChange={setShowVerificationSheet}
-            countryCode={delulu.gatekeeper.value}
-            onVerified={() => {
-              setIsVerified(true);
-              setShowVerificationSheet(false);
-              setStakingSheetOpen(true);
-            }}
-          />
-        )}
+      )}
     </div>
   );
-}
+}     

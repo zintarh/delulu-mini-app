@@ -10,15 +10,15 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
-import { StakeSuccessSheet } from "@/components/stake-success-sheet";
 import { StakeErrorSheet } from "@/components/stake-error-sheet";
-import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Heart, Loader2 } from "lucide-react";
+import { cn, formatAddress } from "@/lib/utils";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import { useAccount } from "wagmi";
 import type { StakeSide } from "@/lib/types";
 import { UserSetupModal } from "@/components/user-setup-modal";
 import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
+import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 
 interface StakingSheetProps {
   open: boolean;
@@ -33,14 +33,18 @@ export function StakingSheet({
 }: StakingSheetProps) {
   const { address } = useAccount();
   const apolloClient = useApolloClient();
-  const [side, setSide] = useState<StakeSide>("believe");
   const [stakeAmount, setStakeAmount] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [stakedAmount, setStakedAmount] = useState(0);
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const { needsSetup, isChecking } = useUserSetupCheck();
+  // Always use "believe" - v2 contract only supports believing
+  const side: StakeSide = "believe";
+
+  // Get creator username for title
+  const creatorAddress = delulu?.creator as `0x${string}` | undefined;
+  const { username: creatorUsername } = useUsernameByAddress(creatorAddress);
+  const displayUsername = creatorUsername || delulu?.username || null;
 
   // Show setup modal immediately when sheet opens if setup is needed
   // Close it when setup is no longer needed
@@ -55,12 +59,12 @@ export function StakingSheet({
   }, [open, needsSetup, isChecking]);
 
   const marketToken = delulu?.tokenAddress || undefined;
-  
+
   // Ensure we have a token address - staking requires knowing which token to use
   if (!marketToken && delulu) {
     console.warn("[StakingSheet] Delulu missing tokenAddress:", delulu);
   }
-  
+
   const { balance: tokenBalanceData, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
   const tokenBalance = tokenBalanceData
@@ -87,8 +91,8 @@ export function StakingSheet({
 
   // Check if user has already staked on this delulu
   // Use onChainId if available (contract expects on-chain ID), otherwise fall back to id
-  const deluluIdForPosition = delulu?.onChainId 
-    ? parseInt(delulu.onChainId, 10) 
+  const deluluIdForPosition = delulu?.onChainId
+    ? parseInt(delulu.onChainId, 10)
     : delulu?.id || null;
   const {
     hasStaked,
@@ -102,15 +106,11 @@ export function StakingSheet({
       // Clear errors when sheet opens
       setShowErrorModal(false);
       setErrorMessage("");
-      setSide("believe"); // Reset to default
     } else {
       // Reset everything when sheet closes
       setStakeAmount("");
-      setShowSuccessModal(false);
       setShowErrorModal(false);
       setErrorMessage("");
-      setStakedAmount(0);
-      setSide("believe");
     }
   }, [open]);
 
@@ -119,9 +119,28 @@ export function StakingSheet({
     if (isStakeSuccess) {
       const amount = stakeAmount ? parseFloat(stakeAmount) : 0;
       if (amount > 0) {
-        setStakedAmount(amount);
-        setShowSuccessModal(true);
         setStakeAmount("");
+
+        // Confetti celebration for successful support
+        (async () => {
+          try {
+            const confettiModule = await import("canvas-confetti");
+            const confetti = confettiModule.default || confettiModule;
+            if (typeof confetti === "function") {
+              confetti({
+                particleCount: 120,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ["#FCD34D", "#4B5563", "#A855F7"],
+              });
+            }
+          } catch {
+            // Confetti is purely visual; ignore failures
+          }
+        })();
+
+        // Close the sheet after a successful support
+        onOpenChange(false);
       }
       // Refetch delulu data after indexing delay
       const deluluId = delulu?.onChainId || delulu?.id;
@@ -134,8 +153,8 @@ export function StakingSheet({
   // Handle errors
   useEffect(() => {
     if (stakeError) {
-   
-      let errorMsg = "Failed to stake";
+
+      let errorMsg = "Failed to support";
       const errorMessage = stakeError.message || (stakeError as any)?.shortMessage || "";
       const errorLower = errorMessage.toLowerCase();
 
@@ -158,7 +177,7 @@ export function StakingSheet({
       } else if (errorLower.includes("not found") || errorLower.includes("delulu not found")) {
         errorMsg = "Delulu not found. Please refresh and try again.";
       } else if (errorLower.includes("too small") || errorLower.includes("minimum")) {
-        errorMsg = "Stake amount is too small. Minimum stake is 1 token.";
+        errorMsg = "Support amount is too small. Minimum is 1 token.";
       } else if (errorLower.includes("allowance") || errorLower.includes("approval") || errorLower.includes("approve")) {
         errorMsg = "Token approval required. Please approve the contract to spend your tokens.";
       } else if (errorLower.includes("slippage")) {
@@ -171,7 +190,7 @@ export function StakingSheet({
         // Use the actual error message if it's reasonable length
         errorMsg = errorMessage;
       } else {
-        errorMsg = "Staking failed. Please check your balance, approval, and try again.";
+        errorMsg = "Support failed. Please check your balance, approval, and try again.";
       }
 
       setErrorMessage(errorMsg);
@@ -233,26 +252,18 @@ export function StakingSheet({
       return;
     }
 
-    // Check if user has already staked
-    if (hasStaked) {
-      setErrorMessage("You have already staked on this delulu");
-      setShowErrorModal(true);
-      return;
-    }
-
- 
-
     // Use onChainId if available (contract expects on-chain ID), otherwise fall back to id
-    const deluluId = Number(delulu.onChainId )
-    
-    if (!deluluId || isNaN(deluluId) || deluluId <= 0) {
-     
+    const rawId = delulu.onChainId ?? delulu.id;
+    const deluluId =
+      typeof rawId === "string" ? parseInt(rawId, 10) : Number(rawId);
+
+    if (!deluluId || Number.isNaN(deluluId) || deluluId <= 0) {
       setErrorMessage("Invalid delulu ID. Please refresh and try again.");
       setShowErrorModal(true);
       return;
     }
 
-    
+
 
     const amount = parseFloat(stakeAmount);
 
@@ -281,18 +292,17 @@ export function StakingSheet({
     }
 
     try {
-      const isBeliever = side === "believe";
       if (needsApproval(amount)) {
         if (!isApprovalSuccess) {
           await approve(amount);
           refetchAllowance();
-          return; 
+          return;
         }
       }
 
-      await stake(deluluId, amount, isBeliever, marketToken);
+      await stake(deluluId, amount, marketToken);
 
-      
+
     } catch (error) {
       console.error("[StakingSheet] Error in handleStake:", error);
       setErrorMessage(
@@ -335,198 +345,140 @@ export function StakingSheet({
     return null;
   })();
 
+  // Only treat "insufficient balance" as a red/error state for the input.
+  // Minimum amount and other validation issues should not turn the amount red.
   const hasInputError =
-    validationError !== null && stakeAmount !== "" && stakeAmount !== "0";
+    typeof validationError === "string" &&
+    validationError.toLowerCase().includes("insufficient");
 
   const canStake =
     !!marketToken &&
     !isLoading &&
     stakeAmount &&
     stakeAmountNum >= 1 &&
-    !isCreator &&
-    !validationError &&
-    !hasStaked;
+    !validationError;
 
- 
+
   if (!delulu) return null;
 
-  const isBeliever = side === "believe";
-  const ButtonIcon = isBeliever ? ThumbsUp : ThumbsDown;
-  const description = isBeliever
-    ? "Stake your belief in this delulu. If it comes true, you'll share in the rewards"
-    : "Stake your doubt in this delulu. If it doesn't come true, you'll share in the rewards.";
+  const description =
+    "Send a little love to this delulu with a token of your support.";
 
   return (
     <>
       <ResponsiveSheet
         open={open}
         onOpenChange={onOpenChange}
-        title="Stake on Delulu"
+        title={
+          displayUsername
+            ? `Support @${displayUsername}`
+            : delulu?.creator
+              ? `Support ${formatAddress(delulu.creator)}`
+              : "Support"
+        }
         sheetClassName="border-t border-gray-200 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-white"
         modalClassName="max-w-lg"
       >
-        <div className="max-w-lg mx-auto pt-8 pb-8 px-6 lg:pt-6">
-          {/* If user has already staked, show summary instead of staking UI */}
-          {hasStaked ? (
-            <div className="text-center py-10 space-y-3">
-              <p className="text-xs tracking-[0.35em] uppercase text-gray-400">
-                Staked as
-              </p>
-              <p className="text-2xl font-black text-delulu-charcoal">
-                {userIsBeliever ? "Believer" : "Doubter"}
-              </p>
-              <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                You can only stake once per delulu. You&apos;re already locked in on this side of the market.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Segmented Control - Text Labels */}
-              <div className="flex items-center justify-center gap-1 mb-6">
-                <button
-                  type="button"
-                  onClick={() => setSide("believe")}
-                  className={cn(
-                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-sm",
-                    side === "believe"
-                      ? "bg-gray-200 text-delulu-charcoal"
-                      : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
-                  )}
-                  aria-label="Believe"
-                >
-                  Believe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSide("doubt")}
-                  className={cn(
-                    "px-6 py-3 rounded-full transition-colors relative flex items-center justify-center font-bold text-sm",
-                    side === "doubt"
-                      ? "bg-gray-200 text-delulu-charcoal"
-                      : "text-gray-400 hover:text-delulu-charcoal hover:bg-gray-100"
-                  )}
-                  aria-label="Doubt"
-                >
-                  Doubt
-                </button>
-              </div>
+        <div className="max-w-lg mx-auto pt-8 pb-8  lg:pt-6">
+          <>
+            <p className="text-sm text-gray-500 mb-6">{description}</p>
 
-              <p className="text-sm text-gray-500 mb-6">{description}</p>
-
-              {/* Input Section - DeFi Style */}
-              <div className="mb-6">
-                <div
-                  className={cn(
-                    "bg-gray-50 rounded-2xl p-4 border transition-colors",
-                    hasInputError ? "border-red-400" : "border-gray-200",
-                    isBeliever && !hasInputError
-                      ? "border-delulu-charcoal/30"
-                      : ""
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">Amount</span>
-                    {tokenBalance !== null && marketToken && (
-                      <span className="text-xs text-gray-500 inline-flex items-center gap-1">
-                        Balance: {tokenBalance.toFixed(2)}{" "}
-                        <TokenBadge tokenAddress={marketToken} size="lg" showText={false} />
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <input
-                      type="number"
-                      value={stakeAmount}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setStakeAmount(value);
-                        if (showErrorModal) {
-                          setShowErrorModal(false);
-                          setErrorMessage("");
-                        }
-                      }}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      className={cn(
-                        "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
-                        hasInputError ? "text-red-500" : "text-delulu-charcoal"
-                      )}
-                      disabled={isLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (tokenBalance !== null) {
-                          setStakeAmount(tokenBalance.toFixed(2));
-                        }
-                      }}
-                      disabled={isLoading || isCreator || tokenBalance === null}
-                      className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      MAX
-                    </button>
-                  </div>
-                  
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (canStake && !isLoading) {
-                    handleStake();
-                  }
-                }}
-                disabled={!canStake || isLoading}
+            {/* Input Section - DeFi Style */}
+            <div className="mb-6">
+              <div
                 className={cn(
-                  "w-full py-3 font-bold text-sm transition-all rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  canStake && !isLoading
-                    ? isBeliever
-                      ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] cursor-pointer"
-                      : "bg-gray-200 text-delulu-charcoal hover:bg-gray-300 active:scale-[0.98] cursor-pointer"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
+                  "bg-gray-50 rounded-2xl border px-6 py-2 transition-colors",
+                  hasInputError ? "border-red-400" : "border-gray-200",
+                  !hasInputError
+                    ? "border-delulu-charcoal/30"
+                    : ""
                 )}
               >
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {isApproving || isApprovingConfirming
-                      ? "Approving..."
-                      : "Staking..."}
-                  </span>
-                ) : isApprovalSuccess ? (
-                  <span className="flex items-center justify-center gap-2">
-                    Continue
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <ButtonIcon className="w-5 h-5" />
-                    {isBeliever ? "Believe" : "Doubt"}
-                  </span>
-                )}
-              </button>
-            </>
-          )}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500">Amount</span>
+                  {tokenBalance !== null && marketToken && (
+                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                      Balance: {tokenBalance.toFixed(2)}{" "}
+                      <TokenBadge tokenAddress={marketToken} size="lg" showText={false} />
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <input
+                    type="number"
+                    value={stakeAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setStakeAmount(value);
+                      if (showErrorModal) {
+                        setShowErrorModal(false);
+                        setErrorMessage("");
+                      }
+                    }}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className={cn(
+                      "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
+                      hasInputError ? "text-red-500" : "text-delulu-charcoal"
+                    )}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tokenBalance !== null) {
+                        setStakeAmount(tokenBalance.toFixed(2));
+                      }
+                    }}
+                    disabled={isLoading || tokenBalance === null}
+                    className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    MAX
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (canStake && !isLoading) {
+                  handleStake();
+                }
+              }}
+              disabled={!canStake || isLoading}
+              className={cn(
+                "w-full py-3 font-bold text-sm transition-all rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                canStake && !isLoading
+                  ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] cursor-pointer"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
+              )}
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isApproving || isApprovingConfirming
+                    ? "Approving..."
+                    : "Supporting..."}
+                </span>
+              ) : isApprovalSuccess ? (
+                <span className="flex items-center justify-center gap-2">
+                  Continue
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-500" />
+                  Support
+                </span>
+              )}
+            </button>
+          </>
         </div>
       </ResponsiveSheet>
-
-      {/* Success Sheet */}
-      <StakeSuccessSheet
-        open={showSuccessModal}
-        onOpenChange={(open) => {
-          setShowSuccessModal(open);
-          if (!open) {
-            onOpenChange(false);
-            setStakedAmount(0);
-          }
-        }}
-        isBeliever={isBeliever}
-        amount={stakedAmount}
-        tokenAddress={delulu?.tokenAddress}
-      />
 
       {/* Error Sheet */}
       <StakeErrorSheet

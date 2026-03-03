@@ -45,7 +45,7 @@ export function StakeSuccessSheet({
             You&apos;ve successfully placed a stake of{" "}
             <span className="font-bold text-delulu-charcoal">{amount.toFixed(2)}</span>
             {tokenAddress && <TokenBadge tokenAddress={tokenAddress} size="sm" />}
-            {" "}as a {isBeliever ? "believer" : "doubter"}.
+            {" "}as a believer.
           </p>
 
           {/* Divider */}

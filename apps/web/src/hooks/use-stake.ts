@@ -14,12 +14,7 @@ export function useStake() {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const stake = async (
-    deluluId: number,
-    amount: number,
-    isBeliever: boolean,
-    tokenAddress?: string
-  ) => {
+  const stake = async (deluluId: number, amount: number, tokenAddress?: string) => {
     if (isNaN(deluluId) || deluluId <= 0) {
       throw new Error("Invalid delulu ID");
     }
@@ -34,14 +29,13 @@ export function useStake() {
 
     try {
       const amountWei = parseUnits(amount.toString(), 18);
-      const minPayout = 0n;
       const contractAddress = getDeluluContractAddress(chainId);
 
       writeContract({
         address: contractAddress,
         abi: DELULU_ABI,
-        functionName: "stakeOnDelulu",
-        args: [BigInt(deluluId), isBeliever, amountWei, minPayout],
+        functionName: "stakeDelulu",
+        args: [BigInt(deluluId), amountWei],
       });
     } catch (err) {
       handleStakeError(err);

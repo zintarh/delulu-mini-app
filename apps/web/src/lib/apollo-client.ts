@@ -43,10 +43,27 @@ function createApolloClient(subgraphUrl: string) {
         Query: {
           fields: {
             delulus: {
-              keyArgs: false, // Don't cache by args - always fetch fresh
-              merge(existing: any[] = [], incoming: any[]) {
-                // Always return incoming data, ignore cache
-                return incoming;
+              // Important: differentiate by arguments so filtered queries
+              // (e.g. campaign leaderboards) don't get overwritten by
+              // unfiltered queries elsewhere in the app.
+              keyArgs: ["where", "orderBy", "orderDirection"],
+              merge(existing: any[] = [], incoming: any[], { args }) {
+                // For non-paginated queries (no skip or skip === 0),
+                // always replace with the latest incoming data.
+                if (!args?.skip || args.skip === 0) {
+                  return incoming;
+                }
+
+                // For paginated lists that use skip, append new items
+                // while avoiding duplicates.
+                const existingRefs = new Set(
+                  existing.map((ref: any) => ref.__ref || JSON.stringify(ref))
+                );
+                const newItems = incoming.filter(
+                  (ref: any) =>
+                    !existingRefs.has(ref.__ref || JSON.stringify(ref))
+                );
+                return [...existing, ...newItems];
               },
             },
             stakes: {

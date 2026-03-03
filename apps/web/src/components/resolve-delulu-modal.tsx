@@ -129,7 +129,7 @@ export function ResolveDeluluModal({
                   <span>False</span>
                 </div>
                 <p className="text-xs font-normal mt-1 text-gray-600">
-                  Doubters Win
+                  Did Not Come True
                 </p>
               </button>
             </div>

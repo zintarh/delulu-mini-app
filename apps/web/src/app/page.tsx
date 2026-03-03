@@ -17,6 +17,10 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
+import { useQuery } from "@apollo/client/react";
+import { GetDelulusDocument, type GetDelulusQuery, type GetDelulusQueryVariables } from "@/generated/graphql";
+import { weiToNumber, timestampToDate } from "@/lib/graph/transformers";
 import type { FormattedDelulu } from "@/lib/types";
 import { TrendingUp, Plus } from "lucide-react";
 
@@ -39,6 +43,31 @@ export default function HomePage() {
     delulus: userCreatedDelulus, 
     isLoading: isLoadingUserDelulus 
   } = useGraphUserDelulus("ongoing");
+
+  // Get raw GraphQL data for FYP tab to access all indexed fields
+  const { data: rawFypData } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(
+    GetDelulusDocument,
+    {
+      variables: { first: 20, skip: 0 },
+      fetchPolicy: "cache-first",
+    }
+  );
+
+  // Get raw GraphQL data for Vision tab
+  const { data: rawVisionData } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(
+    GetDelulusDocument,
+    {
+      variables: {
+        first: 20,
+        skip: 0,
+        where: isConnected && address
+          ? { creatorAddress: address.toLowerCase() }
+          : undefined,
+      },
+      skip: !isConnected || !address,
+      fetchPolicy: "cache-first",
+    }
+  );
 
   // Fetch username from contract when address is available
   const { username: onChainUsername, isLoading: isLoadingUsername } = useUsernameByAddress(
@@ -151,7 +180,6 @@ export default function HomePage() {
     
     return delulusToFilter.filter(isContentLoaded);
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
-
 
   return (
     <div className="h-screen  overflow-hidden">

@@ -254,16 +254,13 @@ export async function getTrendingDelulus(limit = 10) {
     return [];
   }
 
-  // Extract IDs preserving order
   const orderedIds = trendingScores.map((row: TrendingScoreRow) => row.delulu_id);
 
-  // Fetch full delulu data
   const delulus = await db.delulu.findMany({
     where: { id: { in: orderedIds } },
     include: trendingDeluluInclude,
   });
 
-  // Create lookup map for O(1) access
   type DeluluWithCreator = (typeof delulus)[number];
   const deluluMap = new Map<string, DeluluWithCreator>(
     delulus.map((d: DeluluWithCreator) => [d.id, d])
@@ -272,7 +269,6 @@ export async function getTrendingDelulus(limit = 10) {
     trendingScores.map((row: TrendingScoreRow) => [row.delulu_id, row.score])
   );
 
-  // Return in trending order with scores attached
   type TrendingDelulu = DeluluWithCreator & { trendingScore: number };
   const result: TrendingDelulu[] = [];
 

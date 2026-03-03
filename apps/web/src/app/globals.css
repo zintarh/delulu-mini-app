@@ -335,13 +335,13 @@ textarea {
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: var(--delulu-yellow-reserved) !important;
-  color: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+  color: #FFFFFF !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: var(--delulu-yellow-reserved) !important;
-  color: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+  color: #FFFFFF !important;
 }
 
 
@@ -354,12 +354,14 @@ textarea {
   content: "‹";
   font-size: 1.5rem;
   line-height: 1;
+  color: #1A1A1A;
 }
 
 .rdp-nav_button_next::before {
   content: "›";
   font-size: 1.5rem;
   line-height: 1;
+  color: #1A1A1A;
 }
 
 .rdp-nav_button_previous svg,
@@ -369,7 +371,7 @@ textarea {
 
 /* Override chevron fill color - charcoal for visibility */
 .rdp-chevron {
-  fill: white !important;
+  fill: #1A1A1A !important;
 }
 
 /* Override today indicator - charcoal underline instead of yellow text */

@@ -1,10 +1,27 @@
-import type { CodegenConfig } from "@graphql-codegen/cli";
+// CommonJS GraphQL Codegen config to avoid TS/ESM loading browser-only deps in Node
+// and to use the same subgraph URL as the app, loaded from .env.local / .env.
+
+// Load environment variables from this app's .env.local first, then .env.
+const path = require("path");
+const dotenv = require("dotenv");
+
+// 1) Explicitly load apps/web/.env.local
+dotenv.config({ path: path.resolve(__dirname, ".env.local") });
+// 2) Fallback to apps/web/.env if present
+dotenv.config();
+
 const SUBGRAPH_URL =
   process.env.NEXT_PUBLIC_SUBGRAPH_URL_MAINNET ||
-  process.env.NEXT_PUBLIC_SUBGRAPH_URL ||
-  "";
+  process.env.NEXT_PUBLIC_SUBGRAPH_URL;
 
-const config: CodegenConfig = {
+if (!SUBGRAPH_URL) {
+  throw new Error(
+    "GraphQL Codegen: SUBGRAPH_URL is empty. Set NEXT_PUBLIC_SUBGRAPH_URL_MAINNET or NEXT_PUBLIC_SUBGRAPH_URL in apps/web/.env.local or apps/web/.env."
+  );
+}
+
+/** @type {import("@graphql-codegen/cli").CodegenConfig} */
+const config = {
   // Use deployed subgraph schema (same URL the app uses)
   schema: [SUBGRAPH_URL],
 
@@ -40,4 +57,5 @@ const config: CodegenConfig = {
   ignoreNoDocuments: false,
 };
 
-export default config;
+module.exports = config;
+
