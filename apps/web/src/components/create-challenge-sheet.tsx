@@ -211,9 +211,8 @@ export function CreateChallengeSheet({
         throw new Error("Please select a valid duration");
       }
 
-      // Handle approval automatically if needed.
-      // Skip approvals entirely for G$ – its transfer model doesn't rely on ERC20 allowances.
-      if (!isGoodDollarSelected && needsApproval(currentPoolAmount) && !isApprovalSuccess) {
+      // Handle approval automatically if needed for all tokens (including G$).
+      if (needsApproval(currentPoolAmount) && !isApprovalSuccess) {
         await approve(currentPoolAmount);
         // Wait for approval transaction to be confirmed
         await new Promise((resolve) => setTimeout(resolve, 2000));

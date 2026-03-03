@@ -434,7 +434,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   const isProcessing =
     isCreating ||
-    (!isGoodDollarSelected && (isApproving || isApprovingConfirming)) ||
+    isApproving ||
+    isApprovingConfirming ||
     isUploadingImage ||
     (isWaitingForApproval && !isApprovalSuccess);
 
@@ -558,8 +559,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         throw new Error("Please select a template or upload an image");
       }
 
-      // Skip approvals for G$ markets – no allowance required
-      if (!isGoodDollarSelected && needsApproval(stakeAmount)) {
+      if (needsApproval(stakeAmount)) {
         setPendingCreation({
           deadline: deadlineDate,
           finalImageUrl,
