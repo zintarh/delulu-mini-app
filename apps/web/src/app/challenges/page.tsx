@@ -32,7 +32,6 @@ export default function ChallengesPage() {
 
   const hasCampaigns = challenges.length > 0;
 
-  // Get the currency token address from the contract
   const { data: currencyAddress } = useReadContract({
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
@@ -46,7 +45,6 @@ export default function ChallengesPage() {
 
   const handleChallengeCreated = () => {
     setShowCreateChallengeSheet(false);
-    // Refetch challenges after a short delay to allow the transaction to be mined
     setTimeout(() => {
       refetch?.();
     }, 3000);
