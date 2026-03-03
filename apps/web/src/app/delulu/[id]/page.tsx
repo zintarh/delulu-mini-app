@@ -44,6 +44,7 @@ import { cn, formatAddress } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { keccak256, stringToBytes } from "viem";
+import { resolveIPFSContent, type DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
 
 
 
@@ -58,25 +59,32 @@ export default function DeluluPage() {
 
   const { delulu, milestones, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
 
+  const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(null);
 
-
+  // Always resolve IPFS content for this delulu and store full metadata
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || !delulu?.contentHash) return;
+    if (!delulu?.contentHash) {
+      setIpfsMetadata(null);
+      return;
+    }
 
-    (async () => {
-      try {
-        const { resolveIPFSContent } = await import("@/lib/graph/ipfs-cache");
-        const metadata = await resolveIPFSContent(delulu.contentHash);
-        // eslint-disable-next-line no-console
-        console.log("[DeluluPage] decoded IPFS content", {
-          contentHash: delulu.contentHash,
-          metadata,
-        });
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error("[DeluluPage] failed to decode IPFS content", e);
-      }
-    })();
+    let cancelled = false;
+
+    resolveIPFSContent(delulu.contentHash)
+      .then((meta) => {
+        if (!cancelled) {
+          setIpfsMetadata(meta);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIpfsMetadata(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [delulu?.contentHash]);
 
   const deluluIdForState =
@@ -109,7 +117,7 @@ export default function DeluluPage() {
           totalStake: 0,
         };
       }
-        acc[key].believerStake += stake.amount;
+      acc[key].believerStake += stake.amount;
       acc[key].totalStake += stake.amount;
       return acc;
     }, {} as Record<string, { address: string; username?: string; pfpUrl?: string; believerStake: number; totalStake: number }>);
@@ -160,17 +168,30 @@ export default function DeluluPage() {
 
 
 
-
-
   const supportAmount =
-    delulu?.totalSupportCollected || 0
+    delulu?.totalSupportCollected || 0;
 
-  const rawContent = delulu?.content ?? "";
-  const [deluluTitle, ...deluluDescriptionParts] = rawContent.split("\n\n");
-  const deluluDescription = deluluDescriptionParts.join("\n\n").trim();
+  // Title and description come strictly from IPFS metadata (hash),
+  // matching how we write them in the create flow.
+  const deluluTitle =
+    ipfsMetadata?.text ||
+    ipfsMetadata?.content ||
+    delulu?.content ||
+    "";
+
+  const deluluDescription =
+    (ipfsMetadata as any)?.description ??
+    "";
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
+
+
+console.log(ipfsMetadata, "ipfsMetadata");
+console.log(deluluTitle, "deluluTitle");
+console.log(deluluDescription, "deluluDescription");  
+
+
 
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollarMarket =
@@ -181,9 +202,9 @@ export default function DeluluPage() {
       ? supportAmount * gDollarUsdPrice
       : delulu?.tokenAddress &&
         delulu.tokenAddress.toLowerCase() !==
-          GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
-      ? supportAmount
-      : null;
+        GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
+        ? supportAmount
+        : null;
   const avgSupportUsd =
     totalSupportUsd && supportersCount > 0
       ? totalSupportUsd / supportersCount
@@ -231,9 +252,9 @@ export default function DeluluPage() {
       setErrorMessage(
         "The total duration of your milestones goes past this delulu's resolution deadline. Reduce the number of days or update the resolution deadline."
       );
-        setShowErrorModal(true);
-        return;
-      }
+      setShowErrorModal(true);
+      return;
+    }
 
     const mHashes = cleaned.map((m) => keccak256(stringToBytes(m.description)));
     const mDurations = cleaned.map((m) =>
@@ -280,7 +301,7 @@ export default function DeluluPage() {
     if (isStakeSuccess) {
       setShowSuccessModal(true);
       setStakeAmount("1");
-        refetchStakes();
+      refetchStakes();
       refetchDeluluData(apolloClient, deluluId);
     }
   }, [isStakeSuccess, deluluId, apolloClient]);
@@ -369,7 +390,7 @@ export default function DeluluPage() {
                 !isConnected ? setShowLoginSheet(true) : router.push("/board")
               }
             />
-        </div>
+          </div>
 
           <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
             <div className="lg:hidden">
@@ -383,7 +404,7 @@ export default function DeluluPage() {
                   !isConnected ? setShowLoginSheet(true) : router.push("/board")
                 }
               />
-          </div>
+            </div>
 
             <div className="px-4 lg:px-6 py-6 space-y-6">
               {/* Banner skeleton */}
@@ -393,8 +414,8 @@ export default function DeluluPage() {
                   <div className="h-6 w-2/3 bg-gray-200 rounded-md animate-pulse" />
                   <div className="h-4 w-1/3 bg-gray-200 rounded-md animate-pulse" />
                   <div className="h-16 w-full bg-gray-100 rounded-md animate-pulse" />
+                </div>
               </div>
-            </div>
 
               {/* Details skeleton */}
               <div className="space-y-4">
@@ -402,12 +423,12 @@ export default function DeluluPage() {
                 <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
                 <div className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
               </div>
-              </div>
+            </div>
           </main>
 
           <div className="hidden lg:block">
             <RightSidebar />
-            </div>
+          </div>
         </div>
       </div>
     );
@@ -418,7 +439,7 @@ export default function DeluluPage() {
   const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
   const bannerImage = delulu.bgImageUrl || "/templates/t0.png";
 
-    return (
+  return (
     <div className="h-screen overflow-hidden bg-white">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
@@ -429,30 +450,27 @@ export default function DeluluPage() {
         </div>
 
         <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
-          {/* Mobile header without tabs (tabs are shown below like desktop) */}
           <div className="lg:hidden">
             <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-200">
               <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
-                {/* Mobile hamburger menu */}
-          <button
+                <button
                   onClick={() => setIsMenuOpen(true)}
                   className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
                   aria-label="Open navigation menu"
-          >
+                >
                   <Menu className="w-6 h-6 text-gray-700" />
-          </button>
+                </button>
 
-                {/* Spacer in the middle (no tabs here on mobile) */}
                 <div className="flex-1" />
 
-        <button
+                <button
                   onClick={() => router.push("/search")}
                   className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
                   title="Search"
                   aria-label="Search"
                 >
                   <Search className="w-6 h-6" />
-        </button>
+                </button>
               </nav>
             </header>
 
@@ -487,8 +505,8 @@ export default function DeluluPage() {
           <div className="hidden lg:flex items-center gap-4 px-6 py-4 border-b border-gray-200 sticky top-0 z-30 bg-white/95 backdrop-blur-sm">
             <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
               <ArrowLeft className="w-5 h-5" />
-        </button>
-      </div>
+            </button>
+          </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
             {/* Banner */}
@@ -514,7 +532,7 @@ export default function DeluluPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
                   <span className="font-bold text-delulu-charcoal">@{delulu.username || formatAddress(delulu.creator)}</span>
                   {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
-        </div>
+                </div>
 
                 <div className="flex items-center gap-6 mb-2">
                   <div className="flex items-center gap-2">
@@ -531,8 +549,8 @@ export default function DeluluPage() {
                       {totalSupportUsd && totalSupportUsd > 0 && (
                         <> · ${totalSupportUsd.toFixed(2)}</>
                       )}
-                </span>
-            </div>
+                    </span>
+                  </div>
                 </div>
 
                 {deluluDescription && (
@@ -552,13 +570,12 @@ export default function DeluluPage() {
 
             {activeTab === "details" ? (
               <div className="space-y-6">
-                {/* Token support section */}
                 <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-delulu-yellow-reserved/20 border border-delulu-yellow-reserved/60">
                         <Users className="w-4 h-4 text-delulu-charcoal" />
-                </span>
+                      </span>
                       <h3 className="text-sm md:text-base font-black text-delulu-charcoal">
                         Token support
                       </h3>
@@ -567,8 +584,8 @@ export default function DeluluPage() {
                       <div className="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-gray-500 uppercase">
                         <span>Token</span>
                         <TokenBadge tokenAddress={marketToken} size="sm" />
-            </div>
-          )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-sm">
@@ -595,7 +612,7 @@ export default function DeluluPage() {
                           </span>
                         )}
                       </p>
-                  </div>
+                    </div>
 
                     <div className="md:border-l md:border-gray-100 md:pl-6">
                       <p className="text-[11px] font-semibold text-gray-500 uppercase">
@@ -603,8 +620,8 @@ export default function DeluluPage() {
                       </p>
                       <p className="text-lg md:text-2xl font-black text-delulu-charcoal">
                         {supportersCount}
-                    </p>
-                  </div>
+                      </p>
+                    </div>
 
                     <div className="md:border-l md:border-gray-100 md:pl-6">
                       <p className="text-[11px] font-semibold text-gray-500 uppercase">
@@ -616,17 +633,17 @@ export default function DeluluPage() {
                             ? supportAmount / supportersCount < 0.01
                               ? (supportAmount / supportersCount).toFixed(4)
                               : (supportAmount / supportersCount).toFixed(2)
-                        : "0.00"}
+                            : "0.00"}
                         </span>
                         {avgSupportUsd && avgSupportUsd > 0 && (
                           <span className="text-xs font-medium text-gray-500">
                             ≈ ${avgSupportUsd.toFixed(2)}
                           </span>
                         )}
-                    </p>
+                      </p>
+                    </div>
                   </div>
-              </div>
-            </div>
+                </div>
 
                 {leaderboard.length > 0 && (
                   <div className="">
@@ -640,27 +657,27 @@ export default function DeluluPage() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-delulu-yellow-reserved rounded-full flex items-center justify-center font-black">
                               {entry.rank}
-                </div>
+                            </div>
                             <div>
                               <p className="font-bold">
                                 @{entry.username || formatAddress(entry.address)}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {entry.totalStake.toFixed(2)} staked
-                </p>
-              </div>
-            </div>
+                              </p>
+                            </div>
+                          </div>
                           <Trophy
                             className={cn(
                               "w-5 h-5",
                               entry.rank === 1 ? "text-yellow-500" : "text-gray-300"
                             )}
-                  />
-                </div>
+                          />
+                        </div>
                       ))}
-                </div>
-              </div>
-            )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Campaign section */}
                 <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
@@ -677,8 +694,8 @@ export default function DeluluPage() {
                       <span className="text-xs md:text-sm font-semibold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
                         {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
                       </span>
-                  )}
-                </div>
+                    )}
+                  </div>
                   {!delulu.challengeId ? (
                     <>
                       {isCreator && (
@@ -693,8 +710,8 @@ export default function DeluluPage() {
                           >
                             Join campaign
                           </button>
-                  </div>
-                )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -703,8 +720,8 @@ export default function DeluluPage() {
                         This delulu is participating in{" "}
                         {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
                       </span>
-              </div>
-            )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -723,7 +740,7 @@ export default function DeluluPage() {
                           completed
                         </span>
                       )}
-            </div>
+                    </div>
 
                     {isCreator && (!milestones || milestones.length === 0) && (
                       <button
@@ -734,7 +751,7 @@ export default function DeluluPage() {
                         {showMilestoneForm ? "Close" : "Create milestones"}
                       </button>
                     )}
-          </div>
+                  </div>
 
                   {isCreator && showMilestoneForm && (
                     <div className="mb-4 border border-dashed border-gray-300 rounded-2xl p-3 md:p-4 bg-gray-50/60">
@@ -759,8 +776,8 @@ export default function DeluluPage() {
                                 >
                                   <XIcon className="w-4 h-4" />
                                 </button>
-                    )}
-                  </div>
+                              )}
+                            </div>
                             <div className="space-y-2">
 
                               <div className="flex items-center gap-2">
@@ -787,18 +804,18 @@ export default function DeluluPage() {
                                   }
                                   className="w-20 px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
                                 />
-                  </div>
+                              </div>
                               <div className="flex items-center gap-2">
 
                                 <span className="text-xs text-gray-600">
                                   days to complete (from now, sequentially after previous
                                   milestones)
                                 </span>
-                </div>
-              </div>
-                  </div>
-                ))}
-              </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
                         <button
                           type="button"
@@ -846,7 +863,7 @@ export default function DeluluPage() {
                               ) : (
                                 <Circle className="text-gray-300" />
                               )}
-                          </div>
+                            </div>
                             <div className="flex-1 space-y-1.5">
                               <div className="flex items-center justify-between gap-2">
                                 <p className="font-bold text-delulu-charcoal">
@@ -889,9 +906,9 @@ export default function DeluluPage() {
                                 >
                                   {m.proofLink ? "Update proof & change status" : "Submit proof to change status"}
                                 </button>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
                         ))}
                       </div>
 
@@ -908,9 +925,9 @@ export default function DeluluPage() {
                           ? "Use the button above to create milestones for this delulu."
                           : "Milestones will appear here once the creator adds them."}
                       </p>
-                      </div>
-                  )}
                     </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -922,7 +939,7 @@ export default function DeluluPage() {
       </div>
 
       <StakeFlowSheet open={stakingSheetOpen} onOpenChange={setStakingSheetOpen} delulu={delulu} />
-      
+
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       {isCreator && activeProofMilestoneId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
@@ -1055,8 +1072,8 @@ export default function DeluluPage() {
               </button>
             </div>
           </div>
-          </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
