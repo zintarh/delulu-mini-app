@@ -6,11 +6,14 @@ import { useAllDelulus } from "@/hooks/graph";
 import { TokenBadge } from "@/components/token-badge";
 import { useRouter } from "next/navigation";
 import type { FormattedDelulu } from "@/lib/types";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const { delulus, isLoading } = useAllDelulus();
   const router = useRouter();
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
   // Helper to check if string is a hash
   const isHash = (str: string) => {
@@ -46,6 +49,29 @@ export function RightSidebar() {
       );
     });
   }, [delulusWithContent, searchQuery]);
+
+  const formatTvlUsd = (d: FormattedDelulu): string | null => {
+    const tvl =
+      d.totalSupportCollected ?? d.totalStake ?? 0;
+
+    if (tvl <= 0) return null;
+
+    const isGoodDollar =
+      d.tokenAddress?.toLowerCase() ===
+      GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+
+    const approxUsd =
+      isGoodDollar && gDollarUsdPrice
+        ? tvl * gDollarUsdPrice
+        : !isGoodDollar
+        ? tvl // assume ~1:1 for non-G$ tokens like USDm
+        : null;
+
+    if (!approxUsd || approxUsd <= 0) return null;
+
+    if (approxUsd < 0.01) return approxUsd.toFixed(4);
+    return approxUsd.toFixed(2);
+  };
 
   const trendingDelulus = useMemo(() => {
     return [...filteredDelulus]
@@ -127,15 +153,8 @@ export function RightSidebar() {
                   </p>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      {delulu.tokenAddress && (
-                        <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
-                      )}
-                      {delulu.totalStake > 0
-                        ? delulu.totalStake < 0.01
-                          ? delulu.totalStake.toFixed(4)
-                          : delulu.totalStake.toFixed(2)
-                        : "0.00"}{" "}
-                      TVL
+                     
+                      {formatTvlUsd(delulu) ?? "0.00"} USD TVL
                     </span>
                   </div>
                 </button>
@@ -189,19 +208,12 @@ export function RightSidebar() {
                     <p className="text-sm text-delulu-charcoal font-medium mb-1 line-clamp-2">
                       {delulu.content || "YOUR DELULU HEADLINE"}
                     </p>
-                    <div className="flex items-center gap-2 text-xs flex-wrap">
-                      <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        {delulu.tokenAddress && (
-                          <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
-                        )}
-                        {delulu.totalStake > 0
-                          ? delulu.totalStake < 0.01
-                            ? delulu.totalStake.toFixed(4)
-                            : delulu.totalStake.toFixed(2)
-                          : "0.00"}{" "}
-                        TVL
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    
+                      {formatTvlUsd(delulu) ?? "0.00"} USD 
+                    </span>
+                  </div>
                   </button>
                 ))}
               </div>
@@ -232,15 +244,8 @@ export function RightSidebar() {
                     </p>
                     <div className="flex items-center gap-2 text-xs flex-wrap">
                       <span className="bg-delulu-charcoal text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        {delulu.tokenAddress && (
-                          <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
-                        )}
-                        {delulu.totalStake > 0
-                          ? delulu.totalStake < 0.01
-                            ? delulu.totalStake.toFixed(4)
-                            : delulu.totalStake.toFixed(2)
-                          : "0.00"}{" "}
-                        TVL
+                     
+                        {formatTvlUsd(delulu) ?? "0.00"} USD 
                       </span>
                     </div>
                   </button>
