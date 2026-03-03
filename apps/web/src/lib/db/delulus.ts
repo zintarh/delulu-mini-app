@@ -192,6 +192,7 @@ export async function getDelulusByState(
 interface TrendingScoreRow {
   delulu_id: string;
   score: number;
+  total_volume: number;
 }
 
 // Include for trending delulus
@@ -244,6 +245,7 @@ export async function getTrendingDelulus(limit = 10) {
     )
     SELECT 
       delulu_id,
+      total_volume,
       (norm_volume * 0.4 + norm_users * 0.4 + norm_tx * 0.2)::float as score
     FROM normalized_stats
     ORDER BY score DESC
@@ -268,8 +270,14 @@ export async function getTrendingDelulus(limit = 10) {
   const scoreMap = new Map<string, number>(
     trendingScores.map((row: TrendingScoreRow) => [row.delulu_id, row.score])
   );
+  const volumeMap = new Map<string, number>(
+    trendingScores.map((row: TrendingScoreRow) => [row.delulu_id, Number(row.total_volume) || 0])
+  );
 
-  type TrendingDelulu = DeluluWithCreator & { trendingScore: number };
+  type TrendingDelulu = DeluluWithCreator & {
+    trendingScore: number;
+    totalVolume: number;
+  };
   const result: TrendingDelulu[] = [];
 
   for (const id of orderedIds) {
@@ -278,6 +286,7 @@ export async function getTrendingDelulus(limit = 10) {
       result.push({
         ...delulu,
         trendingScore: scoreMap.get(id) ?? 0,
+        totalVolume: volumeMap.get(id) ?? 0,
       });
     }
   }

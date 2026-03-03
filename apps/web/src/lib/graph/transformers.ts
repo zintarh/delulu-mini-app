@@ -93,6 +93,9 @@ export function transformSubgraphDelulu(
   const doubterStake = raw.totalDoubterStake
     ? weiToNumber(raw.totalDoubterStake)
     : 0;
+  const supportCollected = raw.totalSupportCollected
+    ? weiToNumber(raw.totalSupportCollected)
+    : 0;
 
   // Parse ID - handle both onChainId (string number) and id (subgraph ID string)
   let parsedId = 0;
@@ -133,8 +136,11 @@ export function transformSubgraphDelulu(
     resolutionDeadline: timestampToDate(raw.resolutionDeadline),
     totalBelieverStake: believerStake,
     totalDoubterStake: doubterStake,
-    totalStake: believerStake + doubterStake,
-    totalSupportCollected: raw.totalSupportCollected ? weiToNumber(raw.totalSupportCollected) : undefined,
+    // For v2 subgraph, totalSupportCollected is the canonical TVL.
+    // Fall back to believer/doubter sums if it's missing for any reason.
+    totalStake:
+      supportCollected > 0 ? supportCollected : believerStake + doubterStake,
+    totalSupportCollected: supportCollected > 0 ? supportCollected : undefined,
     totalSupporters: raw.totalSupporters ? Number(raw.totalSupporters) : undefined,
     challengeId: (() => {
       const result = raw.challengeId ? Number(raw.challengeId) : undefined;
