@@ -25,7 +25,6 @@ import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/mo
 import {
   MAX_DELULU_LENGTH,
   MIN_STAKE,
-  MAX_STAKE,
   getDefaultDeadline,
   getMinDeadline,
   getMaxDeadline,
@@ -435,8 +434,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   const isProcessing =
     isCreating ||
-    isApproving ||
-    isApprovingConfirming ||
+    (!isGoodDollarSelected && (isApproving || isApprovingConfirming)) ||
     isUploadingImage ||
     (isWaitingForApproval && !isApprovalSuccess);
 
@@ -560,7 +558,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         throw new Error("Please select a template or upload an image");
       }
 
-      if (needsApproval(stakeAmount)) {
+      // Skip approvals for G$ markets – no allowance required
+      if (!isGoodDollarSelected && needsApproval(stakeAmount)) {
         setPendingCreation({
           deadline: deadlineDate,
           finalImageUrl,
@@ -886,10 +885,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             <div>
               <div
                 className={cn(
-                  "bg-gray-50 rounded-2xl p-3 sm:p-4 border transition-colors",
-                  hasInputError
-                    ? "border-red-400"
-                    : "border-gray-400"
+                  "bg-gray-50 rounded-2xl p-3 sm:p-4 border transition-colors border-gray-400",
+                
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -907,20 +904,15 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                     value={inputText}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Always reflect what the user is typing
                       setInputText(value);
 
-                      // Empty string: don't update stake yet (will reset on blur)
                       if (value.trim() === "") {
                         return;
                       }
 
                       const numValue = parseFloat(value);
                       if (!isNaN(numValue)) {
-                        const clampedValue = Math.max(
-                          MIN_STAKE,
-                          Math.min(numValue, MAX_STAKE)
-                        );
+                        const clampedValue = Math.max(MIN_STAKE, numValue);
                         setStakeAmount(clampedValue);
                       }
                     }}
@@ -1125,7 +1117,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   "opacity-50 cursor-not-allowed"
                 )}
               >
-                {isApproving || isApprovingConfirming ? (
+                {!isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Approving...</span>

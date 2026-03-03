@@ -12,7 +12,7 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
-import { TOKEN_LOGOS } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 import { uploadToIPFS } from "@/lib/ipfs";
@@ -137,6 +137,9 @@ export function CreateChallengeSheet({
   const currentPoolAmount =
     poolAmount[0] != null && isFinite(poolAmount[0]) ? poolAmount[0] : 100;
 
+  const isGoodDollarSelected =
+    selectedToken.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+
   const hasInsufficientBalance = selectedTokenBalance?.balance
     ? parseFloat(selectedTokenBalance.formatted) < currentPoolAmount
     : false;
@@ -208,12 +211,11 @@ export function CreateChallengeSheet({
         throw new Error("Please select a valid duration");
       }
 
-      // Handle approval automatically if needed
-      if (needsApproval(currentPoolAmount) && !isApprovalSuccess) {
+      // Handle approval automatically if needed.
+      // Skip approvals entirely for G$ – its transfer model doesn't rely on ERC20 allowances.
+      if (!isGoodDollarSelected && needsApproval(currentPoolAmount) && !isApprovalSuccess) {
         await approve(currentPoolAmount);
         // Wait for approval transaction to be confirmed
-        // The approval state will update via the hook, so we wait a bit
-        // and then check allowance again
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await refetchAllowance();
 
@@ -520,8 +522,7 @@ export function CreateChallengeSheet({
                 isCreating ||
                 isConfirming ||
                 isUploading ||
-                isApproving ||
-                isApprovingConfirming ||
+                (!isGoodDollarSelected && (isApproving || isApprovingConfirming)) ||
                 !canGoNext()
               }
               className={cn(
@@ -539,7 +540,7 @@ export function CreateChallengeSheet({
                 "opacity-50 cursor-not-allowed"
               )}
             >
-              {isApproving || isApprovingConfirming ? (
+              {!isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Approving...</span>

@@ -3,7 +3,6 @@ import { parseUnits } from "viem";
 // Constants
 export const MAX_DELULU_LENGTH = 140;
 export const MIN_STAKE = 1;
-export const MAX_STAKE = 1000;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
 export const ALLOWANCE_CHECK_DELAY = 500; // milliseconds
@@ -103,7 +102,7 @@ export function validateDeluluInputs(
 
 // Stake amount helpers
 export function clampStakeValue(val: number): number {
-  return Math.min(Math.max(val, MIN_STAKE), MAX_STAKE);
+  return Math.max(val, MIN_STAKE);
 }
 
 export function calculateMaxStakeValue(
@@ -112,7 +111,8 @@ export function calculateMaxStakeValue(
   if (cusdBalance?.formatted) {
     const balance = parseFloat(cusdBalance.formatted);
     if (isFinite(balance) && !isNaN(balance)) {
-      return Math.min(Math.max(balance, 0), MAX_STAKE);
+      // No artificial upper cap – use the real wallet balance
+      return Math.max(balance, 0);
     }
   }
   return 0;
