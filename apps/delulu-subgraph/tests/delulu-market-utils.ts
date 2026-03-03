@@ -1,48 +1,25 @@
 import { newMockEvent } from "matchstick-as"
 import { ethereum, BigInt, Address } from "@graphprotocol/graph-ts"
 import {
-  DeluluCancelled,
   DeluluCreated,
-  DeluluResolved,
-  EmergencyRefund,
+  SupportStaked,
+  SupportClaimed,
+  ChallengeRewardClaimed,
+  ProfileUpdated,
+  MilestonesAdded,
+  MilestoneSubmitted,
+  MilestoneVerified,
+  MilestoneRejected,
+  ChallengeCreated,
   OwnershipTransferred,
   Paused,
-  StakePlaced,
-  Unpaused,
-  WinningsClaimed
+  Unpaused
 } from "../generated/DeluluMarket/DeluluMarket"
-
-export function createDeluluCancelledEvent(
-  deluluId: BigInt,
-  cancelledBy: Address
-): DeluluCancelled {
-  let deluluCancelledEvent = changetype<DeluluCancelled>(newMockEvent())
-
-  deluluCancelledEvent.parameters = []
-
-  deluluCancelledEvent.parameters.push(
-    new ethereum.EventParam(
-      "deluluId",
-      ethereum.Value.fromUnsignedBigInt(deluluId)
-    )
-  )
-  deluluCancelledEvent.parameters.push(
-    new ethereum.EventParam(
-      "cancelledBy",
-      ethereum.Value.fromAddress(cancelledBy)
-    )
-  )
-
-  return deluluCancelledEvent
-}
 
 export function createDeluluCreatedEvent(
   deluluId: BigInt,
   creator: Address,
-  contentHash: string,
-  stakingDeadline: BigInt,
-  resolutionDeadline: BigInt,
-  creatorStake: BigInt
+  contentHash: string
 ): DeluluCreated {
   let deluluCreatedEvent = changetype<DeluluCreated>(newMockEvent())
 
@@ -63,86 +40,268 @@ export function createDeluluCreatedEvent(
       ethereum.Value.fromString(contentHash)
     )
   )
-  deluluCreatedEvent.parameters.push(
-    new ethereum.EventParam(
-      "stakingDeadline",
-      ethereum.Value.fromUnsignedBigInt(stakingDeadline)
-    )
-  )
-  deluluCreatedEvent.parameters.push(
-    new ethereum.EventParam(
-      "resolutionDeadline",
-      ethereum.Value.fromUnsignedBigInt(resolutionDeadline)
-    )
-  )
-  deluluCreatedEvent.parameters.push(
-    new ethereum.EventParam(
-      "creatorStake",
-      ethereum.Value.fromUnsignedBigInt(creatorStake)
-    )
-  )
 
   return deluluCreatedEvent
 }
 
-export function createDeluluResolvedEvent(
+export function createSupportStakedEvent(
   deluluId: BigInt,
-  outcome: boolean,
-  winningPool: BigInt,
-  losingPool: BigInt
-): DeluluResolved {
-  let deluluResolvedEvent = changetype<DeluluResolved>(newMockEvent())
+  supporter: Address,
+  amount: BigInt,
+  totalSupporters: BigInt
+): SupportStaked {
+  let supportStakedEvent = changetype<SupportStaked>(newMockEvent())
 
-  deluluResolvedEvent.parameters = []
+  supportStakedEvent.parameters = []
 
-  deluluResolvedEvent.parameters.push(
+  supportStakedEvent.parameters.push(
     new ethereum.EventParam(
       "deluluId",
       ethereum.Value.fromUnsignedBigInt(deluluId)
     )
   )
-  deluluResolvedEvent.parameters.push(
-    new ethereum.EventParam("outcome", ethereum.Value.fromBoolean(outcome))
+  supportStakedEvent.parameters.push(
+    new ethereum.EventParam("supporter", ethereum.Value.fromAddress(supporter))
   )
-  deluluResolvedEvent.parameters.push(
-    new ethereum.EventParam(
-      "winningPool",
-      ethereum.Value.fromUnsignedBigInt(winningPool)
-    )
-  )
-  deluluResolvedEvent.parameters.push(
-    new ethereum.EventParam(
-      "losingPool",
-      ethereum.Value.fromUnsignedBigInt(losingPool)
-    )
-  )
-
-  return deluluResolvedEvent
-}
-
-export function createEmergencyRefundEvent(
-  deluluId: BigInt,
-  user: Address,
-  amount: BigInt
-): EmergencyRefund {
-  let emergencyRefundEvent = changetype<EmergencyRefund>(newMockEvent())
-
-  emergencyRefundEvent.parameters = []
-
-  emergencyRefundEvent.parameters.push(
-    new ethereum.EventParam(
-      "deluluId",
-      ethereum.Value.fromUnsignedBigInt(deluluId)
-    )
-  )
-  emergencyRefundEvent.parameters.push(
-    new ethereum.EventParam("user", ethereum.Value.fromAddress(user))
-  )
-  emergencyRefundEvent.parameters.push(
+  supportStakedEvent.parameters.push(
     new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
   )
+  supportStakedEvent.parameters.push(
+    new ethereum.EventParam(
+      "totalSupporters",
+      ethereum.Value.fromUnsignedBigInt(totalSupporters)
+    )
+  )
 
-  return emergencyRefundEvent
+  return supportStakedEvent
+}
+
+export function createSupportClaimedEvent(
+  deluluId: BigInt,
+  creator: Address,
+  netSupport: BigInt,
+  fee: BigInt
+): SupportClaimed {
+  let supportClaimedEvent = changetype<SupportClaimed>(newMockEvent())
+
+  supportClaimedEvent.parameters = []
+
+  supportClaimedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  supportClaimedEvent.parameters.push(
+    new ethereum.EventParam("creator", ethereum.Value.fromAddress(creator))
+  )
+  supportClaimedEvent.parameters.push(
+    new ethereum.EventParam(
+      "netSupport",
+      ethereum.Value.fromUnsignedBigInt(netSupport)
+    )
+  )
+  supportClaimedEvent.parameters.push(
+    new ethereum.EventParam("fee", ethereum.Value.fromUnsignedBigInt(fee))
+  )
+
+  return supportClaimedEvent
+}
+
+export function createChallengeRewardClaimedEvent(
+  challengeId: BigInt,
+  deluluId: BigInt,
+  creator: Address,
+  netReward: BigInt,
+  fee: BigInt
+): ChallengeRewardClaimed {
+  let challengeRewardClaimedEvent = changetype<ChallengeRewardClaimed>(newMockEvent())
+
+  challengeRewardClaimedEvent.parameters = []
+
+  challengeRewardClaimedEvent.parameters.push(
+    new ethereum.EventParam(
+      "challengeId",
+      ethereum.Value.fromUnsignedBigInt(challengeId)
+    )
+  )
+  challengeRewardClaimedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  challengeRewardClaimedEvent.parameters.push(
+    new ethereum.EventParam("creator", ethereum.Value.fromAddress(creator))
+  )
+  challengeRewardClaimedEvent.parameters.push(
+    new ethereum.EventParam(
+      "netReward",
+      ethereum.Value.fromUnsignedBigInt(netReward)
+    )
+  )
+  challengeRewardClaimedEvent.parameters.push(
+    new ethereum.EventParam("fee", ethereum.Value.fromUnsignedBigInt(fee))
+  )
+
+  return challengeRewardClaimedEvent
+}
+
+export function createProfileUpdatedEvent(
+  user: Address,
+  username: string
+): ProfileUpdated {
+  let profileUpdatedEvent = changetype<ProfileUpdated>(newMockEvent())
+
+  profileUpdatedEvent.parameters = []
+
+  profileUpdatedEvent.parameters.push(
+    new ethereum.EventParam("user", ethereum.Value.fromAddress(user))
+  )
+  profileUpdatedEvent.parameters.push(
+    new ethereum.EventParam("username", ethereum.Value.fromString(username))
+  )
+
+  return profileUpdatedEvent
+}
+
+export function createMilestonesAddedEvent(
+  deluluId: BigInt,
+  count: BigInt
+): MilestonesAdded {
+  let milestonesAddedEvent = changetype<MilestonesAdded>(newMockEvent())
+
+  milestonesAddedEvent.parameters = []
+
+  milestonesAddedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  milestonesAddedEvent.parameters.push(
+    new ethereum.EventParam("count", ethereum.Value.fromUnsignedBigInt(count))
+  )
+
+  return milestonesAddedEvent
+}
+
+export function createMilestoneSubmittedEvent(
+  deluluId: BigInt,
+  milestoneId: BigInt,
+  proofLink: string
+): MilestoneSubmitted {
+  let milestoneSubmittedEvent = changetype<MilestoneSubmitted>(newMockEvent())
+
+  milestoneSubmittedEvent.parameters = []
+
+  milestoneSubmittedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  milestoneSubmittedEvent.parameters.push(
+    new ethereum.EventParam(
+      "milestoneId",
+      ethereum.Value.fromUnsignedBigInt(milestoneId)
+    )
+  )
+  milestoneSubmittedEvent.parameters.push(
+    new ethereum.EventParam("proofLink", ethereum.Value.fromString(proofLink))
+  )
+
+  return milestoneSubmittedEvent
+}
+
+export function createMilestoneVerifiedEvent(
+  deluluId: BigInt,
+  milestoneId: BigInt,
+  pointsEarned: BigInt
+): MilestoneVerified {
+  let milestoneVerifiedEvent = changetype<MilestoneVerified>(newMockEvent())
+
+  milestoneVerifiedEvent.parameters = []
+
+  milestoneVerifiedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  milestoneVerifiedEvent.parameters.push(
+    new ethereum.EventParam(
+      "milestoneId",
+      ethereum.Value.fromUnsignedBigInt(milestoneId)
+    )
+  )
+  milestoneVerifiedEvent.parameters.push(
+    new ethereum.EventParam(
+      "pointsEarned",
+      ethereum.Value.fromUnsignedBigInt(pointsEarned)
+    )
+  )
+
+  return milestoneVerifiedEvent
+}
+
+export function createMilestoneRejectedEvent(
+  deluluId: BigInt,
+  milestoneId: BigInt,
+  reason: string
+): MilestoneRejected {
+  let milestoneRejectedEvent = changetype<MilestoneRejected>(newMockEvent())
+
+  milestoneRejectedEvent.parameters = []
+
+  milestoneRejectedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deluluId",
+      ethereum.Value.fromUnsignedBigInt(deluluId)
+    )
+  )
+  milestoneRejectedEvent.parameters.push(
+    new ethereum.EventParam(
+      "milestoneId",
+      ethereum.Value.fromUnsignedBigInt(milestoneId)
+    )
+  )
+  milestoneRejectedEvent.parameters.push(
+    new ethereum.EventParam("reason", ethereum.Value.fromString(reason))
+  )
+
+  return milestoneRejectedEvent
+}
+
+export function createChallengeCreatedEvent(
+  challengeId: BigInt,
+  contentHash: string,
+  poolAmount: BigInt
+): ChallengeCreated {
+  let challengeCreatedEvent = changetype<ChallengeCreated>(newMockEvent())
+
+  challengeCreatedEvent.parameters = []
+
+  challengeCreatedEvent.parameters.push(
+    new ethereum.EventParam(
+      "challengeId",
+      ethereum.Value.fromUnsignedBigInt(challengeId)
+    )
+  )
+  challengeCreatedEvent.parameters.push(
+    new ethereum.EventParam(
+      "contentHash",
+      ethereum.Value.fromString(contentHash)
+    )
+  )
+  challengeCreatedEvent.parameters.push(
+    new ethereum.EventParam(
+      "poolAmount",
+      ethereum.Value.fromUnsignedBigInt(poolAmount)
+    )
+  )
+
+  return challengeCreatedEvent
 }
 
 export function createOwnershipTransferredEvent(
@@ -179,42 +338,6 @@ export function createPausedEvent(account: Address): Paused {
   return pausedEvent
 }
 
-export function createStakePlacedEvent(
-  deluluId: BigInt,
-  user: Address,
-  amount: BigInt,
-  side: boolean,
-  newTotalPoolStake: BigInt
-): StakePlaced {
-  let stakePlacedEvent = changetype<StakePlaced>(newMockEvent())
-
-  stakePlacedEvent.parameters = []
-
-  stakePlacedEvent.parameters.push(
-    new ethereum.EventParam(
-      "deluluId",
-      ethereum.Value.fromUnsignedBigInt(deluluId)
-    )
-  )
-  stakePlacedEvent.parameters.push(
-    new ethereum.EventParam("user", ethereum.Value.fromAddress(user))
-  )
-  stakePlacedEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
-  )
-  stakePlacedEvent.parameters.push(
-    new ethereum.EventParam("side", ethereum.Value.fromBoolean(side))
-  )
-  stakePlacedEvent.parameters.push(
-    new ethereum.EventParam(
-      "newTotalPoolStake",
-      ethereum.Value.fromUnsignedBigInt(newTotalPoolStake)
-    )
-  )
-
-  return stakePlacedEvent
-}
-
 export function createUnpausedEvent(account: Address): Unpaused {
   let unpausedEvent = changetype<Unpaused>(newMockEvent())
 
@@ -227,27 +350,3 @@ export function createUnpausedEvent(account: Address): Unpaused {
   return unpausedEvent
 }
 
-export function createWinningsClaimedEvent(
-  deluluId: BigInt,
-  user: Address,
-  payout: BigInt
-): WinningsClaimed {
-  let winningsClaimedEvent = changetype<WinningsClaimed>(newMockEvent())
-
-  winningsClaimedEvent.parameters = []
-
-  winningsClaimedEvent.parameters.push(
-    new ethereum.EventParam(
-      "deluluId",
-      ethereum.Value.fromUnsignedBigInt(deluluId)
-    )
-  )
-  winningsClaimedEvent.parameters.push(
-    new ethereum.EventParam("user", ethereum.Value.fromAddress(user))
-  )
-  winningsClaimedEvent.parameters.push(
-    new ethereum.EventParam("payout", ethereum.Value.fromUnsignedBigInt(payout))
-  )
-
-  return winningsClaimedEvent
-}
