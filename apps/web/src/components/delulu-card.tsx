@@ -11,8 +11,9 @@ import {
   cn,
   getCountryFlag,
 } from "@/lib/utils";
-import { FARCASTER_MINIAPP_BASE_URL } from "@/lib/constant";
+import { FARCASTER_MINIAPP_BASE_URL, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -119,6 +120,19 @@ export function DeluluCard({
   const { username: contractUsername } = useUsernameByAddress(creatorAddress);
   const displayUsername = contractUsername || delusion.username || null;
 
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const isGoodDollar =
+    delusion.tokenAddress?.toLowerCase() ===
+    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+  const approxUsdValue =
+    isGoodDollar && gDollarUsdPrice && tvlValue > 0
+      ? tvlValue * gDollarUsdPrice
+      : delusion.tokenAddress &&
+        delusion.tokenAddress.toLowerCase() !==
+          GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
+      ? tvlValue // USDm or other stable-like token ~ 1:1
+      : null;
+
   const displayPfpUrl = delusion.pfpUrl || null;
   const isHash = (str: string) => {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
@@ -133,6 +147,12 @@ export function DeluluCard({
   const tvl = tvlValue;
   const formattedTVL =
     tvl > 0 ? (tvl < 0.01 ? tvl.toFixed(4) : tvl.toFixed(2)) : "0.00";
+  const formattedUsd =
+    approxUsdValue && approxUsdValue > 0
+      ? approxUsdValue < 0.01
+        ? approxUsdValue.toFixed(4)
+        : approxUsdValue.toFixed(2)
+      : null;
 
   const cardBackground = getCardBackground(delusion);
   const textColorClass =
@@ -331,10 +351,20 @@ export function DeluluCard({
         <div className="absolute top-3 right-3 z-20 flex items-center gap-[-2px]">
           <div className="bg-white text-delulu-charcoal px-1 py-1 gap-[-2px] rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] flex items-center">
             {delusion.tokenAddress && (
-              <TokenBadge tokenAddress={delusion.tokenAddress} size="md" showText={false} />
+              <TokenBadge
+                tokenAddress={delusion.tokenAddress}
+                size="md"
+                showText={false}
+              />
             )}
             <span className="text-[11px] font-black tracking-tight">
               {formattedTVL} TVL
+              {formattedUsd && (
+                <>
+                  {" "}
+                  · ${formattedUsd}
+                </>
+              )}
             </span>
           </div>
         </div>

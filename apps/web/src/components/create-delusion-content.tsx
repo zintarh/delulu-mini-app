@@ -12,7 +12,8 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
-import { TOKEN_LOGOS } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useAccount } from "wagmi";
 import { cn } from "@/lib/utils";
 import { DateTimePicker } from "@/components/date-time-picker";
@@ -142,6 +143,16 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const { isConnected } = useAccount();
   const [inputText, setInputText] = useState<string>("1.0");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+
+  const isGoodDollarSelected =
+    selectedToken.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+  const approxUsdValue =
+    isGoodDollarSelected && gDollarUsdPrice && stakeAmount > 0
+      ? stakeAmount * gDollarUsdPrice
+      : !isGoodDollarSelected && stakeAmount > 0
+      ? stakeAmount
+      : null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -890,7 +901,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex  items-center gap-2 min-w-0">
                   <input
                     type="text"
                     value={inputText}
@@ -935,6 +946,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                          ""
                     )}
                   />
+                  {approxUsdValue && approxUsdValue > 0 && (
+                  <p className="mt-1 text-xs text-gray-500 font-medium">
+                    ≈ ${approxUsdValue.toFixed(2)} USD
+                  </p>
+                )}
                   <div ref={tokenDropdownRef} className="relative flex-shrink-0">
                     <button
                       type="button"
@@ -1122,9 +1138,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 ) : (
                   <span>Manifest</span>
                 )}
-              </button>
-            </div>
-          </div>
+                    </button>
+                  </div>
+                </div>
+                
         </div>
 
 

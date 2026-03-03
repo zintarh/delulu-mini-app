@@ -24,6 +24,7 @@ import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { ChallengesHeader } from "@/components/challenges-header";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Loader2,
@@ -40,7 +41,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
-import { getDeluluContractAddress } from "@/lib/constant";
+import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { keccak256, stringToBytes } from "viem";
 
@@ -171,6 +172,22 @@ export default function DeluluPage() {
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
 
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const isGoodDollarMarket =
+    delulu?.tokenAddress &&
+    delulu.tokenAddress.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+  const totalSupportUsd =
+    isGoodDollarMarket && gDollarUsdPrice && supportAmount > 0
+      ? supportAmount * gDollarUsdPrice
+      : delulu?.tokenAddress &&
+        delulu.tokenAddress.toLowerCase() !==
+          GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
+      ? supportAmount
+      : null;
+  const avgSupportUsd =
+    totalSupportUsd && supportersCount > 0
+      ? totalSupportUsd / supportersCount
+      : null;
 
   const chainId = useChainId();
   const isCreator = isConnected && address && delulu?.creator && address.toLowerCase() === delulu.creator.toLowerCase();
@@ -508,8 +525,13 @@ export default function DeluluPage() {
                           ? supportAmount.toFixed(4)
                           : supportAmount.toFixed(2)
                         : "0.00"}
+                    </span>
+                    <span className="text-gray-500 text-sm">
+                      Total support
+                      {totalSupportUsd && totalSupportUsd > 0 && (
+                        <> · ${totalSupportUsd.toFixed(2)}</>
+                      )}
                 </span>
-                    <span className="text-gray-500 text-sm">Total support</span>
             </div>
                 </div>
 
@@ -554,15 +576,22 @@ export default function DeluluPage() {
                       <p className="text-[11px] font-semibold text-gray-500 uppercase">
                         Total support
                       </p>
-                      <p className="text-2xl md:text-3xl font-black text-delulu-charcoal flex items-center gap-2">
-                        {supportAmount > 0
-                          ? supportAmount < 0.01
-                            ? supportAmount.toFixed(4)
-                            : supportAmount.toFixed(2)
-                          : "0.00"}
-                        {marketToken && (
-                          <span className="inline-flex sm:hidden">
-                            <TokenBadge tokenAddress={marketToken} size="sm" />
+                      <p className="text-2xl md:text-3xl font-black text-delulu-charcoal flex flex-col gap-1">
+                        <span className="flex items-center gap-2">
+                          {supportAmount > 0
+                            ? supportAmount < 0.01
+                              ? supportAmount.toFixed(4)
+                              : supportAmount.toFixed(2)
+                            : "0.00"}
+                          {marketToken && (
+                            <span className="inline-flex sm:hidden">
+                              <TokenBadge tokenAddress={marketToken} size="sm" />
+                            </span>
+                          )}
+                        </span>
+                        {totalSupportUsd && totalSupportUsd > 0 && (
+                          <span className="text-sm font-semibold text-gray-500">
+                            ≈ ${totalSupportUsd.toFixed(2)}
                           </span>
                         )}
                       </p>
@@ -581,12 +610,19 @@ export default function DeluluPage() {
                       <p className="text-[11px] font-semibold text-gray-500 uppercase">
                         Avg. per supporter
                       </p>
-                      <p className="text-lg font-semibold text-delulu-charcoal">
-                        {supportersCount > 0
-                          ? supportAmount / supportersCount < 0.01
-                            ? (supportAmount / supportersCount).toFixed(4)
-                            : (supportAmount / supportersCount).toFixed(2)
+                      <p className="text-lg font-semibold text-delulu-charcoal flex flex-col gap-1">
+                        <span>
+                          {supportersCount > 0
+                            ? supportAmount / supportersCount < 0.01
+                              ? (supportAmount / supportersCount).toFixed(4)
+                              : (supportAmount / supportersCount).toFixed(2)
                         : "0.00"}
+                        </span>
+                        {avgSupportUsd && avgSupportUsd > 0 && (
+                          <span className="text-xs font-medium text-gray-500">
+                            ≈ ${avgSupportUsd.toFixed(2)}
+                          </span>
+                        )}
                     </p>
                   </div>
               </div>
