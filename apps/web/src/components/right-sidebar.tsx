@@ -49,8 +49,12 @@ export function RightSidebar() {
 
   const trendingDelulus = useMemo(() => {
     return [...filteredDelulus]
-      .sort((a, b) => b.totalStake - a.totalStake)
-      .slice(0, 3);
+      .sort(
+        (a, b) =>
+          (b.totalSupportCollected ?? b.totalStake ?? 0) -
+          (a.totalSupportCollected ?? a.totalStake ?? 0)
+      )
+      .slice(0, 4);
   }, [filteredDelulus]);
 
   const recommendedDelulus = useMemo(() => {
