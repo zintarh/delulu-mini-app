@@ -258,7 +258,10 @@ export default function HomePage() {
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-delulu-charcoal rounded-full" />
                 )}
               </button>
+
             </div>
+
+            
           </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
