@@ -18,18 +18,12 @@ query GetUser($id: ID!) {
       resolutionDeadline
       createdAt
       creatorStake
-      totalBelieverStake
-      totalDoubterStake
-      winningPool
-      losingPool
       isResolved
       isCancelled
-      outcome
     }
     stakes(first: 200, orderBy: createdAt, orderDirection: desc) {
       id
       amount
-      side
       txHash
       createdAt
       delulu {
@@ -39,11 +33,8 @@ query GetUser($id: ID!) {
         creatorAddress
         stakingDeadline
         resolutionDeadline
-        totalBelieverStake
-        totalDoubterStake
         isResolved
         isCancelled
-        outcome
         createdAt
       }
     }

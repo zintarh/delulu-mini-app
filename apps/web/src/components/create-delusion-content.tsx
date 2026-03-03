@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Loader2, X, Upload, DollarSign, ChevronDown, Check } from "lucide-react";
+import { ArrowLeft, Loader2, X, Upload, ChevronDown, Check } from "lucide-react";
 import * as Select from "@radix-ui/react-select";
 import TextareaAutosize from "react-textarea-autosize";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
 import { FeedbackModal } from "@/components/feedback-modal";
-import { Slider } from "@/components/slider";
 import { useCreateDelulu } from "@/hooks/use-delulu-contract";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
@@ -19,9 +18,9 @@ import { cn } from "@/lib/utils";
 import { DateTimePicker } from "@/components/date-time-picker";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
-import { GatekeeperStep } from "@/components/create/gatekeeper-step";
 import { UserSetupModal } from "@/components/user-setup-modal";
 import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
+import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import {
   MAX_DELULU_LENGTH,
   MIN_STAKE,
@@ -30,7 +29,6 @@ import {
   getMinDeadline,
   getMaxDeadline,
   validateDeluluInputs,
-  clampStakeValue,
   calculateMaxStakeValue,
   getErrorMessage,
   checkAllowanceWithRetry,
@@ -90,7 +88,7 @@ const TEMPLATES = [
   },
 ];
 
-type Step = "gallery" | "customize" | "duration" | "stake" | "submit";
+type Step = "gallery";
 
 export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const { user } = useUserStore();
@@ -114,6 +112,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   // Step management
   const [step, setStep] = useState<Step>("gallery");
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   const [selectedTemplate, setSelectedTemplate] = useState<
     (typeof TEMPLATES)[0] | null
@@ -131,6 +131,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   // Form state
   const [delusionText, setDelusionText] = useState("");
+  const [description, setDescription] = useState("");
   const [stakeAmount, setStakeAmount] = useState<number>(1);
   const supportedTokens = useSupportedTokens();
   // Prefer G$ if available, otherwise use first token
@@ -176,7 +177,12 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
       return;
     }
 
-    const numValue = Number(value);
+    let numValue = Number(value);
+    // Enforce minimum of 30 minutes when using minute granularity
+    if (unit === "minutes" && numValue < 30) {
+      numValue = 30;
+    }
+
     const now = new Date();
     const newDeadline = new Date(now);
 
@@ -195,28 +201,36 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     const minDeadline = getMinDeadline();
     const maxDeadline = getMaxDeadline();
 
-    if (newDeadline.getTime() < minDeadline.getTime()) {
-      setDeadline(minDeadline);
-    } else if (newDeadline.getTime() > maxDeadline.getTime()) {
+    // For days, keep the existing behavior: clamp to min/max and snap to end of day.
+    if (unit === "days") {
+      if (newDeadline.getTime() < minDeadline.getTime()) {
+        setDeadline(minDeadline);
+      } else if (newDeadline.getTime() > maxDeadline.getTime()) {
+        setDeadline(maxDeadline);
+      } else {
+        newDeadline.setUTCHours(23, 59, 59, 999);
+        setDeadline(newDeadline);
+      }
+      return;
+    }
+
+    // For minutes/hours, respect the exact offset (no day snapping, no 24h minimum clamp),
+    // but still clamp to the global max deadline.
+    if (newDeadline.getTime() > maxDeadline.getTime()) {
       setDeadline(maxDeadline);
     } else {
-      if (unit === "days") {
-        newDeadline.setUTCHours(23, 59, 59, 999);
-      }
       setDeadline(newDeadline);
     }
   }, [setDeadline]);
 
   useEffect(() => {
-    if (step === "duration" && durationMode === "fast" && fastDurationValue !== "") {
+    if (durationMode === "fast" && fastDurationValue !== "") {
       updateDeadlineFromFastMode(fastDurationValue, fastDurationUnit);
     }
-  }, [step, durationMode, fastDurationValue, fastDurationUnit, updateDeadlineFromFastMode]);
+  }, [durationMode, fastDurationValue, fastDurationUnit, updateDeadlineFromFastMode]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const titleInputRef = useRef<HTMLTextAreaElement>(null);
-  const approvalProcessingRef = useRef(false);
 
   const {
     createDelulu,
@@ -236,7 +250,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     refetchAllowance,
   } = useTokenApproval(selectedToken);
 
-  // Simple per-token balances using useTokenBalance
   const cusdToken = supportedTokens.find((t) => t.symbol === "USDm");
   const gToken = supportedTokens.find((t) => t.symbol === "G$");
 
@@ -277,10 +290,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   useEffect(() => {
     if (isSuccess) {
       setShowSuccessModal(true);
-      // Refetch all Graph queries after indexing delay
       refetchAllActiveQueries(apolloClient);
     }
   }, [isSuccess, apolloClient]);
+
 
   useEffect(() => {
     if (isError && createErrorMessage) {
@@ -290,39 +303,26 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     }
   }, [isError, createErrorMessage]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       setPendingCreation(null);
       setIsWaitingForApproval(false);
-      approvalProcessingRef.current = false;
     };
   }, []);
 
-  // After approval succeeds, clear the waiting state so user can manually click "Manifest" to create
-  // NO AUTO-TRIGGER - user must click "Manifest" button themselves
+
   useEffect(() => {
     if (isApprovalSuccess && pendingCreation) {
-      // Clear waiting state - user must manually click "Manifest" button to proceed with creation
       setIsWaitingForApproval(false);
-      approvalProcessingRef.current = false;
     }
   }, [isApprovalSuccess, pendingCreation]);
 
-  useEffect(() => {
-    if (step === "customize" && titleInputRef.current) {
-      const timeoutId = setTimeout(() => {
-        titleInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [step]);
 
   const handleTemplateSelect = (template: (typeof TEMPLATES)[0]) => {
     setSelectedTemplate(template);
     setSelectedImage(template.image);
     setCustomImage(null);
-    setStep("customize");
+    setShowTemplateModal(false);
   };
 
   const handleCustomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,8 +336,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
       return;
     }
 
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024; 
     if (file.size > maxSize) {
       setErrorMessage("Image size must be less than 10MB");
       setShowErrorModal(true);
@@ -355,7 +354,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         setCustomImage(result);
         setSelectedImage(result);
         setSelectedTemplate(null);
-        setStep("customize");
+        setShowTemplateModal(false);
       } else {
         console.error("Failed to read file");
         setErrorMessage("Failed to load image. Please try again.");
@@ -371,13 +370,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   };
 
   const handleBack = () => {
-    if (step === "customize") {
-      setStep("gallery");
-    } else if (step === "duration") {
-      setStep("customize");
-    } else if (step === "stake") {
-      setStep("duration");
-    }
+    // Navigate back to home feed, same as close button
+    onClose();
   };
 
   const handleClose = () => {
@@ -385,6 +379,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setStakeAmount(1);
     setInputText("1.0");
     setDelusionText("");
+    setDescription("");
     setDeadline(getDefaultDeadline());
     setDurationMode("calendar");
     setFastDurationValue("7");
@@ -397,7 +392,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setIsUploadingImage(false);
     setPendingCreation(null);
     setIsWaitingForApproval(false);
-    approvalProcessingRef.current = false;
     onClose();
   };
 
@@ -496,7 +490,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             user?.username,
             user?.pfpUrl,
             gatekeeper,
-            pendingCreation.finalImageUrl
+            pendingCreation.finalImageUrl,
+            description || undefined
           );
           setPendingCreation(null);
           setIsUploadingImage(false);
@@ -554,34 +549,28 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         throw new Error("Please select a template or upload an image");
       }
 
-      // Check if approval is needed before creating
       if (needsApproval(stakeAmount)) {
-        // Store creation params and trigger approval
         setPendingCreation({
           deadline: deadlineDate,
           finalImageUrl,
         });
         setIsWaitingForApproval(true);
-        // Reset image upload state since we're waiting for approval
         setIsUploadingImage(false);
-        // Trigger approval ONLY - user must manually click "Manifest" button again after approval completes
         await approve(stakeAmount);
-        return; // Exit - do NOT create automatically
+        return; 
       }
 
-      // Approval not needed, proceed directly with creation
-      // Note: isUploadingImage stays true during creation to show loading state
-      await createDelulu(
-        selectedToken,
-        delusionText,
-        deadlineDate,
-        stakeAmount,
-        user?.username,
-        user?.pfpUrl,
-        gatekeeper,
-        finalImageUrl
-      );
-      // Reset loading state after successful creation
+          await createDelulu(
+            selectedToken,
+            delusionText,
+            deadlineDate,
+            stakeAmount,
+            user?.username,
+            user?.pfpUrl,
+            gatekeeper,
+            finalImageUrl,
+            description || undefined
+          );
       setIsUploadingImage(false);
     } catch (error) {
       setIsUploadingImage(false);
@@ -595,23 +584,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   return (
     <>
-      {(step === "customize" || step === "duration" || step === "stake") &&
-        selectedImage && (
-          <>
-            <div className="fixed inset-0 z-0 flex max-w-4xl mx-auto items-center justify-center bg-black pointer-events-none">
-              <img
-                src={selectedImage}
-                alt="Background"
-                className="w-full h-full object-cover bg-center no-repeat"
-                onError={(e) => {
-                  console.error("Failed to load background image");
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-            <div className="fixed inset-0 z-0 bg-black/60 pointer-events-none" />
-          </>
-        )}
 
       <div
         className={cn(
@@ -686,18 +658,525 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           )}
         </div>
 
-        {/* Step 1: Template Gallery */}
-        {step === "gallery" && (
-          <div className="pt-20 pb-8 px-4 lg:px-8 h-screen overflow-y-auto">
-            <div className="max-w-6xl mx-auto">
-              <h1 className="text-3xl font-black text-delulu-charcoal mb-8 text-center">
-                Choose your board aesthetic.
-              </h1>
+        <div className="pt-20 pb-4 px-4 lg:px-8 h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
+          <div className="max-w-4xl mx-auto space-y-1">
 
-              {/* Grid Layout */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Upload Custom Card - First */}
-                <label className="relative w-full rounded-xl overflow-hidden group cursor-pointer block transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
+
+            {/* Title Input */}
+            <div>
+              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                value={delusionText}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= MAX_DELULU_LENGTH) {
+                    setDelusionText(value);
+                  }
+                }}
+                maxLength={MAX_DELULU_LENGTH}
+                placeholder="Enter your delulu title..."
+                className="w-full bg-white border capitalize border-gray-400 rounded-sm px-3 py-2.5 sm:px-5 sm:py-3.5 text-base sm:text-lg text-delulu-charcoal placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                autoFocus
+              />
+              <div className="text-right mt-0.5">
+                <span className="text-xs text-gray-500">
+                  {delusionText.length}/{MAX_DELULU_LENGTH}
+                </span>
+              </div>
+            </div>
+
+            {/* Description Input */}
+            <div>
+              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+                Description
+              </label>
+              <TextareaAutosize
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add a description (optional)..."
+                className="w-full bg-white border border-gray-400 rounded-lg px-3 py-2 sm:px-5 sm:py-3.5 text-sm sm:text-lg text-delulu-charcoal placeholder:text-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                minRows={3}
+              />
+            </div>
+
+            {/* Duration Input */}
+            <div>
+              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+                Duration
+              </label>
+              <div className="space-y-2">
+                {durationMode === "calendar" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendarModal(true)}
+                      className={cn(
+                        "w-full flex items-center justify-between",
+                        "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-white border border-gray-400",
+                        "text-left text-delulu-charcoal font-normal text-base sm:text-lg",
+                        "focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600",
+                        "hover:bg-gray-50 transition-colors"
+                      )}
+                    >
+                      <span>
+                        {deadline.toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span className="text-xs text-delulu-charcoal/70 underline">
+                        Pick date
+                      </span>
+                    </button>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDurationMode("fast");
+                          updateDeadlineFromFastMode(
+                            fastDurationValue,
+                            fastDurationUnit
+                          );
+                        }}
+                        className="text-xs text-delulu-charcoal/70 hover:text-delulu-charcoal underline"
+                      >
+                        Use quick duration instead
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {durationMode === "fast" && (
+                  <div className="space-y-2">
+                    <div className={cn(
+                      "w-full flex items-center justify-between",
+                      "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-white border border-gray-400",
+                      "text-left text-delulu-charcoal font-normal text-base sm:text-lg",
+                      "focus-within:outline-none focus-within:ring-1 focus-within:ring-delulu-charcoal/20 focus-within:border-gray-600",
+                      "hover:bg-gray-50 transition-colors"
+                    )}>
+                      <input
+                        min="1"
+                        value={fastDurationValue}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || (!isNaN(Number(val)) && Number(val) > 0)) {
+                            // For minutes, enforce a minimum of 30
+                            if (fastDurationUnit === "minutes") {
+                              const asNum = Number(val);
+                              const clamped = asNum < 30 ? 30 : asNum;
+                              const nextValue = clamped.toString();
+                              setFastDurationValue(nextValue);
+                              updateDeadlineFromFastMode(nextValue, fastDurationUnit);
+                            } else {
+                              setFastDurationValue(val);
+                              if (val !== "") {
+                                updateDeadlineFromFastMode(val, fastDurationUnit);
+                              }
+                            }
+                          }
+                        }}
+                        className={cn(
+                          "flex-1 min-w-0 bg-transparent",
+                          "border-0 outline-none focus:outline-none focus:ring-0",
+                          "text-delulu-charcoal placeholder-gray-400 font-normal text-base sm:text-lg"
+                        )}
+                        placeholder="Number"
+                      />
+                      <Select.Root
+                        value={fastDurationUnit}
+                        onValueChange={(value) => {
+                          const unit = value as "minutes" | "hours" | "days";
+                          // When switching to minutes, also enforce minimum of 30
+                          if (unit === "minutes" && fastDurationValue !== "") {
+                            const asNum = Number(fastDurationValue);
+                            const clamped = isNaN(asNum) || asNum < 30 ? 30 : asNum;
+                            const nextValue = clamped.toString();
+                            setFastDurationUnit(unit);
+                            setFastDurationValue(nextValue);
+                            updateDeadlineFromFastMode(nextValue, unit);
+                          } else {
+                            setFastDurationUnit(unit);
+                            if (fastDurationValue !== "") {
+                              updateDeadlineFromFastMode(fastDurationValue, unit);
+                            }
+                          }
+                        }}
+                      >
+                        <Select.Trigger
+                          className={cn(
+                            "flex-shrink-0 inline-flex items-center justify-between",
+                            "bg-transparent px-2 py-1",
+                            "border-0 outline-none focus:outline-none focus:ring-0",
+                            "text-delulu-charcoal font-normal text-base sm:text-lg cursor-pointer min-w-[86px]"
+                          )}
+                        >
+                          <Select.Value />
+                          <Select.Icon className="ml-2">
+                            <ChevronDown className="w-4 h-4" />
+                          </Select.Icon>
+                        </Select.Trigger>
+                        <Select.Portal>
+                          <Select.Content className="overflow-hidden bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50">
+                            <Select.Viewport className="p-1">
+                              <Select.Item
+                                value="minutes"
+                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                              >
+                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                  <Check className="w-4 h-4" />
+                                </Select.ItemIndicator>
+                                <Select.ItemText className="pl-8">Min</Select.ItemText>
+                              </Select.Item>
+                              <Select.Item
+                                value="hours"
+                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                              >
+                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                  <Check className="w-4 h-4" />
+                                </Select.ItemIndicator>
+                                <Select.ItemText className="pl-8">Hrs</Select.ItemText>
+                              </Select.Item>
+                              <Select.Item
+                                value="days"
+                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                              >
+                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
+                                  <Check className="w-4 h-4" />
+                                </Select.ItemIndicator>
+                                <Select.ItemText className="pl-8">Days</Select.ItemText>
+                              </Select.Item>
+                            </Select.Viewport>
+                          </Select.Content>
+                        </Select.Portal>
+                      </Select.Root>
+                    </div>
+                    <div className="flex justify-end mb-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDurationMode("calendar");
+                        }}
+                        className="text-xs text-delulu-charcoal/70 hover:text-delulu-charcoal underline"
+                      >
+                        Use calendar instead
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Staking Input */}
+            <div>
+              <div
+                className={cn(
+                  "bg-gray-50 rounded-2xl p-3 sm:p-4 border transition-colors",
+                  hasInputError
+                    ? "border-red-400"
+                    : "border-gray-400"
+                )}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-500">Initial Stake Amount</span>
+                  {isConnected && selectedTokenBalance && (
+                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                      Balance: {parseFloat(selectedTokenBalance.formatted).toFixed(2)}{" "}
+                      <TokenBadge tokenAddress={selectedToken} size="sm" showText={false} />
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Always reflect what the user is typing
+                      setInputText(value);
+
+                      // Empty string: don't update stake yet (will reset on blur)
+                      if (value.trim() === "") {
+                        return;
+                      }
+
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        const clampedValue = Math.max(
+                          MIN_STAKE,
+                          Math.min(numValue, MAX_STAKE)
+                        );
+                        setStakeAmount(clampedValue);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const currentValue = parseFloat(e.target.value);
+                      if (
+                        e.target.value === "" ||
+                        isNaN(currentValue) ||
+                        currentValue < 1
+                      ) {
+                        setStakeAmount(MIN_STAKE);
+                        setInputText(MIN_STAKE.toFixed(1));
+                      } else {
+                        const clampedValue = Math.max(1, currentValue);
+                        setStakeAmount(clampedValue);
+                        setInputText(clampedValue.toFixed(1));
+                      }
+                    }}
+                    placeholder="0.00"
+                    className={cn(
+                      "flex-1 min-w-0 bg-transparent text-lg sm:text-2xl font-bold focus:outline-none placeholder:text-gray-300",
+               
+                         ""
+                    )}
+                  />
+                  <div ref={tokenDropdownRef} className="relative flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-400 bg-white hover:bg-gray-50 transition-colors text-sm",
+                        isTokenDropdownOpen && "bg-gray-50"
+                      )}
+                    >
+                      {(() => {
+                        const selectedTokenInfo = supportedTokens.find(
+                          (t) => t.address === selectedToken
+                        );
+                        const logoUrl = selectedToken
+                          ? TOKEN_LOGOS[selectedToken.toLowerCase()]
+                          : undefined;
+                        return (
+                          <>
+                            {logoUrl && (
+                              <img
+                                src={logoUrl}
+                                alt=""
+                                className="h-5 w-5 rounded-full"
+                              />
+                            )}
+                            <span className="text-sm font-bold text-delulu-charcoal">
+                              {selectedTokenInfo?.symbol || "Select"}
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 text-gray-500 transition-transform",
+                                isTokenDropdownOpen && "rotate-180"
+                              )}
+                            />
+                          </>
+                        );
+                      })()}
+                    </button>
+
+                    {isTokenDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 bg-white rounded-lg border border-gray-400 shadow-lg z-50 overflow-hidden min-w-[200px]">
+                        {supportedTokens.map((t) => {
+                          const tokenBalanceInfo = tokenBalances.find(
+                            (tb) => tb.token.address.toLowerCase() === t.address.toLowerCase()
+                          );
+                          const balance = tokenBalanceInfo
+                            ? parseFloat(tokenBalanceInfo.formatted)
+                            : 0;
+                          const isLoading = tokenBalanceInfo?.isLoading ?? false;
+                          const logoUrl = TOKEN_LOGOS[t.address.toLowerCase()];
+                          const isSelected = selectedToken?.toLowerCase() === t.address.toLowerCase();
+
+                          return (
+                            <button
+                              key={t.address}
+                              onClick={() => {
+                                setSelectedToken(t.address);
+                                setIsTokenDropdownOpen(false);
+                              }}
+                              className={cn(
+                                "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
+                                isSelected
+                                  ? "bg-gray-100 text-delulu-charcoal font-bold"
+                                  : "bg-white text-delulu-charcoal hover:bg-gray-50"
+                              )}
+                            >
+                              {logoUrl && (
+                                <img
+                                  src={logoUrl}
+                                  alt={t.symbol}
+                                  className="h-5 w-5 rounded-full flex-shrink-0"
+                                />
+                              )}
+                              <div className="flex-1 flex items-center justify-between gap-2">
+                                <span className="font-bold">{t.symbol}</span>
+                                {isConnected && (
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    {isLoading
+                                      ? "..."
+                                      : `${balance.toFixed(2)}`}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {isConnected && (hasInsufficientBalanceForStake || stakeAmount < MIN_STAKE || exceedsBalance) && (
+                <p className="text-sm text-red-600 mt-2 font-bold">
+                  {hasInsufficientBalanceForStake
+                    ? "Insufficient balance"
+                    : stakeAmount < MIN_STAKE
+                      ? "Minimum amount is 1"
+                      : exceedsBalance
+                        ? "Amount exceeds your balance"
+                        : ""}
+                </p>
+              )}
+            </div>
+
+            {/* Gatekeeper Component */}
+            {/* <div className="pt-3 border-t border-gray-200">
+                    <GatekeeperStep
+                      value={gatekeeper}
+                      onChange={setGatekeeper}
+                  variant="light"
+                    />
+                  </div> */}
+
+            {/* Template Selection Button */}
+            <div>
+         
+
+
+
+              <div className="space-y-3 pt-4">
+                {selectedImage && (
+                  <div className="space-y-2">
+                    {selectedTemplate && (
+                      <p className="text-sm font-semibold text-delulu-charcoal">
+                        {selectedTemplate.name}
+                      </p>
+                    )}
+                    {customImage && (
+                      <p className="text-sm font-semibold text-delulu-charcoal">
+                        Custom Image
+                      </p>
+                    )}
+                    <img
+                      src={selectedImage}
+                      alt={selectedTemplate?.name || "Custom"}
+                      className="w-60 h-60 rounded-lg object-cover border-2 border-gray-300"
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateModal(true)}
+                  className={cn(
+                    "inline-flex items-center gap-2",
+                    "px-4 py-2.5 rounded-md",
+                    "bg-white border-2 border-delulu-charcoal",
+                    "text-delulu-charcoal font-semibold text-sm",
+                    "shadow-[2px_2px_0px_0px_#1A1A1A]",
+                    "hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+                    "active:scale-[0.98] transition-all",
+                    "focus:outline-none focus:ring-2 focus:ring-delulu-charcoal/20"
+                  )}
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>{selectedTemplate || customImage ? "Change Template" : "Choose Template"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Manifest Button */}
+            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={handleCreate}
+                disabled={!canCreate || isProcessing}
+                className={cn(
+                  "flex-1",
+                  "px-8 py-4",
+                  "bg-delulu-yellow text-delulu-charcoal text-lg font-bold",
+                  "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                  "flex items-center justify-center gap-2 hover:bg-delulu-yellow/90 transition-colors",
+                  (!canCreate || isProcessing) &&
+                  "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isApproving || isApprovingConfirming ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Approving...</span>
+                  </>
+                ) : isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>{progressStep?.label || "Processing..."}</span>
+                  </>
+                ) : (
+                  <span>Manifest</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
+
+
+
+        {/* Calendar Modal */}
+        <Modal open={showCalendarModal} onOpenChange={setShowCalendarModal}>
+          <ModalContent className="max-w-md">
+            <ModalHeader>
+              <ModalTitle>Pick a deadline</ModalTitle>
+            </ModalHeader>
+            <div className="mt-4 space-y-4">
+              <DateTimePicker
+                value={deadline}
+                onChange={(date) => {
+                  if (date) {
+                    setDeadline(date);
+                  }
+                }}
+                minDate={getMinDeadline()}
+                maxDate={getMaxDeadline()}
+                className="max-w-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCalendarModal(false)}
+                className={cn(
+                  "w-full py-3 rounded-md font-bold text-sm transition-all",
+                  "border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                  "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
+                )}
+              >
+                Done
+              </button>
+            </div>
+          </ModalContent>
+        </Modal>
+
+        {/* Template Selection Modal */}
+        <Modal open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+          <ModalContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <ModalHeader>
+              <ModalTitle>Choose Template</ModalTitle>
+            </ModalHeader>
+            <div className="mt-4">
+              <div className="grid grid-cols-4 gap-3">
+                {/* Upload Custom Card */}
+                <label className="relative w-full rounded-xl overflow-hidden group cursor-pointer block transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                   <div className="relative aspect-square">
                     <img
                       src="/templates/customize.png"
@@ -705,12 +1184,17 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       className="w-full h-full object-cover rounded-xl"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                      <Upload className="w-12 h-12 text-white group-hover:text-delulu-yellow-reserved transition-colors drop-shadow-lg" />
-                      <p className="text-white font-bold text-xl sm:text-2xl drop-shadow-lg text-center px-4">
-                        Upload your own vision
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                      <Upload className="w-8 h-8 text-white group-hover:text-delulu-yellow-reserved transition-colors drop-shadow-lg" />
+                      <p className="text-white font-bold text-xs drop-shadow-lg text-center px-2">
+                        Custom
                       </p>
                     </div>
+                    {customImage && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-delulu-yellow-reserved rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-delulu-charcoal" />
+                      </div>
+                    )}
                   </div>
                   <input
                     type="file"
@@ -720,511 +1204,45 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   />
                 </label>
 
-                {TEMPLATES.map((template) => (
-                  <button
-                    key={template.id}
-                    onClick={() => handleTemplateSelect(template)}
-                    className="relative w-full rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-2"
-                  >
-                    <div className="relative aspect-square">
-                      <img
-                        src={template.image}
-                        alt={template.name}
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p
-                          className="text-white font-bold text-xl  text-center px-4 drop-shadow-lg"
-                          style={{
-                            fontWeight: template.fontWeight,
-                          }}
-                        >
-                          {template.name}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === "customize" && selectedImage && (
-          <>
-            <div className="relative min-h-screen flex items-center justify-center px-4">
-              <div className="w-full max-w-2xl mx-auto text-center">
-                <TextareaAutosize
-                  ref={titleInputRef as React.RefObject<HTMLTextAreaElement>}
-                  value={delusionText}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.length <= MAX_DELULU_LENGTH) {
-                      setDelusionText(value);
-                    }
-                  }}
-                  placeholder="Type  here..."
-                  className={cn(
-                    "w-full text-center bg-transparent border-none outline-none text-white placeholder:text-white/80 font-bold resize-none leading-tight",
-                    delusionText.length > 50 ? "text-base" : "text-2xl"
-                  )}
-                  maxLength={MAX_DELULU_LENGTH}
-                  minRows={1}
-                />
-                <div className="text-center mt-6">
-                  <span className="text-sm text-white/60">
-                    {delusionText.length}/{MAX_DELULU_LENGTH}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="fixed bottom-0 max-w-lg mx-auto  left-0 right-0 z-50 px-4 py-6">
-              {delusionText.trim() && (
-                <button
-                  onClick={() => setStep("duration")}
-                  disabled={!delusionText.trim()}
-                  className={cn(
-                    "w-full py-4 rounded-md font-bold text-lg transition-all border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                    delusionText.trim()
-                      ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
-                  )}
-                >
-                  Continue
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
-
-
-
-
-
-        {step === "duration" && selectedImage && (
-          <>
-            <div className="relative min-h-screen flex items-center justify-center px-4 py-20">
-              <div className="w-full max-w-2xl mx-auto">
-                {/* Title Section */}
-                <div className="mb-8 text-center">
-                  <h2 className="text-2xl font-black text-white/90 mb-2">
-                    Staking Deadline
-                  </h2>
-                  <p className="text-sm text-white/60">
-                    When will staking end for this delulu?
-                  </p>
-                </div>
-
-                {/* Main Input Section */}
-                <div className="mb-6">
-                  {/* Calendar Mode - Default */}
-                  {durationMode === "calendar" && (
-                    <div className="space-y-4">
-                      <DateTimePicker
-                        value={deadline}
-                        onChange={(date) => {
-                          if (date) {
-                            setDeadline(date);
-                          }
-                        }}
-                        minDate={getMinDeadline()}
-                        maxDate={getMaxDeadline()}
-                      />
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => {
-                            setDurationMode("fast");
-                            updateDeadlineFromFastMode(fastDurationValue, fastDurationUnit);
-                          }}
-                          className="text-sm text-white/70 hover:text-white underline"
-                        >
-                          Use custom date instead
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fast Mode */}
-                  {durationMode === "fast" && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
-                        <input
-                          min="1"
-                          value={fastDurationValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "" || (!isNaN(Number(val)) && Number(val) > 0)) {
-                              setFastDurationValue(val);
-                              if (val !== "") {
-                                updateDeadlineFromFastMode(val, fastDurationUnit);
-                              }
-                            }
-                          }}
-                          className="flex-1 min-w-0 px-2 sm:px-4 py-2 sm:py-3 rounded-lg bg-transparent border-0 border-white/30 text-white placeholder-white/60 font-bold text-base sm:text-lg focus:outline-none focus:border-transparent"
-                          placeholder="Number"
+                {TEMPLATES.map((template) => {
+                  const isSelected = selectedTemplate?.id === template.id;
+                  return (
+                    <button
+                      key={template.id}
+                      onClick={() => handleTemplateSelect(template)}
+                      className="relative w-full rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                    >
+                      <div className="relative aspect-square">
+                        <img
+                          src={template.image}
+                          alt={template.name}
+                          className="w-full h-full object-cover rounded-xl"
                         />
-                        <Select.Root
-                          value={fastDurationUnit}
-                          onValueChange={(value) => {
-                            const unit = value as "minutes" | "hours" | "days";
-                            setFastDurationUnit(unit);
-                            if (fastDurationValue !== "") {
-                              updateDeadlineFromFastMode(fastDurationValue, unit);
-                            }
-                          }}
-                        >
-                          <Select.Trigger className="flex-shrink-0 inline-flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 rounded-lg bg-white/20 border border-white/30 text-white font-bold text-xs sm:text-base focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved focus:border-transparent cursor-pointer min-w-[80px] sm:min-w-[100px]">
-                            <Select.Value />
-                            <Select.Icon className="ml-2">
-                              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Select.Icon>
-                          </Select.Trigger>
-                          <Select.Portal>
-                            <Select.Content className="overflow-hidden bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50">
-                              <Select.Viewport className="p-1">
-                                <Select.Item
-                                  value="minutes"
-                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
-                                >
-                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                    <Check className="w-4 h-4" />
-                                  </Select.ItemIndicator>
-                                  <Select.ItemText className="pl-8">Min</Select.ItemText>
-                                </Select.Item>
-                                <Select.Item
-                                  value="hours"
-                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
-                                >
-                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                    <Check className="w-4 h-4" />
-                                  </Select.ItemIndicator>
-                                  <Select.ItemText className="pl-8">Hrs</Select.ItemText>
-                                </Select.Item>
-                                <Select.Item
-                                  value="days"
-                                  className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
-                                >
-                                  <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                    <Check className="w-4 h-4" />
-                                  </Select.ItemIndicator>
-                                  <Select.ItemText className="pl-8">Days</Select.ItemText>
-                                </Select.Item>
-                              </Select.Viewport>
-                            </Select.Content>
-                          </Select.Portal>
-                        </Select.Root>
-                      </div>
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => {
-                            setDurationMode("calendar");
-                          }}
-                          className="text-sm text-white/70 hover:text-white underline"
-                        >
-                          Use calendar instead
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Deadline Preview - Card style */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-                  <div className="text-center">
-                    <p className="text-xs text-white/70 mb-3 uppercase tracking-wider font-semibold">
-                      Deadline
-                    </p>
-                    <p className="text-2xl font-black text-white mb-1">
-                      {deadline.toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                    <p className="text-sm text-white/80">
-                      {deadline.toLocaleString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZoneName: "short",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="fixed bottom-0 max-w-lg mx-auto  left-0 right-0 z-50 px-4 py-6">
-              <button
-                onClick={() => setStep("stake")}
-                className="w-full py-4 rounded-md font-bold text-lg transition-all border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
-              >
-                Continue
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === "stake" && selectedImage && (
-          <>
-            <div className="relative min-h-screen flex items-center justify-center px-4 py-20 pb-32 z-20">
-              <div
-                className="w-full max-w-2xl mx-auto space-y-6 relative z-20"
-                style={{ pointerEvents: "auto" }}
-              >
-                <h2 className="text-2xl font-black text-white/90 mb-6 text-center">
-                  Skin in the game
-                </h2>
-
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-white/90 mb-2">
-                      Market Currency
-                    </label>
-                    <div className="mb-4" ref={tokenDropdownRef}>
-                      <div className="relative">
-                        <button
-                          onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
-                          className={cn(
-                            "w-full px-4 py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-3 justify-between",
-                            "bg-delulu-yellow-reserved text-delulu-charcoal border-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const selectedTokenInfo = supportedTokens.find(
-                                (t) => t.address === selectedToken
-                              );
-                              const selectedBalanceInfo = tokenBalances.find(
-                                (tb) => tb.token.address === selectedToken
-                              );
-                              const logoUrl = selectedToken
-                                ? TOKEN_LOGOS[selectedToken.toLowerCase()]
-                                : undefined;
-                              return (
-                                <>
-                                  {logoUrl && (
-                                    <img
-                                      src={logoUrl}
-                                      alt=""
-                                      className="h-5 w-5 rounded-full"
-                                    />
-                                  )}
-                                  <span>{selectedTokenInfo?.symbol || "Select"}</span>
-                                  {isConnected && selectedBalanceInfo && (
-                                    <span className="text-xs opacity-70 whitespace-nowrap">
-                                      {selectedBalanceInfo.isLoading
-                                        ? "..."
-                                        : `${parseFloat(selectedBalanceInfo.formatted).toFixed(2)} ${selectedTokenInfo?.symbol || ""}`}
-                                    </span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 transition-transform",
-                              isTokenDropdownOpen && "rotate-180"
-                            )}
-                          />
-                        </button>
-                        {isTokenDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50 overflow-hidden">
-                            {supportedTokens
-                              .filter((t) => !!t && !!t.address)
-                              .map((t) => {
-                                const tAddressLower = t.address
-                                  ? t.address.toLowerCase()
-                                  : "";
-                                const tokenBalanceInfo = tokenBalances.find(
-                                  (tb) =>
-                                    !!tb.token?.address &&
-                                    tb.token.address.toLowerCase() ===
-                                    tAddressLower
-                                );
-                                const balance = tokenBalanceInfo
-                                  ? parseFloat(tokenBalanceInfo.formatted)
-                                  : 0;
-                                const isLoading =
-                                  tokenBalanceInfo?.isLoading ?? false;
-                                const addressKey = tAddressLower;
-                                const logoUrl = addressKey
-                                  ? TOKEN_LOGOS[addressKey]
-                                  : undefined;
-                                const isSelected =
-                                  !!selectedToken &&
-                                  selectedToken.toLowerCase() === tAddressLower;
-
-                                return (
-                                  <button
-                                    key={t.address}
-                                    onClick={() => {
-                                      setSelectedToken(t.address);
-                                      setIsTokenDropdownOpen(false);
-                                    }}
-                                    className={cn(
-                                      "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
-                                      isSelected
-                                        ? "bg-delulu-yellow-reserved text-delulu-charcoal font-bold"
-                                        : "bg-white text-delulu-charcoal hover:bg-gray-100"
-                                    )}
-                                  >
-                                    {logoUrl && (
-                                      <img
-                                        src={logoUrl}
-                                        alt={t.symbol}
-                                        className="h-5 w-5 rounded-full flex-shrink-0"
-                                      />
-                                    )}
-                                    <div className="flex-1 flex items-center justify-between gap-2">
-                                      <span className="font-bold">
-                                        {t.symbol}
-                                      </span>
-                                      {isConnected && (
-                                        <span className="text-xs opacity-70 whitespace-nowrap">
-                                          {isLoading
-                                            ? "..."
-                                            : `${balance.toFixed(2)} ${t.symbol}`}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </button>
-                                );
-                              })}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <p
+                            className="text-white font-bold text-xs text-center px-2 drop-shadow-lg"
+                            style={{
+                              fontWeight: template.fontWeight,
+                            }}
+                          >
+                            {template.name}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-delulu-yellow-reserved rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-delulu-charcoal" />
                           </div>
                         )}
                       </div>
-                    </div>
-                    <label className="block text-sm font-bold text-white/90 mb-4">
-                      Initial Stake Amount
-                    </label>
-
-                    {/* Slider */}
-                    <div
-                      className="mb-4"
-                      style={{ position: "relative", zIndex: 10 }}
-                    >
-                      <Slider
-                        value={[clampStakeValue(stakeAmount)]}
-                        onValueChange={(values) => {
-                          if (values && values[0] !== undefined) {
-                            const newVal = clampStakeValue(values[0]);
-                            setStakeAmount(newVal);
-                            setInputText(newVal.toFixed(1));
-                          }
-                        }}
-                        min={MIN_STAKE}
-                        max={MAX_STAKE}
-                        step={0.1}
-                        className="delulu-slider"
-                        disabled={false}
-                      />
-                    </div>
-
-                    {/* Input */}
-                    <div className="space-y-1">
-                      <div
-                        className="relative"
-                        style={{ position: "relative", zIndex: 10 }}
-                      >
-                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={inputText}
-                          onChange={(e) => {
-                            const text = e.target.value;
-                            // Only allow numbers and a single decimal point
-                            if (text === "" || /^\d*\.?\d*$/.test(text)) {
-                              setInputText(text);
-                              const num = parseFloat(text);
-                              if (!isNaN(num) && num > 0) {
-                                setStakeAmount(clampStakeValue(num));
-                              }
-                            }
-                          }}
-                          onFocus={(e) => {
-                            e.target.select();
-                          }}
-                          onBlur={() => {
-                            const num = parseFloat(inputText);
-                            const clamped =
-                              isNaN(num) || num < MIN_STAKE
-                                ? MIN_STAKE
-                                : clampStakeValue(num);
-                            setStakeAmount(clamped);
-                            setInputText(clamped.toFixed(1));
-                          }}
-                          readOnly={false}
-                          disabled={false}
-                          className={cn(
-                            "w-full pl-12 pr-4 py-3 rounded-lg border-2 bg-transparent text-white placeholder:text-white/50 focus:outline-none focus:ring-2 text-lg font-semibold",
-                            hasInputError
-                              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                              : "border-white/30 focus:border-delulu-yellow-reserved focus:ring-delulu-yellow-reserved/20"
-                          )}
-                          style={{ pointerEvents: "auto" }}
-                        />
-                      </div>
-                      {hasInputError && (
-                        <p className="text-xs text-red-400">
-                          {hasInsufficientBalanceForStake
-                            ? `Insufficient balance. You need at least ${MIN_STAKE} to stake.`
-                            : exceedsBalance
-                              ? `Amount exceeds your balance of ${maxStakeValue.toFixed(
-                                2
-                              )}.`
-                              : "Minimum stake is 1.0."}
-                        </p>
-                      )}
-                    </div>
-
-                    {tokenBalance && (
-                      <p className="text-xs text-white/60 mt-2 inline-flex items-center gap-2">
-                        Balance:{" "}
-                        {parseFloat(tokenBalance.formatted).toFixed(2)}{" "}
-                        <TokenBadge tokenAddress={selectedToken} size="sm" />
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Gatekeeper Component */}
-                  <div className="pt-4 border-t border-white/20">
-                    <GatekeeperStep
-                      value={gatekeeper}
-                      onChange={setGatekeeper}
-                    />
-                  </div>
-                </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          </ModalContent>
+        </Modal>
 
-            <div className="fixed bottom-0 max-w-lg mx-auto  left-0 right-0 z-50 px-4 py-6">
-              <button
-                onClick={handleCreate}
-                disabled={!canCreate || isProcessing}
-                className={cn(
-                  "w-full py-4 rounded-md font-bold text-lg transition-all border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  canCreate && !isProcessing
-                    ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
-                )}
-              >
-                {isProcessing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {progressStep?.label || "Processing..."}
-                  </span>
-                ) : (
-                  "Manifest"
-                )}
-              </button>
-            </div>
-          </>
-        )}
       </div>
 
       <FeedbackModal

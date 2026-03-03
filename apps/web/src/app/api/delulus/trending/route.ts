@@ -9,11 +9,19 @@ export async function GET(request: NextRequest) {
 
     const trending = await getTrendingDelulus(limit);
 
-    // Add computed totalStake (TVL) to each delulu
-    const trendingWithTVL = trending.map((d) => ({
-      ...d,
-      totalStake: d.totalBelieverStake + d.totalDoubterStake,
-    }));
+    // Compute TVL using totalSupportCollected when available (v2),
+    // falling back to legacy believer/doubter sums if needed.
+    const trendingWithTVL = trending.map((d: any) => {
+      console.log(d, "jhjdhdhj");
+      const tvl =
+        typeof d.totalSupportCollected === "number" && !Number.isNaN(d.totalSupportCollected)
+          ? d.totalSupportCollected : 0
+
+      return {
+        ...d,
+        totalStake: tvl,
+      };
+    });
 
     return jsonResponse({ data: trendingWithTVL });
   } catch (error) {

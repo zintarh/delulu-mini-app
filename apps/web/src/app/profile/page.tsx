@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
@@ -128,8 +129,8 @@ export default function ProfilePage() {
           <UserClaimsStats address={address} />
 
           <div className="px-6 pt-3 pb-1">
-            <button
-              onClick={() => router.push("/daily-claim")}
+            <Link
+              href="/daily-claim"
               className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -149,7 +150,7 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
-            </button>
+            </Link>
           </div>
 
           <div className="flex items-center justify-center gap-1 border-b border-gray-200 bg-white sticky top-0 z-10">

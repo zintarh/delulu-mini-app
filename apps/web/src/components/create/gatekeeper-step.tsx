@@ -20,9 +20,10 @@ function getAllCountries() {
 interface GatekeeperStepProps {
   value: GatekeeperConfig | null;
   onChange: (value: GatekeeperConfig | null) => void;
+  variant?: "light" | "dark";
 }
 
-export function GatekeeperStep({ value, onChange }: GatekeeperStepProps) {
+export function GatekeeperStep({ value, onChange, variant = "dark" }: GatekeeperStepProps) {
   const [isEnabled, setIsEnabled] = useState(value?.enabled || false);
   const [selectedCountry, setSelectedCountry] = useState<string>(
     value?.value || "US"
@@ -63,10 +64,15 @@ export function GatekeeperStep({ value, onChange }: GatekeeperStepProps) {
   const selectedCountryName =
     allCountries.find((c) => c.code === selectedCountry)?.name || "";
 
+  const isLight = variant === "light";
+  
   return (
     <div className="w-full max-w-2xl space-y-4">
       <div className="flex items-center justify-between p-4 ">
-        <p className="text-sm font-bold text-white/90">
+        <p className={cn(
+          "text-sm font-bold",
+          isLight ? "text-delulu-charcoal" : "text-white/90"
+        )}>
           Restrict to Region
         </p>
         <button
@@ -87,12 +93,20 @@ export function GatekeeperStep({ value, onChange }: GatekeeperStepProps) {
       </div>
 
       {isEnabled && (
-        <div className="p-4 rounded-2xl bg-transparent border border-white/30 ">
+        <div className={cn(
+          "p-4 rounded-2xl bg-transparent border",
+          isLight ? "border-gray-300" : "border-white/30"
+        )}>
 
           <select
             value={selectedCountry}
             onChange={(e) => handleCountryChange(e.target.value)}
-            className="w-full bg-transparent text-white font-bold  focus:outline-none focus:border-transparent focus:ring-2 focus:ring-transparent transition-colors"
+            className={cn(
+              "w-full bg-transparent font-bold focus:outline-none focus:border-transparent focus:ring-2 focus:ring-transparent transition-colors",
+              isLight 
+                ? "text-delulu-charcoal border-gray-300" 
+                : "text-white"
+            )}
           >
             {allCountries.map((country) => (
               <option key={country.code} value={country.code} className="bg-white text-delulu-charcoal">

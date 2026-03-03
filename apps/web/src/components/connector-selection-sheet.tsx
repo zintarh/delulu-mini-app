@@ -1,7 +1,8 @@
 "use client";
 
-import { useConnect } from "wagmi";
-import { Loader2, Wallet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useConnect, useAccount } from "wagmi";
+import { Loader2, Wallet, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { ModalHeader, ModalTitle } from "@/components/ui/modal";
@@ -15,7 +16,10 @@ export function ConnectorSelectionSheet({
   open,
   onOpenChange,
 }: ConnectorSelectionSheetProps) {
-  const { connect, connectors, isPending } = useConnect();
+  const { connect, connectors, isPending, error, status } = useConnect();
+  const { isConnected, address } = useAccount();
+  const [connectingConnectorId, setConnectingConnectorId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Filter out the Farcaster connector from this local wallet selection UI
   const nonFarcasterConnectors = connectors.filter(
@@ -45,8 +49,8 @@ export function ConnectorSelectionSheet({
 
   const filteredInjectedConnectors = hasSpecificInjectedWallets
     ? injectedConnectors.filter(
-        (connector) => !GENERIC_INJECTED_NAMES.includes(connector.name)
-      )
+      (connector) => !GENERIC_INJECTED_NAMES.includes(connector.name)
+    )
     : injectedConnectors;
 
   const availableConnectors = [
@@ -54,15 +58,78 @@ export function ConnectorSelectionSheet({
     ...nonInjectedConnectors,
   ];
 
-  const handleConnect = (connectorId: string) => {
+  useEffect(() => {
+    if (open && process.env.NODE_ENV === 'development') {
+    }
+  }, [open, availableConnectors]);
+
+
+
+  useEffect(() => {
+    if (isConnected && connectingConnectorId) {
+      const timer = setTimeout(() => {
+        setConnectingConnectorId(null);
+        setConnectionError(null);
+        onOpenChange(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, connectingConnectorId, onOpenChange]);
+
+  useEffect(() => {
+    if (error) {
+      let errorMessage = "Failed to connect wallet";
+      if (error.message) {
+        const errorLower = error.message.toLowerCase();
+        if (errorLower.includes("user rejected") || errorLower.includes("user denied")) {
+          errorMessage = "Connection cancelled";
+        } else if (errorLower.includes("no provider") || errorLower.includes("not found")) {
+          errorMessage = "Wallet not found. Please install a wallet extension.";
+        } else if (errorLower.includes("network") || errorLower.includes("chain")) {
+          errorMessage = "Network error. Please check your connection.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      setConnectionError(errorMessage);
+      // Clear error after 5 seconds
+      const timer = setTimeout(() => {
+        setConnectionError(null);
+        setConnectingConnectorId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setConnectionError(null);
+    }
+  }, [error]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setConnectingConnectorId(null);
+      setConnectionError(null);
+    }
+  }, [open]);
+
+  const handleConnect = async (connectorId: string) => {
     const connector = connectors.find((c) => c.id === connectorId);
     if (connector) {
-      connect({ connector });
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 500);
+      setConnectingConnectorId(connectorId);
+      setConnectionError(null);
+      try {
+        await connect({ connector });
+      } catch (err) {
+        // Error is handled by useEffect above
+      }
     }
   };
+
+  // Log successful connection
+  useEffect(() => {
+    if (isConnected && connectingConnectorId && address) {
+    }
+  }, [isConnected, connectingConnectorId, address]);
 
   const getConnectorLabel = (connector: (typeof connectors)[number]) => {
     // WalletConnect: explicitly guide GoodDollar users
@@ -127,25 +194,50 @@ export function ConnectorSelectionSheet({
       modalClassName="max-w-md"
     >
       <div className="mt-6 space-y-3 lg:mt-4">
-          {availableConnectors.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-white/60">
-                No wallets available. Please install a wallet extension.
-              </p>
-            </div>
-          ) : (
-            availableConnectors.map((connector) => (
+        {/* Error Message */}
+        {connectionError && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <p className="text-sm text-red-200">{connectionError}</p>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {isConnected && connectingConnectorId && (
+          <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <p className="text-sm text-green-200">Wallet connected successfully!</p>
+          </div>
+        )}
+
+        {availableConnectors.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-white/60 mb-2">
+              No wallets available.
+            </p>
+            <p className="text-white/40 text-sm">
+              Please install a browser wallet extension (e.g. MetaMask, Coinbase Wallet) or configure WalletConnect.
+            </p>
+          </div>
+        ) : (
+          availableConnectors.map((connector) => {
+            const isConnecting = isPending && connectingConnectorId === connector.id;
+            const isConnectedState = isConnected && connectingConnectorId === connector.id;
+
+            return (
               <button
                 key={connector.uid ?? connector.id}
                 onClick={() => handleConnect(connector.id)}
-                disabled={isPending}
+                disabled={isPending || isConnectedState}
                 className={cn(
                   "w-full py-4 px-4",
-                  "bg-delulu-yellow-reserved rounded-md",
-                  "border-2 border-delulu-charcoal",
+                  isConnectedState
+                    ? "bg-green-500/20 border-2 border-green-500/50"
+                    : "bg-delulu-yellow-reserved border-2 border-delulu-charcoal",
+                  "rounded-md",
                   "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
-                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  !isPending && !isConnectedState && "hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
+                  !isPending && !isConnectedState && "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
                   "transition-all duration-100",
                   "flex items-center justify-between",
                   "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
@@ -155,16 +247,23 @@ export function ConnectorSelectionSheet({
                   <div className="w-10 h-10 rounded-full bg-delulu-charcoal/10 flex items-center justify-center overflow-hidden">
                     {getConnectorIcon(connector)}
                   </div>
-                  <span className="font-bold text-delulu-charcoal text-lg">
+                  <span className={cn(
+                    "font-bold text-lg",
+                    isConnectedState ? "text-green-200" : "text-delulu-charcoal"
+                  )}>
                     {getConnectorLabel(connector)}
                   </span>
                 </div>
-                {isPending && (
+                {isConnecting && (
                   <Loader2 className="w-5 h-5 animate-spin text-delulu-charcoal" />
                 )}
+                {isConnectedState && (
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                )}
               </button>
-            ))
-          )}
+            );
+          })
+        )}
       </div>
     </ResponsiveSheet>
   );

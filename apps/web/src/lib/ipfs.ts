@@ -6,7 +6,10 @@ export interface GatekeeperConfig {
 }
 
 export interface DeluluMetadata {
+  // Title / main statement of the delulu or campaign
   content: string;
+  // Optional long-form description (separate from the title)
+  description?: string;
   username?: string;
   pfpUrl?: string;
   createdAt?: string;
@@ -16,6 +19,7 @@ export interface DeluluMetadata {
 
 export async function uploadToIPFS(
   content: string,
+  description?: string,
   username?: string,
   pfpUrl?: string,
   createdAt?: Date,
@@ -28,8 +32,9 @@ export async function uploadToIPFS(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         content,
+        description,
         username,
         pfpUrl,
         createdAt: createdAt ? createdAt.toISOString() : undefined,

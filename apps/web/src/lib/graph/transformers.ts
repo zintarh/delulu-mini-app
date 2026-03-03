@@ -60,10 +60,15 @@ export interface SubgraphDeluluRaw {
   resolutionDeadline: string;
   createdAt: string;
   creatorStake?: string;
-  totalBelieverStake: string;
-  totalDoubterStake: string;
+  // Legacy fields from earlier subgraph versions (no longer present in v2 schema).
+  // Keep them optional so older cached data or types still type-check.
+  totalBelieverStake?: string;
+  totalDoubterStake?: string;
+  totalSupportCollected?: string;
+  totalSupporters?: string;
   winningPool?: string;
   losingPool?: string;
+  challengeId?: string | null;
   isResolved: boolean;
   isCancelled: boolean;
   outcome?: boolean | null;
@@ -82,8 +87,12 @@ export function transformSubgraphDelulu(
   raw: SubgraphDeluluRaw,
   metadata?: DeluluIPFSMetadata | null
 ): FormattedDelulu {
-  const believerStake = weiToNumber(raw.totalBelieverStake);
-  const doubterStake = weiToNumber(raw.totalDoubterStake);
+  const believerStake = raw.totalBelieverStake
+    ? weiToNumber(raw.totalBelieverStake)
+    : 0;
+  const doubterStake = raw.totalDoubterStake
+    ? weiToNumber(raw.totalDoubterStake)
+    : 0;
 
   // Parse ID - handle both onChainId (string number) and id (subgraph ID string)
   let parsedId = 0;
@@ -125,6 +134,21 @@ export function transformSubgraphDelulu(
     totalBelieverStake: believerStake,
     totalDoubterStake: doubterStake,
     totalStake: believerStake + doubterStake,
+    totalSupportCollected: raw.totalSupportCollected ? weiToNumber(raw.totalSupportCollected) : undefined,
+    totalSupporters: raw.totalSupporters ? Number(raw.totalSupporters) : undefined,
+    challengeId: (() => {
+      const result = raw.challengeId ? Number(raw.challengeId) : undefined;
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.log("[transformSubgraphDelulu] challengeId transformation", {
+          rawChallengeId: raw.challengeId,
+          rawChallengeIdType: typeof raw.challengeId,
+          transformedChallengeId: result,
+          transformedChallengeIdType: typeof result,
+        });
+      }
+      return result;
+    })(),
     outcome: raw.outcome ?? false,
     isResolved: raw.isResolved,
     isCancelled: raw.isCancelled,

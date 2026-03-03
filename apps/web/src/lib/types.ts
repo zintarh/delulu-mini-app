@@ -39,6 +39,9 @@ export interface FormattedDelulu {
   totalBelieverStake: number;
   totalDoubterStake: number;
   totalStake: number;
+  totalSupportCollected?: number;
+  totalSupporters?: number;
+  challengeId?: number;
   outcome: boolean;
   isResolved: boolean;
   isCancelled: boolean;

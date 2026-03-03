@@ -18,8 +18,6 @@ interface UserSetupModalProps {
   onComplete: (username: string, email: string) => void;
 }
 
-type Step = "username" | "email";
-
 export function UserSetupModal({
   open,
   onOpenChange,
@@ -28,7 +26,6 @@ export function UserSetupModal({
   const { address } = useAccount();
   const chainId = useChainId();
   const { updateUsername, user } = useUserStore();
-  const [currentStep, setCurrentStep] = useState<Step>("username");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -104,7 +101,6 @@ export function UserSetupModal({
             onComplete(trimmedUsername, email.trim());
             setUsername("");
             setEmail("");
-            setCurrentStep("username");
             setUsernameError("");
             setEmailError("");
             setNotification(null);
@@ -122,7 +118,6 @@ export function UserSetupModal({
           onComplete(trimmedUsername, email.trim());
           setUsername("");
           setEmail("");
-          setCurrentStep("username");
           setUsernameError("");
           setEmailError("");
           setNotification(null);
@@ -181,11 +176,18 @@ export function UserSetupModal({
   }, []);
 
   const handleUsernameNext = useCallback(() => {
-    if (!validateUsername(username)) {
+    // No longer used (single-step flow)
+    return;
+  }, []);
+
+  const handleSubmitProfile = useCallback(async () => {
+    const isUsernameValid = validateUsername(username);
+    const isEmailValid = validateEmail(email);
+    if (!isUsernameValid || !isEmailValid) {
       return;
     }
 
-    // Only proceed if username is available
+    // Ensure username availability
     if (shouldCheckAvailability) {
       if (isTaken === true) {
         setUsernameError("This username is already taken");
@@ -196,49 +198,47 @@ export function UserSetupModal({
         return;
       }
       if (!isAvailable) {
-        // Still checking or unavailable
         return;
       }
     }
-    
-    setCurrentStep("email");
-  }, [username, validateUsername, shouldCheckAvailability, isTaken, isCheckingUsername, isAvailable]);
-
-  const handleEmailSubmit = useCallback(async () => {
-    if (!validateEmail(email)) {
-      return;
-    }
 
     try {
-      // Hash the email
       const emailHash = await hashEmail(email);
-      
-      // Optimistically update the store
+      // Optimistically update the store with hashed email
       updateUsername(trimmedUsername, emailHash);
-      
-      // Set profile on-chain
-      await setProfile(trimmedUsername, emailHash);
-      
+      // Set profile on-chain (username only, per ABI)
+      await setProfile(trimmedUsername);
       setNotification({
         type: "success",
         message: "Setting your profile on-chain...",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to set profile";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to set profile";
       setNotification({
         type: "error",
         message: errorMessage,
       });
       setEmailError(errorMessage);
-      // Revert optimistic update on error (optional - could keep it for better UX)
     }
-  }, [email, validateEmail, trimmedUsername, setProfile, updateUsername]);
+  }, [
+    email,
+    isAvailable,
+    isCheckingUsername,
+    isTaken,
+    shouldCheckAvailability,
+    trimmedUsername,
+    updateUsername,
+    username,
+    setProfile,
+    validateEmail,
+    validateUsername,
+  ]);
 
   const handleClose = useCallback(() => {
     // Reset form when closing
     setUsername("");
     setEmail("");
-    setCurrentStep("username");
     setUsernameError("");
     setEmailError("");
     setNotification(null);
@@ -269,16 +269,17 @@ export function UserSetupModal({
           </div>
         )}
         
-        {/* Step 1: Username */}
-        {currentStep === "username" && (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-            
-              <h2 className="text-2xl font-black text-delulu-charcoal tracking-tight">
-                Choose your @username
-              </h2>
-            </div>
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-black text-delulu-charcoal tracking-tight">
+              Setup your profile
+            </h2>
+            <p className="text-sm text-delulu-charcoal/70 font-medium">
+              Choose a username and email to complete your profile.
+            </p>
+          </div>
 
+          <div className="space-y-4">
             <div className="space-y-2">
               <label
                 htmlFor="username"
@@ -332,40 +333,6 @@ export function UserSetupModal({
                 3-16 characters, letters, numbers, and underscores only
               </p>
             </div>
-
-            <button
-              onClick={handleUsernameNext}
-              disabled={!username || username.trim().length === 0 || isCheckingUsername || (shouldCheckAvailability && isTaken === true)}
-              className={cn(
-                "w-full py-3 px-4 rounded-lg border-2 font-bold text-sm",
-                "bg-delulu-yellow-reserved text-delulu-charcoal",
-                "border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                "hover:bg-delulu-yellow-reserved/90 hover:shadow-[4px_4px_0px_0px_#1A1A1A]",
-                "active:scale-[0.98] active:shadow-[2px_2px_0px_0px_#1A1A1A]",
-                "transition-all duration-100",
-                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
-                "flex items-center justify-center gap-2"
-              )}
-            >
-              Continue
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: Email */}
-        {currentStep === "email" && (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-             
-              <h2 className="text-xl font-black text-delulu-charcoal tracking-tight">
-                Where should we send your winnings?
-              </h2>
-              <p className="text-sm text-delulu-charcoal/70 font-medium">
-                We&apos;ll notify you when you achieve your goal 
-              </p>
-            </div>
-
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -397,54 +364,42 @@ export function UserSetupModal({
               {emailError && (
                 <p className="text-xs text-red-600 font-medium">{emailError}</p>
               )}
-            
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCurrentStep("username")}
-                className={cn(
-                  "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
-                  "bg-white text-delulu-charcoal",
-                  "border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
-                  "hover:bg-gray-50 hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "active:scale-[0.98] active:shadow-[1px_1px_0px_0px_#1A1A1A]",
-                  "transition-all duration-100",
-                  "flex items-center justify-center gap-2"
-                )}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-              <button
-                onClick={handleEmailSubmit}
-                disabled={!email || email.trim().length === 0 || isSettingProfile}
-                className={cn(
-                  "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
-                  "bg-delulu-yellow-reserved text-delulu-charcoal",
-                  "border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "hover:bg-delulu-yellow-reserved/90 hover:shadow-[4px_4px_0px_0px_#1A1A1A]",
-                  "active:scale-[0.98] active:shadow-[2px_2px_0px_0px_#1A1A1A]",
-                  "transition-all duration-100",
-                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
-                  "flex items-center justify-center gap-2"
-                )}
-              >
-                {isSettingProfile ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Setting Profile...
-                  </>
-                ) : (
-                  <>
-                    Complete
-                    <Check className="w-4 h-4" />
-                  </>
-                )}
-              </button>
             </div>
           </div>
-        )}
+
+          <button
+            onClick={handleSubmitProfile}
+            disabled={
+              !username ||
+              username.trim().length === 0 ||
+              !email ||
+              email.trim().length === 0 ||
+              isSettingProfile
+            }
+            className={cn(
+              "w-full mt-4 py-3 px-4 rounded-lg border-2 font-bold text-sm",
+              "bg-delulu-yellow-reserved text-delulu-charcoal",
+              "border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+              "hover:bg-delulu-yellow-reserved/90 hover:shadow-[4px_4px_0px_0px_#1A1A1A]",
+              "active:scale-[0.98] active:shadow-[2px_2px_0px_0px_#1A1A1A]",
+              "transition-all duration-100",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+              "flex items-center justify-center gap-2"
+            )}
+          >
+            {isSettingProfile ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Setting Profile...
+              </>
+            ) : (
+              <>
+                Complete profile
+                <Check className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </ResponsiveSheet>
   );

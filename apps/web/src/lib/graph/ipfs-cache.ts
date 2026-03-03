@@ -11,7 +11,12 @@
 // ─── Types ──────────────────────────────────────────────────────
 
 export interface DeluluIPFSMetadata {
+  // Normalized primary text field used by the app.
+  // When loading from IPFS, we accept both `text` and legacy `content`,
+  // but always map the final value into this `text` property.
   text: string;
+  // Optional legacy field for backwards compatibility with older uploads.
+  content?: string;
   username?: string;
   pfpUrl?: string;
   createdAt?: string;
@@ -57,11 +62,24 @@ async function fetchFromGateways(
 
       const data = await response.json();
 
-      if (!data || typeof data.text !== "string" || data.text.trim() === "") {
+      if (!data || (typeof data.text !== "string" && typeof data.content !== "string")) {
         return null;
       }
 
-      return data as DeluluIPFSMetadata;
+      const textSource =
+        (typeof data.text === "string" ? data.text : "") ||
+        (typeof data.content === "string" ? data.content : "");
+
+      if (!textSource || textSource.trim() === "") {
+        return null;
+      }
+
+      const normalized: DeluluIPFSMetadata = {
+        ...(data as any),
+        text: textSource,
+      };
+
+      return normalized;
     } catch {
       // Try next gateway
       continue;

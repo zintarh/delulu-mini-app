@@ -1,0 +1,46 @@
+# ============================================================
+# CHALLENGE QUERIES
+# Used by: Challenges page, Challenge detail pages
+# ============================================================
+
+# Get all challenges
+query GetChallenges(
+  $first: Int = 100
+  $skip: Int = 0
+  $orderBy: Challenge_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+  $where: Challenge_filter
+) {
+  challenges(
+    first: $first
+    skip: $skip
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+  ) {
+    id
+    challengeId
+    contentHash
+    poolAmount
+    startTime
+    duration
+    totalPoints
+    active
+    createdAt
+  }
+}
+
+# Get single challenge by ID
+query GetChallengeById($id: ID!) {
+  challenge(id: $id) {
+    id
+    challengeId
+    contentHash
+    poolAmount
+    startTime
+    duration
+    totalPoints
+    active
+    createdAt
+  }
+}

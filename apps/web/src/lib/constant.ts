@@ -1,12 +1,11 @@
-// ─── Chain IDs ──────────────────────────────────────────────────────
-// Hardcoded chain IDs
+
 export const CELO_MAINNET_ID = 42220;
 export const CELO_SEPOLIA_ID = 11142220;
 
 export const DELULU_CONTRACT_ADDRESSES = {
   mainnet:
     process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET ||
-    "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98",
+    "0x7692199630F3865160fB1Fa496961251fA15aFEa",
   sepolia: "0xba562cf9aC1Cb180EcE06dd9C86800B3F1EE51B8",
 } as const;
 
@@ -23,10 +22,8 @@ export function getDeluluContractAddress(chainId?: number): `0x${string}` {
 export const DELULU_CONTRACT_ADDRESS = DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 
 export const DELULU_IMPLEMENTATION_ADDRESS =
-  "0x1abba2c7d2323ad9bCF1Cac8C6E4ce3301D47A89" as const;
+  "0xd8Fac246D25f470b16500F8bdC724a3965924b52" as const;
 
-export const DELULU_IMPLEMENTATION_ADDRESS_SEPOLIA =
-  "0x9442AB604B595F036B9814A7c12ee19eA549A350" as const;
 
 
 export const CUSD_ADDRESSES = {
@@ -54,16 +51,13 @@ export const KNOWN_TOKEN_SYMBOLS: Record<string, string> = {
 
 
 
-
-
 export const SUBGRAPH_URLS: Record<number, string> = {
   [CELO_MAINNET_ID]:
     process.env.NEXT_PUBLIC_SUBGRAPH_URL_MAINNET ||
-    process.env.NEXT_PUBLIC_SUBGRAPH_URL ||
-    "https://api.studio.thegraph.com/query/1741533/delulu-prediction-market-mainnet/version/latest",
+    "",
   [CELO_SEPOLIA_ID]:
     process.env.NEXT_PUBLIC_SUBGRAPH_URL_SEPOLIA ||
-    "https://api.studio.thegraph.com/query/1741533/delulu-prediction-market/0.01",
+    "",
 };
 
 

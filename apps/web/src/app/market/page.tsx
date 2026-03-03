@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -15,9 +15,11 @@ import { Loader2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
 import { ResolveDeluluModal } from "@/components/resolve-delulu-modal";
+import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { useDeluluState, DeluluState } from "@/hooks/use-delulu-state";
 import type { FormattedDelulu } from "@/lib/types";
+import { Trophy } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function AdminPage() {
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
 
   useEffect(() => {
     if (!isLoadingAdmin && (!isConnected || !isAdmin)) {
@@ -47,11 +50,14 @@ export default function AdminPage() {
     }
   };
 
-  const endedMarkets = delulus.filter((delulu) => {
-    if (!delulu.stakingDeadline) return false;
-    const now = new Date();
-    return delulu.stakingDeadline <= now;
-  });
+  // Memoize the filter to prevent recalculation on every render
+  const endedMarkets = useMemo(() => {
+    return delulus.filter((delulu) => {
+      if (!delulu.stakingDeadline) return false;
+      const now = new Date();
+      return delulu.stakingDeadline <= now;
+    });
+  }, [delulus]);
 
   if (isLoadingAdmin) {
     return (
@@ -148,8 +154,7 @@ export default function AdminPage() {
         <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
           <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10">
             {/* Header */}
-            <div className="mb-8 flex items-center gap-3">
-            
+            <div className="mb-8 flex items-center justify-between gap-3">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black text-delulu-charcoal tracking-tight">
                   Markets
@@ -158,6 +163,15 @@ export default function AdminPage() {
                   Manage and resolve all delulus
                 </p>
               </div>
+              <button
+                onClick={() => setShowCreateChallengeSheet(true)}
+                className={cn(
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
+                )}
+              >
+                <Trophy className="w-4 h-4" />
+                Create Challenge
+              </button>
             </div>
 
             {isLoadingDelulus ? (
@@ -233,6 +247,11 @@ export default function AdminPage() {
         }}
         delulu={selectedDelulu}
         onSuccess={handleResolveSuccess}
+      />
+
+      <CreateChallengeSheet
+        open={showCreateChallengeSheet}
+        onOpenChange={setShowCreateChallengeSheet}
       />
     </div>
   );

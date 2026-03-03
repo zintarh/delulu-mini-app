@@ -1,19 +1,12 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import path from "path";
-
 const SUBGRAPH_URL =
+  process.env.NEXT_PUBLIC_SUBGRAPH_URL_MAINNET ||
   process.env.NEXT_PUBLIC_SUBGRAPH_URL ||
-  "https://api.studio.thegraph.com/query/1741533/delulu-prediction-market/0.01";
-
-// Use local schema during dev (has token field); fallback to remote after subgraph redeploy
-const LOCAL_SCHEMA = path.join(
-  __dirname,
-  "../delulu-subgraph/schema.graphql"
-);
+  "";
 
 const config: CodegenConfig = {
-  // Prefer local schema (includes token) until subgraph is redeployed
-  schema: [LOCAL_SCHEMA, SUBGRAPH_URL],
+  // Use deployed subgraph schema (same URL the app uses)
+  schema: [SUBGRAPH_URL],
 
   // Scan all .graphql files in src/graphql/
   documents: "src/graphql/**/*.graphql",

@@ -112,7 +112,9 @@ export function DeluluCard({
   className = "",
   isLast = false,
 }: DeluluCardProps) {
-  const total = delusion.totalBelieverStake + delusion.totalDoubterStake;
+  const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
+  // Prefer totalSupportCollected (v2 support-only markets). Fall back to legacy stake sum.
+  const tvlValue = delusion.totalSupportCollected ?? totalStake;
   const creatorAddress = delusion.creator as `0x${string}`;
   const { username: contractUsername } = useUsernameByAddress(creatorAddress);
   const displayUsername = contractUsername || delusion.username || null;
@@ -128,7 +130,7 @@ export function DeluluCard({
   const headline = headlineRaw.trim() || "YOUR DELULU HEADLINE";
   const headlineLength = headline.length;
 
-  const tvl = total;
+  const tvl = tvlValue;
   const formattedTVL =
     tvl > 0 ? (tvl < 0.01 ? tvl.toFixed(4) : tvl.toFixed(2)) : "0.00";
 
@@ -338,19 +340,19 @@ export function DeluluCard({
         </div>
 
         {/* Headline - Centered */}
-        <div className="absolute inset-6 flex items-center justify-center  text-center z-10">
-          <div className="bg-white w-fit h-fit rounded-md py-2 px-2">
+        <div className="absolute inset-6 flex items-center justify-center text-center z-10">
+          <div className="bg-white/95 rounded-xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] max-w-[90%]">
             <p
               className={cn(
-                "  break-words text-pretty text-center font-black  whitespace-pre-wrap",
+                "break-words text-pretty text-center font-black whitespace-pre-wrap",
                 textColorClass,
                 headlineLength <= 40
-                  ? "text-xl"
+                  ? "text-xl sm:text-2xl md:text-3xl"
                   : headlineLength <= 80
-                    ? "text-lg"
+                    ? "text-lg sm:text-xl md:text-2xl"
                     : headlineLength <= 140
-                      ? "text-base"
-                      : "text-sm"
+                      ? "text-base sm:text-lg md:text-xl"
+                      : "text-sm sm:text-base md:text-lg"
               )}
             >
               {headline}
@@ -490,7 +492,7 @@ export function DeluluCard({
         href={href}
         className={cn(
           className,
-          "block p-3 rounded-lg h-auto space-y-2 border-gray-200"
+          "block p-3 rounded-lg h-auto space-y-2 border-gray-200 bg-white"
         )}
         prefetch={false}
         scroll={true}
@@ -504,7 +506,7 @@ export function DeluluCard({
     <div
       className={cn(
         className,
-        "block p-3 rounded-lg h-auto space-y-2 border-gray-200"
+        "block p-3 rounded-lg h-auto space-y-2 border-gray-200 bg-white"
       )}
       onClick={onClick || undefined}
     >

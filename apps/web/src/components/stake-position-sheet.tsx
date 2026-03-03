@@ -35,7 +35,7 @@ export function StakePositionSheet({
     })();
   }, [open]);
 
-  const sideLabel = isBeliever ? "Believer" : "Doubter";
+  const sideLabel = "Believer";
 
   return (
     <ResponsiveSheet

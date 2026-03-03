@@ -30,17 +30,18 @@ query GetDelulus(
     resolutionDeadline
     createdAt
     creatorStake
-    totalBelieverStake
-    totalDoubterStake
-    winningPool
-    losingPool
+    totalSupportCollected
+    totalSupporters
+    challengeId
+    points
+    milestoneCount
     isResolved
     isCancelled
-    outcome
+    rewardClaimed
   }
 }
 
-# Single delulu detail page — includes nested stakes and claims
+# Single delulu detail page — includes nested stakes, claims, and milestones
 query GetDeluluById($id: ID!) {
   delulu(id: $id) {
     id
@@ -49,6 +50,7 @@ query GetDeluluById($id: ID!) {
     creator {
       id
       totalStaked
+      username
     }
     creatorAddress
     contentHash
@@ -56,20 +58,20 @@ query GetDeluluById($id: ID!) {
     resolutionDeadline
     createdAt
     creatorStake
-    totalBelieverStake
-    totalDoubterStake
-    winningPool
-    losingPool
+    totalSupportCollected
+    totalSupporters
+    challengeId
+    points
+    milestoneCount
     isResolved
     isCancelled
-    outcome
+    rewardClaimed
     stakes(first: 100, orderBy: createdAt, orderDirection: desc) {
       id
       user {
         id
       }
       amount
-      side
       txHash
       createdAt
     }
@@ -82,15 +84,29 @@ query GetDeluluById($id: ID!) {
       txHash
       createdAt
     }
+    milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+      id
+      milestoneId
+      descriptionHash
+      deadline
+      proofLink
+      isSubmitted
+      isVerified
+      pointsEarned
+      submittedAt
+      verifiedAt
+      rejectedAt
+      rejectionReason
+    }
   }
 }
 
-# Trending: top delulus sorted by total stake (believer + doubter)
-# Client-side: sort by totalBelieverStake + totalDoubterStake
+# Trending: top delulus sorted by total support collected
+# Client-side: can further refine if needed
 query GetTrendingDelulus($first: Int = 10) {
   delulus(
     first: $first
-    orderBy: totalBelieverStake
+    orderBy: totalSupportCollected
     orderDirection: desc
     where: { isResolved: false, isCancelled: false }
   ) {
@@ -99,8 +115,7 @@ query GetTrendingDelulus($first: Int = 10) {
     token
     creatorAddress
     contentHash
-    totalBelieverStake
-    totalDoubterStake
+    totalSupportCollected
     stakingDeadline
     createdAt
     isResolved
@@ -134,11 +149,8 @@ query GetActiveDelulus(
     resolutionDeadline
     createdAt
     creatorStake
-    totalBelieverStake
-    totalDoubterStake
     isResolved
     isCancelled
-    outcome
   }
 }
 

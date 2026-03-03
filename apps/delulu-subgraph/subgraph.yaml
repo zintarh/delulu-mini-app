@@ -9,8 +9,8 @@ dataSources:
     network: celo
     source:
       abi: DeluluMarket
-      address: "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98"
-      startBlock: 60183999
+      address: "0x7692199630F3865160fB1Fa496961251fA15aFEa"
+      startBlock: 60517387
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -20,42 +20,53 @@ dataSources:
         - Delulu
         - Stake
         - Claim
+        - Milestone
+        - Challenge
       abis:
         - name: DeluluMarket
           file: ./abis/DeluluMarket.json
       eventHandlers:
-        - event: DeluluCancelled(indexed uint256,indexed address)
-          handler: handleDeluluCancelled
-        - event: DeluluCreated(indexed uint256,indexed address,indexed
-            address,string,uint256,uint256,uint256)
+        - event: DeluluCreated(indexed uint256,indexed address,indexed address,string,uint256,uint256,uint256,uint256,uint256)
           handler: handleDeluluCreated
-        - event: DeluluResolved(indexed
-            uint256,bool,uint256,uint256,uint256,uint256,uint256)
+        - event: DeluluResolved(indexed uint256)
           handler: handleDeluluResolved
-        - event: EmergencyRefund(indexed uint256,indexed address,uint256)
-          handler: handleEmergencyRefund
+        - event: DeluluJoinedChallenge(indexed uint256,indexed uint256)
+          handler: handleDeluluJoinedChallenge
+        - event: PointsAllocated(indexed uint256,uint256,uint256)
+          handler: handlePointsAllocated
+        - event: SupportStaked(indexed uint256,indexed address,uint256,uint256)
+          handler: handleSupportStaked
+        - event: SupportClaimed(indexed uint256,indexed address,uint256,uint256)
+          handler: handleSupportClaimed
+        - event: ChallengeRewardClaimed(indexed uint256,indexed uint256,indexed
+            address,uint256,uint256)
+          handler: handleChallengeRewardClaimed
+        - event: ProfileUpdated(indexed address,string)
+          handler: handleProfileUpdated
+        - event: MilestonesAdded(indexed uint256,uint256)
+          handler: handleMilestonesAdded
+        - event: MilestoneSubmitted(indexed uint256,indexed uint256,string)
+          handler: handleMilestoneSubmitted
+        - event: MilestoneVerified(indexed uint256,indexed uint256,uint256)
+          handler: handleMilestoneVerified
+        - event: MilestoneRejected(indexed uint256,indexed uint256,string)
+          handler: handleMilestoneRejected
+        - event: ChallengeCreated(indexed uint256,string,uint256,uint256,uint256)
+          handler: handleChallengeCreated
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
         - event: Paused(address)
           handler: handlePaused
-        - event: StakePlaced(indexed uint256,indexed address,uint256,bool,uint256)
-          handler: handleStakePlaced
         - event: Unpaused(address)
           handler: handleUnpaused
-        - event: WinningsClaimed(indexed uint256,indexed address,uint256)
-          handler: handleWinningsClaimed
-        - event: ProfileUpdated(indexed address,string,string)
-          handler: handleProfileUpdated
-        - event: SenateUpdated(indexed address,indexed address)
-          handler: handleSenateUpdated
       file: ./src/delulu-market.ts
   - kind: ethereum
     name: ERC1967Proxy
     network: celo
     source:
       abi: ERC1967Proxy
-      address: "0xdbed1e69824dB9B5c5F4bbeBE45330b6311c3B98"
-      startBlock: 60183999
+      address: "0x7692199630F3865160fB1Fa496961251fA15aFEa"
+      startBlock: 60517387
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

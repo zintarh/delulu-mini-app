@@ -17,12 +17,9 @@ export function useSetProfile() {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const setProfile = async (username: string, metadataHash: string) => {
+  const setProfile = async (username: string) => {
     if (!username || username.trim().length === 0) {
       throw new Error("Username is required");
-    }
-    if (!metadataHash || metadataHash.trim().length === 0) {
-      throw new Error("Metadata hash is required");
     }
 
     try {
@@ -30,7 +27,7 @@ export function useSetProfile() {
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
         functionName: "setProfile",
-        args: [username.trim(), metadataHash.trim()],
+        args: [username.trim()],
       });
     } catch (err) {
       throw formatErrorForDisplay(err);

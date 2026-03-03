@@ -25,7 +25,7 @@ const explanations = {
       {
         title: "Community Consensus",
         description:
-          "Others can stake to believe or doubt. The ratio of stakes represents the collective 'Price of Conviction'.",
+          "Others can stake to believe. The total stakes represent the collective 'Price of Conviction'.",
       },
       {
         title: "Monetize Ambition",
@@ -39,14 +39,14 @@ const explanations = {
     title: "The Prediction Market",
     steps: [
       {
-        title: "Believe vs Doubt",
+        title: "Stake Your Belief",
         description:
-          "Every delulu has two sides: believers who think it will come true, and doubters who bet against it.",
+          "Users stake to believe in a delulu. The total amount staked represents the collective conviction in the claim.",
       },
       {
-        title: "Dynamic Pricing",
+        title: "Market Dynamics",
         description:
-          "The ratio of believer to doubter stakes creates a market price. More believers = higher conviction price.",
+          "The total stakes create a market price. More stakes = higher conviction and potential rewards.",
       },
       {
         title: "Winner Takes All",

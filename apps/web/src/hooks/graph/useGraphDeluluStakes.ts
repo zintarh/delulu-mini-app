@@ -15,7 +15,6 @@ export interface GraphStakeEntry {
   id: string;
   userId: string;
   amount: number;
-  side: boolean;
   txHash: string;
   createdAt: string;
   user?: {
@@ -40,7 +39,6 @@ export function useGraphDeluluStakes(deluluId: string | null) {
       id: s.id,
       userId: s.user.id,
       amount: weiToNumber(s.amount),
-      side: s.side,
       txHash: s.txHash,
       createdAt: new Date(Number(s.createdAt) * 1000).toISOString(),
       user: {

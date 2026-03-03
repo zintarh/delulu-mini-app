@@ -37,7 +37,8 @@ export function useCreateDelulu() {
     username?: string,
     pfpUrl?: string,
     gatekeeper?: GatekeeperConfig | null,
-    bgImageUrl?: string
+    bgImageUrl?: string,
+    description?: string
   ) => {
     try {
       if (!tokenAddress || typeof tokenAddress !== "string" || !tokenAddress.startsWith("0x")) {
@@ -70,6 +71,7 @@ export function useCreateDelulu() {
         contentHash = await withTimeout(
           uploadToIPFS(
             content,
+            description,
             username,
             pfpUrl,
             createdAt,
@@ -115,8 +117,11 @@ export function useCreateDelulu() {
         throw new Error("Stake amount must be greater than 0");
       }
 
+      const contractAddress = getDeluluContractAddress(chainId);
+
+      // Use standard Wagmi writeContract
       writeContract({
-        address: getDeluluContractAddress(chainId),
+        address: contractAddress,
         abi: DELULU_ABI,
         functionName: "createDelulu",
         args: [tokenAddress as `0x${string}`, contentHash, stakingDeadline, resolutionDeadline, amountWei],
