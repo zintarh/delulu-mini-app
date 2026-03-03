@@ -17,6 +17,8 @@ export interface DeluluIPFSMetadata {
   text: string;
   // Optional legacy field for backwards compatibility with older uploads.
   content?: string;
+  // Optional long-form description, written by newer uploads.
+  description?: string;
   username?: string;
   pfpUrl?: string;
   createdAt?: string;

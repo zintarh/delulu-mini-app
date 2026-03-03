@@ -52,7 +52,15 @@ async function uploadWithRetry(
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, username, pfpUrl, createdAt, gatekeeper, bgImageUrl } = await request.json();
+    const {
+      content,
+      description,
+      username,
+      pfpUrl,
+      createdAt,
+      gatekeeper,
+      bgImageUrl,
+    } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
@@ -75,6 +83,10 @@ export async function POST(request: NextRequest) {
     const pinataContent: Record<string, unknown> = {
       text: content,
     };
+
+    if (description && typeof description === "string") {
+      pinataContent.description = description;
+    }
 
     if (username && typeof username === "string") {
       pinataContent.username = username;
