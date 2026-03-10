@@ -1,1697 +1,2410 @@
-{
-  "_format": "hh-sol-artifact-1",
-  "contractName": "Delulu",
-  "sourceName": "contracts/Delulu-v2.sol",
-  "abi": [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "target",
-          "type": "address"
-        }
-      ],
-      "name": "AddressEmptyCode",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "AlreadyClaimed",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "AlreadyInitialized",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ChallengeExpired",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ChallengeNotClosed",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ChallengeNotFound",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ClaimPeriodExpired",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "DeluluNotFound",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "implementation",
-          "type": "address"
-        }
-      ],
-      "name": "ERC1967InvalidImplementation",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ERC1967NonPayable",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "EnforcedPause",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ExpectedPause",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "FailedCall",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "InsufficientSweepBalance",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "InvalidDeadlines",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "InvalidInitialization",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "InvalidUsername",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "MilestoneAlreadyCompleted",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "MilestoneExpired",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "MilestoneNotFound",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "NoPointsAllocated",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "NotInitializing",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "NotResolved",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "owner",
-          "type": "address"
-        }
-      ],
-      "name": "OwnableInvalidOwner",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "OwnableUnauthorizedAccount",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ProfileRequired",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "ReentrancyGuardReentrantCall",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        }
-      ],
-      "name": "SafeERC20FailedOperation",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "StakeTooSmall",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "StakingIsClosed",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "TooManyMilestones",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "UUPSUnauthorizedCallContext",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "slot",
-          "type": "bytes32"
-        }
-      ],
-      "name": "UUPSUnsupportedProxiableUUID",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "Unauthorized",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "UsernameTaken",
-      "type": "error"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "contentHash",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "poolAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "startTime",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "duration",
-          "type": "uint256"
-        }
-      ],
-      "name": "ChallengeCreated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "netReward",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "fee",
-          "type": "uint256"
-        }
-      ],
-      "name": "ChallengeRewardClaimed",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newCurrency",
-          "type": "address"
-        }
-      ],
-      "name": "CurrencyUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "contentHash",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "stakingDeadline",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "resolutionDeadline",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "initialSupport",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "totalSupportCollected",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "totalSupporters",
-          "type": "uint256"
-        }
-      ],
-      "name": "DeluluCreated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        }
-      ],
-      "name": "DeluluJoinedChallenge",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        }
-      ],
-      "name": "DeluluResolved",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint64",
-          "name": "version",
-          "type": "uint64"
-        }
-      ],
-      "name": "Initialized",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "reason",
-          "type": "string"
-        }
-      ],
-      "name": "MilestoneRejected",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "proofLink",
-          "type": "string"
-        }
-      ],
-      "name": "MilestoneSubmitted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "pointsEarned",
-          "type": "uint256"
-        }
-      ],
-      "name": "MilestoneVerified",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "count",
-          "type": "uint256"
-        }
-      ],
-      "name": "MilestonesAdded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "previousOwner",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "OwnershipTransferred",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "Paused",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "points",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "totalPoints",
-          "type": "uint256"
-        }
-      ],
-      "name": "PointsAllocated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "username",
-          "type": "string"
-        }
-      ],
-      "name": "ProfileUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newRegistry",
-          "type": "address"
-        }
-      ],
-      "name": "RegistryUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "netSupport",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "fee",
-          "type": "uint256"
-        }
-      ],
-      "name": "SupportClaimed",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "supporter",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "totalSupporters",
-          "type": "uint256"
-        }
-      ],
-      "name": "SupportStaked",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "Unpaused",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "implementation",
-          "type": "address"
-        }
-      ],
-      "name": "Upgraded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "vault",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "netAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "fee",
-          "type": "uint256"
-        }
-      ],
-      "name": "VaultSwept",
-      "type": "event"
-    },
-    {
-      "inputs": [],
-      "name": "BPS_DENOMINATOR",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "CLAIM_WINDOW",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "MAX_MILESTONES",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "MIN_STAKE",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "PROTOCOL_FEE_BPS",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "UPGRADE_INTERFACE_VERSION",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bytes32[]",
-          "name": "mHashes",
-          "type": "bytes32[]"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "mDurations",
-          "type": "uint256[]"
-        }
-      ],
-      "name": "addMilestones",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "addressToUsername",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "points",
-          "type": "uint256"
-        }
-      ],
-      "name": "allocatePoints",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "challenges",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "id",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "contentHash",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "poolAmount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "startTime",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "duration",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "totalPoints",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "active",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        }
-      ],
-      "name": "claimChallengeReward",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        }
-      ],
-      "name": "claimPersonalMarketSupport",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "_contentHash",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_poolAmount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_duration",
-          "type": "uint256"
-        }
-      ],
-      "name": "createChallenge",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        },
-        {
-          "internalType": "string",
-          "name": "contentHash",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "stakingDeadline",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "resolutionDeadline",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "initialSupport",
-          "type": "uint256"
-        }
-      ],
-      "name": "createDelulu",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "currency",
-      "outputs": [
-        {
-          "internalType": "contract IERC20",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "deluluMilestones",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "descriptionHash",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "deadline",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "proofLink",
-          "type": "string"
-        },
-        {
-          "internalType": "bool",
-          "name": "isSubmitted",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "isVerified",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "delulus",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "id",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        },
-        {
-          "internalType": "string",
-          "name": "contentHash",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "stakingDeadline",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "resolutionDeadline",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "totalSupportCollected",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "totalSupporters",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "milestoneCount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "points",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "isResolved",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "rewardClaimed",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "username",
-          "type": "string"
-        }
-      ],
-      "name": "getAddressByUsername",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        }
-      ],
-      "name": "getDeluluPoints",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "dId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "mId",
-          "type": "uint256"
-        }
-      ],
-      "name": "getMilestoneInfo",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        },
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        }
-      ],
-      "name": "getUsername",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "goodDollarRegistry",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_defaultCurrency",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_vault",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_gDollar",
-          "type": "address"
-        }
-      ],
-      "name": "initialize",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "isSupportedToken",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "username",
-          "type": "string"
-        }
-      ],
-      "name": "isUsernameTaken",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        }
-      ],
-      "name": "joinChallenge",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "nextChallengeId",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "nextDeluluId",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "owner",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "pause",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "paused",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "proxiableUUID",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        }
-      ],
-      "name": "refundChallengePool",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "reason",
-          "type": "string"
-        }
-      ],
-      "name": "rejectMilestone",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "renounceOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        }
-      ],
-      "name": "resolveDelulu",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_token",
-          "type": "address"
-        }
-      ],
-      "name": "setCurrency",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_registry",
-          "type": "address"
-        }
-      ],
-      "name": "setGoodDollarRegistry",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "_username",
-          "type": "string"
-        }
-      ],
-      "name": "setProfile",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_token",
-          "type": "address"
-        },
-        {
-          "internalType": "bool",
-          "name": "_status",
-          "type": "bool"
-        }
-      ],
-      "name": "setTokenSupport",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_vault",
-          "type": "address"
-        }
-      ],
-      "name": "setVault",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "stakeDelulu",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "proofLink",
-          "type": "string"
-        }
-      ],
-      "name": "submitMilestone",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        }
-      ],
-      "name": "sweepToVault",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "totalReservedRewards",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "transferOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "unpause",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "newImplementation",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        }
-      ],
-      "name": "upgradeToAndCall",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "userDeluluPoints",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "name": "usernameToAddress",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "vault",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "deluluId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "milestoneId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "points",
-          "type": "uint256"
-        }
-      ],
-      "name": "verifyMilestone",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    }
-  ],
-  "bytecode": "0x60a080604052346100ea57306080527ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a005460ff8160401c166100d9576002600160401b03196001600160401b03821601610073575b604051612bd090816100f082396080518181816115d401526116790152f35b6001600160401b0319166001600160401b039081177ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a005581527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d290602090a13880610054565b63f92ee8a960e01b60005260046000fd5b600080fdfe6080604052600436101561001257600080fd5b60003560e01c80630390e07a1461239057806308c6f4ab146122b45780630c46b24d1461183f5780630c6a753f1461225d578063176c5919146122005780631aaaac9314611f9d578063235b37b114611d4f578063240028e814611d105780632f84c39114611c9357806334bf0237146119e5578063360fc179146119185780633f4ba83a146118955780634c05abeb146118795780634cfa5f4e1461183f5780634f1ef2861461162b57806352d1902d146115c157806356192625146114b95780635b584c331461136f5780635c975abb1461133f5780635f6642001461125957806362a941ae146111f25780636322961d146111955780636817031b146111525780636d829d5a146110235780636e2a373a14610fa857806370e5d99414610f4c578063715018a614610ee257806377cce4ac14610bf25780638456cb5914610b7e5780638da5cb5b14610b485780638f1d377614610abd578063969247b214610a9f5780639f34fc8014610a81578063aad4cad0146108e8578063ad3cb1cc146108a1578063b07bdb3314610878578063bd5dab12146107b9578063be3782281461079d578063c0c53b8b14610588578063c6654cd014610529578063cb1c2b5c14610506578063cbdd6f9e146104e8578063ce43c0321461049a578063e07a0baa1461049a578063e1a452181461047d578063e5a6b10f14610454578063eaf4ebb2146103a9578063eb3ba33c14610348578063f2fde38b1461031d578063f825f143146102a4578063fbfa77cf1461027b5763fc67aa501461025857600080fd5b34610276576000366003190112610276576020600454604051908152f35b600080fd5b34610276576000366003190112610276576001546040516001600160a01b039091168152602090f35b34610276576020366003190112610276576004356001600160401b0381116102765736602382011215610276576102e760209136906024816004013591016125f8565b816102fb604051928381519384920161270d565b600b90820190815281900382019020546040516001600160a01b039091168152f35b3461027657602036600319011261027657610346610339612590565b6103416128f0565b61287a565b005b3461027657610356366125a6565b90600052600760205260406000209060005260205260406000208054906103a560018201549161038d600260038301549201612669565b9360405194859460ff808560081c1694169286612755565b0390f35b34610276576020366003190112610276576103c26128f0565b60043560005260086020526040600020600581015415610443576103ef600382015460048301549061282b565b421115610432578060066002610346930154910160ff19815416905561041781600554612847565b6005556000546001546001600160a01b0390811691166129d5565b6330e43e8160e21b60005260046000fd5b63c5d1c5ff60e01b60005260046000fd5b34610276576000366003190112610276576000546040516001600160a01b039091168152602090f35b346102765760003660031901126102765760206040516127108152f35b34610276576020366003190112610276576001600160a01b036104bb612590565b16600052600a6020526103a56104d46040600020612669565b604051918291602083526020830190612730565b34610276576000366003190112610276576020600354604051908152f35b34610276576000366003190112610276576020604051670de0b6b3a76400008152f35b34610276576020366003190112610276576004356105456128f0565b806000526006602052600b604060002001600160ff198254161790557f14a491a070d043fc88570f8174d6c108a6287e2a141fe385b26896d7da20dee1600080a2005b34610276576060366003190112610276576105a1612590565b6024356001600160a01b03811690819003610276576044356001600160a01b038116919082900361027657600080516020612b7b833981519152549260ff8460401c1615936001600160401b03811680159081610795575b600114908161078b575b159081610782575b506107715767ffffffffffffffff198116600117600080516020612b7b8339815191525584610744575b5061063e612a6b565b610646612a6b565b61064f3361287a565b610657612a6b565b61065f612a6b565b610667612a6b565b6001600080516020612b5b83398151915255610681612a6b565b60018060a01b0316806001600160601b0360a01b6000541617600055600052600c6020526040600020600160ff198254161790556001600160601b0360a01b60015416176001556001600160601b0360a01b6002541617600255600160035560016004556106eb57005b68ff000000000000000019600080516020612b7b8339815191525416600080516020612b7b833981519152557fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2602060405160018152a1005b68ffffffffffffffffff19166801000000000000000117600080516020612b7b8339815191525584610635565b63f92ee8a960e01b60005260046000fd5b9050158661060b565b303b159150610603565b8691506105f9565b3461027657600036600319011261027657602060405160648152f35b34610276576107c7366125a6565b908060005260066020526040600020826000526008602052604060002060018060a01b0360018301541633036108685760ff6006820154161590811561084b575b5061083a576009839101557fa824e242d3d8892c39e73999603bd02aef846aa8ab0f2d109bebbcb8be7dc1b6600080a3005b63f06506c560e01b60005260046000fd5b6108609150600460038201549101549061282b565b421184610808565b6282b42960e81b60005260046000fd5b34610276576000366003190112610276576002546040516001600160a01b039091168152602090f35b34610276576000366003190112610276576103a560408051906108c481836125bc565b60058252640352e302e360dc1b602083015251918291602083526020830190612730565b346102765760203660031901126102765760043561090461296f565b8060005260066020526040600020906009820180546000526008602052604060002090600184019160018060a01b03835416330361086857600b85019485549160ff8360081c16610a705760058101549182156104435761096e600383015460048401549061282b565b42111561043257600a600291015491015490818102918183041490151715610a5a570490606482029282840460641483151715610a5a576109f06040936127107f7a6041e061d380e48a3c6e4ccbbcba09f5c11e150780749c31e8e500ac99d8b99604986101006109df8b84612847565b9561ff001916179055600554612847565b600555600054600254610a119189916001600160a01b0390811691166129d5565b6000548554610a2e9184916001600160a01b0390811691166129d5565b549360018060a01b039054169582519182526020820152a46001600080516020612b5b83398151915255005b634e487b7160e01b600052601160045260246000fd5b630c8d9eab60e31b60005260046000fd5b3461027657600036600319011261027657602060405162278d008152f35b34610276576000366003190112610276576020600554604051908152f35b3461027657602036600319011261027657600435600052600860205260406000208054610aec60018301612669565b91600281015490600381015490600481015460ff600660058401549301541692610b28604051978897885260e0602089015260e0880190612730565b9460408701526060860152608085015260a0840152151560c08301520390f35b3461027657600036600319011261027657600080516020612afb833981519152546040516001600160a01b039091168152602090f35b3461027657600036600319011261027657610b976128f0565b610b9f6129ab565b600160ff19600080516020612b3b833981519152541617600080516020612b3b833981519152557f62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a2586020604051338152a1005b34610276576060366003190112610276576004356024356001600160401b03811161027657610c25903690600401612788565b906044356001600160401b03811161027657610c45903690600401612788565b9184600052600660205260406000209160018060a01b0360018401541633036108685760088301918254610ed25785158015610ec8575b610eb7579291859142946000965b848810610cde575050505560050154109050610ccd5760207fb86786e68ac4e3a0208af0234aa04cfcccd36d4b52f548e78c26753b27dc338891604051908152a2005b630a716d6d60e41b60005260046000fd5b919350919394610cfa90610cf3888487612854565b359061282b565b95610d06818985612854565b356040519060a082018281106001600160401b03821117610ea1576040528152896020820191898352602060405190610d3f81836125bc565b6000825260408301918252606083019460008652608084019460008652600052600782526040600020876000528252604060002093518455516001840155600283019151908151916001600160401b038311610ea157610da983610da3865461262f565b866127b8565b81601f8411600114610e2e575092610de68360039460019a99989794610e0097600092610e23575b50508160011b916000199060031b1c19161790565b90555b0192511515839060ff801983541691151516179055565b51151561ff0082549160081b169061ff0019161790550195949391879391610c8a565b015190503880610dd1565b9190601f1984168560005283600020936000905b828210610e895750509360019998979693610e0096938b938360039810610e71575b505050811b019055610de9565b015160001983881b60f8161c19169055388080610e64565b80600186978294978701518155019601940190610e42565b634e487b7160e01b600052604160045260246000fd5b638a71996560e01b60005260046000fd5b50600a8611610c7c565b62dc149f60e41b60005260046000fd5b3461027657600036600319011261027657610efb6128f0565b600080516020612afb83398151915280546001600160a01b031981169091556000906001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a3005b3461027657610f5a366125a6565b906000526007602052604060002090600052602052604060002080546103a56001830154916003610f8d60028601612669565b9401549060405194859460ff808560081c1694169286612755565b34610276577f2632a738857d774f3179abee0fa205787aea133c8f6d4cbfe4e605028d3e8230610fd73661255a565b610fe29492946128f0565b836000526007602052604060002085600052602052600360406000200160ff19815416905561101e60405192839260208452602084019161280a565b0390a3005b346102765760203660031901126102765760043561103f61296f565b6000818152600660205260409020600181018054909291906001600160a01b0316330361086857600b810180549160ff8316156111415760ff8360081c16610a7057600681015494606486029286840460641487151715610a5a577fc7d737965e0f5f64537adb2367f693efdcdc4c61da9104d6fcde0512e212e05394600261010094611117936110d761271060409904809c612847565b96879461ff001916179055016111028960018060a01b0383541660018060a01b0360025416906129d5565b5483546001600160a01b0390811691166129d5565b60018060a01b039054169482519182526020820152a36001600080516020612b5b83398151915255005b639f4a648960e01b60005260046000fd5b346102765760203660031901126102765761116b612590565b6111736128f0565b600180546001600160a01b0319166001600160a01b0392909216919091179055005b34610276576020366003190112610276576004356001600160401b0381116102765760206111c88192369060040161252d565b9190826040519384928337600b90820190815203019020546040516001600160a01b039091168152f35b346102765760203660031901126102765761120b612590565b6112136128f0565b600280546001600160a01b0319166001600160a01b039290921691821790557fd6ceddf6d2a22f21c7c81675c518004eff43bc5c8a6fc32a0b748e69d58671cd600080a2005b346102765760203660031901126102765760043560005260066020526020604060002080549060ff60018060a01b0360018301541660018060a01b03600284015416926112a860038201612669565b93600482015494600583015460068401546007850154916112fd600887015494600988015496600b600a8a0154990154996040519e8f9e8f908152015260408d01526101a060608d01526101a08c0190612730565b9860808b015260a08a015260c089015260e0880152610100870152610120860152610140850152818116151561016085015260081c1615156101808301520390f35b3461027657600036600319011261027657602060ff600080516020612b3b83398151915254166040519015158152f35b3461027657602036600319011261027657611388612590565b6113906128f0565b6040516370a0823160e01b81523060048201526001600160a01b039190911690602081602481855afa9081156114ad5760009161147b575b506005548082111561146a576113dd91612847565b606481029080820460641481151715610a5a57611429926114516040926127107f08fd533bd5079a44c29423029e90ebea349af681409c64226427b3a43f306d96950495868092612847565b9261143f8460018060a01b0360015416836129d5565b6002546001600160a01b0316906129d5565b60018060a01b03600154169382519182526020820152a2005b6317cd644960e11b60005260046000fd5b90506020813d6020116114a5575b81611496602093836125bc565b810103126102765751826113c8565b3d9150611489565b6040513d6000823e3d90fd5b34610276576114c7366125a6565b906114d061296f565b6114d86129ab565b80600052600660205260406000208054156115b057600481015442101561159f576006810161150884825461282b565b90556007810190815460018101809111610a5a5782553360005260096020526040600020805491600a8301809311610a5a5791905560020154611559908490309033906001600160a01b0316612926565b5460405192835260208301527fa3e63b7b2a8171113bf40e60e8724bd0e37632c34f0d0d5ebdfc1af66cc793e960403393a36001600080516020612b5b83398151915255005b6382d1f12760e01b60005260046000fd5b6335a1341b60e21b60005260046000fd5b34610276576000366003190112610276577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316300361161a576020604051600080516020612b1b8339815191528152f35b63703e46dd60e11b60005260046000fd5b60403660031901126102765761163f612590565b6024356001600160401b03811161027657366023820112156102765761166f9036906024816004013591016125f8565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630811490811561181c575b5061161a576116b16128f0565b6040516352d1902d60e01b81526001600160a01b0383169290602081600481875afa600091816117e8575b506116f65783634c9c8ce360e01b60005260045260246000fd5b80600080516020612b1b8339815191528592036117d45750813b156117c057600080516020612b1b83398151915280546001600160a01b031916821790557fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b600080a28151156117a65760008083602061034695519101845af43d1561179e573d91611781836125dd565b9261178f60405194856125bc565b83523d6000602085013e612a99565b606091612a99565b5050346117af57005b63b398979f60e01b60005260046000fd5b634c9c8ce360e01b60005260045260246000fd5b632a87526960e21b60005260045260246000fd5b9091506020813d602011611814575b81611804602093836125bc565b81010312610276575190856116dc565b3d91506117f7565b600080516020612b1b833981519152546001600160a01b031614159050836116a4565b34610276576020366003190112610276576001600160a01b03611860612590565b1660005260096020526020604060002054604051908152f35b34610276576000366003190112610276576020604051600a8152f35b34610276576000366003190112610276576118ae6128f0565b600080516020612b3b8339815191525460ff8116156119075760ff1916600080516020612b3b833981519152557f5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa6020604051338152a1005b638dfc202b60e01b60005260046000fd5b3461027657611926366125a6565b61192e6128f0565b81600052600660205260406000209060098201549081156119d4577fcfcbc130e9dd49c217e30d7c05470ffa3886e4b15d34cd378444ea55d75360af926040926000526008602052600583600020019082825461199a82611995600a860193845490612847565b61282b565b845555600101546001600160a01b03166000908152600960205283902080546119c490849061282b565b90555482519182526020820152a2005b632b8829ff60e21b60005260046000fd5b346102765760a0366003190112610276576119fe612590565b6024356001600160401b03811161027657611a1d90369060040161252d565b906044356064359160843594611a3161296f565b611a396129ab565b33600052600a602052611a5060406000205461262f565b15611c8257428311801590611c78575b610ccd576001600160a01b03166000818152600c602052604090205490939060ff161561086857670de0b6b3a76400008610611c675760035494611aa386612838565b600390815560008781526006602052604090208781556001810180546001600160a01b031990811633179091556002820180549091168817905590810193906001600160401b038311610ea1576020988894611b0985611b03895461262f565b896127b8565b600096601f8611600114611be457611b5b86807f3941b961b01d1f851e3aab38630ea8ff40c58c074325cb8fe9821f656201a8da999a600091611bd9575b508160011b916000199060031b1c19161790565b90555b876004840155806005840155611ba060076006850194848655019360018555611b8a84308d3390612926565b549354946040519660c0885260c088019161280a565b978b86015260408501526060840152608083015260a08201528033940390a46001600080516020612b5b83398151915255604051908152f35b90508701358f611b47565b8088528b8820601f19871698805b8a8110611c4d5750877f3941b961b01d1f851e3aab38630ea8ff40c58c074325cb8fe9821f656201a8da999a10611c33575b5050600186811b019055611b5e565b860135600019600389901b60f8161c191690558c80611c24565b8188013583558d9950600190920191908e01908e01611bf2565b63043d581960e41b60005260046000fd5b5082841115611a60565b63640f9e7160e11b60005260046000fd5b3461027657602036600319011261027657611cac612590565b611cb46128f0565b600080546001600160a01b0319166001600160a01b03929092169182178155818152600c60205260408120805460ff191660011790557ff55a14eaedccb3e5ba818d5f17c473f52ebd378ee924ae2c08e9a250ef1fd3c19080a2005b34610276576020366003190112610276576001600160a01b03611d31612590565b16600052600c602052602060ff604060002054166040519015158152f35b34610276576020366003190112610276576004356001600160401b03811161027657611d7f90369060040161252d565b600381108015611f93575b611f825760405181838237600b8183019081528190036020019020546001600160a01b0316611f715733600052600a602052611dc96040600020612669565b805180611f3a575b505033600052600a6020526040600020916001600160401b038211610ea157611e0482611dfe855461262f565b856127b8565b600092601f8311600114611eb25790611ea291611e5a84807fdd635a4cd84864e37e4479dbfc2ec667acfa473c83c8422a8ac9d9d07599b01c9697600091611ea757508160011b916000199060031b1c19161790565b90555b60405184828237602081868101600b81520301902060018060a01b0333166001600160601b0360a01b825416179055604051918291602083523395602084019161280a565b0390a2005b905084013588611b47565b80845260208420601f198416855b818110611f2257509084957fdd635a4cd84864e37e4479dbfc2ec667acfa473c83c8422a8ac9d9d07599b01c95611ea295949310611f08575b5050600185811b019055611e5d565b830135600019600388901b60f8161c191690558580611ef9565b84870135835560209687019660019093019201611ec0565b60209181611f508493604051809681950161270d565b8101600b8152030190206001600160601b0360a01b81541690558280611dd1565b636bc324ad60e01b60005260046000fd5b630a1de65160e31b60005260046000fd5b5060108111611d8a565b34610276576060366003190112610276576004356001600160401b03811161027657611fcd90369060040161252d565b6044359190602435611fdd6128f0565b600054611ff8908290309033906001600160a01b0316612926565b6004549361200585612838565b60045560405160e081018181106001600160401b03821117610ea1576040528581526120323685876125f8565b602082019081526040820184815260608301428152608084019085825260a08501926000845260c0860194600186528b60005260086020526040600020965187556001870190518051906001600160401b038211610ea15761209882611dfe855461262f565b602090601f831160011461216857926120fb837f0c65df23447cd46f19e0e5badd0e576183261470a23aba87992fc711925cd2119f9e9d9c9b9996939461212c9b989560069a97600092610e235750508160011b916000199060031b1c19161790565b90555b51600287015551600386015551600485015551600584015551151591019060ff801983541691151516179055565b6121388260055461282b565b60055561215260405194859460808652608086019161280a565b91602084015242604084015260608301520390a2005b90601f1983169184600052816000209260005b8181106121e85750937f0c65df23447cd46f19e0e5badd0e576183261470a23aba87992fc711925cd2119f9e9d9c9b99969360069996936001938361212c9e9b98106121cf575b505050811b0190556120fe565b015160001960f88460031b161c191690553880806121c2565b9293602060018192878601518155019501930161217b565b34610276576020366003190112610276576004356001600160401b03811161027657612232602091369060040161252d565b80604051928337600b90820190815281900382019020546040516001600160a01b0390911615158152f35b3461027657604036600319011261027657612276612590565b6024358015158103610276576103469161228e6128f0565b60018060a01b0316600052600c60205260406000209060ff801983541691151516179055565b34610276576060366003190112610276576024356004356044356122d66128f0565b81600052600760205260406000208360005260205260036040600020019081549060ff8216158015612383575b612372577f95746eb2a2ce606b86dd03c51ffd927b7a5d5511c007d15adc040ae171dfad939261010060209361ff001916179055836000526006825260018060a01b036001604060002001541660005260098252604060002061236782825461282b565b9055604051908152a3005b630f10172360e11b60005260046000fd5b5060ff8260081c16612303565b346102765761239e3661255a565b600084815260066020526040902060010154909391906001600160a01b0316330361086857816000526007602052604060002083600052602052604060002093600385019460ff865460081c1661251c57600201946001600160401b038211610ea1576124158261240f885461262f565b886127b8565b600095601f83116001146124975761246783807f556e3b296d5e8c8bab27684b52ae96905507befd2d188ce6f4453a6717dd9c0097989960009161248c57508160011b916000199060031b1c19161790565b90555b600160ff1982541617905561101e60405192839260208452602084019161280a565b90508601358a611b47565b8087526020872096601f198416815b818110612504575090847f556e3b296d5e8c8bab27684b52ae96905507befd2d188ce6f4453a6717dd9c0097989992106124ea575b5050600183811b01905561246a565b850135600019600386901b60f8161c1916905587806124db565b868301358a55600190990198602092830192016124a6565b634cf723ed60e01b60005260046000fd5b9181601f84011215610276578235916001600160401b038311610276576020838186019501011161027657565b6060600319820112610276576004359160243591604435906001600160401b0382116102765761258c9160040161252d565b9091565b600435906001600160a01b038216820361027657565b6040906003190112610276576004359060243590565b90601f801991011681019081106001600160401b03821117610ea157604052565b6001600160401b038111610ea157601f01601f191660200190565b929192612604826125dd565b9161261260405193846125bc565b829481845281830111610276578281602093846000960137010152565b90600182811c9216801561265f575b602083101461264957565b634e487b7160e01b600052602260045260246000fd5b91607f169161263e565b906040519182600082549261267d8461262f565b80845293600181169081156126eb57506001146126a4575b506126a2925003836125bc565b565b90506000929192526020600020906000915b8183106126cf5750509060206126a29282010138612695565b60209193508060019154838589010152019101909184926126b6565b9050602092506126a294915060ff191682840152151560051b82010138612695565b60005b8381106127205750506000910152565b8181015183820152602001612710565b906020916127498151809281855285808601910161270d565b601f01601f1916010190565b9395949192608093612779928652602086015260a0604086015260a0850190612730565b94151560608401521515910152565b9181601f84011215610276578235916001600160401b038311610276576020808501948460051b01011161027657565b601f82116127c557505050565b6000526020600020906020601f840160051c83019310612800575b601f0160051c01905b8181106127f4575050565b600081556001016127e9565b90915081906127e0565b908060209392818452848401376000828201840152601f01601f1916010190565b91908201809211610a5a57565b6000198114610a5a5760010190565b91908203918211610a5a57565b91908110156128645760051b0190565b634e487b7160e01b600052603260045260246000fd5b6001600160a01b031680156128da57600080516020612afb83398151915280546001600160a01b0319811683179091556001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3565b631e4fbdf760e01b600052600060045260246000fd5b600080516020612afb833981519152546001600160a01b0316330361291157565b63118cdaa760e01b6000523360045260246000fd5b6040516323b872dd60e01b60208201526001600160a01b0392831660248201529290911660448301526064808301939093529181526126a29161296a6084836125bc565b612a10565b6002600080516020612b5b833981519152541461299a576002600080516020612b5b83398151915255565b633ee5aeb560e01b60005260046000fd5b60ff600080516020612b3b83398151915254166129c457565b63d93c066560e01b60005260046000fd5b60405163a9059cbb60e01b60208201526001600160a01b0390921660248301526044808301939093529181526126a29161296a6064836125bc565b906000602091828151910182855af1156114ad576000513d612a6257506001600160a01b0381163b155b612a415750565b635274afe760e01b60009081526001600160a01b0391909116600452602490fd5b60011415612a3a565b60ff600080516020612b7b8339815191525460401c1615612a8857565b631afcd79f60e31b60005260046000fd5b90612abf5750805115612aae57602081519101fd5b63d6bda27560e01b60005260046000fd5b81511580612af1575b612ad0575090565b639996b31560e01b60009081526001600160a01b0391909116600452602490fd5b50803b15612ac856fe9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbccd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f033009b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00a2646970667358221220504af60a2d5053ee527aa6efa75ada443449c9f67ea26e72919cf872a8d925a964736f6c634300081c0033",
-  "deployedBytecode": "0x6080604052600436101561001257600080fd5b60003560e01c80630390e07a1461239057806308c6f4ab146122b45780630c46b24d1461183f5780630c6a753f1461225d578063176c5919146122005780631aaaac9314611f9d578063235b37b114611d4f578063240028e814611d105780632f84c39114611c9357806334bf0237146119e5578063360fc179146119185780633f4ba83a146118955780634c05abeb146118795780634cfa5f4e1461183f5780634f1ef2861461162b57806352d1902d146115c157806356192625146114b95780635b584c331461136f5780635c975abb1461133f5780635f6642001461125957806362a941ae146111f25780636322961d146111955780636817031b146111525780636d829d5a146110235780636e2a373a14610fa857806370e5d99414610f4c578063715018a614610ee257806377cce4ac14610bf25780638456cb5914610b7e5780638da5cb5b14610b485780638f1d377614610abd578063969247b214610a9f5780639f34fc8014610a81578063aad4cad0146108e8578063ad3cb1cc146108a1578063b07bdb3314610878578063bd5dab12146107b9578063be3782281461079d578063c0c53b8b14610588578063c6654cd014610529578063cb1c2b5c14610506578063cbdd6f9e146104e8578063ce43c0321461049a578063e07a0baa1461049a578063e1a452181461047d578063e5a6b10f14610454578063eaf4ebb2146103a9578063eb3ba33c14610348578063f2fde38b1461031d578063f825f143146102a4578063fbfa77cf1461027b5763fc67aa501461025857600080fd5b34610276576000366003190112610276576020600454604051908152f35b600080fd5b34610276576000366003190112610276576001546040516001600160a01b039091168152602090f35b34610276576020366003190112610276576004356001600160401b0381116102765736602382011215610276576102e760209136906024816004013591016125f8565b816102fb604051928381519384920161270d565b600b90820190815281900382019020546040516001600160a01b039091168152f35b3461027657602036600319011261027657610346610339612590565b6103416128f0565b61287a565b005b3461027657610356366125a6565b90600052600760205260406000209060005260205260406000208054906103a560018201549161038d600260038301549201612669565b9360405194859460ff808560081c1694169286612755565b0390f35b34610276576020366003190112610276576103c26128f0565b60043560005260086020526040600020600581015415610443576103ef600382015460048301549061282b565b421115610432578060066002610346930154910160ff19815416905561041781600554612847565b6005556000546001546001600160a01b0390811691166129d5565b6330e43e8160e21b60005260046000fd5b63c5d1c5ff60e01b60005260046000fd5b34610276576000366003190112610276576000546040516001600160a01b039091168152602090f35b346102765760003660031901126102765760206040516127108152f35b34610276576020366003190112610276576001600160a01b036104bb612590565b16600052600a6020526103a56104d46040600020612669565b604051918291602083526020830190612730565b34610276576000366003190112610276576020600354604051908152f35b34610276576000366003190112610276576020604051670de0b6b3a76400008152f35b34610276576020366003190112610276576004356105456128f0565b806000526006602052600b604060002001600160ff198254161790557f14a491a070d043fc88570f8174d6c108a6287e2a141fe385b26896d7da20dee1600080a2005b34610276576060366003190112610276576105a1612590565b6024356001600160a01b03811690819003610276576044356001600160a01b038116919082900361027657600080516020612b7b833981519152549260ff8460401c1615936001600160401b03811680159081610795575b600114908161078b575b159081610782575b506107715767ffffffffffffffff198116600117600080516020612b7b8339815191525584610744575b5061063e612a6b565b610646612a6b565b61064f3361287a565b610657612a6b565b61065f612a6b565b610667612a6b565b6001600080516020612b5b83398151915255610681612a6b565b60018060a01b0316806001600160601b0360a01b6000541617600055600052600c6020526040600020600160ff198254161790556001600160601b0360a01b60015416176001556001600160601b0360a01b6002541617600255600160035560016004556106eb57005b68ff000000000000000019600080516020612b7b8339815191525416600080516020612b7b833981519152557fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2602060405160018152a1005b68ffffffffffffffffff19166801000000000000000117600080516020612b7b8339815191525584610635565b63f92ee8a960e01b60005260046000fd5b9050158661060b565b303b159150610603565b8691506105f9565b3461027657600036600319011261027657602060405160648152f35b34610276576107c7366125a6565b908060005260066020526040600020826000526008602052604060002060018060a01b0360018301541633036108685760ff6006820154161590811561084b575b5061083a576009839101557fa824e242d3d8892c39e73999603bd02aef846aa8ab0f2d109bebbcb8be7dc1b6600080a3005b63f06506c560e01b60005260046000fd5b6108609150600460038201549101549061282b565b421184610808565b6282b42960e81b60005260046000fd5b34610276576000366003190112610276576002546040516001600160a01b039091168152602090f35b34610276576000366003190112610276576103a560408051906108c481836125bc565b60058252640352e302e360dc1b602083015251918291602083526020830190612730565b346102765760203660031901126102765760043561090461296f565b8060005260066020526040600020906009820180546000526008602052604060002090600184019160018060a01b03835416330361086857600b85019485549160ff8360081c16610a705760058101549182156104435761096e600383015460048401549061282b565b42111561043257600a600291015491015490818102918183041490151715610a5a570490606482029282840460641483151715610a5a576109f06040936127107f7a6041e061d380e48a3c6e4ccbbcba09f5c11e150780749c31e8e500ac99d8b99604986101006109df8b84612847565b9561ff001916179055600554612847565b600555600054600254610a119189916001600160a01b0390811691166129d5565b6000548554610a2e9184916001600160a01b0390811691166129d5565b549360018060a01b039054169582519182526020820152a46001600080516020612b5b83398151915255005b634e487b7160e01b600052601160045260246000fd5b630c8d9eab60e31b60005260046000fd5b3461027657600036600319011261027657602060405162278d008152f35b34610276576000366003190112610276576020600554604051908152f35b3461027657602036600319011261027657600435600052600860205260406000208054610aec60018301612669565b91600281015490600381015490600481015460ff600660058401549301541692610b28604051978897885260e0602089015260e0880190612730565b9460408701526060860152608085015260a0840152151560c08301520390f35b3461027657600036600319011261027657600080516020612afb833981519152546040516001600160a01b039091168152602090f35b3461027657600036600319011261027657610b976128f0565b610b9f6129ab565b600160ff19600080516020612b3b833981519152541617600080516020612b3b833981519152557f62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a2586020604051338152a1005b34610276576060366003190112610276576004356024356001600160401b03811161027657610c25903690600401612788565b906044356001600160401b03811161027657610c45903690600401612788565b9184600052600660205260406000209160018060a01b0360018401541633036108685760088301918254610ed25785158015610ec8575b610eb7579291859142946000965b848810610cde575050505560050154109050610ccd5760207fb86786e68ac4e3a0208af0234aa04cfcccd36d4b52f548e78c26753b27dc338891604051908152a2005b630a716d6d60e41b60005260046000fd5b919350919394610cfa90610cf3888487612854565b359061282b565b95610d06818985612854565b356040519060a082018281106001600160401b03821117610ea1576040528152896020820191898352602060405190610d3f81836125bc565b6000825260408301918252606083019460008652608084019460008652600052600782526040600020876000528252604060002093518455516001840155600283019151908151916001600160401b038311610ea157610da983610da3865461262f565b866127b8565b81601f8411600114610e2e575092610de68360039460019a99989794610e0097600092610e23575b50508160011b916000199060031b1c19161790565b90555b0192511515839060ff801983541691151516179055565b51151561ff0082549160081b169061ff0019161790550195949391879391610c8a565b015190503880610dd1565b9190601f1984168560005283600020936000905b828210610e895750509360019998979693610e0096938b938360039810610e71575b505050811b019055610de9565b015160001983881b60f8161c19169055388080610e64565b80600186978294978701518155019601940190610e42565b634e487b7160e01b600052604160045260246000fd5b638a71996560e01b60005260046000fd5b50600a8611610c7c565b62dc149f60e41b60005260046000fd5b3461027657600036600319011261027657610efb6128f0565b600080516020612afb83398151915280546001600160a01b031981169091556000906001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a3005b3461027657610f5a366125a6565b906000526007602052604060002090600052602052604060002080546103a56001830154916003610f8d60028601612669565b9401549060405194859460ff808560081c1694169286612755565b34610276577f2632a738857d774f3179abee0fa205787aea133c8f6d4cbfe4e605028d3e8230610fd73661255a565b610fe29492946128f0565b836000526007602052604060002085600052602052600360406000200160ff19815416905561101e60405192839260208452602084019161280a565b0390a3005b346102765760203660031901126102765760043561103f61296f565b6000818152600660205260409020600181018054909291906001600160a01b0316330361086857600b810180549160ff8316156111415760ff8360081c16610a7057600681015494606486029286840460641487151715610a5a577fc7d737965e0f5f64537adb2367f693efdcdc4c61da9104d6fcde0512e212e05394600261010094611117936110d761271060409904809c612847565b96879461ff001916179055016111028960018060a01b0383541660018060a01b0360025416906129d5565b5483546001600160a01b0390811691166129d5565b60018060a01b039054169482519182526020820152a36001600080516020612b5b83398151915255005b639f4a648960e01b60005260046000fd5b346102765760203660031901126102765761116b612590565b6111736128f0565b600180546001600160a01b0319166001600160a01b0392909216919091179055005b34610276576020366003190112610276576004356001600160401b0381116102765760206111c88192369060040161252d565b9190826040519384928337600b90820190815203019020546040516001600160a01b039091168152f35b346102765760203660031901126102765761120b612590565b6112136128f0565b600280546001600160a01b0319166001600160a01b039290921691821790557fd6ceddf6d2a22f21c7c81675c518004eff43bc5c8a6fc32a0b748e69d58671cd600080a2005b346102765760203660031901126102765760043560005260066020526020604060002080549060ff60018060a01b0360018301541660018060a01b03600284015416926112a860038201612669565b93600482015494600583015460068401546007850154916112fd600887015494600988015496600b600a8a0154990154996040519e8f9e8f908152015260408d01526101a060608d01526101a08c0190612730565b9860808b015260a08a015260c089015260e0880152610100870152610120860152610140850152818116151561016085015260081c1615156101808301520390f35b3461027657600036600319011261027657602060ff600080516020612b3b83398151915254166040519015158152f35b3461027657602036600319011261027657611388612590565b6113906128f0565b6040516370a0823160e01b81523060048201526001600160a01b039190911690602081602481855afa9081156114ad5760009161147b575b506005548082111561146a576113dd91612847565b606481029080820460641481151715610a5a57611429926114516040926127107f08fd533bd5079a44c29423029e90ebea349af681409c64226427b3a43f306d96950495868092612847565b9261143f8460018060a01b0360015416836129d5565b6002546001600160a01b0316906129d5565b60018060a01b03600154169382519182526020820152a2005b6317cd644960e11b60005260046000fd5b90506020813d6020116114a5575b81611496602093836125bc565b810103126102765751826113c8565b3d9150611489565b6040513d6000823e3d90fd5b34610276576114c7366125a6565b906114d061296f565b6114d86129ab565b80600052600660205260406000208054156115b057600481015442101561159f576006810161150884825461282b565b90556007810190815460018101809111610a5a5782553360005260096020526040600020805491600a8301809311610a5a5791905560020154611559908490309033906001600160a01b0316612926565b5460405192835260208301527fa3e63b7b2a8171113bf40e60e8724bd0e37632c34f0d0d5ebdfc1af66cc793e960403393a36001600080516020612b5b83398151915255005b6382d1f12760e01b60005260046000fd5b6335a1341b60e21b60005260046000fd5b34610276576000366003190112610276577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316300361161a576020604051600080516020612b1b8339815191528152f35b63703e46dd60e11b60005260046000fd5b60403660031901126102765761163f612590565b6024356001600160401b03811161027657366023820112156102765761166f9036906024816004013591016125f8565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630811490811561181c575b5061161a576116b16128f0565b6040516352d1902d60e01b81526001600160a01b0383169290602081600481875afa600091816117e8575b506116f65783634c9c8ce360e01b60005260045260246000fd5b80600080516020612b1b8339815191528592036117d45750813b156117c057600080516020612b1b83398151915280546001600160a01b031916821790557fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b600080a28151156117a65760008083602061034695519101845af43d1561179e573d91611781836125dd565b9261178f60405194856125bc565b83523d6000602085013e612a99565b606091612a99565b5050346117af57005b63b398979f60e01b60005260046000fd5b634c9c8ce360e01b60005260045260246000fd5b632a87526960e21b60005260045260246000fd5b9091506020813d602011611814575b81611804602093836125bc565b81010312610276575190856116dc565b3d91506117f7565b600080516020612b1b833981519152546001600160a01b031614159050836116a4565b34610276576020366003190112610276576001600160a01b03611860612590565b1660005260096020526020604060002054604051908152f35b34610276576000366003190112610276576020604051600a8152f35b34610276576000366003190112610276576118ae6128f0565b600080516020612b3b8339815191525460ff8116156119075760ff1916600080516020612b3b833981519152557f5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa6020604051338152a1005b638dfc202b60e01b60005260046000fd5b3461027657611926366125a6565b61192e6128f0565b81600052600660205260406000209060098201549081156119d4577fcfcbc130e9dd49c217e30d7c05470ffa3886e4b15d34cd378444ea55d75360af926040926000526008602052600583600020019082825461199a82611995600a860193845490612847565b61282b565b845555600101546001600160a01b03166000908152600960205283902080546119c490849061282b565b90555482519182526020820152a2005b632b8829ff60e21b60005260046000fd5b346102765760a0366003190112610276576119fe612590565b6024356001600160401b03811161027657611a1d90369060040161252d565b906044356064359160843594611a3161296f565b611a396129ab565b33600052600a602052611a5060406000205461262f565b15611c8257428311801590611c78575b610ccd576001600160a01b03166000818152600c602052604090205490939060ff161561086857670de0b6b3a76400008610611c675760035494611aa386612838565b600390815560008781526006602052604090208781556001810180546001600160a01b031990811633179091556002820180549091168817905590810193906001600160401b038311610ea1576020988894611b0985611b03895461262f565b896127b8565b600096601f8611600114611be457611b5b86807f3941b961b01d1f851e3aab38630ea8ff40c58c074325cb8fe9821f656201a8da999a600091611bd9575b508160011b916000199060031b1c19161790565b90555b876004840155806005840155611ba060076006850194848655019360018555611b8a84308d3390612926565b549354946040519660c0885260c088019161280a565b978b86015260408501526060840152608083015260a08201528033940390a46001600080516020612b5b83398151915255604051908152f35b90508701358f611b47565b8088528b8820601f19871698805b8a8110611c4d5750877f3941b961b01d1f851e3aab38630ea8ff40c58c074325cb8fe9821f656201a8da999a10611c33575b5050600186811b019055611b5e565b860135600019600389901b60f8161c191690558c80611c24565b8188013583558d9950600190920191908e01908e01611bf2565b63043d581960e41b60005260046000fd5b5082841115611a60565b63640f9e7160e11b60005260046000fd5b3461027657602036600319011261027657611cac612590565b611cb46128f0565b600080546001600160a01b0319166001600160a01b03929092169182178155818152600c60205260408120805460ff191660011790557ff55a14eaedccb3e5ba818d5f17c473f52ebd378ee924ae2c08e9a250ef1fd3c19080a2005b34610276576020366003190112610276576001600160a01b03611d31612590565b16600052600c602052602060ff604060002054166040519015158152f35b34610276576020366003190112610276576004356001600160401b03811161027657611d7f90369060040161252d565b600381108015611f93575b611f825760405181838237600b8183019081528190036020019020546001600160a01b0316611f715733600052600a602052611dc96040600020612669565b805180611f3a575b505033600052600a6020526040600020916001600160401b038211610ea157611e0482611dfe855461262f565b856127b8565b600092601f8311600114611eb25790611ea291611e5a84807fdd635a4cd84864e37e4479dbfc2ec667acfa473c83c8422a8ac9d9d07599b01c9697600091611ea757508160011b916000199060031b1c19161790565b90555b60405184828237602081868101600b81520301902060018060a01b0333166001600160601b0360a01b825416179055604051918291602083523395602084019161280a565b0390a2005b905084013588611b47565b80845260208420601f198416855b818110611f2257509084957fdd635a4cd84864e37e4479dbfc2ec667acfa473c83c8422a8ac9d9d07599b01c95611ea295949310611f08575b5050600185811b019055611e5d565b830135600019600388901b60f8161c191690558580611ef9565b84870135835560209687019660019093019201611ec0565b60209181611f508493604051809681950161270d565b8101600b8152030190206001600160601b0360a01b81541690558280611dd1565b636bc324ad60e01b60005260046000fd5b630a1de65160e31b60005260046000fd5b5060108111611d8a565b34610276576060366003190112610276576004356001600160401b03811161027657611fcd90369060040161252d565b6044359190602435611fdd6128f0565b600054611ff8908290309033906001600160a01b0316612926565b6004549361200585612838565b60045560405160e081018181106001600160401b03821117610ea1576040528581526120323685876125f8565b602082019081526040820184815260608301428152608084019085825260a08501926000845260c0860194600186528b60005260086020526040600020965187556001870190518051906001600160401b038211610ea15761209882611dfe855461262f565b602090601f831160011461216857926120fb837f0c65df23447cd46f19e0e5badd0e576183261470a23aba87992fc711925cd2119f9e9d9c9b9996939461212c9b989560069a97600092610e235750508160011b916000199060031b1c19161790565b90555b51600287015551600386015551600485015551600584015551151591019060ff801983541691151516179055565b6121388260055461282b565b60055561215260405194859460808652608086019161280a565b91602084015242604084015260608301520390a2005b90601f1983169184600052816000209260005b8181106121e85750937f0c65df23447cd46f19e0e5badd0e576183261470a23aba87992fc711925cd2119f9e9d9c9b99969360069996936001938361212c9e9b98106121cf575b505050811b0190556120fe565b015160001960f88460031b161c191690553880806121c2565b9293602060018192878601518155019501930161217b565b34610276576020366003190112610276576004356001600160401b03811161027657612232602091369060040161252d565b80604051928337600b90820190815281900382019020546040516001600160a01b0390911615158152f35b3461027657604036600319011261027657612276612590565b6024358015158103610276576103469161228e6128f0565b60018060a01b0316600052600c60205260406000209060ff801983541691151516179055565b34610276576060366003190112610276576024356004356044356122d66128f0565b81600052600760205260406000208360005260205260036040600020019081549060ff8216158015612383575b612372577f95746eb2a2ce606b86dd03c51ffd927b7a5d5511c007d15adc040ae171dfad939261010060209361ff001916179055836000526006825260018060a01b036001604060002001541660005260098252604060002061236782825461282b565b9055604051908152a3005b630f10172360e11b60005260046000fd5b5060ff8260081c16612303565b346102765761239e3661255a565b600084815260066020526040902060010154909391906001600160a01b0316330361086857816000526007602052604060002083600052602052604060002093600385019460ff865460081c1661251c57600201946001600160401b038211610ea1576124158261240f885461262f565b886127b8565b600095601f83116001146124975761246783807f556e3b296d5e8c8bab27684b52ae96905507befd2d188ce6f4453a6717dd9c0097989960009161248c57508160011b916000199060031b1c19161790565b90555b600160ff1982541617905561101e60405192839260208452602084019161280a565b90508601358a611b47565b8087526020872096601f198416815b818110612504575090847f556e3b296d5e8c8bab27684b52ae96905507befd2d188ce6f4453a6717dd9c0097989992106124ea575b5050600183811b01905561246a565b850135600019600386901b60f8161c1916905587806124db565b868301358a55600190990198602092830192016124a6565b634cf723ed60e01b60005260046000fd5b9181601f84011215610276578235916001600160401b038311610276576020838186019501011161027657565b6060600319820112610276576004359160243591604435906001600160401b0382116102765761258c9160040161252d565b9091565b600435906001600160a01b038216820361027657565b6040906003190112610276576004359060243590565b90601f801991011681019081106001600160401b03821117610ea157604052565b6001600160401b038111610ea157601f01601f191660200190565b929192612604826125dd565b9161261260405193846125bc565b829481845281830111610276578281602093846000960137010152565b90600182811c9216801561265f575b602083101461264957565b634e487b7160e01b600052602260045260246000fd5b91607f169161263e565b906040519182600082549261267d8461262f565b80845293600181169081156126eb57506001146126a4575b506126a2925003836125bc565b565b90506000929192526020600020906000915b8183106126cf5750509060206126a29282010138612695565b60209193508060019154838589010152019101909184926126b6565b9050602092506126a294915060ff191682840152151560051b82010138612695565b60005b8381106127205750506000910152565b8181015183820152602001612710565b906020916127498151809281855285808601910161270d565b601f01601f1916010190565b9395949192608093612779928652602086015260a0604086015260a0850190612730565b94151560608401521515910152565b9181601f84011215610276578235916001600160401b038311610276576020808501948460051b01011161027657565b601f82116127c557505050565b6000526020600020906020601f840160051c83019310612800575b601f0160051c01905b8181106127f4575050565b600081556001016127e9565b90915081906127e0565b908060209392818452848401376000828201840152601f01601f1916010190565b91908201809211610a5a57565b6000198114610a5a5760010190565b91908203918211610a5a57565b91908110156128645760051b0190565b634e487b7160e01b600052603260045260246000fd5b6001600160a01b031680156128da57600080516020612afb83398151915280546001600160a01b0319811683179091556001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3565b631e4fbdf760e01b600052600060045260246000fd5b600080516020612afb833981519152546001600160a01b0316330361291157565b63118cdaa760e01b6000523360045260246000fd5b6040516323b872dd60e01b60208201526001600160a01b0392831660248201529290911660448301526064808301939093529181526126a29161296a6084836125bc565b612a10565b6002600080516020612b5b833981519152541461299a576002600080516020612b5b83398151915255565b633ee5aeb560e01b60005260046000fd5b60ff600080516020612b3b83398151915254166129c457565b63d93c066560e01b60005260046000fd5b60405163a9059cbb60e01b60208201526001600160a01b0390921660248301526044808301939093529181526126a29161296a6064836125bc565b906000602091828151910182855af1156114ad576000513d612a6257506001600160a01b0381163b155b612a415750565b635274afe760e01b60009081526001600160a01b0391909116600452602490fd5b60011415612a3a565b60ff600080516020612b7b8339815191525460401c1615612a8857565b631afcd79f60e31b60005260046000fd5b90612abf5750805115612aae57602081519101fd5b63d6bda27560e01b60005260046000fd5b81511580612af1575b612ad0575090565b639996b31560e01b60009081526001600160a01b0391909116600452602490fd5b50803b15612ac856fe9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbccd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f033009b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00a2646970667358221220504af60a2d5053ee527aa6efa75ada443449c9f67ea26e72919cf872a8d925a964736f6c634300081c0033",
-  "linkReferences": {},
-  "deployedLinkReferences": {}
-}
+[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			}
+		],
+		"name": "AddressEmptyCode",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyClaimed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyInitialized",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadySettled",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ChallengeExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ChallengeNotClosed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ChallengeNotFound",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ClaimPeriodExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "DeluluNotFound",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "implementation",
+				"type": "address"
+			}
+		],
+		"name": "ERC1967InvalidImplementation",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ERC1967NonPayable",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "EnforcedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ExpectedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "FailedCall",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InsufficientSweepBalance",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidDeadlines",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidInitialization",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidUsername",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "MilestoneAlreadyCompleted",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "MilestoneExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "MilestoneNotFound",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NoPointsAllocated",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotInitializing",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotResolved",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ProfileRequired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ReentrancyGuardReentrantCall",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			}
+		],
+		"name": "SafeERC20FailedOperation",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "StakeTooSmall",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "StakingIsClosed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "TooManyMilestones",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "UUPSUnauthorizedCallContext",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "slot",
+				"type": "bytes32"
+			}
+		],
+		"name": "UUPSUnsupportedProxiableUUID",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "Unauthorized",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "UsernameTaken",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "contentHash",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "poolAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "startTime",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "duration",
+				"type": "uint256"
+			}
+		],
+		"name": "ChallengeCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "netReward",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "fee",
+				"type": "uint256"
+			}
+		],
+		"name": "ChallengeRewardClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newCurrency",
+				"type": "address"
+			}
+		],
+		"name": "CurrencyUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "contentHash",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "stakingDeadline",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "resolutionDeadline",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "initialSupport",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalSupportCollected",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalSupporters",
+				"type": "uint256"
+			}
+		],
+		"name": "DeluluCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			}
+		],
+		"name": "DeluluJoinedChallenge",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "DeluluResolved",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "stakedAmountAllocatedToSupporters",
+				"type": "uint256"
+			}
+		],
+		"name": "GoalFailed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "version",
+				"type": "uint64"
+			}
+		],
+		"name": "Initialized",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "descriptionHash",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "uri",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "startTime",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "deadline",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestoneCreatedDetailed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestoneMissed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"name": "MilestoneRejected",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "proofLink",
+				"type": "string"
+			}
+		],
+		"name": "MilestoneSubmitted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "proofLink",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tippingWindowEnd",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestoneSubmittedDetailed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "pointsEarned",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestoneVerified",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "count",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestonesAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Paused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newPlatformFeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "PlatformFeeAddressUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "points",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalPoints",
+				"type": "uint256"
+			}
+		],
+		"name": "PointsAllocated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"name": "ProfileUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "scout",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "ScoutEarningsClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "supporter",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "StakeRefundClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "netSupport",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "fee",
+				"type": "uint256"
+			}
+		],
+		"name": "SupportClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "supporter",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalSupporters",
+				"type": "uint256"
+			}
+		],
+		"name": "SupportStaked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "deluluId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "milestoneId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tipper",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isScout",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isGenesis",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isFinisher",
+						"type": "bool"
+					}
+				],
+				"indexed": false,
+				"internalType": "struct Delulu.TipEventData",
+				"name": "data",
+				"type": "tuple"
+			}
+		],
+		"name": "TipExecuted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Unpaused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "implementation",
+				"type": "address"
+			}
+		],
+		"name": "Upgraded",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "BPS_DENOMINATOR",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "CLAIM_WINDOW",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "KEEPER_BOUNTY_BPS",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MAX_MILESTONES",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MIN_STAKE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "PROTOCOL_FEE_BPS",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "SCOUT_FEE_BPS",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "UPGRADE_INTERFACE_VERSION",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string[]",
+				"name": "mURIs",
+				"type": "string[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "mDurations",
+				"type": "uint256[]"
+			}
+		],
+		"name": "addMilestones",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "addressToUsername",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "points",
+				"type": "uint256"
+			}
+		],
+		"name": "allocatePoints",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "start",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "deadline",
+				"type": "uint256"
+			}
+		],
+		"name": "calculateTippingWindow",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "challenges",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "contentHash",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "poolAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "startTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "duration",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalPoints",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "active",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimChallengeReward",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimPersonalMarketSupport",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimRefund",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimScoutEarnings",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_contentHash",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_poolAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_duration",
+				"type": "uint256"
+			}
+		],
+		"name": "createChallenge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "contentHash",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "resolutionDeadline",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "initialSupport",
+				"type": "uint256"
+			}
+		],
+		"name": "createDelulu",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "currency",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "deluluMilestones",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "descriptionHash",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "deadline",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "proofLink",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSubmitted",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isVerified",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "delulus",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "contentHash",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stakingDeadline",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "resolutionDeadline",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalSupportCollected",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalSupporters",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "points",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isResolved",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "rewardClaimed",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "failedStakePool",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "finishedGoalsCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "firstScouts",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"name": "getAddressByUsername",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getDeluluPoints",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "dId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "mId",
+				"type": "uint256"
+			}
+		],
+		"name": "getMilestoneInfo",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getUsername",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_defaultCurrency",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_vault",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_gDollar",
+				"type": "address"
+			}
+		],
+		"name": "initialize",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "isSupportedToken",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"name": "isUsernameTaken",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			}
+		],
+		"name": "joinChallenge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "marketFinisherWindowEnd",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "marketIsFailed",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "marketIsStaked",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "marketStakedAmount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneIsMissed",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneStartTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneTippingEnd",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneTippingStart",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneTotalSupport",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneURI",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "nextChallengeId",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "nextDeluluId",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "paused",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "platformFeeAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "proxiableUUID",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			}
+		],
+		"name": "refundChallengePool",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "refundClaimed",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"name": "rejectMilestone",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "resolveDelulu",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "scoutCount",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "scoutEarnings",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_token",
+				"type": "address"
+			}
+		],
+		"name": "setCurrency",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_platform",
+				"type": "address"
+			}
+		],
+		"name": "setPlatformFeeAddress",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_username",
+				"type": "string"
+			}
+		],
+		"name": "setProfile",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_token",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "_status",
+				"type": "bool"
+			}
+		],
+		"name": "setTokenSupport",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_vault",
+				"type": "address"
+			}
+		],
+		"name": "setVault",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_verifier",
+				"type": "address"
+			}
+		],
+		"name": "setVerifier",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "settleGoalFailure",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "slashAbandonedGoal",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "stakeDelulu",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "proofLink",
+				"type": "string"
+			}
+		],
+		"name": "submitMilestone",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "supporterAmount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "tipMilestone",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalReservedRewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "totalSupportForProRata",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "unpause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newImplementation",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "upgradeToAndCall",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "userDeluluPoints",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "usernameToAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "vault",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "verifier",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "points",
+				"type": "uint256"
+			}
+		],
+		"name": "verifyMilestone",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
