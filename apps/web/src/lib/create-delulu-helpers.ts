@@ -72,15 +72,13 @@ export function validateDeluluInputs(
     errors.text = `Text must be ${MAX_DELULU_LENGTH} characters or less`;
   }
 
-  // Stake validation (optional stake: 0 or >= MIN_STAKE)
-  if (stakeAmount < 0) {
-    errors.stake = "Stake cannot be negative";
-  } else if (stakeAmount > 0 && stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE} or 0`;
+  // Stake validation (minimum stake of 1 required)
+  if (stakeAmount < MIN_STAKE) {
+    errors.stake = `Minimum stake is ${MIN_STAKE}`;
   }
 
-  // Balance validation – only relevant when the user actually stakes > 0
-  if (stakeAmount > 0) {
+  // Balance validation
+  if (stakeAmount >= MIN_STAKE) {
     if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
       errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
     } else if (stakeAmount > maxStakeValue) {
@@ -101,8 +99,8 @@ export function validateDeluluInputs(
   const canCreate =
     isValid &&
     delusionText.trim().length > 0 &&
-    // Optional stake: allow 0 or any value up to the user's balance
-    stakeAmount >= 0 &&
+    // Minimum stake of 1 required
+    stakeAmount >= MIN_STAKE &&
     stakeAmount <= maxStakeValue &&
     !!selectedImage;
 

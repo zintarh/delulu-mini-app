@@ -599,7 +599,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
       <div
         className={cn(
-          "relative min-h-screen z-10 max-w-4xl mx-auto bg-background text-foreground",
+          "relative h-screen z-10 max-w-4xl mx-auto bg-background text-foreground overflow-y-auto",
           step === "gallery" && "bg-background"
         )}
       >
@@ -670,7 +670,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           )}
         </div>
 
-        <div className="pt-20 pb-6 px-4 lg:px-8 min-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
+        <div className="pt-20 pb-6 px-4 lg:px-8 min-h-[calc(100vh-5rem)]">
           <div className="max-w-4xl mx-auto space-y-1">
 
 
@@ -908,16 +908,15 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       setInputText(value);
 
                       if (value.trim() === "") {
-                        // Optional stake: empty input means no stake (0)
+                        // Empty input - will be validated as invalid (minimum 1 required)
                         setStakeAmount(0);
                         return;
                       }
 
                       const numValue = parseFloat(value);
                       if (!isNaN(numValue)) {
-                        // For non-zero values, enforce a minimum of 1 token
-                        const clampedValue =
-                          numValue > 0 ? Math.max(MIN_STAKE, numValue) : 0;
+                        // Enforce a minimum of 1 token
+                        const clampedValue = numValue > 0 ? Math.max(MIN_STAKE, numValue) : 0;
                         setStakeAmount(clampedValue);
                       }
                     }}
@@ -926,23 +925,18 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       if (
                         e.target.value === "" ||
                         isNaN(currentValue) ||
-                        currentValue < 0
+                        currentValue < MIN_STAKE
                       ) {
-                        // Treat invalid/empty as no stake
-                        setStakeAmount(0);
-                        setInputText("");
+                        // Invalid/empty - set to minimum required
+                        setStakeAmount(MIN_STAKE);
+                        setInputText(MIN_STAKE.toString());
                       } else {
-                        const clampedValue =
-                          currentValue > 0
-                            ? Math.max(MIN_STAKE, currentValue)
-                            : 0;
+                        const clampedValue = Math.max(MIN_STAKE, currentValue);
                         setStakeAmount(clampedValue);
-                        setInputText(
-                          clampedValue > 0 ? clampedValue.toFixed(1) : ""
-                        );
+                        setInputText(clampedValue.toFixed(1));
                       }
                     }}
-                    placeholder="Optional (Min 1 Token)"
+                    placeholder="Min 1 Token"
                     className={cn(
                       "flex-1 min-w-0 bg-transparent text-lg sm:text-2xl font-bold focus:outline-none placeholder:text-muted-foreground",
                     )}
@@ -1043,19 +1037,23 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   </div>
                 </div>
               </div>
-              {isConnected &&
-                (hasInsufficientBalanceForStake ||
-                  (stakeAmount > 0 && stakeAmount < MIN_STAKE) ||
-                  exceedsBalance) && (
-                <p className="text-sm text-destructive mt-2 font-bold">
-                  {hasInsufficientBalanceForStake
-                    ? "Insufficient balance"
-                    : stakeAmount > 0 && stakeAmount < MIN_STAKE
-                      ? "Minimum amount is 1"
-                      : exceedsBalance
-                        ? "Amount exceeds your balance"
-                        : ""}
-                </p>
+              {isConnected && (
+                <>
+                  {stakeAmount < MIN_STAKE && (
+                    <p className="text-sm text-destructive mt-2 font-bold">
+                      Minimum stake is 1 token
+                    </p>
+                  )}
+                  {stakeAmount >= MIN_STAKE && (hasInsufficientBalanceForStake || exceedsBalance) && (
+                    <p className="text-sm text-destructive mt-2 font-bold">
+                      {hasInsufficientBalanceForStake
+                        ? "Insufficient balance"
+                        : exceedsBalance
+                          ? "Amount exceeds your balance"
+                          : ""}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
