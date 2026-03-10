@@ -4,9 +4,12 @@ import { useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 
+// NOTE: The subgraph entity is named `CreatorStats`, so the collection field
+// is `creatorStatses` (Graph pluralization). We alias it to `creatorStats`
+// in the query so the rest of the hook logic can stay simple.
 const CREATOR_LEADERBOARD_QUERY = gql`
   query CreatorLeaderboard($first: Int = 20, $skip: Int = 0) {
-    creatorStats(
+    creatorStats: creatorStatses(
       first: $first
       skip: $skip
       orderBy: completedGoals

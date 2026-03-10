@@ -232,20 +232,57 @@ export default function DeluluPage() {
   const handleCreateMilestones = () => {
     if (!isCreator || !delulu) return;
     // Contract only allows initializing milestones once
-    if (milestones && milestones.length > 0) return;
+    if (milestones && milestones.length > 0) {
+      setErrorTitle("Milestones already created");
+      setErrorMessage("You cannot add more milestones.");
+      setShowErrorModal(true);
+      return;
+    }
 
-    const cleaned = newMilestones.filter(
+    // Validate that at least one milestone has both description and days
+    const validMilestones = newMilestones.filter(
       (m) => m.description.trim().length > 0 && m.days.trim().length > 0
     );
 
-    if (cleaned.length === 0) return;
+    if (validMilestones.length === 0) {
+      setErrorTitle("Missing information");
+      setErrorMessage("Please enter a description and duration for at least one milestone.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check for incomplete milestones (one field filled but not the other)
+    const incompleteMilestones = newMilestones.filter(
+      (m) =>
+        (m.description.trim().length > 0 && m.days.trim().length === 0) ||
+        (m.description.trim().length === 0 && m.days.trim().length > 0)
+    );
+
+    if (incompleteMilestones.length > 0) {
+      setErrorTitle("Incomplete milestones");
+      setErrorMessage("Please fill in both description and duration for all milestones.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Validate that all days are valid numbers > 0
+    const invalidDays = validMilestones.filter((m) => {
+      const days = Number(m.days);
+      return Number.isNaN(days) || days <= 0;
+    });
+
+    if (invalidDays.length > 0) {
+      setErrorTitle("Invalid duration");
+      setErrorMessage("Each milestone must have at least 1 day.");
+      setShowErrorModal(true);
+      return;
+    }
 
     // Validate that the total sequential duration does not exceed the resolution deadline.
     // The contract uses `block.timestamp` as a starting point and reverts with InvalidDeadlines()
     // if the final milestone deadline is after `resolutionDeadline`.
-    const totalDurationSeconds = cleaned.reduce((sum, m) => {
+    const totalDurationSeconds = validMilestones.reduce((sum, m) => {
       const days = Number(m.days);
-      if (Number.isNaN(days) || days <= 0) return sum;
       return sum + days * 24 * 60 * 60;
     }, 0);
 
@@ -253,16 +290,14 @@ export default function DeluluPage() {
     const resolutionSeconds = Math.floor(delulu.resolutionDeadline.getTime() / 1000);
 
     if (nowSeconds + totalDurationSeconds > resolutionSeconds) {
-      setErrorTitle("Milestones exceed resolution deadline");
-      setErrorMessage(
-        "The total duration of your milestones goes past this delulu's resolution deadline. Reduce the number of days or update the resolution deadline."
-      );
+      setErrorTitle("Duration too long");
+      setErrorMessage("Total milestone duration exceeds your deadline. Reduce the number of days.");
       setShowErrorModal(true);
       return;
     }
 
-    const mURIs = cleaned.map((m) => m.description.trim());
-    const mDurations = cleaned.map((m) =>
+    const mURIs = validMilestones.map((m) => m.description.trim());
+    const mDurations = validMilestones.map((m) =>
       BigInt(Math.floor(Number(m.days) * 24 * 60 * 60))
     );
 
@@ -852,7 +887,7 @@ export default function DeluluPage() {
                                 <input
                                   type="number"
                                   min={1}
-                                  placeholder="1"
+                                  placeholder="0"
                                   value={m.days}
                                   onChange={(e) =>
                                     handleNewMilestoneChange(index, "days", e.target.value)
