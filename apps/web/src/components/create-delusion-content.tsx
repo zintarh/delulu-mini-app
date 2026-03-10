@@ -422,7 +422,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const canCreate = validation.canCreate && !isUploadingImage;
   const hasInputError = !validation.isValid;
   const exceedsBalance = stakeAmount > maxStakeValue;
-  const hasInsufficientBalanceForStake = maxStakeValue < MIN_STAKE;
+  // Only treat balance as "insufficient" when user is actually trying to stake > 0
+  const hasInsufficientBalanceForStake =
+    stakeAmount > 0 && maxStakeValue < MIN_STAKE;
 
   const progressStep = getProgressStep(
     isUploadingImage,
@@ -668,7 +670,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           )}
         </div>
 
-        <div className="pt-20 pb-4 px-4 lg:px-8 h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
+        <div className="pt-20 pb-6 px-4 lg:px-8 min-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide">
           <div className="max-w-4xl mx-auto space-y-1">
 
 
@@ -932,7 +934,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       } else {
                         const clampedValue =
                           currentValue > 0
-                            ? Math.max(1, currentValue)
+                            ? Math.max(MIN_STAKE, currentValue)
                             : 0;
                         setStakeAmount(clampedValue);
                         setInputText(

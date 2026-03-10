@@ -648,6 +648,14 @@ export default function DeluluPage() {
                             ≈ ${totalSupportUsd.toFixed(2)}
                           </span>
                         )}
+                        {delulu?.creatorStake && delulu.creatorStake > 0 && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Creator stake:{" "}
+                            {delulu.creatorStake < 0.01
+                              ? delulu.creatorStake.toFixed(4)
+                              : delulu.creatorStake.toFixed(2)}
+                          </span>
+                        )}
                       </p>
                     </div>
 
@@ -924,47 +932,47 @@ export default function DeluluPage() {
                                 }
                                 className="w-full flex gap-4 p-4 items-start text-left"
                               >
-                                  <div className="pt-1">
-                                    {m.isVerified ? (
-                                      <CheckCircle2 className="text-emerald-400" />
-                                    ) : (
-                                      <Circle className="text-muted-foreground/40" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 space-y-1.5">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="font-bold text-foreground">
-                                        {shortTitle}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          if (
-                                            !m.isVerified &&
-                                            isCreator
-                                          ) {
-                                            openProofModal(
-                                              m.milestoneId,
-                                              m.proofLink
-                                            );
-                                          }
-                                        }}
-                                        className={cn(
-                                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
-                                          m.isVerified
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
-                                            : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
-                                        )}
-                                      >
-                                        {statusLabel}
-                                      </button>
-                                    </div>
-                                    <p className="text-xs md:text-sm text-muted-foreground">
-                                      {timeLabel}
+                                <div className="pt-1">
+                                  {m.isVerified ? (
+                                    <CheckCircle2 className="text-emerald-400" />
+                                  ) : (
+                                    <Circle className="text-muted-foreground/40" />
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="font-bold text-foreground">
+                                      {shortTitle}
                                     </p>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (
+                                          !m.isVerified &&
+                                          isCreator
+                                        ) {
+                                          openProofModal(
+                                            m.milestoneId,
+                                            m.proofLink
+                                          );
+                                        }
+                                      }}
+                                      className={cn(
+                                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                        m.isVerified
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
+                                          : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
+                                      )}
+                                    >
+                                      {statusLabel}
+                                    </button>
                                   </div>
+                                  <p className="text-xs md:text-sm text-muted-foreground">
+                                    {timeLabel}
+                                  </p>
+                                </div>
                               </button>
 
                               {openMilestoneId === m.id && (

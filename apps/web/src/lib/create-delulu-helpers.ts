@@ -2,6 +2,8 @@ import { parseUnits } from "viem";
 
 // Constants
 export const MAX_DELULU_LENGTH = 140;
+// NOTE: MIN_STAKE represents the minimum *non-zero* stake in whole tokens.
+// A stake of 0 is allowed at the UI level and treated as "no stake".
 export const MIN_STAKE = 1;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
@@ -30,8 +32,10 @@ export interface ProgressStep {
 // Date helpers
 export function getDefaultDeadline(): Date {
   const date = new Date();
-  date.setUTCDate(date.getUTCDate() + 7);
-  date.setUTCHours(23, 59, 59, 999); // End of day UTC - industry standard for prediction markets
+  // Default to "tomorrow" in the user's local calendar, so the picker highlights
+  // the day after today (e.g. 11th when today is the 10th), regardless of timezone.
+  date.setDate(date.getDate() + 1);
+  date.setHours(23, 59, 59, 999); // End of day local time
   return date;
 }
 
@@ -68,19 +72,23 @@ export function validateDeluluInputs(
     errors.text = `Text must be ${MAX_DELULU_LENGTH} characters or less`;
   }
 
-  // Stake validation
-  if (stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE}`;
+  // Stake validation (optional stake: 0 or >= MIN_STAKE)
+  if (stakeAmount < 0) {
+    errors.stake = "Stake cannot be negative";
+  } else if (stakeAmount > 0 && stakeAmount < MIN_STAKE) {
+    errors.stake = `Minimum stake is ${MIN_STAKE} or 0`;
   }
 
-  // Balance validation
-  if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
-    errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
-  } else if (stakeAmount > maxStakeValue) {
-    const displayBalance = isFinite(maxStakeValue)
-      ? maxStakeValue.toFixed(2)
-      : "0.00";
-    errors.balance = `Amount exceeds your balance of ${displayBalance}.`;
+  // Balance validation – only relevant when the user actually stakes > 0
+  if (stakeAmount > 0) {
+    if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
+      errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
+    } else if (stakeAmount > maxStakeValue) {
+      const displayBalance = isFinite(maxStakeValue)
+        ? maxStakeValue.toFixed(2)
+        : "0.00";
+      errors.balance = `Amount exceeds your balance of ${displayBalance}.`;
+    }
   }
 
   // Image validation
@@ -93,7 +101,8 @@ export function validateDeluluInputs(
   const canCreate =
     isValid &&
     delusionText.trim().length > 0 &&
-    stakeAmount >= MIN_STAKE &&
+    // Optional stake: allow 0 or any value up to the user's balance
+    stakeAmount >= 0 &&
     stakeAmount <= maxStakeValue &&
     !!selectedImage;
 
@@ -102,6 +111,8 @@ export function validateDeluluInputs(
 
 // Stake amount helpers
 export function clampStakeValue(val: number): number {
+  // Only clamp positive values; 0 remains a valid "no stake" amount.
+  if (val <= 0) return 0;
   return Math.max(val, MIN_STAKE);
 }
 
