@@ -46,7 +46,7 @@ export function ResponsiveSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className={cn("bg-white border-t border-gray-200", sheetClassName, contentClassName)}
+          className={cn("bg-background border-t border-border", sheetClassName, contentClassName)}
         >
           {title && <SheetTitle className="sr-only">{title}</SheetTitle>}
           {children}
@@ -59,12 +59,12 @@ export function ResponsiveSheet({
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
-        className={cn("max-w-md bg-white", modalClassName, contentClassName)}
+        className={cn("max-w-md", modalClassName, contentClassName)}
         showClose={showClose}
       >
         {title && (
           <ModalHeader>
-            <ModalTitle className="text-delulu-charcoal">{title}</ModalTitle>
+            <ModalTitle>{title}</ModalTitle>
           </ModalHeader>
         )}
         {children}

@@ -3,63 +3,99 @@
 @tailwind utilities;
 
 :root {
-  /* Delulu color palette - Light Theme */
+  /* Delulu color palette - shared */
   --delulu-yellow: #fcff52; /* Brand yellow - for buttons/accents only */
   --delulu-yellow-reserved: #fcff52;
   --delulu-green: #35d07f;
   --delulu-charcoal: #111111; /* Primary text color - Pinterest sharp black */
   --delulu-white: #ffffff;
-  --delulu-light-gray: #F8F9FA; /* Secondary background */
-  --delulu-border: #E5E7EB; /* Light border color */
+  --delulu-light-gray: #f8f9fa; /* Secondary background */
+  --delulu-border: #e5e7eb; /* Light border color */
 
-  /* Light theme defaults */
+  /* Default to light token values; dark theme overrides via .dark */
   --background: #ffffff;
-  --foreground: #1A1A1A;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #1A1A1A;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #1A1A1A; 
-  --primary-foreground: #1A1A1A; 
-  --secondary: #F8F9FA;
-  --secondary-foreground: #1A1A1A;
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
-  --accent: #F8F9FA;
-  --accent-foreground: #1A1A1A;
+  --popover-foreground: #1a1a1a;
+  --primary: #111111;
+  --primary-foreground: #f9fafb;
+  --secondary: #f8f9fa;
+  --secondary-foreground: #111111;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f8f9fa;
+  --accent-foreground: #111111;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #E5E7EB;
-  --input: #F3F4F6;
-  --ring: #fcff52;
-  --chart-1: #1A1A1A;
+  --border: #e5e7eb;
+  --input: #f3f4f6;
+  --ring: #111111;
+  --chart-1: #111111;
   --chart-2: #35d07f;
-  --chart-3: #6B7280;
+  --chart-3: #6b7280;
   --chart-4: #fcff52;
-  --chart-5: #E5E7EB;
+  --chart-5: #e5e7eb;
   --radius: 1rem;
 }
 
-/* Dark mode is disabled - light theme only */
+/* Dark theme tokens (applied when html has class="dark") */
 .dark {
+  /* Primary background & text */
+  --background: #010001;
+  --foreground: #fefeff; /* also used for icons */
+
+  /* Surfaces */
+  --card: #151515;
+  --card-foreground: #fefeff;
+  --popover: #151515;
+  --popover-foreground: #fefeff;
+  --secondary: #151515;
+  --secondary-foreground: #fefeff;
+  --muted: #151515;
+  --muted-foreground: #a3a3aa;
+  --accent: #151515;
+  --accent-foreground: #fefeff;
+
+  /* Feedback / semantic */
+  --destructive: #ef4444;
+  --destructive-foreground: #fefeff;
+
+  /* Borders & inputs */
+  --border: #1f1f1f;
+  --input: #1f1f1f;
+  --ring: #fefeff;
+
+  /* Charts (keep reasonable contrast on dark) */
+  --chart-1: #fefeff;
+  --chart-2: #35d07f;
+  --chart-3: #a3a3aa;
+  --chart-4: #fcff52;
+  --chart-5: #1f1f1f;
+}
+
+/* Explicit light theme class (optional; html.classList may toggle "light") */
+.light {
   --background: #ffffff;
-  --foreground: #1A1A1A;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #1A1A1A;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #1A1A1A;
-  --primary: #fcff52;
-  --primary-foreground: #1A1A1A;
-  --secondary: #F8F9FA;
-  --secondary-foreground: #1A1A1A;
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
-  --accent: #F8F9FA;
-  --accent-foreground: #1A1A1A;
+  --popover-foreground: #1a1a1a;
+  --primary: #111111;
+  --primary-foreground: #f9fafb;
+  --secondary: #f8f9fa;
+  --secondary-foreground: #111111;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f8f9fa;
+  --accent-foreground: #111111;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #E5E7EB;
-  --input: #F3F4F6;
-  --ring: #fcff52;
+  --border: #e5e7eb;
+  --input: #f3f4f6;
+  --ring: #111111;
 }
 
 @layer base {

@@ -30,6 +30,8 @@ query GetDelulus(
     resolutionDeadline
     createdAt
     creatorStake
+    creatorIsStaked
+    creatorStakeCurrent
     totalSupportCollected
     totalSupporters
     challengeId
@@ -58,6 +60,8 @@ query GetDeluluById($id: ID!) {
     resolutionDeadline
     createdAt
     creatorStake
+    creatorIsStaked
+    creatorStakeCurrent
     totalSupportCollected
     totalSupporters
     challengeId
@@ -66,6 +70,8 @@ query GetDeluluById($id: ID!) {
     isResolved
     isCancelled
     rewardClaimed
+    isFailed
+    finisherWindowEnd
     stakes(first: 100, orderBy: createdAt, orderDirection: desc) {
       id
       user {
@@ -88,11 +94,17 @@ query GetDeluluById($id: ID!) {
       id
       milestoneId
       descriptionHash
+      milestoneURI
       deadline
+      startTime
+      tippingWindowStart
+      tippingWindowEnd
+      isMissed
       proofLink
       isSubmitted
       isVerified
       pointsEarned
+      totalSupport
       submittedAt
       verifiedAt
       rejectedAt
@@ -149,6 +161,8 @@ query GetActiveDelulus(
     resolutionDeadline
     createdAt
     creatorStake
+    creatorIsStaked
+    creatorStakeCurrent
     isResolved
     isCancelled
   }

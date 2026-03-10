@@ -66,7 +66,7 @@ export function CreateDelusionSheet({
   const { user } = useUserStore();
   const apolloClient = useApolloClient();
   const [currentStep, setCurrentStep] = useState(0);
-  const [stakeAmount, setStakeAmount] = useState([1]);
+  const [stakeAmount, setStakeAmount] = useState([0]);
   const [delusionText, setDelusionText] = useState("");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const supportedTokens = useSupportedTokens();
@@ -240,7 +240,7 @@ export function CreateDelusionSheet({
   });
 
   const currentStakeAmount =
-    stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 1;
+    stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 0;
 
   const hasInsufficientBalance = selectedTokenBalance?.balance
     ? parseFloat(selectedTokenBalance.formatted) < currentStakeAmount
@@ -254,7 +254,7 @@ export function CreateDelusionSheet({
       );
     if (currentStep === 1) return true;
     if (currentStep === 2)
-      return currentStakeAmount >= 1 && !hasInsufficientBalance;
+      return currentStakeAmount >= 0 && !hasInsufficientBalance;
     if (currentStep === 3) return true;
     return false;
   };
@@ -278,7 +278,7 @@ export function CreateDelusionSheet({
 
   const handleClose = () => {
     setCurrentStep(0);
-    setStakeAmount([1]);
+    setStakeAmount([0]);
     setDelusionText("");
     const preferredToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
     setSelectedToken(preferredToken);
@@ -581,22 +581,25 @@ export function CreateDelusionSheet({
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === "") {
-                                setStakeAmount([1]);
+                                // Empty input represents no stake
+                                setStakeAmount([0]);
                                 return;
                               }
                               const numValue = parseFloat(value);
-                              if (!isNaN(numValue) && numValue >= 1) {
-                                const clampedValue = Math.max(
-                                  1,
-                                  Math.min(numValue, 10000)
-                                );
+                              if (
+                                !isNaN(numValue) &&
+                                numValue >= 0 &&
+                                numValue <= 10000
+                              ) {
+                                const clampedValue =
+                                  numValue > 0
+                                    ? Math.max(1, numValue)
+                                    : 0;
                                 setStakeAmount([clampedValue]);
                                 console.log(
                                   "Stake amount set to:",
                                   clampedValue
                                 );
-                              } else if (!isNaN(numValue) && numValue < 1) {
-                                setStakeAmount([1]);
                               }
                             }}
                             onBlur={(e) => {
@@ -604,12 +607,15 @@ export function CreateDelusionSheet({
                               if (
                                 e.target.value === "" ||
                                 isNaN(currentValue) ||
-                                currentValue < 1
+                                currentValue < 0
                               ) {
-                                setStakeAmount([1]);
-                                console.log("Reset stake amount to 1.00");
+                                setStakeAmount([0]);
+                                console.log("Reset stake amount to 0");
                               } else {
-                                const clampedValue = Math.max(1, currentValue);
+                                const clampedValue =
+                                  currentValue > 0
+                                    ? Math.max(1, currentValue)
+                                    : 0;
                                 setStakeAmount([clampedValue]);
                                 console.log(
                                   "Stake amount confirmed on blur:",
@@ -617,7 +623,7 @@ export function CreateDelusionSheet({
                                 );
                               }
                             }}
-                            min={1}
+                            min={0}
                             max={10000}
                             step="0.01"
                             className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-black rounded-2xl px-4 transition-colors"
@@ -638,10 +644,12 @@ export function CreateDelusionSheet({
                         <Slider
                           value={stakeAmount}
                           onValueChange={(values) => {
-                            const clamped = values.map((v) => Math.max(1, v));
+                            const clamped = values.map((v) =>
+                              v > 0 ? Math.max(1, v) : 0
+                            );
                             setStakeAmount(clamped);
                           }}
-                          min={1}
+                          min={0}
                           max={1000}
                           step={0.01}
                           className="delulu-slider"
@@ -677,9 +685,7 @@ export function CreateDelusionSheet({
                           </p>
                         )}
                         {isConnected && currentStakeAmount < 1 && (
-                          <p className="text-sm text-red-600 mt-2 font-bold">
-                            Minimum stake is 1
-                          </p>
+                          <></>
                         )}
                         {isConnected && hasInsufficientBalance && (
                           <p className="text-sm text-red-600 mt-2 font-bold">
@@ -847,12 +853,15 @@ export function CreateDelusionSheet({
                             if (!delusionText.trim()) {
                               throw new Error("Please enter your delulu text");
                             }
+                            if (!isFinite(stakeAmount[0])) {
+                              throw new Error("Invalid stake amount");
+                            }
                             if (
-                              !isFinite(stakeAmount[0]) ||
+                              stakeAmount[0] > 0 &&
                               stakeAmount[0] < 1
                             ) {
                               throw new Error(
-                                "Stake amount must be at least 1"
+                                "Min stake is 1 Token or 0"
                               );
                             }
 

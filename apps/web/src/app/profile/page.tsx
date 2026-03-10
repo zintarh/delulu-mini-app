@@ -86,7 +86,7 @@ export default function ProfilePage() {
   }, [isConnected, showLoginSheet]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-4xl mx-auto overflow-hidden">
         <div
           ref={scrollContainerRef}
@@ -95,16 +95,16 @@ export default function ProfilePage() {
           <div className="px-6 pt-4 pb-3 flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="rounded-full w-12 h-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-delulu-charcoal transition-colors"
+              className="rounded-full w-12 h-12 flex items-center justify-center bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
               title="Back"
               aria-label="Back"
             >
               <ArrowLeft className="h-7 w-7" />
             </button>
             <div className="flex items-center justify-center flex-1">
-              <h2 className="text-sm text-gray-500">
+              <h2 className="text-sm text-muted-foreground">
                 {isLoading ? (
-                  <span className="text-gray-400">Loading...</span>
+                  <span className="text-muted-foreground/60">Loading...</span>
                 ) : user?.username ? (
                   `@${user.username}`
                 ) : address ? (
@@ -116,7 +116,7 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={() => setLogoutSheetOpen(true)}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-10 h-10 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Disconnect"
               aria-label="Disconnect"
             >
@@ -124,14 +124,14 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="w-full border-t border-gray-200" />
+          <div className="w-full border-t border-border" />
 
           <UserClaimsStats address={address} />
 
           <div className="px-6 pt-3 pb-1">
             <Link
               href="/daily-claim"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted hover:bg-muted/80 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full">
@@ -142,10 +142,10 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-delulu-charcoal">
+                  <p className="text-sm font-semibold text-foreground">
                     Claim G$ UBI
                   </p>
-                  <p className="text-[11px] text-gray-600">
+                  <p className="text-[11px] text-muted-foreground">
                     Open the GoodDollar claim interface.
                   </p>
                 </div>
@@ -153,19 +153,19 @@ export default function ProfilePage() {
             </Link>
           </div>
 
-          <div className="flex items-center justify-center gap-1 border-b border-gray-200 bg-white sticky top-0 z-10">
+          <div className="flex items-center justify-center gap-1 border-b border-border bg-card sticky top-0 z-10">
             <button
               onClick={() => setActiveTab("ongoing")}
               className={cn(
                 "px-6 py-3 text-sm font-medium transition-colors relative",
                 activeTab === "ongoing"
-                  ? "text-delulu-charcoal"
-                  : "text-gray-400 hover:text-delulu-charcoal"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Ongoing
               {activeTab === "ongoing" && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-delulu-charcoal rounded-full" />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-foreground rounded-full" />
               )}
             </button>
             <button
@@ -173,13 +173,13 @@ export default function ProfilePage() {
               className={cn(
                 "px-6 py-3 text-sm font-medium transition-colors relative",
                 activeTab === "past"
-                  ? "text-delulu-charcoal"
-                  : "text-gray-400 hover:text-delulu-charcoal"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Past
               {activeTab === "past" && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-delulu-charcoal rounded-full" />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-foreground rounded-full" />
               )}
             </button>
           </div>
@@ -191,12 +191,12 @@ export default function ProfilePage() {
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div
                       key={i}
-                      className="w-full aspect-[3/4] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
+                      className="w-full aspect-[3/4] bg-muted rounded-xl border border-border animate-pulse"
                     />
                   ))}
                 </div>
               ) : delulusWithContent.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   {activeTab === "ongoing"
                     ? "You haven't created any ongoing delulus yet"
                     : "You haven't created any past delulus yet"}
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                       {[1, 2, 3].map((i) => (
                         <div
                           key={`loading-${i}`}
-                          className="w-full aspect-[3/4] bg-gray-100 rounded-xl border border-gray-200 animate-pulse"
+                          className="w-full aspect-[3/4] bg-muted rounded-xl border border-border animate-pulse"
                         />
                       ))}
                     </div>
@@ -232,7 +232,7 @@ export default function ProfilePage() {
 
                   {!hasNextPage && delulusWithContent.length > 0 && (
                     <div className="text-center py-4 mt-2">
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         You&apos;ve reached the end
                       </p>
                     </div>

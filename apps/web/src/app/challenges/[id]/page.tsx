@@ -148,7 +148,7 @@ export default function ChallengeDetailPage() {
           />
         </div>
 
-        <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
+        <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
           {/* Mobile Header */}
           <div className="lg:hidden">
             <ChallengesHeader
@@ -169,12 +169,12 @@ export default function ChallengeDetailPage() {
             />
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-10 pt-20 lg:pt-4">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-10 pt-20 lg:pt-4 text-foreground">
             {/* Header with Back Button */}
             <div className="mb-6 sm:mb-8">
               <Link
                 href="/challenges"
-                className="inline-flex items-center gap-2 mb-3 sm:mb-4 text-gray-600 hover:text-delulu-charcoal transition-colors group text-sm sm:text-base"
+                className="inline-flex items-center gap-2 mb-3 sm:mb-4 text-muted-foreground hover:text-foreground transition-colors group text-sm sm:text-base"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-semibold">Back to Campaigns</span>
@@ -189,8 +189,8 @@ export default function ChallengeDetailPage() {
                       <div className="h-5 bg-gray-200 rounded w-28" />
                     </div>
                   ) : (
-                    <div className="bg-white rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
-                      <p className="text-delulu-charcoal/60 font-medium">
+                    <div className="bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                      <p className="text-muted-foreground font-medium">
                         Campaign not found
                       </p>
                     </div>
@@ -200,19 +200,19 @@ export default function ChallengeDetailPage() {
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                     <div className="flex-1 min-w-0 space-y-1">
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-delulu-charcoal tracking-tight">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
                         {challenge.title || `Campaign #${challenge.id}`}
                       </h1>
                       {challenge.description && (
-                        <p className="text-xs sm:text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {challenge.description}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm flex-shrink-0">
-                      <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-gray-50 rounded-md border border-gray-200">
-                        <Trophy className="w-3 h-3 sm:w-4 sm:h-4 text-delulu-charcoal flex-shrink-0" />
-                        <span className="font-bold text-delulu-charcoal text-sm sm:text-base">
+                      <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-muted rounded-md border border-border">
+                        <Trophy className="w-3 h-3 sm:w-4 sm:h-4 text-foreground flex-shrink-0" />
+                        <span className="font-bold text-sm sm:text-base">
                           {challenge.poolAmount.toFixed(2)}
                         </span>
                         {currencyTokenAddress ? (
@@ -231,10 +231,10 @@ export default function ChallengeDetailPage() {
             {challenge && (
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-5">
-                  <h2 className="text-lg sm:text-xl font-black text-delulu-charcoal">
+                  <h2 className="text-lg sm:text-xl font-black">
                     Leaderboard
                   </h2>
-                  <div className="text-xs sm:text-sm text-gray-500">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Ends {formatDistanceToNow(challenge.endTime, { addSuffix: true })}
                   </div>
                 </div>
@@ -242,12 +242,12 @@ export default function ChallengeDetailPage() {
                 {isLoadingLeaderboard ? (
                   <CampaignLeaderboardSkeleton rows={4} />
                 ) : leaderboard.length === 0 ? (
-                  <div className="bg-white rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
-                    <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-delulu-charcoal/60 font-medium mb-1">
+                  <div className="bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                    <Trophy className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-muted-foreground font-medium mb-1">
                       No participants yet
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Be the first to join this campaign!
                     </p>
                   </div>
@@ -268,27 +268,27 @@ export default function ChallengeDetailPage() {
                         <div
                           key={entry.deluluId}
                           className={cn(
-                            "bg-white rounded-lg border border-gray-200 p-2 sm:p-2",
-                            isTopThree && "bg-gradient-to-r from-yellow-50/40 to-white"
+                            "bg-card rounded-lg border border-border p-2 sm:p-2",
+                            isTopThree && "bg-gradient-to-r from-muted/60 to-card"
                           )}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                               {/* Rank */}
                               <div className="flex-shrink-0 w-7 sm:w-8 text-center">
-                                <span className="text-xs sm:text-sm font-black text-delulu-charcoal">
+                                <span className="text-xs sm:text-sm font-black">
                                   #{rank}
                                 </span>
                               </div>
 
                               {/* User Info */}
                               <div className="flex-1 min-w-0">
-                                <div className="font-bold text-xs sm:text-sm text-delulu-charcoal truncate">
+                                <div className="font-bold text-xs sm:text-sm truncate">
                                   {entry.username ||
                                     `${entry.creator.slice(0, 6)}...${entry.creator.slice(-4)}`}
                                 </div>
                                 {label && (
-                                  <div className="text-[11px] sm:text-xs text-gray-500 truncate">
+                                  <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
                                     {label}
                                   </div>
                                 )}
@@ -296,10 +296,10 @@ export default function ChallengeDetailPage() {
 
                               {/* Points */}
                               <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                                <span className="text-base sm:text-lg font-black text-delulu-charcoal">
+                                <span className="text-base sm:text-lg font-black">
                                   {displayPoints}
                                 </span>
-                                <span className="text-[11px] sm:text-xs text-gray-500 font-medium">
+                                <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">
                                   pts
                                 </span>
                               </div>
@@ -317,7 +317,7 @@ export default function ChallengeDetailPage() {
                                       ).toString()
                                     );
                                   }}
-                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-delulu-charcoal bg-white text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all w-full sm:w-auto"
+                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-delulu-charcoal bg-card text-foreground shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all w-full sm:w-auto"
                                 >
                                   Allocate
                                 </button>
@@ -347,8 +347,8 @@ export default function ChallengeDetailPage() {
       {/* Allocate points modal */}
       {isAdmin && editingPoints !== null && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl border border-gray-200">
-            <h3 className="text-base md:text-lg font-black text-delulu-charcoal mb-2">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
+            <h3 className="text-base md:text-lg font-black mb-2">
               Allocate points
             </h3>
            

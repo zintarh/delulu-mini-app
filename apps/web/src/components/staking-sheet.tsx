@@ -376,28 +376,25 @@ export function StakingSheet({
               ? `Support ${formatAddress(delulu.creator)}`
               : "Support"
         }
-        sheetClassName="border-t border-gray-200 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-white"
+        sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-card"
         modalClassName="max-w-lg"
       >
-        <div className="max-w-lg mx-auto pt-8 pb-8  lg:pt-6">
+        <div className="max-w-lg mx-auto pt-8 pb-8  lg:pt-6 text-foreground">
           <>
-            <p className="text-sm text-gray-500 mb-6">{description}</p>
+            <p className="text-sm text-muted-foreground mb-6">{description}</p>
 
             {/* Input Section - DeFi Style */}
             <div className="mb-6">
               <div
                 className={cn(
-                  "bg-gray-50 rounded-2xl border px-6 py-2 transition-colors",
-                  hasInputError ? "border-red-400" : "border-gray-200",
-                  !hasInputError
-                    ? "border-delulu-charcoal/30"
-                    : ""
+                  "bg-muted rounded-2xl border px-6 py-2 transition-colors",
+                  hasInputError ? "border-destructive" : "border-border"
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500">Amount</span>
+                  <span className="text-xs text-muted-foreground">Amount</span>
                   {tokenBalance !== null && marketToken && (
-                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       Balance: {tokenBalance.toFixed(2)}{" "}
                       <TokenBadge tokenAddress={marketToken} size="lg" showText={false} />
                     </span>
@@ -419,8 +416,8 @@ export function StakingSheet({
                     min="0"
                     step="0.01"
                     className={cn(
-                      "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
-                      hasInputError ? "text-red-500" : "text-delulu-charcoal"
+                      "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-muted-foreground",
+                      hasInputError ? "text-destructive" : "text-foreground"
                     )}
                     disabled={isLoading}
                   />
@@ -432,7 +429,7 @@ export function StakingSheet({
                       }
                     }}
                     disabled={isLoading || tokenBalance === null}
-                    className="flex-shrink-0 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-bold text-delulu-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 px-3 py-1.5 bg-secondary hover:bg-muted rounded-md text-xs font-bold text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     MAX
                   </button>
@@ -452,10 +449,10 @@ export function StakingSheet({
               }}
               disabled={!canStake || isLoading}
               className={cn(
-                "w-full py-3 font-bold text-sm transition-all rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                "w-full py-3 font-bold text-sm transition-all rounded-md border border-border",
                 canStake && !isLoading
-                  ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] cursor-pointer"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300 shadow-[3px_3px_0px_0px_#D1D5DB]"
+                  ? "bg-secondary text-foreground hover:bg-muted active:scale-[0.98] cursor-pointer"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
               {isLoading ? (

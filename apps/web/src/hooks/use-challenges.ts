@@ -104,25 +104,25 @@ export function useChallenges() {
 
     return challengesData
       .map((c) => {
-        const startTime = new Date(Number(c.startTime) * 1000);
-        const endTime = new Date(startTime.getTime() + Number(c.duration) * 1000);
-        const poolAmount = parseFloat(formatUnits(BigInt(c.poolAmount), 18));
+      const startTime = new Date(Number(c.startTime) * 1000);
+      const endTime = new Date(startTime.getTime() + Number(c.duration) * 1000);
+      const poolAmount = parseFloat(formatUnits(BigInt(c.poolAmount), 18));
 
-        // Get IPFS content
-        const { title, description } = parseChallengeContent(c.contentHash);
+      // Get IPFS content
+      const { title, description } = parseChallengeContent(c.contentHash);
 
-        return {
-          id: Number(c.challengeId),
-          contentHash: c.contentHash,
-          poolAmount,
-          startTime,
-          endTime,
-          duration: Number(c.duration),
-          totalPoints: Number(c.totalPoints),
-          active: c.active,
-          title,
-          description,
-        };
+      return {
+        id: Number(c.challengeId),
+        contentHash: c.contentHash,
+        poolAmount,
+        startTime,
+        endTime,
+        duration: Number(c.duration),
+        totalPoints: Number(c.totalPoints),
+        active: c.active,
+        title,
+        description,
+      };
       })
       // Filter out test campaigns by title (case-insensitive)
       .filter(
