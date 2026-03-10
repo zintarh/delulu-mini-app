@@ -28,6 +28,7 @@ export {
   useGraphDeluluStakes,
   useGraphUserClaims,
   useGraphUserStats,
+  useCreatorLeaderboard,
 } from "./graph";
 
 // Utility hooks

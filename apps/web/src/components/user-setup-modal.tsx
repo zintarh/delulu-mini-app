@@ -251,18 +251,18 @@ export function UserSetupModal({
       onOpenChange={handleClose}
       showClose={false}
       title=""
-      sheetClassName="border-t-2 border-delulu-charcoal !p-0 !z-[100] rounded-t-3xl bg-white"
+      sheetClassName="border-t border-border !p-0 !z-[100] rounded-t-3xl bg-card"
       modalClassName="max-w-lg"
     >
-      <div className="max-w-lg mx-auto pt-8 pb-6 px-6 lg:pt-6">
+      <div className="max-w-lg mx-auto pt-8 pb-6 px-6 lg:pt-6 text-foreground">
         {/* Notification Banner */}
         {notification && (
           <div
             className={cn(
-              "mb-4 p-3 rounded-lg border-2 font-medium text-sm",
+              "mb-4 p-3 rounded-lg border font-medium text-sm",
               notification.type === "success"
-                ? "bg-green-50 border-green-500 text-green-800"
-                : "bg-red-50 border-red-500 text-red-800"
+                ? "bg-emerald-500/10 border-emerald-500 text-emerald-200"
+                : "bg-destructive/10 border-destructive text-destructive-foreground"
             )}
           >
             {notification.message}
@@ -271,10 +271,10 @@ export function UserSetupModal({
         
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-black text-delulu-charcoal tracking-tight">
+            <h2 className="text-2xl font-black text-foreground tracking-tight">
               Setup your profile
             </h2>
-            <p className="text-sm text-delulu-charcoal/70 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Choose a username and email to complete your profile.
             </p>
           </div>
@@ -283,12 +283,12 @@ export function UserSetupModal({
             <div className="space-y-2">
               <label
                 htmlFor="username"
-                className="text-xs font-bold text-delulu-charcoal/80 uppercase tracking-wider"
+                className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
               >
                 Username
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-delulu-charcoal/50 font-bold">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">
                   @
                 </span>
                 <input
@@ -302,14 +302,14 @@ export function UserSetupModal({
                   onBlur={() => validateUsername(username)}
                   placeholder="yourusername"
                   className={cn(
-                    "w-full pl-8 pr-12 py-3 rounded-lg border-2 font-medium text-delulu-charcoal",
-                    "bg-white focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved/50",
+                    "w-full pl-8 pr-12 py-3 rounded-lg border font-medium",
+                    "bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
                     "transition-all",
                     usernameError
-                      ? "border-red-500 shadow-[2px_2px_0px_0px_#ef4444]"
+                      ? "border-destructive"
                       : isAvailable && shouldCheckAvailability
-                      ? "border-green-500 shadow-[2px_2px_0px_0px_#22c55e]"
-                      : "border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] focus:shadow-[3px_3px_0px_0px_#1A1A1A]"
+                      ? "border-emerald-500"
+                      : "border-border"
                   )}
                   maxLength={16}
                 />
@@ -317,26 +317,26 @@ export function UserSetupModal({
                 {shouldCheckAvailability && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {isCheckingUsername ? (
-                      <Loader2 className="w-5 h-5 text-delulu-charcoal/50 animate-spin" />
+                      <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
                     ) : isAvailable ? (
-                      <Check className="w-5 h-5 text-green-500" />
+                      <Check className="w-5 h-5 text-emerald-400" />
                     ) : isTaken ? (
-                      <X className="w-5 h-5 text-red-500" />
+                      <X className="w-5 h-5 text-destructive" />
                     ) : null}
                   </div>
                 )}
               </div>
               {usernameError && (
-                <p className="text-xs text-red-600 font-medium">{usernameError}</p>
+                <p className="text-xs text-destructive font-medium">{usernameError}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 3-16 characters, letters, numbers, and underscores only
               </p>
             </div>
             <div className="space-y-2">
               <label
                 htmlFor="email"
-                className="text-xs font-bold text-delulu-charcoal/80 uppercase tracking-wider"
+                className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
               >
                 Email Address
               </label>
@@ -353,16 +353,14 @@ export function UserSetupModal({
                 onBlur={() => validateEmail(email)}
                 placeholder="you@example.com"
                 className={cn(
-                  "w-full px-4 py-3 rounded-lg border-2 font-medium text-delulu-charcoal",
-                  "bg-white focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved/50",
+                  "w-full px-4 py-3 rounded-lg border font-medium",
+                  "bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
                   "transition-all",
-                  emailError
-                    ? "border-red-500 shadow-[2px_2px_0px_0px_#ef4444]"
-                    : "border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] focus:shadow-[3px_3px_0px_0px_#1A1A1A]"
+                  emailError ? "border-destructive" : "border-border"
                 )}
               />
               {emailError && (
-                <p className="text-xs text-red-600 font-medium">{emailError}</p>
+                <p className="text-xs text-destructive font-medium">{emailError}</p>
               )}
             </div>
           </div>
@@ -377,13 +375,10 @@ export function UserSetupModal({
               isSettingProfile
             }
             className={cn(
-              "w-full mt-4 py-3 px-4 rounded-lg border-2 font-bold text-sm",
-              "bg-delulu-yellow-reserved text-delulu-charcoal",
-              "border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-              "hover:bg-delulu-yellow-reserved/90 hover:shadow-[4px_4px_0px_0px_#1A1A1A]",
-              "active:scale-[0.98] active:shadow-[2px_2px_0px_0px_#1A1A1A]",
+              "w-full mt-4 py-3 px-4 rounded-lg border font-bold text-sm",
+              "bg-secondary text-foreground border-border",
               "transition-all duration-100",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
               "flex items-center justify-center gap-2"
             )}
           >

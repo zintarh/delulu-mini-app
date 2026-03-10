@@ -12,6 +12,9 @@ export { useAllDelulus } from "./useAllDelulus";
 export { useGraphDelulu } from "./useGraphDelulu";
 export type { GraphStake } from "./useGraphDelulu";
 
+// ─── Leaderboards ───────────────────────────────────────────────
+export { useCreatorLeaderboard } from "./useCreatorLeaderboard";
+
 // ─── User Profile Hooks ─────────────────────────────────────────
 export { useGraphUserDelulus } from "./useGraphUserDelulus";
 export { useGraphStakedDelulus } from "./useGraphStakedDelulus";

@@ -7,7 +7,7 @@ export default function BoardPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-white h-screen overflow-hidden">
+    <div className="min-h-screen bg-background h-screen overflow-hidden">
       <CreateDelusionContent onClose={() => router.push("/")} />
     </div>
   );

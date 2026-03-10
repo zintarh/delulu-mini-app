@@ -1,13 +1,13 @@
 
 
-"use client";
+ "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import type {
-  GetDeluluByIdQuery,
-  GetDeluluByIdQueryVariables,
+import {
+  type GetDeluluByIdQuery,
+  type GetDeluluByIdQueryVariables,
 } from "@/generated/graphql";
 import {
   transformSubgraphDelulu,
@@ -18,7 +18,33 @@ import {
 import { resolveIPFSContent, getCachedContent } from "@/lib/graph/ipfs-cache";
 import type { FormattedDelulu } from "@/lib/types";
 
-// Local query definition kept in sync with the subgraph schema
+export interface GraphStake {
+  id: string;
+  userAddress: string;
+  amount: number;
+  txHash: string;
+  createdAt: Date;
+}
+
+export interface GraphMilestone {
+  id: string;
+  milestoneId: string;
+  descriptionHash: string;
+  milestoneURI: string | null;
+  deadline: Date;
+  tippingWindowEnd: Date;
+  proofLink: string | null;
+  isSubmitted: boolean;
+  isVerified: boolean;
+  isMissed: boolean;
+  totalSupport: number;
+  pointsEarned: number;
+  submittedAt: Date | null;
+  verifiedAt: Date | null;
+  rejectedAt: Date | null;
+  rejectionReason: string | null;
+}
+
 const GET_DELULU_BY_ID = gql`
   query GetDeluluById($id: ID!) {
     delulu(id: $id) {
@@ -28,18 +54,26 @@ const GET_DELULU_BY_ID = gql`
       creator {
         id
         totalStaked
+        username
       }
       creatorAddress
       contentHash
       stakingDeadline
       resolutionDeadline
-      totalSupporters
-      totalSupportCollected,
       createdAt
       creatorStake
+      creatorIsStaked
+      creatorStakeCurrent
+      totalSupportCollected
+      totalSupporters
       challengeId
+      points
+      milestoneCount
       isResolved
       isCancelled
+      rewardClaimed
+      isFailed
+      finisherWindowEnd
       stakes(first: 100, orderBy: createdAt, orderDirection: desc) {
         id
         user {
@@ -62,11 +96,17 @@ const GET_DELULU_BY_ID = gql`
         id
         milestoneId
         descriptionHash
+        milestoneURI
         deadline
+        startTime
+        tippingWindowStart
+        tippingWindowEnd
+        isMissed
         proofLink
         isSubmitted
         isVerified
         pointsEarned
+        totalSupport
         submittedAt
         verifiedAt
         rejectedAt
@@ -76,35 +116,14 @@ const GET_DELULU_BY_ID = gql`
   }
 `;
 
-export interface GraphStake {
-  id: string;
-  userAddress: string;
-  amount: number;
-  txHash: string;
-  createdAt: Date;
-}
-
-export interface GraphMilestone {
-  id: string;
-  milestoneId: string;
-  descriptionHash: string;
-  deadline: Date;
-  proofLink: string | null;
-  isSubmitted: boolean;
-  isVerified: boolean;
-  pointsEarned: number;
-  submittedAt: Date | null;
-  verifiedAt: Date | null;
-  rejectedAt: Date | null;
-  rejectionReason: string | null;
-}
-
 export function useGraphDelulu(deluluId: string | number | null) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
-
   const id = deluluId !== null ? String(deluluId) : "";
 
-  const { data, loading, error, refetch } = useQuery<GetDeluluByIdQuery, GetDeluluByIdQueryVariables>(GET_DELULU_BY_ID, {
+  const { data, loading, error, refetch } = useQuery<
+    GetDeluluByIdQuery,
+    GetDeluluByIdQueryVariables
+  >(GET_DELULU_BY_ID, {
     variables: { id },
     skip: !id,
     fetchPolicy: "cache-first",
@@ -139,21 +158,28 @@ export function useGraphDelulu(deluluId: string | number | null) {
 
   const milestones: GraphMilestone[] = useMemo(() => {
     if (!data?.delulu?.milestones) return [];
-    return data.delulu.milestones.map((m) => ({
-      id: m.id,
-      milestoneId: m.milestoneId,
-      descriptionHash: m.descriptionHash,
-      deadline: timestampToDate(m.deadline),
-      // Normalize undefined to null so it matches GraphMilestone type
-      proofLink: m.proofLink ?? null,
-      isSubmitted: m.isSubmitted,
-      isVerified: m.isVerified,
-      pointsEarned: weiToNumber(m.pointsEarned),
-      submittedAt: m.submittedAt ? timestampToDate(m.submittedAt) : null,
-      verifiedAt: m.verifiedAt ? timestampToDate(m.verifiedAt) : null,
-      rejectedAt: m.rejectedAt ? timestampToDate(m.rejectedAt) : null,
-      rejectionReason: m.rejectionReason ?? null,
-    }));
+    return data.delulu.milestones.map((m) => {
+      const mm: any = m;
+      return {
+        id: mm.id,
+        milestoneId: mm.milestoneId,
+        descriptionHash: mm.descriptionHash,
+        milestoneURI: mm.milestoneURI ?? null,
+        deadline: timestampToDate(mm.deadline),
+        tippingWindowEnd: timestampToDate(mm.tippingWindowEnd),
+        // Normalize undefined to null so it matches GraphMilestone type
+        proofLink: mm.proofLink ?? null,
+        isSubmitted: mm.isSubmitted,
+        isVerified: mm.isVerified,
+        isMissed: mm.isMissed,
+        totalSupport: weiToNumber(mm.totalSupport),
+        pointsEarned: weiToNumber(mm.pointsEarned),
+        submittedAt: mm.submittedAt ? timestampToDate(mm.submittedAt) : null,
+        verifiedAt: mm.verifiedAt ? timestampToDate(mm.verifiedAt) : null,
+        rejectedAt: mm.rejectedAt ? timestampToDate(mm.rejectedAt) : null,
+        rejectionReason: mm.rejectionReason ?? null,
+      };
+    });
   }, [data?.delulu?.milestones]);
 
   return {

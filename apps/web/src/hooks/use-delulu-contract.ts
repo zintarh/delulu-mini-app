@@ -56,8 +56,9 @@ export function useCreateDelulu() {
       ) {
         throw new Error("Content cannot be empty");
       }
-      if (!isFinite(amount) || isNaN(amount) || amount <= 0) {
-        throw new Error("Stake amount must be greater than 0");
+      // Optional stake: amount can be 0 (no stake) or >= 1 token
+      if (!isFinite(amount) || isNaN(amount)) {
+        throw new Error("Invalid stake amount");
       }
       if (!(deadline instanceof Date) || isNaN(deadline.getTime())) {
         throw new Error("Invalid deadline date");
@@ -97,24 +98,32 @@ export function useCreateDelulu() {
         throw new Error("Invalid deadline timestamp");
       }
 
-      const stakingDeadline = BigInt(Math.floor(deadlineTimestamp / 1000));
-      const HOURS_24 = 24 * 60 * 60;
-      const resolutionDeadline = stakingDeadline + BigInt(HOURS_24);
-
+      // v3: UI deadline is the resolution deadline (goal completion), not staking deadline.
+      const resolutionDeadline = BigInt(Math.floor(deadlineTimestamp / 1000));
       const now = BigInt(Math.floor(Date.now() / 1000));
-      if (stakingDeadline <= now) {
-        throw new Error("Deadline must be in the future");
+      const GENESIS_24H = 24n * 60n * 60n;
+      if (resolutionDeadline <= now + GENESIS_24H) {
+        throw new Error("Resolution deadline must be at least 24 hours from now");
       }
 
-      let amountWei;
-      try {
-        amountWei = parseUnits(amount.toString(), 18);
-      } catch {
-        throw new Error("Invalid stake amount format");
-      }
+      // v3: stakingDeadline argument is ignored by the contract, but must be present in the signature.
+      const stakingDeadline = 0n;
 
-      if (amountWei <= 0n) {
-        throw new Error("Stake amount must be greater than 0");
+      // Optional initial support (creator stake)
+      let initialSupportWei = 0n;
+      if (amount > 0) {
+        let parsed;
+        try {
+          parsed = parseUnits(amount.toString(), 18);
+        } catch {
+          throw new Error("Invalid stake amount format");
+        }
+        // Require at least 1 full token when non-zero
+        const ONE_TOKEN = 10n ** 18n;
+        if (parsed < ONE_TOKEN) {
+          throw new Error("Min stake is 1 Token or 0");
+        }
+        initialSupportWei = parsed;
       }
 
       const contractAddress = getDeluluContractAddress(chainId);
@@ -124,7 +133,13 @@ export function useCreateDelulu() {
         address: contractAddress,
         abi: DELULU_ABI,
         functionName: "createDelulu",
-        args: [tokenAddress as `0x${string}`, contentHash, stakingDeadline, resolutionDeadline, amountWei],
+        args: [
+          tokenAddress as `0x${string}`,
+          contentHash,
+          stakingDeadline,
+          resolutionDeadline,
+          initialSupportWei,
+        ],
       });
     } catch (error) {
       if (process.env.NODE_ENV === "development") {

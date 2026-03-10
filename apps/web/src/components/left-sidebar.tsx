@@ -2,9 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Plus, User, Coins, User2, Trophy } from "lucide-react";
+import { Home, Plus, User, Coins, User2, Trophy, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useTheme } from "@/contexts/theme-context";
 
 interface LeftSidebarProps {
   onProfileClick?: () => void;
@@ -17,6 +18,7 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useIsAdmin();
+   const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     {
@@ -48,6 +50,13 @@ export function LeftSidebar({
       onClick: undefined,
     },
     {
+      icon: Trophy,
+      label: "Leaderboard",
+      href: "/leaderboard",
+      active: pathname === "/leaderboard",
+      onClick: undefined,
+    },
+    {
       icon: User,
       label: "Profile",
       href: undefined,
@@ -68,7 +77,7 @@ export function LeftSidebar({
   ];
 
   return (
-    <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border-gray-200 bg-white">
+    <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
       <div className="mb-8 px-2">
         <h1 
           className="text-4xl font-black text-delulu-yellow-reserved"
@@ -86,14 +95,17 @@ export function LeftSidebar({
           const Icon = item.icon;
           const isClaimG = item.label === "Claim G$";
           const className = cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full",
+            "flex items-center gap-3 transition-colors text-sm",
+            isClaimG
+              ? "px-4 py-2 rounded-full bg-foreground text-background w-fit"
+              : "px-3 py-2.5 rounded-lg w-full",
             item.active
               ? isClaimG
                 ? "bg-[#01B1FF]/20"
-                : "bg-gray-200 text-delulu-charcoal"
+                : "bg-secondary text-foreground"
               : isClaimG
-              ? "hover:bg-[#01B1FF]/10"
-              : "text-gray-500 hover:bg-gray-100 hover:text-delulu-charcoal"
+              ? ""
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
           );
           const style = isClaimG ? { color: "#01B1FF" } : undefined;
           const content = (
@@ -138,6 +150,25 @@ export function LeftSidebar({
           );
         })}
       </nav>
+      <div className="mt-4 pt-3 border-t border-border">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex items-center gap-2 px-3 py-2 rounded-full border border-border text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-fit"
+        >
+          <span className="flex items-center gap-2">
+            {theme === "dark" ? (
+              <Moon className="w-4 h-4" />
+            ) : (
+              <Sun className="w-4 h-4" />
+            )}
+            <span className="font-medium">
+              {theme === "dark" ? "Dark mode" : "Light mode"}
+            </span>
+          </span>
+          
+        </button>
+      </div>
     </aside>
   );
 }

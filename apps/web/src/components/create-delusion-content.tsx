@@ -132,7 +132,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   // Form state
   const [delusionText, setDelusionText] = useState("");
   const [description, setDescription] = useState("");
-  const [stakeAmount, setStakeAmount] = useState<number>(1);
+  const [stakeAmount, setStakeAmount] = useState<number>(0);
   const supportedTokens = useSupportedTokens();
   // Prefer G$ if available, otherwise use first token
   const initialToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
@@ -140,7 +140,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
   const { isConnected } = useAccount();
-  const [inputText, setInputText] = useState<string>("1.0");
+  const [inputText, setInputText] = useState<string>("");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
@@ -386,8 +386,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   const handleClose = () => {
     setStep("gallery");
-    setStakeAmount(1);
-    setInputText("1.0");
+    setStakeAmount(0);
+    setInputText("");
     setDelusionText("");
     setDescription("");
     setDeadline(getDefaultDeadline());
@@ -597,8 +597,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
       <div
         className={cn(
-          "relative min-h-screen z-10 max-w-4xl mx-auto",
-          step === "gallery" && "bg-white"
+          "relative min-h-screen z-10 max-w-4xl mx-auto bg-background text-foreground",
+          step === "gallery" && "bg-background"
         )}
       >
         {/* Top Navigation */}
@@ -607,7 +607,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             <div className=" w-full flex items-center justify-between">
               <button
                 onClick={handleBack}
-                className="flex items-center justify-center w-12 h-12 rounded-full text-white/70 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-12 h-12 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Back"
                 aria-label="Back"
               >
@@ -627,7 +627,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
               <button
                 onClick={handleClose}
-                className="flex items-center justify-center w-12 h-12 rounded-full text-white/70 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-12 h-12 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Close"
                 aria-label="Close"
               >
@@ -638,7 +638,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             <div className=" w-full flex items-center justify-between">
               <button
                 onClick={handleBack}
-                className="flex items-center justify-center w-12 h-12 rounded-full text-black hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-12 h-12 rounded-full text-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Back"
                 aria-label="Back"
               >
@@ -658,7 +658,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
               <button
                 onClick={handleClose}
-                className="flex items-center justify-center w-12 h-12 rounded-full text-black hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-12 h-12 rounded-full text-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Close"
                 aria-label="Close"
               >
@@ -674,7 +674,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
             {/* Title Input */}
             <div>
-              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+              <label className="block text-base font-bold text-foreground mb-2">
                 Title
               </label>
               <input
@@ -688,11 +688,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 }}
                 maxLength={MAX_DELULU_LENGTH}
                 placeholder="Enter your delulu title..."
-                className="w-full bg-white border capitalize border-gray-400 rounded-sm px-3 py-2.5 sm:px-5 sm:py-3.5 text-base sm:text-lg text-delulu-charcoal placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                className="w-full bg-card border capitalize border-border rounded-sm px-3 py-2.5 sm:px-5 sm:py-3.5 text-base sm:text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-border"
                 autoFocus
               />
               <div className="text-right mt-0.5">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {delusionText.length}/{MAX_DELULU_LENGTH}
                 </span>
               </div>
@@ -700,21 +700,21 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
             {/* Description Input */}
             <div>
-              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+              <label className="block text-base font-bold text-foreground mb-2">
                 Description
               </label>
               <TextareaAutosize
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a description (optional)..."
-                className="w-full bg-white border border-gray-400 rounded-lg px-3 py-2 sm:px-5 sm:py-3.5 text-sm sm:text-lg text-delulu-charcoal placeholder:text-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                className="w-full bg-card border border-border rounded-lg px-3 py-2 sm:px-5 sm:py-3.5 text-sm sm:text-lg text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring focus:border-border"
                 minRows={3}
               />
             </div>
 
             {/* Duration Input */}
             <div>
-              <label className="block text-base font-bold text-delulu-charcoal mb-2">
+              <label className="block text-base font-bold text-foreground mb-2">
                 Duration
               </label>
               <div className="space-y-2">
@@ -725,10 +725,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       onClick={() => setShowCalendarModal(true)}
                       className={cn(
                         "w-full flex items-center justify-between",
-                        "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-white border border-gray-400",
-                        "text-left text-delulu-charcoal font-normal text-base sm:text-lg",
-                        "focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600",
-                        "hover:bg-gray-50 transition-colors"
+                        "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-card border border-border",
+                        "text-left text-foreground font-normal text-base sm:text-lg",
+                        "focus:outline-none focus:ring-1 focus:ring-ring focus:border-border",
+                        "hover:bg-muted transition-colors"
                       )}
                     >
                       <span>
@@ -738,7 +738,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                           year: "numeric",
                         })}
                       </span>
-                      <span className="text-xs text-delulu-charcoal/70 underline">
+                      <span className="text-xs text-muted-foreground underline">
                         Pick date
                       </span>
                     </button>
@@ -752,7 +752,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                             fastDurationUnit
                           );
                         }}
-                        className="text-xs text-delulu-charcoal/70 hover:text-delulu-charcoal underline"
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
                         Use quick duration instead
                       </button>
@@ -764,10 +764,10 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   <div className="space-y-2">
                     <div className={cn(
                       "w-full flex items-center justify-between",
-                      "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-white border border-gray-400",
-                      "text-left text-delulu-charcoal font-normal text-base sm:text-lg",
-                      "focus-within:outline-none focus-within:ring-1 focus-within:ring-delulu-charcoal/20 focus-within:border-gray-600",
-                      "hover:bg-gray-50 transition-colors"
+                      "px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-md bg-card border border-border",
+                      "text-left text-foreground font-normal text-base sm:text-lg",
+                      "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring focus-within:border-border",
+                      "hover:bg-muted transition-colors"
                     )}>
                       <input
                         min="1"
@@ -793,7 +793,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                         className={cn(
                           "flex-1 min-w-0 bg-transparent",
                           "border-0 outline-none focus:outline-none focus:ring-0",
-                          "text-delulu-charcoal placeholder-gray-400 font-normal text-base sm:text-lg"
+                          "text-foreground placeholder:text-muted-foreground font-normal text-base sm:text-lg"
                         )}
                         placeholder="Number"
                       />
@@ -822,7 +822,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                             "flex-shrink-0 inline-flex items-center justify-between",
                             "bg-transparent px-2 py-1",
                             "border-0 outline-none focus:outline-none focus:ring-0",
-                            "text-delulu-charcoal font-normal text-base sm:text-lg cursor-pointer min-w-[86px]"
+                            "text-foreground font-normal text-base sm:text-lg cursor-pointer min-w-[86px]"
                           )}
                         >
                           <Select.Value />
@@ -831,11 +831,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                           </Select.Icon>
                         </Select.Trigger>
                         <Select.Portal>
-                          <Select.Content className="overflow-hidden bg-white rounded-lg border-2 border-delulu-charcoal shadow-lg z-50">
+                          <Select.Content className="overflow-hidden bg-popover rounded-lg border border-border shadow-lg z-50">
                             <Select.Viewport className="p-1">
                               <Select.Item
                                 value="minutes"
-                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
                               >
                                 <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
                                   <Check className="w-4 h-4" />
@@ -844,7 +844,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                               </Select.Item>
                               <Select.Item
                                 value="hours"
-                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
                               >
                                 <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
                                   <Check className="w-4 h-4" />
@@ -853,7 +853,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                               </Select.Item>
                               <Select.Item
                                 value="days"
-                                className="relative flex items-center px-4 py-2 text-delulu-charcoal font-bold text-sm cursor-pointer outline-none hover:bg-delulu-yellow-reserved focus:bg-delulu-yellow-reserved data-[highlighted]:bg-delulu-yellow-reserved"
+                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
                               >
                                 <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
                                   <Check className="w-4 h-4" />
@@ -871,7 +871,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                         onClick={() => {
                           setDurationMode("calendar");
                         }}
-                        className="text-xs text-delulu-charcoal/70 hover:text-delulu-charcoal underline"
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
                         Use calendar instead
                       </button>
@@ -885,14 +885,13 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             <div>
               <div
                 className={cn(
-                  "bg-gray-50 rounded-2xl p-3 sm:p-4 border transition-colors border-gray-400",
-                
+                  "bg-muted rounded-2xl p-3 sm:p-4 border transition-colors border-border",
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">Initial Stake Amount</span>
+                  <span className="text-sm text-muted-foreground">Initial Stake Amount</span>
                   {isConnected && selectedTokenBalance && (
-                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       Balance: {parseFloat(selectedTokenBalance.formatted).toFixed(2)}{" "}
                       <TokenBadge tokenAddress={selectedToken} size="sm" showText={false} />
                     </span>
@@ -907,12 +906,16 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       setInputText(value);
 
                       if (value.trim() === "") {
+                        // Optional stake: empty input means no stake (0)
+                        setStakeAmount(0);
                         return;
                       }
 
                       const numValue = parseFloat(value);
                       if (!isNaN(numValue)) {
-                        const clampedValue = Math.max(MIN_STAKE, numValue);
+                        // For non-zero values, enforce a minimum of 1 token
+                        const clampedValue =
+                          numValue > 0 ? Math.max(MIN_STAKE, numValue) : 0;
                         setStakeAmount(clampedValue);
                       }
                     }}
@@ -921,35 +924,39 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       if (
                         e.target.value === "" ||
                         isNaN(currentValue) ||
-                        currentValue < 1
+                        currentValue < 0
                       ) {
-                        setStakeAmount(MIN_STAKE);
-                        setInputText(MIN_STAKE.toFixed(1));
+                        // Treat invalid/empty as no stake
+                        setStakeAmount(0);
+                        setInputText("");
                       } else {
-                        const clampedValue = Math.max(1, currentValue);
+                        const clampedValue =
+                          currentValue > 0
+                            ? Math.max(1, currentValue)
+                            : 0;
                         setStakeAmount(clampedValue);
-                        setInputText(clampedValue.toFixed(1));
+                        setInputText(
+                          clampedValue > 0 ? clampedValue.toFixed(1) : ""
+                        );
                       }
                     }}
-                    placeholder="0.00"
+                    placeholder="Optional (Min 1 Token)"
                     className={cn(
-                      "flex-1 min-w-0 bg-transparent text-lg sm:text-2xl font-bold focus:outline-none placeholder:text-gray-300",
-               
-                         ""
+                      "flex-1 min-w-0 bg-transparent text-lg sm:text-2xl font-bold focus:outline-none placeholder:text-muted-foreground",
                     )}
                   />
                   {approxUsdValue && approxUsdValue > 0 && (
-                  <p className="mt-1 text-xs text-gray-500 font-medium">
-                    ≈ ${approxUsdValue.toFixed(2)} USD
-                  </p>
-                )}
+                    <p className="mt-1 text-xs text-muted-foreground font-medium">
+                      ≈ ${approxUsdValue.toFixed(2)} USD
+                    </p>
+                  )}
                   <div ref={tokenDropdownRef} className="relative flex-shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-400 bg-white hover:bg-gray-50 transition-colors text-sm",
-                        isTokenDropdownOpen && "bg-gray-50"
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-sm",
+                        isTokenDropdownOpen && "bg-muted"
                       )}
                     >
                       {(() => {
@@ -968,22 +975,22 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                                 className="h-5 w-5 rounded-full"
                               />
                             )}
-                            <span className="text-sm font-bold text-delulu-charcoal">
+                            <span className="text-sm font-bold text-foreground">
                               {selectedTokenInfo?.symbol || "Select"}
                             </span>
-                            <ChevronDown
-                              className={cn(
-                                "h-4 w-4 text-gray-500 transition-transform",
-                                isTokenDropdownOpen && "rotate-180"
-                              )}
-                            />
+                              <ChevronDown
+                                className={cn(
+                                  "h-4 w-4 text-muted-foreground transition-transform",
+                                  isTokenDropdownOpen && "rotate-180"
+                                )}
+                              />
                           </>
                         );
                       })()}
                     </button>
 
                     {isTokenDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-2 bg-white rounded-lg border border-gray-400 shadow-lg z-50 overflow-hidden min-w-[200px]">
+                      <div className="absolute top-full right-0 mt-2 bg-popover rounded-lg border border-border shadow-lg z-50 overflow-hidden min-w-[200px]">
                         {supportedTokens.map((t) => {
                           const tokenBalanceInfo = tokenBalances.find(
                             (tb) => tb.token.address.toLowerCase() === t.address.toLowerCase()
@@ -1005,8 +1012,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                               className={cn(
                                 "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
                                 isSelected
-                                  ? "bg-gray-100 text-delulu-charcoal font-bold"
-                                  : "bg-white text-delulu-charcoal hover:bg-gray-50"
+                                  ? "bg-muted text-foreground font-bold"
+                                  : "bg-popover text-foreground hover:bg-muted"
                               )}
                             >
                               {logoUrl && (
@@ -1019,7 +1026,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                               <div className="flex-1 flex items-center justify-between gap-2">
                                 <span className="font-bold">{t.symbol}</span>
                                 {isConnected && (
-                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                                     {isLoading
                                       ? "..."
                                       : `${balance.toFixed(2)}`}
@@ -1034,11 +1041,14 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   </div>
                 </div>
               </div>
-              {isConnected && (hasInsufficientBalanceForStake || stakeAmount < MIN_STAKE || exceedsBalance) && (
-                <p className="text-sm text-red-600 mt-2 font-bold">
+              {isConnected &&
+                (hasInsufficientBalanceForStake ||
+                  (stakeAmount > 0 && stakeAmount < MIN_STAKE) ||
+                  exceedsBalance) && (
+                <p className="text-sm text-destructive mt-2 font-bold">
                   {hasInsufficientBalanceForStake
                     ? "Insufficient balance"
-                    : stakeAmount < MIN_STAKE
+                    : stakeAmount > 0 && stakeAmount < MIN_STAKE
                       ? "Minimum amount is 1"
                       : exceedsBalance
                         ? "Amount exceeds your balance"
@@ -1078,7 +1088,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                     <img
                       src={selectedImage}
                       alt={selectedTemplate?.name || "Custom"}
-                      className="w-60 h-60 rounded-lg object-cover border-2 border-gray-300"
+                      className="w-60 h-60 rounded-lg object-cover border-2 border-border"
                     />
                   </div>
                 )}
@@ -1088,10 +1098,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   className={cn(
                     "inline-flex items-center gap-2",
                     "px-4 py-2.5 rounded-md",
-                    "bg-white border-2 border-delulu-charcoal",
-                    "text-delulu-charcoal font-semibold text-sm",
-                    "shadow-[2px_2px_0px_0px_#1A1A1A]",
-                    "hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+                    "bg-secondary border border-border",
+                    "text-foreground font-semibold text-sm",
                     "active:scale-[0.98] transition-all",
                     "focus:outline-none focus:ring-2 focus:ring-delulu-charcoal/20"
                   )}
@@ -1103,7 +1111,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             </div>
 
             {/* Manifest Button */}
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-4 mt-6">
               <button
                 onClick={handleCreate}
                 disabled={!canCreate || isProcessing}
@@ -1258,7 +1266,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         isOpen={showSuccessModal}
         type="success"
         title="Vision Manifested! 🎉"
-        message="Your delulu has been created and is now live on the platform!"
+        message="Your delulu is live! Next step: add milestones so supporters can see your roadmap and progress."
         onClose={handleSuccessClose}
         actionText="Done"
       />

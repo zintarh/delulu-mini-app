@@ -14,7 +14,6 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
-import { usePotentialPayoutForExistingStake } from "@/hooks/use-potential-payout-existing";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
@@ -43,7 +42,6 @@ import {
 import { cn, formatAddress } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { keccak256, stringToBytes } from "viem";
 import { resolveIPFSContent, type DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
 
 
@@ -61,7 +59,6 @@ export default function DeluluPage() {
 
   const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(null);
 
-  // Always resolve IPFS content for this delulu and store full metadata
   useEffect(() => {
     if (!delulu?.contentHash) {
       setIpfsMetadata(null);
@@ -98,6 +95,7 @@ export default function DeluluPage() {
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } = useTokenBalance(marketToken);
   const { hasStaked, isClaimed } = useUserPosition(deluluIdForHooks);
+
   const { claimableAmount, isLoading: isLoadingClaimableAmount } = useUserClaimableAmount(deluluIdForHooks);
 
   const { claim, isPending: isClaiming, isConfirming: isClaimConfirming, isSuccess: isClaimSuccess, error: claimError } = useClaimWinnings();
@@ -137,13 +135,13 @@ export default function DeluluPage() {
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // Default to details tab for single delulu page
   const [activeTab, setActiveTab] = useState<"details" | "milestones">("details");
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [newMilestones, setNewMilestones] = useState<{ description: string; days: string }[]>([{ description: "", days: "" }]);
   const [milestoneProofLinks, setMilestoneProofLinks] = useState<Record<string, string>>({});
   const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<string | null>(null);
+  const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
 
   const { challenges } = useChallenges();
 
@@ -171,8 +169,6 @@ export default function DeluluPage() {
   const supportAmount =
     delulu?.totalSupportCollected || 0;
 
-  // Title and description come strictly from IPFS metadata (hash),
-  // matching how we write them in the create flow.
   const deluluTitle =
     ipfsMetadata?.text ||
     ipfsMetadata?.content ||
@@ -180,16 +176,25 @@ export default function DeluluPage() {
     "";
 
   const deluluDescription =
-    (ipfsMetadata as any)?.description ??
-    "";
+    (ipfsMetadata as any)?.description ?? "";
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
 
 
-console.log(ipfsMetadata, "ipfsMetadata");
-console.log(deluluTitle, "deluluTitle");
-console.log(deluluDescription, "deluluDescription");  
+  const formatMilestoneTimeLeft = (deadline: Date) => {
+    const diffMs = deadline.getTime() - Date.now();
+    if (diffMs <= 0) return "Ended";
+
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes.toString().padStart(2, "0")}m left`;
+    }
+    return `${minutes}m left`;
+  };
 
 
 
@@ -256,7 +261,7 @@ console.log(deluluDescription, "deluluDescription");
       return;
     }
 
-    const mHashes = cleaned.map((m) => keccak256(stringToBytes(m.description)));
+    const mURIs = cleaned.map((m) => m.description.trim());
     const mDurations = cleaned.map((m) =>
       BigInt(Math.floor(Number(m.days) * 24 * 60 * 60))
     );
@@ -265,7 +270,7 @@ console.log(deluluDescription, "deluluDescription");
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
       functionName: "addMilestones",
-      args: [BigInt(delulu.id), mHashes, mDurations],
+      args: [BigInt(delulu.id), mURIs, mDurations],
     });
   };
 
@@ -346,7 +351,6 @@ console.log(deluluDescription, "deluluDescription");
             });
           }
         } catch {
-          // Confetti is optional and purely visual
         }
       })();
     }
@@ -379,7 +383,7 @@ console.log(deluluDescription, "deluluDescription");
   // Initial load: show skeleton layout instead of spinner
   if (isLoadingDelulu && !delulu) {
     return (
-      <div className="h-screen overflow-hidden bg-white">
+      <div className="h-screen overflow-hidden bg-background">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
           <div className="hidden lg:block">
             <LeftSidebar
@@ -392,7 +396,7 @@ console.log(deluluDescription, "deluluDescription");
             />
           </div>
 
-          <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
+          <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide pb-20">
             <div className="lg:hidden">
               <ChallengesHeader
                 onProfileClick={() =>
@@ -408,20 +412,20 @@ console.log(deluluDescription, "deluluDescription");
 
             <div className="px-4 lg:px-6 py-6 space-y-6">
               {/* Banner skeleton */}
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                <div className="h-48 bg-gray-200 animate-pulse" />
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="h-48 bg-muted animate-pulse" />
                 <div className="p-6 space-y-3">
-                  <div className="h-6 w-2/3 bg-gray-200 rounded-md animate-pulse" />
-                  <div className="h-4 w-1/3 bg-gray-200 rounded-md animate-pulse" />
-                  <div className="h-16 w-full bg-gray-100 rounded-md animate-pulse" />
+                  <div className="h-6 w-2/3 bg-muted rounded-md animate-pulse" />
+                  <div className="h-4 w-1/3 bg-muted rounded-md animate-pulse" />
+                  <div className="h-16 w-full bg-muted rounded-md animate-pulse" />
                 </div>
               </div>
 
               {/* Details skeleton */}
               <div className="space-y-4">
-                <div className="h-10 w-40 bg-gray-100 rounded-full animate-pulse" />
-                <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
-                <div className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+                <div className="h-10 w-40 bg-muted rounded-full animate-pulse" />
+                <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+                <div className="h-40 bg-muted rounded-2xl animate-pulse" />
               </div>
             </div>
           </main>
@@ -434,13 +438,13 @@ console.log(deluluDescription, "deluluDescription");
     );
   }
 
-  if (!delulu) return <div className="p-20 text-center">Delulu not found</div>;
+  if (!delulu) return <div className="p-20 text-center text-foreground">Delulu not found</div>;
 
   const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
   const bannerImage = delulu.bgImageUrl || "/templates/t0.png";
 
   return (
-    <div className="h-screen overflow-hidden bg-white">
+    <div className="h-screen overflow-hidden bg-background">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
@@ -449,23 +453,23 @@ console.log(deluluDescription, "deluluDescription");
           />
         </div>
 
-        <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide pb-20">
+        <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide pb-20">
           <div className="lg:hidden">
-            <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-200">
+            <header className="fixed top-0 left-0 right-0 z-50 w-full bg-secondary/95 backdrop-blur-sm border-b border-border">
               <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
                 <button
                   onClick={() => setIsMenuOpen(true)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   aria-label="Open navigation menu"
                 >
-                  <Menu className="w-6 h-6 text-gray-700" />
+                  <Menu className="w-6 h-6" />
                 </button>
 
                 <div className="flex-1" />
 
                 <button
                   onClick={() => router.push("/search")}
-                  className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title="Search"
                   aria-label="Search"
                 >
@@ -502,86 +506,119 @@ console.log(deluluDescription, "deluluDescription");
           </div>
 
           {/* Desktop header */}
-          <div className="hidden lg:flex items-center gap-4 px-6 py-4 border-b border-gray-200 sticky top-0 z-30 bg-white/95 backdrop-blur-sm">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
+          <div className="hidden lg:flex items-center gap-4 px-6 py-4 border-b border-border sticky top-0 z-30 bg-secondary/95 backdrop-blur-sm">
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
           </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
-            {/* Banner */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            {/* Market banner / hero */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
               <div className="relative h-48 bg-cover bg-center" style={{ backgroundImage: `url(${bannerImage})` }}>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
                 {canStake && (
                   <button
                     onClick={() =>
                       !isConnected ? setShowLoginSheet(true) : setStakingSheetOpen(true)
                     }
-                    className="w-fit right-0 bottom-0 absolute px-4 py-3 bg-delulu-yellow-reserved border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg"
+                    className="w-fit right-4 bottom-4 absolute px-4 py-2 bg-delulu-yellow-reserved text-delulu-charcoal border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg text-sm hover:brightness-105 transition"
                   >
                     Support
                   </button>
                 )}
               </div>
-              <div className="p-6">
-                <h1 className="text-2xl font-black mb-2">
+              <div className="p-6 space-y-3">
+                <h1 className="text-2xl font-black mb-1 text-foreground">
                   {deluluTitle || delulu?.content}
                 </h1>
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
-                  <span className="font-bold text-delulu-charcoal">@{delulu.username || formatAddress(delulu.creator)}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">
+                    @{delulu.username || formatAddress(delulu.creator)}
+                  </span>
                   {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                 </div>
 
-                <div className="flex items-center gap-6 mb-2">
+                {/* Key stats row */}
+                <div className="flex flex-wrap items-center gap-4 text-xs">
                   <div className="flex items-center gap-2">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span className="font-bold text-sm">
+                    <ThumbsUp className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-bold text-sm text-foreground">
                       {supportAmount > 0
                         ? supportAmount < 0.01
                           ? supportAmount.toFixed(4)
                           : supportAmount.toFixed(2)
                         : "0.00"}
                     </span>
-                    <span className="text-gray-500 text-sm">
-                      Total support
+                    <span className="text-muted-foreground text-xs">
+                      total support
                       {totalSupportUsd && totalSupportUsd > 0 && (
                         <> · ${totalSupportUsd.toFixed(2)}</>
                       )}
                     </span>
                   </div>
+                  <div className="h-4 w-px bg-border/60" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <span className="text-xs">
+                      {supportersCount} supporters
+                    </span>
+                  </div>
                 </div>
 
                 {deluluDescription && (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {deluluDescription}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Tabs (same position on desktop and mobile) */}
-            <div className="flex border-b border-gray-200 gap-4">
-              <button onClick={() => setActiveTab("details")} className={cn("pb-2 font-bold border-b-2 transition-all", activeTab === "details" ? "border-black" : "border-transparent text-gray-400")}>Details</button>
+            {/* Tabs */}
+            <div className="flex border-b border-border gap-4 text-sm">
+              <button
+                onClick={() => setActiveTab("details")}
+                className={cn(
+                  "pb-2 font-semibold border-b-2 transition-all",
+                  activeTab === "details"
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Details
+              </button>
 
-              <button onClick={() => setActiveTab("milestones")} className={cn("pb-2 font-bold border-b-2 transition-all", activeTab === "milestones" ? "border-black" : "border-transparent text-gray-400")}>Milestones</button>
+              <button
+                onClick={() => setActiveTab("milestones")}
+                className={cn(
+                  "pb-2 font-semibold border-b-2 transition-all",
+                  activeTab === "milestones"
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Milestones
+              </button>
             </div>
 
             {activeTab === "details" ? (
               <div className="space-y-6">
-                <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
+                <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-delulu-yellow-reserved/20 border border-delulu-yellow-reserved/60">
                         <Users className="w-4 h-4 text-delulu-charcoal" />
                       </span>
-                      <h3 className="text-sm md:text-base font-black text-delulu-charcoal">
+                      <h3 className="text-sm md:text-base font-black text-foreground">
                         Token support
                       </h3>
                     </div>
                     {marketToken && (
-                      <div className="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-gray-500 uppercase">
+                      <div className="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase">
                         <span>Token</span>
                         <TokenBadge tokenAddress={marketToken} size="sm" />
                       </div>
@@ -590,10 +627,10 @@ console.log(deluluDescription, "deluluDescription");
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-sm">
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
                         Total support
                       </p>
-                      <p className="text-2xl md:text-3xl font-black text-delulu-charcoal flex flex-col gap-1">
+                      <p className="text-2xl md:text-3xl font-black text-foreground flex flex-col gap-1">
                         <span className="flex items-center gap-2">
                           {supportAmount > 0
                             ? supportAmount < 0.01
@@ -607,27 +644,27 @@ console.log(deluluDescription, "deluluDescription");
                           )}
                         </span>
                         {totalSupportUsd && totalSupportUsd > 0 && (
-                          <span className="text-sm font-semibold text-gray-500">
+                          <span className="text-sm font-semibold text-muted-foreground">
                             ≈ ${totalSupportUsd.toFixed(2)}
                           </span>
                         )}
                       </p>
                     </div>
 
-                    <div className="md:border-l md:border-gray-100 md:pl-6">
-                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                    <div className="md:border-l md:border-border/60 md:pl-6">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
                         Supporters
                       </p>
-                      <p className="text-lg md:text-2xl font-black text-delulu-charcoal">
+                      <p className="text-lg md:text-2xl font-black text-foreground">
                         {supportersCount}
                       </p>
                     </div>
 
-                    <div className="md:border-l md:border-gray-100 md:pl-6">
-                      <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                    <div className="md:border-l md:border-border/60 md:pl-6">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
                         Avg. per supporter
                       </p>
-                      <p className="text-lg font-semibold text-delulu-charcoal flex flex-col gap-1">
+                      <p className="text-lg font-semibold text-foreground flex flex-col gap-1">
                         <span>
                           {supportersCount > 0
                             ? supportAmount / supportersCount < 0.01
@@ -636,7 +673,7 @@ console.log(deluluDescription, "deluluDescription");
                             : "0.00"}
                         </span>
                         {avgSupportUsd && avgSupportUsd > 0 && (
-                          <span className="text-xs font-medium text-gray-500">
+                          <span className="text-xs font-medium text-muted-foreground">
                             ≈ ${avgSupportUsd.toFixed(2)}
                           </span>
                         )}
@@ -646,23 +683,23 @@ console.log(deluluDescription, "deluluDescription");
                 </div>
 
                 {leaderboard.length > 0 && (
-                  <div className="">
-                    <h2 className="text-base font-black mb-4">Top Supporters</h2>
+                  <div>
+                    <h2 className="text-base font-black mb-4 text-foreground">Top Supporters</h2>
                     <div className="space-y-3">
                       {leaderboard.map((entry) => (
                         <div
                           key={entry.address}
-                          className="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-between"
+                          className="p-4 bg-card border border-border rounded-xl flex items-center justify-between"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-delulu-yellow-reserved rounded-full flex items-center justify-center font-black">
+                            <div className="w-10 h-10 bg-delulu-yellow-reserved rounded-full flex items-center justify-center font-black text-delulu-charcoal">
                               {entry.rank}
                             </div>
                             <div>
-                              <p className="font-bold">
+                              <p className="font-bold text-foreground">
                                 @{entry.username || formatAddress(entry.address)}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {entry.totalStake.toFixed(2)} staked
                               </p>
                             </div>
@@ -670,7 +707,7 @@ console.log(deluluDescription, "deluluDescription");
                           <Trophy
                             className={cn(
                               "w-5 h-5",
-                              entry.rank === 1 ? "text-yellow-500" : "text-gray-300"
+                              entry.rank === 1 ? "text-yellow-400" : "text-muted-foreground/40"
                             )}
                           />
                         </div>
@@ -680,18 +717,18 @@ console.log(deluluDescription, "deluluDescription");
                 )}
 
                 {/* Campaign section */}
-                <div className="p-6 bg-white rounded-2xl border border-gray-200 space-y-4">
+                <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 border border-purple-300">
-                        <Trophy className="w-4 h-4 text-purple-700" />
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 border border-purple-400/60">
+                        <Trophy className="w-4 h-4 text-purple-300" />
                       </span>
-                      <h3 className="text-sm md:text-base font-black text-delulu-charcoal">
+                      <h3 className="text-sm md:text-base font-black text-foreground">
                         Campaign
                       </h3>
                     </div>
                     {delulu.challengeId && (
-                      <span className="text-xs md:text-sm font-semibold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
+                      <span className="text-xs md:text-sm font-semibold text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/60">
                         {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
                       </span>
                     )}
@@ -700,7 +737,7 @@ console.log(deluluDescription, "deluluDescription");
                     <>
                       {isCreator && (
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <p className="text-sm text-gray-600 flex-1">
+                          <p className="text-sm text-muted-foreground flex-1">
                             Join a campaign to compete on leaderboards and earn rewards.
                           </p>
                           <button
@@ -714,7 +751,7 @@ console.log(deluluDescription, "deluluDescription");
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <span>
                         This delulu is participating in{" "}
@@ -727,15 +764,15 @@ console.log(deluluDescription, "deluluDescription");
             ) : (
               <div className="space-y-4">
                 {/* Milestones Card */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
+                <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base md:text-lg font-black text-delulu-charcoal flex items-center gap-2">
+                      <h2 className="text-base md:text-lg font-black text-foreground flex items-center gap-2">
                         <Target className="w-4 h-4 md:w-5 md:h-5" />
                         Milestones
                       </h2>
                       {milestones && milestones.length > 0 && (
-                        <span className="text-xs md:text-sm text-gray-500 font-medium">
+                        <span className="text-xs md:text-sm text-muted-foreground font-medium">
                           {milestones.filter((m) => m.isVerified).length} of {milestones.length}{" "}
                           completed
                         </span>
@@ -746,7 +783,7 @@ console.log(deluluDescription, "deluluDescription");
                       <button
                         type="button"
                         onClick={() => setShowMilestoneForm((open) => !open)}
-                        className=" w-fit  inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                        className=" w-fit  inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
                       >
                         {showMilestoneForm ? "Close" : "Create milestones"}
                       </button>
@@ -754,18 +791,18 @@ console.log(deluluDescription, "deluluDescription");
                   </div>
 
                   {isCreator && showMilestoneForm && (
-                    <div className="mb-4 border border-dashed border-gray-300 rounded-2xl p-3 md:p-4 bg-gray-50/60">
-                      <p className="text-xs md:text-sm text-gray-500 mb-3">
+                    <div className="mb-4 border border-dashed border-border rounded-2xl p-3 md:p-4 bg-muted/60">
+                      <p className="text-xs md:text-sm text-muted-foreground mb-3">
                         Add all of your milestones for this delulu now. You can&apos;t edit or add more milestones later, but you can always submit or update proof links for each one.
                       </p>
                       <div className="space-y-3 md:space-y-4">
                         {newMilestones.map((m, index) => (
                           <div
                             key={index}
-                            className="rounded-xl border border-gray-200 bg-white p-3 md:p-4 space-y-2"
+                            className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-2"
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-black text-gray-500 uppercase">
+                              <span className="text-xs font-black text-muted-foreground uppercase">
                                 Milestone {index + 1}
                               </span>
                               {newMilestones.length > 1 && (
@@ -792,7 +829,7 @@ console.log(deluluDescription, "deluluDescription");
                                       e.target.value
                                     )
                                   }
-                                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                                  className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                 />
                                 <input
                                   type="number"
@@ -802,12 +839,12 @@ console.log(deluluDescription, "deluluDescription");
                                   onChange={(e) =>
                                     handleNewMilestoneChange(index, "days", e.target.value)
                                   }
-                                  className="w-20 px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                                  className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                 />
                               </div>
                               <div className="flex items-center gap-2">
 
-                                <span className="text-xs text-gray-600">
+                                <span className="text-xs text-muted-foreground">
                                   days to complete (from now, sequentially after previous
                                   milestones)
                                 </span>
@@ -820,7 +857,7 @@ console.log(deluluDescription, "deluluDescription");
                         <button
                           type="button"
                           onClick={handleAddMilestoneRow}
-                          className="inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                          className="inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-border text-foreground hover:bg-muted transition-colors"
                         >
                           + Add another milestone
                         </button>
@@ -852,75 +889,129 @@ console.log(deluluDescription, "deluluDescription");
                   {milestones && milestones.length > 0 ? (
                     <>
                       <div className="space-y-3 md:space-y-4">
-                        {milestones.map((m, i) => (
-                          <div
-                            key={m.id}
-                            className="p-4 border-2 border-gray-100 rounded-xl flex gap-4"
-                          >
-                            <div className="pt-1">
-                              {m.isVerified ? (
-                                <CheckCircle2 className="text-green-500" />
-                              ) : (
-                                <Circle className="text-gray-300" />
-                              )}
-                            </div>
-                            <div className="flex-1 space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-bold text-delulu-charcoal">
-                                  Milestone {i + 1}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    !m.isVerified && isCreator && openProofModal(m.milestoneId, m.proofLink)
-                                  }
-                                  className={cn(
-                                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
-                                    m.isVerified
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
-                                      : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
-                                  )}
-                                >
-                                  {m.isVerified ? "Completed" : "Pending"}
-                                </button>
-                              </div>
-                              <p className="text-xs md:text-sm text-gray-500">
-                                {m.deadline.toLocaleDateString()}
-                              </p>
-                              {m.proofLink && (
-                                <a
-                                  href={m.proofLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-500 text-xs font-bold underline"
-                                >
-                                  View Evidence
-                                </a>
-                              )}
+                        {milestones.map((m, i) => {
+                          const fullTitle =
+                            (m.milestoneURI && m.milestoneURI.length > 0
+                              ? m.milestoneURI
+                              : `Milestone ${i + 1}`) || "";
+                          const shortTitle =
+                            fullTitle.length > 80
+                              ? `${fullTitle.slice(0, 77)}…`
+                              : fullTitle;
 
-                              {isCreator && !m.isVerified && (
-                                <button
-                                  type="button"
-                                  onClick={() => openProofModal(m.milestoneId, m.proofLink)}
-                                  className="mt-2 inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
-                                >
-                                  {m.proofLink ? "Update proof & change status" : "Submit proof to change status"}
-                                </button>
+                          let statusLabel = "Pending";
+                          if (m.isVerified) {
+                            statusLabel = "Completed";
+                          } else if (m.deadline.getTime() < Date.now()) {
+                            statusLabel = "Expired";
+                          }
+
+                          const timeLabel = m.isVerified
+                            ? m.deadline.toLocaleDateString()
+                            : formatMilestoneTimeLeft(m.deadline);
+
+                          return (
+                            <div
+                              key={m.id}
+                              className="border-2 border-border/60 rounded-xl overflow-hidden bg-card"
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenMilestoneId((prev) =>
+                                    prev === m.id ? null : m.id
+                                  )
+                                }
+                                className="w-full flex gap-4 p-4 items-start text-left"
+                              >
+                                  <div className="pt-1">
+                                    {m.isVerified ? (
+                                      <CheckCircle2 className="text-emerald-400" />
+                                    ) : (
+                                      <Circle className="text-muted-foreground/40" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 space-y-1.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="font-bold text-foreground">
+                                        {shortTitle}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          if (
+                                            !m.isVerified &&
+                                            isCreator
+                                          ) {
+                                            openProofModal(
+                                              m.milestoneId,
+                                              m.proofLink
+                                            );
+                                          }
+                                        }}
+                                        className={cn(
+                                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                          m.isVerified
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
+                                            : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
+                                        )}
+                                      >
+                                        {statusLabel}
+                                      </button>
+                                    </div>
+                                    <p className="text-xs md:text-sm text-muted-foreground">
+                                      {timeLabel}
+                                    </p>
+                                  </div>
+                              </button>
+
+                              {openMilestoneId === m.id && (
+                                <div className="px-4 pb-4 pt-0 text-xs md:text-sm text-muted-foreground space-y-2">
+                                  <p className="whitespace-pre-wrap">
+                                    {fullTitle}
+                                  </p>
+                                  {m.proofLink && (
+                                    <a
+                                      href={m.proofLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 text-xs font-bold underline"
+                                    >
+                                      View Evidence
+                                    </a>
+                                  )}
+
+                                  {isCreator && !m.isVerified && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openProofModal(m.milestoneId, m.proofLink)
+                                      }
+                                      className="mt-1 inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
+                                    >
+                                      {m.proofLink
+                                        ? "Update proof & change status"
+                                        : "Submit proof to change status"}
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Optional: progress summary could go here */}
                     </>
                   ) : (
-                    <div className="rounded-2xl bg-gray-50 p-8 text-center mt-2">
-                      <Target className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm md:text-base font-black text-gray-600 mb-1">
+                    <div className="rounded-2xl bg-muted p-8 text-center mt-2">
+                      <Target className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+                      <p className="text-sm md:text-base font-black text-foreground mb-1">
                         No milestones yet
                       </p>
-                      <p className="text-xs md:text-sm text-gray-400">
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         {isCreator
                           ? "Use the button above to create milestones for this delulu."
                           : "Milestones will appear here once the creator adds them."}
@@ -943,11 +1034,11 @@ console.log(deluluDescription, "deluluDescription");
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       {isCreator && activeProofMilestoneId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-base md:text-lg font-black text-delulu-charcoal mb-2">
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border">
+            <h3 className="text-base md:text-lg font-black text-foreground mb-2">
               Submit proof
             </h3>
-            <p className="text-xs md:text-sm text-gray-500 mb-4">
+            <p className="text-xs md:text-sm text-muted-foreground mb-4">
               Add a link that proves this milestone has been completed. Once submitted, the status can be updated by the protocol/admins.
             </p>
             <input
@@ -960,13 +1051,13 @@ console.log(deluluDescription, "deluluDescription");
                   [activeProofMilestoneId]: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setActiveProofMilestoneId(null)}
-                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-delulu-charcoal hover:bg-gray-100 transition-colors"
+                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-border text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
@@ -996,23 +1087,23 @@ console.log(deluluDescription, "deluluDescription");
       {/* Join campaign modal */}
       {isCreator && joinModalOpen && !delulu.challengeId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl border border-gray-200">
-            <h3 className="text-base md:text-lg font-black text-delulu-charcoal mb-2">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
+            <h3 className="text-base md:text-lg font-black text-foreground mb-2">
               Join a campaign
             </h3>
-            <p className="text-xs md:text-sm text-gray-500 mb-4">
+            <p className="text-xs md:text-sm text-muted-foreground mb-4">
               Select an active campaign to join with this delulu. Once joined, it can earn
               points and appear on the campaign leaderboard.
             </p>
 
             <div className="mb-4">
               {challenges.length === 0 ? (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   No active campaigns available to join right now.
                 </p>
               ) : (
                 <select
-                  className="w-full px-3 py-2 h-[46px] text-sm rounded-sm border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                  className="w-full px-3 py-2 h-[46px] text-sm rounded-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   value={selectedChallengeId ?? ""}
                   onChange={(e) =>
                     setSelectedChallengeId(e.target.value ? Number(e.target.value) : null)
@@ -1041,7 +1132,7 @@ console.log(deluluDescription, "deluluDescription");
                     setJoinModalOpen(false);
                   }
                 }}
-                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

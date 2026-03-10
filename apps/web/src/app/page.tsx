@@ -205,7 +205,7 @@ export default function HomePage() {
 
         <main 
           ref={scrollContainerRef}
-          className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide"
+          className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background"
         >
           <div className="lg:hidden">
             <Navbar
@@ -228,20 +228,20 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="hidden lg:block sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+          <div className="hidden lg:block sticky top-0 z-30 bg-secondary/95 backdrop-blur-sm border-b border-border">
             <div className="flex items-center justify-center gap-1 h-14">
               <button
                 onClick={() => setActiveTab("vision")}
                 className={cn(
                   "px-4 h-full flex items-center justify-center text-sm font-bold transition-colors relative",
                   activeTab === "vision"
-                    ? "text-delulu-charcoal"
-                    : "text-gray-400 hover:text-delulu-charcoal"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 Vision
                 {activeTab === "vision" && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-delulu-charcoal rounded-full" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-foreground rounded-full" />
                 )}
               </button>
               <button
@@ -249,13 +249,13 @@ export default function HomePage() {
                 className={cn(
                   "px-4 h-full flex items-center justify-center text-sm font-medium transition-colors relative",
                   activeTab === "fyp"
-                    ? "text-delulu-charcoal"
-                    : "text-gray-400 hover:text-delulu-charcoal"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 For you
                 {activeTab === "fyp" && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-delulu-charcoal rounded-full" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-foreground rounded-full" />
                 )}
               </button>
 
