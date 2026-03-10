@@ -465,6 +465,33 @@ textarea {
   transform: scale(0.97);
 }
 
+/* Support button animated border – subtle looping border that orbits the pill */
+.support-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  animation: support-border-orbit 1.8s linear infinite;
+  mask:
+    conic-gradient(from var(--_angle, 0deg), #000 0 25%, transparent 25% 100%);
+}
+
+@keyframes support-border-orbit {
+  0% {
+    --_angle: 0deg;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    --_angle: 360deg;
+    opacity: 0.8;
+  }
+}
+
 /* Gradient text - using charcoal base */
 .gradient-text {
   background: linear-gradient(135deg, #1A1A1A, var(--delulu-green));

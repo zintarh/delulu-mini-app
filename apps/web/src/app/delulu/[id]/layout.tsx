@@ -24,8 +24,8 @@ export async function generateMetadata(
 
     if (!delulu) {
       return {
-        title: "Vision Board Not Found",
-        description: "This vision board could not be found on Delulu.",
+        title: "Delulu Not Found",
+        description: "This delulu could not be found.",
       };
     }
 
@@ -48,7 +48,7 @@ export async function generateMetadata(
       finalBgImageUrl = `${baseUrl}/templates/t0.png`;
     }
 
-    const title = delulu.content || "My Vision Board";
+    const title = delulu.content || "Delulu";
     const fontName = "Gloria Hallelujah";
 
     const creatorStakeInfo = delulu.stakes?.find(
@@ -64,7 +64,7 @@ export async function generateMetadata(
     ogApiUrl.searchParams.set("font", fontName);
 
     const finalOgImageUrlString = ogApiUrl.toString();
-    const description = `Created a vision board on Delulu and staked ${formattedStakeAmount} USDm`;
+    const description = `Created a delulu on Delulu and staked ${formattedStakeAmount} USDm`;
 
     return {
       title: title,
@@ -91,8 +91,8 @@ export async function generateMetadata(
   } catch (error) {
     console.error("Error generating metadata for Delulu ID:", id, error);
     return {
-      title: "Delulu Vision Board",
-      description: "View this vision board on Delulu.",
+      title: "Delulu",
+      description: "View this delulu on Delulu.",
     };
   }
 }
