@@ -242,9 +242,10 @@ export function CreateDelusionSheet({
   const currentStakeAmount =
     stakeAmount[0] != null && isFinite(stakeAmount[0]) ? stakeAmount[0] : 0;
 
-  const hasInsufficientBalance = selectedTokenBalance?.balance
-    ? parseFloat(selectedTokenBalance.formatted) < currentStakeAmount
-    : false;
+  const hasInsufficientBalance =
+    currentStakeAmount > 0 && selectedTokenBalance?.balance
+      ? parseFloat(selectedTokenBalance.formatted) < currentStakeAmount
+      : false;
 
   const canGoNext = () => {
     if (currentStep === 0)
@@ -262,8 +263,10 @@ export function CreateDelusionSheet({
   const handleNext = () => {
     if (canGoNext() && currentStep < 4) {
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
-      if (currentStep === 2 && (!stakeAmount[0] || stakeAmount[0] < 1)) {
-        console.warn("Invalid stake amount detected, resetting to 1");
+      // Stake is optional: we only enforce a minimum of 1 token when the user
+      // actually chooses to stake a non-zero amount. Empty / 0 stays as 0.
+      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 1) {
+        console.warn("Clamping small non-zero stake amount to minimum of 1");
         setStakeAmount([1]);
       }
       setCurrentStep(currentStep + 1);

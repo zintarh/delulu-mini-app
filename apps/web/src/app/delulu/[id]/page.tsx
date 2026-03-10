@@ -438,10 +438,20 @@ export default function DeluluPage() {
     );
   }
 
-  if (!delulu) return <div className="p-20 text-center text-foreground">Delulu not found</div>;
+  // Only show "not found" once loading has completed and no delulu was returned.
+  if (!isLoadingDelulu && !delulu) {
+    return (
+      <div className="p-20 text-center text-foreground">
+        Delulu not found
+      </div>
+    );
+  }
 
-  const canStake = !delulu.isResolved && new Date() < delulu.stakingDeadline && !hasStaked;
-  const bannerImage = delulu.bgImageUrl || "/templates/t0.png";
+  // At this point, delulu is guaranteed to be non-null
+  const safeDelulu = delulu!;
+
+  const canStake = !safeDelulu.isResolved && new Date() < safeDelulu.stakingDeadline && !hasStaked;
+  const bannerImage = safeDelulu.bgImageUrl || "/templates/t0.png";
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -534,11 +544,11 @@ export default function DeluluPage() {
               </div>
               <div className="p-6 space-y-3">
                 <h1 className="text-2xl font-black mb-1 text-foreground">
-                  {deluluTitle || delulu?.content}
+                  {deluluTitle || safeDelulu.content}
                 </h1>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="font-semibold text-foreground">
-                    @{delulu.username || formatAddress(delulu.creator)}
+                    @{safeDelulu.username || formatAddress(safeDelulu.creator)}
                   </span>
                   {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
                 </div>
@@ -648,6 +658,14 @@ export default function DeluluPage() {
                             ≈ ${totalSupportUsd.toFixed(2)}
                           </span>
                         )}
+                        {safeDelulu.creatorStake && safeDelulu.creatorStake > 0 && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Creator stake:{" "}
+                            {safeDelulu.creatorStake < 0.01
+                              ? safeDelulu.creatorStake.toFixed(4)
+                              : safeDelulu.creatorStake.toFixed(2)}
+                          </span>
+                        )}
                       </p>
                     </div>
 
@@ -727,13 +745,13 @@ export default function DeluluPage() {
                         Campaign
                       </h3>
                     </div>
-                    {delulu.challengeId && (
+                    {safeDelulu.challengeId && (
                       <span className="text-xs md:text-sm font-semibold text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/60">
-                        {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
+                        {currentCampaign?.title || `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     )}
                   </div>
-                  {!delulu.challengeId ? (
+                  {!safeDelulu.challengeId ? (
                     <>
                       {isCreator && (
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -755,7 +773,7 @@ export default function DeluluPage() {
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <span>
                         This delulu is participating in{" "}
-                        {currentCampaign?.title || `Campaign #${Number(delulu.challengeId)}`}
+                        {currentCampaign?.title || `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     </div>
                   )}
@@ -924,47 +942,47 @@ export default function DeluluPage() {
                                 }
                                 className="w-full flex gap-4 p-4 items-start text-left"
                               >
-                                  <div className="pt-1">
-                                    {m.isVerified ? (
-                                      <CheckCircle2 className="text-emerald-400" />
-                                    ) : (
-                                      <Circle className="text-muted-foreground/40" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 space-y-1.5">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="font-bold text-foreground">
-                                        {shortTitle}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          if (
-                                            !m.isVerified &&
-                                            isCreator
-                                          ) {
-                                            openProofModal(
-                                              m.milestoneId,
-                                              m.proofLink
-                                            );
-                                          }
-                                        }}
-                                        className={cn(
-                                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
-                                          m.isVerified
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
-                                            : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
-                                        )}
-                                      >
-                                        {statusLabel}
-                                      </button>
-                                    </div>
-                                    <p className="text-xs md:text-sm text-muted-foreground">
-                                      {timeLabel}
+                                <div className="pt-1">
+                                  {m.isVerified ? (
+                                    <CheckCircle2 className="text-emerald-400" />
+                                  ) : (
+                                    <Circle className="text-muted-foreground/40" />
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="font-bold text-foreground">
+                                      {shortTitle}
                                     </p>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (
+                                          !m.isVerified &&
+                                          isCreator
+                                        ) {
+                                          openProofModal(
+                                            m.milestoneId,
+                                            m.proofLink
+                                          );
+                                        }
+                                      }}
+                                      className={cn(
+                                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                        m.isVerified
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
+                                          : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
+                                      )}
+                                    >
+                                      {statusLabel}
+                                    </button>
                                   </div>
+                                  <p className="text-xs md:text-sm text-muted-foreground">
+                                    {timeLabel}
+                                  </p>
+                                </div>
                               </button>
 
                               {openMilestoneId === m.id && (
@@ -1085,7 +1103,7 @@ export default function DeluluPage() {
       <FeedbackModal isOpen={showErrorModal} type="error" title={errorTitle} message={errorMessage} onClose={() => setShowErrorModal(false)} />
 
       {/* Join campaign modal */}
-      {isCreator && joinModalOpen && !delulu.challengeId && (
+      {isCreator && joinModalOpen && !safeDelulu.challengeId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
             <h3 className="text-base md:text-lg font-black text-foreground mb-2">

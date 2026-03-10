@@ -31,6 +31,8 @@ type Delulu @entity(immutable: false) {
   totalSupportCollected: BigInt! # Total support collected
   totalSupporters: BigInt! # Number of supporters
   creatorStake: BigInt! # Initial support from creator
+  creatorIsStaked: Boolean # v3: whether creator currently has stake locked
+  creatorStakeCurrent: BigInt # v3: live creator stake after slashing/refunds
   
   # Challenge and Milestone tracking
   challengeId: BigInt # Challenge ID if joined (nullable)
@@ -41,6 +43,10 @@ type Delulu @entity(immutable: false) {
   isResolved: Boolean! # Whether delulu is resolved
   isCancelled: Boolean! # Whether delulu is cancelled
   rewardClaimed: Boolean! # Whether rewards have been claimed
+  isFailed: Boolean # v3: whether goal has been marked failed
+  finisherWindowEnd: BigInt # v3: end of finisher tipping window
+  failedStakePool: BigInt # v3: total stake pool for refunds on failure
+  totalSupportForProRata: BigInt # v3: total support used for pro‑rata refunds
   
   # Reverse lookups
   stakes: [Stake!]! @derivedFrom(field: "delulu")
@@ -76,15 +82,41 @@ type Milestone @entity(immutable: false) {
   milestoneId: BigInt! # On-chain milestone ID
   creator: User! # Creator of the delulu (for convenience)
   descriptionHash: Bytes! # Hash of milestone description
+  milestoneURI: String # Human-readable description / IPFS CID
   deadline: BigInt! # Milestone deadline
+  startTime: BigInt # v3: when this milestone's duration starts
+  tippingWindowStart: BigInt # v3: when tipping re-opens after proof
+  tippingWindowEnd: BigInt # v3: when tipping closes
+  isMissed: Boolean # v3: true if deadline passed without valid proof
   proofLink: String # Proof link submitted (nullable until submitted)
   isSubmitted: Boolean! # Whether milestone has been submitted
   isVerified: Boolean! # Whether milestone has been verified
   pointsEarned: BigInt! # Points earned when verified
+  totalSupport: BigInt # v3: total support tipped to this milestone
   submittedAt: BigInt # Block timestamp when submitted (nullable)
   verifiedAt: BigInt # Block timestamp when verified (nullable)
   rejectedAt: BigInt # Block timestamp when rejected (nullable)
   rejectionReason: String # Reason for rejection if rejected
+}
+
+# Aggregated creator stats for leaderboards
+type CreatorStats @entity(immutable: false) {
+  id: Bytes!          # creator address (same as User.id)
+  user: User!         # relation to User for username / reverse lookups
+
+  # Goals
+  totalGoals: BigInt!
+  completedGoals: BigInt!
+  failedGoals: BigInt!
+
+  # Milestones
+  totalMilestones: BigInt!
+  verifiedMilestones: BigInt!
+
+  # Support
+  totalSupportCollected: BigInt!
+
+  createdAt: BigInt!  # first time this creator appeared
 }
 
 # Challenge entity - tracks admin-created challenges

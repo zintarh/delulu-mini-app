@@ -337,12 +337,13 @@ textarea {
 /* Custom Date Picker Styles - Light Theme */
 .rdp {
   --rdp-cell-size: 32px;
-  --rdp-accent-color: var(--delulu-yellow-reserved);
-  --rdp-background-color: #ffffff;
-  --rdp-accent-color-dark: var(--delulu-yellow-reserved);
-  --rdp-background-color-dark: #ffffff;
-  --rdp-outline: 2px solid var(--delulu-yellow-reserved);
-  --rdp-outline-selected: 2px solid var(--delulu-yellow-reserved);
+  /* Use theme tokens so the calendar matches light/dark modes */
+  --rdp-accent-color: #1A1A1A;
+  --rdp-accent-color-dark: #1A1A1A;
+  --rdp-background-color: var(--card);
+  --rdp-background-color-dark: var(--card);
+  --rdp-outline: 2px solid #1A1A1A;
+  --rdp-outline-selected: 2px solid #1A1A1A;
   margin: 0;
 }
 
@@ -364,7 +365,7 @@ textarea {
 .rdp-day {
   width: var(--rdp-cell-size);
   height: var(--rdp-cell-size);
-  color: #1A1A1A;
+  color: var(--foreground);
 }
 
 /* Override any blue colors to yellow */
@@ -390,14 +391,16 @@ textarea {
   content: "‹";
   font-size: 1.5rem;
   line-height: 1;
-  color: #1A1A1A;
+  /* Use theme foreground color for nav icons */
+  color: var(--foreground);
 }
 
 .rdp-nav_button_next::before {
   content: "›";
   font-size: 1.5rem;
   line-height: 1;
-  color: #1A1A1A;
+  /* Use theme foreground color for nav icons */
+  color: var(--foreground);
 }
 
 .rdp-nav_button_previous svg,
@@ -407,15 +410,15 @@ textarea {
 
 /* Override chevron fill color - charcoal for visibility */
 .rdp-chevron {
-  fill: #1A1A1A !important;
+  fill: var(--foreground) !important;
 }
 
 /* Override today indicator - charcoal underline instead of yellow text */
 .rdp-today:not(.rdp-outside) {
   font-weight: bold;
   text-decoration: underline;
-  text-decoration-color: var(--delulu-yellow-reserved);
-  color: #1A1A1A !important;
+  text-decoration-color: var(--border);
+  color: var(--foreground) !important;
 }
 
 /* Custom Slider Styles - Light Theme */
@@ -460,6 +463,33 @@ textarea {
 
 .btn-press:active {
   transform: scale(0.97);
+}
+
+/* Support button animated border – subtle looping border that orbits the pill */
+.support-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  animation: support-border-orbit 1.8s linear infinite;
+  mask:
+    conic-gradient(from var(--_angle, 0deg), #000 0 25%, transparent 25% 100%);
+}
+
+@keyframes support-border-orbit {
+  0% {
+    --_angle: 0deg;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    --_angle: 360deg;
+    opacity: 0.8;
+  }
 }
 
 /* Gradient text - using charcoal base */

@@ -193,6 +193,15 @@ export const metadata: Metadata = {
       "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
     images: [`${appUrl}/opengraph-image.png`],
   },
+  icons: {
+    icon: [
+      { url: "/favicon_io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: ["/favicon_io/favicon.ico"],
+    apple: ["/favicon_io/apple-touch-icon.png"],
+    other: [{ rel: "manifest", url: "/favicon_io/site.webmanifest" }],
+  },
   other: {
     "fc:frame": JSON.stringify(frame),
   },

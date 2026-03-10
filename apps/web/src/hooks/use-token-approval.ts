@@ -69,8 +69,9 @@ export function useTokenApproval(tokenAddress: string | undefined) {
   };
 
   const needsApproval = (amount: number): boolean => {
+    // No approval needed when not staking anything
+    if (!amount || isNaN(amount) || amount <= 0) return false;
     if (!allowance || !token) return true;
-    if (!amount || isNaN(amount) || amount <= 0) return true;
 
     try {
       const amountWei = parseUnits(amount.toString(), 18);

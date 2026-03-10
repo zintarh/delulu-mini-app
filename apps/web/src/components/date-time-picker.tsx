@@ -62,7 +62,7 @@ export function DateTimePicker({
   return (
     <div className={cn("w-full max-w-md mx-auto", className)}>
       {/* Date Picker */}
-      <div className="bg-white rounded-2xl px-3 border py-6 border-gray-200 text-delulu-charcoal shadow-sm">
+      <div className="bg-card rounded-2xl px-3 border py-6 border-border text-foreground shadow-sm">
         <DayPicker
           mode="single"
           selected={selectedDate || undefined}
@@ -88,36 +88,40 @@ export function DateTimePicker({
               "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
             month: "space-y-2",
             caption: "flex justify-center pt-1 relative items-center",
-            caption_label: "text-sm font-bold text-delulu-charcoal",
+            caption_label: "text-sm font-bold text-foreground",
             nav: "space-x-1 flex items-center",
+            // Month navigation controls – align icon colors with theme
             nav_button: cn(
-              "h-6 w-6 bg-transparent p-0 opacity-70 hover:opacity-100",
-              "text-delulu-charcoal hover:bg-gray-100 rounded-full",
+              "h-6 w-6 bg-transparent p-0 rounded-full",
+              "text-muted-foreground hover:text-foreground hover:bg-muted",
+              "opacity-80 hover:opacity-100",
               "transition-all duration-150"
             ),
             nav_button_previous: "absolute left-1",
             nav_button_next: "absolute right-1",
             table: "w-full border-collapse space-y-1",
             head_row: "flex",
-            head_cell: "text-gray-600 font-bold text-xs w-8",
+            head_cell: "text-muted-foreground font-bold text-xs w-8",
             row: "flex w-full mt-1",
-            cell: "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-gray-100 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
+            cell:
+              "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-muted first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
             day: cn(
-              "h-8 w-8 p-0 font-bold text-delulu-charcoal text-sm",
-              "hover:bg-gray-100 rounded-full",
+              "h-8 w-8 p-0 font-bold text-foreground text-sm",
+              "hover:bg-muted rounded-full",
               "transition-all duration-150",
               "aria-selected:opacity-100",
-              "focus:bg-gray-200 focus:outline-none"
+              "focus:bg-muted focus:outline-none"
             ),
             day_selected: cn(
               "bg-delulu-charcoal text-white",
               "hover:bg-delulu-charcoal hover:text-white",
               "focus:bg-delulu-charcoal focus:text-white"
             ),
+            // Today indicator: use a black ring instead of yellow
             day_today:
-              "bg-white text-delulu-charcoal font-black border-2 border-delulu-yellow-reserved",
-            day_disabled: "text-gray-300 cursor-not-allowed",
-            day_outside: "text-gray-400",
+              "bg-background text-foreground font-black border-2 border-delulu-charcoal",
+            day_disabled: "text-muted-foreground/40 cursor-not-allowed",
+            day_outside: "text-muted-foreground/60",
             day_hidden: "invisible",
           }}
         />

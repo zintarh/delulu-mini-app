@@ -39,6 +39,8 @@ export interface FormattedDelulu {
   totalBelieverStake: number;
   totalDoubterStake: number;
   totalStake: number;
+  /** Creator's own initial stake on this delulu (in display units) */
+  creatorStake?: number;
   totalSupportCollected?: number;
   totalSupporters?: number;
   challengeId?: number;
