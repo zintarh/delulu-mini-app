@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { HeartIcon } from "lucide-react";
+import { HeartIcon, UsersIcon, Plus } from "lucide-react";
 import { useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
+import { useAccount } from "wagmi";
+import { isDeluluCreator } from "@/lib/delulu-utils";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -92,6 +95,10 @@ export function DeluluCard({
     delusion.id
   );
 
+  const { address } = useAccount();
+  const isCreator = isDeluluCreator(address, delusion);
+  const router = useRouter();
+
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollar =
     delusion.tokenAddress?.toLowerCase() ===
@@ -130,22 +137,29 @@ export function DeluluCard({
 
   type MilestonePreviewStatus = "past" | "current" | "future";
 
-  // Derive milestone preview from on-chain / subgraph data when available
+  // Helper to calculate milestone duration in days
+  const getMilestoneDurationDays = (milestone: { startTime: Date | null; deadline: Date }): number | null => {
+    if (!milestone.startTime) return null;
+    const diffMs = milestone.deadline.getTime() - milestone.startTime.getTime();
+    if (diffMs <= 0) return null;
+    const days = diffMs / (24 * 60 * 60 * 1000);
+    return Math.round(days * 100) / 100; // Round to 2 decimal places
+  };
+
   const previewMilestones = (() => {
     if (isMilestonesLoading || !milestones || milestones.length === 0) {
       return [] as {
         label: string;
         status: MilestonePreviewStatus;
         timeLeft?: string;
+        durationDays?: number | null;
       }[];
     }
 
-    // Sort milestones by milestoneId ascending
     const sorted = [...milestones].sort(
       (a, b) => Number(a.milestoneId) - Number(b.milestoneId)
     );
 
-    // Find "current" milestone: first where isVerified is false
     const currentIndex = sorted.findIndex((m) => !m.isVerified);
 
     // Helper to build display label from milestoneURI with truncation
@@ -163,6 +177,7 @@ export function DeluluCard({
       return sorted.slice(start).map((m) => ({
         label: makeLabel(m),
         status: "past" as MilestonePreviewStatus,
+        durationDays: getMilestoneDurationDays(m),
       }));
     }
 
@@ -208,10 +223,13 @@ export function DeluluCard({
         timeLeft = secondsLeft > 0 ? label : undefined;
       }
 
+      const durationDays = getMilestoneDurationDays(m);
+
       return {
         label: makeLabel(m),
         status,
         timeLeft,
+        durationDays,
       };
     });
   })();
@@ -223,6 +241,33 @@ export function DeluluCard({
   const totalCount = milestones && milestones.length > 0 ? milestones.length : 0;
   const successPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  // Check if support button should be visible (only during active tipping windows or Genesis)
+  const canSupport = useMemo(() => {
+    const now = Date.now();
+    
+    // Check Genesis window (first 24 hours after creation)
+    if (delusion.stakingDeadline && new Date(delusion.stakingDeadline).getTime() > now) {
+      return true;
+    }
+
+    // Check if any milestone has an active tipping window
+    if (milestones && milestones.length > 0) {
+      for (const milestone of milestones) {
+        if (milestone.isSubmitted && milestone.tippingWindowStart && milestone.tippingWindowEnd) {
+          const tippingStart = new Date(milestone.tippingWindowStart).getTime();
+          const tippingEnd = new Date(milestone.tippingWindowEnd).getTime();
+          
+          // Tipping window is active if current time is between tippingWindowStart and tippingWindowEnd
+          if (now >= tippingStart && now <= tippingEnd) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }, [delusion.stakingDeadline, milestones]);
 
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
@@ -304,7 +349,7 @@ export function DeluluCard({
               )}
               {formattedUsd && (
                 <span className="truncate">
-                  ≈ ${formattedUsd} total support
+                  ≈ ${formattedUsd} 
                 </span>
               )}
             </div>
@@ -318,23 +363,32 @@ export function DeluluCard({
         </div>
 
         <div className="px-4 pb-4 space-y-2.5">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span className="uppercase tracking-[0.12em] text-muted-foreground">
-              Milestones
-            </span>
-            {totalCount > 0 && (
+          {totalCount > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="uppercase tracking-[0.12em] text-muted-foreground">
+                Milestones
+              </span>
               <span>
                 {completedCount}/{totalCount} completed ·{" "}
                 <span className="font-semibold text-foreground">
                   {successPct}% success
                 </span>
               </span>
-            )}
-          </div>
+            </div>
+          )}
           {previewMilestones.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground">
-              No milestones added yet
-            </p>
+            isCreator ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(href || `/delulu/${delusion.id}`);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Add milestones
+              </button>
+            ) : null
           ) : (
             <div className="space-y-2">
               {previewMilestones.map((m) => {
@@ -362,13 +416,22 @@ export function DeluluCard({
                       />
                       <span className="truncate">{m.label}</span>
                     </div>
-                    <span className="text-[11px]">
-                      {m.status === "past"
+                    <div className="flex items-center gap-2">
+                      {m.durationDays !== null && m.durationDays !== undefined && (
+                        <span className="text-[11px] font-semibold text-foreground whitespace-nowrap">
+                          {m.durationDays === Math.floor(m.durationDays) 
+                            ? `${Math.floor(m.durationDays)}d`
+                            : `${m.durationDays.toFixed(1)}d`}
+                        </span>
+                      )}
+                      <span className="text-[11px]">
+                        {m.status === "past"
                         ? "Completed"
                         : m.status === "future"
                         ? "Coming Soon"
                         : (m as any).timeLeft ?? ""}
-                    </span>
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -381,23 +444,28 @@ export function DeluluCard({
             <span className="flex items-center gap-1">
 
             </span>
-            {delusion.totalSupporters != null && (
+            {delusion.totalSupporters != null && delusion.totalSupporters > 0 && (
               <span className="flex items-center gap-1">
+                     <span className="text-muted-foreground">
+                  <UsersIcon className="w-4 h-4" />
+                </span>
                 <span className="font-semibold text-surface-dark-foreground">
                   {delusion.totalSupporters}
                 </span>
-                <span className="text-muted-foreground">supporters</span>
+           
               </span>
             )}
           </div>
-          <button
-            onClick={handleStake}
-            className="support-pulse inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-[11px] font-semibold text-delulu-charcoal shadow-[0_0_0_1px_rgba(0,0,0,0.85)] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.95)] hover:brightness-105 hover:-translate-y-[0.5px] transition-all relative overflow-hidden"
-          >
-            <span className="relative z-[1] flex items-center gap-1.5">
-              <HeartIcon className="w-4 h-4" />
-            </span>
-          </button>
+          {canSupport && (
+            <button
+              onClick={handleStake}
+              className="support-pulse inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-[11px] font-semibold text-delulu-charcoal shadow-[0_0_0_1px_rgba(0,0,0,0.85)] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.95)] hover:brightness-105 hover:-translate-y-[0.5px] transition-all relative overflow-hidden"
+            >
+              <span className="relative z-[1] flex items-center gap-1.5">
+                <HeartIcon className="w-4 h-4" />
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

@@ -10,14 +10,14 @@ import { LeftSidebar } from "@/components/left-sidebar";
 interface NavbarProps {
   onProfileClick?: () => void;
   onCreateClick?: () => void;
-  activeTab?: "vision" | "fyp";
-  onTabChange?: (tab: "vision" | "fyp") => void;
+  activeTab?: "board" | "fyp";
+  onTabChange?: (tab: "board" | "fyp") => void;
 }
 
 export function Navbar({
   onProfileClick,
   onCreateClick,
-  activeTab = "fyp",
+  activeTab = "board",
   onTabChange,
 }: NavbarProps) {
   const router = useRouter();
@@ -52,16 +52,16 @@ export function Navbar({
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onTabChange?.("vision")}
+              onClick={() => onTabChange?.("board")}
               className={cn(
                 "px- py-2 text-sm font-bold transition-colors relative",
-                activeTab === "vision"
+                activeTab === "board"
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Vision
-              {activeTab === "vision" && (
+              Board
+              {activeTab === "board" && (
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-foreground rounded-full" />
               )}
             </button>

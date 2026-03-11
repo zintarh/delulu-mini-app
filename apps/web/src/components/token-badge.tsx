@@ -54,7 +54,7 @@ export function TokenBadge({
             : "h-6 w-6 rounded-full"
         }
       />
-      {showText && <span>{symbol}</span>}
+      {showText && <span className="text-xs">{symbol}</span>}
     </span>
   );
 }

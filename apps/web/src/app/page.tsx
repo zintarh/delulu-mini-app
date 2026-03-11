@@ -8,6 +8,7 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { DeluluCard } from "@/components/delulu-card";
+import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
@@ -38,7 +39,7 @@ export default function HomePage() {
     fetchNextPage 
   } = useAllDelulus();
   
-  // Fetch user's created delulus for Vision tab (from The Graph)
+  // Fetch user's created delulus for Board tab (from The Graph)
   const { 
     delulus: userCreatedDelulus, 
     isLoading: isLoadingUserDelulus 
@@ -53,7 +54,7 @@ export default function HomePage() {
     }
   );
 
-  // Get raw GraphQL data for Vision tab
+  // Get raw GraphQL data for Board tab
   const { data: rawVisionData } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(
     GetDelulusDocument,
     {
@@ -95,7 +96,7 @@ export default function HomePage() {
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"vision" | "fyp">("fyp");
+  const [activeTab, setActiveTab] = useState<"board" | "fyp">("board");
   const [isScrolling, setIsScrolling] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,7 +170,7 @@ export default function HomePage() {
   const filteredDelulus = useMemo(() => {
     let delulusToFilter: FormattedDelulu[] = [];
     
-    if (activeTab === "vision") {
+    if (activeTab === "board") {
       if (!isConnected || !address) {
         return [];
       }
@@ -183,7 +184,7 @@ export default function HomePage() {
 
   return (
     <div className="h-screen  overflow-hidden">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_360px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
             onProfileClick={() => {
@@ -231,16 +232,16 @@ export default function HomePage() {
           <div className="hidden lg:block sticky top-0 z-30 bg-secondary/95 backdrop-blur-sm border-b border-border">
             <div className="flex items-center justify-center gap-1 h-14">
               <button
-                onClick={() => setActiveTab("vision")}
+                onClick={() => setActiveTab("board")}
                 className={cn(
                   "px-4 h-full flex items-center justify-center text-sm font-bold transition-colors relative",
-                  activeTab === "vision"
+                  activeTab === "board"
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Vision
-                {activeTab === "vision" && (
+                Board
+                {activeTab === "board" && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-foreground rounded-full" />
                 )}
               </button>
@@ -266,37 +267,57 @@ export default function HomePage() {
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
             {(activeTab === "fyp" && (isLoading || isIpfsLoading)) ||
-            (activeTab === "vision" && isLoadingUserDelulus) ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <DeluluCardSkeleton key={i} index={i} />
+            (activeTab === "board" && isLoadingUserDelulus) ? (
+              <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col gap-3"}>
+                {Array.from({ length: activeTab === "board" ? 6 : 5 }).map((_, i) => (
+                  activeTab === "board" ? (
+                    <div
+                      key={i}
+                      className="break-inside-avoid mb-3 aspect-[16/9] bg-muted rounded-xl border border-border animate-pulse"
+                    />
+                  ) : (
+                    <DeluluCardSkeleton key={i} index={i} />
+                  )
                 ))}
               </div>
             ) : filteredDelulus.length > 0 ? (
-              <div className="flex flex-col">
+              <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col"}>
                 {filteredDelulus.map((delusion, index) => {
-                  return (
-                    <DeluluCard
-                      key={`delulu-${delusion.onChainId || delusion.id}-${index}`}
-                      delusion={delusion}
-                      href={`/delulu/${delusion.id}`}
-                      onStake={() => {
-                        if (!isConnected) {
-                          setShowLoginSheet(true);
-                        } else {
-                          setSelectedDelulu(delusion);
-                          setStakingSheetOpen(true);
-                        }
-                      }}
-                      isLast={index === filteredDelulus.length - 1}
-                    />
+                  const commonProps = {
+                    key: `delulu-${delusion.onChainId || delusion.id}-${index}`,
+                    delusion,
+                    href: `/delulu/${delusion.id}`,
+                    onStake: () => {
+                      if (!isConnected) {
+                        setShowLoginSheet(true);
+                      } else {
+                        setSelectedDelulu(delusion);
+                        setStakingSheetOpen(true);
+                      }
+                    },
+                    isLast: index === filteredDelulus.length - 1,
+                  };
+
+                  return activeTab === "board" ? (
+                    <div key={commonProps.key} className="break-inside-avoid mb-3">
+                      <ProfileDeluluCard {...commonProps} size="masonry" />
+                    </div>
+                  ) : (
+                    <DeluluCard {...commonProps} />
                   );
                 })}
                 {/* Loading indicator for next page */}
                 {isFetchingNextPage && (
-                  <div className="flex flex-col gap-3 mt-6">
+                  <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3 mt-6" : "flex flex-col gap-3 mt-6"}>
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <DeluluCardSkeleton key={`loading-${i}`} index={i} />
+                      activeTab === "board" ? (
+                        <div
+                          key={`loading-${i}`}
+                          className="break-inside-avoid mb-3 aspect-[16/9] bg-muted rounded-xl border border-border animate-pulse"
+                        />
+                      ) : (
+                        <DeluluCardSkeleton key={`loading-${i}`} index={i} />
+                      )
                     ))}
                   </div>
                 )}
@@ -310,17 +331,41 @@ export default function HomePage() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">
-                  {activeTab === "vision"
-                    ? "You haven't staked on any delulus yet"
-                    : "No delulus yet"}
-                </p>
-                <p className="text-gray-400 text-xs mt-1">
-                  {activeTab === "vision"
-                    ? "Stake on a delulu to see it here"
-                    : "Start by creating your first delulu"}
-                </p>
+              <div className="text-center py-12 flex flex-col items-center justify-center min-h-[400px]">
+                {activeTab === "board" ? (
+                  <>
+                    <p className="text-muted-foreground text-sm mb-2">
+                      Your board is empty
+                    </p>
+                    <p className="text-muted-foreground/70 text-xs mb-6 max-w-sm">
+                      Create your first delulu to start building your board
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!isConnected) {
+                          setShowLoginSheet(true);
+                        } else {
+                          router.push("/board");
+                        }
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-foreground bg-delulu-yellow-reserved text-foreground shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
+                      )}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Delulu
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-500 text-sm">
+                      No delulus yet
+                    </p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Start by creating your first delulu
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>

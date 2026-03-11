@@ -46,10 +46,10 @@ export default function LeaderboardPage() {
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
           <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
             <header className="mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
                 Creator leaderboard
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground font-medium">
                 Ranked by completed goals, with milestones and support totals from the subgraph.
               </p>
             </header>
@@ -80,8 +80,8 @@ export default function LeaderboardPage() {
                     <div
                       key={entry.address}
                       className={cn(
-                        "flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-secondary text-xs",
-                        entry.rank <= 3 && "bg-secondary/80"
+                        "flex items-center justify-between px-4 py-3 rounded-xl border-2 border-border bg-card shadow-[2px_2px_0px_0px_#1A1A1A] text-xs hover:shadow-[3px_3px_0px_0px_#1A1A1A] transition-all",
+                        entry.rank <= 3 && "bg-card border-foreground/20"
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -111,16 +111,16 @@ export default function LeaderboardPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground">
+                <div className="flex justify-between items-center mt-6 text-xs text-muted-foreground">
                   <button
                     type="button"
                     disabled={page === 0}
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    className="px-3 py-1 rounded-full border border-border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+                    className="px-4 py-2 rounded-md border-2 border-border bg-card disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted hover:border-foreground/20 transition-colors font-semibold"
                   >
                     Previous
                   </button>
-                  <span>
+                  <span className="font-medium">
                     Page {page + 1}
                   </span>
                   <button
@@ -131,7 +131,7 @@ export default function LeaderboardPage() {
                         setPage((p) => p + 1);
                       }
                     }}
-                    className="px-3 py-1 rounded-full border border-border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted"
+                    className="px-4 py-2 rounded-md border-2 border-border bg-card disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted hover:border-foreground/20 transition-colors font-semibold"
                   >
                     Next
                   </button>
