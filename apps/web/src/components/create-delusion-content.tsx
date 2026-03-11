@@ -599,7 +599,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
       <div
         className={cn(
-          "relative h-screen z-10 max-w-4xl mx-auto bg-background text-foreground overflow-y-auto",
+          "relative h-screen z-10 max-w-4xl mx-auto bg-background text-foreground overflow-y-auto scrollbar-hide",
           step === "gallery" && "bg-background"
         )}
       >
@@ -1107,6 +1107,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   <Upload className="w-4 h-4" />
                   <span>{selectedTemplate || customImage ? "Change Template" : "Choose Template"}</span>
                 </button>
+                {validation.errors.image && (
+                  <p className="text-sm text-destructive mt-2 font-bold">
+                    {validation.errors.image}
+                  </p>
+                )}
               </div>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Plus, User, Coins, User2, Trophy, Moon, Sun } from "lucide-react";
+import { Home, Plus, User, Coins, User2, CableCar,  Trophy, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTheme } from "@/contexts/theme-context";
@@ -43,10 +43,10 @@ export function LeftSidebar({
       onClick: undefined,
     },
     {
-      icon: Trophy,
-      label: "Challenges",
-      href: "/challenges",
-      active: pathname === "/challenges",
+      icon: CableCar,
+      label: "Campaigns",
+      href: "/campaigns",
+      active: pathname === "/campaigns",
       onClick: undefined,
     },
     {
@@ -96,9 +96,7 @@ export function LeftSidebar({
           const isClaimG = item.label === "Claim G$";
           const className = cn(
             "flex items-center gap-3 transition-colors text-sm",
-            isClaimG
-              ? "px-4 py-2 rounded-full bg-foreground text-background w-fit"
-              : "px-3 py-2.5 rounded-lg w-full",
+             "px-3 py-2.5 rounded-lg w-full",
             item.active
               ? isClaimG
                 ? "bg-[#01B1FF]/20"
@@ -119,7 +117,7 @@ export function LeftSidebar({
               ) : (
                 <Icon className="w-6 h-6 flex-shrink-0" />
               )}
-              <span className="text-base font-semibold">{item.label}</span>
+              <span className="text-base font-">{item.label}</span>
             </>
           );
 
@@ -158,13 +156,11 @@ export function LeftSidebar({
         >
           <span className="flex items-center gap-2">
             {theme === "dark" ? (
-              <Moon className="w-4 h-4" />
+              <Moon className="w-6 h-6" />
             ) : (
-              <Sun className="w-4 h-4" />
+              <Sun className="w-6 h-6" />
             )}
-            <span className="font-medium">
-              {theme === "dark" ? "Dark mode" : "Light mode"}
-            </span>
+           
           </span>
           
         </button>

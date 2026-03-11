@@ -3,10 +3,7 @@ import { cn } from "@/lib/utils";
 export function HotDeluluSkeleton() {
   return (
     <div
-      className="relative rounded-3xl p-5 h-[200px] shrink-0 w-full overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #f9e79f 0%, #f7dc6f 10%, #d4af37 25%)",
-      }}
+      className="relative rounded-3xl p-5 h-[200px] shrink-0 w-full overflow-hidden bg-muted"
     >
       <div className="space-y-3 animate-pulse">
         <div className="flex items-center gap-2">
@@ -94,8 +91,8 @@ export function DeluluCardSkeleton({
               <div className="h-3 w-14 rounded bg-muted" />
             </div>
           </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow/70 px-3.5 py-1.5 shadow-sm">
-            <div className="w-4 h-4 rounded-full bg-delulu-charcoal/40" />
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3.5 py-1.5 border border-border">
+            <div className="w-4 h-4 rounded-full bg-muted-foreground/20" />
           </div>
         </div>
       </div>

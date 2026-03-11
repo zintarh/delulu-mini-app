@@ -147,7 +147,7 @@ export default function ChallengesPage() {
 
             {/* Content */}
               {error && !isLoading ? (
-              <div className="bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-12 text-center">
+              <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-12 text-center">
                 <p className="text-muted-foreground font-medium">
                   Error loading campaigns: {error.message}
                 </p>
@@ -171,7 +171,7 @@ export default function ChallengesPage() {
                       <Link
                         key={challenge.id}
                         href={`/challenges/${challenge.id}`}
-                        className="block bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-4 sm:p-6 hover:shadow-[4px_4px_0px_0px_#1A1A1A] transition-all cursor-pointer"
+                        className="block bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-4 sm:p-6 hover:shadow-[4px_4px_0px_0px_#1A1A1A] hover:border-foreground/20 transition-all cursor-pointer"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
@@ -228,8 +228,8 @@ export default function ChallengesPage() {
                               className={cn(
                                 "inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-bold border-2 shadow-[2px_2px_0px_0px_#1A1A1A]",
                                 challenge.active
-                                  ? "bg-green-100 text-green-800 border-green-800"
-                                  : "bg-gray-100 text-gray-800 border-gray-800"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                  : "bg-muted text-muted-foreground border-border"
                               )}
                             >
                               {challenge.active ? "Active" : "Ended"}

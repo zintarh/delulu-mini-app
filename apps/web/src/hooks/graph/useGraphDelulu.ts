@@ -32,7 +32,9 @@ export interface GraphMilestone {
   descriptionHash: string;
   milestoneURI: string | null;
   deadline: Date;
-  tippingWindowEnd: Date;
+  startTime: Date | null;
+  tippingWindowStart: Date | null;
+  tippingWindowEnd: Date | null;
   proofLink: string | null;
   isSubmitted: boolean;
   isVerified: boolean;
@@ -166,7 +168,9 @@ export function useGraphDelulu(deluluId: string | number | null) {
         descriptionHash: mm.descriptionHash,
         milestoneURI: mm.milestoneURI ?? null,
         deadline: timestampToDate(mm.deadline),
-        tippingWindowEnd: timestampToDate(mm.tippingWindowEnd),
+        startTime: mm.startTime ? timestampToDate(mm.startTime) : null,
+        tippingWindowStart: mm.tippingWindowStart ? timestampToDate(mm.tippingWindowStart) : null,
+        tippingWindowEnd: mm.tippingWindowEnd ? timestampToDate(mm.tippingWindowEnd) : null,
         // Normalize undefined to null so it matches GraphMilestone type
         proofLink: mm.proofLink ?? null,
         isSubmitted: mm.isSubmitted,

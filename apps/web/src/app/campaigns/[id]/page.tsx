@@ -184,12 +184,12 @@ export default function ChallengeDetailPage() {
                 <div className="flex items-center justify-center py-10">
                   {isLoadingChallenges ? (
                     <div className="w-full max-w-xl space-y-4">
-                      <div className="h-7 bg-gray-200 rounded w-1/3" />
-                      <div className="h-4 bg-gray-200 rounded w-1/2" />
-                      <div className="h-5 bg-gray-200 rounded w-28" />
+                      <div className="h-7 bg-muted rounded w-1/3 animate-pulse" />
+                      <div className="h-4 bg-muted rounded w-1/2 animate-pulse" />
+                      <div className="h-5 bg-muted rounded w-28 animate-pulse" />
                     </div>
                   ) : (
-                    <div className="bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                    <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
                       <p className="text-muted-foreground font-medium">
                         Campaign not found
                       </p>
@@ -242,7 +242,7 @@ export default function ChallengeDetailPage() {
                 {isLoadingLeaderboard ? (
                   <CampaignLeaderboardSkeleton rows={4} />
                 ) : leaderboard.length === 0 ? (
-                  <div className="bg-card rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                  <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
                     <Trophy className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
                     <p className="text-muted-foreground font-medium mb-1">
                       No participants yet
@@ -268,8 +268,8 @@ export default function ChallengeDetailPage() {
                         <div
                           key={entry.deluluId}
                           className={cn(
-                            "bg-card rounded-lg border border-border p-2 sm:p-2",
-                            isTopThree && "bg-gradient-to-r from-muted/60 to-card"
+                            "bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1A1A1A] p-3 sm:p-4 hover:shadow-[3px_3px_0px_0px_#1A1A1A] transition-all",
+                            isTopThree && "bg-card border-foreground/20"
                           )}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
@@ -317,7 +317,7 @@ export default function ChallengeDetailPage() {
                                       ).toString()
                                     );
                                   }}
-                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-delulu-charcoal bg-card text-foreground shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all w-full sm:w-auto"
+                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-border bg-card text-foreground shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] hover:border-foreground/20 active:scale-[0.98] transition-all w-full sm:w-auto"
                                 >
                                   Allocate
                                 </button>
@@ -359,7 +359,7 @@ export default function ChallengeDetailPage() {
                 onChange={(e) => setPointsInput(e.target.value)}
                 placeholder="Points"
                 min={0}
-                className="flex-1 px-3 py-2 h-[46px] text-sm rounded-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal focus:border-delulu-charcoal"
+                className="flex-1 px-3 py-2 h-[46px] text-sm rounded-sm border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground"
               />
             </div>
             <div className="mt-3 flex justify-end gap-2">

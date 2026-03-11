@@ -7,7 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
-import { refetchDeluluData, refetchAfterClaim } from "@/lib/graph/refetch-utils";
+import { refetchDeluluData, refetchAfterClaim, refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
@@ -18,6 +18,7 @@ import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
 import { FeedbackModal } from "@/components/feedback-modal";
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalFooter } from "@/components/ui/modal";
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
@@ -38,6 +39,8 @@ import {
   Circle,
   Menu,
   Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -139,6 +142,8 @@ export default function DeluluPage() {
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [newMilestones, setNewMilestones] = useState<{ description: string; days: string }[]>([{ description: "", days: "" }]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [milestoneToDelete, setMilestoneToDelete] = useState<{ id: string; label?: string } | null>(null);
   const [milestoneProofLinks, setMilestoneProofLinks] = useState<Record<string, string>>({});
   const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
@@ -189,11 +194,31 @@ export default function DeluluPage() {
     const totalSeconds = Math.floor(diffMs / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-
+    const days = Math.floor(hours / 24);
+    
+    // Show days if 24 hours or more
+    if (days > 0) {
+      const remainingHours = hours % 24;
+      if (remainingHours > 0) {
+        return `${days}d ${remainingHours}h left`;
+      }
+      return `${days}d left`;
+    }
+    
+    // Show hours and minutes if less than 24 hours
     if (hours > 0) {
       return `${hours}h ${minutes.toString().padStart(2, "0")}m left`;
     }
     return `${minutes}m left`;
+  };
+
+  // Calculate milestone duration in days from startTime and deadline
+  const getMilestoneDurationDays = (milestone: { startTime: Date | null; deadline: Date }): number | null => {
+    if (!milestone.startTime) return null;
+    const diffMs = milestone.deadline.getTime() - milestone.startTime.getTime();
+    if (diffMs <= 0) return null;
+    const days = diffMs / (24 * 60 * 60 * 1000);
+    return Math.round(days * 100) / 100; // Round to 2 decimal places
   };
 
 
@@ -222,6 +247,10 @@ export default function DeluluPage() {
   const { isLoading: isConfirmingAddMilestones, isSuccess: isAddMilestonesSuccess } = useWaitForTransactionReceipt({ hash: addMilestonesHash });
   const { writeContract: writeSubmitMilestone, data: submitMilestoneHash, isPending: isSubmittingMilestone, error: submitMilestoneError } = useWriteContract();
   const { isLoading: isConfirmingSubmitMilestone, isSuccess: isSubmitMilestoneSuccess } = useWaitForTransactionReceipt({ hash: submitMilestoneHash });
+  const { writeContract: writeResetMilestones, data: resetMilestonesHash, isPending: isResettingMilestones, error: resetMilestonesError } = useWriteContract();
+  const { isLoading: isConfirmingResetMilestones, isSuccess: isResetMilestonesSuccess } = useWaitForTransactionReceipt({ hash: resetMilestonesHash });
+  const { writeContract: writeDeleteMilestone, data: deleteMilestoneHash, isPending: isDeletingMilestone, error: deleteMilestoneError } = useWriteContract();
+  const { isLoading: isConfirmingDeleteMilestone, isSuccess: isDeleteMilestoneSuccess } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
 
   const handleAddMilestoneRow = () => setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
   const handleRemoveMilestoneRow = (index: number) => setNewMilestones((prev) => prev.filter((_, i) => i !== index));
@@ -231,13 +260,6 @@ export default function DeluluPage() {
 
   const handleCreateMilestones = () => {
     if (!isCreator || !delulu) return;
-    // Contract only allows initializing milestones once
-    if (milestones && milestones.length > 0) {
-      setErrorTitle("Milestones already created");
-      setErrorMessage("You cannot add more milestones.");
-      setShowErrorModal(true);
-      return;
-    }
 
     // Validate that at least one milestone has both description and days
     const validMilestones = newMilestones.filter(
@@ -279,17 +301,24 @@ export default function DeluluPage() {
     }
 
     // Validate that the total sequential duration does not exceed the resolution deadline.
-    // The contract uses `block.timestamp` as a starting point and reverts with InvalidDeadlines()
-    // if the final milestone deadline is after `resolutionDeadline`.
+    // When adding more milestones, calculate from the last existing milestone deadline.
     const totalDurationSeconds = validMilestones.reduce((sum, m) => {
       const days = Number(m.days);
       return sum + days * 24 * 60 * 60;
     }, 0);
 
-    const nowSeconds = Math.floor(Date.now() / 1000);
+    // Find the last milestone deadline if milestones exist, otherwise use current time
+    let startTimeSeconds = Math.floor(Date.now() / 1000);
+    if (milestones && milestones.length > 0) {
+      const lastMilestone = milestones[milestones.length - 1];
+      if (lastMilestone && lastMilestone.deadline) {
+        startTimeSeconds = Math.floor(lastMilestone.deadline.getTime() / 1000);
+      }
+    }
+
     const resolutionSeconds = Math.floor(delulu.resolutionDeadline.getTime() / 1000);
 
-    if (nowSeconds + totalDurationSeconds > resolutionSeconds) {
+    if (startTimeSeconds + totalDurationSeconds > resolutionSeconds) {
       setErrorTitle("Duration too long");
       setErrorMessage("Total milestone duration exceeds your deadline. Reduce the number of days.");
       setShowErrorModal(true);
@@ -297,6 +326,8 @@ export default function DeluluPage() {
     }
 
     const mURIs = validMilestones.map((m) => m.description.trim());
+    // Convert days to seconds: 1 day = 86400 seconds, 3 days = 259200 seconds, etc.
+    // The contract expects durations in seconds
     const mDurations = validMilestones.map((m) =>
       BigInt(Math.floor(Number(m.days) * 24 * 60 * 60))
     );
@@ -319,6 +350,8 @@ export default function DeluluPage() {
     });
   };
 
+
+
   const openProofModal = (milestoneId: string, existingProof?: string | null) => {
     setMilestoneProofLinks((prev) => ({
       ...prev,
@@ -336,7 +369,6 @@ export default function DeluluPage() {
     }
   };
 
-  // Sync Logic
   useEffect(() => {
     if (isStakeSuccess) {
       setShowSuccessModal(true);
@@ -352,6 +384,74 @@ export default function DeluluPage() {
       refetchAfterClaim(apolloClient, queryClient, deluluId);
     }
   }, [isClaimSuccess, deluluId, apolloClient, queryClient]);
+
+  useEffect(() => {
+    if (isResetMilestonesSuccess) {
+      refetchDeluluData(apolloClient, deluluId);
+      setNewMilestones([{ description: "", days: "" }]);
+      setShowMilestoneForm(true);
+    }
+  }, [isResetMilestonesSuccess, deluluId, apolloClient]);
+
+  useEffect(() => {
+    if (isDeleteMilestoneSuccess) {
+      refetchDeluluData(apolloClient, deluluId);
+      setShowDeleteModal(false);
+      setMilestoneToDelete(null);
+    }
+  }, [isDeleteMilestoneSuccess, deluluId, apolloClient]);
+
+  const handleDeleteMilestone = (milestoneId: string) => {
+    if (!isCreator || !delulu) return;
+    
+    const milestone = milestones?.find((m) => m.milestoneId === milestoneId);
+    if (!milestone) return;
+
+    // Check if milestone can be deleted
+    if (milestone.isSubmitted || milestone.isVerified) {
+      setErrorTitle("Cannot delete milestone");
+      setErrorMessage("You cannot delete a milestone that has been submitted or verified.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check if milestone deadline has passed (past milestone)
+    const isPast = milestone.deadline.getTime() < Date.now();
+    if (isPast || milestone.isMissed) {
+      setErrorTitle("Cannot delete milestone");
+      setErrorMessage("You cannot delete a milestone that has already passed its deadline.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Show confirmation modal
+    const milestoneLabel = milestone.milestoneURI && milestone.milestoneURI.length > 0
+      ? milestone.milestoneURI
+      : `Milestone ${milestoneId}`;
+    setMilestoneToDelete({ 
+      id: milestoneId, 
+      label: milestoneLabel
+    });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteMilestone = () => {
+    if (!milestoneToDelete || !delulu) return;
+
+    writeDeleteMilestone({
+      address: getDeluluContractAddress(chainId),
+      abi: DELULU_ABI,
+      functionName: "deleteMilestone",
+      args: [BigInt(delulu.id), BigInt(milestoneToDelete.id)],
+    });
+  };
+
+  const handleDeleteModalClose = () => {
+    if (!isDeletingMilestone && !isConfirmingDeleteMilestone) {
+      setShowDeleteModal(false);
+      setMilestoneToDelete(null);
+    }
+  };
 
   useEffect(() => {
     if (!selectedChallengeId && challenges.length > 0) {
@@ -394,7 +494,10 @@ export default function DeluluPage() {
   useEffect(() => {
     if (isAddMilestonesSuccess) {
       setShowMilestoneForm(false);
+      // Refetch this delulu's data
       refetchDeluluData(apolloClient, deluluId);
+      // Refetch all active queries to update lists on home page, profile page, etc.
+      refetchAllActiveQueries(apolloClient, 5000); // 5 second delay for subgraph indexing
       // Visual feedback: confetti when milestones are created successfully
       (async () => {
         try {
@@ -414,6 +517,16 @@ export default function DeluluPage() {
       })();
     }
   }, [isAddMilestonesSuccess, apolloClient, deluluId]);
+
+  // Refetch queries when milestone proof is submitted
+  useEffect(() => {
+    if (isSubmitMilestoneSuccess) {
+      // Refetch this delulu's data
+      refetchDeluluData(apolloClient, deluluId);
+      // Refetch all active queries to update lists on home page, profile page, etc.
+      refetchAllActiveQueries(apolloClient, 5000); // 5 second delay for subgraph indexing
+    }
+  }, [isSubmitMilestoneSuccess, apolloClient, deluluId]);
 
   // Initial load: show skeleton layout instead of spinner
   if (isLoadingDelulu && !delulu) {
@@ -487,6 +600,7 @@ export default function DeluluPage() {
 
   const canStake = !safeDelulu.isResolved && new Date() < safeDelulu.stakingDeadline && !hasStaked;
   const bannerImage = safeDelulu.bgImageUrl || "/templates/t0.png";
+  const canAddMilestones = safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -832,7 +946,8 @@ export default function DeluluPage() {
                       )}
                     </div>
 
-                    {isCreator && (!milestones || milestones.length === 0) && (
+                    <div className="flex items-center gap-2">
+                    {isCreator && canAddMilestones && (
                       <button
                         type="button"
                         onClick={() => setShowMilestoneForm((open) => !open)}
@@ -841,70 +956,173 @@ export default function DeluluPage() {
                         {showMilestoneForm ? "Close" : "Create milestones"}
                       </button>
                     )}
+                     
+                    </div>
                   </div>
 
-                  {isCreator && showMilestoneForm && (
+                  {isCreator && canAddMilestones && showMilestoneForm && (
                     <div className="mb-4 border border-dashed border-border rounded-2xl p-3 md:p-4 bg-muted/60">
                       <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                        Add all of your milestones for this delulu now. You can&apos;t edit or add more milestones later, but you can always submit or update proof links for each one.
+                        {milestones && milestones.length > 0
+                          ? "Add more milestones to your delulu. You can delete milestones that haven't been submitted yet."
+                          : "Add milestones for this delulu. You can add more or delete them later (before submission)."}
+                      </p>
+                      <p className="text-xs font-semibold text-foreground mb-3 bg-card/50 p-2 rounded-md border border-border/50">
+                        ⚠️ Milestones run sequentially: Each milestone starts when the previous one ends. The duration you enter is the time to complete that milestone.
                       </p>
                       <div className="space-y-3 md:space-y-4">
-                        {newMilestones.map((m, index) => (
-                          <div
-                            key={index}
-                            className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-2"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-black text-muted-foreground uppercase">
-                                Milestone {index + 1}
-                              </span>
-                              {newMilestones.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveMilestoneRow(index)}
-                                  className="text-xs text-red-500 hover:text-red-700 font-medium"
-                                >
-                                  <XIcon className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                            <div className="space-y-2">
-
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  placeholder="Describe this milestone..."
-                                  value={m.description}
-                                  onChange={(e) =>
-                                    handleNewMilestoneChange(
-                                      index,
-                                      "description",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                />
-                                <input
-                                  type="number"
-                                  min={1}
-                                  placeholder="0"
-                                  value={m.days}
-                                  onChange={(e) =>
-                                    handleNewMilestoneChange(index, "days", e.target.value)
-                                  }
-                                  className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                />
-                              </div>
-                              <div className="flex items-center gap-2">
-
-                                <span className="text-xs text-muted-foreground">
-                                  days to complete (from now, sequentially after previous
-                                  milestones)
+                        {newMilestones.map((m, index) => {
+                          // Calculate milestone timing
+                          // NOTE: Duration input is in DAYS (1 = 1 day, 3 = 3 days)
+                          // Contract receives: days * 24 * 60 * 60 (converted to seconds)
+                          // Display calculation: days * 24 * 60 * 60 * 1000 (converted to milliseconds for JS Date)
+                          const calculateMilestoneTiming = () => {
+                            // Start from current time, or last milestone's deadline if milestones exist
+                            let startTime = Date.now();
+                            
+                            // If there are existing milestones, find the last one's deadline
+                            if (milestones && milestones.length > 0) {
+                              const lastMilestone = milestones[milestones.length - 1];
+                              if (lastMilestone && lastMilestone.deadline) {
+                                startTime = lastMilestone.deadline.getTime();
+                              }
+                            }
+                            
+                            // Calculate cumulative start times for previous new milestones in this batch
+                            // Each milestone starts when the previous one ends
+                            for (let i = 0; i < index; i++) {
+                              const prevDays = Number(newMilestones[i].days) || 0;
+                              if (prevDays > 0) {
+                                // Convert days to milliseconds: 1 day = 24 * 60 * 60 * 1000 ms
+                                startTime += prevDays * 24 * 60 * 60 * 1000;
+                              }
+                            }
+                            
+                            // Calculate end time: startTime + duration in days
+                            const days = Number(m.days) || 0;
+                            // 1 day = 24 hours = 86400000 milliseconds
+                            const endTime = days > 0 ? startTime + (days * 24 * 60 * 60 * 1000) : startTime;
+                            
+                            // Check if this exceeds resolution deadline
+                            const resolutionTime = delulu?.resolutionDeadline?.getTime() || 0;
+                            const exceedsDeadline = resolutionTime > 0 && endTime > resolutionTime;
+                            
+                            return { startTime, endTime, exceedsDeadline };
+                          };
+                          
+                          const { startTime, endTime, exceedsDeadline } = calculateMilestoneTiming();
+                          const startDate = new Date(startTime);
+                          const endDate = new Date(endTime);
+                          
+                          return (
+                            <div
+                              key={index}
+                              className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-2"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-black text-muted-foreground uppercase">
+                                  Milestone {index + 1}
                                 </span>
+                                {newMilestones.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveMilestoneRow(index)}
+                                    className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                  >
+                                    <XIcon className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Describe this milestone..."
+                                    value={m.description}
+                                    onChange={(e) =>
+                                      handleNewMilestoneChange(
+                                        index,
+                                        "description",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                  />
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    placeholder="0"
+                                    value={m.days}
+                                    onChange={(e) =>
+                                      handleNewMilestoneChange(index, "days", e.target.value)
+                                    }
+                                    className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  {m.days && Number(m.days) > 0 ? (
+                                    <>
+                                      <div className="text-xs text-muted-foreground space-y-1">
+                                        {(() => {
+                                          const days = Number(m.days);
+                                          const showTime = days < 1; // Show time only if less than 24 hours
+                                          
+                                          return (
+                                            <>
+                                              <div>
+                                                <span className="font-semibold text-foreground">Starts:</span>{" "}
+                                                {startDate.toLocaleDateString("en-US", { 
+                                                  month: "short", 
+                                                  day: "numeric", 
+                                                  year: "numeric" 
+                                                })}
+                                                {showTime && (
+                                                  <>{" "}at{" "}
+                                                    {startDate.toLocaleTimeString("en-US", { 
+                                                      hour: "numeric", 
+                                                      minute: "2-digit",
+                                                      hour12: true 
+                                                    })}
+                                                  </>
+                                                )}
+                                              </div>
+                                              <div>
+                                                <span className="font-semibold text-foreground">Ends:</span>{" "}
+                                                {endDate.toLocaleDateString("en-US", { 
+                                                  month: "short", 
+                                                  day: "numeric", 
+                                                  year: "numeric" 
+                                                })}
+                                                {showTime && (
+                                                  <>{" "}at{" "}
+                                                    {endDate.toLocaleTimeString("en-US", { 
+                                                      hour: "numeric", 
+                                                      minute: "2-digit",
+                                                      hour12: true 
+                                                    })}
+                                                  </>
+                                                )}
+                                              </div>
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                      {exceedsDeadline && (
+                                        <div className="text-xs font-semibold text-red-500 bg-red-500/10 p-2 rounded-md border border-red-500/30">
+                                          ⚠️ This milestone exceeds your resolution deadline ({delulu?.resolutionDeadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}). Reduce the duration.
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      Enter duration to see timing calculation
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
                         <button
@@ -962,6 +1180,9 @@ export default function DeluluPage() {
                           const timeLabel = m.isVerified
                             ? m.deadline.toLocaleDateString()
                             : formatMilestoneTimeLeft(m.deadline);
+                          
+                          // Calculate duration in days
+                          const durationDays = getMilestoneDurationDays(m);
 
                           return (
                             <div
@@ -978,10 +1199,10 @@ export default function DeluluPage() {
                                 className="w-full flex gap-4 p-4 items-start text-left"
                               >
                                 <div className="pt-1">
-                                  {m.isVerified ? (
-                                    <CheckCircle2 className="text-emerald-400" />
+                                  {openMilestoneId === m.id ? (
+                                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
                                   ) : (
-                                    <Circle className="text-muted-foreground/40" />
+                                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
                                   )}
                                 </div>
                                 <div className="flex-1 space-y-1.5">
@@ -989,34 +1210,59 @@ export default function DeluluPage() {
                                     <p className="font-bold text-foreground">
                                       {shortTitle}
                                     </p>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (
-                                          !m.isVerified &&
-                                          isCreator
-                                        ) {
-                                          openProofModal(
-                                            m.milestoneId,
-                                            m.proofLink
-                                          );
-                                        }
-                                      }}
-                                      className={cn(
-                                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
-                                        m.isVerified
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default"
-                                          : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:shadow-sm cursor-pointer"
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          if (
+                                            !m.isVerified &&
+                                            isCreator
+                                          ) {
+                                            openProofModal(
+                                              m.milestoneId,
+                                              m.proofLink
+                                            );
+                                          }
+                                        }}
+                                        className={cn(
+                                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                          m.isVerified
+                                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 cursor-default"
+                                            : "bg-secondary text-secondary-foreground border-border hover:bg-muted cursor-pointer transition-colors"
+                                        )}
+                                      >
+                                        {statusLabel}
+                                      </button>
+                                      {isCreator && !m.isSubmitted && !m.isVerified && !m.isMissed && m.deadline.getTime() >= Date.now() && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleDeleteMilestone(m.milestoneId);
+                                          }}
+                                          className="inline-flex items-center justify-center w-6 h-6 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                          title="Delete milestone"
+                                        >
+                                          <XIcon className="w-4 h-4" />
+                                        </button>
                                       )}
-                                    >
-                                      {statusLabel}
-                                    </button>
+                                    </div>
                                   </div>
-                                  <p className="text-xs md:text-sm text-muted-foreground">
-                                    {timeLabel}
-                                  </p>
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {durationDays !== null && (
+                                      <span className="text-xs md:text-sm font-semibold text-foreground">
+                                        Duration: {durationDays === Math.floor(durationDays) 
+                                          ? `${Math.floor(durationDays)} day${Math.floor(durationDays) !== 1 ? 's' : ''}`
+                                          : `${durationDays.toFixed(1)} days`}
+                                      </span>
+                                    )}
+                                    <span className="text-xs md:text-sm text-muted-foreground">
+                                      {timeLabel}
+                                    </span>
+                                  </div>
                                 </div>
                               </button>
 
@@ -1037,17 +1283,19 @@ export default function DeluluPage() {
                                   )}
 
                                   {isCreator && !m.isVerified && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        openProofModal(m.milestoneId, m.proofLink)
-                                      }
-                                      className="mt-1 inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
-                                    >
-                                      {m.proofLink
-                                        ? "Update proof & change status"
-                                        : "Submit proof to change status"}
-                                    </button>
+                                    <div className="flex items-center gap-3 mt-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          openProofModal(m.milestoneId, m.proofLink)
+                                        }
+                                        className="inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
+                                      >
+                                        {m.proofLink
+                                          ? "Update proof & change status"
+                                          : "Submit proof to change status"}
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -1218,6 +1466,79 @@ export default function DeluluPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Milestone Confirmation Modal */}
+      <Modal open={showDeleteModal} onOpenChange={handleDeleteModalClose}>
+        <ModalContent className="max-w-md">
+          <ModalHeader>
+            <ModalTitle className="text-delulu-charcoal text-xl font-bold">
+              Delete Milestone
+            </ModalTitle>
+            <ModalDescription className="mt-2">
+              Are you sure you want to delete this milestone? This action cannot be undone.
+            </ModalDescription>
+          </ModalHeader>
+          <div className="mt-4 space-y-4">
+            {milestoneToDelete && (
+              <div className="p-3 bg-muted rounded-lg border border-border">
+                <p className="text-sm font-semibold text-foreground">
+                  {milestoneToDelete.label}
+                </p>
+              </div>
+            )}
+            
+            {deleteMilestoneError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">
+                  {deleteMilestoneError instanceof Error
+                    ? deleteMilestoneError.message
+                    : "Failed to delete milestone. Please try again."}
+                </p>
+              </div>
+            )}
+
+            {isDeleteMilestoneSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">
+                  ✓ Milestone deleted successfully!
+                </p>
+              </div>
+            )}
+
+            <ModalFooter>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  disabled={isDeletingMilestone || isConfirmingDeleteMilestone}
+                  onClick={handleDeleteModalClose}
+                  className="flex-1 px-4 py-2 text-sm font-semibold rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingMilestone || isConfirmingDeleteMilestone}
+                  onClick={confirmDeleteMilestone}
+                  className={cn(
+                    "flex-1 px-4 py-2 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                    "bg-red-500 text-white hover:bg-red-600 hover:scale-[0.98] transition-all",
+                    "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  )}
+                >
+                  {isDeletingMilestone || isConfirmingDeleteMilestone ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Milestone"
+                  )}
+                </button>
+              </div>
+            </ModalFooter>
+          </div>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

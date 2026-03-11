@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, X, TrendingUp } from "lucide-react";
-import { useAllDelulus, useCreatorLeaderboard } from "@/hooks/graph";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Search, X, Trophy } from "lucide-react";
+import { useAllDelulus } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useRouter } from "next/navigation";
 import type { FormattedDelulu } from "@/lib/types";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
+import { ProfileDeluluCard } from "@/components/profile-delulu-card";
+import { cn } from "@/lib/utils";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentTrendingIndex, setCurrentTrendingIndex] = useState(0);
+  const trendingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { delulus, isLoading } = useAllDelulus();
   const {
     challenges,
@@ -19,33 +23,28 @@ export function RightSidebar() {
   const router = useRouter();
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
-  // Global creator leaderboard (from subgraph)
-  const {
-    entries: creatorLeaderboard,
-    isLoading: isLeaderboardLoading,
-  } = useCreatorLeaderboard(5);
-
-  // Helper to check if string is a hash
   const isHash = (str: string) => {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
   };
 
-  // Helper to check if content is loaded (not a hash)
   const isContentLoaded = (delulu: FormattedDelulu): boolean => {
     if (!delulu.content) return false;
     return !isHash(delulu.content);
   };
 
-  // Filter out delulus without loaded content
+  // For search, filter by content loaded
   const delulusWithContent = useMemo(() => {
     return delulus.filter(isContentLoaded);
   }, [delulus]);
 
+  // For trending, show all delulus (ProfileDeluluCard handles missing content gracefully)
   const filteredDelulus = useMemo(() => {
     if (!searchQuery.trim()) {
-      return delulusWithContent;
+      // For trending section, don't filter by content - show all delulus
+      return delulus;
     }
 
+    // For search, only show delulus with loaded content
     const query = searchQuery.toLowerCase().trim();
     return delulusWithContent.filter((d) => {
       const content = (d.content || "").toLowerCase();
@@ -58,7 +57,7 @@ export function RightSidebar() {
         creator.includes(query)
       );
     });
-  }, [delulusWithContent, searchQuery]);
+  }, [delulus, delulusWithContent, searchQuery]);
 
   const formatTvlUsd = (d: FormattedDelulu): string | null => {
     const tvl =
@@ -93,12 +92,33 @@ export function RightSidebar() {
       .slice(0, 4);
   }, [filteredDelulus]);
 
-  const recommendedDelulus = useMemo(() => {
-    const available = filteredDelulus.filter(
-      (d) => !trendingDelulus.some((td) => td.id === d.id)
-    );
-    return [...available].sort(() => Math.random() - 0.5).slice(0, 4);
-  }, [filteredDelulus, trendingDelulus]);
+  // Auto-rotate carousel every 3 minutes (180000ms)
+  useEffect(() => {
+    if (trendingDelulus.length <= 1) {
+      setCurrentTrendingIndex(0);
+      return;
+    }
+
+    // Reset to first card when trending delulus change
+    setCurrentTrendingIndex(0);
+
+    // Clear any existing interval
+    if (trendingIntervalRef.current) {
+      clearInterval(trendingIntervalRef.current);
+    }
+
+    // Start new interval
+    trendingIntervalRef.current = setInterval(() => {
+      setCurrentTrendingIndex((prev) => (prev + 1) % trendingDelulus.length);
+    }, 180000); // 3 minutes
+
+    return () => {
+      if (trendingIntervalRef.current) {
+        clearInterval(trendingIntervalRef.current);
+      }
+    };
+  }, [trendingDelulus.length]);
+
 
   const activeChallenges = useMemo(
     () => challenges.filter((c) => c.active),
@@ -110,7 +130,7 @@ export function RightSidebar() {
   };
 
   return (
-    <aside className="h-screen sticky top-0 px-5 py-4 overflow-y-auto bg-background border-l border-border text-foreground">
+    <aside className="h-screen sticky top-0 px-5 py-4 overflow-y-auto scrollbar-hide bg-background border-l border-border text-foreground">
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -175,128 +195,115 @@ export function RightSidebar() {
                 </button>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No results found
-            </p>
-          )}
+            ) : null}
         </div>
       ) : (
         <>
-          <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">
-                  Top creators
-                </h2>
-              </div>
-            </div>
-            {isLeaderboardLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-1.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-muted animate-pulse" />
-                      <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="h-3 w-10 bg-muted rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : creatorLeaderboard.length > 0 ? (
-              <div className="space-y-1.5">
-                {creatorLeaderboard.map((entry) => (
-                  <div
-                    key={entry.address}
-                    className="flex items-center justify-between text-xs text-muted-foreground"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-5 text-right font-semibold text-foreground">
-                        {entry.rank}
-                      </span>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-foreground truncate">
-                          {entry.username || entry.address.slice(0, 6) + "…" + entry.address.slice(-4)}
-                        </span>
-                        <span className="text-[10px]">
-                          {entry.completedGoals}/{entry.totalGoals} goals ·{" "}
-                          {entry.verifiedMilestones} verified milestones
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center">
-                No creator stats yet.
-              </p>
-            )}
-          </div>
-
-          <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
+          <div className=" mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-muted-foreground" />
               <h2 className="text-lg font-bold text-foreground">
                 Trending{" "}
                 <span
                   className="text-delulu-yellow-reserved"
                   style={{
-                    fontFamily: "var(--font-gloria), cursive",
+                    
                     textShadow: "2px 2px 0px #1A1A1A, -1px -1px 0px #1A1A1A, 1px -1px 0px #1A1A1A, -1px 1px 0px #1A1A1A"
                   }}
                 >
-                  delulus
+                  My Board
                 </span>
               </h2>
             </div>
 
             {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-secondary rounded-xl p-3 border border-border animate-pulse"
-                  >
-                    <div className="h-3 bg-muted rounded w-3/4 mb-2" />
-                    <div className="h-2 bg-muted rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
+              <div className="h-[520px] bg-muted rounded-sm border border-border animate-pulse" />
             ) : trendingDelulus.length > 0 ? (
-              <div className="space-y-3">
-                {trendingDelulus.map((delulu, idx) => (
-                  <button
-                    key={`trending-${delulu.onChainId || delulu.id}-${idx}`}
-                    onClick={() => handleDeluluClick(delulu.id)}
-                    className="w-full text-left p-3 rounded-xl bg-secondary hover:bg-muted transition-colors border border-border hover:border-border"
-                  >
-                    <p className="text-sm text-muted-foreground font-medium mb-1 line-clamp-2">
-                      {delulu.content || "YOUR DELULU HEADLINE"}
-                    </p>
-                  
-                  </button>
-                ))}
+              <div className="relative w-full">
+                <div 
+                  className="relative w-full rounded-xl overflow-hidden"
+                  style={{ height: '420px', minHeight: '420px' }}
+                >
+                  {trendingDelulus[currentTrendingIndex] ? (
+                    <div 
+                      className="w-full h-full"
+                      style={{ height: '100%', width: '100%' }}
+                    >
+                      <ProfileDeluluCard
+                        key={`trending-card-${trendingDelulus[currentTrendingIndex].id}-${currentTrendingIndex}`}
+                        delusion={trendingDelulus[currentTrendingIndex]}
+                        onClick={() => handleDeluluClick(trendingDelulus[currentTrendingIndex].id)}
+                        size="full"
+                        className="h-full text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <p className="text-muted-foreground">Loading card...</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Dots */}
+                {trendingDelulus.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    {trendingDelulus.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentTrendingIndex(idx);
+                          // Reset the interval when manually clicking
+                          if (trendingIntervalRef.current) {
+                            clearInterval(trendingIntervalRef.current);
+                          }
+                          trendingIntervalRef.current = setInterval(() => {
+                            setCurrentTrendingIndex((prev) => (prev + 1) % trendingDelulus.length);
+                          }, 180000);
+                        }}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          idx === currentTrendingIndex
+                            ? "bg-foreground w-6"
+                            : "bg-muted-foreground"
+                        )}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No trending delulus yet
-              </p>
+              <div className="h-[520px] bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1A1A1A] flex items-center justify-center p-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground font-medium mb-1">
+                    {delulus.length === 0 
+                      ? "No delulus found" 
+                      : "No trending delulus yet"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {delulus.length === 0
+                      ? "Create your first delulu to get started"
+                      : "Check back soon for trending content"}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="bg-muted rounded-2xl border border-border p-4 mb-6">
+          <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
             <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-delulu-yellow-reserved" />
               <h2 className="text-lg font-bold text-foreground">
-                Active campaigns
+                <span
+                  className="text-delulu-yellow-reserved"
+                  style={{
+                    textShadow: "2px 2px 0px #1A1A1A, -1px -1px 0px #1A1A1A, 1px -1px 0px #1A1A1A, -1px 1px 0px #1A1A1A"
+                  }}
+                >
+                  Campaigns
+                </span>
               </h2>
-              <span className="text-sm text-muted-foreground">
-                ({activeChallenges.length})
-              </span>
+              
             </div>
 
             {isChallengesLoading ? (
@@ -304,10 +311,10 @@ export function RightSidebar() {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="bg-secondary rounded-xl p-3 border border-border animate-pulse"
+                    className="bg-muted rounded-xl p-4 border border-border animate-pulse"
                   >
-                    <div className="h-3 bg-muted rounded w-3/4 mb-2" />
-                    <div className="h-2 bg-muted rounded w-1/2" />
+                    <div className="h-4 bg-secondary rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-secondary rounded w-1/2" />
                   </div>
                 ))}
               </div>
@@ -317,28 +324,29 @@ export function RightSidebar() {
                   <button
                     key={`active-${challenge.id}-${idx}`}
                     onClick={() => router.push(`/challenges/${challenge.id}`)}
-                    className="w-full text-left p-3 rounded-xl bg-secondary hover:bg-muted transition-colors border border-border hover:border-border"
+                    className="w-full text-left p-4 rounded-xl bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-delulu-yellow-reserved/50 hover:shadow-sm group"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm text-foreground font-medium line-clamp-1">
-                        {challenge.title || "Untitled campaign"}
-                      </p>
-                      <span className="text-xs font-bold">
-                        G${" "}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2 group-hover:text-delulu-yellow-reserved transition-colors">
+                          {challenge.title || ""}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-delulu-yellow-reserved/10 border border-delulu-yellow-reserved/30">
+                            <span className="text-xs  text-foreground">
                         {challenge.poolAmount.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No active campaigns yet
-              </p>
-            )}
+            ) : null}
           </div>
 
         </>
