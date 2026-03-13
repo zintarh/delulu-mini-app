@@ -1,4 +1,4 @@
-import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { BigInt, Bytes, store } from "@graphprotocol/graph-ts"
 import {
   DeluluCreated as DeluluCreatedEvent,
   DeluluResolved as DeluluResolvedEvent,
@@ -9,6 +9,8 @@ import {
   ChallengeRewardClaimed as ChallengeRewardClaimedEvent,
   ProfileUpdated as ProfileUpdatedEvent,
   MilestonesAdded as MilestonesAddedEvent,
+  MilestonesReset as MilestonesResetEvent,
+  MilestoneDeleted as MilestoneDeletedEvent,
   MilestoneCreatedDetailed as MilestoneCreatedDetailedEvent,
   MilestoneSubmitted as MilestoneSubmittedEvent,
   MilestoneVerified as MilestoneVerifiedEvent,
@@ -244,6 +246,67 @@ export function handleMilestonesAdded(event: MilestonesAddedEvent): void {
     delulu.milestoneCount = newCount
     delulu.save()
   }
+}
+
+export function handleMilestonesReset(event: MilestonesResetEvent): void {
+  let deluluId = event.params.deluluId.toString()
+  let delulu = Delulu.load(deluluId)
+
+  if (delulu == null) {
+    return
+  }
+
+  // Delete all milestone entities for this delulu
+  let milestoneCount = delulu.milestoneCount
+  for (let i = 0; i < milestoneCount.toI32(); i++) {
+    let milestoneId = deluluId + "-" + i.toString()
+    let milestone = Milestone.load(milestoneId)
+    if (milestone != null) {
+      // Update creator stats: subtract from total milestones
+      let creatorStats = getOrCreateCreatorStats(
+        delulu.creator as Bytes,
+        event.block.timestamp
+      )
+      if (creatorStats.totalMilestones > BigInt.fromI32(0)) {
+        creatorStats.totalMilestones = creatorStats.totalMilestones.minus(BigInt.fromI32(1))
+      }
+      creatorStats.save()
+
+      // Delete the milestone entity
+      store.remove("Milestone", milestoneId)
+    }
+  }
+
+  // Reset milestone count
+  delulu.milestoneCount = BigInt.fromI32(0)
+  delulu.save()
+}
+
+export function handleMilestoneDeleted(event: MilestoneDeletedEvent): void {
+  let deluluId = event.params.deluluId.toString()
+  let milestoneId = event.params.milestoneId.toString()
+  let milestoneEntityId = deluluId + "-" + milestoneId
+  let milestone = Milestone.load(milestoneEntityId)
+
+  if (milestone == null) {
+    return
+  }
+
+  // Update creator stats: subtract from total milestones
+  let delulu = Delulu.load(deluluId)
+  if (delulu != null) {
+    let creatorStats = getOrCreateCreatorStats(
+      delulu.creator as Bytes,
+      event.block.timestamp
+    )
+    if (creatorStats.totalMilestones > BigInt.fromI32(0)) {
+      creatorStats.totalMilestones = creatorStats.totalMilestones.minus(BigInt.fromI32(1))
+    }
+    creatorStats.save()
+  }
+
+  // Delete the milestone entity
+  store.remove("Milestone", milestoneEntityId)
 }
 
 // New: purely event-driven milestone creation with full static config

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
@@ -15,7 +15,7 @@ import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { UserClaimsStats } from "@/components/user-claims-stats";
 import { cn } from "@/lib/utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 
@@ -52,9 +52,20 @@ export default function ProfilePage() {
   )}`;
   const avatarUrl = user?.pfpUrl || fallbackAvatarUrl;
 
-  const { formatted: gDollarBalance, isLoading: isBalanceLoading } = useTokenBalance(
-    GOODDOLLAR_ADDRESSES.mainnet
-  );
+  const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
+    useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+
+  // Native CELO balance on mainnet
+  const {
+    data: celoBalance,
+    isLoading: isCeloLoading,
+  } = useBalance({
+    address,
+    chainId: CELO_MAINNET_ID,
+    query: {
+      enabled: !!address,
+    },
+  });
 
   const {
     delulus,
@@ -180,7 +191,7 @@ export default function ProfilePage() {
                       <span>Manifest</span>
                     </button>
                   </div>
-                  <div className="flex items-center gap-3 flex-wrap text-sm text-muted-foreground mb-3">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
                     <button
                       onClick={handleCopyAddress}
                       className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -193,10 +204,32 @@ export default function ProfilePage() {
                         <Copy className="w-3 h-3" />
                       )}
                     </button>
-                    {showBalance && !isBalanceLoading && (
-                      <div className="flex items-center gap-1">
-                        <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="sm" showText={false} />
-                        <span className="font-medium">{parseFloat(gDollarBalance).toFixed(2)}</span>
+                    {showBalance && (
+                      <div className="flex items-center gap-3">
+                        {/* CELO balance */}
+                        {!isCeloLoading && celoBalance && (
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="inline-flex items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 font-medium">
+                              CELO
+                            </span>
+                            <span className="font-medium">
+                              {parseFloat(celoBalance.formatted).toFixed(3)}
+                            </span>
+                          </div>
+                        )}
+                        {/* GoodDollar balance */}
+                        {!isBalanceLoading && (
+                          <div className="flex items-center gap-1">
+                            <TokenBadge
+                              tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
+                              size="sm"
+                              showText={false}
+                            />
+                            <span className="font-medium">
+                              {parseFloat(gDollarBalance).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

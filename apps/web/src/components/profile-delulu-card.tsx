@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState,  useEffect } from "react";
 import Link from "next/link";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
@@ -15,7 +15,6 @@ import {
   ModalHeader,
   ModalTitle,
 } from "@/components/ui/modal";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { TokenBadge } from "@/components/token-badge";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
@@ -103,7 +102,6 @@ export function ProfileDeluluCard({
   const isCreator = isDeluluCreator(address, delusion);
   const canCancel = isCreator && !delusion.isResolved && !delusion.isCancelled;
 
-  // Calculate total support
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const tvlValue = delusion.totalSupportCollected ?? totalStake;
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
@@ -125,7 +123,6 @@ export function ProfileDeluluCard({
       : approxUsdValue.toFixed(2)
     : null;
 
-  // Only use content if it exists and is not a hash
   const isHash = (str: string) => {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
   };

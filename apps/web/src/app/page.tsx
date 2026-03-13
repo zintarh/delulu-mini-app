@@ -358,12 +358,12 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm">
                       No delulus yet
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
+                </p>
+                <p className="text-gray-400 text-xs mt-1">
                       Start by creating your first delulu
-                    </p>
+                </p>
                   </>
                 )}
               </div>

@@ -424,13 +424,13 @@ export function DeluluCard({
                             : `${m.durationDays.toFixed(1)}d`}
                         </span>
                       )}
-                      <span className="text-[11px]">
-                        {m.status === "past"
+                    <span className="text-[11px]">
+                      {m.status === "past"
                         ? "Completed"
                         : m.status === "future"
                         ? "Coming Soon"
                         : (m as any).timeLeft ?? ""}
-                      </span>
+                    </span>
                     </div>
                   </div>
                 );
@@ -457,14 +457,14 @@ export function DeluluCard({
             )}
           </div>
           {canSupport && (
-            <button
-              onClick={handleStake}
-              className="support-pulse inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-[11px] font-semibold text-delulu-charcoal shadow-[0_0_0_1px_rgba(0,0,0,0.85)] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.95)] hover:brightness-105 hover:-translate-y-[0.5px] transition-all relative overflow-hidden"
-            >
-              <span className="relative z-[1] flex items-center gap-1.5">
-                <HeartIcon className="w-4 h-4" />
-              </span>
-            </button>
+          <button
+            onClick={handleStake}
+            className="support-pulse inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-[11px] font-semibold text-delulu-charcoal shadow-[0_0_0_1px_rgba(0,0,0,0.85)] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.95)] hover:brightness-105 hover:-translate-y-[0.5px] transition-all relative overflow-hidden"
+          >
+            <span className="relative z-[1] flex items-center gap-1.5">
+              <HeartIcon className="w-4 h-4" />
+            </span>
+          </button>
           )}
         </div>
       </div>

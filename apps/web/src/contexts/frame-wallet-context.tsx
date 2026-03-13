@@ -3,7 +3,7 @@
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
-import { WagmiProvider, http, createConfig } from "wagmi";
+import { WagmiProvider, createConfig, http } from "wagmi";
 import { celo, fuse } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 
@@ -64,8 +64,8 @@ export default function FrameWalletProvider({
   children: ReactNode;
 }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>{children}</WagmiProvider>
+    </QueryClientProvider>
   );
 }
