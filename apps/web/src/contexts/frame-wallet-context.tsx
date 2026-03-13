@@ -3,7 +3,8 @@
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { WagmiProvider, createConfig } from "@privy-io/wagmi";
+import { http } from "wagmi";
 import { celo, fuse } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 

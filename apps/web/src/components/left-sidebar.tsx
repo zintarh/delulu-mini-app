@@ -87,7 +87,7 @@ export function LeftSidebar({
     },
     {
       icon: Coins,
-      label: "Claim G$",
+      label: "Claim",
       href: "/daily-claim",
       active: pathname === "/daily-claim",
       onClick: undefined,
@@ -143,7 +143,7 @@ export function LeftSidebar({
       <nav className="flex-1 flex flex-col gap-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isClaimG = item.label === "Claim G$";
+          const isClaimG = item.href === "/daily-claim";
           const className = cn(
             "flex items-center gap-3 transition-colors text-sm",
              "px-3 py-2.5 rounded-lg w-full",
@@ -204,10 +204,10 @@ export function LeftSidebar({
           <button
             type="button"
             onClick={onProfileClick}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all w-full"
+            className="flex w-fit items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
           >
             <LogIn className="w-4 h-4" />
-            <span>Login</span>
+            <span>Sign In</span>
           </button>
         ) : (
           <button
@@ -218,7 +218,7 @@ export function LeftSidebar({
           >
             <div className="flex flex-col">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                Connected
+                Account
               </span>
               {displayName && (
                 <span className="text-xs font-medium text-foreground">
@@ -238,7 +238,11 @@ export function LeftSidebar({
                 title="View balances"
               >
                 {selectedAsset === "CELO" ? (
-                  <span className="h-3 w-3 rounded-full bg-emerald-400" />
+                  <img
+                    src="/celo.png"
+                    alt="CELO"
+                    className="h-3.5 w-3.5 rounded-full"
+                  />
                 ) : (
                   <TokenBadge
                     tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
@@ -267,8 +271,11 @@ export function LeftSidebar({
                     className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] hover:bg-muted"
                   >
                     <div className="flex items-center gap-1">
-                      <span className="h-3 w-3 rounded-full bg-emerald-400" />
-                      <span>CELO</span>
+                      <img
+                        src="/celo.png"
+                        alt="CELO"
+                        className="h-3.5 w-3.5 rounded-full"
+                      />
                     </div>
                     {!isCeloLoading && celoBalance && (
                       <span className="font-medium">

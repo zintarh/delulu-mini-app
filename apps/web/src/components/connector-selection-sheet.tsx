@@ -12,7 +12,7 @@ export function ConnectorSelectionSheet({
   open,
   onOpenChange,
 }: ConnectorSelectionSheetProps) {
-  const { login } = usePrivy();
+  const { login, authenticated } = usePrivy();
 
   useEffect(() => {
     if (!open) return;
@@ -21,7 +21,10 @@ export function ConnectorSelectionSheet({
 
     (async () => {
       try {
-        await login();
+        // Only trigger Privy login if the user is not already authenticated.
+        if (!authenticated) {
+          await login();
+        }
       } finally {
         if (!cancelled) {
           onOpenChange(false);
@@ -32,7 +35,7 @@ export function ConnectorSelectionSheet({
     return () => {
       cancelled = true;
     };
-  }, [open, login, onOpenChange]);
+  }, [open, authenticated, login, onOpenChange]);
 
   // Do not render any sheet UI; this component is just a trigger for Privy.
   return null;

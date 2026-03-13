@@ -6,6 +6,7 @@ import { ApolloProvider } from "@/components/providers/ApolloProvider";
 import dynamic from "next/dynamic";
 import { ThemeProvider, useTheme } from "@/contexts/theme-context";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { celo } from "wagmi/chains";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -41,10 +42,12 @@ function AppWithPrivy({ children }: { children: React.ReactNode }) {
       config={{
         appearance: {
           theme: isDark ? "#151515" : "#ffffff",
-          accentColor: isDark ? "#F7F23D" : "#151515",
+          accentColor: isDark ? "#151515" : "#151515",
           logo: "/favicon_io/favicon-32x32.png",
           walletChainType: "ethereum-only",
         },
+        defaultChain: celo,
+        supportedChains: [celo],
         embeddedWallets: {
           ethereum: {
             createOnLogin: "users-without-wallets",

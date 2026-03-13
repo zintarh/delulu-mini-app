@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Wallet, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
 import { formatUnits } from "viem";
 import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/left-sidebar";
@@ -12,6 +12,10 @@ import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet"
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useIdentity } from "@/hooks/identityHook";
 import { IdentityModal } from "@/components/identity-modal";
+import { FaucetModal } from "@/components/faucet-modal";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { Pill } from "@/components/ui/pill";
 
 export default function GoodDollarClaimPage() {
   const { address, isConnected } = useAccount();
@@ -37,6 +41,17 @@ export default function GoodDollarClaimPage() {
   } = useIdentity();
 
   const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const [showFaucet, setShowFaucet] = useState(false);
+
+  const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
+    GOODDOLLAR_ADDRESSES.mainnet,
+  );
+
+  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
+    address,
+    chainId: CELO_MAINNET_ID,
+    query: { enabled: !!address },
+  });
 
   const handleConnectClick = () => {
     setShowLoginSheet(true);
@@ -56,7 +71,6 @@ export default function GoodDollarClaimPage() {
     await claim();
   };
 
-  // Format entitlement from BigInt (display only)
   const formattedEntitlement = useMemo(() => {
     if (entitlement === null) return null;
     return formatUnits(entitlement, 18);
@@ -83,7 +97,7 @@ export default function GoodDollarClaimPage() {
                   "bg-delulu-yellow-reserved shadow-[2px_2px_0px_0px_#1A1A1A]",
                   "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
                   "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                  "text-delulu-charcoal transition-all"
+                  "text-delulu-charcoal transition-all",
                 )}
               >
                 <ArrowLeft className="w-3 h-3" />
@@ -105,8 +119,8 @@ export default function GoodDollarClaimPage() {
               </p>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-              <section className="rounded-3xl border-2 border-border bg-gradient-to-br from-delulu-yellow-reserved/80 via-card to-card p-4 lg:p-6 shadow-[4px_4px_0px_0px_#1A1A1A]">
+            <div className="space-y-4">
+              <section className="rounded-3xl border-2 border-border bg-gradient-to-br from-delulu-yellow-reserved/80 via-card to-card p-4 mb-6 lg:p-6 shadow-[4px_4px_0px_0px_#1A1A1A]">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-[11px] font-black text-accent-foreground uppercase mb-1 tracking-[0.08em]">
@@ -118,8 +132,28 @@ export default function GoodDollarClaimPage() {
                         : "Not connected"}
                     </p>
                   </div>
-                  <div className="w-11 h-11 rounded-full   flex items-center justify-center ">
-                    <Wallet className="w-5 h-5" />
+                  <div className="flex flex-col items-end justify-center h-full gap-2">
+                    <Pill
+                      variant="outline"
+                      size="md"
+                      className="inline-flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <img
+                        src="/gooddollar-logo.png"
+                        alt="G$"
+                        className="h-5 w-5 rounded-full"
+                      />
+                      <span className="text-sm font-semibold leading-tight">
+                        {isGdLoading
+                          ? "…"
+                          : gDollarBalance && Number(gDollarBalance) > 0
+                            ? Number(gDollarBalance).toFixed(2)
+                            : "0.00"}
+                      </span>
+                    </Pill>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-background/60 border border-border">
+                      <Wallet className="w-5 h-5" />
+                    </div>
                   </div>
                 </div>
 
@@ -127,11 +161,11 @@ export default function GoodDollarClaimPage() {
                   <button
                     onClick={handleConnectClick}
                     className={cn(
-                      "w-full px-4 py-3 text-sm font-medium",
+                      "w-fit px-4 py-3 text-sm font-medium",
                       "bg-delulu-yellow-reserved text-delulu-charcoal",
                       "rounded-md border-2 border-border",
                       "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                      "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all"
+                      "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
                     )}
                   >
                     Connect wallet to claim
@@ -153,7 +187,9 @@ export default function GoodDollarClaimPage() {
                               {formattedEntitlement !== null
                                 ? `${parseFloat(formattedEntitlement).toFixed(2)}`
                                 : "--"}{" "}
-                              <span className="text-xs text-muted-foreground">G$</span>
+                              <span className="text-xs text-muted-foreground">
+                                G$
+                              </span>
                             </p>
                           )}
                         </div>
@@ -170,7 +206,7 @@ export default function GoodDollarClaimPage() {
                     {isClaimDataLoading || !isInitialized ? (
                       <div className="rounded-xl border border-border bg-muted p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Checking your claim eligibility…</span>
+                        <span>Checking eligibility…</span>
                       </div>
                     ) : hasClaimed ? (
                       <div className="rounded-xl border border-border bg-muted p-4 text-center space-y-1.5">
@@ -188,13 +224,13 @@ export default function GoodDollarClaimPage() {
                         onClick={handleClaim}
                         disabled={isClaiming || hasClaimed}
                         className={cn(
-                          "w-full px-4 py-3 text-sm font-medium",
+                          "w-fit px-4 py-3 text-sm font-medium",
                           "bg-delulu-yellow-reserved text-delulu-charcoal",
                           "rounded-md border-2 border-border",
                           "shadow-[3px_3px_0px_0px_#1A1A1A]",
                           "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
                           "disabled:opacity-50 disabled:cursor-not-allowed",
-                          "flex items-center justify-center gap-2"
+                          "flex items-center justify-center gap-2",
                         )}
                       >
                         {isClaiming ? (
@@ -204,7 +240,7 @@ export default function GoodDollarClaimPage() {
                           </>
                         ) : entitlement !== null && entitlement > 0n ? (
                           `Claim ${parseFloat(
-                            formattedEntitlement || "0.00"
+                            formattedEntitlement || "0.00",
                           ).toFixed(2)} G$`
                         ) : (
                           "Claim G$"
@@ -215,20 +251,52 @@ export default function GoodDollarClaimPage() {
                 )}
               </section>
 
-              {/* <aside className="space-y-4">
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-foreground" />
+              <aside className="space-y-4 ">
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
                     <p className="text-xs font-black text-muted-foreground uppercase">
-                      What is G$ UBI?
+                      Need gas?
                     </p>
+                    <Pill
+                      variant="outline"
+                      size="md"
+                      className="inline-flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <img
+                        src="/celo.png"
+                        alt="CELO"
+                        className="h-5 w-5 rounded-full"
+                      />
+                      <span className="text-sm font-semibold leading-tight">
+                        {isCeloLoading
+                          ? "…"
+                          : celoBalance && Number(celoBalance.formatted) > 0
+                            ? Number(celoBalance.formatted).toFixed(4)
+                            : "0.0000"}
+                      </span>
+                    </Pill>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Claim daily GoodDollar (G$) from a yield-backed pool. Claim
-                    directly from Delulu without leaving the app.
+                    If you don&apos;t have enough CELO to pay for gas, you can
+                    claim a small top-up here to cover a few transactions.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowFaucet(true)}
+                    className={cn(
+                      "w-fit px-3 py-3 text-xs font-bold",
+                      "rounded-md border-2 border-delulu-charcoal",
+                      "bg-delulu-yellow-reserved text-delulu-charcoal",
+                      "shadow-[3px_3px_0px_0px_#1A1A1A]",
+                      "hover:bg-delulu-yellow-reserved/90 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A]",
+                      "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                      "transition-all",
+                    )}
+                  >
+                    Claim gas (CELO faucet)
+                  </button>
                 </div>
-              </aside> */}
+              </aside>
             </div>
           </div>
         </main>
@@ -238,7 +306,6 @@ export default function GoodDollarClaimPage() {
           <RightSidebar />
         </div>
       </div>
-
 
       <IdentityModal
         isOpen={isVerifying}
@@ -252,6 +319,8 @@ export default function GoodDollarClaimPage() {
         open={showLoginSheet}
         onOpenChange={setShowLoginSheet}
       />
+
+      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </div>
   );
 }
