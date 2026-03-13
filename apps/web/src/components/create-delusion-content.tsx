@@ -14,9 +14,11 @@ import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { cn } from "@/lib/utils";
 import { DateTimePicker } from "@/components/date-time-picker";
+import { CELO_MAINNET_ID } from "@/lib/constant";
+import { FaucetModal } from "@/components/faucet-modal";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
 import { UserSetupModal } from "@/components/user-setup-modal";
@@ -139,7 +141,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [selectedToken, setSelectedToken] = useState<string>(initialToken);
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const [inputText, setInputText] = useState<string>("");
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
@@ -241,6 +243,14 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showFaucet, setShowFaucet] = useState(false);
+
+  // CELO gas balance for faucet redirect
+  const { data: celoBalance } = useBalance({
+    address,
+    chainId: CELO_MAINNET_ID,
+    query: { enabled: !!address },
+  });
 
   const {
     createDelulu,
@@ -446,6 +456,17 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     if (isProcessing) {
       return;
     }
+
+    // If user has (almost) no CELO, open faucet modal instead of letting tx fail
+    const nativeBalance =
+      celoBalance && Number(celoBalance.formatted) > 0
+        ? Number(celoBalance.formatted)
+        : 0;
+    if (nativeBalance < 0.005) {
+      setShowFaucet(true);
+      return;
+    }
+
     setIsUploadingImage(true);
 
     try {
@@ -1285,9 +1306,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         actionText="Try Again"
       />
 
-      {/* User Setup Modal */}
+      {/* User Setup Modal - only show when username is not set (needsSetup) */}
       <UserSetupModal
-        open={showUserSetupModal}
+        open={showUserSetupModal && needsSetup}
         onOpenChange={(open) => {
           setShowUserSetupModal(open);
           // If user closes modal without completing, close the create page
@@ -1301,6 +1322,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           setShowUserSetupModal(false);
         }}
       />
+
+      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </>
   );
 }

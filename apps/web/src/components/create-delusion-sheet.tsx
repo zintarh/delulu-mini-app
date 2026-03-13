@@ -939,9 +939,9 @@ export function CreateDelusionSheet({
         actionText="Try Again"
       />
 
-      {/* User Setup Modal */}
+      {/* User Setup Modal - only show when username is not set (needsSetup) */}
       <UserSetupModal
-        open={showUserSetupModal}
+        open={showUserSetupModal && needsSetup}
         onOpenChange={(open) => {
           setShowUserSetupModal(open);
           // If user closes modal without completing, close the create sheet

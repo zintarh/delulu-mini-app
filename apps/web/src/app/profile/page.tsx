@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { useAccount, useDisconnect, useBalance } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
@@ -27,6 +28,7 @@ const DEFAULT_AVATAR_BASE =
 export default function ProfilePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
+  const { logout } = usePrivy();
   const { user, isLoading } = useUserStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("ongoing");
@@ -207,16 +209,20 @@ export default function ProfilePage() {
                     {showBalance && (
                       <div className="flex items-center gap-3">
                         {/* CELO balance */}
-                        {!isCeloLoading && celoBalance && (
-                          <div className="flex items-center gap-1 text-xs">
-                            <span className="inline-flex items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 font-medium">
-                              CELO
-                            </span>
-                            <span className="font-medium">
-                              {parseFloat(celoBalance.formatted).toFixed(3)}
-                            </span>
-                          </div>
-                        )}
+                    {!isCeloLoading && celoBalance && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/60 px-2 py-0.5 font-medium">
+                          <img
+                            src="/celo.png"
+                            alt="CELO"
+                            className="h-3 w-3 rounded-full mr-1"
+                          />
+                          <span className="font-medium">
+                            {parseFloat(celoBalance.formatted).toFixed(3)}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                         {/* GoodDollar balance */}
                         {!isBalanceLoading && (
                           <div className="flex items-center gap-1">
@@ -371,6 +377,7 @@ export default function ProfilePage() {
         onLogout={() => {
           disconnect();
           useUserStore.getState().logout();
+          logout();
           setLogoutSheetOpen(false);
           router.push("/");
         }}

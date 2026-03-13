@@ -18,15 +18,16 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
 import { useQuery } from "@apollo/client/react";
 import { GetDelulusDocument, type GetDelulusQuery, type GetDelulusQueryVariables } from "@/generated/graphql";
-import { weiToNumber, timestampToDate } from "@/lib/graph/transformers";
 import type { FormattedDelulu } from "@/lib/types";
-import { TrendingUp, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
+import { UserSetupModal } from "@/components/user-setup-modal";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
+  const { logout, authenticated } = usePrivy();
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const { updateUsername, updateAddress, user } = useUserStore();
@@ -39,38 +40,13 @@ export default function HomePage() {
     fetchNextPage 
   } = useAllDelulus();
   
-  // Fetch user's created delulus for Board tab (from The Graph)
   const { 
     delulus: userCreatedDelulus, 
     isLoading: isLoadingUserDelulus 
   } = useGraphUserDelulus("ongoing");
 
-  // Get raw GraphQL data for FYP tab to access all indexed fields
-  const { data: rawFypData } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(
-    GetDelulusDocument,
-    {
-      variables: { first: 20, skip: 0 },
-      fetchPolicy: "cache-first",
-    }
-  );
 
-  // Get raw GraphQL data for Board tab
-  const { data: rawVisionData } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(
-    GetDelulusDocument,
-    {
-      variables: {
-        first: 20,
-        skip: 0,
-        where: isConnected && address
-          ? { creatorAddress: address.toLowerCase() }
-          : undefined,
-      },
-      skip: !isConnected || !address,
-      fetchPolicy: "cache-first",
-    }
-  );
 
-  // Fetch username from contract when address is available
   const { username: onChainUsername, isLoading: isLoadingUsername } = useUsernameByAddress(
     address as `0x${string}` | undefined
   );
@@ -99,6 +75,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"board" | "fyp">("board");
   const [isScrolling, setIsScrolling] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Infinite scroll detection
@@ -156,6 +133,16 @@ export default function HomePage() {
       }
     };
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
+
+  // After a fresh Privy login, prompt user to set up profile only if username is not set
+  useEffect(() => {
+    if (!authenticated) return;
+    if (user?.username) {
+      setShowUserSetupModal(false);
+      return;
+    }
+    setShowUserSetupModal(true);
+  }, [authenticated, user?.username]);
 
 
   // Helper to check if content is loaded (not a hash)
@@ -349,7 +336,7 @@ export default function HomePage() {
                         }
                       }}
                       className={cn(
-                        "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-foreground bg-delulu-yellow-reserved text-foreground shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
+                        "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-secondary bg-secondary text-foreground shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
                       )}
                     >
                       <Plus className="w-4 h-4" />
@@ -376,6 +363,7 @@ export default function HomePage() {
         </div>
       </div>
 
+     
       <button
         onClick={() => {
           if (!isConnected) {
@@ -409,6 +397,7 @@ export default function HomePage() {
         onLogout={() => {
           disconnect();
           useUserStore.getState().logout();
+          logout();
           setLogoutSheetOpen(false);
           router.push("/");
         }}
@@ -422,6 +411,15 @@ export default function HomePage() {
       <ConnectorSelectionSheet
         open={showLoginSheet}
         onOpenChange={setShowLoginSheet}
+      />
+
+      <UserSetupModal
+        open={showUserSetupModal && !user?.username}
+        onOpenChange={setShowUserSetupModal}
+        onComplete={(username, email) => {
+          updateUsername(username, email);
+          setShowUserSetupModal(false);
+        }}
       />
     </div>
   );
