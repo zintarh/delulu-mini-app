@@ -45,6 +45,10 @@ dataSources:
           handler: handleProfileUpdated
         - event: MilestonesAdded(indexed uint256,uint256)
           handler: handleMilestonesAdded
+        - event: MilestonesReset(indexed uint256)
+          handler: handleMilestonesReset
+        - event: MilestoneDeleted(indexed uint256,indexed uint256)
+          handler: handleMilestoneDeleted
         - event: MilestoneCreatedDetailed(indexed uint256,indexed uint256,bytes32,string,uint256,uint256)
           handler: handleMilestoneCreatedDetailed
         - event: MilestoneSubmitted(indexed uint256,indexed uint256,string)

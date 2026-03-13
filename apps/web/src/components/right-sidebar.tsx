@@ -235,11 +235,11 @@ export function RightSidebar() {
                         size="full"
                         className="h-full text-sm"
                       />
-                    </div>
+                            </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <p className="text-muted-foreground">Loading card...</p>
-                    </div>
+                          </div>
                   )}
                 </div>
 

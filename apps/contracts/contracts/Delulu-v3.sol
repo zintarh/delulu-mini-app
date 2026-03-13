@@ -45,6 +45,8 @@ contract Delulu is
     error StakeTooSmall();
     error StakingIsClosed();
     error AlreadySettled();
+    error MilestonesCannotBeReset();
+    error MilestoneCannotBeDeleted();
 
     // --- CONSTANTS ---
     uint256 public constant MAX_MILESTONES = 10;
@@ -152,6 +154,9 @@ contract Delulu is
 
     // Milestone metadata URI (e.g. IPFS CID) for subgraph / off-chain reads
     mapping(uint256 => mapping(uint256 => string)) public milestoneURI;
+    
+    // Track deleted milestones
+    mapping(uint256 => mapping(uint256 => bool)) public milestoneIsDeleted;
 
     // --- EVENTS ---
     event ProfileUpdated(address indexed user, string username);
@@ -184,6 +189,8 @@ contract Delulu is
         uint256 totalPoints
     );
     event MilestonesAdded(uint256 indexed deluluId, uint256 count);
+    event MilestonesReset(uint256 indexed deluluId);
+    event MilestoneDeleted(uint256 indexed deluluId, uint256 indexed milestoneId);
     event MilestoneSubmitted(
         uint256 indexed deluluId,
         uint256 indexed milestoneId,
@@ -442,6 +449,25 @@ contract Delulu is
         return deluluId;
     }
 
+    /**
+     * @notice Get the deadline of the last active (non-deleted) milestone, or current time if none exist
+     */
+    function _getLastActiveMilestoneDeadline(uint256 deluluId) internal view returns (uint256) {
+        Market storage d = delulus[deluluId];
+        if (d.milestoneCount == 0) {
+            return block.timestamp;
+        }
+        
+        // Find the last non-deleted milestone
+        for (uint256 i = d.milestoneCount; i > 0; i--) {
+            uint256 idx = i - 1;
+            if (!milestoneIsDeleted[deluluId][idx] && deluluMilestones[deluluId][idx].deadline > 0) {
+                return deluluMilestones[deluluId][idx].deadline;
+            }
+        }
+        return block.timestamp;
+    }
+
     function addMilestones(
         uint256 deluluId,
         string[] calldata mURIs,
@@ -449,19 +475,31 @@ contract Delulu is
     ) external {
         Market storage d = delulus[deluluId];
         if (msg.sender != d.creator) revert Unauthorized();
-        if (d.milestoneCount > 0) revert AlreadyInitialized();
         if (mURIs.length == 0 || mURIs.length > MAX_MILESTONES)
             revert TooManyMilestones();
         if (mURIs.length != mDurations.length) revert TooManyMilestones();
 
-        uint256 runningTime = block.timestamp;
+        // Check total milestone count won't exceed MAX_MILESTONES
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < d.milestoneCount; i++) {
+            if (!milestoneIsDeleted[deluluId][i]) {
+                activeCount++;
+            }
+        }
+        if (activeCount + mURIs.length > MAX_MILESTONES) revert TooManyMilestones();
+
+        // Calculate starting time from last active milestone or current time
+        uint256 runningTime = _getLastActiveMilestoneDeadline(deluluId);
+        uint256 startIndex = d.milestoneCount;
+        
         for (uint256 i = 0; i < mURIs.length; i++) {
+            uint256 milestoneIndex = startIndex + i;
             uint256 startTime = runningTime;
             uint256 duration = mDurations[i];
             uint256 deadline = startTime + duration;
             bytes32 descHash = keccak256(bytes(mURIs[i]));
 
-            deluluMilestones[deluluId][i] = Milestone({
+            deluluMilestones[deluluId][milestoneIndex] = Milestone({
                 descriptionHash: descHash,
                 deadline: deadline,
                 proofLink: "",
@@ -470,10 +508,10 @@ contract Delulu is
             });
 
             // Store human-readable / IPFS metadata URI and emit for indexing
-            milestoneURI[deluluId][i] = mURIs[i];
+            milestoneURI[deluluId][milestoneIndex] = mURIs[i];
             emit MilestoneCreatedDetailed(
                 deluluId,
-                i,
+                milestoneIndex,
                 descHash,
                 mURIs[i],
                 startTime,
@@ -481,16 +519,79 @@ contract Delulu is
             );
 
             // store extended milestone timing data in separate mappings
-            milestoneStartTime[deluluId][i] = startTime;
-            milestoneTippingStart[deluluId][i] = 0;
-            milestoneTippingEnd[deluluId][i] = 0;
-            milestoneIsMissed[deluluId][i] = false;
+            milestoneStartTime[deluluId][milestoneIndex] = startTime;
+            milestoneTippingStart[deluluId][milestoneIndex] = 0;
+            milestoneTippingEnd[deluluId][milestoneIndex] = 0;
+            milestoneIsMissed[deluluId][milestoneIndex] = false;
+            milestoneIsDeleted[deluluId][milestoneIndex] = false;
 
             runningTime = deadline;
         }
-        d.milestoneCount = mURIs.length;
+        d.milestoneCount = startIndex + mURIs.length;
         if (runningTime > d.resolutionDeadline) revert InvalidDeadlines();
         emit MilestonesAdded(deluluId, d.milestoneCount);
+    }
+
+    /**
+     * @notice Reset milestones for a delulu. Only allowed if no milestones have been submitted.
+     * @param deluluId The ID of the delulu
+     */
+    function resetMilestones(uint256 deluluId) external {
+        Market storage d = delulus[deluluId];
+        if (msg.sender != d.creator) revert Unauthorized();
+        if (d.milestoneCount == 0) revert MilestoneNotFound();
+        
+        // Check that no milestones have been submitted
+        for (uint256 i = 0; i < d.milestoneCount; i++) {
+            if (deluluMilestones[deluluId][i].isSubmitted) {
+                revert MilestonesCannotBeReset();
+            }
+        }
+
+        // Reset all milestone data
+        for (uint256 i = 0; i < d.milestoneCount; i++) {
+            delete deluluMilestones[deluluId][i];
+            delete milestoneURI[deluluId][i];
+            delete milestoneStartTime[deluluId][i];
+            delete milestoneTippingStart[deluluId][i];
+            delete milestoneTippingEnd[deluluId][i];
+            delete milestoneIsMissed[deluluId][i];
+            delete milestoneTotalSupport[deluluId][i];
+        }
+
+        // Reset milestone count
+        d.milestoneCount = 0;
+
+        emit MilestonesReset(deluluId);
+    }
+
+    /**
+     * @notice Delete a specific milestone. Only allowed if milestone hasn't been submitted.
+     * @param deluluId The ID of the delulu
+     * @param milestoneId The ID of the milestone to delete
+     */
+    function deleteMilestone(uint256 deluluId, uint256 milestoneId) external {
+        Market storage d = delulus[deluluId];
+        if (msg.sender != d.creator) revert Unauthorized();
+        if (milestoneId >= d.milestoneCount) revert MilestoneNotFound();
+        if (milestoneIsDeleted[deluluId][milestoneId]) revert MilestoneNotFound();
+        
+        Milestone storage m = deluluMilestones[deluluId][milestoneId];
+        
+        // Cannot delete if submitted or verified
+        if (m.isSubmitted || m.isVerified) {
+            revert MilestoneCannotBeDeleted();
+        }
+
+        // Cannot delete if milestone deadline has passed (past milestone)
+        if (block.timestamp > m.deadline || milestoneIsMissed[deluluId][milestoneId]) {
+            revert MilestoneCannotBeDeleted();
+        }
+
+        // Mark as deleted (soft delete to preserve indices)
+        milestoneIsDeleted[deluluId][milestoneId] = true;
+        
+        emit MilestoneDeleted(deluluId, milestoneId);
     }
 
     function submitMilestone(
@@ -500,6 +601,7 @@ contract Delulu is
     ) external {
         Market storage d = delulus[deluluId];
         if (msg.sender != d.creator) revert Unauthorized();
+        if (milestoneIsDeleted[deluluId][milestoneId]) revert MilestoneNotFound();
         Milestone storage m = deluluMilestones[deluluId][milestoneId];
         if (m.isVerified) revert MilestoneAlreadyCompleted();
         if (block.timestamp > m.deadline) {
