@@ -73,11 +73,9 @@ export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderP
   const handleAddMiniApp = useCallback(async () => {
     try {
       // Check if SDK is available and ready
-      if (!sdk || !sdk.actions) {
-        console.warn("SDK not available for addFrame");
+      if (!sdk?.actions?.addFrame) {
         return null;
       }
-      
       const result = await sdk.actions.addFrame();
       // Handle different return types from SDK
       if (result && typeof result === "object") {
@@ -86,13 +84,8 @@ export function MiniAppProvider({ children, addMiniAppOnLoad }: MiniAppProviderP
         return innerResult !== undefined ? innerResult : result;
       }
       return result || null;
-    } catch (error) {
-      // Silently handle errors - this is expected in some environments
-      if (error instanceof Error && error.message.includes('result')) {
-        console.warn("[miniapp] addFrame not available in this context");
-      } else {
-        console.error("[error] adding frame", error);
-      }
+    } catch {
+      // addFrame is only available inside Farcaster miniapp embed; ignore elsewhere
       return null;
     }
   }, []);

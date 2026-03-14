@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme } from "@/contexts/theme-context";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { celo } from "wagmi/chains";
 import { useSessionSigner } from "@/hooks/use-session-signer";
+import { env } from "@/lib/env";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -21,14 +22,19 @@ function SessionSignerSetup({ signerKeyQuorumId }: { signerKeyQuorumId?: string 
 
 function AppWithPrivy({
   children,
-  privyAppId,
-  signerKeyQuorumId,
+  privyAppId: privyAppIdProp,
+  signerKeyQuorumId: signerKeyQuorumIdProp,
 }: {
   children: React.ReactNode;
   privyAppId?: string;
   signerKeyQuorumId?: string;
 }) {
   const { theme } = useTheme();
+  // Use server-passed id first; fallback to client env so Privy works with either PRIVY_APP_ID or NEXT_PUBLIC_PRIVY_APP_ID
+  const privyAppId =
+    (privyAppIdProp && privyAppIdProp.trim()) || env.NEXT_PUBLIC_PRIVY_APP_ID || undefined;
+  const signerKeyQuorumId =
+    (signerKeyQuorumIdProp && signerKeyQuorumIdProp.trim()) || undefined;
   const usePrivyWagmi = Boolean(privyAppId);
 
   const appTree = (

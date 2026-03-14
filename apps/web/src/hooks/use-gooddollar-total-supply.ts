@@ -2,36 +2,41 @@
 
 import { useReadContract, useChainId } from "wagmi";
 import { formatUnits } from "viem";
-import { GOODDOLLAR_ADDRESSES, CELO_MAINNET_ID } from "@/lib/constant";
+import {
+  GOODDOLLAR_ADDRESSES,
+  CELO_MAINNET_ID,
+  getDeluluContractAddress,
+} from "@/lib/constant";
 
-const ERC20_TOTAL_SUPPLY_ABI = [
+const ERC20_BALANCE_OF_ABI = [
   {
-    inputs: [],
-    name: "totalSupply",
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
 ] as const;
 
-/** G$ token uses 2 decimals on Celo (not 18). */
-const G_DOLLAR_DECIMALS = 2;
+const ERC20_DECIMALS = 18;
 
-/** Total G$ in circulation (total supply of GoodDollar token on Celo mainnet). */
+/** G$ held by the Delulu contract (G$ in circulation in our protocol). */
 export function useGoodDollarTotalSupply() {
   const chainId = useChainId();
   const isMainnet = chainId === CELO_MAINNET_ID;
+  const deluluContract = getDeluluContractAddress(chainId);
 
-  const { data: totalSupplyRaw, isLoading, error } = useReadContract({
+  const { data: balanceRaw, isLoading, error } = useReadContract({
     address: GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`,
-    abi: ERC20_TOTAL_SUPPLY_ABI,
-    functionName: "totalSupply",
+    abi: ERC20_BALANCE_OF_ABI,
+    functionName: "balanceOf",
+    args: [deluluContract],
     query: { enabled: isMainnet },
   });
 
   const totalSupply =
-    totalSupplyRaw !== undefined
-      ? parseFloat(formatUnits(BigInt(totalSupplyRaw.toString()), G_DOLLAR_DECIMALS))
+    balanceRaw !== undefined
+      ? parseFloat(formatUnits(BigInt(balanceRaw.toString()), ERC20_DECIMALS))
       : null;
 
   return { totalSupply, isLoading, error };
