@@ -15,7 +15,7 @@ import {
   Sun,
   LogIn,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTheme } from "@/contexts/theme-context";
 import { useAccount, useBalance } from "wagmi";
@@ -132,7 +132,6 @@ export function LeftSidebar({
         <h1 
           className="text-4xl font-black text-delulu-yellow-reserved"
           style={{
-            fontFamily: "var(--font-gloria), cursive",
             textShadow: "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A"
           }}
         >
@@ -255,7 +254,7 @@ export function LeftSidebar({
                     ? `${parseFloat(celoBalance.formatted).toFixed(3)}`
                     : null}
                   {selectedAsset === "G$" && !isGdLoading && gDollarBalance
-                    ? `${parseFloat(gDollarBalance.formatted).toFixed(2)}`
+                    ? formatGAmount(parseFloat(gDollarBalance.formatted))
                     : null}
                 </span>
               </button>
@@ -301,7 +300,7 @@ export function LeftSidebar({
                     </div>
                     {!isGdLoading && gDollarBalance && (
                       <span className="font-medium">
-                        {parseFloat(gDollarBalance.formatted).toFixed(2)}
+                        {formatGAmount(parseFloat(gDollarBalance.formatted))}
                       </span>
                     )}
                   </button>

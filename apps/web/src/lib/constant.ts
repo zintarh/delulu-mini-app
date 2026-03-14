@@ -14,7 +14,7 @@ export const DELULU_CONTRACT_ADDRESSES = {
  * @param chainId - The chain ID (ignored, always returns mainnet)
  * @returns The mainnet contract address
  */
-export function getDeluluContractAddress(chainId?: number): `0x${string}` {
+export function getDeluluContractAddress(_chainId?: number): `0x${string}` {
   // Always return mainnet address
   return DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 }
@@ -64,7 +64,7 @@ export const SUBGRAPH_URLS: Record<number, string> = {
 
 
 
-export function getSubgraphUrlForChain(chainId?: number): string {
+export function getSubgraphUrlForChain(_chainId?: number): string {
   const mainnetUrl = SUBGRAPH_URLS[CELO_MAINNET_ID];
   return mainnetUrl || process.env.NEXT_PUBLIC_SUBGRAPH_URL || "";
 }
@@ -74,11 +74,11 @@ export function isGoodDollarToken(tokenAddress: string | undefined): boolean {
   return tokenAddress.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
 }
 
-export function isGoodDollarSupported(chainId?: number): boolean {
-  return chainId === CELO_MAINNET_ID;
+export function isGoodDollarSupported(_chainId?: number): boolean {
+  return _chainId === CELO_MAINNET_ID;
 }
 
-export function getSupportedTokens(chainId?: number) {
+export function getSupportedTokens(_chainId?: number) {
   return [
     {
       address: CUSD_ADDRESSES.mainnet,

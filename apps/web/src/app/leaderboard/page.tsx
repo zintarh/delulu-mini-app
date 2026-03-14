@@ -4,19 +4,29 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { useAccount } from "wagmi";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useCreatorLeaderboard } from "@/hooks";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [page, setPage] = useState(0);
+
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
   const pageSize = 20;
 
-  const { entries, isLoading } = useCreatorLeaderboard(
+  const { entries, isLoading, error: leaderboardError } = useCreatorLeaderboard(
     pageSize,
     page * pageSize
   );
@@ -26,25 +36,13 @@ export default function LeaderboardPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/profile");
-              }
-            }}
-            onCreateClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/board");
-              }
-            }}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
-          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
+          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
             <header className="mb-6">
               <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
                 Creator leaderboard
@@ -54,7 +52,17 @@ export default function LeaderboardPage() {
               </p>
             </header>
 
-            {isLoading ? (
+            {leaderboardError ? (
+              <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 text-sm text-foreground">
+                <p className="font-semibold text-destructive">Failed to load leaderboard</p>
+                <p className="mt-1 text-muted-foreground">
+                  {leaderboardError.message}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Ensure the subgraph is deployed and exposes the CreatorStats entity (creatorStatses query). Create goals and complete milestones to populate data.
+                </p>
+              </div>
+            ) : isLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div
@@ -69,7 +77,7 @@ export default function LeaderboardPage() {
                   </div>
                 ))}
               </div>
-            ) : entries.length === 0 ? (
+            ) : entries.length === 0 && !leaderboardError ? (
               <p className="text-sm text-muted-foreground">
                 No creator stats yet. Create a goal and complete milestones to appear here.
               </p>
@@ -103,7 +111,7 @@ export default function LeaderboardPage() {
                       </div>
                       <div className="text-right text-[11px] text-muted-foreground">
                         <div className="font-semibold text-foreground">
-                          {entry.totalSupportCollected.toLocaleString()}
+                          {formatGAmount(entry.totalSupportCollected)}
                         </div>
                         <div>total support</div>
                       </div>
@@ -145,6 +153,11 @@ export default function LeaderboardPage() {
           <RightSidebar />
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <ConnectorSelectionSheet
         open={showLoginSheet}

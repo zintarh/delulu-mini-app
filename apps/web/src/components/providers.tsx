@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { ThemeProvider, useTheme } from "@/contexts/theme-context";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { celo } from "wagmi/chains";
+import { useSessionSigner } from "@/hooks/use-session-signer";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -14,6 +15,11 @@ const ErudaProvider = dynamic(
 );
 
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+
+function SessionSignerSetup() {
+  useSessionSigner();
+  return null;
+}
 
 function AppWithPrivy({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
@@ -55,6 +61,7 @@ function AppWithPrivy({ children }: { children: React.ReactNode }) {
         },
       }}
     >
+      <SessionSignerSetup />
       {appTree}
     </PrivyProvider>
   );

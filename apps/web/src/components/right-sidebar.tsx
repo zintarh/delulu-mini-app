@@ -9,7 +9,7 @@ import type { FormattedDelulu } from "@/lib/types";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
-import { cn } from "@/lib/utils";
+import { formatGAmount } from "@/lib/utils";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,7 +234,7 @@ export function RightSidebar() {
                 {activeChallenges.map((challenge, idx) => (
                   <button
                     key={`active-${challenge.id}-${idx}`}
-                    onClick={() => router.push(`/challenges/${challenge.id}`)}
+                    onClick={() => router.push(`/campaigns/${challenge.id}`)}
                     className="w-full text-left p-4 rounded-xl bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-delulu-yellow-reserved/50 hover:shadow-sm group"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -244,12 +244,9 @@ export function RightSidebar() {
                         </h3>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-delulu-yellow-reserved/10 border border-delulu-yellow-reserved/30">
-                            <span className="text-xs  text-foreground">
-                        {challenge.poolAmount.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
+                            <span className="text-xs text-foreground font-semibold tabular-nums">
+                              {formatGAmount(challenge.poolAmount)} G$
+                            </span>
                           </div>
                         </div>
                       </div>

@@ -127,6 +127,20 @@
   .border-delulu-charcoal { border-color: var(--delulu-charcoal); }
   .border-delulu-white { border-color: var(--delulu-white); }
 
+  /* Theme-aware neo-brutalist shadow (uses --border for light/dark) */
+  .shadow-neo {
+    box-shadow: 3px 3px 0 0 var(--border);
+  }
+  .shadow-neo-sm {
+    box-shadow: 2px 2px 0 0 var(--border);
+  }
+  .hover\:shadow-neo:hover {
+    box-shadow: 4px 4px 0 0 var(--border);
+  }
+  .hover\:shadow-neo-sm:hover {
+    box-shadow: 3px 3px 0 0 var(--border);
+  }
+
   /* Home page gradient background - Light version */
   .bg-home-gradient {
     background: linear-gradient(180deg, #ffffff 0%, #F8F9FA 40%, #ffffff 100%);

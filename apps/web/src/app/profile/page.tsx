@@ -11,8 +11,10 @@ import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { formatAddress } from "@/lib/utils";
-import { ArrowLeft, LogOut, Coins, Eye, EyeOff, Copy, Check, Plus } from "lucide-react";
+import { ArrowLeft, LogOut, Coins, Eye, EyeOff, Copy, Check, Plus, Trophy, Store } from "lucide-react";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
+import { BottomNav } from "@/components/bottom-nav";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { UserClaimsStats } from "@/components/user-claims-stats";
 import { cn } from "@/lib/utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
@@ -29,8 +31,15 @@ export default function ProfilePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const { logout } = usePrivy();
+  const { isAdmin } = useIsAdmin();
   const { user, isLoading } = useUserStore();
   const router = useRouter();
+
+  const handleProfileClick = () => {}; // Already on profile
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
   const [activeTab, setActiveTab] = useState<TabType>("ongoing");
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
     null
@@ -307,9 +316,46 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* More / Explore - Leaderboard & Markets (mobile-friendly) */}
+          {address && (
+            <div className="px-4 pt-1 pb-2">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-2 mb-2">
+                More
+              </p>
+              <div className="space-y-0.5">
+                <Link
+                  href="/leaderboard"
+                  className="flex items-center justify-between py-2.5 hover:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground group-hover:text-delulu-yellow-reserved transition-colors">
+                      Leaderboard
+                    </span>
+                  </div>
+                  <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/market"
+                    className="flex items-center justify-between py-2.5 hover:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground group-hover:text-delulu-yellow-reserved transition-colors">
+                        Markets
+                      </span>
+                    </div>
+                    <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Delulu Grid */}
           {address && (
-            <div className="px-4 py-4">
+            <div className="px-4 py-4 pb-24 lg:pb-4">
               {isLoadingDelulus ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -364,6 +410,11 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <StakeFlowSheet
         open={stakingSheetOpen}

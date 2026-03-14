@@ -6,13 +6,14 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAllDelulus } from "@/hooks/graph/useAllDelulus";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { Loader2, ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
 import { ResolveDeluluModal } from "@/components/resolve-delulu-modal";
 import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
@@ -31,6 +32,15 @@ export default function AdminPage() {
   const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
+
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
 
   useEffect(() => {
     if (!isLoadingAdmin && (!isConnected || !isAdmin)) {
@@ -81,9 +91,9 @@ export default function AdminPage() {
               }}
             />
           </div>
-          <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
+          <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 animate-spin text-delulu-charcoal" />
+              <Loader2 className="w-8 h-8 animate-spin text-foreground" />
             </div>
           </main>
           <div className="hidden lg:block">
@@ -116,9 +126,9 @@ export default function AdminPage() {
               }}
             />
           </div>
-          <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
+          <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 animate-spin text-delulu-charcoal" />
+              <Loader2 className="w-8 h-8 animate-spin text-foreground" />
             </div>
           </main>
           <div className="hidden lg:block">
@@ -134,39 +144,27 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/profile");
-              }
-            }}
-            onCreateClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/board");
-              }
-            }}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
-        <main className="h-screen lg:border-x border-gray-200 overflow-y-auto scrollbar-hide">
-          <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10">
+        <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
+          <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
             {/* Header */}
             <div className="mb-8 flex items-center justify-between gap-3">
               <div>
-                <h1 className="text-3xl md:text-4xl font-black text-delulu-charcoal tracking-tight">
+                <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
                   Markets
                 </h1>
-                <p className="text-sm text-delulu-charcoal/70 font-medium mt-1">
+                <p className="text-sm text-muted-foreground font-medium mt-1">
                   Manage and resolve all delulus
                 </p>
               </div>
               <button
                 onClick={() => setShowCreateChallengeSheet(true)}
                 className={cn(
-                  "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-border bg-delulu-yellow-reserved text-foreground shadow-neo hover:shadow-neo active:scale-[0.98] transition-all text-sm font-bold"
                 )}
               >
                 <Trophy className="w-4 h-4" />
@@ -176,36 +174,36 @@ export default function AdminPage() {
 
             {isLoadingDelulus ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-delulu-charcoal" />
+                <Loader2 className="w-8 h-8 animate-spin text-foreground" />
               </div>
             ) : endedMarkets.length === 0 ? (
-              <div className="bg-white rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] p-12 text-center">
-                <p className="text-delulu-charcoal/60 font-medium">No ended markets found</p>
+              <div className="bg-card rounded-xl border-2 border-border shadow-neo p-12 text-center">
+                <p className="text-muted-foreground font-medium">No ended markets found</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] overflow-hidden">
+              <div className="bg-card rounded-xl border-2 border-border shadow-neo overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b-2 border-delulu-charcoal">
+                    <thead className="bg-muted border-b-2 border-border">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-black text-delulu-charcoal uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-black text-foreground uppercase tracking-wider">
                           ID
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-black text-delulu-charcoal uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-black text-foreground uppercase tracking-wider">
                           Creator
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-black text-delulu-charcoal uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-black text-foreground uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-black text-delulu-charcoal uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-black text-foreground uppercase tracking-wider">
                           TVL
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-black text-delulu-charcoal uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-black text-foreground uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y-2 divide-gray-200">
+                    <tbody className="bg-card divide-y-2 divide-border">
                       {endedMarkets.map((delulu, index) => {
                         const canResolve = !delulu.isResolved && !delulu.isCancelled;
                         
@@ -231,6 +229,11 @@ export default function AdminPage() {
           <RightSidebar />
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <ConnectorSelectionSheet
         open={showLoginSheet}
@@ -293,69 +296,69 @@ function MarketRow({ delulu, index, canResolve, onResolve }: MarketRowProps) {
 
   // Map contract state to display
   const getStateDisplay = (state: number | null): { label: string; className: string } => {
-    // Show error state if there's an error
+    const resolved =
+      "bg-green-100 text-green-800 border-green-600 dark:bg-green-900/50 dark:text-green-200 dark:border-green-500";
+    const cancelled =
+      "bg-red-100 text-red-800 border-red-600 dark:bg-red-900/50 dark:text-red-200 dark:border-red-500";
+    const active =
+      "bg-blue-100 text-blue-800 border-blue-600 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-500";
+    const loading =
+      "bg-muted text-muted-foreground border-border";
+    const open =
+      "bg-blue-100 text-blue-800 border-blue-600 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-500";
+    const locked =
+      "bg-yellow-100 text-yellow-800 border-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-500";
+    const review =
+      "bg-purple-100 text-purple-800 border-purple-600 dark:bg-purple-900/50 dark:text-purple-200 dark:border-purple-500";
+    const unknown =
+      "bg-muted text-muted-foreground border-border";
+
     if (stateError) {
       console.error("[MarketRow] Error fetching state:", stateError, { deluluId: deluluIdForContract, delulu });
-      // Fallback to local state if contract query fails
-      if (delulu.isResolved) {
-        return { label: "Resolved", className: "bg-green-100 text-green-800 border-green-800" };
-      }
-      if (delulu.isCancelled) {
-        return { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-800" };
-      }
-      return { label: "Active", className: "bg-blue-100 text-blue-800 border-blue-800" };
+      if (delulu.isResolved) return { label: "Resolved", className: resolved };
+      if (delulu.isCancelled) return { label: "Cancelled", className: cancelled };
+      return { label: "Active", className: active };
     }
-    
-    if (isLoadingState) {
-      return { label: "Loading...", className: "bg-gray-100 text-gray-800 border-gray-800" };
-    }
-    
-    // State can be 0 (Open), so we need to check for null/undefined specifically
+    if (isLoadingState) return { label: "Loading...", className: loading };
     if (state === null || state === undefined) {
-      // Fallback to local state if contract returns null
-      if (delulu.isResolved) {
-        return { label: "Resolved", className: "bg-green-100 text-green-800 border-green-800" };
-      }
-      if (delulu.isCancelled) {
-        return { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-800" };
-      }
-      return { label: "Active", className: "bg-blue-100 text-blue-800 border-blue-800" };
+      if (delulu.isResolved) return { label: "Resolved", className: resolved };
+      if (delulu.isCancelled) return { label: "Cancelled", className: cancelled };
+      return { label: "Active", className: active };
     }
-    
     switch (state) {
       case DeluluState.Open:
-        return { label: "Open", className: "bg-blue-100 text-blue-800 border-blue-800" };
+        return { label: "Open", className: open };
       case DeluluState.Locked:
-        return { label: "Locked", className: "bg-yellow-100 text-yellow-800 border-yellow-800" };
+        return { label: "Locked", className: locked };
       case DeluluState.Review:
-        return { label: "Review", className: "bg-purple-100 text-purple-800 border-purple-800" };
+        return { label: "Review", className: review };
       case DeluluState.Resolved:
-        return { label: "Resolved", className: "bg-green-100 text-green-800 border-green-800" };
+        return { label: "Resolved", className: resolved };
       case DeluluState.Cancelled:
-        return { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-800" };
+        return { label: "Cancelled", className: cancelled };
       default:
-        return { label: "Unknown", className: "bg-gray-100 text-gray-800 border-gray-800" };
+        return { label: "Unknown", className: unknown };
     }
   };
 
   const stateDisplay = getStateDisplay(contractState);
 
   return (
-    <tr className="hover:bg-gray-50 transition-colors">
+    <tr className="hover:bg-muted/50 transition-colors">
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className="text-sm font-black text-delulu-charcoal">
+        <span className="text-sm font-black text-foreground">
           {index + 1}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className="text-sm font-bold text-delulu-charcoal">
+        <span className="text-sm font-bold text-foreground">
           {displayCreator}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span
           className={cn(
-            "inline-flex items-center px-3 py-1.5 rounded-md text-xs font-bold border-2 shadow-[2px_2px_0px_0px_#1A1A1A]",
+            "inline-flex items-center px-3 py-1.5 rounded-md text-xs font-bold border-2 shadow-neo-sm",
             stateDisplay.className
           )}
         >
@@ -364,8 +367,8 @@ function MarketRow({ delulu, index, canResolve, onResolve }: MarketRowProps) {
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-black text-delulu-charcoal">
-            {delulu.totalStake ? `${delulu.totalStake.toFixed(2)}` : "0.00"}
+          <span className="text-sm font-black text-foreground">
+            {formatGAmount(delulu.totalStake ?? 0)}
           </span>
           {delulu.tokenAddress && (
             <TokenBadge tokenAddress={delulu.tokenAddress} size="sm" showText={false} />
@@ -376,7 +379,7 @@ function MarketRow({ delulu, index, canResolve, onResolve }: MarketRowProps) {
         <div className="flex items-center gap-2">
           <Link
             href={`/delulu/${delulu.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-delulu-charcoal bg-white shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-xs font-bold text-delulu-charcoal"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-border bg-card text-foreground shadow-neo-sm hover:shadow-neo-sm active:scale-[0.98] transition-all text-xs font-bold"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             View
@@ -385,13 +388,13 @@ function MarketRow({ delulu, index, canResolve, onResolve }: MarketRowProps) {
             <button
               onClick={onResolve}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-xs font-bold"
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-border bg-delulu-yellow-reserved text-foreground shadow-neo-sm hover:shadow-neo-sm active:scale-[0.98] transition-all text-xs font-bold"
               )}
             >
               Resolve
             </button>
           ) : (
-            <span className="text-xs text-gray-400">—</span>
+            <span className="text-xs text-muted-foreground">—</span>
           )}
         </div>
       </td>

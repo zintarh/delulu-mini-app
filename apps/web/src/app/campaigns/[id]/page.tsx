@@ -6,18 +6,19 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { ChallengesHeader } from "@/components/challenges-header";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useReadContract, useChainId } from "wagmi";
-import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { ArrowLeft, Trophy, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
 import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-skeleton";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { useAllocatePoints } from "@/hooks/use-allocate-points";
 import { useChallengeLeaderboard } from "@/hooks/use-challenge-leaderboard";
 import type { Challenge } from "@/hooks/use-challenges";
@@ -31,6 +32,15 @@ export default function ChallengeDetailPage() {
   const chainId = useChainId();
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [editingPoints, setEditingPoints] = useState<number | null>(null);
+
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
   const [pointsInput, setPointsInput] = useState<string>("");
   const [optimisticPoints, setOptimisticPoints] = useState<Record<number, number>>({});
   const [lastAllocatedDeluluId, setLastAllocatedDeluluId] = useState<number | null>(null);
@@ -56,6 +66,7 @@ export default function ChallengeDetailPage() {
   const {
     leaderboard,
     isLoading: isLoadingLeaderboard,
+    error: leaderboardError,
     refetch: refetchLeaderboard,
   } = useChallengeLeaderboard(challengeId ?? null);
 
@@ -131,20 +142,8 @@ export default function ChallengeDetailPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/profile");
-              }
-            }}
-            onCreateClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/board");
-              }
-            }}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
@@ -152,28 +151,20 @@ export default function ChallengeDetailPage() {
           {/* Mobile Header */}
           <div className="lg:hidden">
             <ChallengesHeader
-              onProfileClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/profile");
-                }
-              }}
-              onCreateClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/board");
-                }
+              onProfileClick={handleProfileClick}
+              onCreateClick={handleCreateClick}
+              onSearchClick={() => {
+                if (!isConnected) setShowLoginSheet(true);
+                else router.push("/search");
               }}
             />
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-10 pt-20 lg:pt-4 text-foreground">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-10 pt-20 lg:pt-4 pb-24 lg:pb-10 text-foreground">
             {/* Header with Back Button */}
             <div className="mb-6 sm:mb-8">
               <Link
-                href="/challenges"
+                href="/campaigns"
                 className="inline-flex items-center gap-2 mb-3 sm:mb-4 text-muted-foreground hover:text-foreground transition-colors group text-sm sm:text-base"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
@@ -213,7 +204,7 @@ export default function ChallengeDetailPage() {
                       <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-muted rounded-md border border-border">
                         <Trophy className="w-3 h-3 sm:w-4 sm:h-4 text-foreground flex-shrink-0" />
                         <span className="font-bold text-sm sm:text-base">
-                          {challenge.poolAmount.toFixed(2)}
+                          {formatGAmount(challenge.poolAmount)}
                         </span>
                         {currencyTokenAddress ? (
                           <TokenBadge tokenAddress={currencyTokenAddress} size="sm" />
@@ -228,27 +219,40 @@ export default function ChallengeDetailPage() {
             
 
             {/* Leaderboard */}
-            {challenge && (
+            {challenge && (() => {
+              const isCampaignEnded = challenge.endTime < new Date();
+              const endDateLabel = isCampaignEnded
+                ? `Ended ${format(challenge.endTime, "MMM d, yyyy")}`
+                : `Ends ${format(challenge.endTime, "MMM d, yyyy")}`;
+              return (
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-5">
                   <h2 className="text-lg sm:text-xl font-black">
                     Leaderboard
                   </h2>
                   <div className="text-xs sm:text-sm text-muted-foreground">
-                    Ends {formatDistanceToNow(challenge.endTime, { addSuffix: true })}
+                    {endDateLabel}
                   </div>
                 </div>
 
-                {isLoadingLeaderboard ? (
+                {leaderboardError ? (
+                  <div className="bg-card rounded-xl border-2 border-border shadow-neo p-4 text-sm text-foreground">
+                    <p className="font-semibold text-destructive">Failed to load leaderboard</p>
+                    <p className="mt-1 text-muted-foreground">{leaderboardError.message}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Ensure the subgraph is synced and delulus have joined this campaign (and had points allocated) to appear.
+                    </p>
+                  </div>
+                ) : isLoadingLeaderboard ? (
                   <CampaignLeaderboardSkeleton rows={4} />
                 ) : leaderboard.length === 0 ? (
-                  <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                  <div className="bg-card rounded-xl border-2 border-border shadow-neo p-10 text-center">
                     <Trophy className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
                     <p className="text-muted-foreground font-medium mb-1">
                       No participants yet
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      Be the first to join this campaign!
+                      Be the first to join this campaign! Join a campaign from a delulu page, then an admin can allocate points.
                     </p>
                   </div>
                 ) : (
@@ -330,7 +334,8 @@ export default function ChallengeDetailPage() {
                   </div>
                 )}
               </div>
-            )}
+            );
+            })()}
           </div>
         </main>
 
@@ -338,6 +343,11 @@ export default function ChallengeDetailPage() {
           <RightSidebar />
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <ConnectorSelectionSheet
         open={showLoginSheet}

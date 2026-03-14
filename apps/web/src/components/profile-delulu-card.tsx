@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { FormattedDelulu } from "@/lib/types";
-import { formatTimeRemaining, cn, getCountryFlag } from "@/lib/utils";
+import { formatTimeRemaining, cn, getCountryFlag, formatGAmount } from "@/lib/utils";
 import { useCancelDelulu } from "@/hooks/use-cancel-delulu";
 import { useAccount } from "wagmi";
 import { isDeluluCreator } from "@/lib/delulu-utils";
@@ -116,7 +116,7 @@ export function ProfileDeluluCard({
         GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
         ? tvlValue // USDm or other stable-like token ~ 1:1
         : null;
-  const formattedTvl = tvlValue > 0 ? (tvlValue < 0.01 ? tvlValue.toFixed(4) : tvlValue.toFixed(2)) : "0.00";
+  const formattedGAmount = formatGAmount(tvlValue);
   const formattedUsd = approxUsdValue && approxUsdValue > 0
     ? approxUsdValue < 0.01
       ? approxUsdValue.toFixed(4)
@@ -275,7 +275,8 @@ export function ProfileDeluluCard({
                 <TokenBadge tokenAddress={delusion.tokenAddress} size="sm" showText={false} />
               )}
               <span className={cn("font-semibold text-white", currentSize.support)}>
-                {formattedTvl}
+                {formattedGAmount}
+                {isGoodDollar ? " G$" : ""}
               </span>
               {formattedUsd && (
                 <span className={cn("text-white/70", currentSize.support)}>
@@ -328,10 +329,9 @@ export function ProfileDeluluCard({
               );
               const isEnded = timeRemaining === "Ended";
               return (
-                <>
-                  {!isEnded && <span className="opacity-70">Ends in</span>}
-                  <span className="font-semibold">{timeRemaining}</span>
-                </>
+                <span className="font-semibold">
+                  {isEnded ? "Ended" : "Active"}
+                </span>
               );
             })()}
           </div>

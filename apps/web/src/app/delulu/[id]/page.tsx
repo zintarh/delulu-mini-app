@@ -3,6 +3,7 @@
 
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,10 +23,10 @@ import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalFo
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { ChallengesHeader } from "@/components/challenges-header";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Loader2,
   ArrowLeft,
@@ -37,7 +38,6 @@ import {
   Users,
   XIcon,
   Circle,
-  Menu,
   Search,
   ChevronDown,
   ChevronUp,
@@ -137,8 +137,16 @@ export default function DeluluPage() {
 
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "milestones">("details");
+
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [newMilestones, setNewMilestones] = useState<{ description: string; days: string }[]>([{ description: "", days: "" }]);
@@ -252,9 +260,50 @@ export default function DeluluPage() {
   const { writeContract: writeDeleteMilestone, data: deleteMilestoneHash, isPending: isDeletingMilestone, error: deleteMilestoneError } = useWriteContract();
   const { isLoading: isConfirmingDeleteMilestone, isSuccess: isDeleteMilestoneSuccess } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
 
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  /** Delulu remaining time in days (from start of new milestones to resolution deadline). */
+  const deluluRemainingDaysTotal = useMemo(() => {
+    if (!delulu?.resolutionDeadline) return 0;
+    let startMs = Date.now();
+    if (milestones && milestones.length > 0) {
+      const last = milestones[milestones.length - 1];
+      if (last?.deadline) startMs = last.deadline.getTime();
+    }
+    const endMs = delulu.resolutionDeadline.getTime();
+    const days = (endMs - startMs) / MS_PER_DAY;
+    return Math.max(0, Math.floor(days * 100) / 100);
+  }, [delulu?.resolutionDeadline, milestones]);
+
+  /** For each new milestone row: max days allowed so total never exceeds delulu duration. */
+  const maxDaysPerRow = useMemo(() => {
+    return newMilestones.map((_, index) => {
+      const daysUsedByPrevious = newMilestones
+        .slice(0, index)
+        .reduce((sum, m) => sum + (Number(m.days) || 0), 0);
+      return Math.max(0, Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious));
+    });
+  }, [newMilestones, deluluRemainingDaysTotal]);
+
   const handleAddMilestoneRow = () => setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
   const handleRemoveMilestoneRow = (index: number) => setNewMilestones((prev) => prev.filter((_, i) => i !== index));
   const handleNewMilestoneChange = (index: number, field: "description" | "days", value: string) => {
+    if (field === "days") {
+      setNewMilestones((prev) => {
+        const daysUsedByPrevious = prev
+          .slice(0, index)
+          .reduce((sum, m) => sum + (Number(m.days) || 0), 0);
+        const maxDays = Math.max(0, Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious));
+        if (value === "" || value === null || value === undefined) {
+          return prev.map((m, i) => (i === index ? { ...m, days: "" } : m));
+        }
+        const parsed = Number(value);
+        if (Number.isNaN(parsed) || parsed < 0) return prev;
+        const clamped = Math.min(maxDays, Math.max(0, Math.floor(parsed)));
+        return prev.map((m, i) => (i === index ? { ...m, days: clamped === 0 ? "" : String(clamped) } : m));
+      });
+      return;
+    }
     setNewMilestones((prev) => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
   };
 
@@ -267,8 +316,8 @@ export default function DeluluPage() {
     );
 
     if (validMilestones.length === 0) {
-      setErrorTitle("Missing information");
-      setErrorMessage("Please enter a description and duration for at least one milestone.");
+      setErrorTitle("Missing");
+      setErrorMessage("Add at least one step with description and days.");
       setShowErrorModal(true);
       return;
     }
@@ -281,8 +330,8 @@ export default function DeluluPage() {
     );
 
     if (incompleteMilestones.length > 0) {
-      setErrorTitle("Incomplete milestones");
-      setErrorMessage("Please fill in both description and duration for all milestones.");
+      setErrorTitle("Incomplete");
+      setErrorMessage("Fill description and days for each step.");
       setShowErrorModal(true);
       return;
     }
@@ -294,8 +343,8 @@ export default function DeluluPage() {
     });
 
     if (invalidDays.length > 0) {
-      setErrorTitle("Invalid duration");
-      setErrorMessage("Each milestone must have at least 1 day.");
+      setErrorTitle("Invalid");
+      setErrorMessage("Min 1 day per step.");
       setShowErrorModal(true);
       return;
     }
@@ -319,8 +368,8 @@ export default function DeluluPage() {
     const resolutionSeconds = Math.floor(delulu.resolutionDeadline.getTime() / 1000);
 
     if (startTimeSeconds + totalDurationSeconds > resolutionSeconds) {
-      setErrorTitle("Duration too long");
-      setErrorMessage("Total milestone duration exceeds your deadline. Reduce the number of days.");
+      setErrorTitle("Too long");
+      setErrorMessage("Total days exceed deadline.");
       setShowErrorModal(true);
       return;
     }
@@ -409,8 +458,8 @@ export default function DeluluPage() {
 
     // Check if milestone can be deleted
     if (milestone.isSubmitted || milestone.isVerified) {
-      setErrorTitle("Cannot delete milestone");
-      setErrorMessage("You cannot delete a milestone that has been submitted or verified.");
+      setErrorTitle("Can't delete");
+      setErrorMessage("Submitted or verified.");
       setShowErrorModal(true);
       return;
     }
@@ -418,8 +467,8 @@ export default function DeluluPage() {
     // Check if milestone deadline has passed (past milestone)
     const isPast = milestone.deadline.getTime() < Date.now();
     if (isPast || milestone.isMissed) {
-      setErrorTitle("Cannot delete milestone");
-      setErrorMessage("You cannot delete a milestone that has already passed its deadline.");
+      setErrorTitle("Can't delete");
+      setErrorMessage("Deadline passed.");
       setShowErrorModal(true);
       return;
     }
@@ -427,7 +476,7 @@ export default function DeluluPage() {
     // Show confirmation modal
     const milestoneLabel = milestone.milestoneURI && milestone.milestoneURI.length > 0
       ? milestone.milestoneURI
-      : `Milestone ${milestoneId}`;
+      : `Step ${milestoneId}`;
     setMilestoneToDelete({ 
       id: milestoneId, 
       label: milestoneLabel
@@ -535,12 +584,8 @@ export default function DeluluPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
           <div className="hidden lg:block">
             <LeftSidebar
-              onProfileClick={() =>
-                !isConnected ? setShowLoginSheet(true) : router.push("/profile")
-              }
-              onCreateClick={() =>
-                !isConnected ? setShowLoginSheet(true) : router.push("/board")
-              }
+              onProfileClick={handleProfileClick}
+              onCreateClick={handleCreateClick}
             />
           </div>
 
@@ -582,6 +627,11 @@ export default function DeluluPage() {
             <RightSidebar />
           </div>
         </div>
+
+        <BottomNav
+          onProfileClick={handleProfileClick}
+          onCreateClick={handleCreateClick}
+        />
       </div>
     );
   }
@@ -607,8 +657,8 @@ export default function DeluluPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => !isConnected ? setShowLoginSheet(true) : router.push("/profile")}
-            onCreateClick={() => !isConnected ? setShowLoginSheet(true) : router.push("/board")}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
@@ -617,17 +667,28 @@ export default function DeluluPage() {
             <header className="fixed top-0 left-0 right-0 z-50 w-full bg-secondary/95 backdrop-blur-sm border-b border-border">
               <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
                 <button
-                  onClick={() => setIsMenuOpen(true)}
+                  onClick={() => router.back()}
                   className="flex items-center justify-center w-10 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  aria-label="Open navigation menu"
+                  aria-label="Back"
                 >
-                  <Menu className="w-6 h-6" />
+                  <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                <div className="flex-1" />
+                <span className="flex items-center justify-center shrink-0">
+                  <Image
+                    src="/favicon_io/favicon-32x32.png"
+                    alt="Delulu"
+                    width={28}
+                    height={28}
+                    className="h-7 w-7"
+                  />
+                </span>
 
                 <button
-                  onClick={() => router.push("/search")}
+                  onClick={() => {
+                    if (!isConnected) setShowLoginSheet(true);
+                    else router.push("/search");
+                  }}
                   className="flex items-center justify-center w-10 h-10 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title="Search"
                   aria-label="Search"
@@ -636,32 +697,6 @@ export default function DeluluPage() {
                 </button>
               </nav>
             </header>
-
-            {/* Mobile drawer with left sidebar content */}
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetContent side="left" className="p-0">
-                <div className="h-full">
-                  <LeftSidebar
-                    onProfileClick={() => {
-                      if (!isConnected) {
-                        setShowLoginSheet(true);
-                      } else {
-                        router.push("/profile");
-                      }
-                      setIsMenuOpen(false);
-                    }}
-                    onCreateClick={() => {
-                      if (!isConnected) {
-                        setShowLoginSheet(true);
-                      } else {
-                        router.push("/board");
-                      }
-                      setIsMenuOpen(false);
-                    }}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
 
           {/* Desktop header */}
@@ -940,8 +975,7 @@ export default function DeluluPage() {
                       </h2>
                       {milestones && milestones.length > 0 && (
                         <span className="text-xs md:text-sm text-muted-foreground font-medium">
-                          {milestones.filter((m) => m.isVerified).length} of {milestones.length}{" "}
-                          completed
+                          {milestones.filter((m) => m.isVerified).length}/{milestones.length}
                         </span>
                       )}
                     </div>
@@ -953,7 +987,7 @@ export default function DeluluPage() {
                         onClick={() => setShowMilestoneForm((open) => !open)}
                         className=" w-fit  inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
                       >
-                        {showMilestoneForm ? "Close" : "Create milestones"}
+                        {showMilestoneForm ? "Close" : "Add"}
                       </button>
                     )}
                      
@@ -962,14 +996,11 @@ export default function DeluluPage() {
 
                   {isCreator && canAddMilestones && showMilestoneForm && (
                     <div className="mb-4 border border-dashed border-border rounded-2xl p-3 md:p-4 bg-muted/60">
-                      <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                        {milestones && milestones.length > 0
-                          ? "Add more milestones to your delulu. You can delete milestones that haven't been submitted yet."
-                          : "Add milestones for this delulu. You can add more or delete them later (before submission)."}
-                      </p>
-                      <p className="text-xs font-semibold text-foreground mb-3 bg-card/50 p-2 rounded-md border border-border/50">
-                        ⚠️ Milestones run sequentially: Each milestone starts when the previous one ends. The duration you enter is the time to complete that milestone.
-                      </p>
+                      {delulu?.resolutionDeadline && (
+                        <p className="text-xs text-muted-foreground mb-3">
+                          <strong className="text-foreground">{deluluRemainingDaysTotal}</strong> days left · sequential
+                        </p>
+                      )}
                       <div className="space-y-3 md:space-y-4">
                         {newMilestones.map((m, index) => {
                           // Calculate milestone timing
@@ -1010,9 +1041,7 @@ export default function DeluluPage() {
                             return { startTime, endTime, exceedsDeadline };
                           };
                           
-                          const { startTime, endTime, exceedsDeadline } = calculateMilestoneTiming();
-                          const startDate = new Date(startTime);
-                          const endDate = new Date(endTime);
+                          const { exceedsDeadline } = calculateMilestoneTiming();
                           
                           return (
                             <div
@@ -1021,7 +1050,7 @@ export default function DeluluPage() {
                             >
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-xs font-black text-muted-foreground uppercase">
-                                  Milestone {index + 1}
+                                  Step {index + 1}
                                 </span>
                                 {newMilestones.length > 1 && (
                                   <button
@@ -1034,91 +1063,49 @@ export default function DeluluPage() {
                                 )}
                               </div>
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    placeholder="Describe this milestone..."
-                                    value={m.description}
-                                    onChange={(e) =>
-                                      handleNewMilestoneChange(
-                                        index,
-                                        "description",
-                                        e.target.value
-                                      )
-                                    }
-                                    className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                  />
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    placeholder="0"
-                                    value={m.days}
-                                    onChange={(e) =>
-                                      handleNewMilestoneChange(index, "days", e.target.value)
-                                    }
-                                    className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                  />
+                                <div className="flex flex-wrap items-end gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <input
+                                      type="text"
+                                      placeholder="What to do"
+                                      value={m.description}
+                                      onChange={(e) =>
+                                        handleNewMilestoneChange(
+                                          index,
+                                          "description",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <label className="text-[11px] font-medium text-muted-foreground">
+                                      Days
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={maxDaysPerRow[index] || undefined}
+                                      placeholder={maxDaysPerRow[index] != null && maxDaysPerRow[index] > 0 ? `1–${maxDaysPerRow[index]}` : "—"}
+                                      value={m.days}
+                                      onChange={(e) =>
+                                        handleNewMilestoneChange(index, "days", e.target.value)
+                                      }
+                                      className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                    />
+                                    {maxDaysPerRow[index] != null && maxDaysPerRow[index] > 0 && (
+                                      <span className="text-[10px] text-muted-foreground">
+                                        max {maxDaysPerRow[index]}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  {m.days && Number(m.days) > 0 ? (
-                                    <>
-                                      <div className="text-xs text-muted-foreground space-y-1">
-                                        {(() => {
-                                          const days = Number(m.days);
-                                          const showTime = days < 1; // Show time only if less than 24 hours
-                                          
-                                          return (
-                                            <>
-                                              <div>
-                                                <span className="font-semibold text-foreground">Starts:</span>{" "}
-                                                {startDate.toLocaleDateString("en-US", { 
-                                                  month: "short", 
-                                                  day: "numeric", 
-                                                  year: "numeric" 
-                                                })}
-                                                {showTime && (
-                                                  <>{" "}at{" "}
-                                                    {startDate.toLocaleTimeString("en-US", { 
-                                                      hour: "numeric", 
-                                                      minute: "2-digit",
-                                                      hour12: true 
-                                                    })}
-                                                  </>
-                                                )}
-                                              </div>
-                                              <div>
-                                                <span className="font-semibold text-foreground">Ends:</span>{" "}
-                                                {endDate.toLocaleDateString("en-US", { 
-                                                  month: "short", 
-                                                  day: "numeric", 
-                                                  year: "numeric" 
-                                                })}
-                                                {showTime && (
-                                                  <>{" "}at{" "}
-                                                    {endDate.toLocaleTimeString("en-US", { 
-                                                      hour: "numeric", 
-                                                      minute: "2-digit",
-                                                      hour12: true 
-                                                    })}
-                                                  </>
-                                                )}
-                                              </div>
-                                            </>
-                                          );
-                                        })()}
-                                      </div>
-                                      {exceedsDeadline && (
-                                        <div className="text-xs font-semibold text-red-500 bg-red-500/10 p-2 rounded-md border border-red-500/30">
-                                          ⚠️ This milestone exceeds your resolution deadline ({delulu?.resolutionDeadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}). Reduce the duration.
-                                        </div>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">
-                                      Enter duration to see timing calculation
-                                    </span>
-                                  )}
-                                </div>
+                                {exceedsDeadline && (
+                                  <div className="text-[10px] font-semibold text-destructive">
+                                    Over deadline
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -1130,7 +1117,7 @@ export default function DeluluPage() {
                           onClick={handleAddMilestoneRow}
                           className="inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-border text-foreground hover:bg-muted transition-colors"
                         >
-                          + Add another milestone
+                          + Add
                         </button>
                         <button
                           type="button"
@@ -1146,10 +1133,10 @@ export default function DeluluPage() {
                           {isAddingMilestones || isConfirmingAddMilestones ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Saving...
+                              Save
                             </>
                           ) : (
-                            "Save milestones"
+                            "Save"
                           )}
                         </button>
                       </div>
@@ -1164,7 +1151,7 @@ export default function DeluluPage() {
                           const fullTitle =
                             (m.milestoneURI && m.milestoneURI.length > 0
                               ? m.milestoneURI
-                              : `Milestone ${i + 1}`) || "";
+                              : `Step ${i + 1}`) || "";
                           const shortTitle =
                             fullTitle.length > 80
                               ? `${fullTitle.slice(0, 77)}…`
@@ -1244,7 +1231,7 @@ export default function DeluluPage() {
                                             handleDeleteMilestone(m.milestoneId);
                                           }}
                                           className="inline-flex items-center justify-center w-6 h-6 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                                          title="Delete milestone"
+                                          title="Delete step"
                                         >
                                           <XIcon className="w-4 h-4" />
                                         </button>
@@ -1254,9 +1241,9 @@ export default function DeluluPage() {
                                   <div className="flex items-center gap-3 flex-wrap">
                                     {durationDays !== null && (
                                       <span className="text-xs md:text-sm font-semibold text-foreground">
-                                        Duration: {durationDays === Math.floor(durationDays) 
-                                          ? `${Math.floor(durationDays)} day${Math.floor(durationDays) !== 1 ? 's' : ''}`
-                                          : `${durationDays.toFixed(1)} days`}
+                                        {durationDays === Math.floor(durationDays) 
+                                          ? `${Math.floor(durationDays)}d`
+                                          : `${durationDays.toFixed(1)}d`}
                                       </span>
                                     )}
                                     <span className="text-xs md:text-sm text-muted-foreground">
@@ -1291,9 +1278,7 @@ export default function DeluluPage() {
                                         }
                                         className="inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
                                       >
-                                        {m.proofLink
-                                          ? "Update proof & change status"
-                                          : "Submit proof to change status"}
+                                        {m.proofLink ? "Proof" : "Add proof"}
                                       </button>
                                     </div>
                                   )}
@@ -1309,13 +1294,8 @@ export default function DeluluPage() {
                   ) : (
                     <div className="rounded-2xl bg-muted p-8 text-center mt-2">
                       <Target className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
-                      <p className="text-sm md:text-base font-black text-foreground mb-1">
-                        No milestones yet
-                      </p>
-                      <p className="text-xs md:text-sm text-muted-foreground">
-                        {isCreator
-                          ? "Use the button above to create milestones for this delulu."
-                          : "Milestones will appear here once the creator adds them."}
+                      <p className="text-sm md:text-base font-black text-foreground">
+                        {isCreator ? "No steps yet" : "None yet"}
                       </p>
                     </div>
                   )}
@@ -1332,19 +1312,21 @@ export default function DeluluPage() {
 
       <StakeFlowSheet open={stakingSheetOpen} onOpenChange={setStakingSheetOpen} delulu={delulu} />
 
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
+
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       {isCreator && activeProofMilestoneId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border">
             <h3 className="text-base md:text-lg font-black text-foreground mb-2">
-              Submit proof
+              Proof
             </h3>
-            <p className="text-xs md:text-sm text-muted-foreground mb-4">
-              Add a link that proves this milestone has been completed. Once submitted, the status can be updated by the protocol/admins.
-            </p>
             <input
               type="url"
-              placeholder="https://example.com/proof"
+              placeholder="Proof link"
               value={milestoneProofLinks[activeProofMilestoneId] ?? ""}
               onChange={(e) =>
                 setMilestoneProofLinks((prev) => ({
@@ -1352,8 +1334,20 @@ export default function DeluluPage() {
                   [activeProofMilestoneId]: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary mt-2"
             />
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Tip: Upload files to{" "}
+              <a
+                href="https://drive.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                Google Drive
+              </a>
+              , set sharing to &quot;Anyone with the link,&quot; then paste the link here.
+            </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -1376,7 +1370,7 @@ export default function DeluluPage() {
                   "opacity-60 cursor-not-allowed"
                 )}
               >
-                {isSubmittingMilestone || isConfirmingSubmitMilestone ? "Submitting..." : "Submit proof"}
+                {isSubmittingMilestone || isConfirmingSubmitMilestone ? "Submit" : "Submit"}
               </button>
             </div>
           </div>
@@ -1472,10 +1466,10 @@ export default function DeluluPage() {
         <ModalContent className="max-w-md">
           <ModalHeader>
             <ModalTitle className="text-delulu-charcoal text-xl font-bold">
-              Delete Milestone
+              Delete
             </ModalTitle>
             <ModalDescription className="mt-2">
-              Are you sure you want to delete this milestone? This action cannot be undone.
+              Can&apos;t be undone.
             </ModalDescription>
           </ModalHeader>
           <div className="mt-4 space-y-4">
@@ -1492,7 +1486,7 @@ export default function DeluluPage() {
                 <p className="text-sm text-red-600 font-medium">
                   {deleteMilestoneError instanceof Error
                     ? deleteMilestoneError.message
-                    : "Failed to delete milestone. Please try again."}
+                    : "Delete failed."}
                 </p>
               </div>
             )}

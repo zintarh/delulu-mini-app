@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { LeftSidebar } from "@/components/left-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
@@ -28,6 +29,15 @@ import { UserSetupModal } from "@/components/user-setup-modal";
 export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { logout, authenticated } = usePrivy();
+
+  const handleProfileClick = () => {
+    if (!authenticated) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!authenticated) setShowLoginSheet(true);
+    else router.push("/board");
+  };
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const { updateUsername, updateAddress, user } = useUserStore();
@@ -72,7 +82,7 @@ export default function HomePage() {
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"board" | "fyp">("board");
+  const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
   const [isScrolling, setIsScrolling] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
@@ -174,20 +184,8 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_360px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/profile");
-              }
-            }}
-            onCreateClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/board");
-              }
-            }}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
@@ -197,22 +195,12 @@ export default function HomePage() {
         >
           <div className="lg:hidden">
             <Navbar
-              onProfileClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/profile");
-                }
-              }}
-              onCreateClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/board");
-                }
-              }}
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              onSearchClick={() => {
+                if (!authenticated) setShowLoginSheet(true);
+                else router.push("/search");
+              }}
             />
           </div>
 
@@ -363,22 +351,6 @@ export default function HomePage() {
         </div>
       </div>
 
-     
-      <button
-        onClick={() => {
-          if (!isConnected) {
-            setShowLoginSheet(true);
-          } else {
-            router.push("/board");
-          }
-        }}
-        className="lg:hidden fixed bottom-6 right-6 w-16 h-16 rounded-md bg-delulu-yellow-reserved text-delulu-charcoal flex items-center justify-center border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:scale-110 transition-all duration-300 z-40"
-        title="Create"
-        aria-label="Create"
-      >
-        <Plus className="w-8 h-8" />
-      </button>
-
       <HowItWorksSheet
         open={howItWorksSheetOpen}
         onOpenChange={setHowItWorksSheetOpen}
@@ -411,6 +383,11 @@ export default function HomePage() {
       <ConnectorSelectionSheet
         open={showLoginSheet}
         onOpenChange={setShowLoginSheet}
+      />
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
       />
 
       <UserSetupModal

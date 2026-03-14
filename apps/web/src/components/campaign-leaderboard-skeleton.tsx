@@ -12,15 +12,15 @@ export function CampaignLeaderboardSkeleton({
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="bg-white rounded-xl border border-gray-200 p-2 sm:p-3 animate-pulse"
+          className="bg-card rounded-xl border border-border p-2 sm:p-3 animate-pulse"
         >
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-6 h-4 bg-gray-200 rounded" />
+            <div className="w-6 h-4 bg-muted rounded" />
             <div className="flex-1 space-y-1">
-              <div className="h-3 bg-gray-200 rounded w-1/3" />
-              <div className="h-2.5 bg-gray-200 rounded w-2/3" />
+              <div className="h-3 bg-muted rounded w-1/3" />
+              <div className="h-2.5 bg-muted rounded w-2/3" />
             </div>
-            <div className="w-10 h-4 bg-gray-200 rounded" />
+            <div className="w-10 h-4 bg-muted rounded" />
           </div>
         </div>
       ))}
