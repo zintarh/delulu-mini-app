@@ -4,12 +4,10 @@ import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
-import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { HeartIcon, UsersIcon, Plus } from "lucide-react";
+import { HeartIcon, UsersIcon, Plus, Check } from "lucide-react";
 import { useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAccount } from "wagmi";
 import { isDeluluCreator } from "@/lib/delulu-utils";
@@ -21,8 +19,12 @@ function formatAddress(address: string): string {
 const DEFAULT_AVATAR_BASE =
   "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 function formatTimeLeft(target: Date) {
-  const diffMs = target.getTime() - Date.now();
+  const now = Date.now();
+  const targetMs = target.getTime();
+  const diffMs = targetMs - now;
   if (diffMs <= 0) {
     return { label: "Ended", secondsLeft: 0 };
   }
@@ -36,16 +38,10 @@ function formatTimeLeft(target: Date) {
 
   if (days > 0) {
     const remHours = hours % 24;
-    label =
-      remHours > 0
-        ? `${days}d ${remHours}h`
-        : `${days}d`;
+    label = remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
   } else if (hours > 0) {
     const remMinutes = minutes % 60;
-    label =
-      remMinutes > 0
-        ? `${hours}h ${remMinutes}m`
-        : `${hours}h`;
+    label = remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`;
   } else if (minutes > 0) {
     label = `${minutes}m`;
   } else {
@@ -55,9 +51,30 @@ function formatTimeLeft(target: Date) {
   return { label, secondsLeft: totalSeconds };
 }
 
+function formatTimeLeftWithSeconds(nowMs: number, targetMs: number): string {
+  const diffMs = targetMs - nowMs;
+  if (diffMs <= 0) return "Ended";
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600) % 24;
+  const days = Math.floor(totalSeconds / 86400);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const hms = `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  if (days > 0) return `${days}d ${hms}`;
+  return hms;
+}
 
-
-
+function getMilestoneEndTimeMs(
+  milestone: { startTime: Date | null; deadline: Date },
+  prevEndTimeMs: number | null,
+  deluluCreatedAtMs: number,
+): number {
+  const deadlineMs = milestone.deadline.getTime();
+  if (deadlineMs > 0) return deadlineMs;
+  const startFrom = prevEndTimeMs ?? deluluCreatedAtMs;
+  return startFrom + MS_PER_DAY;
+}
 
 interface DeluluCardProps {
   delusion: FormattedDelulu;
@@ -77,7 +94,6 @@ export function DeluluCard({
   isLast = false,
 }: DeluluCardProps) {
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
-  // Prefer totalSupportCollected (v2 support-only markets). Fall back to legacy stake sum.
   const tvlValue = delusion.totalSupportCollected ?? totalStake;
   const creatorAddress = delusion.creator as `0x${string}`;
   const { username: contractUsername } = useUsernameByAddress(creatorAddress);
@@ -86,179 +102,204 @@ export function DeluluCard({
     ? `@${displayUsername}`
     : formatAddress(delusion.creator);
   const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(
-    creatorLabel
+    creatorLabel,
   )}`;
   const avatarUrl = delusion.pfpUrl || fallbackAvatarUrl;
 
-  // Load real milestones for this delulu to drive the milestone preview
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
-    delusion.id
+    delusion.id,
   );
 
   const { address } = useAccount();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
 
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const isGoodDollar =
     delusion.tokenAddress?.toLowerCase() ===
     GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-  const approxUsdValue =
-    isGoodDollar && gDollarUsdPrice && tvlValue > 0
-      ? tvlValue * gDollarUsdPrice
-      : delusion.tokenAddress &&
-        delusion.tokenAddress.toLowerCase() !==
-        GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
-        ? tvlValue // USDm or other stable-like token ~ 1:1
-        : null;
 
   const isHash = (str: string) => {
-    return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
+    return (
+      str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str))
+    );
   };
 
-  const headlineRaw = delusion.content && !isHash(delusion.content)
-    ? delusion.content
-    : "";
+  const headlineRaw =
+    delusion.content && !isHash(delusion.content) ? delusion.content : "";
   const headline = headlineRaw.trim() || "YOUR DELULU HEADLINE";
 
   const tvl = tvlValue;
-  const formattedTVL =
-    tvl > 0 ? (tvl < 0.01 ? tvl.toFixed(4) : tvl.toFixed(2)) : "0.00";
-  const formattedUsd =
-    approxUsdValue && approxUsdValue > 0
-      ? approxUsdValue < 0.01
-        ? approxUsdValue.toFixed(4)
-        : approxUsdValue.toFixed(2)
-      : null;
+  const formattedGAmount = formatGAmount(tvl);
 
-  const { label: timeLeftLabel } = formatTimeLeft(
-    delusion.resolutionDeadline
-  );
+  const { label: timeLeftLabel } = formatTimeLeft(delusion.resolutionDeadline);
 
   type MilestonePreviewStatus = "past" | "current" | "future";
 
-  // Helper to calculate milestone duration in days
-  const getMilestoneDurationDays = (milestone: { startTime: Date | null; deadline: Date }): number | null => {
-    if (!milestone.startTime) return null;
-    const diffMs = milestone.deadline.getTime() - milestone.startTime.getTime();
-    if (diffMs <= 0) return null;
-    const days = diffMs / (24 * 60 * 60 * 1000);
-    return Math.round(days * 100) / 100; // Round to 2 decimal places
+  const getMilestoneDurationDays = (
+    m: { startTime: Date | null; deadline: Date },
+    endTimeMs: number,
+  ): number | null => {
+    if (m.startTime && m.startTime.getTime() > 0) {
+      const startMs = m.startTime.getTime();
+      const diffMs = endTimeMs - startMs;
+      if (diffMs <= 0) return null;
+      return Math.round((diffMs / MS_PER_DAY) * 100) / 100;
+    }
+    return null;
   };
 
-  const previewMilestones = (() => {
-    if (isMilestonesLoading || !milestones || milestones.length === 0) {
-      return [] as {
+  const { previewMilestones, passedCount, totalCount, successPct } =
+    useMemo(() => {
+      type PreviewItem = {
         label: string;
         status: MilestonePreviewStatus;
         timeLeft?: string;
         durationDays?: number | null;
-      }[];
-    }
-
-    const sorted = [...milestones].sort(
-      (a, b) => Number(a.milestoneId) - Number(b.milestoneId)
-    );
-
-    const currentIndex = sorted.findIndex((m) => !m.isVerified);
-
-    // Helper to build display label from milestoneURI with truncation
-    const makeLabel = (m: (typeof sorted)[number]) => {
-      const raw =
-        (m.milestoneURI && m.milestoneURI.length > 0
-          ? m.milestoneURI
-          : `Milestone ${Number(m.milestoneId) + 1 || 1}`) || "";
-      return raw.length > 50 ? `${raw.slice(0, 47)}…` : raw;
-    };
-
-    // No "current" (all verified): show up to last 3 as past
-    if (currentIndex === -1) {
-      const start = Math.max(0, sorted.length - 3);
-      return sorted.slice(start).map((m) => ({
-        label: makeLabel(m),
-        status: "past" as MilestonePreviewStatus,
-        durationDays: getMilestoneDurationDays(m),
-      }));
-    }
-
-    const indices: number[] = [];
-
-    const nextIndex =
-      currentIndex + 1 < sorted.length ? currentIndex + 1 : -1;
-
-    if (currentIndex > 0) {
-      // There is at least one past milestone:
-      // Past = latest before current, Current = current, Future = next (if any)
-      const pastIndex = currentIndex - 1;
-      indices.push(pastIndex, currentIndex);
-      if (nextIndex !== -1) {
-        indices.push(nextIndex);
-      }
-    } else {
-      // No completed milestone before current:
-      // Show current + next two upcoming (if present)
-      indices.push(currentIndex);
-      if (nextIndex !== -1) indices.push(nextIndex);
-      if (currentIndex + 2 < sorted.length) {
-        indices.push(currentIndex + 2);
-      }
-    }
-
-    const unique = Array.from(new Set(indices)).slice(0, 3);
-
-    return unique.map((idx) => {
-      const m = sorted[idx];
-      let status: MilestonePreviewStatus;
-      if (idx < currentIndex) {
-        status = "past";
-      } else if (idx === currentIndex) {
-        status = "current";
-      } else {
-        status = "future";
-      }
-
-      let timeLeft: string | undefined;
-      if (status === "current") {
-        const { label, secondsLeft } = formatTimeLeft(m.deadline);
-        timeLeft = secondsLeft > 0 ? label : undefined;
-      }
-
-      const durationDays = getMilestoneDurationDays(m);
-
-      return {
-        label: makeLabel(m),
-        status,
-        timeLeft,
-        durationDays,
+        pastLabel?: string;
+        endTimeMs?: number;
       };
-    });
-  })();
+      const empty = {
+        previewMilestones: [] as PreviewItem[],
+        passedCount: 0,
+        totalCount: 0,
+        successPct: 0,
+      };
+      if (isMilestonesLoading || !milestones || milestones.length === 0) {
+        return empty;
+      }
 
-  const completedCount =
-    milestones && milestones.length > 0
-      ? milestones.filter((m) => m.isVerified).length
-      : 0;
-  const totalCount = milestones && milestones.length > 0 ? milestones.length : 0;
-  const successPct =
-    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+      const sorted = [...milestones].sort(
+        (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
+      );
+      const total = sorted.length;
+      const completedCount = milestones.filter((m) => m.isVerified).length;
+      const success =
+        total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
-  // Check if support button should be visible (only during active tipping windows or Genesis)
+      const nowMs = now;
+      const deluluCreatedAtMs = delusion.createdAt
+        ? new Date(delusion.createdAt).getTime()
+        : delusion.stakingDeadline
+          ? new Date(delusion.stakingDeadline).getTime() - 7 * MS_PER_DAY
+          : now - 30 * MS_PER_DAY;
+
+      const endTimesMs: number[] = [];
+      let prevEnd: number | null = null;
+      for (const m of sorted) {
+        const endMs = getMilestoneEndTimeMs(m, prevEnd, deluluCreatedAtMs);
+        endTimesMs.push(endMs);
+        prevEnd = endMs;
+      }
+
+      const currentIndex = endTimesMs.findIndex((endMs) => endMs > nowMs);
+      const passed = currentIndex === -1 ? total : currentIndex;
+
+      const makeLabel = (m: (typeof sorted)[number]) => {
+        const raw =
+          (m.milestoneURI && m.milestoneURI.length > 0
+            ? m.milestoneURI
+            : `Milestone ${Number(m.milestoneId) + 1 || 1}`) || "";
+        return raw.length > 50 ? `${raw.slice(0, 47)}…` : raw;
+      };
+
+      if (currentIndex === -1) {
+        const start = Math.max(0, sorted.length - 3);
+        const list = sorted.slice(start).map((m, i) => {
+          const idx = start + i;
+          const endMs = endTimesMs[idx];
+          return {
+            label: makeLabel(m),
+            status: "past" as MilestonePreviewStatus,
+            durationDays: getMilestoneDurationDays(m, endMs),
+            pastLabel: m.isVerified ? "Completed" : "Failed",
+            endTimeMs: undefined,
+          };
+        });
+        return {
+          previewMilestones: list,
+          passedCount: passed,
+          totalCount: total,
+          successPct: success,
+        };
+      }
+
+      const indices: number[] = [];
+      if (currentIndex > 0) {
+        indices.push(currentIndex - 1, currentIndex);
+        if (currentIndex + 1 < sorted.length) indices.push(currentIndex + 1);
+      } else {
+        indices.push(currentIndex);
+        if (currentIndex + 1 < sorted.length) indices.push(currentIndex + 1);
+        if (currentIndex + 2 < sorted.length) indices.push(currentIndex + 2);
+      }
+      const unique = Array.from(new Set(indices)).slice(0, 3);
+
+      const list = unique.map((idx) => {
+        const m = sorted[idx];
+        const endMs = endTimesMs[idx];
+        let status: MilestonePreviewStatus =
+          idx < currentIndex
+            ? "past"
+            : idx === currentIndex
+              ? "current"
+              : "future";
+
+        let pastLabel: string | undefined;
+        if (status === "past") {
+          pastLabel = m.isVerified ? "Completed" : "Failed";
+        }
+
+        return {
+          label: makeLabel(m),
+          status,
+          durationDays:
+            status === "past" ? getMilestoneDurationDays(m, endMs) : null,
+          pastLabel,
+          endTimeMs: status === "current" ? endMs : undefined,
+        };
+      });
+      return {
+        previewMilestones: list,
+        passedCount: passed,
+        totalCount: total,
+        successPct: success,
+      };
+    }, [
+      milestones,
+      now,
+      isMilestonesLoading,
+      delusion.createdAt,
+      delusion.stakingDeadline,
+    ]);
+
   const canSupport = useMemo(() => {
     const now = Date.now();
-    
+
     // Check Genesis window (first 24 hours after creation)
-    if (delusion.stakingDeadline && new Date(delusion.stakingDeadline).getTime() > now) {
+    if (
+      delusion.stakingDeadline &&
+      new Date(delusion.stakingDeadline).getTime() > now
+    ) {
       return true;
     }
 
     // Check if any milestone has an active tipping window
     if (milestones && milestones.length > 0) {
       for (const milestone of milestones) {
-        if (milestone.isSubmitted && milestone.tippingWindowStart && milestone.tippingWindowEnd) {
+        if (
+          milestone.isSubmitted &&
+          milestone.tippingWindowStart &&
+          milestone.tippingWindowEnd
+        ) {
           const tippingStart = new Date(milestone.tippingWindowStart).getTime();
           const tippingEnd = new Date(milestone.tippingWindowEnd).getTime();
-          
-          // Tipping window is active if current time is between tippingWindowStart and tippingWindowEnd
+
           if (now >= tippingStart && now <= tippingEnd) {
             return true;
           }
@@ -287,9 +328,6 @@ export function DeluluCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showShareMenu]);
 
-
-
-
   const handleStake = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -300,8 +338,7 @@ export function DeluluCard({
     }
   };
 
-  // Apollo cache already stores data from list queries
-  const handleMouseEnter = () => { };
+  const handleMouseEnter = () => {};
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -315,11 +352,16 @@ export function DeluluCard({
       <div
         onClick={href ? undefined : handleCardClick}
         onMouseEnter={handleMouseEnter}
-        className="bg-secondary rounded-2xl border border-border/70 overflow-hidden transition-colors duration-200"
+        className={cn(
+          "rounded-2xl overflow-hidden transition-all duration-300",
+          "bg-card/95 border border-border/80 shadow-sm",
+          "hover:border-emerald/30 hover:shadow-md hover:shadow-emerald/5",
+          href && "cursor-pointer active:scale-[0.99]"
+        )}
         style={href ? { cursor: "pointer" } : {}}
       >
         <div className="flex items-start gap-3 p-4 pb-2">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-dark flex-shrink-0 ring-2 ring-emerald/70 ring-offset-2 ring-offset-surface-elevated">
+          <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-emerald/50 ring-offset-2 ring-offset-background shadow-inner">
             <img
               src={avatarUrl}
               alt={displayUsername || formatAddress(delusion.creator)}
@@ -327,53 +369,52 @@ export function DeluluCard({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-sm">
-              <span className="font-semibold text-foreground truncate max-w-[120px]">
-                {displayUsername ? displayUsername : formatAddress(delusion.creator)}
-              </span>
-              {displayUsername && (
-                <span className="text-xs text-muted-foreground truncate max-w-[80px]">
-                  @{displayUsername}
-                </span>
-              )}
-              <span className="text-xs text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground">
-                {timeLeftLabel === "Ended"
-                  ? "ended"
-                  : `ends in ${timeLeftLabel}`}
+            <p className="text-xs text-foreground font-medium mb-0.5">
+              {displayUsername ? `@${displayUsername}` : formatAddress(delusion.creator)}
+            </p>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+              <span>
+                {timeLeftLabel === "Ended" ? "Ended" : "Active"}
               </span>
             </div>
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-              {delusion.tokenAddress && (
-                <TokenBadge tokenAddress={delusion.tokenAddress} size="sm" />
-              )}
-              {formattedUsd && (
-                <span className="truncate">
-                  ≈ ${formattedUsd} 
-                </span>
-              )}
-            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0 bg-secondary border border-border/50 rounded-full px-2 py-1">
+           
+            <span className="text-sm font-bold tabular-nums text-foreground">
+              {formattedGAmount}
+            </span>
+            {isGoodDollar && (
+              <span className="text-[11px] font-semibold text-muted-foreground">G$</span>
+            )}
           </div>
         </div>
 
         <div className="px-4 pb-3">
-          <p className="text-[15px] leading-snug text-foreground whitespace-pre-line font-semibold">
+          <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-line font-semibold border-l-2 border-delulu-yellow-reserved/60 pl-3 -ml-px">
             {headline}
           </p>
         </div>
 
-        <div className="px-4 pb-4 space-y-2.5">
+        <div className="px-4 pb-4 space-y-3">
           {totalCount > 0 && (
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span className="uppercase tracking-[0.12em] text-muted-foreground">
-                Milestones
-              </span>
-              <span>
-                {completedCount}/{totalCount} completed ·{" "}
-                <span className="font-semibold text-foreground">
-                  {successPct}% success
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1 text-[11px]">
+                <span className="text-muted-foreground font-medium">
+                  Journey
                 </span>
-              </span>
+                <span className="tabular-nums text-muted-foreground font-semibold">
+                  {passedCount}/{totalCount}
+                  {successPct > 0 && successPct < 100 && (
+                    <span className="t font-normal"> · {successPct}%</span>
+                  )}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald/70 transition-all duration-500"
+                  style={{ width: `${totalCount > 0 ? (passedCount / totalCount) * 100 : 0}%` }}
+                />
+              </div>
             </div>
           )}
           {previewMilestones.length === 0 ? (
@@ -383,54 +424,69 @@ export function DeluluCard({
                   e.stopPropagation();
                   router.push(href || `/delulu/${delusion.id}`);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border bg-muted/50 hover:bg-muted text-[12px] font-medium text-foreground transition-colors"
               >
-                <Plus className="w-3 h-3" />
-                Add milestones
+                <Plus className="w-3.5 h-3.5" />
+                Add step
               </button>
             ) : null
           ) : (
             <div className="space-y-2">
               {previewMilestones.map((m) => {
+                const isPast = m.status === "past";
+                const isPastFailed = isPast && m.pastLabel === "Failed";
+                const isCompleted = isPast && m.pastLabel === "Completed";
                 const base =
-                  "flex items-center justify-between rounded-xl px-3.5 py-2.5 border-2 text-[12px]";
+                  "flex items-center justify-between rounded-xl px-3.5 py-2.5 border text-[12px] transition-colors";
                 const variant =
                   m.status === "current"
-                    ? "bg-card text-foreground border-emerald shadow-[0_0_0_1px_rgba(0,0,0,0.85)]"
+                    ? "bg-emerald/10 text-foreground border-emerald/40 shadow-[0_0_0_1px_rgba(52,211,153,0.2)]"
                     : m.status === "past"
-                      ? "bg-muted border-border/50 text-foreground opacity-50 line-through"
-                      : "bg-muted/50 border-border/50 text-muted-foreground";
+                      ? "bg-muted/40 border-border/40 text-muted-foreground"
+                      : "bg-muted/30 border-border/30 text-muted-foreground";
 
                 return (
-                  <div key={m.label} className={cn(base, variant)}>
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    key={`${m.label}-${m.status}`}
+                    className={cn(base, variant)}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {isCompleted ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald/20 text-emerald">
+                          <Check className="h-3 w-3" strokeWidth={2.5} />
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "h-2.5 w-2.5 rounded-full shrink-0",
+                            m.status === "current"
+                              ? "bg-emerald shadow-[0_0_6px_rgba(52,211,153,0.5)]"
+                              : m.status === "past"
+                                ? "bg-muted-foreground/50"
+                                : "bg-border",
+                          )}
+                        />
+                      )}
+                      <span className={cn("truncate", m.status === "current" && "font-medium")}>
+                        {m.status === "current" ? "Now: " : null}
+                        {m.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={cn(
-                          "h-2 w-2 rounded-full",
-                          m.status === "current"
-                            ? "bg-emerald"
-                            : m.status === "past"
-                              ? "bg-emerald"
-                              : "bg-border"
+                          "text-[11px] tabular-nums font-medium",
+                          isPastFailed && "text-destructive",
                         )}
-                      />
-                      <span className="truncate">{m.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {m.durationDays !== null && m.durationDays !== undefined && (
-                        <span className="text-[11px] font-semibold text-foreground whitespace-nowrap">
-                          {m.durationDays === Math.floor(m.durationDays) 
-                            ? `${Math.floor(m.durationDays)}d`
-                            : `${m.durationDays.toFixed(1)}d`}
-                        </span>
-                      )}
-                    <span className="text-[11px]">
-                      {m.status === "past"
-                        ? "Completed"
-                        : m.status === "future"
-                        ? "Coming Soon"
-                        : (m as any).timeLeft ?? ""}
-                    </span>
+                      >
+                        {m.status === "past"
+                          ? (m.pastLabel ?? "Done")
+                          : m.status === "future"
+                            ? "Upcoming"
+                            : m.endTimeMs != null
+                              ? formatTimeLeftWithSeconds(now, m.endTimeMs)
+                              : "—"}
+                      </span>
                     </div>
                   </div>
                 );
@@ -439,37 +495,28 @@ export function DeluluCard({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-t border-border/40 bg-surface-dark/60 px-4 py-2.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-
-            </span>
-            {delusion.totalSupporters != null && delusion.totalSupporters > 0 && (
-              <span className="flex items-center gap-1">
-                     <span className="text-muted-foreground">
-                  <UsersIcon className="w-4 h-4" />
-                </span>
-                <span className="font-semibold text-surface-dark-foreground">
-                  {delusion.totalSupporters}
-                </span>
-           
+        <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-muted/30 px-4 py-3 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            {delusion.totalSupporters != null && delusion.totalSupporters > 0 ? (
+              <span className="inline-flex items-center gap-1.5 font-medium text-foreground/90">
+                <UsersIcon className="h-4 w-4 text-emerald/80" />
+                <span>{delusion.totalSupporters}</span>
               </span>
-            )}
+            ) : canSupport ? (
+              <span className="text-muted-foreground">First</span>
+            ) : null}
           </div>
           {canSupport && (
-          <button
-            onClick={handleStake}
-            className="support-pulse inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-[11px] font-semibold text-delulu-charcoal shadow-[0_0_0_1px_rgba(0,0,0,0.85)] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.95)] hover:brightness-105 hover:-translate-y-[0.5px] transition-all relative overflow-hidden"
-          >
-            <span className="relative z-[1] flex items-center gap-1.5">
-              <HeartIcon className="w-4 h-4" />
-            </span>
-          </button>
+            <button
+              onClick={handleStake}
+              className="inline-flex items-center gap-2 rounded-full bg-delulu-yellow-reserved px-4 py-2 text-[12px] font-bold text-delulu-charcoal shadow-[2px_2px_0_0_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0_0_rgba(0,0,0,0.2)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-all"
+            >
+              <HeartIcon className="h-4 w-4" />
+              Buy
+            </button>
           )}
         </div>
       </div>
-
-
     </>
   );
 
@@ -477,10 +524,7 @@ export function DeluluCard({
     return (
       <Link
         href={href}
-        className={cn(
-          className,
-          "block h-auto mb-4"
-        )}
+        className={cn(className, "block h-auto mb-4")}
         prefetch={false}
         scroll={true}
       >
@@ -491,10 +535,7 @@ export function DeluluCard({
 
   return (
     <div
-      className={cn(
-        className,
-        "block h-auto mb-4"
-      )}
+      className={cn(className, "block h-auto mb-4")}
       onClick={onClick || undefined}
     >
       {cardContent}

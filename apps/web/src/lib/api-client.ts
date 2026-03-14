@@ -122,12 +122,6 @@ export type LeaderboardType = "stakers" | "earners" | "active" | "creators";
 
 // ============ API Response Types ============
 
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  details?: Array<{ field: string; message: string }>;
-}
-
 interface PaginatedResponse<T> {
   data: T[];
   nextCursor: string | null;

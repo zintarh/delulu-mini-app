@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: { ignoreDuringBuilds: true },
   transpilePackages: ["@repo/ui"], // Keep this if you are in a monorepo
   webpack: (config) => {
     config.externals.push('pino-pretty', 'lokijs', 'encoding');

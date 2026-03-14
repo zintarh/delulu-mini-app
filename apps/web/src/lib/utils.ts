@@ -75,6 +75,27 @@ export function formatTimeAgo(date: Date): string {
 
 
 
+/**
+ * Format a G$ (or other token) amount for display: use K for thousands, M for millions.
+ * Use everywhere we display G$ amounts for consistent, compact display.
+ */
+export function formatGAmount(value: number): string {
+  if (typeof value !== "number" || Number.isNaN(value)) return "0";
+  if (value >= 1_000_000) {
+    const m = value / 1_000_000;
+    return m >= 10 ? `${Math.floor(m)}M` : m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    const k = value / 1_000;
+    return k >= 10 ? `${Math.floor(k)}K` : k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+  }
+  if (value >= 100) return value % 1 === 0 ? `${Math.floor(value)}` : value.toFixed(1);
+  if (value >= 1) return value.toFixed(2);
+  if (value >= 0.01) return value.toFixed(2);
+  if (value > 0) return value.toFixed(4);
+  return "0";
+}
+
 export function getCountryFlag(countryCode: string | undefined | null): string {
   if (!countryCode || countryCode.length !== 2) {
     return countryCode || "";

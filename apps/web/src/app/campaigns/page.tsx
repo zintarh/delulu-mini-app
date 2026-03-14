@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { ChallengesHeader } from "@/components/challenges-header";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
@@ -15,9 +16,9 @@ import { useReadContract, useChainId } from "wagmi";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { Trophy, Clock, DollarSign } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ChallengeSkeleton } from "@/components/challenge-skeleton";
 import type { Challenge } from "@/hooks/use-challenges";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
@@ -53,6 +54,15 @@ export default function ChallengesPage() {
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
 
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
+
   const hasCampaigns = challenges.length > 0;
 
   const { data: currencyAddress } = useReadContract({
@@ -82,20 +92,8 @@ export default function ChallengesPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/profile");
-              }
-            }}
-            onCreateClick={() => {
-              if (!isConnected) {
-                setShowLoginSheet(true);
-              } else {
-                router.push("/board");
-              }
-            }}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
@@ -103,24 +101,16 @@ export default function ChallengesPage() {
           {/* Mobile Header */}
           <div className="lg:hidden">
             <ChallengesHeader
-              onProfileClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/profile");
-                }
-              }}
-              onCreateClick={() => {
-                if (!isConnected) {
-                  setShowLoginSheet(true);
-                } else {
-                  router.push("/board");
-                }
+              onProfileClick={handleProfileClick}
+              onCreateClick={handleCreateClick}
+              onSearchClick={() => {
+                if (!isConnected) setShowLoginSheet(true);
+                else router.push("/search");
               }}
             />
           </div>
 
-            <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 pt-20 lg:pt-6 text-foreground">
+            <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 pt-20 lg:pt-6 pb-24 lg:pb-10 text-foreground">
             {/* Header */}
             <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div>
@@ -165,12 +155,16 @@ export default function ChallengesPage() {
                     const description = getChallengeDescriptionFromIPFS(
                       challenge.contentHash
                     );
-
+                    const now = new Date();
+                    const isEnded = challenge.endTime < now;
+                    const dateLabel = isEnded
+                      ? `Ended ${format(challenge.endTime, "MMM d, yyyy")}`
+                      : `Ends ${format(challenge.endTime, "MMM d, yyyy")}`;
 
                     return (
                       <Link
                         key={challenge.id}
-                        href={`/challenges/${challenge.id}`}
+                        href={`/campaigns/${challenge.id}`}
                         className="block bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-4 sm:p-6 hover:shadow-[4px_4px_0px_0px_#1A1A1A] hover:border-foreground/20 transition-all cursor-pointer"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
@@ -189,28 +183,26 @@ export default function ChallengesPage() {
                             <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm">
                               <div className="flex items-center gap-1.5 sm:gap-2">
                                 <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                                <span className="font-bold text-lg text-foreground">
-                                  {currencyTokenAddress &&
-                                    currencyTokenAddress.toLowerCase() ===
-                                    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase() &&
-                                    gDollarUsdPrice &&
-                                    challenge.poolAmount > 0 && (
-                                      <span className="">
-                                        {(challenge.poolAmount * gDollarUsdPrice).toFixed(2)} USD
-                                      </span>
-                                    )}
+                                <span className="font-bold text-foreground">
+                                  {formatGAmount(challenge.poolAmount)}
                                 </span>
-
-                                {challenge.poolAmount.toFixed(2)}
                                 {currencyTokenAddress ? (
                                   <TokenBadge tokenAddress={currencyTokenAddress} size="sm" />
                                 ) : null}
-
+                                {currencyTokenAddress &&
+                                  currencyTokenAddress.toLowerCase() ===
+                                    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase() &&
+                                  gDollarUsdPrice != null &&
+                                  challenge.poolAmount > 0 && (
+                                    <span className="text-muted-foreground font-medium text-xs sm:text-sm">
+                                      ({(challenge.poolAmount * gDollarUsdPrice).toFixed(2)} USD)
+                                    </span>
+                                  )}
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2">
                                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                                 <span className="text-muted-foreground whitespace-nowrap">
-                                  Ends {formatDistanceToNow(challenge.endTime, { addSuffix: true })}
+                                  {dateLabel}
                                 </span>
                               </div>
                               {challenge.totalPoints > 0 && (
@@ -226,13 +218,13 @@ export default function ChallengesPage() {
                               <div className="flex-shrink-0 self-start sm:self-auto">
                             <span
                               className={cn(
-                                "inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-bold border-2 shadow-[2px_2px_0px_0px_#1A1A1A]",
-                                challenge.active
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                "inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-bold border-2 shadow-neo-sm",
+                                !isEnded
+                                  ? "bg-green-100 text-green-800 border-green-600 dark:bg-green-900/50 dark:text-green-200 dark:border-green-500"
                                   : "bg-muted text-muted-foreground border-border"
                               )}
                             >
-                              {challenge.active ? "Active" : "Ended"}
+                              {isEnded ? "Ended" : "Active"}
                             </span>
                           </div>
                         </div>
@@ -260,6 +252,11 @@ export default function ChallengesPage() {
           <RightSidebar />
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <ConnectorSelectionSheet
         open={showLoginSheet}

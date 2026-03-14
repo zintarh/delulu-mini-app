@@ -21,9 +21,8 @@ declare module "canvas-confetti" {
 
   // eslint-disable-next-line no-unused-vars
   function confetti(options?: ConfettiOptions): Promise<null>;
-  // eslint-disable-next-line no-unused-vars
   function confetti(
-    options: ConfettiOptions & { particleCount: number }
+    _options: ConfettiOptions & { particleCount: number }
   ): Promise<null>;
 
   export default confetti;

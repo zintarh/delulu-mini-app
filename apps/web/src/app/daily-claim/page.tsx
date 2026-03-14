@@ -5,9 +5,10 @@ import { useAccount, useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
 import { formatUnits } from "viem";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useIdentity } from "@/hooks/identityHook";
@@ -42,6 +43,15 @@ export default function GoodDollarClaimPage() {
 
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showFaucet, setShowFaucet] = useState(false);
+
+  const handleProfileClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/profile");
+  };
+  const handleCreateClick = () => {
+    if (!isConnected) setShowLoginSheet(true);
+    else router.push("/board");
+  };
 
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
@@ -81,13 +91,13 @@ export default function GoodDollarClaimPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
           <LeftSidebar
-            onProfileClick={() => router.push("/profile")}
-            onCreateClick={() => router.push("/board")}
+            onProfileClick={handleProfileClick}
+            onCreateClick={handleCreateClick}
           />
         </div>
 
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
-          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
+          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => router.back()}
@@ -147,8 +157,8 @@ export default function GoodDollarClaimPage() {
                         {isGdLoading
                           ? "…"
                           : gDollarBalance && Number(gDollarBalance) > 0
-                            ? Number(gDollarBalance).toFixed(2)
-                            : "0.00"}
+                            ? formatGAmount(Number(gDollarBalance))
+                            : "0"}
                       </span>
                     </Pill>
                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-background/60 border border-border">
@@ -306,6 +316,11 @@ export default function GoodDollarClaimPage() {
           <RightSidebar />
         </div>
       </div>
+
+      <BottomNav
+        onProfileClick={handleProfileClick}
+        onCreateClick={handleCreateClick}
+      />
 
       <IdentityModal
         isOpen={isVerifying}

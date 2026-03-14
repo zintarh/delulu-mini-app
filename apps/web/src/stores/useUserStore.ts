@@ -13,10 +13,10 @@ export interface UserData {
 interface UserStore {
   user: UserData | null;
   isLoading: boolean;
-  setUser: (user: UserData | null) => void;
-  updateUsername: (username: string, email?: string) => void;
-  updateAddress: (address: string) => void;
-  setLoading: (isLoading: boolean) => void;
+  setUser: (_user: UserData | null) => void;
+  updateUsername: (_username: string, _email?: string) => void;
+  updateAddress: (_address: string) => void;
+  setLoading: (_isLoading: boolean) => void;
   logout: () => void;
 }
 

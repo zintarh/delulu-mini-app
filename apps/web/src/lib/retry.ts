@@ -8,7 +8,7 @@ interface RetryOptions {
   initialDelayMs?: number;
   maxDelayMs?: number;
   backoffMultiplier?: number;
-  onRetry?: (attempt: number, error: Error) => void;
+  onRetry?: (_attempt: number, _error: Error) => void;
 }
 
 const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'onRetry'>> = {
