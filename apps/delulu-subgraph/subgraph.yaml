@@ -22,6 +22,7 @@ dataSources:
         - Claim
         - Milestone
         - Challenge
+        - CreatorStats
       abis:
         - name: DeluluMarket
           file: ./abis/DeluluMarket.json
