@@ -221,6 +221,10 @@ export function handleProfileUpdated(event: ProfileUpdatedEvent): void {
   let user = getOrCreateUser(userId, event.block.timestamp)
   user.username = event.params.username
   user.save()
+
+  // Ensure CreatorStats exists so this user appears in the global leaderboard
+  // even with 0 goals/milestones (as long as they set their profile)
+  let _ = getOrCreateCreatorStats(userId, event.block.timestamp)
 }
 
 export function handleMilestonesAdded(event: MilestonesAddedEvent): void {

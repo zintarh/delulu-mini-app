@@ -3,13 +3,13 @@
 import { useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
+import { weiToNumber } from "@/lib/graph/transformers";
 
-// NOTE: The subgraph entity is named `CreatorStats`, so the collection field
-// is `creatorStatses` (Graph pluralization). We alias it to `creatorStats`
-// in the query so the rest of the hook logic can stay simple.
+// Goldsky subgraph exposes the list as creatorStats_collection (not creatorStats).
+// Alias to creatorStats so the rest of the hook stays unchanged.
 const CREATOR_LEADERBOARD_QUERY = gql`
   query CreatorLeaderboard($first: Int = 20, $skip: Int = 0) {
-    creatorStats: creatorStatses(
+    creatorStats: creatorStats_collection(
       first: $first
       skip: $skip
       orderBy: completedGoals
@@ -26,6 +26,7 @@ const CREATOR_LEADERBOARD_QUERY = gql`
       user {
         id
         username
+        deluluPoints
       }
     }
   }
@@ -40,6 +41,7 @@ export interface CreatorLeaderboardEntry {
   totalMilestones: number;
   verifiedMilestones: number;
   totalSupportCollected: number;
+  points: number;
 }
 
 export function useCreatorLeaderboard(first: number = 20, skip: number = 0) {
@@ -63,7 +65,8 @@ export function useCreatorLeaderboard(first: number = 20, skip: number = 0) {
         completedGoals: Number(s.completedGoals ?? "0"),
         totalMilestones: Number(s.totalMilestones ?? "0"),
         verifiedMilestones: Number(s.verifiedMilestones ?? "0"),
-        totalSupportCollected: Number(s.totalSupportCollected ?? "0"),
+        totalSupportCollected: weiToNumber(s.totalSupportCollected),
+        points: Number(s.user?.deluluPoints ?? "0"),
       })
     );
   }, [data?.creatorStats]);

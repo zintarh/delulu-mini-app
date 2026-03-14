@@ -4,12 +4,10 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
+import { createConfig as createWagmiConfig, WagmiProvider as WagmiProviderStandalone } from "wagmi";
 import { http } from "wagmi";
 import { celo, fuse } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
-
-
-const ENABLE_LOCAL_WALLETS = false; 
 
 const walletConnectProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -36,7 +34,6 @@ const connectors =
               process.env.NEXT_PUBLIC_APP_URL ??
               "https://gooddollar.org",
             icons: [
-              // TODO: replace with a dedicated Delulu/GoodDollar app icon URL
               "https://gooddollar.org/favicon.ico",
             ],
           },
@@ -44,9 +41,9 @@ const connectors =
       ]
     : baseConnectors;
 
-const config = createConfig({
-  // Only support EVM chains used by GoodDollar (Celo & Fuse)
-  chains: [celo, fuse],
+const chains = [celo, fuse] as const;
+const configOptions = {
+  chains,
   connectors,
   transports: {
     [celo.id]: http(
@@ -55,18 +52,37 @@ const config = createConfig({
     ),
     [fuse.id]: http(process.env.NEXT_PUBLIC_FUSE_RPC_URL),
   },
-});
+};
+
+// Privy-aware config: syncs with Privy wallets (must be used inside PrivyProvider)
+const privyWagmiConfig = createConfig(configOptions);
+
+// Standalone config: used when Privy is not configured (no PrivyProvider)
+const standaloneWagmiConfig = createWagmiConfig(configOptions);
 
 const queryClient = new QueryClient();
 
 export default function FrameWalletProvider({
   children,
+  usePrivyWagmi = false,
 }: {
   children: ReactNode;
+  /** When true, use @privy-io/wagmi (must be inside PrivyProvider). When false, use standard wagmi. */
+  usePrivyWagmi?: boolean;
 }) {
+  if (usePrivyWagmi) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={privyWagmiConfig}>{children}</WagmiProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={config}>{children}</WagmiProvider>
+      <WagmiProviderStandalone config={standaloneWagmiConfig}>
+        {children}
+      </WagmiProviderStandalone>
     </QueryClientProvider>
   );
 }

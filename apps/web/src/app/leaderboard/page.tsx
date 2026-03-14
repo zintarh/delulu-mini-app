@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { useAccount } from "wagmi";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useCreatorLeaderboard } from "@/hooks";
+import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { cn, formatGAmount } from "@/lib/utils";
 
 export default function LeaderboardPage() {
@@ -24,12 +25,28 @@ export default function LeaderboardPage() {
     if (!isConnected) setShowLoginSheet(true);
     else router.push("/board");
   };
-  const pageSize = 20;
+  const pageSize = 10;
 
-  const { entries, isLoading, error: leaderboardError } = useCreatorLeaderboard(
-    pageSize,
-    page * pageSize
-  );
+  // Request one extra item to know if there's a next page (avoids enabling Next on full last page)
+  const {
+    entries: rawEntries,
+    isLoading,
+    error: leaderboardError,
+    refetch,
+  } = useCreatorLeaderboard(pageSize + 1, page * pageSize);
+
+  const entries = rawEntries.slice(0, pageSize);
+  const hasNextPage = rawEntries.length > pageSize;
+  const totalKnown =
+    rawEntries.length <= pageSize ? page * pageSize + rawEntries.length : null;
+  const rangeStart = page * pageSize + 1;
+  const rangeEnd = page * pageSize + entries.length;
+  const isLastPage = !hasNextPage;
+
+  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
+    useGoodDollarTotalSupply();
+  const formattedGAmount =
+    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
 
   return (
     <div className="h-screen overflow-hidden">
@@ -45,22 +62,42 @@ export default function LeaderboardPage() {
           <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
             <header className="mb-6">
               <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                Creator leaderboard
+                Creator
               </h1>
               <p className="mt-1 text-sm text-muted-foreground font-medium">
-                Ranked by completed goals, with milestones and support totals from the subgraph.
+                See how active creators in Delulu are progressing on their goals.
               </p>
             </header>
+
+            {formattedGAmount !== null && !isLoadingGSupply && (
+              <div className="mb-6 flex items-center gap-2 rounded-xl border-2 border-border bg-muted/30 px-4 py-3">
+                <img
+                  src="/gooddollar-logo.png"
+                  alt="G$"
+                  className="h-5 w-5 object-contain"
+                />
+                <span className="text-sm text-muted-foreground">
+                  G$ in circulation
+                </span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {formattedGAmount}
+                </span>
+              </div>
+            )}
 
             {leaderboardError ? (
               <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 text-sm text-foreground">
                 <p className="font-semibold text-destructive">Failed to load leaderboard</p>
                 <p className="mt-1 text-muted-foreground">
-                  {leaderboardError.message}
+                  Something went wrong while loading creator rankings. Please try again in a moment.
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Ensure the subgraph is deployed and exposes the CreatorStats entity (creatorStatses query). Create goals and complete milestones to populate data.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="mt-3 inline-flex items-center rounded-md border-2 border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
+                >
+                  Try again
+                </button>
               </div>
             ) : isLoading ? (
               <div className="space-y-2">
@@ -83,40 +120,72 @@ export default function LeaderboardPage() {
               </p>
             ) : (
               <>
-                <div className="space-y-2">
-                  {entries.map((entry) => (
-                    <div
-                      key={entry.address}
-                      className={cn(
-                        "flex items-center justify-between px-4 py-3 rounded-xl border-2 border-border bg-card shadow-[2px_2px_0px_0px_#1A1A1A] text-xs hover:shadow-[3px_3px_0px_0px_#1A1A1A] transition-all",
-                        entry.rank <= 3 && "bg-card border-foreground/20"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 text-center text-sm font-semibold text-foreground">
-                          #{entry.rank}
-                        </span>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {entry.username ||
-                              entry.address.slice(0, 6) +
-                                "…" +
-                                entry.address.slice(-4)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {entry.completedGoals}/{entry.totalGoals} goals ·{" "}
-                            {entry.verifiedMilestones} verified milestones
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right text-[11px] text-muted-foreground">
-                        <div className="font-semibold text-foreground">
-                          {formatGAmount(entry.totalSupportCollected)}
-                        </div>
-                        <div>total support</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-[2px_2px_0px_0px_#1A1A1A]">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-border bg-muted/50">
+                          <th className="px-4 py-3 font-semibold text-muted-foreground w-12">
+                            #
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-foreground min-w-[140px]">
+                            Creator
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-foreground text-center whitespace-nowrap">
+                            Delulus
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-foreground text-center whitespace-nowrap">
+                            Points
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-foreground text-center whitespace-nowrap">
+                            Milestones
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-foreground text-right whitespace-nowrap">
+                            <img
+                              src="/gooddollar-logo.png"
+                              alt="G$"
+                              className="inline-block w-4 h-4 object-contain align-middle"
+                            />
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entries.map((entry, idx) => (
+                          <tr
+                            key={entry.address}
+                            className={cn(
+                              "border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors",
+                              rangeStart + idx <= 3 && "bg-foreground/[0.03]"
+                            )}
+                          >
+                            <td className="px-4 py-3 font-semibold text-muted-foreground tabular-nums">
+                              {rangeStart + idx}
+                            </td>
+                            <td className="px-4 py-3 min-w-0">
+                              <span className="font-medium text-foreground truncate block">
+                                {entry.username ||
+                                  entry.address.slice(0, 6) +
+                                    "…" +
+                                    entry.address.slice(-4)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">
+                              {entry.totalGoals}
+                            </td>
+                            <td className="px-4 py-3 text-center font-medium text-foreground tabular-nums">
+                              {entry.points.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">
+                              {entry.totalMilestones}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium text-foreground tabular-nums">
+                              {formatGAmount(entry.totalSupportCollected)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center mt-6 text-xs text-muted-foreground">
@@ -129,20 +198,23 @@ export default function LeaderboardPage() {
                     Previous
                   </button>
                   <span className="font-medium">
-                    Page {page + 1}
+                    {rangeStart}–{rangeEnd}
+                    {totalKnown !== null && ` of ${totalKnown}`}
+                    {totalKnown === null && entries.length === pageSize && ` of ${rangeEnd}+`}
                   </span>
-                  <button
-                    type="button"
-                    disabled={entries.length < pageSize}
-                    onClick={() => {
-                      if (entries.length === pageSize) {
-                        setPage((p) => p + 1);
-                      }
-                    }}
-                    className="px-4 py-2 rounded-md border-2 border-border bg-card disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted hover:border-foreground/20 transition-colors font-semibold"
-                  >
-                    Next
-                  </button>
+                  <div className="flex items-center gap-2">
+                    
+                    <button
+                      type="button"
+                      disabled={isLastPage}
+                      onClick={() => {
+                        if (!isLastPage) setPage((p) => p + 1);
+                      }}
+                      className="px-4 py-2 rounded-md border-2 border-border bg-card disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted hover:border-foreground/20 transition-colors font-semibold"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </>
             )}
