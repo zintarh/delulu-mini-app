@@ -14,14 +14,20 @@ const ErudaProvider = dynamic(
   { ssr: false }
 );
 
-const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-
-function SessionSignerSetup() {
-  useSessionSigner();
+function SessionSignerSetup({ signerKeyQuorumId }: { signerKeyQuorumId?: string }) {
+  useSessionSigner(signerKeyQuorumId);
   return null;
 }
 
-function AppWithPrivy({ children }: { children: React.ReactNode }) {
+function AppWithPrivy({
+  children,
+  privyAppId,
+  signerKeyQuorumId,
+}: {
+  children: React.ReactNode;
+  privyAppId?: string;
+  signerKeyQuorumId?: string;
+}) {
   const { theme } = useTheme();
 
   const appTree = (
@@ -61,17 +67,27 @@ function AppWithPrivy({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      <SessionSignerSetup />
+      <SessionSignerSetup signerKeyQuorumId={signerKeyQuorumId} />
       {appTree}
     </PrivyProvider>
   );
 }
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+  privyAppId,
+  signerKeyQuorumId,
+}: {
+  children: React.ReactNode;
+  privyAppId?: string;
+  signerKeyQuorumId?: string;
+}) {
   return (
     <ErudaProvider>
       <ThemeProvider>
-        <AppWithPrivy>{children}</AppWithPrivy>
+        <AppWithPrivy privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
+          {children}
+        </AppWithPrivy>
       </ThemeProvider>
     </ErudaProvider>
   );
