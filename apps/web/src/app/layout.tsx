@@ -25,6 +25,9 @@ import "./globals.css";
 
 import Providers from "@/components/providers";
 
+// Ensure layout runs per-request so server can read runtime env (e.g. PRIVY_APP_ID from .env.local)
+export const dynamic = "force-dynamic";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -212,12 +215,24 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Privy: server env is passed to client so Provider can mount. Support both PRIVY_APP_ID and NEXT_PUBLIC_.
+  const privyAppIdRaw =
+    process.env.PRIVY_APP_ID ?? process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+  const privyAppId = typeof privyAppIdRaw === "string" && privyAppIdRaw.trim() ? privyAppIdRaw.trim() : undefined;
+  const signerKeyQuorumIdRaw =
+    process.env.PRIVY_SIGNER_KEY_QUORUM_ID ??
+    process.env.NEXT_PUBLIC_PRIVY_SIGNER_KEY_QUORUM_ID ??
+    "";
+  const signerKeyQuorumId = typeof signerKeyQuorumIdRaw === "string" && signerKeyQuorumIdRaw.trim() ? signerKeyQuorumIdRaw.trim() : undefined;
+
   return (
     <html lang="en" className="dark">
       <body
         className={`${inter.className} ${gloriaHallelujah.variable} ${bebasNeue.variable} ${oswald.variable} ${playfairDisplay.variable} ${pacifico.variable} ${montserrat.variable} ${raleway.variable} ${poppins.variable} ${robotoCondensed.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${satisfy.variable} ${kalam.variable} ${permanentMarker.variable} ${indieFlower.variable} ${shadowsIntoLight.variable} ${amaticSC.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
+          {children}
+        </Providers>
       </body>
     </html>
   );
