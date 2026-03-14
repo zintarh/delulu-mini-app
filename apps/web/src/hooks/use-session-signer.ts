@@ -9,14 +9,13 @@ const STORAGE_KEY_DELEGATED = "delulu_session_signer_delegated";
  * One-time setup: add the app's session signer to the user's embedded wallet
  * so the server can send transactions on their behalf without prompting every time.
  * Requires Privy Dashboard: Server-side access enabled + key quorum created.
+ * signerKeyQuorumId is passed from the server (PRIVY_SIGNER_KEY_QUORUM_ID) so it is not exposed in the client bundle.
  * See apps/web/docs/PRIVY_SESSION_KEYS.md.
  */
-export function useSessionSigner() {
+export function useSessionSigner(signerKeyQuorumId?: string) {
   const { user, authenticated } = usePrivy();
   const signers = useSigners();
   const attemptedRef = useRef(false);
-
-  const signerKeyQuorumId = process.env.NEXT_PUBLIC_PRIVY_SIGNER_KEY_QUORUM_ID;
 
   const tryAddSessionSigner = useCallback(async () => {
     const addSigners = signers?.addSigners;
