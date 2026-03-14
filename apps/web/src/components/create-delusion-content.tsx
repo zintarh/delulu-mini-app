@@ -1062,7 +1062,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 <>
                   {stakeAmount < MIN_STAKE && (
                     <p className="text-sm text-destructive mt-2 font-bold">
-                      Minimum stake is 1 token
+                      Minimum stake is {MIN_STAKE} G$
                     </p>
                   )}
                   {stakeAmount >= MIN_STAKE && (hasInsufficientBalanceForStake || exceedsBalance) && (

@@ -118,10 +118,10 @@ export function useCreateDelulu() {
         } catch {
           throw new Error("Invalid stake amount format");
         }
-        // Require at least 1 full token when non-zero
-        const ONE_TOKEN = 10n ** 18n;
-        if (parsed < ONE_TOKEN) {
-          throw new Error("Min stake is 1 Token or 0");
+        // Require at least 100 G$ when non-zero
+        const MIN_STAKE_WEI = 100n * (10n ** 18n);
+        if (parsed < MIN_STAKE_WEI) {
+          throw new Error("Minimum stake is 100 G$ or 0");
         }
         initialSupportWei = parsed;
       }

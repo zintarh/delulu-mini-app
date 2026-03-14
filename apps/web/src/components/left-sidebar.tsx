@@ -129,10 +129,11 @@ export function LeftSidebar({
   return (
     <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
       <div className="mb-8 px-2">
-        <h1 
-          className="text-4xl font-black text-delulu-yellow-reserved"
+        <h1
+          className="text-xl font-black text-delulu-yellow-reserved"
           style={{
-            textShadow: "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A"
+            fontFamily: "var(--font-gloria), cursive",
+            textShadow: "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A",
           }}
         >
           Delulu
