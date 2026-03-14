@@ -1,0 +1,27 @@
+# ============================================================
+# CREATOR LEADERBOARD
+# Used by: Leaderboard page
+# ============================================================
+# Goldsky exposes the list as creatorStats_collection; alias to creatorStats.
+query CreatorLeaderboard($first: Int = 20, $skip: Int = 0) {
+  creatorStats: creatorStats_collection(
+    first: $first
+    skip: $skip
+    orderBy: completedGoals
+    orderDirection: desc
+  ) {
+    id
+    totalGoals
+    completedGoals
+    failedGoals
+    totalMilestones
+    verifiedMilestones
+    totalSupportCollected
+    createdAt
+    user {
+      id
+      username
+      deluluPoints
+    }
+  }
+}

@@ -98,6 +98,22 @@ function createApolloClient(subgraphUrl: string) {
                 return [...existing, ...newItems];
               },
             },
+            creatorStats: {
+              keyArgs: ["orderBy", "orderDirection"],
+              merge(existing: any[] = [], incoming: any[], { args }) {
+                if (!args?.skip || args.skip === 0) {
+                  return incoming;
+                }
+                const existingRefs = new Set(
+                  existing.map((ref: any) => ref.__ref || JSON.stringify(ref))
+                );
+                const newItems = incoming.filter(
+                  (ref: any) =>
+                    !existingRefs.has(ref.__ref || JSON.stringify(ref))
+                );
+                return [...existing, ...newItems];
+              },
+            },
           },
         },
         Delulu: { keyFields: ["id"] },

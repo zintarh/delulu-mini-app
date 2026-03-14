@@ -57,6 +57,12 @@ contract Delulu is
     uint256 public constant CLAIM_WINDOW = 30 days;
     uint256 public constant MIN_STAKE = 1e18;
 
+    // Bonding curve pricing for per-delulu shares (Friend.tech-style).
+    // cost = sum_{i=S+1}^{S+amount} i^2 * SHARE_PRICE_SCALE / SHARE_PRICE_FACTOR
+    uint256 public constant SHARE_PRICE_SCALE = 1e18;
+    uint256 public constant SHARE_PRICE_FACTOR = 16000;
+    uint256 public constant SHARE_CREATOR_FEE_BPS = 300; // 3% of curve cost on buys/sells to creator
+
     // --- STATE ---
     IERC20 public currency;
     address public vault;
@@ -158,6 +164,15 @@ contract Delulu is
     // Track deleted milestones
     mapping(uint256 => mapping(uint256 => bool)) public milestoneIsDeleted;
 
+    // ─── Shares Bonding Curve State (APPEND ONLY) ───────────────────────
+    // Total number of shares outstanding for each delulu.
+    mapping(uint256 => uint256) public shareSupply;
+    // Share balances per user per delulu.
+    mapping(uint256 => mapping(address => uint256)) public shareBalance;
+    // Creator share fees from share trades accumulate here and can be claimed via a pull model.
+    // Mapping: creator => token => amount
+    mapping(address => mapping(address => uint256)) public pendingCreatorShareFeesByToken;
+
     // --- EVENTS ---
     event ProfileUpdated(address indexed user, string username);
     event ChallengeCreated(
@@ -258,6 +273,24 @@ contract Delulu is
         uint256 indexed deluluId,
         address indexed scout,
         uint256 amount
+    );
+
+    event SharesBought(
+        uint256 indexed deluluId,
+        address indexed buyer,
+        uint256 amount,
+        uint256 curveCost,
+        uint256 protocolFee,
+        uint256 creatorFee
+    );
+
+    event SharesSold(
+        uint256 indexed deluluId,
+        address indexed seller,
+        uint256 amount,
+        uint256 curveProceeds,
+        uint256 protocolFee,
+        uint256 creatorFee
     );
     // Emitted once per milestone on creation with all static configuration
     event MilestoneCreatedDetailed(
@@ -675,6 +708,214 @@ contract Delulu is
         if (window < 6 hours) window = 6 hours;
         if (window > 72 hours) window = 72 hours;
         return window;
+    }
+
+    // --- SHARES BONDING CURVE (FRIEND.TECH STYLE) ---
+
+    /**
+     * @dev Internal helper: sum of squares from `fromInclusive` to `toInclusive`.
+     * Uses the identity: 1^2 + ... + n^2 = n(n+1)(2n+1)/6.
+     */
+    function _sumOfSquares(
+        uint256 fromInclusive,
+        uint256 toInclusive
+    ) internal pure returns (uint256) {
+        if (toInclusive < fromInclusive) {
+            return 0;
+        }
+
+        // sumTo(n) = n(n+1)(2n+1)/6
+        uint256 n = toInclusive;
+        uint256 sumToN = (n * (n + 1) * ((2 * n) + 1)) / 6;
+
+        if (fromInclusive == 1) {
+            return sumToN;
+        }
+
+        uint256 m = fromInclusive - 1;
+        uint256 sumToM = (m * (m + 1) * ((2 * m) + 1)) / 6;
+        return sumToN - sumToM;
+    }
+
+    /**
+     * @notice Returns the curve cost (excluding fees) to buy `amount` shares for a given delulu.
+     */
+    function getShareBuyPrice(
+        uint256 deluluId,
+        uint256 amount
+    ) public view returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+        Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
+
+        uint256 supply = shareSupply[deluluId];
+        uint256 fromInclusive = supply + 1;
+        uint256 toInclusive = supply + amount;
+        uint256 sumSquares = _sumOfSquares(fromInclusive, toInclusive);
+
+        return (sumSquares * SHARE_PRICE_SCALE) / SHARE_PRICE_FACTOR;
+    }
+
+    /**
+     * @notice Returns the curve proceeds (excluding fees) from selling `amount` shares of a given delulu.
+     */
+    function getShareSellProceeds(
+        uint256 deluluId,
+        uint256 amount
+    ) public view returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+        Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
+
+        uint256 supply = shareSupply[deluluId];
+        if (amount > supply) {
+            return 0;
+        }
+
+        uint256 fromInclusive = supply - amount + 1;
+        uint256 toInclusive = supply;
+        uint256 sumSquares = _sumOfSquares(fromInclusive, toInclusive);
+
+        return (sumSquares * SHARE_PRICE_SCALE) / SHARE_PRICE_FACTOR;
+    }
+
+    /**
+     * @notice Buy `amount` shares in a delulu using the bonding curve.
+     * @param deluluId The ID of the delulu
+     * @param amount Number of shares to buy
+     * @param maxCost Maximum total cost (curve + fees) the caller is willing to pay (slippage protection)
+     */
+    function buyShares(
+        uint256 deluluId,
+        uint256 amount,
+        uint256 maxCost
+    ) external nonReentrant whenNotPaused {
+        if (amount == 0) revert StakeTooSmall();
+
+        Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
+        if (d.isResolved || marketIsFailed[deluluId]) revert AlreadySettled();
+        // Disallow new buys after resolution deadline has passed
+        if (block.timestamp >= d.resolutionDeadline) revert StakingIsClosed();
+
+        uint256 curveCost = getShareBuyPrice(deluluId, amount);
+        if (curveCost == 0) revert StakeTooSmall();
+
+        uint256 protocolFee = (curveCost * PROTOCOL_FEE_BPS) /
+            BPS_DENOMINATOR;
+        uint256 creatorFee = (curveCost * SHARE_CREATOR_FEE_BPS) /
+            BPS_DENOMINATOR;
+        uint256 totalCost = curveCost + protocolFee + creatorFee;
+
+        if (maxCost > 0 && totalCost > maxCost) {
+            revert InsufficientSweepBalance();
+        }
+
+        // Pull token from buyer
+        IERC20(d.token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalCost
+        );
+
+        // Protocol fee is paid out immediately; bonding curve collateral (curveCost) stays in contract.
+        if (protocolFee > 0) {
+            IERC20(d.token).safeTransfer(platformFeeAddress, protocolFee);
+        }
+
+        // Creator fee is added to a claimable balance to avoid reverts on transfer.
+        if (creatorFee > 0) {
+            pendingCreatorShareFeesByToken[d.creator][d.token] += creatorFee;
+        }
+
+        // Mint shares
+        shareSupply[deluluId] += amount;
+        shareBalance[deluluId][msg.sender] += amount;
+
+        emit SharesBought(
+            deluluId,
+            msg.sender,
+            amount,
+            curveCost,
+            protocolFee,
+            creatorFee
+        );
+    }
+
+    /**
+     * @notice Sell `amount` shares in a delulu back to the bonding curve.
+     * @param deluluId The ID of the delulu
+     * @param amount Number of shares to sell
+     * @param minProceeds Minimum net proceeds (after fees) the caller is willing to accept (slippage protection)
+     */
+    function sellShares(
+        uint256 deluluId,
+        uint256 amount,
+        uint256 minProceeds
+    ) external nonReentrant whenNotPaused {
+        if (amount == 0) revert StakeTooSmall();
+
+        Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
+
+        uint256 balance = shareBalance[deluluId][msg.sender];
+        if (amount > balance) revert StakeTooSmall();
+
+        uint256 curveProceeds = getShareSellProceeds(deluluId, amount);
+        if (curveProceeds == 0) revert StakeTooSmall();
+
+        uint256 protocolFee = (curveProceeds * PROTOCOL_FEE_BPS) /
+            BPS_DENOMINATOR;
+        uint256 creatorFee = (curveProceeds * SHARE_CREATOR_FEE_BPS) /
+            BPS_DENOMINATOR;
+        uint256 netProceeds = curveProceeds - protocolFee - creatorFee;
+
+        if (minProceeds > 0 && netProceeds < minProceeds) {
+            revert InsufficientSweepBalance();
+        }
+
+        // Burn shares
+        shareSupply[deluluId] -= amount;
+        shareBalance[deluluId][msg.sender] = balance - amount;
+
+        // Pay protocol fee immediately.
+        if (protocolFee > 0) {
+            IERC20(d.token).safeTransfer(platformFeeAddress, protocolFee);
+        }
+
+        // Accrue creator fee.
+        if (creatorFee > 0) {
+            pendingCreatorShareFeesByToken[d.creator][d.token] += creatorFee;
+        }
+
+        // Pay seller from bonding curve reserve.
+        IERC20(d.token).safeTransfer(msg.sender, netProceeds);
+
+        emit SharesSold(
+            deluluId,
+            msg.sender,
+            amount,
+            curveProceeds,
+            protocolFee,
+            creatorFee
+        );
+    }
+
+    /**
+     * @notice Claim accumulated creator fees from share trades for a specific token.
+     * @param token The ERC20 token address in which fees were accrued (per-delulu token)
+     */
+    function claimCreatorShareFees(address token) external nonReentrant {
+        uint256 amount = pendingCreatorShareFeesByToken[msg.sender][token];
+        if (amount == 0) {
+            revert StakeTooSmall();
+        }
+        pendingCreatorShareFeesByToken[msg.sender][token] = 0;
+        IERC20(token).safeTransfer(msg.sender, amount);
     }
 
     /**

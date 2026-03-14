@@ -179,6 +179,18 @@ describe("handleProfileUpdated", () => {
     assert.entityCount("User", 1)
     assert.fieldEquals("User", CREATOR.toHex(), "username", "testuser")
   })
+
+  test("creates CreatorStats so user appears in global leaderboard even with 0 stats", () => {
+    let event = createProfileUpdatedEvent(CREATOR, "alice")
+    handleProfileUpdated(event)
+
+    assert.entityCount("CreatorStats", 1)
+    assert.fieldEquals("CreatorStats", CREATOR.toHex(), "totalGoals", "0")
+    assert.fieldEquals("CreatorStats", CREATOR.toHex(), "completedGoals", "0")
+    assert.fieldEquals("CreatorStats", CREATOR.toHex(), "totalMilestones", "0")
+    assert.fieldEquals("CreatorStats", CREATOR.toHex(), "verifiedMilestones", "0")
+    assert.fieldEquals("CreatorStats", CREATOR.toHex(), "totalSupportCollected", "0")
+  })
 })
 
 describe("handleMilestonesAdded", () => {

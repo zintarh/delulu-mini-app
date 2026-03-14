@@ -29,9 +29,10 @@ function AppWithPrivy({
   signerKeyQuorumId?: string;
 }) {
   const { theme } = useTheme();
+  const usePrivyWagmi = Boolean(privyAppId);
 
   const appTree = (
-    <FrameWalletProvider>
+    <FrameWalletProvider usePrivyWagmi={usePrivyWagmi}>
       <ApolloProvider>
         <QueryProvider>
           <MiniAppProvider addMiniAppOnLoad={true}>
