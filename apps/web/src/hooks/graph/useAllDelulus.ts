@@ -17,7 +17,7 @@ import {
 } from "@/lib/graph/ipfs-cache";
 import type { FormattedDelulu } from "@/lib/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export function useAllDelulus() {
   const [page, setPage] = useState(0);
@@ -74,6 +74,7 @@ export function useAllDelulus() {
     setPage(nextPage);
     fetchMore({
       variables: {
+        first: PAGE_SIZE,
         skip: nextPage * PAGE_SIZE,
       },
     });
@@ -84,7 +85,10 @@ export function useAllDelulus() {
     await apolloRefetch({ first: PAGE_SIZE, skip: 0 });
   }, [apolloRefetch]);
 
-  const hasNextPage = data?.delulus !== undefined && data.delulus.length >= PAGE_SIZE;
+  // After merge, data.delulus is all pages; we have more if current length >= (page+1)*PAGE_SIZE
+  const hasNextPage =
+    data?.delulus !== undefined &&
+    data.delulus.length >= (page + 1) * PAGE_SIZE;
 
   return {
     delulus, // Now always stable

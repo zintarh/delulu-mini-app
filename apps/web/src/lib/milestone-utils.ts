@@ -121,3 +121,52 @@ export function getDeluluCreatedAtMs(delulu: { createdAt?: Date; stakingDeadline
   }
   return nowMs - 30 * MS_PER_DAY;
 }
+
+/** Milestone shape needed for shouldShowBuyButton */
+export interface MilestoneForBuyButton {
+  milestoneId: string;
+  deadline: Date;
+  startTime?: Date | null;
+  isSubmitted: boolean;
+  isVerified: boolean;
+}
+
+/**
+ * Whether to show the Buy/Support button. Hide if the creator missed a milestone
+ * (past deadline, not submitted) and has not yet submitted a later milestone.
+ */
+export function shouldShowBuyButton(
+  milestones: MilestoneForBuyButton[] | null | undefined,
+  nowMs: number,
+  delulu: { createdAt?: Date; stakingDeadline?: Date }
+): boolean {
+  if (!milestones || milestones.length === 0) return true;
+  const sorted = [...milestones].sort(
+    (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
+  );
+  const deluluCreatedAtMs = getDeluluCreatedAtMs(delulu, nowMs);
+  const endTimesMs: number[] = [];
+  let prevEnd: number | null = null;
+  for (const m of sorted) {
+    const endMs = getMilestoneEndTimeMs(
+      { startTime: m.startTime ?? null, deadline: m.deadline },
+      prevEnd,
+      deluluCreatedAtMs,
+    );
+    endTimesMs.push(endMs);
+    prevEnd = endMs;
+  }
+  let lastMissedIndex = -1;
+  for (let i = 0; i < sorted.length; i++) {
+    const m = sorted[i];
+    const endMs = endTimesMs[i] ?? m.deadline.getTime();
+    const isPast = endMs <= nowMs;
+    const missed = isPast && !m.isSubmitted && !m.isVerified;
+    if (missed) lastMissedIndex = i;
+  }
+  if (lastMissedIndex === -1) return true;
+  for (let j = lastMissedIndex + 1; j < sorted.length; j++) {
+    if (sorted[j].isSubmitted) return true;
+  }
+  return false;
+}

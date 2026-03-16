@@ -254,8 +254,11 @@ export function CreateDelusionSheet({
         delusionText.trim().length <= MAX_DELULU_LENGTH
       );
     if (currentStep === 1) return true;
-    if (currentStep === 2)
-      return currentStakeAmount >= 0 && !hasInsufficientBalance;
+    if (currentStep === 2) {
+      const stakeValid =
+        currentStakeAmount === 0 || currentStakeAmount >= 100;
+      return stakeValid && !hasInsufficientBalance;
+    }
     if (currentStep === 3) return true;
     return false;
   };

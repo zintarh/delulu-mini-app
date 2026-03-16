@@ -69,7 +69,9 @@ import {
   getMilestoneLabel,
   getDeluluCreatedAtMs,
   formatMilestoneCountdown,
+  shouldShowBuyButton,
 } from "@/lib/milestone-utils";
+import { getContractErrorDisplay } from "@/lib/contract-error";
 
 export default function DeluluPage() {
   const router = useRouter();
@@ -283,6 +285,17 @@ export default function DeluluPage() {
     return { sorted, endTimesMs, currentIndex, passedCount };
   }, [milestones, delulu, now]);
 
+  const showBuyButton = useMemo(
+    () =>
+      !delulu
+        ? true
+        : shouldShowBuyButton(milestones, now, {
+            createdAt: delulu.createdAt,
+            stakingDeadline: delulu.stakingDeadline,
+          }),
+    [milestones, now, delulu],
+  );
+
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollarMarket =
     delulu?.tokenAddress &&
@@ -348,6 +361,30 @@ export default function DeluluPage() {
     isLoading: isConfirmingDeleteMilestone,
     isSuccess: isDeleteMilestoneSuccess,
   } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
+
+  // Centralized contract error → error modal (reduces per-error ifs)
+  // deleteMilestoneError is shown inline in the delete modal, not here
+  useEffect(() => {
+    const err =
+      submitMilestoneError ??
+      addMilestonesError ??
+      resetMilestonesError ??
+      stakeError ??
+      claimError ??
+      null;
+    if (err) {
+      const { title, message } = getContractErrorDisplay(err);
+      setErrorTitle(title);
+      setErrorMessage(message);
+      setShowErrorModal(true);
+    }
+  }, [
+    submitMilestoneError,
+    addMilestonesError,
+    resetMilestonesError,
+    stakeError,
+    claimError,
+  ]);
 
   /** Delulu remaining time in days (from start of new milestones to resolution deadline). */
   const deluluRemainingDaysTotal = useMemo(() => {
@@ -847,7 +884,7 @@ export default function DeluluPage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
-                {canStake && (
+                {canStake && showBuyButton && (
                   <button
                     onClick={() =>
                       !isConnected
@@ -1063,43 +1100,23 @@ export default function DeluluPage() {
                   </div>
                 )}
 
-                {/* Campaign section */}
-                <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 border border-purple-400/60">
-                        <Trophy className="w-4 h-4 text-purple-300" />
-                      </span>
-                      <h3 className="text-sm md:text-base font-black text-foreground">
-                        Campaign
-                      </h3>
-                    </div>
-                    {safeDelulu.challengeId && (
+                {/* Campaign section: only show when this delulu has joined a campaign */}
+                {safeDelulu.challengeId && (
+                  <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 border border-purple-400/60">
+                          <Trophy className="w-4 h-4 text-purple-300" />
+                        </span>
+                        <h3 className="text-sm md:text-base font-black text-foreground">
+                          Campaign
+                        </h3>
+                      </div>
                       <span className="text-xs md:text-sm font-semibold text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/60">
                         {currentCampaign?.title ||
                           `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
-                    )}
-                  </div>
-                  {!safeDelulu.challengeId ? (
-                    <>
-                      {isCreator && (
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <p className="text-sm text-muted-foreground flex-1">
-                            Join a campaign to compete on leaderboards and earn
-                            rewards.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setJoinModalOpen(true)}
-                            className="inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:scale-[0.98] transition-transform"
-                          >
-                            Join campaign
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <span>
@@ -1108,8 +1125,8 @@ export default function DeluluPage() {
                           `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -1365,10 +1382,8 @@ export default function DeluluPage() {
                             (m.isSubmitted
                               ? !m.isVerified
                               : timeLeft !== "Ended");
-                          const timeDisplay =
-                            m.isSubmitted && !m.isVerified
-                              ? "Under review"
-                              : timeLeft;
+                          // When submitted, show countdown so user knows when milestone ends; status badge shows "Under review"
+                          const timeDisplay = timeLeft;
 
                           return (
                             <div
@@ -1729,11 +1744,9 @@ export default function DeluluPage() {
             )}
 
             {deleteMilestoneError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600 font-medium">
-                  {deleteMilestoneError instanceof Error
-                    ? deleteMilestoneError.message
-                    : "Delete failed."}
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                  {getContractErrorDisplay(deleteMilestoneError).message}
                 </p>
               </div>
             )}

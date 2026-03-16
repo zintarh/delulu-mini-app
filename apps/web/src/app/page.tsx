@@ -91,56 +91,34 @@ export default function HomePage() {
   // Infinite scroll detection
   const scrollContainerRef = useRef<HTMLElement>(null);
 
+  // Infinite scroll: load more when user scrolls near bottom of the feed
   useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
     const handleScroll = () => {
       setIsScrolling(true);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 150);
 
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false);
-      }, 150);
-
-      // Check if user has scrolled to bottom (within 200px)
-      // The main element is the scrollable container
-      const mainElement = document.querySelector("main");
-      const container = mainElement || document.documentElement;
-      
-      const scrollTop = container.scrollTop || window.scrollY;
-      const scrollHeight = container.scrollHeight || document.documentElement.scrollHeight;
-      const clientHeight = container.clientHeight || window.innerHeight;
+      const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-      // Load more when within 200px of bottom
       if (
-        distanceFromBottom < 200 &&
+        distanceFromBottom < 400 &&
         hasNextPage &&
         !isFetchingNextPage &&
         !isLoading &&
-        activeTab === "fyp" // Only for FYP tab
+        activeTab === "fyp"
       ) {
         fetchNextPage();
       }
     };
 
-    const mainElement = document.querySelector("main");
-    const windowElement = window;
-
-    if (mainElement) {
-      mainElement.addEventListener("scroll", handleScroll);
-    }
-    windowElement.addEventListener("scroll", handleScroll);
-
+    container.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      if (mainElement) {
-        mainElement.removeEventListener("scroll", handleScroll);
-      }
-      windowElement.removeEventListener("scroll", handleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
+      container.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
@@ -155,10 +133,8 @@ export default function HomePage() {
   }, [authenticated, user?.username]);
 
 
-  // Helper to check if content is loaded (not a hash)
   const isContentLoaded = (delulu: FormattedDelulu): boolean => {
     if (!delulu.content) return false;
-    // Check if content is an IPFS hash
     const isHash = delulu.content.startsWith("Qm") || 
       (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
     return !isHash;
@@ -240,7 +216,7 @@ export default function HomePage() {
             
           </div>
 
-          <div className="px-4 lg:px-6 py-6 space-y-6 pb-32 lg:pb-6 pt-20 lg:pt-6">
+          <div className="px-4 lg:px-6 py-6 space-y-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
             {(activeTab === "fyp" && (isLoading || isIpfsLoading)) ||
             (activeTab === "board" && isLoadingUserDelulus) ? (
               <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col gap-3"}>
@@ -294,14 +270,6 @@ export default function HomePage() {
                         <DeluluCardSkeleton key={`loading-${i}`} index={i} />
                       )
                     ))}
-                  </div>
-                )}
-                {/* End of feed message */}
-                {!hasNextPage && filteredDelulus.length > 0 && activeTab === "fyp" && (
-                  <div className="text-center py-8 mt-4">
-                    <p className="text-gray-500 text-sm">
-                      You&apos;ve reached the end of the feed
-                    </p>
                   </div>
                 )}
               </div>

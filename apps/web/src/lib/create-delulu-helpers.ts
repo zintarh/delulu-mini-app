@@ -72,12 +72,12 @@ export function validateDeluluInputs(
     errors.text = `Text must be ${MAX_DELULU_LENGTH} characters or less`;
   }
 
-  // Stake validation (minimum stake of 100 G$ when staking)
-  if (stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE}`;
+  // Stake validation: 0 = no stake (valid). If staking, minimum is 100 G$.
+  if (stakeAmount > 0 && stakeAmount < MIN_STAKE) {
+    errors.stake = `Minimum stake is ${MIN_STAKE} G$ or 0`;
   }
 
-  // Balance validation
+  // Balance validation (only when staking)
   if (stakeAmount >= MIN_STAKE) {
     if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
       errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
@@ -96,12 +96,13 @@ export function validateDeluluInputs(
 
   const isValid =
     !errors.text && !errors.stake && !errors.balance && !errors.image;
+  const stakeOk =
+    stakeAmount === 0 ||
+    (stakeAmount >= MIN_STAKE && stakeAmount <= maxStakeValue);
   const canCreate =
     isValid &&
     delusionText.trim().length > 0 &&
-    // Minimum stake of 100 G$ when staking
-    stakeAmount >= MIN_STAKE &&
-    stakeAmount <= maxStakeValue &&
+    stakeOk &&
     !!selectedImage;
 
   return { isValid, errors, canCreate };

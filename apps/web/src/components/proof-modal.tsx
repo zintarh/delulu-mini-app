@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
+import { getContractErrorDisplay } from "@/lib/contract-error";
 
 function isValidUrl(str: string): boolean {
   const trimmed = str.trim();
@@ -125,7 +126,7 @@ export function ProofModal({
 
             {submitError && !isSubmitting && (
               <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                {submitError.message || "Submission failed. Try again."}
+                {getContractErrorDisplay(submitError).message}
               </p>
             )}
 
