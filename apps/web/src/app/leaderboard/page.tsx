@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
+import Link from "next/link";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useCreatorLeaderboard } from "@/hooks";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
+import { ExternalLink } from "lucide-react";
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -42,6 +45,10 @@ export default function LeaderboardPage() {
   const rangeStart = page * pageSize + 1;
   const rangeEnd = page * pageSize + entries.length;
   const isLastPage = !hasNextPage;
+
+  const chainId = useChainId();
+  const deluluContractAddress = getDeluluContractAddress(chainId);
+  const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
   const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
     useGoodDollarTotalSupply();
@@ -82,6 +89,15 @@ export default function LeaderboardPage() {
                 <span className="text-sm font-bold tabular-nums text-foreground">
                   {formattedGAmount}
                 </span>
+                <Link
+                  href={celoscanContractUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View on explorer
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
               </div>
             )}
 

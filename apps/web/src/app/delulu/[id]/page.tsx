@@ -1,14 +1,20 @@
-
-
-
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
-import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
-import { refetchDeluluData, refetchAfterClaim, refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
+import {
+  refetchDeluluData,
+  refetchAfterClaim,
+  refetchAllActiveQueries,
+} from "@/lib/graph/refetch-utils";
 import { useStake } from "@/hooks/use-stake";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
@@ -19,7 +25,15 @@ import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
 import { FeedbackModal } from "@/components/feedback-modal";
-import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalFooter } from "@/components/ui/modal";
+import { ProofModal } from "@/components/proof-modal";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
@@ -45,9 +59,17 @@ import {
 import { cn, formatAddress } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { resolveIPFSContent, type DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
-
-
+import {
+  resolveIPFSContent,
+  type DeluluIPFSMetadata,
+} from "@/lib/graph/ipfs-cache";
+import {
+  MS_PER_DAY,
+  getMilestoneEndTimeMs,
+  getMilestoneLabel,
+  getDeluluCreatedAtMs,
+  formatMilestoneCountdown,
+} from "@/lib/milestone-utils";
 
 export default function DeluluPage() {
   const router = useRouter();
@@ -58,9 +80,15 @@ export default function DeluluPage() {
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
-  const { delulu, milestones, isLoading: isLoadingDelulu } = useGraphDelulu(deluluId);
+  const {
+    delulu,
+    milestones,
+    isLoading: isLoadingDelulu,
+  } = useGraphDelulu(deluluId);
 
-  const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(null);
+  const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!delulu?.contentHash) {
@@ -90,38 +118,62 @@ export default function DeluluPage() {
   const deluluIdForState =
     delulu?.onChainId && !Number.isNaN(Number(delulu.onChainId))
       ? Number(delulu.onChainId)
-      : delulu?.id ?? null;
+      : (delulu?.id ?? null);
 
   const { stake, isSuccess: isStakeSuccess, error: stakeError } = useStake();
   const marketToken = delulu?.tokenAddress;
   const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
 
-  const { balance: tokenBalance, isLoading: isLoadingBalance } = useTokenBalance(marketToken);
+  const { balance: tokenBalance, isLoading: isLoadingBalance } =
+    useTokenBalance(marketToken);
   const { hasStaked, isClaimed } = useUserPosition(deluluIdForHooks);
 
-  const { claimableAmount, isLoading: isLoadingClaimableAmount } = useUserClaimableAmount(deluluIdForHooks);
+  const { claimableAmount, isLoading: isLoadingClaimableAmount } =
+    useUserClaimableAmount(deluluIdForHooks);
 
-  const { claim, isPending: isClaiming, isConfirming: isClaimConfirming, isSuccess: isClaimSuccess, error: claimError } = useClaimWinnings();
+  const {
+    claim,
+    isPending: isClaiming,
+    isConfirming: isClaimConfirming,
+    isSuccess: isClaimSuccess,
+    error: claimError,
+  } = useClaimWinnings();
 
-  const { data: stakes, isLoading: isLoadingStakes, refetch: refetchStakes } = useGraphDeluluStakes(deluluId || null);
+  const {
+    data: stakes,
+    isLoading: isLoadingStakes,
+    refetch: refetchStakes,
+  } = useGraphDeluluStakes(deluluId || null);
 
   const leaderboard = useMemo(() => {
     if (!stakes || stakes.length === 0) return [];
-    const grouped = stakes.reduce((acc, stake) => {
-      const key = stake.user?.address || stake.userId;
-      if (!acc[key]) {
-        acc[key] = {
-          address: stake.user?.address || "",
-          username: stake.user?.username,
-          pfpUrl: (stake.user as { pfpUrl?: string })?.pfpUrl,
-          believerStake: 0,
-          totalStake: 0,
-        };
-      }
-      acc[key].believerStake += stake.amount;
-      acc[key].totalStake += stake.amount;
-      return acc;
-    }, {} as Record<string, { address: string; username?: string; pfpUrl?: string; believerStake: number; totalStake: number }>);
+    const grouped = stakes.reduce(
+      (acc, stake) => {
+        const key = stake.user?.address || stake.userId;
+        if (!acc[key]) {
+          acc[key] = {
+            address: stake.user?.address || "",
+            username: stake.user?.username,
+            pfpUrl: (stake.user as { pfpUrl?: string })?.pfpUrl,
+            believerStake: 0,
+            totalStake: 0,
+          };
+        }
+        acc[key].believerStake += stake.amount;
+        acc[key].totalStake += stake.amount;
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          address: string;
+          username?: string;
+          pfpUrl?: string;
+          believerStake: number;
+          totalStake: number;
+        }
+      >,
+    );
 
     return Object.values(grouped)
       .sort((a, b) => b.totalStake - a.totalStake)
@@ -137,7 +189,9 @@ export default function DeluluPage() {
 
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "milestones">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "milestones">(
+    "details",
+  );
 
   const handleProfileClick = () => {
     if (!isConnected) setShowLoginSheet(true);
@@ -149,15 +203,31 @@ export default function DeluluPage() {
   };
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
-  const [newMilestones, setNewMilestones] = useState<{ description: string; days: string }[]>([{ description: "", days: "" }]);
+  const [newMilestones, setNewMilestones] = useState<
+    { description: string; days: string }[]
+  >([{ description: "", days: "" }]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [milestoneToDelete, setMilestoneToDelete] = useState<{ id: string; label?: string } | null>(null);
-  const [milestoneProofLinks, setMilestoneProofLinks] = useState<Record<string, string>>({});
-  const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<string | null>(null);
+  const [milestoneToDelete, setMilestoneToDelete] = useState<{
+    id: string;
+    label?: string;
+  } | null>(null);
+  const [milestoneProofLinks, setMilestoneProofLinks] = useState<
+    Record<string, string>
+  >({});
+  const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<
+    string | null
+  >(null);
+  const [proofSubmitSuccess, setProofSubmitSuccess] = useState(false);
+  const proofSubmittedRef = useRef<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const { challenges } = useChallenges();
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const {
     joinChallenge,
@@ -167,80 +237,63 @@ export default function DeluluPage() {
     errorMessage: joinErrorMessage,
   } = useJoinChallenge();
 
-
-  const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(null);
+  const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(
+    null,
+  );
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
   const currentCampaign = useMemo(() => {
     if (!delulu?.challengeId || !challenges?.length) return null;
-    return challenges.find((c: { id: number }) => c.id === delulu.challengeId) ?? null;
+    return (
+      challenges.find((c: { id: number }) => c.id === delulu.challengeId) ??
+      null
+    );
   }, [delulu?.challengeId, challenges]);
 
-
-
-
-  const supportAmount =
-    delulu?.totalSupportCollected || 0;
+  const supportAmount = delulu?.totalSupportCollected || 0;
 
   const deluluTitle =
-    ipfsMetadata?.text ||
-    ipfsMetadata?.content ||
-    delulu?.content ||
-    "";
+    ipfsMetadata?.text || ipfsMetadata?.content || delulu?.content || "";
 
-  const deluluDescription =
-    (ipfsMetadata as any)?.description ?? "";
+  const deluluDescription = (ipfsMetadata as any)?.description ?? "";
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
 
-
-  const formatMilestoneTimeLeft = (deadline: Date) => {
-    const diffMs = deadline.getTime() - Date.now();
-    if (diffMs <= 0) return "Ended";
-
-    const totalSeconds = Math.floor(diffMs / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const days = Math.floor(hours / 24);
-    
-    // Show days if 24 hours or more
-    if (days > 0) {
-      const remainingHours = hours % 24;
-      if (remainingHours > 0) {
-        return `${days}d ${remainingHours}h left`;
-      }
-      return `${days}d left`;
+  /** Same as delulu card: sorted milestones, end times, current index, passed count. */
+  const milestoneView = useMemo(() => {
+    if (!milestones || milestones.length === 0 || !delulu)
+      return { sorted: [], endTimesMs: [], currentIndex: -1, passedCount: 0 };
+    const sorted = [...milestones].sort(
+      (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
+    );
+    const deluluCreatedAtMs = getDeluluCreatedAtMs(
+      { createdAt: delulu.createdAt, stakingDeadline: delulu.stakingDeadline },
+      now,
+    );
+    const endTimesMs: number[] = [];
+    let prevEnd: number | null = null;
+    for (const m of sorted) {
+      const endMs = getMilestoneEndTimeMs(m, prevEnd, deluluCreatedAtMs);
+      endTimesMs.push(endMs);
+      prevEnd = endMs;
     }
-    
-    // Show hours and minutes if less than 24 hours
-    if (hours > 0) {
-      return `${hours}h ${minutes.toString().padStart(2, "0")}m left`;
-    }
-    return `${minutes}m left`;
-  };
-
-  // Calculate milestone duration in days from startTime and deadline
-  const getMilestoneDurationDays = (milestone: { startTime: Date | null; deadline: Date }): number | null => {
-    if (!milestone.startTime) return null;
-    const diffMs = milestone.deadline.getTime() - milestone.startTime.getTime();
-    if (diffMs <= 0) return null;
-    const days = diffMs / (24 * 60 * 60 * 1000);
-    return Math.round(days * 100) / 100; // Round to 2 decimal places
-  };
-
-
+    const currentIndex = endTimesMs.findIndex((endMs) => endMs > now);
+    const passedCount = currentIndex === -1 ? sorted.length : currentIndex;
+    return { sorted, endTimesMs, currentIndex, passedCount };
+  }, [milestones, delulu, now]);
 
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollarMarket =
     delulu?.tokenAddress &&
-    delulu.tokenAddress.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+    delulu.tokenAddress.toLowerCase() ===
+      GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
   const totalSupportUsd =
     isGoodDollarMarket && gDollarUsdPrice && supportAmount > 0
       ? supportAmount * gDollarUsdPrice
       : delulu?.tokenAddress &&
-        delulu.tokenAddress.toLowerCase() !==
-        GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
+          delulu.tokenAddress.toLowerCase() !==
+            GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
         ? supportAmount
         : null;
   const avgSupportUsd =
@@ -249,18 +302,52 @@ export default function DeluluPage() {
       : null;
 
   const chainId = useChainId();
-  const isCreator = isConnected && address && delulu?.creator && address.toLowerCase() === delulu.creator.toLowerCase();
+  const isCreator =
+    isConnected &&
+    address &&
+    delulu?.creator &&
+    address.toLowerCase() === delulu.creator.toLowerCase();
 
-  const { writeContract: writeAddMilestones, data: addMilestonesHash, isPending: isAddingMilestones, error: addMilestonesError } = useWriteContract();
-  const { isLoading: isConfirmingAddMilestones, isSuccess: isAddMilestonesSuccess } = useWaitForTransactionReceipt({ hash: addMilestonesHash });
-  const { writeContract: writeSubmitMilestone, data: submitMilestoneHash, isPending: isSubmittingMilestone, error: submitMilestoneError } = useWriteContract();
-  const { isLoading: isConfirmingSubmitMilestone, isSuccess: isSubmitMilestoneSuccess } = useWaitForTransactionReceipt({ hash: submitMilestoneHash });
-  const { writeContract: writeResetMilestones, data: resetMilestonesHash, isPending: isResettingMilestones, error: resetMilestonesError } = useWriteContract();
-  const { isLoading: isConfirmingResetMilestones, isSuccess: isResetMilestonesSuccess } = useWaitForTransactionReceipt({ hash: resetMilestonesHash });
-  const { writeContract: writeDeleteMilestone, data: deleteMilestoneHash, isPending: isDeletingMilestone, error: deleteMilestoneError } = useWriteContract();
-  const { isLoading: isConfirmingDeleteMilestone, isSuccess: isDeleteMilestoneSuccess } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
-
-  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const {
+    writeContract: writeAddMilestones,
+    data: addMilestonesHash,
+    isPending: isAddingMilestones,
+    error: addMilestonesError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingAddMilestones,
+    isSuccess: isAddMilestonesSuccess,
+  } = useWaitForTransactionReceipt({ hash: addMilestonesHash });
+  const {
+    writeContract: writeSubmitMilestone,
+    data: submitMilestoneHash,
+    isPending: isSubmittingMilestone,
+    error: submitMilestoneError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingSubmitMilestone,
+    isSuccess: isSubmitMilestoneSuccess,
+  } = useWaitForTransactionReceipt({ hash: submitMilestoneHash });
+  const {
+    writeContract: writeResetMilestones,
+    data: resetMilestonesHash,
+    isPending: isResettingMilestones,
+    error: resetMilestonesError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingResetMilestones,
+    isSuccess: isResetMilestonesSuccess,
+  } = useWaitForTransactionReceipt({ hash: resetMilestonesHash });
+  const {
+    writeContract: writeDeleteMilestone,
+    data: deleteMilestoneHash,
+    isPending: isDeletingMilestone,
+    error: deleteMilestoneError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingDeleteMilestone,
+    isSuccess: isDeleteMilestoneSuccess,
+  } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
 
   /** Delulu remaining time in days (from start of new milestones to resolution deadline). */
   const deluluRemainingDaysTotal = useMemo(() => {
@@ -281,30 +368,48 @@ export default function DeluluPage() {
       const daysUsedByPrevious = newMilestones
         .slice(0, index)
         .reduce((sum, m) => sum + (Number(m.days) || 0), 0);
-      return Math.max(0, Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious));
+      return Math.max(
+        0,
+        Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious),
+      );
     });
   }, [newMilestones, deluluRemainingDaysTotal]);
 
-  const handleAddMilestoneRow = () => setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
-  const handleRemoveMilestoneRow = (index: number) => setNewMilestones((prev) => prev.filter((_, i) => i !== index));
-  const handleNewMilestoneChange = (index: number, field: "description" | "days", value: string) => {
+  const handleAddMilestoneRow = () =>
+    setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
+  const handleRemoveMilestoneRow = (index: number) =>
+    setNewMilestones((prev) => prev.filter((_, i) => i !== index));
+  const handleNewMilestoneChange = (
+    index: number,
+    field: "description" | "days",
+    value: string,
+  ) => {
     if (field === "days") {
       setNewMilestones((prev) => {
         const daysUsedByPrevious = prev
           .slice(0, index)
           .reduce((sum, m) => sum + (Number(m.days) || 0), 0);
-        const maxDays = Math.max(0, Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious));
+        const maxDays = Math.max(
+          0,
+          Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious),
+        );
         if (value === "" || value === null || value === undefined) {
           return prev.map((m, i) => (i === index ? { ...m, days: "" } : m));
         }
         const parsed = Number(value);
         if (Number.isNaN(parsed) || parsed < 0) return prev;
         const clamped = Math.min(maxDays, Math.max(0, Math.floor(parsed)));
-        return prev.map((m, i) => (i === index ? { ...m, days: clamped === 0 ? "" : String(clamped) } : m));
+        return prev.map((m, i) =>
+          i === index
+            ? { ...m, days: clamped === 0 ? "" : String(clamped) }
+            : m,
+        );
       });
       return;
     }
-    setNewMilestones((prev) => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+    setNewMilestones((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)),
+    );
   };
 
   const handleCreateMilestones = () => {
@@ -312,7 +417,7 @@ export default function DeluluPage() {
 
     // Validate that at least one milestone has both description and days
     const validMilestones = newMilestones.filter(
-      (m) => m.description.trim().length > 0 && m.days.trim().length > 0
+      (m) => m.description.trim().length > 0 && m.days.trim().length > 0,
     );
 
     if (validMilestones.length === 0) {
@@ -326,7 +431,7 @@ export default function DeluluPage() {
     const incompleteMilestones = newMilestones.filter(
       (m) =>
         (m.description.trim().length > 0 && m.days.trim().length === 0) ||
-        (m.description.trim().length === 0 && m.days.trim().length > 0)
+        (m.description.trim().length === 0 && m.days.trim().length > 0),
     );
 
     if (incompleteMilestones.length > 0) {
@@ -365,7 +470,9 @@ export default function DeluluPage() {
       }
     }
 
-    const resolutionSeconds = Math.floor(delulu.resolutionDeadline.getTime() / 1000);
+    const resolutionSeconds = Math.floor(
+      delulu.resolutionDeadline.getTime() / 1000,
+    );
 
     if (startTimeSeconds + totalDurationSeconds > resolutionSeconds) {
       setErrorTitle("Too long");
@@ -378,7 +485,7 @@ export default function DeluluPage() {
     // Convert days to seconds: 1 day = 86400 seconds, 3 days = 259200 seconds, etc.
     // The contract expects durations in seconds
     const mDurations = validMilestones.map((m) =>
-      BigInt(Math.floor(Number(m.days) * 24 * 60 * 60))
+      BigInt(Math.floor(Number(m.days) * 24 * 60 * 60)),
     );
 
     writeAddMilestones({
@@ -389,8 +496,15 @@ export default function DeluluPage() {
     });
   };
 
-  const handleSubmitMilestoneProof = (milestoneId: string, linkOverride?: string) => {
-    const link = (linkOverride ?? milestoneProofLinks[milestoneId] ?? "").trim();
+  const handleSubmitMilestoneProof = (
+    milestoneId: string,
+    linkOverride?: string,
+  ) => {
+    const link = (
+      linkOverride ??
+      milestoneProofLinks[milestoneId] ??
+      ""
+    ).trim();
     writeSubmitMilestone({
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
@@ -399,9 +513,12 @@ export default function DeluluPage() {
     });
   };
 
-
-
-  const openProofModal = (milestoneId: string, existingProof?: string | null) => {
+  const openProofModal = (
+    milestoneId: string,
+    existingProof?: string | null,
+  ) => {
+    proofSubmittedRef.current = null;
+    setProofSubmitSuccess(false);
     setMilestoneProofLinks((prev) => ({
       ...prev,
       [milestoneId]: prev[milestoneId] ?? existingProof ?? "",
@@ -452,7 +569,7 @@ export default function DeluluPage() {
 
   const handleDeleteMilestone = (milestoneId: string) => {
     if (!isCreator || !delulu) return;
-    
+
     const milestone = milestones?.find((m) => m.milestoneId === milestoneId);
     if (!milestone) return;
 
@@ -474,12 +591,13 @@ export default function DeluluPage() {
     }
 
     // Show confirmation modal
-    const milestoneLabel = milestone.milestoneURI && milestone.milestoneURI.length > 0
-      ? milestone.milestoneURI
-      : `Step ${milestoneId}`;
-    setMilestoneToDelete({ 
-      id: milestoneId, 
-      label: milestoneLabel
+    const milestoneLabel =
+      milestone.milestoneURI && milestone.milestoneURI.length > 0
+        ? milestone.milestoneURI
+        : `Step ${milestoneId}`;
+    setMilestoneToDelete({
+      id: milestoneId,
+      label: milestoneLabel,
     });
     setShowDeleteModal(true);
   };
@@ -507,7 +625,7 @@ export default function DeluluPage() {
       const now = new Date();
       const activeChallenges = challenges.filter(
         (c: { active: boolean; startTime: Date; endTime: Date }) =>
-          c.active && c.startTime <= now && c.endTime > now
+          c.active && c.startTime <= now && c.endTime > now,
       );
       const initial = activeChallenges[0] ?? challenges[0];
       if (initial) {
@@ -534,8 +652,7 @@ export default function DeluluPage() {
               colors: ["#FCD34D", "#4B5563", "#A855F7"],
             });
           }
-        } catch {
-        }
+        } catch {}
       })();
     }
   }, [isJoinSuccess, apolloClient, deluluId]);
@@ -570,12 +687,22 @@ export default function DeluluPage() {
   // Refetch queries when milestone proof is submitted
   useEffect(() => {
     if (isSubmitMilestoneSuccess) {
-      // Refetch this delulu's data
       refetchDeluluData(apolloClient, deluluId);
-      // Refetch all active queries to update lists on home page, profile page, etc.
-      refetchAllActiveQueries(apolloClient, 5000); // 5 second delay for subgraph indexing
+      refetchAllActiveQueries(apolloClient, 5000);
     }
   }, [isSubmitMilestoneSuccess, apolloClient, deluluId]);
+
+  // Show success in proof modal when this submit confirms
+  useEffect(() => {
+    if (
+      isSubmitMilestoneSuccess &&
+      activeProofMilestoneId &&
+      proofSubmittedRef.current === activeProofMilestoneId
+    ) {
+      setProofSubmitSuccess(true);
+      proofSubmittedRef.current = null;
+    }
+  }, [isSubmitMilestoneSuccess, activeProofMilestoneId]);
 
   // Initial load: show skeleton layout instead of spinner
   if (isLoadingDelulu && !delulu) {
@@ -639,18 +766,20 @@ export default function DeluluPage() {
   // Only show "not found" once loading has completed and no delulu was returned.
   if (!isLoadingDelulu && !delulu) {
     return (
-      <div className="p-20 text-center text-foreground">
-        Delulu not found
-      </div>
+      <div className="p-20 text-center text-foreground">Delulu not found</div>
     );
   }
 
   // At this point, delulu is guaranteed to be non-null
   const safeDelulu = delulu!;
 
-  const canStake = !safeDelulu.isResolved && new Date() < safeDelulu.stakingDeadline && !hasStaked;
+  const canStake =
+    !safeDelulu.isResolved &&
+    new Date() < safeDelulu.stakingDeadline &&
+    !hasStaked;
   const bannerImage = safeDelulu.bgImageUrl || "/templates/t0.png";
-  const canAddMilestones = safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
+  const canAddMilestones =
+    safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -712,13 +841,18 @@ export default function DeluluPage() {
           <div className="px-4 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
             {/* Market banner / hero */}
             <div className="bg-card border border-border rounded-2xl overflow-hidden">
-              <div className="relative h-48 bg-cover bg-center" style={{ backgroundImage: `url(${bannerImage})` }}>
+              <div
+                className="relative h-48 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bannerImage})` }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
                 {canStake && (
                   <button
                     onClick={() =>
-                      !isConnected ? setShowLoginSheet(true) : setStakingSheetOpen(true)
+                      !isConnected
+                        ? setShowLoginSheet(true)
+                        : setStakingSheetOpen(true)
                     }
                     className="w-fit right-4 bottom-4 absolute px-4 py-2 bg-delulu-yellow-reserved text-delulu-charcoal border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg text-sm hover:brightness-105 transition"
                   >
@@ -734,7 +868,9 @@ export default function DeluluPage() {
                   <span className="font-semibold text-foreground">
                     @{safeDelulu.username || formatAddress(safeDelulu.creator)}
                   </span>
-                  {marketToken && <TokenBadge tokenAddress={marketToken} size="sm" />}
+                  {marketToken && (
+                    <TokenBadge tokenAddress={marketToken} size="sm" />
+                  )}
                 </div>
 
                 {/* Key stats row */}
@@ -780,7 +916,7 @@ export default function DeluluPage() {
                   "pb-2 font-semibold border-b-2 transition-all",
                   activeTab === "details"
                     ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 Details
@@ -792,7 +928,7 @@ export default function DeluluPage() {
                   "pb-2 font-semibold border-b-2 transition-all",
                   activeTab === "milestones"
                     ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 Milestones
@@ -833,7 +969,10 @@ export default function DeluluPage() {
                             : "0.00"}
                           {marketToken && (
                             <span className="inline-flex sm:hidden">
-                              <TokenBadge tokenAddress={marketToken} size="sm" />
+                              <TokenBadge
+                                tokenAddress={marketToken}
+                                size="sm"
+                              />
                             </span>
                           )}
                         </span>
@@ -842,14 +981,15 @@ export default function DeluluPage() {
                             ≈ ${totalSupportUsd.toFixed(2)}
                           </span>
                         )}
-                        {safeDelulu.creatorStake && safeDelulu.creatorStake > 0 && (
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Creator stake:{" "}
-                            {safeDelulu.creatorStake < 0.01
-                              ? safeDelulu.creatorStake.toFixed(4)
-                              : safeDelulu.creatorStake.toFixed(2)}
-                          </span>
-                        )}
+                        {safeDelulu.creatorStake &&
+                          safeDelulu.creatorStake > 0 && (
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Creator stake:{" "}
+                              {safeDelulu.creatorStake < 0.01
+                                ? safeDelulu.creatorStake.toFixed(4)
+                                : safeDelulu.creatorStake.toFixed(2)}
+                            </span>
+                          )}
                       </p>
                     </div>
 
@@ -886,7 +1026,9 @@ export default function DeluluPage() {
 
                 {leaderboard.length > 0 && (
                   <div>
-                    <h2 className="text-base font-black mb-4 text-foreground">Top Supporters</h2>
+                    <h2 className="text-base font-black mb-4 text-foreground">
+                      Top Supporters
+                    </h2>
                     <div className="space-y-3">
                       {leaderboard.map((entry) => (
                         <div
@@ -899,7 +1041,8 @@ export default function DeluluPage() {
                             </div>
                             <div>
                               <p className="font-bold text-foreground">
-                                @{entry.username || formatAddress(entry.address)}
+                                @
+                                {entry.username || formatAddress(entry.address)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {entry.totalStake.toFixed(2)} staked
@@ -909,7 +1052,9 @@ export default function DeluluPage() {
                           <Trophy
                             className={cn(
                               "w-5 h-5",
-                              entry.rank === 1 ? "text-yellow-400" : "text-muted-foreground/40"
+                              entry.rank === 1
+                                ? "text-yellow-400"
+                                : "text-muted-foreground/40",
                             )}
                           />
                         </div>
@@ -931,7 +1076,8 @@ export default function DeluluPage() {
                     </div>
                     {safeDelulu.challengeId && (
                       <span className="text-xs md:text-sm font-semibold text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/60">
-                        {currentCampaign?.title || `Campaign #${Number(safeDelulu.challengeId)}`}
+                        {currentCampaign?.title ||
+                          `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     )}
                   </div>
@@ -940,7 +1086,8 @@ export default function DeluluPage() {
                       {isCreator && (
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <p className="text-sm text-muted-foreground flex-1">
-                            Join a campaign to compete on leaderboards and earn rewards.
+                            Join a campaign to compete on leaderboards and earn
+                            rewards.
                           </p>
                           <button
                             type="button"
@@ -957,7 +1104,8 @@ export default function DeluluPage() {
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <span>
                         This delulu is participating in{" "}
-                        {currentCampaign?.title || `Campaign #${Number(safeDelulu.challengeId)}`}
+                        {currentCampaign?.title ||
+                          `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     </div>
                   )}
@@ -965,84 +1113,102 @@ export default function DeluluPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Milestones Card */}
-                <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base md:text-lg font-black text-foreground flex items-center gap-2">
-                        <Target className="w-4 h-4 md:w-5 md:h-5" />
-                        Milestones
-                      </h2>
-                      {milestones && milestones.length > 0 && (
-                        <span className="text-xs md:text-sm text-muted-foreground font-medium">
-                          {milestones.filter((m) => m.isVerified).length}/{milestones.length}
+                <div className="rounded-2xl border border-border bg-card p-5 md:p-6 lg:p-8">
+                  <div className="flex flex-col gap-4 mb-5 md:mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base md:text-lg font-black text-foreground flex items-center gap-2">
+                          <Target className="w-4 h-4 md:w-5 md:h-5" />
+                          Milestones
+                        </h2>
+                        <span className="text-sm md:text-base font-bold tabular-nums text-foreground">
+                          {milestoneView.sorted.length
+                            ? `${milestoneView.passedCount}/${milestoneView.sorted.length}`
+                            : "0/0"}
                         </span>
-                      )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isCreator && canAddMilestones && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowMilestoneForm((open) => !open)
+                            }
+                            className="w-fit inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
+                          >
+                            {showMilestoneForm ? "Close" : "Add"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                    {isCreator && canAddMilestones && (
-                      <button
-                        type="button"
-                        onClick={() => setShowMilestoneForm((open) => !open)}
-                        className=" w-fit  inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
+                    {milestoneView.sorted.length > 0 && (
+                      <div
+                        className="w-full h-2.5 rounded-full bg-muted overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={milestoneView.passedCount}
+                        aria-valuemin={0}
+                        aria-valuemax={milestoneView.sorted.length}
                       >
-                        {showMilestoneForm ? "Close" : "Add"}
-                      </button>
+                        <div
+                          className="h-full rounded-full bg-delulu-yellow-reserved transition-all duration-300 min-w-0"
+                          style={{
+                            width: `${(milestoneView.passedCount / milestoneView.sorted.length) * 100}%`,
+                          }}
+                        />
+                      </div>
                     )}
-                     
-                    </div>
                   </div>
 
                   {isCreator && canAddMilestones && showMilestoneForm && (
                     <div className="mb-4 border border-dashed border-border rounded-2xl p-3 md:p-4 bg-muted/60">
                       {delulu?.resolutionDeadline && (
                         <p className="text-xs text-muted-foreground mb-3">
-                          <strong className="text-foreground">{deluluRemainingDaysTotal}</strong> days left · sequential
+                          <strong className="text-foreground">
+                            {deluluRemainingDaysTotal}
+                          </strong>{" "}
+                          days left · sequential
                         </p>
                       )}
                       <div className="space-y-3 md:space-y-4">
                         {newMilestones.map((m, index) => {
-                          // Calculate milestone timing
-                          // NOTE: Duration input is in DAYS (1 = 1 day, 3 = 3 days)
-                          // Contract receives: days * 24 * 60 * 60 (converted to seconds)
-                          // Display calculation: days * 24 * 60 * 60 * 1000 (converted to milliseconds for JS Date)
                           const calculateMilestoneTiming = () => {
-                            // Start from current time, or last milestone's deadline if milestones exist
                             let startTime = Date.now();
-                            
-                            // If there are existing milestones, find the last one's deadline
+
                             if (milestones && milestones.length > 0) {
-                              const lastMilestone = milestones[milestones.length - 1];
+                              const lastMilestone =
+                                milestones[milestones.length - 1];
                               if (lastMilestone && lastMilestone.deadline) {
                                 startTime = lastMilestone.deadline.getTime();
                               }
                             }
-                            
-                            // Calculate cumulative start times for previous new milestones in this batch
-                            // Each milestone starts when the previous one ends
+
                             for (let i = 0; i < index; i++) {
-                              const prevDays = Number(newMilestones[i].days) || 0;
+                              const prevDays =
+                                Number(newMilestones[i].days) || 0;
                               if (prevDays > 0) {
-                                // Convert days to milliseconds: 1 day = 24 * 60 * 60 * 1000 ms
                                 startTime += prevDays * 24 * 60 * 60 * 1000;
                               }
                             }
-                            
-                            // Calculate end time: startTime + duration in days
+
                             const days = Number(m.days) || 0;
-                            // 1 day = 24 hours = 86400000 milliseconds
-                            const endTime = days > 0 ? startTime + (days * 24 * 60 * 60 * 1000) : startTime;
-                            
-                            // Check if this exceeds resolution deadline
-                            const resolutionTime = delulu?.resolutionDeadline?.getTime() || 0;
-                            const exceedsDeadline = resolutionTime > 0 && endTime > resolutionTime;
-                            
+                            const endTime =
+                              days > 0
+                                ? startTime + days * 24 * 60 * 60 * 1000
+                                : startTime;
+
+                            const resolutionTime =
+                              delulu?.resolutionDeadline?.getTime() || 0;
+                            const exceedsDeadline =
+                              resolutionTime > 0 && endTime > resolutionTime;
+
                             return { startTime, endTime, exceedsDeadline };
                           };
-                          
-                          const { exceedsDeadline } = calculateMilestoneTiming();
-                          
+
+                          const { exceedsDeadline } =
+                            calculateMilestoneTiming();
+
                           return (
                             <div
                               key={index}
@@ -1055,7 +1221,9 @@ export default function DeluluPage() {
                                 {newMilestones.length > 1 && (
                                   <button
                                     type="button"
-                                    onClick={() => handleRemoveMilestoneRow(index)}
+                                    onClick={() =>
+                                      handleRemoveMilestoneRow(index)
+                                    }
                                     className="text-xs text-red-500 hover:text-red-700 font-medium"
                                   >
                                     <XIcon className="w-4 h-4" />
@@ -1073,7 +1241,7 @@ export default function DeluluPage() {
                                         handleNewMilestoneChange(
                                           index,
                                           "description",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
@@ -1087,18 +1255,28 @@ export default function DeluluPage() {
                                       type="number"
                                       min={1}
                                       max={maxDaysPerRow[index] || undefined}
-                                      placeholder={maxDaysPerRow[index] != null && maxDaysPerRow[index] > 0 ? `1–${maxDaysPerRow[index]}` : "—"}
+                                      placeholder={
+                                        maxDaysPerRow[index] != null &&
+                                        maxDaysPerRow[index] > 0
+                                          ? `1–${maxDaysPerRow[index]}`
+                                          : "—"
+                                      }
                                       value={m.days}
                                       onChange={(e) =>
-                                        handleNewMilestoneChange(index, "days", e.target.value)
+                                        handleNewMilestoneChange(
+                                          index,
+                                          "days",
+                                          e.target.value,
+                                        )
                                       }
                                       className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                     />
-                                    {maxDaysPerRow[index] != null && maxDaysPerRow[index] > 0 && (
-                                      <span className="text-[10px] text-muted-foreground">
-                                        max {maxDaysPerRow[index]}
-                                      </span>
-                                    )}
+                                    {maxDaysPerRow[index] != null &&
+                                      maxDaysPerRow[index] > 0 && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          max {maxDaysPerRow[index]}
+                                        </span>
+                                      )}
                                   </div>
                                 </div>
                                 {exceedsDeadline && (
@@ -1122,12 +1300,14 @@ export default function DeluluPage() {
                         <button
                           type="button"
                           onClick={handleCreateMilestones}
-                          disabled={isAddingMilestones || isConfirmingAddMilestones}
+                          disabled={
+                            isAddingMilestones || isConfirmingAddMilestones
+                          }
                           className={cn(
                             "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                             "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
                             (isAddingMilestones || isConfirmingAddMilestones) &&
-                            "opacity-60 cursor-not-allowed"
+                              "opacity-60 cursor-not-allowed",
                           )}
                         >
                           {isAddingMilestones || isConfirmingAddMilestones ? (
@@ -1146,150 +1326,218 @@ export default function DeluluPage() {
                   {/* Milestones list */}
                   {milestones && milestones.length > 0 ? (
                     <>
-                      <div className="space-y-3 md:space-y-4">
-                        {milestones.map((m, i) => {
-                          const fullTitle =
-                            (m.milestoneURI && m.milestoneURI.length > 0
-                              ? m.milestoneURI
-                              : `Step ${i + 1}`) || "";
-                          const shortTitle =
-                            fullTitle.length > 80
-                              ? `${fullTitle.slice(0, 77)}…`
-                              : fullTitle;
+                      <div className="space-y-3 md:space-y-4 pt-1">
+                        {milestoneView.sorted.map((m, i) => {
+                          const endTimeMs =
+                            milestoneView.endTimesMs[i] ?? m.deadline.getTime();
+                          const fullTitle = getMilestoneLabel(m, 999);
+                          const shortTitle = getMilestoneLabel(m, 80);
 
-                          let statusLabel = "Pending";
+                          const isPast =
+                            milestoneView.currentIndex === -1 ||
+                            i < milestoneView.currentIndex;
+                          const isOngoing = i === milestoneView.currentIndex;
+                          const isUpcoming = !isPast && !isOngoing;
+                          let statusLabel = "Upcoming";
                           if (m.isVerified) {
                             statusLabel = "Completed";
-                          } else if (m.deadline.getTime() < Date.now()) {
-                            statusLabel = "Expired";
+                          } else if (isPast) {
+                            statusLabel = m.isSubmitted
+                              ? "In review"
+                              : "Expired";
+                          } else if (isOngoing) {
+                            statusLabel = m.isSubmitted
+                              ? "Under review"
+                              : "Pending";
                           }
 
-                          const timeLabel = m.isVerified
-                            ? m.deadline.toLocaleDateString()
-                            : formatMilestoneTimeLeft(m.deadline);
-                          
-                          // Calculate duration in days
-                          const durationDays = getMilestoneDurationDays(m);
+                          const isPastExpired =
+                            isPast && !m.isVerified && !m.isSubmitted;
+                          const isInReview =
+                            isPast && m.isSubmitted && !m.isVerified;
+
+                          const timeLeft = formatMilestoneCountdown(
+                            now,
+                            endTimeMs,
+                          );
+                          const showTimeOrReview =
+                            (isPast || isOngoing) &&
+                            (m.isSubmitted
+                              ? !m.isVerified
+                              : timeLeft !== "Ended");
+                          const timeDisplay =
+                            m.isSubmitted && !m.isVerified
+                              ? "Under review"
+                              : timeLeft;
 
                           return (
                             <div
                               key={m.id}
-                              className="border-2 border-border/60 rounded-xl overflow-hidden bg-card"
+                              className={cn(
+                                "border-2 rounded-xl overflow-hidden transition-colors",
+                                isOngoing
+                                  ? "border-delulu-yellow-reserved bg-delulu-yellow-reserved/10"
+                                  : isUpcoming
+                                    ? "border-border/40 bg-muted/30"
+                                    : "border-border/60 bg-card",
+                              )}
                             >
                               <button
                                 type="button"
                                 onClick={() =>
                                   setOpenMilestoneId((prev) =>
-                                    prev === m.id ? null : m.id
+                                    prev === m.id ? null : m.id,
                                   )
                                 }
-                                className="w-full flex gap-4 p-4 items-start text-left"
+                                className="w-full flex gap-4 p-4 md:p-5 items-start text-left"
                               >
                                 <div className="pt-1">
                                   {openMilestoneId === m.id ? (
-                                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                                    <ChevronUp
+                                      className={cn(
+                                        "w-4 h-4",
+                                        isUpcoming &&
+                                          "text-muted-foreground/70",
+                                      )}
+                                    />
                                   ) : (
-                                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                                    <ChevronDown
+                                      className={cn(
+                                        "w-4 h-4",
+                                        isUpcoming &&
+                                          "text-muted-foreground/70",
+                                      )}
+                                    />
                                   )}
                                 </div>
-                                <div className="flex-1 space-y-1.5">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <p className="font-bold text-foreground">
+                                <div className="flex-1 space-y-1.5 min-w-0">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <p
+                                      className={cn(
+                                        "font-bold text-sm",
+                                        isUpcoming
+                                          ? "text-muted-foreground"
+                                          : "text-foreground",
+                                      )}
+                                    >
                                       {shortTitle}
                                     </p>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          if (
-                                            !m.isVerified &&
-                                            isCreator
-                                          ) {
-                                            openProofModal(
-                                              m.milestoneId,
-                                              m.proofLink
-                                            );
-                                          }
-                                        }}
-                                        className={cn(
-                                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
-                                          m.isVerified
-                                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 cursor-default"
-                                            : "bg-secondary text-secondary-foreground border-border hover:bg-muted cursor-pointer transition-colors"
-                                        )}
-                                      >
-                                        {statusLabel}
-                                      </button>
-                                      {isCreator && !m.isSubmitted && !m.isVerified && !m.isMissed && m.deadline.getTime() >= Date.now() && (
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      {isOngoing ? (
+                                        <div className="flex flex-col  items-center gap-x-2">
+                                          {isCreator && (
+                                            <div className="">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  openProofModal(
+                                                    m.milestoneId,
+                                                    m.proofLink,
+                                                  );
+                                                }}
+                                                className="inline-flex items-center rounded-full px-2.5 py-1 border border-border text-[11px] font-semibold bg-secondary"
+                                              >
+                                                {m.proofLink
+                                                  ? "Replace Evidence"
+                                                  : "Submit Evidence"}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
                                         <button
                                           type="button"
                                           onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            handleDeleteMilestone(m.milestoneId);
+                                            if (!m.isVerified && isCreator) {
+                                              openProofModal(
+                                                m.milestoneId,
+                                                m.proofLink,
+                                              );
+                                            }
                                           }}
-                                          className="inline-flex items-center justify-center w-6 h-6 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                                          title="Delete step"
+                                          className={cn(
+                                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border cursor-default",
+                                            m.isVerified
+                                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                              : isInReview ||
+                                                  (isOngoing && m.isSubmitted)
+                                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                                                : isPastExpired
+                                                  ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                                  : isUpcoming
+                                                    ? "bg-muted/60 text-muted-foreground border-border/50"
+                                                    : "bg-secondary text-secondary-foreground border-border",
+                                          )}
                                         >
-                                          <XIcon className="w-4 h-4" />
+                                          {statusLabel}
                                         </button>
                                       )}
+
+                                      {isCreator &&
+                                        !m.isSubmitted &&
+                                        !m.isVerified &&
+                                        !m.isMissed &&
+                                        endTimeMs >= now && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              handleDeleteMilestone(
+                                                m.milestoneId,
+                                              );
+                                            }}
+                                            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                            title="Delete step"
+                                          >
+                                            <XIcon className="w-4 h-4" />
+                                          </button>
+                                        )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3 flex-wrap">
-                                    {durationDays !== null && (
-                                      <span className="text-xs md:text-sm font-semibold text-foreground">
-                                        {durationDays === Math.floor(durationDays) 
-                                          ? `${Math.floor(durationDays)}d`
-                                          : `${durationDays.toFixed(1)}d`}
+                                    {showTimeOrReview && (
+                                      <span
+                                        className={cn(
+                                          "text-[11px] tabular-nums font-medium",
+                                          isPastExpired && "text-destructive",
+                                          (isInReview ||
+                                            (isOngoing && m.isSubmitted)) &&
+                                            "text-amber-600 dark:text-amber-400",
+                                        )}
+                                      >
+                                        {timeDisplay}
                                       </span>
                                     )}
-                                    <span className="text-xs md:text-sm text-muted-foreground">
-                                      {timeLabel}
-                                    </span>
                                   </div>
                                 </div>
                               </button>
 
                               {openMilestoneId === m.id && (
-                                <div className="px-4 pb-4 pt-0 text-xs md:text-sm text-muted-foreground space-y-2">
-                                  <p className="whitespace-pre-wrap">
-                                    {fullTitle}
-                                  </p>
-                                  {m.proofLink && (
-                                    <a
-                                      href={m.proofLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-500 text-xs font-bold underline"
-                                    >
-                                      View Evidence
-                                    </a>
-                                  )}
-
-                                  {isCreator && !m.isVerified && (
-                                    <div className="flex items-center gap-3 mt-2">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openProofModal(m.milestoneId, m.proofLink)
-                                        }
-                                        className="inline-flex items-center text-xs md:text-sm font-semibold text-delulu-charcoal hover:underline"
+                                <div className="px-4 md:px-8 pb-5 pt-0 text-xs md:text-sm text-muted-foreground space-y-2">
+                                  <div className="px-8">
+                                    <p className="">{fullTitle}</p>
+                                    {m.proofLink && (
+                                      <a
+                                        href={m.proofLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-500 text-xs font-bold underline"
                                       >
-                                        {m.proofLink ? "Proof" : "Add proof"}
-                                      </button>
-                                    </div>
-                                  )}
+                                        View Evidence
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
                           );
                         })}
                       </div>
-
-                      {/* Optional: progress summary could go here */}
                     </>
                   ) : (
                     <div className="rounded-2xl bg-muted p-8 text-center mt-2">
@@ -1310,76 +1558,74 @@ export default function DeluluPage() {
         </div>
       </div>
 
-      <StakeFlowSheet open={stakingSheetOpen} onOpenChange={setStakingSheetOpen} delulu={delulu} />
+      <StakeFlowSheet
+        open={stakingSheetOpen}
+        onOpenChange={setStakingSheetOpen}
+        delulu={delulu}
+      />
 
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
       />
 
-      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
-      {isCreator && activeProofMilestoneId && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border">
-            <h3 className="text-base md:text-lg font-black text-foreground mb-2">
-              Proof
-            </h3>
-            <input
-              type="url"
-              placeholder="Proof link"
-              value={milestoneProofLinks[activeProofMilestoneId] ?? ""}
-              onChange={(e) =>
-                setMilestoneProofLinks((prev) => ({
-                  ...prev,
-                  [activeProofMilestoneId]: e.target.value,
-                }))
-              }
-              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary mt-2"
-            />
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Tip: Upload files to{" "}
-              <a
-                href="https://drive.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline font-medium"
-              >
-                Google Drive
-              </a>
-              , set sharing to &quot;Anyone with the link,&quot; then paste the link here.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveProofMilestoneId(null)}
-                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-border text-foreground hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  handleSubmitMilestoneProof(activeProofMilestoneId);
-                  setActiveProofMilestoneId(null);
-                }}
-                disabled={isSubmittingMilestone || isConfirmingSubmitMilestone}
-                className={cn(
-                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
-                  "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
-                  (isSubmittingMilestone || isConfirmingSubmitMilestone) &&
-                  "opacity-60 cursor-not-allowed"
-                )}
-              >
-                {isSubmittingMilestone || isConfirmingSubmitMilestone ? "Submit" : "Submit"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <FeedbackModal isOpen={showSuccessModal} type="success" title="Stake Success!" message="Your conviction has been recorded." onClose={() => setShowSuccessModal(false)} />
-      <FeedbackModal isOpen={showErrorModal} type="error" title={errorTitle} message={errorMessage} onClose={() => setShowErrorModal(false)} />
+      <ConnectorSelectionSheet
+        open={showLoginSheet}
+        onOpenChange={setShowLoginSheet}
+      />
 
-      {/* Join campaign modal */}
+      {isCreator && (
+        <ProofModal
+          open={!!activeProofMilestoneId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setActiveProofMilestoneId(null);
+              setProofSubmitSuccess(false);
+            }
+          }}
+          value={
+            activeProofMilestoneId
+              ? (milestoneProofLinks[activeProofMilestoneId] ?? "")
+              : ""
+          }
+          onChange={(value) =>
+            activeProofMilestoneId &&
+            setMilestoneProofLinks((prev) => ({
+              ...prev,
+              [activeProofMilestoneId]: value,
+            }))
+          }
+          onSubmit={() => {
+            if (activeProofMilestoneId) {
+              proofSubmittedRef.current = activeProofMilestoneId;
+              handleSubmitMilestoneProof(activeProofMilestoneId);
+            }
+          }}
+          isSubmitting={isSubmittingMilestone || isConfirmingSubmitMilestone}
+          submitSuccess={proofSubmitSuccess}
+          submitError={submitMilestoneError}
+          onDone={() => {
+            setActiveProofMilestoneId(null);
+            setProofSubmitSuccess(false);
+          }}
+        />
+      )}
+
+      <FeedbackModal
+        isOpen={showSuccessModal}
+        type="success"
+        title="Stake Success!"
+        message="Your conviction has been recorded."
+        onClose={() => setShowSuccessModal(false)}
+      />
+      <FeedbackModal
+        isOpen={showErrorModal}
+        type="error"
+        title={errorTitle}
+        message={errorMessage}
+        onClose={() => setShowErrorModal(false)}
+      />
+
       {isCreator && joinModalOpen && !safeDelulu.challengeId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
@@ -1387,8 +1633,8 @@ export default function DeluluPage() {
               Join a campaign
             </h3>
             <p className="text-xs md:text-sm text-muted-foreground mb-4">
-              Select an active campaign to join with this delulu. Once joined, it can earn
-              points and appear on the campaign leaderboard.
+              Select an active campaign to join with this delulu. Once joined,
+              it can earn points and appear on the campaign leaderboard.
             </p>
 
             <div className="mb-4">
@@ -1401,7 +1647,9 @@ export default function DeluluPage() {
                   className="w-full px-3 py-2 h-[46px] text-sm rounded-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   value={selectedChallengeId ?? ""}
                   onChange={(e) =>
-                    setSelectedChallengeId(e.target.value ? Number(e.target.value) : null)
+                    setSelectedChallengeId(
+                      e.target.value ? Number(e.target.value) : null,
+                    )
                   }
                 >
                   <option value="">Select a campaign</option>
@@ -1444,7 +1692,7 @@ export default function DeluluPage() {
                   "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                   "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
                   (!selectedChallengeId || isJoining || isConfirmingJoin) &&
-                  "opacity-60 cursor-not-allowed"
+                    "opacity-60 cursor-not-allowed",
                 )}
               >
                 {isJoining || isConfirmingJoin ? (
@@ -1461,7 +1709,6 @@ export default function DeluluPage() {
         </div>
       )}
 
-      {/* Delete Milestone Confirmation Modal */}
       <Modal open={showDeleteModal} onOpenChange={handleDeleteModalClose}>
         <ModalContent className="max-w-md">
           <ModalHeader>
@@ -1480,7 +1727,7 @@ export default function DeluluPage() {
                 </p>
               </div>
             )}
-            
+
             {deleteMilestoneError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600 font-medium">
@@ -1516,7 +1763,7 @@ export default function DeluluPage() {
                   className={cn(
                     "flex-1 px-4 py-2 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                     "bg-red-500 text-white hover:bg-red-600 hover:scale-[0.98] transition-all",
-                    "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100",
                   )}
                 >
                   {isDeletingMilestone || isConfirmingDeleteMilestone ? (
