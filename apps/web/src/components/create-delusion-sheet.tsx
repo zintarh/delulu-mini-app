@@ -254,8 +254,11 @@ export function CreateDelusionSheet({
         delusionText.trim().length <= MAX_DELULU_LENGTH
       );
     if (currentStep === 1) return true;
-    if (currentStep === 2)
-      return currentStakeAmount >= 0 && !hasInsufficientBalance;
+    if (currentStep === 2) {
+      const stakeValid =
+        currentStakeAmount === 0 || currentStakeAmount >= 100;
+      return stakeValid && !hasInsufficientBalance;
+    }
     if (currentStep === 3) return true;
     return false;
   };
@@ -263,11 +266,11 @@ export function CreateDelusionSheet({
   const handleNext = () => {
     if (canGoNext() && currentStep < 4) {
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
-      // Stake is optional: we only enforce a minimum of 1 token when the user
+      // Stake is optional: we only enforce a minimum of 100 G$ when the user
       // actually chooses to stake a non-zero amount. Empty / 0 stays as 0.
-      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 1) {
-        console.warn("Clamping small non-zero stake amount to minimum of 1");
-        setStakeAmount([1]);
+      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 100) {
+        console.warn("Clamping small non-zero stake amount to minimum of 100 G$");
+        setStakeAmount([100]);
       }
       setCurrentStep(currentStep + 1);
     }
@@ -596,7 +599,7 @@ export function CreateDelusionSheet({
                               ) {
                                 const clampedValue =
                                   numValue > 0
-                                    ? Math.max(1, numValue)
+                                    ? Math.max(100, numValue)
                                     : 0;
                                 setStakeAmount([clampedValue]);
                                 console.log(
@@ -617,7 +620,7 @@ export function CreateDelusionSheet({
                               } else {
                                 const clampedValue =
                                   currentValue > 0
-                                    ? Math.max(1, currentValue)
+                                    ? Math.max(100, currentValue)
                                     : 0;
                                 setStakeAmount([clampedValue]);
                                 console.log(
@@ -648,18 +651,18 @@ export function CreateDelusionSheet({
                           value={stakeAmount}
                           onValueChange={(values) => {
                             const clamped = values.map((v) =>
-                              v > 0 ? Math.max(1, v) : 0
+                              v > 0 ? Math.max(100, v) : 0
                             );
                             setStakeAmount(clamped);
                           }}
                           min={0}
-                          max={1000}
+                          max={10000}
                           step={0.01}
                           className="delulu-slider"
                         />
                         <div className="flex justify-between text-sm text-delulu-dark/50 font-medium mt-4">
-                          <span>$1.00</span>
-                          <span>$1,000</span>
+                          <span>100 G$</span>
+                          <span>10,000 G$</span>
                         </div>
                       </div>
 
@@ -861,10 +864,10 @@ export function CreateDelusionSheet({
                             }
                             if (
                               stakeAmount[0] > 0 &&
-                              stakeAmount[0] < 1
+                              stakeAmount[0] < 100
                             ) {
                               throw new Error(
-                                "Min stake is 1 Token or 0"
+                                "Minimum stake is 100 G$ or 0"
                               );
                             }
 

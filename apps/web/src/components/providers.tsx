@@ -61,7 +61,7 @@ function AppWithPrivy({
       config={{
         appearance: {
           theme: isDark ? "#151515" : "#ffffff",
-          accentColor: isDark ? "#151515" : "#151515",
+          accentColor: isDark ? "#151515" : "#466567",
           logo: "/favicon_io/favicon-32x32.png",
           walletChainType: "ethereum-only",
         },

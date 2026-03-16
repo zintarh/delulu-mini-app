@@ -143,6 +143,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
   const { address, isConnected } = useAccount();
   const [inputText, setInputText] = useState<string>("");
+  const [stakeInputTouched, setStakeInputTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
@@ -398,6 +400,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setStep("gallery");
     setStakeAmount(0);
     setInputText("");
+    setStakeInputTouched(false);
+    setSubmitAttempted(false);
     setDelusionText("");
     setDescription("");
     setDeadline(getDefaultDeadline());
@@ -452,6 +456,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     (isWaitingForApproval && !isApprovalSuccess);
 
   const handleCreate = async () => {
+    setSubmitAttempted(true);
     // Prevent multiple simultaneous calls
     if (isProcessing) {
       return;
@@ -929,35 +934,34 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       setInputText(value);
 
                       if (value.trim() === "") {
-                        // Empty input - will be validated as invalid (minimum 1 required)
                         setStakeAmount(0);
                         return;
                       }
 
                       const numValue = parseFloat(value);
                       if (!isNaN(numValue)) {
-                        // Enforce a minimum of 1 token
                         const clampedValue = numValue > 0 ? Math.max(MIN_STAKE, numValue) : 0;
                         setStakeAmount(clampedValue);
                       }
                     }}
                     onBlur={(e) => {
+                      setStakeInputTouched(true);
                       const currentValue = parseFloat(e.target.value);
-                      if (
-                        e.target.value === "" ||
-                        isNaN(currentValue) ||
-                        currentValue < MIN_STAKE
-                      ) {
-                        // Invalid/empty - set to minimum required
+                      if (e.target.value === "" || isNaN(currentValue) || currentValue < 0) {
+                        setStakeAmount(0);
+                        setInputText("");
+                        return;
+                      }
+                      if (currentValue > 0 && currentValue < MIN_STAKE) {
                         setStakeAmount(MIN_STAKE);
                         setInputText(MIN_STAKE.toString());
-                      } else {
+                      } else if (currentValue >= MIN_STAKE) {
                         const clampedValue = Math.max(MIN_STAKE, currentValue);
                         setStakeAmount(clampedValue);
-                        setInputText(clampedValue.toFixed(1));
+                        setInputText(clampedValue.toFixed(0));
                       }
                     }}
-                    placeholder="Min 1 Token"
+                    placeholder="Min 100 G$"
                     className={cn(
                       "flex-1 min-w-0 bg-transparent text-lg sm:text-2xl font-bold focus:outline-none placeholder:text-muted-foreground",
                     )}
@@ -1060,13 +1064,13 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               </div>
               {isConnected && (
                 <>
-                  {stakeAmount < MIN_STAKE && (
-                    <p className="text-sm text-destructive mt-2 font-bold">
-                      Minimum stake is 1 token
+                  {stakeAmount > 0 && stakeAmount < MIN_STAKE && (stakeInputTouched || submitAttempted) && (
+                    <p className="text-xs text-destructive mt-1.5">
+                      Minimum stake is {MIN_STAKE} G$ or 0
                     </p>
                   )}
-                  {stakeAmount >= MIN_STAKE && (hasInsufficientBalanceForStake || exceedsBalance) && (
-                    <p className="text-sm text-destructive mt-2 font-bold">
+                  {stakeAmount >= MIN_STAKE && (hasInsufficientBalanceForStake || exceedsBalance) && (stakeInputTouched || submitAttempted) && (
+                    <p className="text-xs text-destructive mt-1.5">
                       {hasInsufficientBalanceForStake
                         ? "Insufficient balance"
                         : exceedsBalance
@@ -1128,8 +1132,8 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                   <Upload className="w-4 h-4" />
                   <span>{selectedTemplate || customImage ? "Change Template" : "Choose Template"}</span>
                 </button>
-                {validation.errors.image && (
-                  <p className="text-sm text-destructive mt-2 font-bold">
+                {validation.errors.image && submitAttempted && (
+                  <p className="text-xs text-destructive mt-1.5">
                     {validation.errors.image}
                   </p>
                 )}
@@ -1137,14 +1141,13 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
             </div>
 
             {/* Manifest Button */}
-            <div className="flex items-center gap-4 mt-6">
+            <div className="flex justify-end mt-10">
               <button
                 onClick={handleCreate}
                 disabled={!canCreate || isProcessing}
                 className={cn(
-                  "flex-1",
-                  "px-8 py-4",
-                  "bg-delulu-yellow text-delulu-charcoal text-lg font-bold",
+                  "px-5 py-2.5 text-sm font-bold",
+                  "bg-delulu-yellow text-delulu-charcoal",
                   "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
                   "flex items-center justify-center gap-2 hover:bg-delulu-yellow/90 transition-colors",
                   (!canCreate || isProcessing) &&
@@ -1153,12 +1156,12 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               >
                 {!isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Approving...</span>
                   </>
                 ) : isProcessing ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>{progressStep?.label || "Processing..."}</span>
                   </>
                 ) : (

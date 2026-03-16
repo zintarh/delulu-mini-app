@@ -7,10 +7,18 @@ import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { HeartIcon, UsersIcon, Plus, Check } from "lucide-react";
+import { HeartIcon, UsersIcon, Plus, Check, Clock } from "lucide-react";
 import { useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAccount } from "wagmi";
 import { isDeluluCreator } from "@/lib/delulu-utils";
+import {
+  getMilestoneEndTimeMs,
+  getMilestoneDurationDays,
+  formatMilestoneCountdown,
+  getMilestoneLabel,
+  getDeluluCreatedAtMs,
+  shouldShowBuyButton,
+} from "@/lib/milestone-utils";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -18,8 +26,6 @@ function formatAddress(address: string): string {
 
 const DEFAULT_AVATAR_BASE =
   "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function formatTimeLeft(target: Date) {
   const now = Date.now();
@@ -49,31 +55,6 @@ function formatTimeLeft(target: Date) {
   }
 
   return { label, secondsLeft: totalSeconds };
-}
-
-function formatTimeLeftWithSeconds(nowMs: number, targetMs: number): string {
-  const diffMs = targetMs - nowMs;
-  if (diffMs <= 0) return "Ended";
-  const totalSeconds = Math.floor(diffMs / 1000);
-  const seconds = totalSeconds % 60;
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const hours = Math.floor(totalSeconds / 3600) % 24;
-  const days = Math.floor(totalSeconds / 86400);
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const hms = `${hours}:${pad(minutes)}:${pad(seconds)}`;
-  if (days > 0) return `${days}d ${hms}`;
-  return hms;
-}
-
-function getMilestoneEndTimeMs(
-  milestone: { startTime: Date | null; deadline: Date },
-  prevEndTimeMs: number | null,
-  deluluCreatedAtMs: number,
-): number {
-  const deadlineMs = milestone.deadline.getTime();
-  if (deadlineMs > 0) return deadlineMs;
-  const startFrom = prevEndTimeMs ?? deluluCreatedAtMs;
-  return startFrom + MS_PER_DAY;
 }
 
 interface DeluluCardProps {
@@ -141,19 +122,6 @@ export function DeluluCard({
 
   type MilestonePreviewStatus = "past" | "current" | "future";
 
-  const getMilestoneDurationDays = (
-    m: { startTime: Date | null; deadline: Date },
-    endTimeMs: number,
-  ): number | null => {
-    if (m.startTime && m.startTime.getTime() > 0) {
-      const startMs = m.startTime.getTime();
-      const diffMs = endTimeMs - startMs;
-      if (diffMs <= 0) return null;
-      return Math.round((diffMs / MS_PER_DAY) * 100) / 100;
-    }
-    return null;
-  };
-
   const { previewMilestones, passedCount, totalCount, successPct } =
     useMemo(() => {
       type PreviewItem = {
@@ -163,6 +131,7 @@ export function DeluluCard({
         durationDays?: number | null;
         pastLabel?: string;
         endTimeMs?: number;
+        isSubmitted?: boolean;
       };
       const empty = {
         previewMilestones: [] as PreviewItem[],
@@ -183,11 +152,13 @@ export function DeluluCard({
         total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
       const nowMs = now;
-      const deluluCreatedAtMs = delusion.createdAt
-        ? new Date(delusion.createdAt).getTime()
-        : delusion.stakingDeadline
-          ? new Date(delusion.stakingDeadline).getTime() - 7 * MS_PER_DAY
-          : now - 30 * MS_PER_DAY;
+      const deluluCreatedAtMs = getDeluluCreatedAtMs(
+        {
+          createdAt: delusion.createdAt,
+          stakingDeadline: delusion.stakingDeadline,
+        },
+        nowMs,
+      );
 
       const endTimesMs: number[] = [];
       let prevEnd: number | null = null;
@@ -200,25 +171,23 @@ export function DeluluCard({
       const currentIndex = endTimesMs.findIndex((endMs) => endMs > nowMs);
       const passed = currentIndex === -1 ? total : currentIndex;
 
-      const makeLabel = (m: (typeof sorted)[number]) => {
-        const raw =
-          (m.milestoneURI && m.milestoneURI.length > 0
-            ? m.milestoneURI
-            : `Milestone ${Number(m.milestoneId) + 1 || 1}`) || "";
-        return raw.length > 50 ? `${raw.slice(0, 47)}…` : raw;
-      };
-
       if (currentIndex === -1) {
         const start = Math.max(0, sorted.length - 3);
         const list = sorted.slice(start).map((m, i) => {
           const idx = start + i;
           const endMs = endTimesMs[idx];
+          const pastLabel = m.isVerified
+            ? "Completed"
+            : m.isSubmitted
+              ? "In review"
+              : "Expired";
           return {
-            label: makeLabel(m),
+            label: getMilestoneLabel(m, 50),
             status: "past" as MilestonePreviewStatus,
             durationDays: getMilestoneDurationDays(m, endMs),
-            pastLabel: m.isVerified ? "Completed" : "Failed",
+            pastLabel,
             endTimeMs: undefined,
+            isSubmitted: m.isSubmitted,
           };
         });
         return {
@@ -252,16 +221,21 @@ export function DeluluCard({
 
         let pastLabel: string | undefined;
         if (status === "past") {
-          pastLabel = m.isVerified ? "Completed" : "Failed";
+          pastLabel = m.isVerified
+            ? "Completed"
+            : m.isSubmitted
+              ? "In review"
+              : "Expired";
         }
 
         return {
-          label: makeLabel(m),
+          label: getMilestoneLabel(m, 50),
           status,
           durationDays:
             status === "past" ? getMilestoneDurationDays(m, endMs) : null,
           pastLabel,
           endTimeMs: status === "current" ? endMs : undefined,
+          isSubmitted: m.isSubmitted,
         };
       });
       return {
@@ -278,37 +252,14 @@ export function DeluluCard({
       delusion.stakingDeadline,
     ]);
 
-  const canSupport = useMemo(() => {
-    const now = Date.now();
-
-    // Check Genesis window (first 24 hours after creation)
-    if (
-      delusion.stakingDeadline &&
-      new Date(delusion.stakingDeadline).getTime() > now
-    ) {
-      return true;
-    }
-
-    // Check if any milestone has an active tipping window
-    if (milestones && milestones.length > 0) {
-      for (const milestone of milestones) {
-        if (
-          milestone.isSubmitted &&
-          milestone.tippingWindowStart &&
-          milestone.tippingWindowEnd
-        ) {
-          const tippingStart = new Date(milestone.tippingWindowStart).getTime();
-          const tippingEnd = new Date(milestone.tippingWindowEnd).getTime();
-
-          if (now >= tippingStart && now <= tippingEnd) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }, [delusion.stakingDeadline, milestones]);
+  const showBuyButton = useMemo(
+    () =>
+      shouldShowBuyButton(milestones, now, {
+        createdAt: delusion.createdAt,
+        stakingDeadline: delusion.stakingDeadline,
+      }),
+    [milestones, now, delusion.createdAt, delusion.stakingDeadline],
+  );
 
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
@@ -356,7 +307,7 @@ export function DeluluCard({
           "rounded-2xl overflow-hidden transition-all duration-300",
           "bg-card/95 border border-border/80 shadow-sm",
           "hover:border-emerald/30 hover:shadow-md hover:shadow-emerald/5",
-          href && "cursor-pointer active:scale-[0.99]"
+          href && "cursor-pointer active:scale-[0.99]",
         )}
         style={href ? { cursor: "pointer" } : {}}
       >
@@ -370,21 +321,22 @@ export function DeluluCard({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-foreground font-medium mb-0.5">
-              {displayUsername ? `@${displayUsername}` : formatAddress(delusion.creator)}
+              {displayUsername
+                ? `@${displayUsername}`
+                : formatAddress(delusion.creator)}
             </p>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-              <span>
-                {timeLeftLabel === "Ended" ? "Ended" : "Active"}
-              </span>
+              <span>{timeLeftLabel === "Ended" ? "Ended" : "Active"}</span>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0 bg-secondary border border-border/50 rounded-full px-2 py-1">
-           
             <span className="text-sm font-bold tabular-nums text-foreground">
               {formattedGAmount}
             </span>
             {isGoodDollar && (
-              <span className="text-[11px] font-semibold text-muted-foreground">G$</span>
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                G$
+              </span>
             )}
           </div>
         </div>
@@ -400,7 +352,7 @@ export function DeluluCard({
             <div className="space-y-1.5">
               <div className="flex items-center gap-1 text-[11px]">
                 <span className="text-muted-foreground font-medium">
-                  Journey
+                  Milestones
                 </span>
                 <span className="tabular-nums text-muted-foreground font-semibold">
                   {passedCount}/{totalCount}
@@ -408,12 +360,6 @@ export function DeluluCard({
                     <span className="t font-normal"> · {successPct}%</span>
                   )}
                 </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-emerald/70 transition-all duration-500"
-                  style={{ width: `${totalCount > 0 ? (passedCount / totalCount) * 100 : 0}%` }}
-                />
               </div>
             </div>
           )}
@@ -428,19 +374,23 @@ export function DeluluCard({
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add step
-              </button>
+              </button> 
             ) : null
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {previewMilestones.map((m) => {
                 const isPast = m.status === "past";
-                const isPastFailed = isPast && m.pastLabel === "Failed";
+                const isPastFailed = isPast && m.pastLabel === "";
+                const isInReview = isPast && m.pastLabel === "In review";
+                const isCurrentUnderReview =
+                  m.status === "current" && m.isSubmitted;
                 const isCompleted = isPast && m.pastLabel === "Completed";
                 const base =
-                  "flex items-center justify-between rounded-xl px-3.5 py-2.5 border text-[12px] transition-colors";
+                  "flex items-center justify-between rounded-xl  py-1  text-[12px] transition-colors";
+
                 const variant =
                   m.status === "current"
-                    ? "bg-emerald/10 text-foreground border-emerald/40 shadow-[0_0_0_1px_rgba(52,211,153,0.2)]"
+                    ? ""
                     : m.status === "past"
                       ? "bg-muted/40 border-border/40 text-muted-foreground"
                       : "bg-muted/30 border-border/30 text-muted-foreground";
@@ -455,6 +405,10 @@ export function DeluluCard({
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald/20 text-emerald">
                           <Check className="h-3 w-3" strokeWidth={2.5} />
                         </span>
+                      ) : isInReview || isCurrentUnderReview ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          <Clock className="h-3 w-3" strokeWidth={2.5} />
+                        </span>
                       ) : (
                         <span
                           className={cn(
@@ -467,7 +421,12 @@ export function DeluluCard({
                           )}
                         />
                       )}
-                      <span className={cn("truncate", m.status === "current" && "font-medium")}>
+                      <span
+                        className={cn(
+                          "truncate",
+                          m.status === "current" && "font-medium",
+                        )}
+                      >
                         {m.status === "current" ? "Now: " : null}
                         {m.label}
                       </span>
@@ -477,15 +436,21 @@ export function DeluluCard({
                         className={cn(
                           "text-[11px] tabular-nums font-medium",
                           isPastFailed && "text-destructive",
+                          isInReview && "text-amber-600 dark:text-amber-400",
+                          m.status === "current" &&
+                            m.isSubmitted &&
+                            "text-amber-600 dark:text-amber-400",
                         )}
                       >
                         {m.status === "past"
                           ? (m.pastLabel ?? "Done")
                           : m.status === "future"
                             ? "Upcoming"
-                            : m.endTimeMs != null
-                              ? formatTimeLeftWithSeconds(now, m.endTimeMs)
-                              : "—"}
+                            : m.status === "current" && m.isSubmitted
+                              ? `Under review · ${m.endTimeMs != null ? formatMilestoneCountdown(now, m.endTimeMs) : "—"}`
+                              : m.endTimeMs != null
+                                ? formatMilestoneCountdown(now, m.endTimeMs)
+                                : "—"}
                       </span>
                     </div>
                   </div>
@@ -496,22 +461,21 @@ export function DeluluCard({
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-muted/30 px-4 py-3 text-xs">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            {delusion.totalSupporters != null && delusion.totalSupporters > 0 ? (
-              <span className="inline-flex items-center gap-1.5 font-medium text-foreground/90">
-                <UsersIcon className="h-4 w-4 text-emerald/80" />
+          <div className="flex items-center gap-1 text-muted-foreground">
+            {delusion.totalSupporters != null && (
+              <span className="inline-flex items-center gap-1 font-medium text-foreground/90">
+                <UsersIcon className="h-3 w-3 text-emerald/80" />
                 <span>{delusion.totalSupporters}</span>
               </span>
-            ) : canSupport ? (
-              <span className="text-muted-foreground">First</span>
-            ) : null}
+            )}
           </div>
-          {canSupport && (
+
+          {showBuyButton && (
             <button
               onClick={handleStake}
-              className="inline-flex items-center gap-2 rounded-full bg-delulu-yellow-reserved px-4 py-2 text-[12px] font-bold text-delulu-charcoal shadow-[2px_2px_0_0_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0_0_rgba(0,0,0,0.2)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-all"
+              className="inline-flex items-center gap-2 text-delulu-yellow-reserved border dark:border-delulu-yellow-reserved rounded-full bg-secondary px-4 py-2 text-[12px] font-bold text-foreground shadow-[2px_2px_0_0_rgba(0,0,0,0.2)] hover:shadow-[3px_3px_0_0_rgba(0,0,0,0.2)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-all"
             >
-              <HeartIcon className="h-4 w-4" />
+              <HeartIcon className="h-4 w-4 text-delulu-yellow" />
               Buy
             </button>
           )}

@@ -123,6 +123,16 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "MilestoneCannotBeDeleted",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "MilestonesCannotBeReset",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NoPointsAllocated",
 		"type": "error"
 	},
