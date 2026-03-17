@@ -90,10 +90,8 @@ export default function HomePage() {
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Infinite scroll detection
   const scrollContainerRef = useRef<HTMLElement>(null);
 
-  // Show onboarding once per browser (local storage key)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -102,11 +100,9 @@ export default function HomePage() {
         setShowOnboarding(true);
       }
     } catch {
-      // If storage is unavailable, fail silently.
     }
   }, []);
 
-  // Infinite scroll: load more when user scrolls near bottom of the feed
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -137,8 +133,6 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
-  // After a fresh Privy login, prompt user to set up profile only if username is not set
-  // and the user has not previously dismissed the setup modal.
   useEffect(() => {
     if (!authenticated) return;
     if (user?.username) {
@@ -282,7 +276,6 @@ export default function HomePage() {
                     <DeluluCard {...commonProps} />
                   );
                 })}
-                {/* Loading indicator for next page */}
                 {isFetchingNextPage && (
                   <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3 mt-6" : "flex flex-col gap-3 mt-6"}>
                     {Array.from({ length: 3 }).map((_, i) => (

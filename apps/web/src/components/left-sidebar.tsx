@@ -33,6 +33,7 @@ interface LeftSidebarProps {
 export function LeftSidebar({
   onProfileClick,
   onCreateClick,
+  onOnboardingClick,
 }: LeftSidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useIsAdmin();
