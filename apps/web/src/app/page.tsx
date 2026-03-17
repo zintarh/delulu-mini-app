@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
+import { OnboardingSheet } from "@/components/onboarding-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { StakeFlowSheet } from "@/components/stake-flow-sheet";
@@ -79,6 +80,7 @@ export default function HomePage() {
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
@@ -88,10 +90,19 @@ export default function HomePage() {
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Infinite scroll detection
   const scrollContainerRef = useRef<HTMLElement>(null);
 
-  // Infinite scroll: load more when user scrolls near bottom of the feed
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const seen = window.localStorage.getItem("delulu_onboarding_seen_v1");
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+    } catch {
+    }
+  }, []);
+
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -122,12 +133,19 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
-  // After a fresh Privy login, prompt user to set up profile only if username is not set
   useEffect(() => {
     if (!authenticated) return;
     if (user?.username) {
       setShowUserSetupModal(false);
       return;
+    }
+    if (typeof window !== "undefined") {
+      const suppressed = window.localStorage.getItem(
+        "delulu_profile_setup_suppressed_v1",
+      );
+      if (suppressed === "1") {
+        return;
+      }
     }
     setShowUserSetupModal(true);
   }, [authenticated, user?.username]);
@@ -162,6 +180,7 @@ export default function HomePage() {
           <LeftSidebar
             onProfileClick={handleProfileClick}
             onCreateClick={handleCreateClick}
+            onOnboardingClick={() => setShowOnboarding(true)}
           />
         </div>
 
@@ -257,7 +276,6 @@ export default function HomePage() {
                     <DeluluCard {...commonProps} />
                   );
                 })}
-                {/* Loading indicator for next page */}
                 {isFetchingNextPage && (
                   <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3 mt-6" : "flex flex-col gap-3 mt-6"}>
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -325,6 +343,20 @@ export default function HomePage() {
         type={howItWorksType}
       />
 
+      <OnboardingSheet
+        open={showOnboarding}
+        onOpenChange={(open) => {
+          setShowOnboarding(open);
+          if (!open && typeof window !== "undefined") {
+            try {
+              window.localStorage.setItem("delulu_onboarding_seen_v1", "1");
+            } catch {
+              // ignore storage errors
+            }
+          }
+        }}
+      />
+
       <StakeFlowSheet
         open={stakingSheetOpen}
         onOpenChange={setStakingSheetOpen}
@@ -360,10 +392,32 @@ export default function HomePage() {
 
       <UserSetupModal
         open={showUserSetupModal && !user?.username}
-        onOpenChange={setShowUserSetupModal}
+        onOpenChange={(open) => {
+          setShowUserSetupModal(open);
+          if (!open && typeof window !== "undefined") {
+            try {
+              window.localStorage.setItem(
+                "delulu_profile_setup_suppressed_v1",
+                "1",
+              );
+            } catch {
+              // ignore storage errors
+            }
+          }
+        }}
         onComplete={(username, email) => {
           updateUsername(username, email);
           setShowUserSetupModal(false);
+          if (typeof window !== "undefined") {
+            try {
+              window.localStorage.setItem(
+                "delulu_profile_setup_suppressed_v1",
+                "1",
+              );
+            } catch {
+              // ignore storage errors
+            }
+          }
         }}
       />
     </div>

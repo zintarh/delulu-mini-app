@@ -274,9 +274,9 @@ export function StakingSheet({
       return;
     }
 
-    if (amount < 1) {
+    if (amount < 100) {
       console.error("[StakingSheet] Amount below minimum:", amount);
-      setErrorMessage("Minimum stake is 1");
+      setErrorMessage("Minimum support is 100 G$");
       setShowErrorModal(true);
       return;
     }
@@ -339,7 +339,7 @@ export function StakingSheet({
     if (!stakeAmount || stakeAmount === "") return null;
     const amount = stakeAmountNum;
     if (isNaN(amount) || amount <= 0) return "Please enter a valid amount";
-    if (amount < 1) return "Minimum stake is 1";
+    if (amount < 100) return "Minimum support is 100 G$";
     if (tokenBalance !== null && !isLoadingBalance && amount > tokenBalance)
       return "Insufficient balance";
     return null;
@@ -355,7 +355,7 @@ export function StakingSheet({
     !!marketToken &&
     !isLoading &&
     stakeAmount &&
-    stakeAmountNum >= 1 &&
+    stakeAmountNum >= 100 &&
     !validationError;
 
 
