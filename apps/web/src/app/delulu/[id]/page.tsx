@@ -209,6 +209,8 @@ export default function DeluluPage() {
     { description: string; days: string }[]
   >([{ description: "", days: "" }]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMilestoneConfirmModal, setShowMilestoneConfirmModal] =
+    useState(false);
   const [milestoneToDelete, setMilestoneToDelete] = useState<{
     id: string;
     label?: string;
@@ -1316,14 +1318,18 @@ export default function DeluluPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={handleCreateMilestones}
+                          onClick={() => setShowMilestoneConfirmModal(true)}
                           disabled={
-                            isAddingMilestones || isConfirmingAddMilestones
+                            isAddingMilestones ||
+                            isConfirmingAddMilestones ||
+                            !!(milestones && milestones.length > 0)
                           }
                           className={cn(
                             "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                             "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
-                            (isAddingMilestones || isConfirmingAddMilestones) &&
+                            (isAddingMilestones ||
+                              isConfirmingAddMilestones ||
+                              (milestones && milestones.length > 0)) &&
                               "opacity-60 cursor-not-allowed",
                           )}
                         >
@@ -1787,6 +1793,49 @@ export default function DeluluPage() {
                   ) : (
                     "Delete Milestone"
                   )}
+                </button>
+              </div>
+            </ModalFooter>
+          </div>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        open={showMilestoneConfirmModal}
+        onOpenChange={setShowMilestoneConfirmModal}
+      >
+        <ModalContent className="max-w-md">
+          <ModalHeader>
+            <ModalTitle className="text-delulu-charcoal text-xl font-bold">
+              Save milestones?
+            </ModalTitle>
+            <ModalDescription className="mt-2 text-sm text-muted-foreground">
+              You can only add all milestones for this delulu at once. Make
+              sure you&apos;ve added every step you need before saving.
+            </ModalDescription>
+          </ModalHeader>
+          <div className="mt-4">
+            <ModalFooter>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowMilestoneConfirmModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-semibold rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Add more
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMilestoneConfirmModal(false);
+                    handleCreateMilestones();
+                  }}
+                  className={cn(
+                    "flex-1 px-4 py-2 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                    "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-all",
+                  )}
+                >
+                  Proceed
                 </button>
               </div>
             </ModalFooter>

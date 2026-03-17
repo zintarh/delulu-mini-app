@@ -140,37 +140,27 @@ contract Delulu is
     mapping(uint256 => mapping(uint256 => uint256))
         public milestoneTotalSupport;
 
-    // Creator finisher badge counter
     mapping(address => uint256) public finishedGoalsCount;
 
-    // Address allowed to verify / reject milestones (e.g. backend/AI signer)
     address public verifier;
 
-    // Replacement for Milestone new fields
     mapping(uint256 => mapping(uint256 => uint256)) public milestoneStartTime;
     mapping(uint256 => mapping(uint256 => uint256)) public milestoneTippingStart;
     mapping(uint256 => mapping(uint256 => uint256)) public milestoneTippingEnd;
     mapping(uint256 => mapping(uint256 => bool)) public milestoneIsMissed;
 
-    // Replacement for Market new fields
     mapping(uint256 => bool) public marketIsStaked;
     mapping(uint256 => uint256) public marketStakedAmount;
     mapping(uint256 => uint256) public marketFinisherWindowEnd;
     mapping(uint256 => bool) public marketIsFailed;
 
-    // Milestone metadata URI (e.g. IPFS CID) for subgraph / off-chain reads
     mapping(uint256 => mapping(uint256 => string)) public milestoneURI;
     
-    // Track deleted milestones
     mapping(uint256 => mapping(uint256 => bool)) public milestoneIsDeleted;
 
-    // ─── Shares Bonding Curve State (APPEND ONLY) ───────────────────────
-    // Total number of shares outstanding for each delulu.
+
     mapping(uint256 => uint256) public shareSupply;
-    // Share balances per user per delulu.
     mapping(uint256 => mapping(address => uint256)) public shareBalance;
-    // Creator share fees from share trades accumulate here and can be claimed via a pull model.
-    // Mapping: creator => token => amount
     mapping(address => mapping(address => uint256)) public pendingCreatorShareFeesByToken;
 
     // --- EVENTS ---

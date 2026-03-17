@@ -27,6 +27,7 @@ import { TokenBadge } from "@/components/token-badge";
 interface LeftSidebarProps {
   onProfileClick?: () => void;
   onCreateClick?: () => void;
+  onOnboardingClick?: () => void;
 }
 
 export function LeftSidebar({
@@ -113,6 +114,18 @@ export function LeftSidebar({
       active: false,
       onClick: onProfileClick,
     },
+    // Onboarding link is only shown when a handler is provided by the parent.
+    ...(typeof onOnboardingClick === "function"
+      ? [
+          {
+            icon: Moon,
+            label: "Onboarding",
+            href: undefined,
+            active: false,
+            onClick: onOnboardingClick,
+          },
+        ]
+      : []),
     ...(isAdmin
       ? [
           {
