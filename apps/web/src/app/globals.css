@@ -44,7 +44,7 @@
 .dark {
   /* Primary background & text */
   --background: #010001;
-  --foreground: #fefeff; /* also used for icons */
+  --foreground:  rgb(255 255 255 / 0.9);   /* also used for icons */
 
   /* Surfaces */
   --card: #151515;

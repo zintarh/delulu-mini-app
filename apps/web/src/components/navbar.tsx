@@ -32,8 +32,8 @@ export function Navbar({
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-secondary/95 backdrop-blur-sm border-b border-border">
       <nav className="max-w-lg md:max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
-        <Link
-          href="/"
+        <a
+          href="https://stay.delulu.xyz"
           className="outline-none focus-visible:ring-2 focus-visible:ring-ring rounded flex items-center shrink-0"
           aria-label="Delulu home"
         >
@@ -44,7 +44,7 @@ export function Navbar({
             height={32}
             className="h-8 w-8"
           />
-        </Link>
+        </a>
 
         <div className="flex items-center gap-1">
             <button

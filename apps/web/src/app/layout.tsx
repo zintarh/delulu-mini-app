@@ -203,7 +203,6 @@ export const metadata: Metadata = {
     ],
     shortcut: ["/favicon_io/favicon.ico"],
     apple: ["/favicon_io/apple-touch-icon.png"],
-    other: [{ rel: "manifest", url: "/favicon_io/site.webmanifest" }],
   },
   other: {
     "fc:frame": JSON.stringify(frame),

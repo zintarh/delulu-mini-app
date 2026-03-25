@@ -9,6 +9,7 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { celo } from "wagmi/chains";
 import { useSessionSigner } from "@/hooks/use-session-signer";
 import { env } from "@/lib/env";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -41,6 +42,7 @@ function AppWithPrivy({
       <ApolloProvider>
         <QueryProvider>
           <MiniAppProvider addMiniAppOnLoad={true}>
+            <ServiceWorkerRegister />
             {children}
           </MiniAppProvider>
         </QueryProvider>

@@ -22,6 +22,7 @@ import { formatAddress } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
+import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 
 interface LeftSidebarProps {
   onProfileClick?: () => void;
@@ -128,15 +129,22 @@ export function LeftSidebar({
   return (
     <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
       <div className="mb-8 px-2">
-        <h1
-          className="text-xl font-black text-delulu-yellow-reserved"
-          style={{
-            fontFamily: "var(--font-gloria), cursive",
-            textShadow: "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A",
-          }}
+        <a
+          href="https://stay.delulu.xyz"
+          className="inline-block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          aria-label="Delulu home"
         >
-          Delulu
-        </h1>
+          <h1
+            className="text-xl font-black text-delulu-yellow-reserved"
+            style={{
+              fontFamily: "var(--font-gloria), cursive",
+              textShadow:
+                "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A",
+            }}
+          >
+            Delulu
+          </h1>
+        </a>
       </div>
 
       <nav className="flex-1 flex flex-col gap-2">
@@ -233,6 +241,11 @@ export function LeftSidebar({
         })}
       </nav>
       <div className="mt-4 pt-3 border-t border-border space-y-3">
+        {/* Push reminders */}
+        {isConnected && address ? (
+          <PushRemindersCard compact className="w-full" />
+        ) : null}
+
         {/* Connection status / Login */}
         {!isConnected ? (
           <button
