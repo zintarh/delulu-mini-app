@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Home, Plus, Coins, CableCar, User } from "lucide-react";
+import { Home, Plus, Coins, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccount } from "wagmi";
 
@@ -21,7 +21,6 @@ const navItems: Array<{
   { icon: Home, label: "Home", href: "/" },
   { icon: Plus, label: "Create", href: null },
   { icon: Coins, label: "Claim", href: "/daily-claim", isClaim: true },
-  { icon: CableCar, label: "Campaigns", href: "/campaigns" },
   { icon: User, label: "Profile", href: null },
 ];
 
@@ -31,7 +30,7 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
   const { isConnected } = useAccount();
 
   useEffect(() => {
-    ["/", "/board", "/profile", "/daily-claim", "/campaigns", "/leaderboard"]
+    ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]
       .forEach((href) => router.prefetch(href));
   }, [router]);
 
