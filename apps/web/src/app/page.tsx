@@ -354,9 +354,6 @@ export default function HomePage() {
             }
           }
         }}
-        address={address as `0x${string}` | undefined}
-        isAuthenticated={authenticated}
-        onRequestLogin={() => setShowLoginSheet(true)}
       />
 
       <LogoutSheet

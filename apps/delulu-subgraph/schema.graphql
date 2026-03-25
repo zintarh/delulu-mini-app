@@ -33,6 +33,9 @@ type Delulu @entity(immutable: false) {
   creatorStake: BigInt! # Initial support from creator
   creatorIsStaked: Boolean # v3: whether creator currently has stake locked
   creatorStakeCurrent: BigInt # v3: live creator stake after slashing/refunds
+
+  # Shares
+  shareSupply: BigInt! # Total shares minted for this delulu
   
   # Challenge and Milestone tracking
   challengeId: BigInt # Challenge ID if joined (nullable)
@@ -52,6 +55,31 @@ type Delulu @entity(immutable: false) {
   stakes: [Stake!]! @derivedFrom(field: "delulu")
   claims: [Claim!]! @derivedFrom(field: "delulu")
   milestones: [Milestone!]! @derivedFrom(field: "delulu")
+  shareTrades: [ShareTrade!]! @derivedFrom(field: "delulu")
+  shareHoldings: [ShareHolding!]! @derivedFrom(field: "delulu")
+}
+
+# ShareTrade entity - tracks each buy/sell
+type ShareTrade @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  delulu: Delulu!
+  user: User!
+  isBuy: Boolean!
+  amount: BigInt!
+  curveAmount: BigInt!
+  protocolFee: BigInt!
+  creatorFee: BigInt!
+  txHash: Bytes!
+  createdAt: BigInt!
+}
+
+# ShareHolding entity - rolling per-user per-delulu share balance
+type ShareHolding @entity(immutable: false) {
+  id: ID! # deluluId-userAddress
+  delulu: Delulu!
+  user: User!
+  balance: BigInt!
+  updatedAt: BigInt!
 }
 
 # Stake entity - tracks each support stake

@@ -17,6 +17,7 @@ export function PullToRefresh() {
   const router = useRouter();
   const startYRef = useRef<number | null>(null);
   const pullingRef = useRef(false);
+  const scrollerRef = useRef<HTMLElement | Window | null>(null);
   const [pullPx, setPullPx] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -28,10 +29,27 @@ export function PullToRefresh() {
     const threshold = 72;
     const maxPull = 110;
 
-    const atTop = () => (window.scrollY ?? 0) <= 0;
+    const getScrollableParent = (el: EventTarget | null): HTMLElement | null => {
+      let node = el as HTMLElement | null;
+      while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        const canScrollY =
+          /(auto|scroll|overlay)/.test(style.overflowY) &&
+          node.scrollHeight > node.clientHeight;
+        if (canScrollY) return node;
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const isAtTop = (scroller: HTMLElement | Window | null) => {
+      if (!scroller || scroller instanceof Window) return (window.scrollY ?? 0) <= 0;
+      return scroller.scrollTop <= 0;
+    };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!atTop()) return;
+      scrollerRef.current = getScrollableParent(e.target) ?? window;
+      if (!isAtTop(scrollerRef.current)) return;
       startYRef.current = e.touches[0]?.clientY ?? null;
       pullingRef.current = false;
       setPullPx(0);
@@ -40,7 +58,7 @@ export function PullToRefresh() {
     const onTouchMove = (e: TouchEvent) => {
       const startY = startYRef.current;
       if (startY === null) return;
-      if (!atTop()) return;
+      if (!isAtTop(scrollerRef.current)) return;
 
       const y = e.touches[0]?.clientY ?? startY;
       const delta = y - startY;
@@ -57,6 +75,7 @@ export function PullToRefresh() {
     const onTouchEnd = async () => {
       const px = pullPx;
       startYRef.current = null;
+      scrollerRef.current = null;
 
       if (!pullingRef.current) {
         setPullPx(0);

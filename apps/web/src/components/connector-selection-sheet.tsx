@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 
 interface ConnectorSelectionSheetProps {
@@ -13,9 +13,16 @@ export function ConnectorSelectionSheet({
   onOpenChange,
 }: ConnectorSelectionSheetProps) {
   const { login, authenticated } = usePrivy();
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      hasTriggeredRef.current = false;
+      return;
+    }
+    if (hasTriggeredRef.current) return;
+
+    hasTriggeredRef.current = true;
 
     let cancelled = false;
 
@@ -28,6 +35,7 @@ export function ConnectorSelectionSheet({
       } finally {
         if (!cancelled) {
           onOpenChange(false);
+          hasTriggeredRef.current = false;
         }
       }
     })();

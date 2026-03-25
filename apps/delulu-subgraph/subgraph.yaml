@@ -23,6 +23,8 @@ dataSources:
         - Milestone
         - Challenge
         - CreatorStats
+        - ShareTrade
+        - ShareHolding
       abis:
         - name: DeluluMarket
           file: ./abis/DeluluMarket.json
@@ -64,6 +66,10 @@ dataSources:
           handler: handlePaused
         - event: Unpaused(address)
           handler: handleUnpaused
+        - event: SharesBought(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleSharesBought
+        - event: SharesSold(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleSharesSold
       file: ./src/delulu-market.ts
   - kind: ethereum
     name: ERC1967Proxy

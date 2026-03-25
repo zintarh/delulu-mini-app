@@ -15,12 +15,14 @@ import {
   MilestoneRejected as MilestoneRejectedEvent,
   ChallengeCreated as ChallengeCreatedEvent,
   TipExecuted as TipExecutedEvent,
+  SharesBought as SharesBoughtEvent,
+  SharesSold as SharesSoldEvent,
   OwnershipTransferred as OwnershipTransferredEvent,
   Paused as PausedEvent,
   Unpaused as UnpausedEvent,
   DeluluMarket as DeluluMarketContract
 } from "../generated/DeluluMarket/DeluluMarket"
-import { User, Delulu, Stake, Claim, Milestone, Challenge, CreatorStats } from "../generated/schema"
+import { User, Delulu, Stake, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding } from "../generated/schema"
 
 function getOrCreateUser(userId: Bytes, timestamp: BigInt): User {
   let user = User.load(userId)
@@ -99,11 +101,84 @@ export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   delulu.isResolved = false
   delulu.isCancelled = false
   delulu.rewardClaimed = false
+  // Shares: creator gets 1 initial share on creation (contract-side mint)
+  delulu.shareSupply = BigInt.fromI32(1)
   
   // Challenge and milestone tracking
   // challengeId and points are nullable - don't set them initially (will be set when needed)
   delulu.milestoneCount = BigInt.fromI32(0)
   delulu.save()
+}
+
+function getOrCreateShareHolding(deluluId: string, userId: Bytes, timestamp: BigInt): ShareHolding {
+  const id = deluluId + "-" + userId.toHexString()
+  let holding = ShareHolding.load(id)
+  if (holding == null) {
+    holding = new ShareHolding(id)
+    holding.delulu = deluluId
+    holding.user = userId
+    holding.balance = BigInt.fromI32(0)
+  }
+  holding.updatedAt = timestamp
+  return holding as ShareHolding
+}
+
+export function handleSharesBought(event: SharesBoughtEvent): void {
+  const deluluId = event.params.deluluId.toString()
+  const userId = event.params.buyer
+  const user = getOrCreateUser(userId, event.block.timestamp)
+
+  const delulu = Delulu.load(deluluId)
+  if (delulu == null) return
+
+  delulu.shareSupply = delulu.shareSupply.plus(event.params.amount)
+  delulu.save()
+
+  const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
+  holding.balance = holding.balance.plus(event.params.amount)
+  holding.save()
+
+  const tradeId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  const trade = new ShareTrade(tradeId)
+  trade.delulu = deluluId
+  trade.user = user.id
+  trade.isBuy = true
+  trade.amount = event.params.amount
+  trade.curveAmount = event.params.curveCost
+  trade.protocolFee = event.params.protocolFee
+  trade.creatorFee = event.params.creatorFee
+  trade.txHash = event.transaction.hash
+  trade.createdAt = event.block.timestamp
+  trade.save()
+}
+
+export function handleSharesSold(event: SharesSoldEvent): void {
+  const deluluId = event.params.deluluId.toString()
+  const userId = event.params.seller
+  const user = getOrCreateUser(userId, event.block.timestamp)
+
+  const delulu = Delulu.load(deluluId)
+  if (delulu == null) return
+
+  delulu.shareSupply = delulu.shareSupply.minus(event.params.amount)
+  delulu.save()
+
+  const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
+  holding.balance = holding.balance.minus(event.params.amount)
+  holding.save()
+
+  const tradeId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  const trade = new ShareTrade(tradeId)
+  trade.delulu = deluluId
+  trade.user = user.id
+  trade.isBuy = false
+  trade.amount = event.params.amount
+  trade.curveAmount = event.params.curveProceeds
+  trade.protocolFee = event.params.protocolFee
+  trade.creatorFee = event.params.creatorFee
+  trade.txHash = event.transaction.hash
+  trade.createdAt = event.block.timestamp
+  trade.save()
 }
 
 export function handleSupportStaked(event: SupportStakedEvent): void {
