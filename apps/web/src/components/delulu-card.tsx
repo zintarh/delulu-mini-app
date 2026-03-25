@@ -8,7 +8,8 @@ import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { HeartIcon, UsersIcon, Plus, Check, Clock } from "lucide-react";
-import { useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
+import { useApolloClient } from "@apollo/client/react";
+import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAccount } from "wagmi";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import {
@@ -20,6 +21,7 @@ import {
   shouldShowBuyButton,
 } from "@/lib/milestone-utils";
 import type { FeedMilestone } from "@/hooks/graph/useAllDelulus";
+import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -109,6 +111,7 @@ export function DeluluCard({
   const { address } = useAccount();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
+  const apolloClient = useApolloClient();
 
   const [localNow, setLocalNow] = useState(() => Date.now());
   useEffect(() => {
@@ -313,7 +316,21 @@ export function DeluluCard({
     }
   };
 
-  const handleMouseEnter = () => {};
+  const handleMouseEnter = () => {
+    if (!href) return;
+    router.prefetch(href);
+    // Warm detail-page GraphQL + IPFS so first navigation feels instant.
+    apolloClient
+      .query({
+        query: GET_DELULU_BY_ID,
+        variables: { id: String(delusion.id) },
+        fetchPolicy: "cache-first",
+      })
+      .catch(() => {});
+    if (delusion.contentHash) {
+      resolveIPFSContent(delusion.contentHash).catch(() => {});
+    }
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -503,7 +520,9 @@ export function DeluluCard({
       <Link
         href={href}
         className={cn(className, "block h-auto mb-4")}
-        prefetch={false}
+        onMouseEnter={handleMouseEnter}
+        onTouchStart={handleMouseEnter}
+        prefetch={true}
         scroll={true}
       >
         {cardContent}

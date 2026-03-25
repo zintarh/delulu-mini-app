@@ -2,6 +2,7 @@
 
 import { useState,  useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { FormattedDelulu } from "@/lib/types";
@@ -9,6 +10,8 @@ import { formatTimeRemaining, cn, getCountryFlag, formatGAmount } from "@/lib/ut
 import { useCancelDelulu } from "@/hooks/use-cancel-delulu";
 import { useAccount } from "wagmi";
 import { isDeluluCreator } from "@/lib/delulu-utils";
+import { GET_DELULU_BY_ID } from "@/hooks/graph/useGraphDelulu";
+import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
 import {
   Modal,
   ModalContent,
@@ -91,6 +94,7 @@ export function ProfileDeluluCard({
 }: ProfileDeluluCardProps) {
   const { address } = useAccount();
   const apolloClient = useApolloClient();
+  const router = useRouter();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const {
     cancel,
@@ -398,13 +402,30 @@ export function ProfileDeluluCard({
     </Modal>
   );
 
+  const handlePrefetch = () => {
+    if (!href) return;
+    router.prefetch(href);
+    apolloClient
+      .query({
+        query: GET_DELULU_BY_ID,
+        variables: { id: String(delusion.id) },
+        fetchPolicy: "cache-first",
+      })
+      .catch(() => {});
+    if (delusion.contentHash) {
+      resolveIPFSContent(delusion.contentHash).catch(() => {});
+    }
+  };
+
   if (href) {
     return (
       <>
         <Link
           href={href}
           className={cn(className, "block")}
-          prefetch={false}
+          onMouseEnter={handlePrefetch}
+          onTouchStart={handlePrefetch}
+          prefetch={true}
           scroll={true}
         >
           {cardContent}

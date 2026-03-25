@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   useAccount,
   useChainId,
@@ -24,8 +25,14 @@ import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
-import { FeedbackModal } from "@/components/feedback-modal";
-import { ProofModal } from "@/components/proof-modal";
+const FeedbackModal = dynamic(
+  () => import("@/components/feedback-modal").then((m) => m.FeedbackModal),
+  { ssr: false },
+);
+const ProofModal = dynamic(
+  () => import("@/components/proof-modal").then((m) => m.ProofModal),
+  { ssr: false },
+);
 import {
   Modal,
   ModalContent,
@@ -34,11 +41,20 @@ import {
   ModalDescription,
   ModalFooter,
 } from "@/components/ui/modal";
-import { StakeFlowSheet } from "@/components/stake-flow-sheet";
+const StakeFlowSheet = dynamic(
+  () => import("@/components/stake-flow-sheet").then((m) => m.StakeFlowSheet),
+  { ssr: false },
+);
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
+const ConnectorSelectionSheet = dynamic(
+  () =>
+    import("@/components/connector-selection-sheet").then(
+      (m) => m.ConnectorSelectionSheet,
+    ),
+  { ssr: false },
+);
 import { ChallengesHeader } from "@/components/challenges-header";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import {

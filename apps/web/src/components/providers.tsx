@@ -35,10 +35,9 @@ function AppWithPrivy({
     (privyAppIdProp && privyAppIdProp.trim()) || env.NEXT_PUBLIC_PRIVY_APP_ID || undefined;
   const signerKeyQuorumId =
     (signerKeyQuorumIdProp && signerKeyQuorumIdProp.trim()) || undefined;
-  const usePrivyWagmi = Boolean(privyAppId);
 
   const appTree = (
-    <FrameWalletProvider usePrivyWagmi={usePrivyWagmi}>
+    <FrameWalletProvider>
       <ApolloProvider>
         <QueryProvider>
           <MiniAppProvider addMiniAppOnLoad={true}>
@@ -49,15 +48,11 @@ function AppWithPrivy({
     </FrameWalletProvider>
   );
 
-  if (!privyAppId) {
-    return appTree;
-  }
-
   const isDark = theme === "dark";
 
   return (
     <PrivyProvider
-      appId={privyAppId}
+      appId={privyAppId as string}
       config={{
         appearance: {
           theme: isDark ? "#151515" : "#ffffff",

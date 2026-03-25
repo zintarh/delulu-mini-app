@@ -63,14 +63,16 @@ export function useChallenges() {
       first: 50,
       skip: 0,
     },
-    fetchPolicy: "cache-and-network",
+    // Avoid refetching on every mount/rerender (e.g. sidebar rerenders).
+    // We can still refresh explicitly via `refetch()` if needed.
+    fetchPolicy: "cache-first",
     nextFetchPolicy: "cache-first",
   });
 
   // Narrow the shape of the Apollo data to avoid `any` / `{}` type issues
   const challengesData = (data as { challenges?: any[] } | undefined)?.challenges;
 
-  // Resolve IPFS content for all challenges
+  // Resolve IPFS content for challenges (only missing ones).
   useEffect(() => {
     if (!challengesData || challengesData.length === 0) {
       return;
@@ -78,16 +80,22 @@ export function useChallenges() {
 
     const contentHashes = challengesData
       .map((c) => c.contentHash)
-      .filter((h): h is string => !!h);
+      .filter((h): h is string => !!h)
+      .sort();
 
     if (contentHashes.length === 0) {
       return;
     }
 
-    batchResolveIPFS(contentHashes).then(() => {
+    // Only fetch hashes that aren't already cached.
+    const missing = contentHashes.filter((h) => !getCachedContent(h));
+    if (missing.length === 0) return;
+
+    batchResolveIPFS(missing).then(() => {
       setIpfsResolved((prev) => prev + 1);
     });
-  }, [challengesData]);
+    // Depend on a stable key so rerenders don't retrigger.
+  }, [challengesData ? challengesData.length : 0, challengesData?.[0]?.contentHash]);
 
   // Transform challenges with IPFS content
   const challenges = useMemo(() => {
