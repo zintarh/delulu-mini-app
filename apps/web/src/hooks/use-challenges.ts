@@ -7,21 +7,13 @@ import { formatUnits } from "viem";
 import { getCachedContent, batchResolveIPFS } from "@/lib/graph/ipfs-cache";
 
 const GET_CHALLENGES = gql`
-  query GetChallenges(
-    $first: Int = 100
-    $skip: Int = 0
-    $orderBy: Challenge_orderBy = createdAt
-    $orderDirection: OrderDirection = desc
-    $where: Challenge_filter
-  ) {
+  query GetChallengesFeed($first: Int = 50, $skip: Int = 0) {
     challenges(
       first: $first
       skip: $skip
-      orderBy: $orderBy
-      orderDirection: $orderDirection
-      where: $where
+      orderBy: createdAt
+      orderDirection: desc
     ) {
-      id
       challengeId
       contentHash
       poolAmount
@@ -29,7 +21,6 @@ const GET_CHALLENGES = gql`
       duration
       totalPoints
       active
-      createdAt
     }
   }
 `;
@@ -69,11 +60,11 @@ export function useChallenges() {
 
   const { data, loading, error, refetch } = useQuery(GET_CHALLENGES, {
     variables: {
-      first: 100,
-      orderBy: "createdAt",
-      orderDirection: "desc",
+      first: 50,
+      skip: 0,
     },
     fetchPolicy: "cache-and-network",
+    nextFetchPolicy: "cache-first",
   });
 
   // Narrow the shape of the Apollo data to avoid `any` / `{}` type issues
@@ -119,7 +110,7 @@ export function useChallenges() {
         endTime,
         duration: Number(c.duration),
         totalPoints: Number(c.totalPoints),
-        active: c.active,
+        active: Boolean(c.active),
         title,
         description,
       };

@@ -22,25 +22,6 @@ import { format } from "date-fns";
 import { ChallengeSkeleton } from "@/components/challenge-skeleton";
 import type { Challenge } from "@/hooks/use-challenges";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { getCachedContent } from "@/lib/graph/ipfs-cache";
-
-function getChallengeDescriptionFromIPFS(contentHash: string | undefined) {
-  if (!contentHash) return "";
-  const cached = getCachedContent(contentHash);
-  if (!cached) return "";
-
-
-  // Content is stored as "title\n\ndescription" in the text/content field
-  const raw =
-    (cached as any).text ||
-    (cached as any).content ||
-    "";
-
-  if (!raw) return "";
-
-  const parts = raw.split("\n\n");
-  return parts.slice(1).join("\n\n") || "";
-}
 
 
 
@@ -152,9 +133,7 @@ export default function ChallengesPage() {
                   </>
                 ) : hasCampaigns ? (
                   challenges.map((challenge: Challenge) => {
-                    const description = getChallengeDescriptionFromIPFS(
-                      challenge.contentHash
-                    );
+                    const description = challenge.description ?? "";
                     const now = new Date();
                     const isEnded = challenge.endTime < now;
                     const dateLabel = isEnded

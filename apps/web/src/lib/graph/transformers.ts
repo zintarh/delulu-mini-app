@@ -58,7 +58,7 @@ export interface SubgraphDeluluRaw {
   isResolved: boolean;
   isCancelled: boolean;
   outcome?: boolean | null;
-  creator?: { id: string };
+  creator?: { id: string; username?: string | null };
   // NEW: underlying ERC20 token for this market (multi-token architecture)
   token?: string;
 }
@@ -105,7 +105,7 @@ export function transformSubgraphDelulu(
     tokenAddress: raw.token && raw.token.length > 0 ? raw.token : CUSD_ADDRESSES.mainnet,
     contentHash: raw.contentHash,
     content: metadata?.text ?? undefined,
-    username: metadata?.username ?? undefined,
+    username: metadata?.username ?? raw.creator?.username ?? undefined,
     pfpUrl: metadata?.pfpUrl ?? undefined,
     bgImageUrl: metadata?.bgImageUrl ?? undefined,
     gatekeeper: metadata?.gatekeeper

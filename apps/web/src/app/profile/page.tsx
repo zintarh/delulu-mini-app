@@ -430,7 +430,15 @@ export default function ProfilePage() {
           useUserStore.getState().logout();
           logout();
           setLogoutSheetOpen(false);
-          router.push("/");
+          if (typeof window !== "undefined") {
+            if (process.env.NODE_ENV === "production") {
+              window.location.href = "https://app.staydelulu.xyz";
+            } else {
+              router.push("/");
+            }
+          } else {
+            router.push("/");
+          }
         }}
       />
 
