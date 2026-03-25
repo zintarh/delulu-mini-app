@@ -71,7 +71,7 @@ export function FaucetModal({ open, onOpenChange }: FaucetModalProps) {
           <ModalTitle>Gas faucet</ModalTitle>
           <ModalDescription>
             Get a bit of CELO on mainnet to cover gas for transactions. Available for wallets with
-            less than 1 CELO.
+            less than 0.05 CELO.
           </ModalDescription>
         </ModalHeader>
 
@@ -114,7 +114,7 @@ export function FaucetModal({ open, onOpenChange }: FaucetModalProps) {
             )}
           >
             {isClaiming && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{isClaiming ? "Requesting gas..." : "Claim 0.05"}</span>
+            <span>{isClaiming ? "Requesting gas..." : "Claim 1 CELO"}</span>
           </button>
 
           <p className="text-[10px] text-muted-foreground leading-relaxed text-center">

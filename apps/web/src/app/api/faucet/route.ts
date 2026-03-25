@@ -6,9 +6,10 @@ import { createClient } from "@supabase/supabase-js";
 import { errorResponse, jsonResponse } from "@/lib/api";
 
 const DAILY_MS = 24 * 60 * 60 * 1000;
-// Users qualify for the faucet as long as they have less than 1 CELO.
-const MIN_NATIVE_BALANCE = parseEther("1"); // if user has less than this, they qualify
-const FAUCET_AMOUNT = parseEther("0.05"); // amount of CELO to send
+// Users qualify for the faucet as long as they have less than 0.05 CELO.
+// If their balance later drops below 0.05 again, they can claim again (subject to daily rate limit).
+const MIN_NATIVE_BALANCE = parseEther("0.05");
+const FAUCET_AMOUNT = parseEther("1"); // amount of CELO to send
 
 const RPC_URL =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ??
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     const balance = await publicClient.getBalance({ address: address as `0x${string}` });
     if (balance >= MIN_NATIVE_BALANCE) {
       return errorResponse(
-        "You already have at least 1 CELO for gas. Faucet is only for low-balance wallets.",
+        "You already have at least 0.05 CELO for gas. Faucet is only for low-balance wallets.",
         400
       );
     }
