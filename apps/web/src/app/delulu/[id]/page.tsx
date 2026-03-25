@@ -858,7 +858,11 @@ export default function DeluluPage() {
                   <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                <span className="flex items-center justify-center shrink-0">
+                <a
+                  href="https://stay.delulu.xyz"
+                  className="flex items-center justify-center shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  aria-label="Delulu home"
+                >
                   <Image
                     src="/favicon_io/favicon-32x32.png"
                     alt="Delulu"
@@ -866,7 +870,7 @@ export default function DeluluPage() {
                     height={28}
                     className="h-7 w-7"
                   />
-                </span>
+                </a>
 
                 <button
                   onClick={() => {
