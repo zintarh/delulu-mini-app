@@ -3,7 +3,6 @@ export type { FormattedDelulu, GatekeeperConfig } from "@/lib/types";
 
 // Contract hooks
 export { useCreateDelulu } from "./use-delulu-contract";
-export { useStake } from "./use-stake";
 export { useClaimWinnings } from "./use-claim-winnings";
 export { useTokenApproval } from "./use-token-approval";
 

@@ -46,7 +46,7 @@ export function ResponsiveSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className={cn("bg-background border-t border-border", sheetClassName, contentClassName)}
+          className={cn("bg-secondary border-t border-border", sheetClassName, contentClassName)}
         >
           {title && <SheetTitle className="sr-only">{title}</SheetTitle>}
           {children}

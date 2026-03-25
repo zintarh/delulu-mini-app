@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Reduce native rubber-band overscroll in PWA */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Disable global scrollbars (PWA/native feel) */
+html,
+body {
+  overflow: hidden;
+}
+
 :root {
   /* Delulu color palette - shared */
   --delulu-yellow: #fcff52; /* Brand yellow - for buttons/accents only */
@@ -51,9 +63,11 @@
   --card-foreground: #fefeff;
   --popover: #151515;
   --popover-foreground: #fefeff;
-  --secondary: #151515;
+  /* App chrome / base surface (slightly darker than cards) */
+  --secondary: #0f0f10;
   --secondary-foreground: #fefeff;
-  --muted: #151515;
+  /* Elevated subtle surface for separating items on secondary */
+  --muted: #1b1b1d;
   --muted-foreground: #a3a3aa;
   --accent: #151515;
   --accent-foreground: #fefeff;
@@ -64,7 +78,7 @@
 
   /* Borders & inputs */
   --border: #1f1f1f;
-  --input: #1f1f1f;
+  --input: #1b1b1d;
   --ring: #fefeff;
 
   /* Charts (keep reasonable contrast on dark) */

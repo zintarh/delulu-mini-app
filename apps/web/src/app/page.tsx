@@ -8,10 +8,9 @@ import { BottomNav } from "@/components/bottom-nav";
 import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
-import { OnboardingSheet } from "@/components/onboarding-sheet";
+import { FirstRunPwaSheet } from "@/components/pwa/FirstRunPwaSheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
-import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
@@ -69,17 +68,13 @@ export default function HomePage() {
     }
   }, [address, onChainUsername, user?.username, user?.email, user?.address, updateUsername, updateAddress]);
 
-  const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
-    null
-  );
   const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
 
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
+  const [showFirstRunPwa, setShowFirstRunPwa] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
@@ -93,10 +88,8 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const seen = window.localStorage.getItem("delulu_onboarding_seen_v1");
-      if (!seen) {
-        setShowOnboarding(true);
-      }
+      const seen = window.localStorage.getItem("delulu_first_run_pwa_seen_v1");
+      if (!seen) setShowFirstRunPwa(true);
     } catch {
     }
   }, []);
@@ -271,14 +264,6 @@ export default function HomePage() {
                     key: `delulu-${delusion.onChainId || delusion.id}-${index}`,
                     delusion,
                     href: `/delulu/${delusion.id}`,
-                    onStake: () => {
-                      if (!isConnected) {
-                        setShowLoginSheet(true);
-                      } else {
-                        setSelectedDelulu(delusion);
-                        setStakingSheetOpen(true);
-                      }
-                    },
                     isLast: index === filteredDelulus.length - 1,
                   };
 
@@ -358,23 +343,20 @@ export default function HomePage() {
         type={howItWorksType}
       />
 
-      <OnboardingSheet
-        open={showOnboarding}
+      <FirstRunPwaSheet
+        open={showFirstRunPwa}
         onOpenChange={(open) => {
-          setShowOnboarding(open);
+          setShowFirstRunPwa(open);
           if (!open && typeof window !== "undefined") {
             try {
-              window.localStorage.setItem("delulu_onboarding_seen_v1", "1");
+              window.localStorage.setItem("delulu_first_run_pwa_seen_v1", "1");
             } catch {
             }
           }
         }}
-      />
-
-      <StakeFlowSheet
-        open={stakingSheetOpen}
-        onOpenChange={setStakingSheetOpen}
-        delulu={selectedDelulu}
+        address={address as `0x${string}` | undefined}
+        isAuthenticated={authenticated}
+        onRequestLogin={() => setShowLoginSheet(true)}
       />
 
       <LogoutSheet

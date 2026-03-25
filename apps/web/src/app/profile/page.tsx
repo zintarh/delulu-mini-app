@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
-import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { formatAddress } from "@/lib/utils";
@@ -42,10 +41,6 @@ export default function ProfilePage() {
     else router.push("/board");
   };
   const [activeTab, setActiveTab] = useState<TabType>("ongoing");
-  const [selectedDelulu, setSelectedDelulu] = useState<FormattedDelulu | null>(
-    null
-  );
-  const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
@@ -394,10 +389,6 @@ export default function ProfilePage() {
                         onClick={() => {
                           router.push(`/delulu/${delulu.id}`);
                         }}
-                        onStake={() => {
-                          setSelectedDelulu(delulu);
-                          setStakingSheetOpen(true);
-                        }}
                       />
                     ))}
                   </div>
@@ -422,12 +413,6 @@ export default function ProfilePage() {
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
-      />
-
-      <StakeFlowSheet
-        open={stakingSheetOpen}
-        onOpenChange={setStakingSheetOpen}
-        delulu={selectedDelulu}
       />
 
       <LogoutSheet

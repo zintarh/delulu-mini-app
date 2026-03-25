@@ -10,6 +10,7 @@ import { celo } from "wagmi/chains";
 import { useSessionSigner } from "@/hooks/use-session-signer";
 import { env } from "@/lib/env";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -43,6 +44,7 @@ function AppWithPrivy({
         <QueryProvider>
           <MiniAppProvider addMiniAppOnLoad={true}>
             <ServiceWorkerRegister />
+            <PullToRefresh />
             {children}
           </MiniAppProvider>
         </QueryProvider>
