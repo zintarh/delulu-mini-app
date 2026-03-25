@@ -20,6 +20,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SELF_ENDPOINT: z.string().url().optional().default("https://playground.self.xyz/api/verify"),
     NEXT_PUBLIC_SELF_MOCK_PASSPORT: z.string().optional().default("false"),
     NEXT_PUBLIC_PRIVY_APP_ID: z.string().min(1).optional(),
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   },
   // For Next.js >= 13.4.4, you only need to destructure client variables:
   experimental__runtimeEnv: {
@@ -33,5 +34,6 @@ export const env = createEnv({
     NEXT_PUBLIC_SELF_ENDPOINT: process.env.NEXT_PUBLIC_SELF_ENDPOINT,
     NEXT_PUBLIC_SELF_MOCK_PASSPORT: process.env.NEXT_PUBLIC_SELF_MOCK_PASSPORT,
     NEXT_PUBLIC_PRIVY_APP_ID: process.env.NEXT_PUBLIC_PRIVY_APP_ID,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   },
 });

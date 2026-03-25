@@ -7,7 +7,7 @@ import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { HeartIcon, UsersIcon, Plus, Check, Clock } from "lucide-react";
+import { UsersIcon, Plus, Check, Clock } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAccount } from "wagmi";
@@ -279,14 +279,6 @@ export function DeluluCard({
       delusion.stakingDeadline,
     ]);
 
-  const showBuyButton = useMemo(
-    () =>
-      shouldShowBuyButton(effectiveMilestones, now, {
-        createdAt: delusion.createdAt,
-        stakingDeadline: delusion.stakingDeadline,
-      }),
-    [effectiveMilestones, now, delusion.createdAt, delusion.stakingDeadline],
-  );
 
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
@@ -305,16 +297,6 @@ export function DeluluCard({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showShareMenu]);
-
-  const handleStake = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onStake) {
-      onStake();
-    } else if (onClick) {
-      onClick();
-    }
-  };
 
   const handleMouseEnter = () => {
     if (!href) return;
@@ -346,7 +328,7 @@ export function DeluluCard({
         onMouseEnter={handleMouseEnter}
         className={cn(
           "rounded-2xl overflow-hidden transition-all duration-300",
-          "bg-card/95 border border-border/80 shadow-sm",
+          "bg-card/95 border border-border shadow-sm",
           "hover:border-emerald/30 hover:shadow-md hover:shadow-emerald/5",
           href && "cursor-pointer active:scale-[0.99]",
         )}
@@ -383,7 +365,7 @@ export function DeluluCard({
         </div>
 
         <div className="px-4 pb-3">
-          <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-line font-semibold border-l-2 border-delulu-yellow-reserved/60 pl-3 -ml-px">
+          <p className="text-[15px] leading-relaxed  text-foreground whitespace-pre-line font-semibold border-l-2 border-delulu-yellow-reserved/60 pl-3 -ml-px">
             {headline}
           </p>
         </div>
@@ -501,7 +483,7 @@ export function DeluluCard({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-muted/30 px-4 py-3 text-xs">
+        {/* <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-muted/30 px-4 py-3 text-xs">
           <div className="flex items-center gap-1 text-muted-foreground">
             {delusion.totalSupporters != null && (
               <span className="inline-flex items-center gap-1 font-medium text-foreground/90">
@@ -510,7 +492,7 @@ export function DeluluCard({
               </span>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
     </>
   );

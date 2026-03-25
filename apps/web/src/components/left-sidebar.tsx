@@ -22,6 +22,7 @@ import { formatAddress } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
+import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 
 interface LeftSidebarProps {
   onProfileClick?: () => void;
@@ -233,6 +234,11 @@ export function LeftSidebar({
         })}
       </nav>
       <div className="mt-4 pt-3 border-t border-border space-y-3">
+        {/* Push reminders */}
+        {isConnected && address ? (
+          <PushRemindersCard compact className="w-full" />
+        ) : null}
+
         {/* Connection status / Login */}
         {!isConnected ? (
           <button

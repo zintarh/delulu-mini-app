@@ -21,6 +21,7 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 
 type TabType = "ongoing" | "past";
 
@@ -313,6 +314,13 @@ export default function ProfilePage() {
                 </div>
                 <Coins className="w-4 h-4 text-muted-foreground" />
               </Link>
+            </div>
+          )}
+
+          {/* Push reminders */}
+          {address && (
+            <div className="px-4 pt-2 pb-3">
+              <PushRemindersCard />
             </div>
           )}
 
