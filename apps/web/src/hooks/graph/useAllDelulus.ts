@@ -113,7 +113,15 @@ export function useAllDelulus() {
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const [isIpfsLoading, setIsIpfsLoading] = useState(false);
 
-  const { data, loading, error, fetchMore, refetch: apolloRefetch, previousData } = useQuery<
+  const {
+    data,
+    loading,
+    error,
+    fetchMore,
+    refetch: apolloRefetch,
+    previousData,
+    networkStatus,
+  } = useQuery<
     GetDelulusFeedQuery,
     GetDelulusFeedQueryVariables
   >(GET_DELULUS_FEED, {
@@ -126,6 +134,9 @@ export function useAllDelulus() {
   });
 
   const displayData = data?.delulus || previousData?.delulus || [];
+  // With cache-and-network, Apollo can synchronously provide cached empty results (data = []),
+  // which would incorrectly show the "empty state" on first visit while the network request is in flight.
+  const isInitialLoading = (loading || networkStatus === 1) && page === 0 && displayData.length === 0;
 
   const delulus = useMemo<FormattedDeluluFeed[]>(() => {
     if (displayData.length === 0) return [];
@@ -198,7 +209,7 @@ export function useAllDelulus() {
 
   return {
     delulus,
-    isLoading: loading && !data && !previousData, 
+    isLoading: isInitialLoading,
     isFetchingNextPage: loading && page > 0,
     isIpfsLoading,
     hasNextPage,
