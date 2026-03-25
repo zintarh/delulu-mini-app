@@ -186,21 +186,25 @@ const frame = {
   },
 };
 
-export const metadata: Metadata = {
-  title: "Delulu",
-  description:
-    "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
+export const viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#151515" },
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
   ],
+  colorScheme: "dark light",
+} as const;
+
+export const metadata: Metadata = {
+  title: "Commiting to personal goals and growth onchain with Good dollar",
+  description:
+    "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Delulu",
+    title: "Commiting to personal goals and growth onchain with Good dollar",
   },
   openGraph: {
-    title: "delulu",
+    title: "Commiting to personal goals and growth onchain with Good dollar",
     description:
       "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
     images: [`${appUrl}/opengraph-image.png`],

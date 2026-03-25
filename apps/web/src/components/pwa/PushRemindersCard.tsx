@@ -100,7 +100,7 @@ export function PushRemindersCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-delulu-yellow-reserved" />
+            <Icon className="h-4 w-4 text-blue-500" />
             <p className={cn("font-bold", compact ? "text-xs" : "text-sm")}>
               Proof reminders
             </p>

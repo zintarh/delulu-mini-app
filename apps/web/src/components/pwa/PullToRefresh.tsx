@@ -18,6 +18,7 @@ export function PullToRefresh() {
   const startYRef = useRef<number | null>(null);
   const pullingRef = useRef(false);
   const [pullPx, setPullPx] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,6 +66,7 @@ export function PullToRefresh() {
       pullingRef.current = false;
 
       if (px >= threshold) {
+        setIsRefreshing(true);
         setPullPx(threshold);
         // Next/App Router refresh (soft), falls back to reload if needed.
         try {
@@ -75,7 +77,10 @@ export function PullToRefresh() {
       }
 
       // snap back
-      setTimeout(() => setPullPx(0), 250);
+      setTimeout(() => {
+        setPullPx(0);
+        setIsRefreshing(false);
+      }, 550);
     };
 
     window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -89,7 +94,11 @@ export function PullToRefresh() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, pullPx]);
 
-  if (pullPx <= 0) return null;
+  if (pullPx <= 0 && !isRefreshing) return null;
+
+  const clamped = Math.min(56, pullPx);
+  const progress = Math.min(1, clamped / 56);
+  const rotateDeg = Math.floor(progress * 260);
 
   return (
     <div
@@ -98,12 +107,26 @@ export function PullToRefresh() {
         "flex items-center justify-center",
       )}
       style={{
-        transform: `translateY(${Math.min(56, pullPx) - 56}px)`,
+        transform: `translateY(${clamped - 56}px)`,
         transition: pullPx === 0 ? "transform 180ms ease" : undefined,
       }}
     >
-      <div className="mt-3 rounded-full border border-border bg-secondary/95 backdrop-blur px-3 py-1 text-[11px] font-semibold text-foreground">
-        Release to refresh
+      <div className="mt-3 flex items-center justify-center">
+        <div
+          className={cn(
+            "h-9 w-9 rounded-full border border-border bg-secondary/95 backdrop-blur",
+            "shadow-neo-sm flex items-center justify-center",
+          )}
+        >
+          <div
+            className={cn(
+              "h-4 w-4 rounded-full border-2 border-muted-foreground/30",
+              "border-t-foreground",
+              isRefreshing ? "animate-spin" : "",
+            )}
+            style={!isRefreshing ? { transform: `rotate(${rotateDeg}deg)` } : undefined}
+          />
+        </div>
       </div>
     </div>
   );

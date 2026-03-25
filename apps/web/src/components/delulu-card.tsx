@@ -60,6 +60,18 @@ function formatTimeLeft(target: Date) {
   return { label, secondsLeft: totalSeconds };
 }
 
+function formatTimeLeftDayHour(nowMs: number, targetMs: number): string {
+  const diffMs = targetMs - nowMs;
+  if (diffMs <= 0) return "Ended";
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  if (days > 0) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+  return `${hours}h`;
+}
+
 interface DeluluCardProps {
   delusion: FormattedDelulu;
   onClick?: () => void;
@@ -205,7 +217,7 @@ export function DeluluCard({
           const pastLabel = m.isVerified
             ? "Completed"
             : m.isSubmitted
-              ? "In review"
+              ? "Review"
               : "Expired";
           return {
             label: getMilestoneLabel(m, 50),
@@ -250,7 +262,7 @@ export function DeluluCard({
           pastLabel = m.isVerified
             ? "Completed"
             : m.isSubmitted
-              ? "In review"
+              ? "Review"
               : "Expired";
         }
 
@@ -343,21 +355,21 @@ export function DeluluCard({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-foreground font-medium mb-0.5">
+            <p className="text-sm text-foreground font-semibold mb-0.5">
               {displayUsername
                 ? `@${displayUsername}`
                 : formatAddress(delusion.creator)}
             </p>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
               <span>{timeLeftLabel === "Ended" ? "Ended" : "Active"}</span>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0 bg-secondary border border-border/50 rounded-full px-2 py-1">
-            <span className="text-sm font-bold tabular-nums text-foreground">
+            <span className="text-base font-black tabular-nums text-foreground">
               {formattedGAmount}
             </span>
             {isGoodDollar && (
-              <span className="text-[11px] font-semibold text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 G$
               </span>
             )}
@@ -365,7 +377,7 @@ export function DeluluCard({
         </div>
 
         <div className="px-4 pb-3">
-          <p className="text-[15px] leading-relaxed  text-foreground whitespace-pre-line font-semibold border-l-2 border-delulu-yellow-reserved/60 pl-3 -ml-px">
+          <p className="text-[17px] leading-relaxed text-foreground whitespace-pre-line font-semibold">
             {headline}
           </p>
         </div>
@@ -373,7 +385,7 @@ export function DeluluCard({
         <div className="px-4 pb-4 space-y-3">
           {totalCount > 0 && (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1 text-[11px]">
+              <div className="flex items-center gap-1 text-xs">
                 <span className="text-muted-foreground font-medium">
                   Milestones
                 </span>
@@ -393,7 +405,7 @@ export function DeluluCard({
                   e.stopPropagation();
                   router.push(href || `/delulu/${delusion.id}`);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border bg-muted/50 hover:bg-muted text-[12px] font-medium text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add step
@@ -404,12 +416,12 @@ export function DeluluCard({
               {previewMilestones.map((m) => {
                 const isPast = m.status === "past";
                 const isPastFailed = isPast && m.pastLabel === "";
-                const isInReview = isPast && m.pastLabel === "In review";
+                const isInReview = isPast && m.pastLabel === "Review";
                 const isCurrentUnderReview =
                   m.status === "current" && m.isSubmitted;
                 const isCompleted = isPast && m.pastLabel === "Completed";
                 const base =
-                  "flex items-center justify-between rounded-xl  py-1  text-[12px] transition-colors";
+                  "flex items-center justify-between rounded-xl py-1.5 text-sm transition-colors";
 
                 const variant =
                   m.status === "current"
@@ -457,7 +469,7 @@ export function DeluluCard({
                     <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={cn(
-                          "text-[11px] tabular-nums font-medium",
+                          "text-xs tabular-nums font-medium",
                           isPastFailed && "text-destructive",
                           isInReview && "text-amber-600 dark:text-amber-400",
                           m.status === "current" &&
@@ -470,7 +482,7 @@ export function DeluluCard({
                           : m.status === "future"
                             ? "Upcoming"
                             : m.status === "current" && m.isSubmitted
-                              ? `Under review · ${m.endTimeMs != null ? formatMilestoneCountdown(now, m.endTimeMs) : "—"}`
+                              ? `Review · ${m.endTimeMs != null ? formatTimeLeftDayHour(now, m.endTimeMs) : "—"}`
                               : m.endTimeMs != null
                                 ? formatMilestoneCountdown(now, m.endTimeMs)
                                 : "—"}

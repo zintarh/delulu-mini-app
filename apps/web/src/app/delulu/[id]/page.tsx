@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import {
   useAccount,
   useChainId,
+  useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
@@ -16,7 +17,6 @@ import {
   refetchAfterClaim,
   refetchAllActiveQueries,
 } from "@/lib/graph/refetch-utils";
-import { useStake } from "@/hooks/use-stake";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
@@ -41,8 +41,8 @@ import {
   ModalDescription,
   ModalFooter,
 } from "@/components/ui/modal";
-const StakeFlowSheet = dynamic(
-  () => import("@/components/stake-flow-sheet").then((m) => m.StakeFlowSheet),
+const SharesSheet = dynamic(
+  () => import("@/components/shares-sheet").then((m) => m.SharesSheet),
   { ssr: false },
 );
 import { LeftSidebar } from "@/components/left-sidebar";
@@ -88,6 +88,12 @@ import {
   shouldShowBuyButton,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
+import {
+  buildDeluluLeaderboard,
+  getDeluluRemainingDaysTotal,
+  getMaxDaysPerRow,
+  getNewMilestoneTiming,
+} from "./delulu-page-helpers";
 
 export default function DeluluPage() {
   const router = useRouter();
@@ -95,6 +101,8 @@ export default function DeluluPage() {
   const deluluId = params.id as string;
 
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const contractAddress = getDeluluContractAddress(chainId);
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
@@ -138,9 +146,21 @@ export default function DeluluPage() {
       ? Number(delulu.onChainId)
       : (delulu?.id ?? null);
 
-  const { stake, isSuccess: isStakeSuccess, error: stakeError } = useStake();
+  // Support/staking has been removed in favor of shares.
   const marketToken = delulu?.tokenAddress;
   const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
+
+  const { data: myShareBalance } = useReadContract({
+    address: contractAddress,
+    abi: DELULU_ABI,
+    functionName: "shareBalance",
+    args:
+      isConnected && address && delulu?.onChainId
+        ? [BigInt(delulu.onChainId), address]
+        : undefined,
+    query: { enabled: isConnected && !!address && !!delulu?.onChainId },
+  });
+  const ownsAnyShares = ((myShareBalance as bigint | undefined) ?? 0n) > 0n;
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
@@ -164,38 +184,7 @@ export default function DeluluPage() {
   } = useGraphDeluluStakes(deluluId || null);
 
   const leaderboard = useMemo(() => {
-    if (!stakes || stakes.length === 0) return [];
-    const grouped = stakes.reduce(
-      (acc, stake) => {
-        const key = stake.user?.address || stake.userId;
-        if (!acc[key]) {
-          acc[key] = {
-            address: stake.user?.address || "",
-            username: stake.user?.username,
-            pfpUrl: (stake.user as { pfpUrl?: string })?.pfpUrl,
-            believerStake: 0,
-            totalStake: 0,
-          };
-        }
-        acc[key].believerStake += stake.amount;
-        acc[key].totalStake += stake.amount;
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          address: string;
-          username?: string;
-          pfpUrl?: string;
-          believerStake: number;
-          totalStake: number;
-        }
-      >,
-    );
-
-    return Object.values(grouped)
-      .sort((a, b) => b.totalStake - a.totalStake)
-      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    return buildDeluluLeaderboard(stakes as any);
   }, [stakes]);
 
   const [stakeAmount, setStakeAmount] = useState("1");
@@ -205,7 +194,8 @@ export default function DeluluPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
 
-  const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
+  const [buySharesSheetOpen, setBuySharesSheetOpen] = useState(false);
+  const [sellSharesSheetOpen, setSellSharesSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "milestones">(
     "details",
@@ -280,7 +270,6 @@ export default function DeluluPage() {
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
 
-  /** Same as delulu card: sorted milestones, end times, current index, passed count. */
   const milestoneView = useMemo(() => {
     if (!milestones || milestones.length === 0 || !delulu)
       return { sorted: [], endTimesMs: [], currentIndex: -1, passedCount: 0 };
@@ -332,7 +321,6 @@ export default function DeluluPage() {
       ? totalSupportUsd / supportersCount
       : null;
 
-  const chainId = useChainId();
   const isCreator =
     isConnected &&
     address &&
@@ -380,14 +368,11 @@ export default function DeluluPage() {
     isSuccess: isDeleteMilestoneSuccess,
   } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
 
-  // Centralized contract error → error modal (reduces per-error ifs)
-  // deleteMilestoneError is shown inline in the delete modal, not here
   useEffect(() => {
     const err =
       submitMilestoneError ??
       addMilestonesError ??
       resetMilestonesError ??
-      stakeError ??
       claimError ??
       null;
     if (err) {
@@ -400,34 +385,22 @@ export default function DeluluPage() {
     submitMilestoneError,
     addMilestonesError,
     resetMilestonesError,
-    stakeError,
     claimError,
   ]);
 
-  /** Delulu remaining time in days (from start of new milestones to resolution deadline). */
   const deluluRemainingDaysTotal = useMemo(() => {
-    if (!delulu?.resolutionDeadline) return 0;
-    let startMs = Date.now();
-    if (milestones && milestones.length > 0) {
-      const last = milestones[milestones.length - 1];
-      if (last?.deadline) startMs = last.deadline.getTime();
-    }
-    const endMs = delulu.resolutionDeadline.getTime();
-    const days = (endMs - startMs) / MS_PER_DAY;
-    return Math.max(0, Math.floor(days * 100) / 100);
-  }, [delulu?.resolutionDeadline, milestones]);
-
-  /** For each new milestone row: max days allowed so total never exceeds delulu duration. */
-  const maxDaysPerRow = useMemo(() => {
-    return newMilestones.map((_, index) => {
-      const daysUsedByPrevious = newMilestones
-        .slice(0, index)
-        .reduce((sum, m) => sum + (Number(m.days) || 0), 0);
-      return Math.max(
-        0,
-        Math.floor(deluluRemainingDaysTotal - daysUsedByPrevious),
-      );
+    return getDeluluRemainingDaysTotal({
+      resolutionDeadline: delulu?.resolutionDeadline,
+      lastMilestoneDeadline:
+        milestones && milestones.length > 0
+          ? milestones[milestones.length - 1]?.deadline
+          : null,
+      nowMs: now,
     });
+  }, [delulu?.resolutionDeadline, milestones, now]);
+
+  const maxDaysPerRow = useMemo(() => {
+    return getMaxDaysPerRow(newMilestones, deluluRemainingDaysTotal);
   }, [newMilestones, deluluRemainingDaysTotal]);
 
   const handleAddMilestoneRow = () =>
@@ -469,8 +442,6 @@ export default function DeluluPage() {
 
   const handleCreateMilestones = () => {
     if (!isCreator || !delulu) return;
-
-    // Validate that at least one milestone has both description and days
     const validMilestones = newMilestones.filter(
       (m) => m.description.trim().length > 0 && m.days.trim().length > 0,
     );
@@ -482,7 +453,6 @@ export default function DeluluPage() {
       return;
     }
 
-    // Check for incomplete milestones (one field filled but not the other)
     const incompleteMilestones = newMilestones.filter(
       (m) =>
         (m.description.trim().length > 0 && m.days.trim().length === 0) ||
@@ -586,18 +556,9 @@ export default function DeluluPage() {
     try {
       await joinChallenge(Number(deluluIdForState), selectedChallengeId);
     } catch {
-      // errors handled via hook state
     }
   };
 
-  useEffect(() => {
-    if (isStakeSuccess) {
-      setShowSuccessModal(true);
-      setStakeAmount("1");
-      refetchStakes();
-      refetchDeluluData(apolloClient, deluluId);
-    }
-  }, [isStakeSuccess, deluluId, apolloClient]);
 
   useEffect(() => {
     if (isClaimSuccess) {
@@ -693,8 +654,6 @@ export default function DeluluPage() {
     if (isJoinSuccess) {
       refetchDeluluData(apolloClient, deluluId);
       setJoinModalOpen(false);
-
-      // Fire confetti on successful campaign join
       (async () => {
         try {
           const confettiModule = await import("canvas-confetti");
@@ -715,11 +674,8 @@ export default function DeluluPage() {
   useEffect(() => {
     if (isAddMilestonesSuccess) {
       setShowMilestoneForm(false);
-      // Refetch this delulu's data
       refetchDeluluData(apolloClient, deluluId);
-      // Refetch all active queries to update lists on home page, profile page, etc.
-      refetchAllActiveQueries(apolloClient, 5000); // 5 second delay for subgraph indexing
-      // Visual feedback: confetti when milestones are created successfully
+      refetchAllActiveQueries(apolloClient, 5000); 
       (async () => {
         try {
           const confettiModule = await import("canvas-confetti");
@@ -747,7 +703,6 @@ export default function DeluluPage() {
     }
   }, [isSubmitMilestoneSuccess, apolloClient, deluluId]);
 
-  // Show success in proof modal when this submit confirms
   useEffect(() => {
     if (
       isSubmitMilestoneSuccess &&
@@ -759,7 +714,6 @@ export default function DeluluPage() {
     }
   }, [isSubmitMilestoneSuccess, activeProofMilestoneId]);
 
-  // Initial load: show skeleton layout instead of spinner
   if (isLoadingDelulu && !delulu) {
     return (
       <div className="h-screen overflow-hidden bg-background">
@@ -786,7 +740,6 @@ export default function DeluluPage() {
             </div>
 
             <div className="px-4 lg:px-6 py-6 space-y-6">
-              {/* Banner skeleton */}
               <div className="bg-card border border-border rounded-2xl overflow-hidden">
                 <div className="h-48 bg-muted animate-pulse" />
                 <div className="p-6 space-y-3">
@@ -796,7 +749,6 @@ export default function DeluluPage() {
                 </div>
               </div>
 
-              {/* Details skeleton */}
               <div className="space-y-4">
                 <div className="h-10 w-40 bg-muted rounded-full animate-pulse" />
                 <div className="h-24 bg-muted rounded-2xl animate-pulse" />
@@ -818,14 +770,12 @@ export default function DeluluPage() {
     );
   }
 
-  // Only show "not found" once loading has completed and no delulu was returned.
   if (!isLoadingDelulu && !delulu) {
     return (
       <div className="p-20 text-center text-foreground">Delulu not found</div>
     );
   }
 
-  // At this point, delulu is guaranteed to be non-null
   const safeDelulu = delulu!;
 
   const canStake =
@@ -906,16 +856,18 @@ export default function DeluluPage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
-                {canStake && showBuyButton && (
+                {((canStake && showBuyButton) || ownsAnyShares) && (
                   <button
                     onClick={() =>
                       !isConnected
                         ? setShowLoginSheet(true)
-                        : setStakingSheetOpen(true)
+                        : ownsAnyShares
+                          ? setSellSharesSheetOpen(true)
+                          : setBuySharesSheetOpen(true)
                     }
                     className="w-fit right-4 bottom-4 absolute px-4 py-2 bg-delulu-yellow-reserved text-delulu-charcoal border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg text-sm hover:brightness-105 transition"
                   >
-                    Support
+                    {ownsAnyShares ? "Sell shares" : "Buy shares"}
                   </button>
                 )}
               </div>
@@ -1000,7 +952,7 @@ export default function DeluluPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-delulu-yellow-reserved/20 border border-delulu-yellow-reserved/60">
-                        <Users className="w-4 h-4 text-delulu-charcoal" />
+                        <Users className="w-4 h-4 text-foreground" />
                       </span>
                       <h3 className="text-sm md:text-base font-black text-foreground">
                         Token support
@@ -1212,41 +1164,16 @@ export default function DeluluPage() {
                       )}
                       <div className="space-y-3 md:space-y-4">
                         {newMilestones.map((m, index) => {
-                          const calculateMilestoneTiming = () => {
-                            let startTime = Date.now();
-
-                            if (milestones && milestones.length > 0) {
-                              const lastMilestone =
-                                milestones[milestones.length - 1];
-                              if (lastMilestone && lastMilestone.deadline) {
-                                startTime = lastMilestone.deadline.getTime();
-                              }
-                            }
-
-                            for (let i = 0; i < index; i++) {
-                              const prevDays =
-                                Number(newMilestones[i].days) || 0;
-                              if (prevDays > 0) {
-                                startTime += prevDays * 24 * 60 * 60 * 1000;
-                              }
-                            }
-
-                            const days = Number(m.days) || 0;
-                            const endTime =
-                              days > 0
-                                ? startTime + days * 24 * 60 * 60 * 1000
-                                : startTime;
-
-                            const resolutionTime =
-                              delulu?.resolutionDeadline?.getTime() || 0;
-                            const exceedsDeadline =
-                              resolutionTime > 0 && endTime > resolutionTime;
-
-                            return { startTime, endTime, exceedsDeadline };
-                          };
-
-                          const { exceedsDeadline } =
-                            calculateMilestoneTiming();
+                          const { exceedsDeadline } = getNewMilestoneTiming({
+                            existingMilestonesLastDeadline:
+                              milestones && milestones.length > 0
+                                ? milestones[milestones.length - 1]?.deadline
+                                : null,
+                            newMilestones,
+                            index,
+                            resolutionDeadline: delulu?.resolutionDeadline,
+                            nowMs: now,
+                          });
 
                           return (
                             <div
@@ -1599,11 +1526,24 @@ export default function DeluluPage() {
         </div>
       </div>
 
-      <StakeFlowSheet
-        open={stakingSheetOpen}
-        onOpenChange={setStakingSheetOpen}
-        delulu={delulu}
-      />
+      {marketToken && safeDelulu.onChainId ? (
+        <>
+          <SharesSheet
+            open={buySharesSheetOpen}
+            onOpenChange={setBuySharesSheetOpen}
+            deluluId={BigInt(safeDelulu.onChainId)}
+            tokenAddress={marketToken as `0x${string}`}
+            mode="buy"
+          />
+          <SharesSheet
+            open={sellSharesSheetOpen}
+            onOpenChange={setSellSharesSheetOpen}
+            deluluId={BigInt(safeDelulu.onChainId)}
+            tokenAddress={marketToken as `0x${string}`}
+            mode="sell"
+          />
+        </>
+      ) : null}
 
       <BottomNav
         onProfileClick={handleProfileClick}

@@ -248,14 +248,31 @@ export function LeftSidebar({
 
         {/* Connection status / Login */}
         {!isConnected ? (
-          <button
-            type="button"
-            onClick={onProfileClick}
-            className="flex w-fit items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In</span>
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={onProfileClick}
+              className="flex w-fit items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In</span>
+            </button>
+
+            {/* Theme toggle (same row as Sign In) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center justify-center p-2 rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Toggle theme"
+              title="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <Moon className="w-5 h-5" />
+              ) : (
+                <Sun className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -359,19 +376,21 @@ export function LeftSidebar({
         )}
 
         {/* Theme toggle */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="flex items-center gap-2 px-3 py-2 rounded-full border border-border text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-fit"
-        >
-          <span className="flex items-center gap-2">
-            {theme === "dark" ? (
-              <Moon className="w-6 h-6" />
-            ) : (
-              <Sun className="w-6 h-6" />
-            )}
-          </span>
-        </button>
+        {isConnected ? (
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-2 px-3 py-2 rounded-full border border-border text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-fit"
+          >
+            <span className="flex items-center gap-2">
+              {theme === "dark" ? (
+                <Moon className="w-6 h-6" />
+              ) : (
+                <Sun className="w-6 h-6" />
+              )}
+            </span>
+          </button>
+        ) : null}
       </div>
     </aside>
   );

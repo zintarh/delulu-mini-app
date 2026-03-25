@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, X, Trophy } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useAllDelulus } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useRouter } from "next/navigation";
@@ -203,10 +203,9 @@ export function RightSidebar() {
 
           <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Trophy className="w-5 h-5 text-delulu-yellow-reserved" />
               <h2 className="text-lg font-bold text-foreground">
                 <span
-                  className="text-delulu-yellow-reserved"
+                  className="  text-foreground/50"
                   style={{
                     textShadow: "2px 2px 0px #1A1A1A, -1px -1px 0px #1A1A1A, 1px -1px 0px #1A1A1A, -1px 1px 0px #1A1A1A"
                   }}
@@ -239,7 +238,7 @@ export function RightSidebar() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2 group-hover:text-delulu-yellow-reserved transition-colors">
+                        <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2 group-hover:text-blue-500 transition-colors">
                           {challenge.title || ""}
                         </h3>
                         <div className="flex items-center gap-2">

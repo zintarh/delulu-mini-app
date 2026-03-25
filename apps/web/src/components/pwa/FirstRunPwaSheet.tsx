@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { Bell, Download, Share2 } from "lucide-react";
@@ -39,12 +39,20 @@ export function FirstRunPwaSheet({
   isAuthenticated: boolean;
   onRequestLogin: () => void;
 }) {
+  const mountedRef = useRef(true);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(
     null,
   );
   const [installing, setInstalling] = useState(false);
   const [notifWorking, setNotifWorking] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -82,15 +90,25 @@ export function FirstRunPwaSheet({
       setNotifError("Connect a wallet to enable reminders.");
       return;
     }
-    setNotifWorking(true);
-    setNotifError(null);
+    if (mountedRef.current) {
+      setNotifWorking(true);
+      setNotifError(null);
+    }
     try {
       await subscribeToWebPush(address);
+      // Avoid state updates after the sheet is closed/unmounted.
+      if (mountedRef.current) {
+        setNotifWorking(false);
+      }
       onOpenChange(false);
     } catch (e: any) {
-      setNotifError(e?.message ?? "Failed to enable notifications.");
+      if (mountedRef.current) {
+        setNotifError(e?.message ?? "Failed to enable notifications.");
+      }
     } finally {
-      setNotifWorking(false);
+      if (mountedRef.current) {
+        setNotifWorking(false);
+      }
     }
   };
 
@@ -126,7 +144,7 @@ export function FirstRunPwaSheet({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Download className="h-4 w-4 text-delulu-yellow-reserved" />
+                    <Download className="h-4 w-4 text-blue-500" />
                     <p className="text-sm font-black text-foreground">Add to Home Screen</p>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -167,7 +185,7 @@ export function FirstRunPwaSheet({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-delulu-yellow-reserved" />
+                  <Bell className="h-4 w-4 text-blue-500" />
                   <p className="text-sm font-black text-foreground">Enable notifications</p>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
