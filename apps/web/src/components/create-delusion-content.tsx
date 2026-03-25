@@ -313,6 +313,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     if (isSuccess) {
       setShowSuccessModal(true);
       refetchAllActiveQueries(apolloClient);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("delulu:created"));
+      }
     }
   }, [isSuccess, apolloClient]);
 

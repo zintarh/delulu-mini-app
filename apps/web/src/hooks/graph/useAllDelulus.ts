@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import {
-  GetDelulusDocument,
-  type GetDelulusQuery,
-  type GetDelulusQueryVariables,
-} from "@/generated/graphql";
-import {
   transformSubgraphDelulu,
+  timestampToDate,
   type SubgraphDeluluRaw,
 } from "@/lib/graph/transformers";
 import {
@@ -19,15 +16,107 @@ import type { FormattedDelulu } from "@/lib/types";
 
 const PAGE_SIZE = 10;
 
+const GET_DELULUS_FEED = gql`
+  query GetDelulusFeed($first: Int = 10, $skip: Int = 0) {
+    delulus(
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: desc
+      where: { isCancelled: false }
+    ) {
+      id
+      onChainId
+      token
+      creator {
+        id
+        username
+      }
+      creatorAddress
+      contentHash
+      stakingDeadline
+      resolutionDeadline
+      createdAt
+      creatorStake
+      totalSupportCollected
+      totalSupporters
+      challengeId
+      isResolved
+      isCancelled
+      milestones(first: 3, orderBy: milestoneId, orderDirection: asc) {
+        milestoneId
+        milestoneURI
+        deadline
+        startTime
+        isSubmitted
+        isVerified
+      }
+    }
+  }
+`;
+
+interface FeedMilestoneRaw {
+  milestoneId: string;
+  milestoneURI?: string | null;
+  deadline: string;
+  startTime?: string | null;
+  isSubmitted: boolean;
+  isVerified: boolean;
+}
+
+export interface FeedMilestone {
+  milestoneId: string;
+  milestoneURI?: string | null;
+  deadline: Date;
+  startTime: Date | null;
+  isSubmitted: boolean;
+  isVerified: boolean;
+}
+
+export type FormattedDeluluFeed = FormattedDelulu & {
+  feedMilestones?: FeedMilestone[];
+};
+
+type FeedDelulu = Pick<
+  SubgraphDeluluRaw,
+  | "id"
+  | "onChainId"
+  | "token"
+  | "creatorAddress"
+  | "contentHash"
+  | "stakingDeadline"
+  | "resolutionDeadline"
+  | "createdAt"
+  | "creatorStake"
+  | "totalSupportCollected"
+  | "totalSupporters"
+  | "challengeId"
+  | "isResolved"
+  | "isCancelled"
+  | "creator"
+>;
+type FeedDeluluWithMilestones = FeedDelulu & {
+  milestones?: FeedMilestoneRaw[];
+};
+
+interface GetDelulusFeedQuery {
+  delulus: FeedDelulu[];
+}
+
+interface GetDelulusFeedQueryVariables {
+  first?: number;
+  skip?: number;
+}
+
 export function useAllDelulus() {
   const [page, setPage] = useState(0);
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const [isIpfsLoading, setIsIpfsLoading] = useState(false);
 
   const { data, loading, error, fetchMore, refetch: apolloRefetch, previousData } = useQuery<
-    GetDelulusQuery,
-    GetDelulusQueryVariables
-  >(GetDelulusDocument, {
+    GetDelulusFeedQuery,
+    GetDelulusFeedQueryVariables
+  >(GET_DELULUS_FEED, {
     variables: {
       first: PAGE_SIZE,
       skip: 0,
@@ -36,25 +125,43 @@ export function useAllDelulus() {
     notifyOnNetworkStatusChange: true,
   });
 
-  // Use current data, or fallback to previousData while loading to prevent flickering
   const displayData = data?.delulus || previousData?.delulus || [];
 
-  const delulus = useMemo(() => {
+  const delulus = useMemo<FormattedDeluluFeed[]>(() => {
     if (displayData.length === 0) return [];
 
     return displayData
       .map((d) => {
         try {
           const cached = getCachedContent(d.contentHash);
-          return transformSubgraphDelulu(d as SubgraphDeluluRaw, cached);
+          const transformed = transformSubgraphDelulu(
+            d as SubgraphDeluluRaw,
+            cached,
+          );
+          const raw = d as FeedDeluluWithMilestones;
+          const feedMilestones =
+            raw.milestones?.map((m) => ({
+              milestoneId: m.milestoneId,
+              milestoneURI: m.milestoneURI ?? null,
+              deadline: timestampToDate(m.deadline),
+              startTime: m.startTime ? timestampToDate(m.startTime) : null,
+              isSubmitted: m.isSubmitted,
+              isVerified: m.isVerified,
+            })) ?? [];
+
+          return {
+            ...transformed,
+            feedMilestones,
+          } as FormattedDeluluFeed;
         } catch {
           return null;
         }
       })
-      .filter((d): d is FormattedDelulu => d !== null && !d.isCancelled);
+      .filter((d): d is FormattedDeluluFeed => d !== null && !d.isCancelled);
   }, [displayData, ipfsResolved]);
 
-  // IPFS Resolution Logic
+
+
   useEffect(() => {
     if (!data?.delulus || data.delulus.length === 0) return;
 
@@ -85,14 +192,13 @@ export function useAllDelulus() {
     await apolloRefetch({ first: PAGE_SIZE, skip: 0 });
   }, [apolloRefetch]);
 
-  // After merge, data.delulus is all pages; we have more if current length >= (page+1)*PAGE_SIZE
   const hasNextPage =
     data?.delulus !== undefined &&
     data.delulus.length >= (page + 1) * PAGE_SIZE;
 
   return {
-    delulus, // Now always stable
-    isLoading: loading && !data && !previousData, // Only true on absolute first load
+    delulus,
+    isLoading: loading && !data && !previousData, 
     isFetchingNextPage: loading && page > 0,
     isIpfsLoading,
     hasNextPage,

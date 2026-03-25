@@ -1,11 +1,14 @@
 /**
- * Client-side IPFS content resolver with in-memory caching.
+ * Client-side IPFS content resolver with:
+ * - L1 in-memory cache
+ * - L2 localStorage persistence
+ * - stale-while-revalidate reads
  *
  * Each delulu's `contentHash` points to a Pinata-hosted JSON blob containing:
  *   { text, username?, pfpUrl?, createdAt?, gatekeeper?, bgImageUrl? }
  *
- * Since IPFS content is immutable, we cache resolved metadata forever
- * (within the browser session) to avoid redundant network calls.
+ * IPFS content is immutable, but gateways can be flaky; SWR keeps UI fast
+ * while allowing background refresh to heal partial/failed reads.
  */
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -33,8 +36,17 @@ export interface DeluluIPFSMetadata {
 
 // ─── Cache ──────────────────────────────────────────────────────
 
-const metadataCache = new Map<string, DeluluIPFSMetadata | null>();
+type CacheEntry = {
+  value: DeluluIPFSMetadata | null;
+  cachedAt: number;
+};
+
+const metadataCache = new Map<string, CacheEntry>();
 const pendingRequests = new Map<string, Promise<DeluluIPFSMetadata | null>>();
+const PERSIST_KEY = "delulu_ipfs_cache_v1";
+const MAX_PERSIST_ENTRIES = 600;
+const REVALIDATE_AFTER_MS = 24 * 60 * 60 * 1000; // 24h
+let hasHydratedPersistentCache = false;
 
 // ─── Gateways (fallback order) ──────────────────────────────────
 
@@ -91,6 +103,69 @@ async function fetchFromGateways(
   return null;
 }
 
+function hydratePersistentCache(): void {
+  if (hasHydratedPersistentCache || typeof window === "undefined") return;
+  hasHydratedPersistentCache = true;
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, CacheEntry>;
+    const entries = Object.entries(parsed);
+    for (const [hash, entry] of entries) {
+      if (!hash || !entry || typeof entry.cachedAt !== "number") continue;
+      metadataCache.set(hash, {
+        value: entry.value ?? null,
+        cachedAt: entry.cachedAt,
+      });
+    }
+  } catch {
+    // Ignore malformed persisted cache payloads.
+  }
+}
+
+function persistCacheToStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const items = Array.from(metadataCache.entries())
+      .sort((a, b) => b[1].cachedAt - a[1].cachedAt)
+      .slice(0, MAX_PERSIST_ENTRIES);
+
+    const payload: Record<string, CacheEntry> = {};
+    for (const [hash, entry] of items) {
+      payload[hash] = entry;
+    }
+    window.localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage quota/private mode errors.
+  }
+}
+
+function setCacheEntry(contentHash: string, value: DeluluIPFSMetadata | null): void {
+  metadataCache.set(contentHash, {
+    value,
+    cachedAt: Date.now(),
+  });
+  persistCacheToStorage();
+}
+
+function shouldRevalidate(entry: CacheEntry | undefined): boolean {
+  if (!entry) return true;
+  return Date.now() - entry.cachedAt > REVALIDATE_AFTER_MS;
+}
+
+function revalidateInBackground(contentHash: string): void {
+  if (!contentHash || pendingRequests.has(contentHash)) return;
+  const promise = fetchFromGateways(contentHash)
+    .then((result) => {
+      setCacheEntry(contentHash, result);
+      return result;
+    })
+    .finally(() => {
+      pendingRequests.delete(contentHash);
+    });
+  pendingRequests.set(contentHash, promise);
+}
+
 /**
  * Resolve a single contentHash → metadata.
  * Returns from cache if available, deduplicates in-flight requests.
@@ -99,10 +174,15 @@ export async function resolveIPFSContent(
   contentHash: string
 ): Promise<DeluluIPFSMetadata | null> {
   if (!contentHash) return null;
+  hydratePersistentCache();
 
   // Return from cache
-  if (metadataCache.has(contentHash)) {
-    return metadataCache.get(contentHash) ?? null;
+  const cachedEntry = metadataCache.get(contentHash);
+  if (cachedEntry) {
+    if (shouldRevalidate(cachedEntry)) {
+      revalidateInBackground(contentHash);
+    }
+    return cachedEntry.value ?? null;
   }
 
   // Deduplicate concurrent requests for the same hash
@@ -110,11 +190,14 @@ export async function resolveIPFSContent(
     return pendingRequests.get(contentHash)!;
   }
 
-  const promise = fetchFromGateways(contentHash).then((result) => {
-    metadataCache.set(contentHash, result);
-    pendingRequests.delete(contentHash);
-    return result;
-  });
+  const promise = fetchFromGateways(contentHash)
+    .then((result) => {
+      setCacheEntry(contentHash, result);
+      return result;
+    })
+    .finally(() => {
+      pendingRequests.delete(contentHash);
+    });
 
   pendingRequests.set(contentHash, promise);
   return promise;
@@ -127,6 +210,7 @@ export async function resolveIPFSContent(
 export async function batchResolveIPFS(
   contentHashes: string[]
 ): Promise<Map<string, DeluluIPFSMetadata | null>> {
+  hydratePersistentCache();
   // Filter to only unresolved hashes
   const uniqueHashes = [...new Set(contentHashes)].filter(
     (h) => h && !metadataCache.has(h)
@@ -142,7 +226,7 @@ export async function batchResolveIPFS(
   // Build result map from cache
   const results = new Map<string, DeluluIPFSMetadata | null>();
   for (const hash of contentHashes) {
-    results.set(hash, metadataCache.get(hash) ?? null);
+    results.set(hash, metadataCache.get(hash)?.value ?? null);
   }
   return results;
 }
@@ -151,6 +235,7 @@ export async function batchResolveIPFS(
  * Check if a contentHash has already been resolved and cached.
  */
 export function isContentCached(contentHash: string): boolean {
+  hydratePersistentCache();
   return metadataCache.has(contentHash);
 }
 
@@ -160,5 +245,6 @@ export function isContentCached(contentHash: string): boolean {
 export function getCachedContent(
   contentHash: string
 ): DeluluIPFSMetadata | null | undefined {
-  return metadataCache.get(contentHash);
+  hydratePersistentCache();
+  return metadataCache.get(contentHash)?.value;
 }

@@ -1,9 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Home, Plus, Coins, CableCar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAccount } from "wagmi";
 
 interface BottomNavProps {
   onProfileClick?: () => void;
@@ -25,6 +27,13 @@ const navItems: Array<{
 
 export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isConnected } = useAccount();
+
+  useEffect(() => {
+    ["/", "/board", "/profile", "/daily-claim", "/campaigns", "/leaderboard"]
+      .forEach((href) => router.prefetch(href));
+  }, [router]);
 
   return (
     <nav
@@ -85,12 +94,50 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
               <Link
                 key={item.label}
                 href={item.href}
+                onMouseEnter={() => router.prefetch(item.href!)}
+                onTouchStart={() => router.prefetch(item.href!)}
                 className={cn(
                   "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
                   isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
                 )}
                 style={isClaim && isActive ? { color: "#01B1FF" } : undefined}
                 aria-current={isActive ? "page" : undefined}
+                aria-label={item.label}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          if (isConnected && item.label === "Create") {
+            return (
+              <Link
+                key={item.label}
+                href="/board"
+                onMouseEnter={() => router.prefetch("/board")}
+                onTouchStart={() => router.prefetch("/board")}
+                className={cn(
+                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
+                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
+                )}
+                aria-label={item.label}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          if (isConnected && item.label === "Profile") {
+            return (
+              <Link
+                key={item.label}
+                href="/profile"
+                onMouseEnter={() => router.prefetch("/profile")}
+                onTouchStart={() => router.prefetch("/profile")}
+                className={cn(
+                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
+                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
+                )}
                 aria-label={item.label}
               >
                 {content}

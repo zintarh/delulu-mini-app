@@ -70,7 +70,8 @@ export function FaucetModal({ open, onOpenChange }: FaucetModalProps) {
         <ModalHeader>
           <ModalTitle>Gas faucet</ModalTitle>
           <ModalDescription>
-            Get a bit of CELO on mainnet to cover gas for transactions.
+            Get a bit of CELO on mainnet to cover gas for transactions. Available for wallets with
+            less than 1 CELO.
           </ModalDescription>
         </ModalHeader>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Home,
@@ -27,15 +27,14 @@ import { TokenBadge } from "@/components/token-badge";
 interface LeftSidebarProps {
   onProfileClick?: () => void;
   onCreateClick?: () => void;
-  onOnboardingClick?: () => void;
 }
 
 export function LeftSidebar({
   onProfileClick,
   onCreateClick,
-  onOnboardingClick,
 }: LeftSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { isAdmin } = useIsAdmin();
   const { theme, toggleTheme } = useTheme();
   const { isConnected, address } = useAccount();
@@ -115,18 +114,6 @@ export function LeftSidebar({
       active: false,
       onClick: onProfileClick,
     },
-    // Onboarding link is only shown when a handler is provided by the parent.
-    ...(typeof onOnboardingClick === "function"
-      ? [
-          {
-            icon: Moon,
-            label: "Onboarding",
-            href: undefined,
-            active: false,
-            onClick: onOnboardingClick,
-          },
-        ]
-      : []),
     ...(isAdmin
       ? [
           {
@@ -139,6 +126,12 @@ export function LeftSidebar({
         ]
       : []),
   ];
+
+  useEffect(() => {
+    // Warm common routes so sidebar navigation feels instant.
+    ["/", "/board", "/profile", "/daily-claim", "/campaigns", "/leaderboard"]
+      .forEach((href) => router.prefetch(href));
+  }, [router]);
 
   return (
     <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
@@ -190,6 +183,41 @@ export function LeftSidebar({
               <Link
                 key={item.label}
                 href={item.href}
+                onMouseEnter={() => router.prefetch(item.href!)}
+                onTouchStart={() => router.prefetch(item.href!)}
+                className={className}
+                style={style}
+                aria-label={item.label}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          // Prefer Link navigation for connected users (faster transitions + prefetch).
+          if (isConnected && item.label === "Create") {
+            return (
+              <Link
+                key={item.label}
+                href="/board"
+                onMouseEnter={() => router.prefetch("/board")}
+                onTouchStart={() => router.prefetch("/board")}
+                className={className}
+                style={style}
+                aria-label={item.label}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          if (isConnected && item.label === "Profile") {
+            return (
+              <Link
+                key={item.label}
+                href="/profile"
+                onMouseEnter={() => router.prefetch("/profile")}
+                onTouchStart={() => router.prefetch("/profile")}
                 className={className}
                 style={style}
                 aria-label={item.label}

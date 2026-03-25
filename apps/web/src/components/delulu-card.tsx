@@ -19,6 +19,7 @@ import {
   getDeluluCreatedAtMs,
   shouldShowBuyButton,
 } from "@/lib/milestone-utils";
+import type { FeedMilestone } from "@/hooks/graph/useAllDelulus";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -64,6 +65,10 @@ interface DeluluCardProps {
   onStake?: () => void;
   className?: string;
   isLast?: boolean;
+  nowMs?: number;
+  disableMilestoneQuery?: boolean;
+  disableUsernameLookup?: boolean;
+  feedMilestones?: FeedMilestone[];
 }
 
 export function DeluluCard({
@@ -73,10 +78,16 @@ export function DeluluCard({
   onStake,
   className = "",
   isLast = false,
+  nowMs,
+  disableMilestoneQuery = false,
+  disableUsernameLookup = false,
+  feedMilestones,
 }: DeluluCardProps) {
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const tvlValue = delusion.totalSupportCollected ?? totalStake;
-  const creatorAddress = delusion.creator as `0x${string}`;
+  const creatorAddress = disableUsernameLookup
+    ? undefined
+    : (delusion.creator as `0x${string}`);
   const { username: contractUsername } = useUsernameByAddress(creatorAddress);
   const displayUsername = contractUsername || delusion.username || null;
   const creatorLabel = displayUsername
@@ -88,18 +99,24 @@ export function DeluluCard({
   const avatarUrl = delusion.pfpUrl || fallbackAvatarUrl;
 
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
-    delusion.id,
+    disableMilestoneQuery ? null : delusion.id,
   );
+  const effectiveMilestones = feedMilestones ?? milestones;
+  const effectiveMilestonesLoading = disableMilestoneQuery
+    ? false
+    : isMilestonesLoading;
 
   const { address } = useAccount();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
 
-  const [now, setNow] = useState(() => Date.now());
+  const [localNow, setLocalNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    if (typeof nowMs === "number") return;
+    const id = setInterval(() => setLocalNow(Date.now()), 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [nowMs]);
+  const now = typeof nowMs === "number" ? nowMs : localNow;
 
   const isGoodDollar =
     delusion.tokenAddress?.toLowerCase() ===
@@ -139,15 +156,21 @@ export function DeluluCard({
         totalCount: 0,
         successPct: 0,
       };
-      if (isMilestonesLoading || !milestones || milestones.length === 0) {
+      if (
+        effectiveMilestonesLoading ||
+        !effectiveMilestones ||
+        effectiveMilestones.length === 0
+      ) {
         return empty;
       }
 
-      const sorted = [...milestones].sort(
+      const sorted = [...effectiveMilestones].sort(
         (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
       );
       const total = sorted.length;
-      const completedCount = milestones.filter((m) => m.isVerified).length;
+      const completedCount = effectiveMilestones.filter(
+        (m) => m.isVerified,
+      ).length;
       const success =
         total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
@@ -246,19 +269,20 @@ export function DeluluCard({
       };
     }, [
       milestones,
+      effectiveMilestones,
+      effectiveMilestonesLoading,
       now,
-      isMilestonesLoading,
       delusion.createdAt,
       delusion.stakingDeadline,
     ]);
 
   const showBuyButton = useMemo(
     () =>
-      shouldShowBuyButton(milestones, now, {
+      shouldShowBuyButton(effectiveMilestones, now, {
         createdAt: delusion.createdAt,
         stakingDeadline: delusion.stakingDeadline,
       }),
-    [milestones, now, delusion.createdAt, delusion.stakingDeadline],
+    [effectiveMilestones, now, delusion.createdAt, delusion.stakingDeadline],
   );
 
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -469,16 +493,6 @@ export function DeluluCard({
               </span>
             )}
           </div>
-
-          {showBuyButton && (
-            <button
-              onClick={handleStake}
-              className="inline-flex bg-secondary items-center gap-2 dark:text-delulu-yellow-reserved border dark:rounded-full  px-4 py-2 text-[12px] font-bold text-foreground light:bg-delulu-yellow-reserved shadow-md  rounded-full hover:shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0_0_rgba(0,0,0,0.2)] transition-all"
-            >
-              <HeartIcon className="h-4 w-4 dark:text-delulu-yellow" />
-              Support
-            </button>
-          )}
         </div>
       </div>
     </>

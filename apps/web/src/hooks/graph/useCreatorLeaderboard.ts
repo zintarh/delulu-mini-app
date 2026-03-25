@@ -17,12 +17,8 @@ const CREATOR_LEADERBOARD_QUERY = gql`
     ) {
       id
       totalGoals
-      completedGoals
-      failedGoals
       totalMilestones
-      verifiedMilestones
       totalSupportCollected
-      createdAt
       user {
         id
         username
@@ -37,9 +33,7 @@ export interface CreatorLeaderboardEntry {
   address: string;
   username: string | null;
   totalGoals: number;
-  completedGoals: number;
   totalMilestones: number;
-  verifiedMilestones: number;
   totalSupportCollected: number;
   points: number;
 }
@@ -50,7 +44,10 @@ export function useCreatorLeaderboard(first: number = 20, skip: number = 0) {
     { first: number; skip: number }
   >(CREATOR_LEADERBOARD_QUERY, {
     variables: { first, skip },
+    // Keep a responsive UI by showing cached results first,
+    // then updating from the network.
     fetchPolicy: "cache-and-network",
+    nextFetchPolicy: "cache-first",
   });
 
   const entries: CreatorLeaderboardEntry[] = useMemo(() => {
@@ -62,9 +59,7 @@ export function useCreatorLeaderboard(first: number = 20, skip: number = 0) {
         address: s.id,
         username: s.user?.username ?? null,
         totalGoals: Number(s.totalGoals ?? "0"),
-        completedGoals: Number(s.completedGoals ?? "0"),
         totalMilestones: Number(s.totalMilestones ?? "0"),
-        verifiedMilestones: Number(s.verifiedMilestones ?? "0"),
         totalSupportCollected: weiToNumber(s.totalSupportCollected),
         points: Number(s.user?.deluluPoints ?? "0"),
       })

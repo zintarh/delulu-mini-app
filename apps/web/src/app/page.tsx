@@ -15,13 +15,12 @@ import { StakeFlowSheet } from "@/components/stake-flow-sheet";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
+import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { useQuery } from "@apollo/client/react";
-import { GetDelulusDocument, type GetDelulusQuery, type GetDelulusQueryVariables } from "@/generated/graphql";
 import type { FormattedDelulu } from "@/lib/types";
 import { Plus } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
@@ -29,7 +28,7 @@ import { UserSetupModal } from "@/components/user-setup-modal";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
-  const { logout, authenticated } = usePrivy();
+  const { logout,  authenticated } = usePrivy();
 
   const handleProfileClick = () => {
     if (!authenticated) setShowLoginSheet(true);
@@ -39,16 +38,15 @@ export default function HomePage() {
     if (!authenticated) setShowLoginSheet(true);
     else router.push("/board");
   };
-  const { disconnect } = useDisconnect();
   const router = useRouter();
   const { updateUsername, updateAddress, user } = useUserStore();
   const { 
     delulus, 
     isLoading, 
     isFetchingNextPage, 
-    isIpfsLoading,
     hasNextPage, 
-    fetchNextPage 
+    fetchNextPage,
+    refetch: refetchFeed,
   } = useAllDelulus();
   
   const { 
@@ -62,12 +60,10 @@ export default function HomePage() {
     address as `0x${string}` | undefined
   );
 
-  // Update store when username is fetched from contract
   useEffect(() => {
     if (address && onChainUsername && onChainUsername !== user?.username) {
       updateUsername(onChainUsername, user?.email);
     }
-    // Also update address if it's not set
     if (address && address !== user?.address) {
       updateAddress(address);
     }
@@ -77,18 +73,20 @@ export default function HomePage() {
     null
   );
   const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
+  
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [stakingSheetOpen, setStakingSheetOpen] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
-  const [isScrolling, setIsScrolling] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
 
   const scrollContainerRef = useRef<HTMLElement>(null);
 
@@ -108,10 +106,6 @@ export default function HomePage() {
     if (!container) return;
 
     const handleScroll = () => {
-      setIsScrolling(true);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 150);
-
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
@@ -134,6 +128,11 @@ export default function HomePage() {
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
 
   useEffect(() => {
+    const id = setInterval(() => setFeedNowMs(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     if (!authenticated) return;
     if (user?.username) {
       setShowUserSetupModal(false);
@@ -149,6 +148,21 @@ export default function HomePage() {
     }
     setShowUserSetupModal(true);
   }, [authenticated, user?.username]);
+
+  // Force-refresh feed when a create flow succeeds anywhere in the app.
+  useEffect(() => {
+    const onCreated = () => {
+      refetchFeed();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("delulu:created", onCreated);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("delulu:created", onCreated);
+      }
+    };
+  }, [refetchFeed]);
 
 
   const isContentLoaded = (delulu: FormattedDelulu): boolean => {
@@ -180,7 +194,6 @@ export default function HomePage() {
           <LeftSidebar
             onProfileClick={handleProfileClick}
             onCreateClick={handleCreateClick}
-            onOnboardingClick={() => setShowOnboarding(true)}
           />
         </div>
 
@@ -236,7 +249,7 @@ export default function HomePage() {
           </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
-            {(activeTab === "fyp" && (isLoading || isIpfsLoading)) ||
+            {(activeTab === "fyp" && isLoading) ||
             (activeTab === "board" && isLoadingUserDelulus) ? (
               <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col gap-3"}>
                 {Array.from({ length: activeTab === "board" ? 6 : 5 }).map((_, i) => (
@@ -253,6 +266,7 @@ export default function HomePage() {
             ) : filteredDelulus.length > 0 ? (
               <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col"}>
                 {filteredDelulus.map((delusion, index) => {
+                  const feedDelusion = delusion as FormattedDeluluFeed;
                   const commonProps = {
                     key: `delulu-${delusion.onChainId || delusion.id}-${index}`,
                     delusion,
@@ -273,7 +287,13 @@ export default function HomePage() {
                       <ProfileDeluluCard {...commonProps} size="masonry" />
                     </div>
                   ) : (
-                    <DeluluCard {...commonProps} />
+                    <DeluluCard
+                      {...commonProps}
+                      nowMs={feedNowMs}
+                      disableMilestoneQuery
+                      disableUsernameLookup
+                      feedMilestones={feedDelusion.feedMilestones}
+                    />
                   );
                 })}
                 {isFetchingNextPage && (
@@ -366,12 +386,13 @@ export default function HomePage() {
       <LogoutSheet
         open={logoutSheetOpen}
         onOpenChange={setLogoutSheetOpen}
-        onLogout={() => {
-          disconnect();
-          useUserStore.getState().logout();
-          logout();
+        onLogout={ async () => {
+          await logout();
+
+           useUserStore.getState().logout();
           setLogoutSheetOpen(false);
-          router.push("/");
+            router.push("https://staydelulu.xy");
+          
         }}
       />
 
