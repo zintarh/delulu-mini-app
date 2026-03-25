@@ -190,6 +190,15 @@ export const metadata: Metadata = {
   title: "Delulu",
   description:
     "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#151515" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Delulu",
+  },
   openGraph: {
     title: "delulu",
     description:

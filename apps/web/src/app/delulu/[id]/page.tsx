@@ -859,7 +859,7 @@ export default function DeluluPage() {
                 </button>
 
                 <a
-                  href="https://stay.delulu.xyz"
+                  href="https://staydelulu.xyz"
                   className="flex items-center justify-center shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   aria-label="Delulu home"
                 >

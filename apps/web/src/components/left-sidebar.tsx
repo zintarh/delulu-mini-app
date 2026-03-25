@@ -130,7 +130,7 @@ export function LeftSidebar({
     <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
       <div className="mb-8 px-2">
         <a
-          href="https://stay.delulu.xyz"
+          href="https://staydelulu.xyz"
           className="inline-block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           aria-label="Delulu home"
         >
