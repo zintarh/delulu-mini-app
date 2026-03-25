@@ -9,7 +9,6 @@ import {
   User,
   Coins,
   User2,
-  CableCar,
   Trophy,
   Moon,
   Sun,
@@ -94,13 +93,6 @@ export function LeftSidebar({
       onClick: undefined,
     },
     {
-      icon: CableCar,
-      label: "Campaigns",
-      href: "/campaigns",
-      active: pathname === "/campaigns",
-      onClick: undefined,
-    },
-    {
       icon: Trophy,
       label: "Leaderboard",
       href: "/leaderboard",
@@ -129,7 +121,7 @@ export function LeftSidebar({
 
   useEffect(() => {
     // Warm common routes so sidebar navigation feels instant.
-    ["/", "/board", "/profile", "/daily-claim", "/campaigns", "/leaderboard"]
+    ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]
       .forEach((href) => router.prefetch(href));
   }, [router]);
 

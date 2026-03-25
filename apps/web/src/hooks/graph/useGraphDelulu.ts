@@ -47,7 +47,7 @@ export interface GraphMilestone {
   rejectionReason: string | null;
 }
 
-const GET_DELULU_BY_ID = gql`
+export const GET_DELULU_BY_ID = gql`
   query GetDeluluById($id: ID!) {
     delulu(id: $id) {
       id

@@ -73,7 +73,7 @@ export default function HomePage() {
     null
   );
   const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
-  
+
   const [howItWorksType, setHowItWorksType] = useState<
     "concept" | "market" | "conviction"
   >("concept");
@@ -296,18 +296,13 @@ export default function HomePage() {
                     />
                   );
                 })}
-                {isFetchingNextPage && (
-                  <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3 mt-6" : "flex flex-col gap-3 mt-6"}>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      activeTab === "board" ? (
-                        <div
-                          key={`loading-${i}`}
-                          className="break-inside-avoid mb-3 aspect-[16/9] bg-muted rounded-xl border border-border animate-pulse"
-                        />
-                      ) : (
-                        <DeluluCardSkeleton key={`loading-${i}`} index={i} />
-                      )
-                    ))}
+                {/* Silent pagination: don't replace cards with skeletons while fetching more. */}
+                {activeTab === "fyp" && isFetchingNextPage && (
+                  <div className="mt-4 flex items-center justify-center py-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                    <div className="mx-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                    <span className="sr-only">Loading more</span>
                   </div>
                 )}
               </div>
@@ -371,7 +366,6 @@ export default function HomePage() {
             try {
               window.localStorage.setItem("delulu_onboarding_seen_v1", "1");
             } catch {
-              // ignore storage errors
             }
           }
         }}

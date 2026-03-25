@@ -3,20 +3,34 @@
 import { useMemo, useState } from "react";
 import { useAccount, useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
 import { formatUnits } from "viem";
 import { cn, formatGAmount } from "@/lib/utils";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useIdentity } from "@/hooks/identityHook";
-import { IdentityModal } from "@/components/identity-modal";
-import { FaucetModal } from "@/components/faucet-modal";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { Pill } from "@/components/ui/pill";
+
+const ConnectorSelectionSheet = dynamic(
+  () =>
+    import("@/components/connector-selection-sheet").then(
+      (m) => m.ConnectorSelectionSheet,
+    ),
+  { ssr: false },
+);
+const IdentityModal = dynamic(
+  () => import("@/components/identity-modal").then((m) => m.IdentityModal),
+  { ssr: false },
+);
+const FaucetModal = dynamic(
+  () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
+  { ssr: false },
+);
 
 export default function GoodDollarClaimPage() {
   const { address, isConnected } = useAccount();
