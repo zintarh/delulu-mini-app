@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { SharesSheet } from "@/components/shares-sheet";
 import {
   useAccount,
   useChainId,
@@ -41,10 +42,6 @@ import {
   ModalDescription,
   ModalFooter,
 } from "@/components/ui/modal";
-const SharesSheet = dynamic(
-  () => import("@/components/shares-sheet").then((m) => m.SharesSheet),
-  { ssr: false },
-);
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
