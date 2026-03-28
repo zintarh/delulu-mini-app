@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
       transport: http(RPC_URL),
     });
 
+    // 0. Check faucet wallet balance first so users get a clear error.
+    const faucetBalance = await publicClient.getBalance({ address: account.address });
+    if (faucetBalance < FAUCET_AMOUNT) {
+      return errorResponse(
+        "Faucet is temporarily empty. Please try again later.",
+        503
+      );
+    }
+
     // 1. Check user native CELO balance
     const balance = await publicClient.getBalance({ address: address as `0x${string}` });
     if (balance >= MIN_NATIVE_BALANCE) {
@@ -83,6 +92,17 @@ export async function POST(req: NextRequest) {
 
     if (lastClaimError) {
       console.error("Supabase faucet_claims query error:", lastClaimError);
+      const msg = String(lastClaimError.message || "");
+      if (
+        msg.includes("Could not find the table") &&
+        msg.includes("faucet_claims")
+      ) {
+        return errorResponse(
+          "Faucet DB table is missing. Create public.faucet_claims first.",
+          500
+        );
+      }
+      return errorResponse("Unable to validate faucet rate limit right now.", 500);
     }
 
     if (lastClaim?.created_at) {
@@ -98,10 +118,22 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Send CELO
-    const hash = await walletClient.sendTransaction({
-      to: address as `0x${string}`,
-      value: FAUCET_AMOUNT,
-    });
+    let hash: `0x${string}`;
+    try {
+      hash = await walletClient.sendTransaction({
+        to: address as `0x${string}`,
+        value: FAUCET_AMOUNT,
+      });
+    } catch (sendErr: any) {
+      const msg = String(sendErr?.shortMessage || sendErr?.message || "");
+      if (msg.toLowerCase().includes("insufficient funds")) {
+        return errorResponse("Faucet is temporarily empty. Please try again later.", 503);
+      }
+      return errorResponse(
+        msg || "Failed to send CELO from faucet wallet.",
+        500
+      );
+    }
 
     // Store claim record in Supabase (table: faucet_claims)
     const { error: insertError } = await supabase.from("faucet_claims").insert({
@@ -112,12 +144,24 @@ export async function POST(req: NextRequest) {
 
     if (insertError) {
       console.error("Supabase faucet_claims insert error:", insertError);
+      const msg = String(insertError.message || "");
+      if (
+        msg.includes("Could not find the table") &&
+        msg.includes("faucet_claims")
+      ) {
+        return errorResponse(
+          "Faucet DB table is missing. Create public.faucet_claims first.",
+          500
+        );
+      }
+      return errorResponse("Failed to store faucet claim record.", 500);
     }
 
     return jsonResponse({ hash }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("POST /api/faucet error:", error);
-    return errorResponse("Failed to process faucet request", 500);
+    const msg = String(error?.shortMessage || error?.message || "");
+    return errorResponse(msg || "Failed to process faucet request", 500);
   }
 }
 

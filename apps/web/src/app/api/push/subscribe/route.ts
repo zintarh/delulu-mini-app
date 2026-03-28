@@ -34,7 +34,17 @@ export async function POST(req: NextRequest) {
     );
 
     if (error) {
-      return errorResponse(error.message, 500);
+      const msg = error.message || "";
+      const missingTable =
+        msg.includes("Could not find the table") &&
+        msg.includes("push_subscriptions");
+      if (missingTable) {
+        return errorResponse(
+          "Push notifications DB tables are missing. Run docs/PUSH_NOTIFICATIONS_SUPABASE.sql in Supabase SQL editor.",
+          500,
+        );
+      }
+      return errorResponse(msg, 500);
     }
 
     return jsonResponse({ ok: true });

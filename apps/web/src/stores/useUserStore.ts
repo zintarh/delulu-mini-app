@@ -41,7 +41,25 @@ export const useUserStore = create<UserStore>()(
           isLoading: false,
         })),
       setLoading: (isLoading) => set({ isLoading }),
-      logout: () => set({ user: null, isLoading: false }),
+      logout: () => {
+        if (typeof window !== 'undefined') {
+          // Clear all app-owned persisted keys on logout.
+          // Keep non-delulu keys (e.g. browser/tooling/vendor data) intact.
+          const localKeys = Object.keys(window.localStorage);
+          for (const key of localKeys) {
+            if (key.startsWith('delulu_')) {
+              window.localStorage.removeItem(key);
+            }
+          }
+          const sessionKeys = Object.keys(window.sessionStorage);
+          for (const key of sessionKeys) {
+            if (key.startsWith('delulu_')) {
+              window.sessionStorage.removeItem(key);
+            }
+          }
+        }
+        set({ user: null, isLoading: false });
+      },
     }),
     {
       name: 'delulu-user-storage',

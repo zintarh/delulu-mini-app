@@ -14,7 +14,7 @@ import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
@@ -27,6 +27,7 @@ import { UserSetupModal } from "@/components/user-setup-modal";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
+  const { disconnect } = useDisconnect();
   const { logout,  authenticated } = usePrivy();
 
   const handleProfileClick = () => {
@@ -354,9 +355,6 @@ export default function HomePage() {
             }
           }
         }}
-        address={address as `0x${string}` | undefined}
-        isAuthenticated={authenticated}
-        onRequestLogin={() => setShowLoginSheet(true)}
       />
 
       <LogoutSheet
@@ -364,10 +362,11 @@ export default function HomePage() {
         onOpenChange={setLogoutSheetOpen}
         onLogout={ async () => {
           await logout();
+          await disconnect();
 
            useUserStore.getState().logout();
           setLogoutSheetOpen(false);
-            router.push("https://staydelulu.xy");
+            router.push("https://staydelulu.xyz");
           
         }}
       />

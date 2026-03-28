@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAccount, useDisconnect, useBalance } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { SheetTrigger } from "@/components/ui/sheet";
@@ -29,6 +30,7 @@ export function ConnectedAccount({
 
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const { logout: privyLogout } = usePrivy();
   const { data: balance } = useBalance({ address });
   const { logout } = useUserStore();
 
@@ -46,8 +48,17 @@ export function ConnectedAccount({
     : "0.00";
   const initials = address.slice(2, 4).toUpperCase();
 
-  const handleDisconnect = () => {
-    disconnect();
+  const handleDisconnect = async () => {
+    try {
+      await privyLogout();
+    } catch {
+      // best-effort
+    }
+    try {
+      await disconnect();
+    } catch {
+      // best-effort
+    }
     logout();
     setShowSheet(false);
   };
@@ -88,7 +99,9 @@ export function ConnectedAccount({
       >
         <div className="mt-6 space-y-4 lg:mt-4">
           <button
-            onClick={handleDisconnect}
+            onClick={() => {
+              void handleDisconnect();
+            }}
             className={cn(
               "w-full py-3",
               "bg-gradient-to-b from-delulu-dark via-delulu-dark to-[#1a1a1a]",

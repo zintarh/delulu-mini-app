@@ -47,6 +47,10 @@ contract Delulu is
     error AlreadySettled();
     error MilestonesCannotBeReset();
     error MilestoneCannotBeDeleted();
+    error SharesNotEnabled();
+    error TippingDisabled();
+    error SlippageTooHigh();
+    error InsufficientFreeLiquidity();
 
     // --- CONSTANTS ---
     uint256 public constant MAX_MILESTONES = 10;
@@ -61,7 +65,7 @@ contract Delulu is
     // cost = sum_{i=S+1}^{S+amount} i^2 * SHARE_PRICE_SCALE / SHARE_PRICE_FACTOR
     uint256 public constant SHARE_PRICE_SCALE = 1e18;
     uint256 public constant SHARE_PRICE_FACTOR = 16000;
-    uint256 public constant SHARE_CREATOR_FEE_BPS = 300; // 3% of curve cost on buys/sells to creator
+    uint256 public constant SHARE_CREATOR_FEE_BPS = 100; // 1% of curve cost on buys/sells to creator
 
     // --- STATE ---
     IERC20 public currency;
@@ -162,6 +166,12 @@ contract Delulu is
     mapping(uint256 => uint256) public shareSupply;
     mapping(uint256 => mapping(address => uint256)) public shareBalance;
     mapping(address => mapping(address => uint256)) public pendingCreatorShareFeesByToken;
+
+    // Shares liquidity accounting (append-only).
+    // Tracks bonding curve collateral held by this contract so other flows cannot drain it.
+    mapping(uint256 => uint256) public shareReserveByDelulu;
+    mapping(address => uint256) public shareReserveByToken;
+    mapping(uint256 => bool) public sharesEnabled;
 
     // --- EVENTS ---
     event ProfileUpdated(address indexed user, string username);
@@ -303,7 +313,6 @@ contract Delulu is
         address _gDollar
     ) public initializer {
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
         __Pausable_init();
 
@@ -344,6 +353,7 @@ contract Delulu is
     // --- VERIFIER ROLE FOR MILESTONES ---
 
     function setVerifier(address _verifier) external onlyOwner {
+        if (_verifier == address(0)) revert Unauthorized();
         verifier = _verifier;
     }
 
@@ -442,9 +452,8 @@ contract Delulu is
         d.token = token;
         d.contentHash = contentHash;
         // Genesis window: strictly 24 hours from creation
-        uint256 genesisEnd = block.timestamp + 24 hours;
-        if (resolutionDeadline <= genesisEnd) revert InvalidDeadlines();
-        d.stakingDeadline = genesisEnd;
+        d.stakingDeadline = block.timestamp + 24 hours;
+        if (resolutionDeadline <= d.stakingDeadline) revert InvalidDeadlines();
         d.resolutionDeadline = resolutionDeadline;
         // Tips are tracked separately from creator stake
         d.totalSupportCollected = 0;
@@ -458,12 +467,19 @@ contract Delulu is
             address(this),
             initialSupport
         );
+
+        // Shares: enable trading for this delulu and mint 1 initial share to creator (Friend.tech-style).
+        // This initializes the curve without requiring an extra buy transaction.
+        sharesEnabled[deluluId] = true;
+        shareSupply[deluluId] = 1;
+        shareBalance[deluluId][msg.sender] = 1;
+
         emit DeluluCreated(
             deluluId,
             msg.sender,
             token,
             contentHash,
-            genesisEnd,
+            d.stakingDeadline,
             resolutionDeadline,
             initialSupport,
             d.totalSupportCollected, // 0 at creation
@@ -491,12 +507,41 @@ contract Delulu is
         return block.timestamp;
     }
 
+    function _storeMilestone(
+        uint256 deluluId,
+        uint256 milestoneIndex,
+        string calldata uri,
+        uint256 startTime,
+        uint256 deadline
+    ) internal {
+        // Write fields directly to storage — avoids building a struct in memory
+        // (struct literal with a `string` field forces memory allocation, blowing the stack).
+        Milestone storage m = deluluMilestones[deluluId][milestoneIndex];
+        m.descriptionHash = keccak256(bytes(uri));
+        m.deadline = deadline;
+        // proofLink, isSubmitted, isVerified remain at their zero defaults
+
+        milestoneURI[deluluId][milestoneIndex] = uri;
+        milestoneStartTime[deluluId][milestoneIndex] = startTime;
+        // milestoneTippingStart/End, milestoneIsMissed, milestoneIsDeleted remain at zero defaults
+
+        emit MilestoneCreatedDetailed(
+            deluluId,
+            milestoneIndex,
+            m.descriptionHash,
+            uri,
+            startTime,
+            deadline
+        );
+    }
+
     function addMilestones(
         uint256 deluluId,
         string[] calldata mURIs,
         uint256[] calldata mDurations
     ) external {
         Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
         if (msg.sender != d.creator) revert Unauthorized();
         if (mURIs.length == 0 || mURIs.length > MAX_MILESTONES)
             revert TooManyMilestones();
@@ -505,51 +550,19 @@ contract Delulu is
         // Check total milestone count won't exceed MAX_MILESTONES
         uint256 activeCount = 0;
         for (uint256 i = 0; i < d.milestoneCount; i++) {
-            if (!milestoneIsDeleted[deluluId][i]) {
-                activeCount++;
-            }
+            if (!milestoneIsDeleted[deluluId][i]) activeCount++;
         }
         if (activeCount + mURIs.length > MAX_MILESTONES) revert TooManyMilestones();
 
-        // Calculate starting time from last active milestone or current time
         uint256 runningTime = _getLastActiveMilestoneDeadline(deluluId);
         uint256 startIndex = d.milestoneCount;
-        
+
         for (uint256 i = 0; i < mURIs.length; i++) {
-            uint256 milestoneIndex = startIndex + i;
-            uint256 startTime = runningTime;
-            uint256 duration = mDurations[i];
-            uint256 deadline = startTime + duration;
-            bytes32 descHash = keccak256(bytes(mURIs[i]));
-
-            deluluMilestones[deluluId][milestoneIndex] = Milestone({
-                descriptionHash: descHash,
-                deadline: deadline,
-                proofLink: "",
-                isSubmitted: false,
-                isVerified: false
-            });
-
-            // Store human-readable / IPFS metadata URI and emit for indexing
-            milestoneURI[deluluId][milestoneIndex] = mURIs[i];
-            emit MilestoneCreatedDetailed(
-                deluluId,
-                milestoneIndex,
-                descHash,
-                mURIs[i],
-                startTime,
-                deadline
-            );
-
-            // store extended milestone timing data in separate mappings
-            milestoneStartTime[deluluId][milestoneIndex] = startTime;
-            milestoneTippingStart[deluluId][milestoneIndex] = 0;
-            milestoneTippingEnd[deluluId][milestoneIndex] = 0;
-            milestoneIsMissed[deluluId][milestoneIndex] = false;
-            milestoneIsDeleted[deluluId][milestoneIndex] = false;
-
+            uint256 deadline = runningTime + mDurations[i];
+            _storeMilestone(deluluId, startIndex + i, mURIs[i], runningTime, deadline);
             runningTime = deadline;
         }
+
         d.milestoneCount = startIndex + mURIs.length;
         if (runningTime > d.resolutionDeadline) revert InvalidDeadlines();
         emit MilestonesAdded(deluluId, d.milestoneCount);
@@ -595,6 +608,7 @@ contract Delulu is
      */
     function deleteMilestone(uint256 deluluId, uint256 milestoneId) external {
         Market storage d = delulus[deluluId];
+        if (d.id == 0) revert DeluluNotFound();
         if (msg.sender != d.creator) revert Unauthorized();
         if (milestoneId >= d.milestoneCount) revert MilestoneNotFound();
         if (milestoneIsDeleted[deluluId][milestoneId]) revert MilestoneNotFound();
@@ -635,17 +649,9 @@ contract Delulu is
 
         m.proofLink = proofLink;
         m.isSubmitted = true;
-        // Open a dynamic tipping window based on milestone duration
-        uint256 window = calculateTippingWindow(
-            milestoneStartTime[deluluId][milestoneId],
-            m.deadline
-        );
-        if (window > 0) {
-            milestoneTippingStart[deluluId][milestoneId] = block.timestamp;
-            milestoneTippingEnd[deluluId][milestoneId] =
-                block.timestamp +
-                window;
-        }
+        // Tipping is deprecated in shares-only mode; keep fields but do not open windows.
+        milestoneTippingStart[deluluId][milestoneId] = 0;
+        milestoneTippingEnd[deluluId][milestoneId] = 0;
 
         emit MilestoneSubmitted(deluluId, milestoneId, proofLink);
         emit MilestoneSubmittedDetailed(
@@ -660,16 +666,9 @@ contract Delulu is
         uint256 deluluId,
         uint256 amount
     ) external nonReentrant whenNotPaused {
-        Market storage d = delulus[deluluId];
-        if (d.id == 0) revert DeluluNotFound();
-        if (block.timestamp >= d.stakingDeadline) revert StakingIsClosed();
-
-        d.totalSupportCollected += amount;
-        d.totalSupporters += 1;
-        userDeluluPoints[msg.sender] += 10;
-
-        IERC20(d.token).safeTransferFrom(msg.sender, address(this), amount);
-        emit SupportStaked(deluluId, msg.sender, amount, d.totalSupporters);
+        deluluId;
+        amount;
+        revert TippingDisabled();
     }
 
     function joinChallenge(uint256 deluluId, uint256 challengeId) external {
@@ -788,6 +787,8 @@ contract Delulu is
 
         Market storage d = delulus[deluluId];
         if (d.id == 0) revert DeluluNotFound();
+        if (!sharesEnabled[deluluId]) revert SharesNotEnabled();
+        if (!isSupportedToken[d.token]) revert Unauthorized();
         if (d.isResolved || marketIsFailed[deluluId]) revert AlreadySettled();
         // Disallow new buys after resolution deadline has passed
         if (block.timestamp >= d.resolutionDeadline) revert StakingIsClosed();
@@ -802,7 +803,7 @@ contract Delulu is
         uint256 totalCost = curveCost + protocolFee + creatorFee;
 
         if (maxCost > 0 && totalCost > maxCost) {
-            revert InsufficientSweepBalance();
+            revert SlippageTooHigh();
         }
 
         // Pull token from buyer
@@ -821,6 +822,10 @@ contract Delulu is
         if (creatorFee > 0) {
             pendingCreatorShareFeesByToken[d.creator][d.token] += creatorFee;
         }
+
+        // Account for bonding curve collateral.
+        shareReserveByDelulu[deluluId] += curveCost;
+        shareReserveByToken[d.token] += curveCost;
 
         // Mint shares
         shareSupply[deluluId] += amount;
@@ -851,26 +856,29 @@ contract Delulu is
 
         Market storage d = delulus[deluluId];
         if (d.id == 0) revert DeluluNotFound();
+        if (!sharesEnabled[deluluId]) revert SharesNotEnabled();
+        if (!isSupportedToken[d.token]) revert Unauthorized();
+        if (d.isResolved || marketIsFailed[deluluId]) revert AlreadySettled();
 
-        uint256 balance = shareBalance[deluluId][msg.sender];
-        if (amount > balance) revert StakeTooSmall();
+        if (amount > shareBalance[deluluId][msg.sender]) revert StakeTooSmall();
 
         uint256 curveProceeds = getShareSellProceeds(deluluId, amount);
         if (curveProceeds == 0) revert StakeTooSmall();
 
-        uint256 protocolFee = (curveProceeds * PROTOCOL_FEE_BPS) /
-            BPS_DENOMINATOR;
-        uint256 creatorFee = (curveProceeds * SHARE_CREATOR_FEE_BPS) /
-            BPS_DENOMINATOR;
+        uint256 protocolFee = (curveProceeds * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 creatorFee = (curveProceeds * SHARE_CREATOR_FEE_BPS) / BPS_DENOMINATOR;
         uint256 netProceeds = curveProceeds - protocolFee - creatorFee;
 
-        if (minProceeds > 0 && netProceeds < minProceeds) {
-            revert InsufficientSweepBalance();
-        }
+        if (minProceeds > 0 && netProceeds < minProceeds) revert SlippageTooHigh();
 
-        // Burn shares
+        // Ensure the curve is fully collateralized.
+        if (curveProceeds > shareReserveByDelulu[deluluId]) revert InsufficientFreeLiquidity();
+
+        // Burn shares and release collateral (CEI: state before transfers).
         shareSupply[deluluId] -= amount;
-        shareBalance[deluluId][msg.sender] = balance - amount;
+        shareBalance[deluluId][msg.sender] -= amount;
+        shareReserveByDelulu[deluluId] -= curveProceeds;
+        shareReserveByToken[d.token] -= curveProceeds;
 
         // Pay protocol fee immediately.
         if (protocolFee > 0) {
@@ -917,47 +925,19 @@ contract Delulu is
         uint256 milestoneId,
         uint256 amount
     ) external nonReentrant whenNotPaused {
+        deluluId;
+        milestoneId;
+        amount;
+        revert TippingDisabled();
+    }
+
+    /**
+     * @notice Admin: enable/disable shares trading per delulu (upgrade-safe control lever).
+     */
+    function setSharesEnabled(uint256 deluluId, bool enabled) external onlyOwner {
         Market storage d = delulus[deluluId];
         if (d.id == 0) revert DeluluNotFound();
-
-        bool isGenesis = block.timestamp <= d.stakingDeadline;
-        bool isFinisher = marketFinisherWindowEnd[deluluId] > 0 &&
-            block.timestamp <= marketFinisherWindowEnd[deluluId];
-
-        {
-            // Single check block using standalone milestone mappings
-            if (
-                !isGenesis &&
-                !isFinisher &&
-                (milestoneTippingStart[deluluId][milestoneId] == 0 ||
-                    block.timestamp <
-                    milestoneTippingStart[deluluId][milestoneId] ||
-                    block.timestamp >
-                    milestoneTippingEnd[deluluId][milestoneId] ||
-                    milestoneIsMissed[deluluId][milestoneId])
-            ) {
-                revert StakingIsClosed();
-            }
-        }
-
-        d.totalSupporters += 1;
-        userDeluluPoints[msg.sender] += 10;
-        supporterAmount[deluluId][msg.sender] += amount;
-        totalSupportForProRata[deluluId] += amount;
-        milestoneTotalSupport[deluluId][milestoneId] += amount;
-
-        // One call to handle Scouts, creator revenue, and the event emission
-        _processScouts(
-            deluluId,
-            milestoneId,
-            amount,
-            isGenesis,
-            isFinisher,
-            msg.sender
-        );
-
-        IERC20(d.token).safeTransferFrom(msg.sender, address(this), amount);
-        emit SupportStaked(deluluId, msg.sender, amount, d.totalSupporters);
+        sharesEnabled[deluluId] = enabled;
     }
 
     function _processScouts(
@@ -1080,18 +1060,20 @@ contract Delulu is
         if (!d.isResolved || marketIsFailed[deluluId]) revert NotResolved();
         if (d.rewardClaimed) revert AlreadyClaimed();
 
-        uint256 tips = d.totalSupportCollected;
-        uint256 fee = (tips * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 netTips = tips - fee;
-        uint256 stakeToReturn = marketStakedAmount[deluluId];
+        uint256 fee = (d.totalSupportCollected * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 payout = (d.totalSupportCollected - fee) + marketStakedAmount[deluluId];
+
+        // Do not allow legacy payouts to drain bonding curve collateral.
+        if (payout + fee > IERC20(d.token).balanceOf(address(this)) - shareReserveByToken[d.token])
+            revert InsufficientFreeLiquidity();
 
         d.rewardClaimed = true;
         marketStakedAmount[deluluId] = 0; // Zero out stake to prevent any accounting edge cases
 
         IERC20(d.token).safeTransfer(platformFeeAddress, fee);
-        IERC20(d.token).safeTransfer(d.creator, netTips + stakeToReturn);
+        IERC20(d.token).safeTransfer(d.creator, payout);
 
-        emit SupportClaimed(deluluId, d.creator, netTips + stakeToReturn, fee);
+        emit SupportClaimed(deluluId, d.creator, payout, fee);
     }
 
     function claimChallengeReward(uint256 deluluId) external nonReentrant {
@@ -1286,4 +1268,8 @@ contract Delulu is
 
         currency.safeTransfer(vault, refundAmount);
     }
+
+    // --- UPGRADE SAFETY ---
+    // Reserved storage gap for future upgrades to avoid storage collisions.
+    uint256[50] private __gap;
 }

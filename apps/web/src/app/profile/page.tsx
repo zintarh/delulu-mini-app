@@ -418,21 +418,16 @@ export default function ProfilePage() {
       <LogoutSheet
         open={logoutSheetOpen}
         onOpenChange={setLogoutSheetOpen}
-        onLogout={() => {
-          disconnect();
-          useUserStore.getState().logout();
-          logout();
+        onLogout={ async () => {
+          await logout();
+          await disconnect();
           setLogoutSheetOpen(false);
-          if (typeof window !== "undefined") {
-            if (process.env.NODE_ENV === "production") {
-              window.location.href = "https://app.staydelulu.xyz";
-            } else {
-              router.push("/");
-            }
-          } else {
-            router.push("/");
-          }
+          useUserStore.getState().logout();
+         router.push("https://staydelulu.xyz");
         }}
+
+
+
       />
 
       <ConnectorSelectionSheet
