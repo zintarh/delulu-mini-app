@@ -204,12 +204,7 @@ export function RightSidebar() {
           <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <h2 className="text-lg font-bold text-foreground">
-                <span
-                  className="  text-foreground/50"
-                  style={{
-                    textShadow: "2px 2px 0px #1A1A1A, -1px -1px 0px #1A1A1A, 1px -1px 0px #1A1A1A, -1px 1px 0px #1A1A1A"
-                  }}
-                >
+                <span className="text-foreground">
                   Campaigns
                 </span>
               </h2>

@@ -88,6 +88,11 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "InsufficientFreeLiquidity",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "InsufficientSweepBalance",
 		"type": "error"
 	},
@@ -113,17 +118,17 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "MilestoneCannotBeDeleted",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "MilestoneExpired",
 		"type": "error"
 	},
 	{
 		"inputs": [],
 		"name": "MilestoneNotFound",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "MilestoneCannotBeDeleted",
 		"type": "error"
 	},
 	{
@@ -191,12 +196,27 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "SharesNotEnabled",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "SlippageTooHigh",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "StakeTooSmall",
 		"type": "error"
 	},
 	{
 		"inputs": [],
 		"name": "StakingIsClosed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "TippingDisabled",
 		"type": "error"
 	},
 	{
@@ -501,6 +521,25 @@ export const DELULU_ABI = [
 				"type": "uint256"
 			}
 		],
+		"name": "MilestoneDeleted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			}
+		],
 		"name": "MilestoneMissed",
 		"type": "event"
 	},
@@ -634,6 +673,19 @@ export const DELULU_ABI = [
 		"inputs": [
 			{
 				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
+		"name": "MilestonesReset",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
 				"internalType": "address",
 				"name": "previousOwner",
 				"type": "address"
@@ -741,6 +793,92 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "ScoutEarningsClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "curveCost",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "protocolFee",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "creatorFee",
+				"type": "uint256"
+			}
+		],
+		"name": "SharesBought",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "curveProceeds",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "protocolFee",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "creatorFee",
+				"type": "uint256"
+			}
+		],
+		"name": "SharesSold",
 		"type": "event"
 	},
 	{
@@ -999,6 +1137,45 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "SHARE_CREATOR_FEE_BPS",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "SHARE_PRICE_FACTOR",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "SHARE_PRICE_SCALE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "UPGRADE_INTERFACE_VERSION",
 		"outputs": [
 			{
@@ -1066,6 +1243,29 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "allocatePoints",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "maxCost",
+				"type": "uint256"
+			}
+		],
+		"name": "buyShares",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -1152,6 +1352,19 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "claimChallengeReward",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			}
+		],
+		"name": "claimCreatorShareFees",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -1268,6 +1481,24 @@ export const DELULU_ABI = [
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "milestoneId",
+				"type": "uint256"
+			}
+		],
+		"name": "deleteMilestone",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -1540,6 +1771,54 @@ export const DELULU_ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "getShareBuyPrice",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "getShareSellProceeds",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "user",
 				"type": "address"
@@ -1706,6 +1985,30 @@ export const DELULU_ABI = [
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "milestoneIsDeleted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -1915,6 +2218,30 @@ export const DELULU_ABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "pendingCreatorShareFeesByToken",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "platformFeeAddress",
 		"outputs": [
@@ -2015,6 +2342,19 @@ export const DELULU_ABI = [
 				"type": "uint256"
 			}
 		],
+		"name": "resetMilestones",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			}
+		],
 		"name": "resolveDelulu",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -2066,6 +2406,29 @@ export const DELULU_ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minProceeds",
+				"type": "uint256"
+			}
+		],
+		"name": "sellShares",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "_token",
 				"type": "address"
@@ -2098,6 +2461,24 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "setProfile",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "deluluId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "enabled",
+				"type": "bool"
+			}
+		],
+		"name": "setSharesEnabled",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -2157,6 +2538,106 @@ export const DELULU_ABI = [
 		"name": "settleGoalFailure",
 		"outputs": [],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "shareBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "shareReserveByDelulu",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "shareReserveByToken",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "shareSupply",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "sharesEnabled",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{

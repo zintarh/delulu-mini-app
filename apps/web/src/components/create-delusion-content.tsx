@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, Loader2, X, Upload, ChevronDown, Check } from "lucide-react";
-import * as Select from "@radix-ui/react-select";
 import TextareaAutosize from "react-textarea-autosize";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
@@ -127,6 +126,13 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [pendingCreation, setPendingCreation] = useState<{
     deadline: Date;
     finalImageUrl: string;
+    token: string;
+    text: string;
+    amount: number;
+    username?: string;
+    pfpUrl?: string;
+    gatekeeper: GatekeeperConfig | null;
+    description?: string;
   } | null>(null);
 
   const [isWaitingForApproval, setIsWaitingForApproval] = useState(false);
@@ -181,67 +187,41 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
   const [durationMode, setDurationMode] = useState<"fast" | "calendar">("calendar");
   const [fastDurationValue, setFastDurationValue] = useState<string>("7");
-  const [fastDurationUnit, setFastDurationUnit] = useState<"minutes" | "hours" | "days">("days");
 
-  const updateDeadlineFromFastMode = useCallback((
-    value: string,
-    unit: "minutes" | "hours" | "days"
-  ) => {
-    if (!value || value === "" || isNaN(Number(value)) || Number(value) <= 0) {
+  /** Quick duration is whole days only (matches on-chain min resolution lead time). */
+  const updateDeadlineFromFastMode = useCallback((value: string) => {
+    if (!value || value === "" || isNaN(Number(value))) {
       return;
     }
 
-    let numValue = Number(value);
-    // Enforce minimum of 30 minutes when using minute granularity
-    if (unit === "minutes" && numValue < 30) {
-      numValue = 30;
+    let numValue = Math.floor(Number(value));
+    if (numValue < 1) {
+      numValue = 1;
     }
 
     const now = new Date();
     const newDeadline = new Date(now);
-
-    // Calculate milliseconds to add based on unit
-    let millisecondsToAdd = 0;
-    if (unit === "minutes") {
-      millisecondsToAdd = numValue * 60 * 1000;
-    } else if (unit === "hours") {
-      millisecondsToAdd = numValue * 60 * 60 * 1000;
-    } else if (unit === "days") {
-      millisecondsToAdd = numValue * 24 * 60 * 60 * 1000;
-    }
-
+    const millisecondsToAdd = numValue * 24 * 60 * 60 * 1000;
     newDeadline.setTime(now.getTime() + millisecondsToAdd);
 
     const minDeadline = getMinDeadline();
     const maxDeadline = getMaxDeadline();
 
-    // For days, keep the existing behavior: clamp to min/max and snap to end of day.
-    if (unit === "days") {
-      if (newDeadline.getTime() < minDeadline.getTime()) {
-        setDeadline(minDeadline);
-      } else if (newDeadline.getTime() > maxDeadline.getTime()) {
-        setDeadline(maxDeadline);
-      } else {
-        newDeadline.setUTCHours(23, 59, 59, 999);
-        setDeadline(newDeadline);
-      }
-      return;
-    }
-
-    // For minutes/hours, respect the exact offset (no day snapping, no 24h minimum clamp),
-    // but still clamp to the global max deadline.
-    if (newDeadline.getTime() > maxDeadline.getTime()) {
+    if (newDeadline.getTime() < minDeadline.getTime()) {
+      setDeadline(minDeadline);
+    } else if (newDeadline.getTime() > maxDeadline.getTime()) {
       setDeadline(maxDeadline);
     } else {
+      newDeadline.setUTCHours(23, 59, 59, 999);
       setDeadline(newDeadline);
     }
-  }, [setDeadline]);
+  }, []);
 
   useEffect(() => {
     if (durationMode === "fast" && fastDurationValue !== "") {
-      updateDeadlineFromFastMode(fastDurationValue, fastDurationUnit);
+      updateDeadlineFromFastMode(fastDurationValue);
     }
-  }, [durationMode, fastDurationValue, fastDurationUnit, updateDeadlineFromFastMode]);
+  }, [durationMode, fastDurationValue, updateDeadlineFromFastMode]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -337,16 +317,38 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
 
   useEffect(() => {
-    if (isApprovalSuccess && pendingCreation) {
-      setIsWaitingForApproval(false);
-    }
-  }, [isApprovalSuccess, pendingCreation]);
+    if (!isApprovalSuccess || !pendingCreation) return;
+
+    const { deadline, finalImageUrl, token, text, amount, username, pfpUrl, gatekeeper: gate, description: desc } = pendingCreation;
+
+    setIsWaitingForApproval(false);
+    setIsUploadingImage(true);
+
+    checkAllowanceWithRetry(refetchAllowance, amount)
+      .then((hasAllowance) => {
+        if (!hasAllowance) throw new Error("Token allowance not updated. Please try again.");
+        return createDelulu(token, text, deadline, amount, username, pfpUrl, gate, finalImageUrl, desc || undefined);
+      })
+      .then(() => {
+        setPendingCreation(null);
+        setIsUploadingImage(false);
+      })
+      .catch((error) => {
+        setPendingCreation(null);
+        setIsUploadingImage(false);
+        setIsWaitingForApproval(false);
+        setErrorMessage(getErrorMessage(error));
+        setShowErrorModal(true);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isApprovalSuccess]);
 
 
   const handleTemplateSelect = (template: (typeof TEMPLATES)[0]) => {
     setSelectedTemplate(template);
     setSelectedImage(template.image);
     setCustomImage(null);
+    setCustomUploadFile(null);
     setShowTemplateModal(false);
   };
 
@@ -361,9 +363,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
       return;
     }
 
-    const maxSize = 10 * 1024 * 1024; 
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      setErrorMessage("Image size must be less than 10MB");
+      setErrorMessage("Image size must be less than 5MB");
       setShowErrorModal(true);
       return;
     }
@@ -410,7 +412,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
     setDeadline(getDefaultDeadline());
     setDurationMode("calendar");
     setFastDurationValue("7");
-    setFastDurationUnit("days");
     setGatekeeper(null);
     setSelectedTemplate(null);
     setCustomImage(null);
@@ -496,52 +497,6 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         throw new Error(firstError || "Please check your inputs");
       }
 
-      if (pendingCreation && !isApproving && !isApprovingConfirming) {
-        if (
-          !pendingCreation.deadline ||
-          !(pendingCreation.deadline instanceof Date) ||
-          isNaN(pendingCreation.deadline.getTime()) ||
-          !pendingCreation.finalImageUrl ||
-          typeof pendingCreation.finalImageUrl !== "string"
-        ) {
-          setIsUploadingImage(false);
-          throw new Error("Invalid creation data. Please start over.");
-        }
-
-        let hasAllowance = false;
-        try {
-          hasAllowance = await checkAllowanceWithRetry(
-            refetchAllowance,
-            stakeAmount
-          );
-        } catch (error) {
-          console.error("[handleCreate] Allowance check failed:", error);
-          setIsUploadingImage(false);
-          throw new Error(
-            "Failed to verify token allowance. Please try again."
-          );
-        }
-
-        if (hasAllowance) {
-          await createDelulu(
-            selectedToken,
-            delusionText,
-            pendingCreation.deadline,
-            stakeAmount,
-            user?.username,
-            user?.pfpUrl,
-            gatekeeper,
-            pendingCreation.finalImageUrl,
-            description || undefined
-          );
-          setPendingCreation(null);
-          setIsUploadingImage(false);
-          return;
-        } else {
-          setIsUploadingImage(false);
-          throw new Error("Token allowance not updated. Please try again.");
-        }
-      }
 
       const deadlineDate =
         deadline instanceof Date && !isNaN(deadline.getTime())
@@ -558,7 +513,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-          const response = await fetch("/api/upload", {
+          const response = await fetch("/api/ipfs/upload-image", {
             method: "POST",
             body: formData,
             signal: controller.signal,
@@ -594,11 +549,18 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         setPendingCreation({
           deadline: deadlineDate,
           finalImageUrl,
+          token: selectedToken,
+          text: delusionText,
+          amount: stakeAmount,
+          username: user?.username,
+          pfpUrl: user?.pfpUrl,
+          gatekeeper,
+          description: description || undefined,
         });
         setIsWaitingForApproval(true);
         setIsUploadingImage(false);
         await approve(stakeAmount);
-        return; 
+        return;
       }
 
           await createDelulu(
@@ -743,11 +705,14 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               />
             </div>
 
-            {/* Duration Input */}
+            {/* Duration Input — resolution deadline; contract requires ≥24h; UI uses whole days only */}
             <div>
               <label className="block text-base font-bold text-foreground mb-2">
                 Duration
               </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Choose a calendar date or enter a number of days (minimum 1).
+              </p>
               <div className="space-y-2">
                 {durationMode === "calendar" && (
                   <>
@@ -778,10 +743,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                         type="button"
                         onClick={() => {
                           setDurationMode("fast");
-                          updateDeadlineFromFastMode(
-                            fastDurationValue,
-                            fastDurationUnit
-                          );
+                          updateDeadlineFromFastMode(fastDurationValue);
                         }}
                         className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
@@ -801,24 +763,28 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       "hover:bg-muted transition-colors"
                     )}>
                       <input
-                        min="1"
+                        min={1}
+                        step={1}
                         value={fastDurationValue}
                         onChange={(e) => {
                           const val = e.target.value;
-                          if (val === "" || (!isNaN(Number(val)) && Number(val) > 0)) {
-                            // For minutes, enforce a minimum of 30
-                            if (fastDurationUnit === "minutes") {
-                              const asNum = Number(val);
-                              const clamped = asNum < 30 ? 30 : asNum;
-                              const nextValue = clamped.toString();
-                              setFastDurationValue(nextValue);
-                              updateDeadlineFromFastMode(nextValue, fastDurationUnit);
-                            } else {
-                              setFastDurationValue(val);
-                              if (val !== "") {
-                                updateDeadlineFromFastMode(val, fastDurationUnit);
-                              }
-                            }
+                          if (val === "") {
+                            setFastDurationValue(val);
+                            return;
+                          }
+                          if (!isNaN(Number(val)) && Number(val) > 0) {
+                            setFastDurationValue(val);
+                            updateDeadlineFromFastMode(val);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (
+                            fastDurationValue === "" ||
+                            isNaN(Number(fastDurationValue)) ||
+                            Number(fastDurationValue) < 1
+                          ) {
+                            setFastDurationValue("1");
+                            updateDeadlineFromFastMode("1");
                           }
                         }}
                         className={cn(
@@ -826,75 +792,11 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                           "border-0 outline-none focus:outline-none focus:ring-0",
                           "text-foreground placeholder:text-muted-foreground font-normal text-base sm:text-lg"
                         )}
-                        placeholder="Number"
+                        placeholder="Number of days"
                       />
-                      <Select.Root
-                        value={fastDurationUnit}
-                        onValueChange={(value) => {
-                          const unit = value as "minutes" | "hours" | "days";
-                          // When switching to minutes, also enforce minimum of 30
-                          if (unit === "minutes" && fastDurationValue !== "") {
-                            const asNum = Number(fastDurationValue);
-                            const clamped = isNaN(asNum) || asNum < 30 ? 30 : asNum;
-                            const nextValue = clamped.toString();
-                            setFastDurationUnit(unit);
-                            setFastDurationValue(nextValue);
-                            updateDeadlineFromFastMode(nextValue, unit);
-                          } else {
-                            setFastDurationUnit(unit);
-                            if (fastDurationValue !== "") {
-                              updateDeadlineFromFastMode(fastDurationValue, unit);
-                            }
-                          }
-                        }}
-                      >
-                        <Select.Trigger
-                          className={cn(
-                            "flex-shrink-0 inline-flex items-center justify-between",
-                            "bg-transparent px-2 py-1",
-                            "border-0 outline-none focus:outline-none focus:ring-0",
-                            "text-foreground font-normal text-base sm:text-lg cursor-pointer min-w-[86px]"
-                          )}
-                        >
-                          <Select.Value />
-                          <Select.Icon className="ml-2">
-                            <ChevronDown className="w-4 h-4" />
-                          </Select.Icon>
-                        </Select.Trigger>
-                        <Select.Portal>
-                          <Select.Content className="overflow-hidden bg-popover rounded-lg border border-border shadow-lg z-50">
-                            <Select.Viewport className="p-1">
-                              <Select.Item
-                                value="minutes"
-                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
-                              >
-                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                  <Check className="w-4 h-4" />
-                                </Select.ItemIndicator>
-                                <Select.ItemText className="pl-8">Min</Select.ItemText>
-                              </Select.Item>
-                              <Select.Item
-                                value="hours"
-                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
-                              >
-                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                  <Check className="w-4 h-4" />
-                                </Select.ItemIndicator>
-                                <Select.ItemText className="pl-8">Hrs</Select.ItemText>
-                              </Select.Item>
-                              <Select.Item
-                                value="days"
-                                className="relative flex items-center px-4 py-2 text-foreground font-bold text-sm cursor-pointer outline-none hover:bg-muted focus:bg-muted data-[highlighted]:bg-muted"
-                              >
-                                <Select.ItemIndicator className="absolute left-2 w-6 inline-flex items-center justify-center">
-                                  <Check className="w-4 h-4" />
-                                </Select.ItemIndicator>
-                                <Select.ItemText className="pl-8">Days</Select.ItemText>
-                              </Select.Item>
-                            </Select.Viewport>
-                          </Select.Content>
-                        </Select.Portal>
-                      </Select.Root>
+                      <span className="flex-shrink-0 pl-2 pr-1 text-foreground font-medium text-base sm:text-lg">
+                        days
+                      </span>
                     </div>
                     <div className="flex justify-end mb-4">
                       <button

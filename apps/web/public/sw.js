@@ -5,7 +5,25 @@
 
 self.addEventListener("push", (event) => {
   try {
-    const data = event.data ? event.data.json() : {};
+    // Debug-friendly push payload parsing:
+    // event.data.json() can throw if the payload isn't valid JSON.
+    let data = {};
+    if (event.data) {
+      try {
+        data = event.data.json();
+      } catch (e) {
+        // Fall back to text, then try parsing as JSON.
+        const text = event.data.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+      }
+    }
+
+    // Visible in Chrome DevTools -> Application -> Service Workers -> "Service Worker"
+    console.log("[sw.js] push received:", data);
     const title = data.title || "Delulu";
     const body = data.body || "";
     const url = data.url || "/";
@@ -20,6 +38,7 @@ self.addEventListener("push", (event) => {
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
     // Best-effort: ignore malformed push payloads.
+    console.error("[sw.js] push error:", e);
   }
 });
 

@@ -20,7 +20,7 @@ export function useCancelDelulu() {
       writeContract({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
-        functionName: "cancelDelulu",
+        functionName: "cancelDelulu" as never,
         args: [BigInt(deluluId)],
       });
     } catch (err) {

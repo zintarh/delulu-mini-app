@@ -8,16 +8,14 @@ import {
   Plus,
   User,
   Coins,
-  User2,
-  Trophy,
   Moon,
   Sun,
   LogIn,
 } from "lucide-react";
 import { cn, formatGAmount } from "@/lib/utils";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTheme } from "@/contexts/theme-context";
 import { useAccount, useBalance } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { formatAddress } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -35,10 +33,10 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin } = useIsAdmin();
   const { theme, toggleTheme } = useTheme();
-  const { isConnected, address } = useAccount();
-  const { username } = useUsernameByAddress(address);
+  const { authenticated } = usePrivy();
+  const { address } = useAccount();
+  const { username } = useUsernameByAddress(authenticated ? address : undefined);
   const [selectedAsset, setSelectedAsset] = useState<"CELO" | "G$">("CELO");
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);
 
@@ -94,30 +92,12 @@ export function LeftSidebar({
       onClick: undefined,
     },
     {
-      icon: Trophy,
-      label: "Leaderboard",
-      href: "/leaderboard",
-      active: pathname === "/leaderboard",
-      onClick: undefined,
-    },
-    {
       icon: User,
       label: "Profile",
       href: undefined,
       active: false,
       onClick: onProfileClick,
     },
-    ...(isAdmin
-      ? [
-          {
-            icon: User2,
-            label: "Markets",
-            href: "/market",
-            active: pathname === "/market",
-            onClick: undefined,
-          },
-        ]
-      : []),
   ];
 
   useEffect(() => {
@@ -195,7 +175,7 @@ export function LeftSidebar({
           }
 
           // Prefer Link navigation for connected users (faster transitions + prefetch).
-          if (isConnected && item.label === "Create") {
+          if (authenticated && item.label === "Create") {
             return (
               <Link
                 key={item.label}
@@ -211,7 +191,7 @@ export function LeftSidebar({
             );
           }
 
-          if (isConnected && item.label === "Profile") {
+          if (authenticated && item.label === "Profile") {
             return (
               <Link
                 key={item.label}
@@ -242,12 +222,12 @@ export function LeftSidebar({
       </nav>
       <div className="mt-4 pt-3 border-t border-border space-y-3">
         {/* Push reminders */}
-        {isConnected && address ? (
+        {authenticated && address ? (
           <PushRemindersCard compact className="w-full" />
         ) : null}
 
         {/* Connection status / Login */}
-        {!isConnected ? (
+        {!authenticated ? (
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -376,7 +356,7 @@ export function LeftSidebar({
         )}
 
         {/* Theme toggle */}
-        {isConnected ? (
+        {authenticated ? (
           <button
             type="button"
             onClick={toggleTheme}

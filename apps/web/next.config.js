@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
+  async redirects() {
+    return [{ source: "/market", destination: "/admin", permanent: false }];
+  },
   transpilePackages: ["@repo/ui"], // Keep this if you are in a monorepo
   experimental: {
     // Reduce shared "first navigation" JS by turning common

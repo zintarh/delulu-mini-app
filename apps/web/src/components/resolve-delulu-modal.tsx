@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useResolveDelulu } from "@/hooks/use-resolve-delulu";
 import type { FormattedDelulu } from "@/lib/types";
 
@@ -20,38 +20,25 @@ export function ResolveDeluluModal({
   delulu,
   onSuccess,
 }: ResolveDeluluModalProps) {
-  const [selectedOutcome, setSelectedOutcome] = useState<boolean | null>(null);
-  const { resolve, isPending, isConfirming, isSuccess, error } = useResolveDelulu();
+  const { resolve, isPending, isConfirming, isSuccess, error } =
+    useResolveDelulu();
 
-  // Reset state when modal opens/closes
-  useEffect(() => {
-    if (!open) {
-      setSelectedOutcome(null);
-    }
-  }, [open]);
-
-  // Handle success
   useEffect(() => {
     if (isSuccess && delulu) {
-      // Close modal after a short delay to show success message
-      setTimeout(() => {
+      const t = setTimeout(() => {
         onOpenChange(false);
-        if (onSuccess) {
-          onSuccess();
-        }
+        onSuccess?.();
       }, 2000);
+      return () => clearTimeout(t);
     }
   }, [isSuccess, delulu, onOpenChange, onSuccess]);
 
   const handleResolve = async () => {
-    if (!delulu || selectedOutcome === null) return;
-
+    if (!delulu) return;
     try {
-      // Use the array index (id) instead of onChainId
-      await resolve(delulu.id, selectedOutcome, delulu.creator);
-    } catch (error) {
-      console.error("[ResolveDeluluModal] Error resolving:", error);
-      // Error is handled by the hook and displayed below
+      await resolve(delulu.id);
+    } catch (e) {
+      console.error("[ResolveDeluluModal] Error resolving:", e);
     }
   };
 
@@ -70,17 +57,18 @@ export function ResolveDeluluModal({
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-black text-delulu-charcoal tracking-tight">
-              Resolve Market
+              Resolve goal
             </h2>
             <p className="text-sm text-delulu-charcoal/70 font-medium">
-              Select the outcome for this market
+              Marks this delulu as resolved on-chain after the resolution
+              deadline. Creator or owner only.
             </p>
           </div>
 
           {delulu && (
             <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
               <p className="text-sm font-medium text-delulu-charcoal mb-2">
-                Market #{delulu.id}
+                Delulu #{delulu.id}
               </p>
               <p className="text-xs text-gray-600 line-clamp-2">
                 {delulu.content || "No content available"}
@@ -88,72 +76,22 @@ export function ResolveDeluluModal({
             </div>
           )}
 
-          {/* Outcome Selection */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-delulu-charcoal/80 uppercase tracking-wider">
-              Outcome
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setSelectedOutcome(true)}
-                disabled={isLoading}
-                className={cn(
-                  "p-4 rounded-lg border-2 font-bold text-sm transition-all",
-                  selectedOutcome === true
-                    ? "bg-green-100 border-green-600 text-green-800 shadow-[3px_3px_0px_0px_#16a34a]"
-                    : "bg-white border-gray-300 text-gray-700 hover:border-green-400 shadow-[2px_2px_0px_0px_#d1d5db]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Check className="w-5 h-5" />
-                  <span>True</span>
-                </div>
-                <p className="text-xs font-normal mt-1 text-gray-600">
-                  Believers Win
-                </p>
-              </button>
-              <button
-                onClick={() => setSelectedOutcome(false)}
-                disabled={isLoading}
-                className={cn(
-                  "p-4 rounded-lg border-2 font-bold text-sm transition-all",
-                  selectedOutcome === false
-                    ? "bg-red-100 border-red-600 text-red-800 shadow-[3px_3px_0px_0px_#dc2626]"
-                    : "bg-white border-gray-300 text-gray-700 hover:border-red-400 shadow-[2px_2px_0px_0px_#d1d5db]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <X className="w-5 h-5" />
-                  <span>False</span>
-                </div>
-                <p className="text-xs font-normal mt-1 text-gray-600">
-                  Did Not Come True
-                </p>
-              </button>
-            </div>
-          </div>
-
-          {/* Success Message */}
           {isSuccess && (
             <div className="p-4 bg-green-50 border-2 border-green-500 rounded-lg">
               <p className="text-sm font-medium text-green-800 text-center">
-                ✓ Market resolved successfully!
+                ✓ Submitted successfully
               </p>
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="p-4 bg-red-50 border-2 border-red-500 rounded-lg">
               <p className="text-sm font-medium text-red-800 text-center">
-                {error.message || "Failed to resolve market"}
+                {error.message || "Failed to resolve"}
               </p>
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
             <button
               onClick={() => onOpenChange(false)}
@@ -172,7 +110,7 @@ export function ResolveDeluluModal({
             </button>
             <button
               onClick={handleResolve}
-              disabled={selectedOutcome === null || isLoading || isSuccess}
+              disabled={isLoading || isSuccess}
               className={cn(
                 "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
                 "bg-delulu-yellow-reserved text-delulu-charcoal",
@@ -187,15 +125,15 @@ export function ResolveDeluluModal({
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Resolving...
+                  Sending…
                 </>
               ) : isSuccess ? (
                 <>
                   <Check className="w-4 h-4" />
-                  Resolved
+                  Done
                 </>
               ) : (
-                "Resolve"
+                "Resolve on-chain"
               )}
             </button>
           </div>

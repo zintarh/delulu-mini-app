@@ -4,7 +4,7 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
-import { http } from "wagmi";
+import { http, fallback } from "wagmi";
 import { celo, fuse } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
@@ -30,9 +30,10 @@ export default function FrameWalletProvider({
       chains,
       connectors: baseConnectors,
       transports: {
-        [celo.id]: http(
-          process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL,
-        ),
+        [celo.id]: fallback([
+          http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL),
+          http("https://forno.celo.org"),
+        ]),
         [fuse.id]: http(process.env.NEXT_PUBLIC_FUSE_RPC_URL),
       },
     };
