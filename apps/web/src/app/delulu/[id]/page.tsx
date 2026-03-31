@@ -964,7 +964,7 @@ export default function DeluluPage() {
                   onBuy={() => setBuySharesSheetOpen(true)}
                   onSell={() => setSellSharesSheetOpen(true)}
                   ownsAnyShares={ownsAnyShares}
-                  canBuy={!!(canStake && showBuyButton)}
+                  canBuy={!!(!safeDelulu.isResolved && showBuyButton)}
                 />
 
                 {/* Claim card */}

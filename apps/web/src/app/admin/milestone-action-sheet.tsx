@@ -190,7 +190,7 @@ export function MilestoneActionSheet({
               "flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 border-2 border-border shadow-neo-sm transition-all active:scale-[0.98]",
               mode === "reject"
                 ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive"
-                : "bg-delulu-yellow-reserved text-foreground hover:opacity-95"
+                : "bg-delulu-yellow-reserved text-delulu-charcoal hover:opacity-95"
             )}
           >
             {busy ? (

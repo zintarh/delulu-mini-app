@@ -437,7 +437,7 @@ export function DeluluCard({
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       {isCompleted ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald/20 text-emerald">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-delulu-green/20 text-delulu-green">
                           <Check className="h-3 w-3" strokeWidth={2.5} />
                         </span>
                       ) : isInReview || isCurrentUnderReview ? (
