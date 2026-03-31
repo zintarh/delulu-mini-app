@@ -34,6 +34,7 @@ export default function DailyClaimClient() {
   const {
     isLoading: isClaimDataLoading,
     isClaiming,
+    isWhitelisted,
     entitlement,
     hasClaimed,
     nextClaimTime,
@@ -44,7 +45,6 @@ export default function DailyClaimClient() {
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showFaucet, setShowFaucet] = useState(false);
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
 
   const handleProfileClick = () => {
     if (!isConnected) setShowLoginSheet(true);
@@ -75,7 +75,7 @@ export default function DailyClaimClient() {
       return;
     }
 
-    if (!isVerified) {
+    if (!isWhitelisted) {
       setShowIdentityFlow(true);
       return;
     }
@@ -317,7 +317,10 @@ export default function DailyClaimClient() {
       <IdentityFlow
         open={showIdentityFlow}
         onOpenChange={setShowIdentityFlow}
-        onVerified={() => setIsVerified(true)}
+        onVerified={() => {
+          setShowIdentityFlow(false);
+          claim();
+        }}
       />
 
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />

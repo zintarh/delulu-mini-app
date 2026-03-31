@@ -1,6 +1,6 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useChainId } from "wagmi";
-import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useClaimWinnings() {
@@ -12,23 +12,15 @@ export function useClaimWinnings() {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const claim = (deluluId: number, amount: number, tokenAddress?: string) => {
-    if (!deluluId) return;
-    if (amount <= 0) {
-      console.warn("[useClaimWinnings] Claim amount must be greater than 0");
-      return;
-    }
+  const claim = (deluluId: number) => {
+    if (!deluluId || Number.isNaN(deluluId)) return;
 
-    // Validate: G$ is only supported on mainnet
-    if (tokenAddress && isGoodDollarToken(tokenAddress) && !isGoodDollarSupported(chainId)) {
-      throw new Error("G$ (GoodDollar) is only available on Celo Mainnet. Please switch to mainnet to claim G$ winnings.");
-    }
-
+    // v3: creator claims market support from personal market pool.
     writeContract({
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
-      functionName: "claimWinnings",
-      args: [deluluId],
+      functionName: "claimPersonalMarketSupport",
+      args: [BigInt(deluluId)],
     });
   };
 

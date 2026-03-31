@@ -11,6 +11,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
 import {
@@ -69,8 +70,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { cn, formatAddress } from "@/lib/utils";
-import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { cn, formatAddress, formatGAmount } from "@/lib/utils";
+import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import {
   resolveIPFSContent,
@@ -85,6 +86,7 @@ import {
   shouldShowBuyButton,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
+import { SharesMarketCard } from "@/components/shares-market-card";
 import {
   buildDeluluLeaderboard,
   getDeluluRemainingDaysTotal,
@@ -97,6 +99,7 @@ export default function DeluluPage() {
   const params = useParams();
   const deluluId = params.id as string;
 
+  const { authenticated } = usePrivy();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const contractAddress = getDeluluContractAddress(chainId);
@@ -106,7 +109,10 @@ export default function DeluluPage() {
   const {
     delulu,
     milestones,
+    shareTrades,
+    shareHoldings,
     isLoading: isLoadingDelulu,
+    refetch: refetchDelulu,
   } = useGraphDelulu(deluluId);
 
   const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(
@@ -212,8 +218,6 @@ export default function DeluluPage() {
     { description: string; days: string }[]
   >([{ description: "", days: "" }]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showMilestoneConfirmModal, setShowMilestoneConfirmModal] =
-    useState(false);
   const [milestoneToDelete, setMilestoneToDelete] = useState<{
     id: string;
     label?: string;
@@ -227,6 +231,7 @@ export default function DeluluPage() {
   const [proofSubmitSuccess, setProofSubmitSuccess] = useState(false);
   const proofSubmittedRef = useRef<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
+  const [isWaitingForMilestones, setIsWaitingForMilestones] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const { challenges } = useChallenges();
@@ -319,7 +324,7 @@ export default function DeluluPage() {
       : null;
 
   const isCreator =
-    isConnected &&
+    authenticated &&
     address &&
     delulu?.creator &&
     address.toLowerCase() === delulu.creator.toLowerCase();
@@ -386,12 +391,15 @@ export default function DeluluPage() {
   ]);
 
   const deluluRemainingDaysTotal = useMemo(() => {
+    // Use the sorted milestone view's last deadline (accounts for deletions in the middle)
+    const sortedMilestones = milestones
+      ? [...milestones].sort((a, b) => Number(a.milestoneId) - Number(b.milestoneId))
+      : [];
     return getDeluluRemainingDaysTotal({
       resolutionDeadline: delulu?.resolutionDeadline,
-      lastMilestoneDeadline:
-        milestones && milestones.length > 0
-          ? milestones[milestones.length - 1]?.deadline
-          : null,
+      lastMilestoneDeadline: sortedMilestones.length > 0
+        ? sortedMilestones[sortedMilestones.length - 1]?.deadline
+        : null,
       nowMs: now,
     });
   }, [delulu?.resolutionDeadline, milestones, now]);
@@ -574,9 +582,14 @@ export default function DeluluPage() {
 
   useEffect(() => {
     if (isDeleteMilestoneSuccess) {
+      setIsWaitingForMilestones(true);
+      setTimeout(() => refetchDelulu(), 3000);
       refetchDeluluData(apolloClient, deluluId);
-      setShowDeleteModal(false);
-      setMilestoneToDelete(null);
+      // Close modal after a short delay so the success message is visible
+      setTimeout(() => {
+        setShowDeleteModal(false);
+        setMilestoneToDelete(null);
+      }, 1500);
     }
   }, [isDeleteMilestoneSuccess, deluluId, apolloClient]);
 
@@ -669,8 +682,17 @@ export default function DeluluPage() {
   }, [isJoinSuccess, apolloClient, deluluId]);
 
   useEffect(() => {
+    if (milestones !== undefined) {
+      setIsWaitingForMilestones(false);
+    }
+  }, [milestones]);
+
+  useEffect(() => {
     if (isAddMilestonesSuccess) {
       setShowMilestoneForm(false);
+      setIsWaitingForMilestones(true);
+      // Directly refetch the useGraphDelulu query (avoids document reference mismatch in refetchDeluluData)
+      setTimeout(() => refetchDelulu(), 3000);
       refetchDeluluData(apolloClient, deluluId);
       refetchAllActiveQueries(apolloClient, 5000); 
       (async () => {
@@ -782,6 +804,12 @@ export default function DeluluPage() {
   const bannerImage = safeDelulu.bgImageUrl || "/templates/t0.png";
   const canAddMilestones =
     safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
+  const isDeluluEnded =
+    safeDelulu.resolutionDeadline && new Date() >= safeDelulu.resolutionDeadline;
+  const shouldShowClaimSection =
+    !!isCreator &&
+    !isLoadingClaimableAmount &&
+    (claimableAmount > 0 || isClaiming || isClaimConfirming || isClaimSuccess || !!claimError);
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -852,21 +880,6 @@ export default function DeluluPage() {
                 style={{ backgroundImage: `url(${bannerImage})` }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-
-                {((canStake && showBuyButton) || ownsAnyShares) && (
-                  <button
-                    onClick={() =>
-                      !isConnected
-                        ? setShowLoginSheet(true)
-                        : ownsAnyShares
-                          ? setSellSharesSheetOpen(true)
-                          : setBuySharesSheetOpen(true)
-                    }
-                    className="w-fit right-4 bottom-4 absolute px-4 py-2 bg-delulu-yellow-reserved text-delulu-charcoal border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black rounded-lg text-sm hover:brightness-105 transition"
-                  >
-                    {ownsAnyShares ? "Sell shares" : "Buy shares"}
-                  </button>
-                )}
               </div>
               <div className="p-6 space-y-3">
                 <h1 className="text-2xl font-black mb-1 text-foreground">
@@ -886,14 +899,10 @@ export default function DeluluPage() {
                   <div className="flex items-center gap-2">
                     <ThumbsUp className="w-4 h-4 text-muted-foreground" />
                     <span className="font-bold text-sm text-foreground">
-                      {supportAmount > 0
-                        ? supportAmount < 0.01
-                          ? supportAmount.toFixed(4)
-                          : supportAmount.toFixed(2)
-                        : "0.00"}
+                      {formatGAmount(supportAmount)}
                     </span>
                     <span className="text-muted-foreground text-xs">
-                      total support
+                      staked
                       {totalSupportUsd && totalSupportUsd > 0 && (
                         <> · ${totalSupportUsd.toFixed(2)}</>
                       )}
@@ -903,7 +912,7 @@ export default function DeluluPage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span className="text-xs">
-                      {supportersCount} supporters
+                      {supportersCount} {supportersCount === 1 ? "holder" : "holders"}
                     </span>
                   </div>
                 </div>
@@ -945,92 +954,127 @@ export default function DeluluPage() {
 
             {activeTab === "details" ? (
               <div className="space-y-6">
-                <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-delulu-yellow-reserved/20 border border-delulu-yellow-reserved/60">
-                        <Users className="w-4 h-4 text-foreground" />
-                      </span>
-                      <h3 className="text-sm md:text-base font-black text-foreground">
-                        Token support
-                      </h3>
-                    </div>
-                    {marketToken && (
-                      <div className="hidden sm:flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                        <span>Token</span>
-                        <TokenBadge tokenAddress={marketToken} size="sm" />
+                <SharesMarketCard
+                  shareTrades={shareTrades}
+                  shareHoldings={shareHoldings}
+                  myShareBalance={myShareBalance as bigint | undefined}
+                  supportAmount={supportAmount}
+                  supportersCount={supportersCount}
+                  marketToken={marketToken}
+                  onBuy={() => setBuySharesSheetOpen(true)}
+                  onSell={() => setSellSharesSheetOpen(true)}
+                  ownsAnyShares={ownsAnyShares}
+                  canBuy={!!(canStake && showBuyButton)}
+                />
+
+                {/* Claim card */}
+                {shouldShowClaimSection && (
+                  <div className="rounded-2xl border-2 border-border bg-card overflow-hidden">
+                    {/* Header strip */}
+                    <div className="bg-delulu-yellow-reserved/10 dark:bg-delulu-yellow-reserved/5 px-5 py-3 flex items-center justify-between border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-delulu-charcoal dark:text-delulu-yellow-reserved" />
+                        <span className="text-xs font-black uppercase tracking-widest text-delulu-charcoal dark:text-delulu-yellow-reserved">
+                          {isCreator ? "Earnings" : "Claimable"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-sm">
-                    <div>
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
-                        Total support
-                      </p>
-                      <p className="text-2xl md:text-3xl font-black text-foreground flex flex-col gap-1">
-                        <span className="flex items-center gap-2">
-                          {supportAmount > 0
-                            ? supportAmount < 0.01
-                              ? supportAmount.toFixed(4)
-                              : supportAmount.toFixed(2)
-                            : "0.00"}
-                          {marketToken && (
-                            <span className="inline-flex sm:hidden">
-                              <TokenBadge
-                                tokenAddress={marketToken}
-                                size="sm"
-                              />
-                            </span>
-                          )}
+                      {(isClaimed || isClaimSuccess) && (
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Claimed
                         </span>
-                        {totalSupportUsd && totalSupportUsd > 0 && (
-                          <span className="text-sm font-semibold text-muted-foreground">
-                            ≈ ${totalSupportUsd.toFixed(2)}
-                          </span>
-                        )}
-                        {safeDelulu.creatorStake &&
-                          safeDelulu.creatorStake > 0 && (
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Creator stake:{" "}
-                              {safeDelulu.creatorStake < 0.01
-                                ? safeDelulu.creatorStake.toFixed(4)
-                                : safeDelulu.creatorStake.toFixed(2)}
-                            </span>
+                      )}
+                    </div>
+
+                    <div className="px-5 py-5 space-y-5">
+                      {/* Amount display */}
+                      <div className="flex items-end justify-between gap-4">
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium mb-1">
+                            {isCreator ? "Your reward" : "Your share"}
+                          </p>
+                          {isLoadingClaimableAmount ? (
+                            <div className="h-9 w-28 bg-muted animate-pulse rounded-md" />
+                          ) : (
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-3xl font-black tabular-nums text-foreground leading-none">
+                                {formatGAmount(claimableAmount)}
+                              </span>
+                              <span className="text-sm font-semibold text-muted-foreground">
+                                {marketToken
+                                  ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
+                                  : "tokens"}
+                              </span>
+                            </div>
                           )}
-                      </p>
-                    </div>
+                        </div>
 
-                    <div className="md:border-l md:border-border/60 md:pl-6">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
-                        Supporters
-                      </p>
-                      <p className="text-lg md:text-2xl font-black text-foreground">
-                        {supportersCount}
-                      </p>
-                    </div>
-
-                    <div className="md:border-l md:border-border/60 md:pl-6">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
-                        Avg. per supporter
-                      </p>
-                      <p className="text-lg font-semibold text-foreground flex flex-col gap-1">
-                        <span>
-                          {supportersCount > 0
-                            ? supportAmount / supportersCount < 0.01
-                              ? (supportAmount / supportersCount).toFixed(4)
-                              : (supportAmount / supportersCount).toFixed(2)
-                            : "0.00"}
-                        </span>
-                        {avgSupportUsd && avgSupportUsd > 0 && (
-                          <span className="text-xs font-medium text-muted-foreground">
-                            ≈ ${avgSupportUsd.toFixed(2)}
-                          </span>
+                        {/* Status pill */}
+                        {!isClaimed && !isClaimSuccess && (
+                          <div className={cn(
+                            "shrink-0 px-3 py-1 rounded-full text-[11px] font-black border",
+                            claimableAmount > 0
+                              ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                              : "bg-muted border-border text-muted-foreground"
+                          )}>
+                            {claimableAmount > 0 ? "Available" : "Not available"}
+                          </div>
                         )}
-                      </p>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-border" />
+
+                      {/* Error */}
+                      {claimError && (
+                        <div className="flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2.5">
+                          <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                          <p className="text-xs text-destructive font-medium leading-snug">
+                            {(claimError as any)?.shortMessage ?? (claimError as any)?.message ?? "Claim failed"}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* CTA */}
+                      {isClaimed || isClaimSuccess ? (
+                        <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                          <div>
+                            <p className="text-sm font-black text-emerald-700 dark:text-emerald-300">
+                              Tokens claimed
+                            </p>
+                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                              Sent to your wallet
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            claim(Number(safeDelulu.onChainId ?? safeDelulu.id))
+                          }
+                          disabled={isClaiming || isClaimConfirming}
+                          className={cn(
+                            "w-full py-3.5 rounded-2xl border-2 text-sm font-black",
+                            "flex items-center justify-center gap-2",
+                            "transition-all active:translate-y-px",
+                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                            "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:opacity-90",
+                          )}
+                        >
+                          {(isClaiming || isClaimConfirming) && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          {isClaiming
+                            ? "Confirm in wallet..."
+                            : isClaimConfirming
+                              ? "Processing..."
+                              : "Claim tokens"}
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
 
                 {leaderboard.length > 0 && (
                   <div>
@@ -1117,7 +1161,7 @@ export default function DeluluPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {isCreator && canAddMilestones && (
+                        {isCreator && canAddMilestones && deluluRemainingDaysTotal > 0 && (
                           <button
                             type="button"
                             onClick={() =>
@@ -1177,11 +1221,8 @@ export default function DeluluPage() {
                               key={index}
                               className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-2"
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-black text-muted-foreground uppercase">
-                                  Step {index + 1}
-                                </span>
-                                {newMilestones.length > 1 && (
+                              {newMilestones.length > 1 && (
+                                <div className="flex items-center justify-end mb-1">
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1191,57 +1232,44 @@ export default function DeluluPage() {
                                   >
                                     <XIcon className="w-4 h-4" />
                                   </button>
-                                )}
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex flex-wrap items-end gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <input
-                                      type="text"
-                                      placeholder="What to do"
-                                      value={m.description}
-                                      onChange={(e) =>
-                                        handleNewMilestoneChange(
-                                          index,
-                                          "description",
-                                          e.target.value,
-                                        )
-                                      }
-                                      className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col gap-0.5">
-                                    <label className="text-[11px] font-medium text-muted-foreground">
-                                      Days
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      max={maxDaysPerRow[index] || undefined}
-                                      placeholder={
-                                        maxDaysPerRow[index] != null &&
-                                        maxDaysPerRow[index] > 0
-                                          ? `1–${maxDaysPerRow[index]}`
-                                          : "—"
-                                      }
-                                      value={m.days}
-                                      onChange={(e) =>
-                                        handleNewMilestoneChange(
-                                          index,
-                                          "days",
-                                          e.target.value,
-                                        )
-                                      }
-                                      className="w-20 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                    />
-                                    {maxDaysPerRow[index] != null &&
-                                      maxDaysPerRow[index] > 0 && (
-                                        <span className="text-[10px] text-muted-foreground">
-                                          max {maxDaysPerRow[index]}
-                                        </span>
-                                      )}
-                                  </div>
                                 </div>
+                              )}
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="What to do"
+                                    value={m.description}
+                                    onChange={(e) =>
+                                      handleNewMilestoneChange(
+                                        index,
+                                        "description",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="flex-1 min-w-0 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                  />
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={maxDaysPerRow[index] || undefined}
+                                    placeholder="1-2 days"
+                                    value={m.days}
+                                    onChange={(e) =>
+                                      handleNewMilestoneChange(
+                                        index,
+                                        "days",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-24 shrink-0 px-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                  />
+                                </div>
+                                {maxDaysPerRow[index] != null && maxDaysPerRow[index] > 0 && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    max {maxDaysPerRow[index]} days
+                                  </span>
+                                )}
                                 {exceedsDeadline && (
                                   <div className="text-[10px] font-semibold text-destructive">
                                     Over deadline
@@ -1262,18 +1290,20 @@ export default function DeluluPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setShowMilestoneConfirmModal(true)}
+                          onClick={() => handleCreateMilestones()}
                           disabled={
                             isAddingMilestones ||
                             isConfirmingAddMilestones ||
-                            !!(milestones && milestones.length > 0)
+                            (milestones && milestones.length >= 10) ||
+                            newMilestones.some((m) => !m.days || Number(m.days) <= 0)
                           }
                           className={cn(
                             "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                             "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
                             (isAddingMilestones ||
                               isConfirmingAddMilestones ||
-                              (milestones && milestones.length > 0)) &&
+                              (milestones && milestones.length >= 10) ||
+                              newMilestones.some((m) => !m.days || Number(m.days) <= 0)) &&
                               "opacity-60 cursor-not-allowed",
                           )}
                         >
@@ -1483,20 +1513,19 @@ export default function DeluluPage() {
                               </button>
 
                               {openMilestoneId === m.id && (
-                                <div className="px-4 md:px-8 pb-5 pt-0 text-xs md:text-sm text-muted-foreground space-y-2">
-                                  <div className="px-8">
-                                    <p className="">{fullTitle}</p>
-                                    {m.proofLink && (
-                                      <a
-                                        href={m.proofLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-500 text-xs font-bold underline"
-                                      >
-                                        View Evidence
-                                      </a>
-                                    )}
-                                  </div>
+                                <div className="px-4 md:px-8 pb-5 pt-0 text-xs md:text-sm text-muted-foreground">
+                                  {m.proofLink ? (
+                                    <a
+                                      href={m.proofLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 text-xs font-bold underline"
+                                    >
+                                      View Evidence
+                                    </a>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground italic">No evidence added yet</p>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1504,6 +1533,26 @@ export default function DeluluPage() {
                         })}
                       </div>
                     </>
+                  ) : isWaitingForMilestones ? (
+                    <div className="space-y-3 pt-1">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="border-2 border-border/40 rounded-xl overflow-hidden animate-pulse"
+                        >
+                          <div className="flex items-center justify-between px-4 md:px-8 py-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-6 h-6 rounded-full bg-muted-foreground/20 shrink-0" />
+                              <div className="space-y-2">
+                                <div className="h-3 w-40 rounded bg-muted-foreground/20" />
+                                <div className="h-2.5 w-24 rounded bg-muted-foreground/15" />
+                              </div>
+                            </div>
+                            <div className="h-5 w-16 rounded-full bg-muted-foreground/15 shrink-0" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="rounded-2xl bg-muted p-8 text-center mt-2">
                       <Target className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
@@ -1531,6 +1580,8 @@ export default function DeluluPage() {
             deluluId={BigInt(safeDelulu.onChainId)}
             tokenAddress={marketToken as `0x${string}`}
             mode="buy"
+            isCreator={!!isCreator}
+            isEnded={!!safeDelulu.isResolved}
           />
           <SharesSheet
             open={sellSharesSheetOpen}
@@ -1538,6 +1589,8 @@ export default function DeluluPage() {
             deluluId={BigInt(safeDelulu.onChainId)}
             tokenAddress={marketToken as `0x${string}`}
             mode="sell"
+            isCreator={!!isCreator}
+            isEnded={!!safeDelulu.isResolved}
           />
         </>
       ) : null}
@@ -1757,48 +1810,6 @@ export default function DeluluPage() {
         </ModalContent>
       </Modal>
 
-      <Modal
-        open={showMilestoneConfirmModal}
-        onOpenChange={setShowMilestoneConfirmModal}
-      >
-        <ModalContent className="max-w-md">
-          <ModalHeader>
-            <ModalTitle className="text-delulu-charcoal text-xl font-bold">
-              Save milestones?
-            </ModalTitle>
-            <ModalDescription className="mt-2 text-sm text-muted-foreground">
-              You can only add all milestones for this delulu at once. Make
-              sure you&apos;ve added every step you need before saving.
-            </ModalDescription>
-          </ModalHeader>
-          <div className="mt-4">
-            <ModalFooter>
-              <div className="flex gap-3 w-full">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestoneConfirmModal(false)}
-                  className="flex-1 px-4 py-2 text-sm font-semibold rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  Add more
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMilestoneConfirmModal(false);
-                    handleCreateMilestones();
-                  }}
-                  className={cn(
-                    "flex-1 px-4 py-2 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
-                    "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-all",
-                  )}
-                >
-                  Proceed
-                </button>
-              </div>
-            </ModalFooter>
-          </div>
-        </ModalContent>
-      </Modal>
     </div>
   );
 }

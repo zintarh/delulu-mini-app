@@ -35,7 +35,7 @@ export function StakePositionSheet({
     })();
   }, [open]);
 
-  const sideLabel = "Believer";
+  const sideLabel = "Supporter";
 
   return (
     <ResponsiveSheet

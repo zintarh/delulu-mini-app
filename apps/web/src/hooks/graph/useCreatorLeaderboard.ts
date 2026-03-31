@@ -12,7 +12,7 @@ const CREATOR_LEADERBOARD_QUERY = gql`
     creatorStats: creatorStats_collection(
       first: $first
       skip: $skip
-      orderBy: completedGoals
+      orderBy: totalSupportCollected
       orderDirection: desc
     ) {
       id

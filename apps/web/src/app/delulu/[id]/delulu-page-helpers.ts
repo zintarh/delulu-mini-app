@@ -73,7 +73,7 @@ export function getDeluluRemainingDaysTotal({
       : nowMs) ?? nowMs;
   const endMs = resolutionDeadline.getTime();
   const days = (endMs - startMs) / MS_PER_DAY;
-  return Math.max(0, Math.floor(days * 100) / 100);
+  return Math.max(0, Math.floor(days));
 }
 
 export function getMaxDaysPerRow(

@@ -125,6 +125,7 @@ type Milestone @entity(immutable: false) {
   verifiedAt: BigInt # Block timestamp when verified (nullable)
   rejectedAt: BigInt # Block timestamp when rejected (nullable)
   rejectionReason: String # Reason for rejection if rejected
+  isDeleted: Boolean! # Whether milestone has been deleted by creator
 }
 
 # Aggregated creator stats for leaderboards

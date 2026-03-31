@@ -94,7 +94,25 @@ export const GET_DELULU_BY_ID = gql`
         txHash
         createdAt
       }
-      milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+      shareTrades(first: 100, orderBy: createdAt, orderDirection: asc) {
+        id
+        isBuy
+        amount
+        curveAmount
+        createdAt
+        user {
+          id
+        }
+      }
+      shareHoldings(first: 50) {
+        id
+        user {
+          id
+          username
+        }
+        balance
+      }
+      milestones(first: 50, orderBy: milestoneId, orderDirection: asc, where: { isDeleted: false }) {
         id
         milestoneId
         descriptionHash
@@ -128,7 +146,7 @@ export function useGraphDelulu(deluluId: string | number | null) {
   >(GET_DELULU_BY_ID, {
     variables: { id },
     skip: !id,
-    fetchPolicy: "cache-first",
+    fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",
   });
 
@@ -186,10 +204,37 @@ export function useGraphDelulu(deluluId: string | number | null) {
     });
   }, [data?.delulu?.milestones]);
 
+  const shareTrades = useMemo(() => {
+    const raw = (data?.delulu as any)?.shareTrades;
+    if (!raw) return [];
+    return raw.map((t: any) => ({
+      id: t.id,
+      isBuy: t.isBuy as boolean,
+      amount: Number(t.amount),
+      curveAmount: weiToNumber(t.curveAmount),
+      createdAt: timestampToDate(t.createdAt),
+      userAddress: t.user?.id ?? "",
+    }));
+  }, [data?.delulu]);
+
+  const shareHoldings = useMemo(() => {
+    const raw = (data?.delulu as any)?.shareHoldings;
+    if (!raw) return [];
+    return raw
+      .map((h: any) => ({
+        userAddress: h.user?.id ?? "",
+        username: h.user?.username ?? null,
+        balance: Number(h.balance),
+      }))
+      .filter((h: any) => h.balance > 0);
+  }, [data?.delulu]);
+
   return {
     delulu,
     stakes,
     milestones,
+    shareTrades,
+    shareHoldings,
     isLoading: loading,
     error: error ?? null,
     refetch,

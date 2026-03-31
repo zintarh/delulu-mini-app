@@ -25,6 +25,9 @@ import { Plus } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
 
+const PWA_SEEN_KEY = "pwa_seen_v1";
+const PWA_SEEN_COOKIE = "pwa_seen_v1=1;path=/;max-age=31536000;samesite=lax";
+
 export default function HomePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -89,7 +92,12 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const seen = window.localStorage.getItem("delulu_first_run_pwa_seen_v1");
+      const seenInStorage = window.localStorage.getItem(PWA_SEEN_KEY);
+      const seenInCookie = document.cookie
+        .split(";")
+        .map((part) => part.trim())
+        .some((part) => part.startsWith(`${PWA_SEEN_KEY}=`));
+      const seen = seenInStorage === "1" || seenInCookie;
       if (!seen) setShowFirstRunPwa(true);
     } catch {
     }
@@ -143,7 +151,6 @@ export default function HomePage() {
     setShowUserSetupModal(true);
   }, [authenticated, user?.username]);
 
-  // Force-refresh feed when a create flow succeeds anywhere in the app.
   useEffect(() => {
     const onCreated = () => {
       refetchFeed();
@@ -350,7 +357,8 @@ export default function HomePage() {
           setShowFirstRunPwa(open);
           if (!open && typeof window !== "undefined") {
             try {
-              window.localStorage.setItem("delulu_first_run_pwa_seen_v1", "1");
+              window.localStorage.setItem(PWA_SEEN_KEY, "1");
+              document.cookie = PWA_SEEN_COOKIE;
             } catch {
             }
           }

@@ -64,6 +64,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
       address: token,
       abi: ERC20_ABI,
       functionName: "approve",
+      chainId,
       args: [contractAddress, amountWei],
     });
   };

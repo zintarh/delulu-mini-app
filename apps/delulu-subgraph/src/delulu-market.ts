@@ -13,6 +13,7 @@ import {
   MilestoneSubmitted as MilestoneSubmittedEvent,
   MilestoneVerified as MilestoneVerifiedEvent,
   MilestoneRejected as MilestoneRejectedEvent,
+  MilestoneDeleted as MilestoneDeletedEvent,
   ChallengeCreated as ChallengeCreatedEvent,
   TipExecuted as TipExecutedEvent,
   SharesBought as SharesBoughtEvent,
@@ -361,7 +362,21 @@ export function handleMilestoneCreatedDetailed(
   milestone.verifiedAt = null
   milestone.rejectedAt = null
   milestone.rejectionReason = null
+  milestone.isDeleted = false
 
+  milestone.save()
+}
+
+export function handleMilestoneDeleted(event: MilestoneDeletedEvent): void {
+  let deluluId = event.params.deluluId.toString()
+  let milestoneEntityId = deluluId + "-" + event.params.milestoneId.toString()
+  let milestone = Milestone.load(milestoneEntityId)
+
+  if (milestone == null) {
+    return
+  }
+
+  milestone.isDeleted = true
   milestone.save()
 }
 

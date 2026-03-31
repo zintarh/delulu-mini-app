@@ -4,7 +4,7 @@ import { parseUnits } from "viem";
 export const MAX_DELULU_LENGTH = 140;
 // NOTE: MIN_STAKE represents the minimum *non-zero* stake in whole tokens (G$).
 // A stake of 0 is allowed at the UI level and treated as "no stake".
-export const MIN_STAKE = 100;
+export const MIN_STAKE = 1; // TODO: restore to 100 after testing
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
 export const ALLOWANCE_CHECK_DELAY = 500; // milliseconds

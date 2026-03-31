@@ -118,10 +118,10 @@ export function useCreateDelulu() {
         } catch {
           throw new Error("Invalid stake amount format");
         }
-        // Require at least 100 G$ when non-zero
-        const MIN_STAKE_WEI = 100n * (10n ** 18n);
+        // TODO: restore to 100 after testing
+        const MIN_STAKE_WEI = 1n * (10n ** 18n);
         if (parsed < MIN_STAKE_WEI) {
-          throw new Error("Minimum stake is 100 G$ or 0");
+          throw new Error("Minimum stake is 1 G$ or 0");
         }
         initialSupportWei = parsed;
       }
@@ -133,6 +133,7 @@ export function useCreateDelulu() {
         address: contractAddress,
         abi: DELULU_ABI,
         functionName: "createDelulu",
+        chainId,
         args: [
           tokenAddress as `0x${string}`,
           contentHash,

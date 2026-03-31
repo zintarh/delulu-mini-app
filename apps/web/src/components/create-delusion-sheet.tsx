@@ -271,9 +271,8 @@ export function CreateDelusionSheet({
       console.log("Moving to next step. Current stakeAmount:", stakeAmount);
       // Stake is optional: we only enforce a minimum of 100 G$ when the user
       // actually chooses to stake a non-zero amount. Empty / 0 stays as 0.
-      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 100) {
-        console.warn("Clamping small non-zero stake amount to minimum of 100 G$");
-        setStakeAmount([100]);
+      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 1) { // TODO: restore to 100 after testing
+        setStakeAmount([1]);
       }
       setCurrentStep(currentStep + 1);
     }
@@ -867,10 +866,10 @@ export function CreateDelusionSheet({
                             }
                             if (
                               stakeAmount[0] > 0 &&
-                              stakeAmount[0] < 100
+                              stakeAmount[0] < 1 // TODO: restore to 100 after testing
                             ) {
                               throw new Error(
-                                "Minimum stake is 100 G$ or 0"
+                                "Minimum stake is 1 G$ or 0"
                               );
                             }
 

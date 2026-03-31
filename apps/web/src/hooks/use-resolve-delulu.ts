@@ -12,11 +12,7 @@ export function useResolveDelulu() {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const resolve = async (
-    deluluId: number,
-    outcome: boolean,
-    _creatorAddress: string
-  ) => {
+  const resolve = async (deluluId: number) => {
     if (isNaN(deluluId) || deluluId <= 0) {
       throw new Error("Invalid delulu ID");
     }
@@ -26,7 +22,7 @@ export function useResolveDelulu() {
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
         functionName: "resolveDelulu",
-        args: [deluluId, outcome],
+        args: [BigInt(deluluId)],
       });
     } catch (err) {
       throw formatErrorForDisplay(err);
@@ -103,8 +99,10 @@ function formatErrorForDisplay(error: unknown): Error {
       const errorMessages: Record<string, string> = {
         DeluluNotFound: "This delulu was not found",
         AlreadyResolved: "This delulu has already been resolved",
+        AlreadySettled: "This delulu has already been resolved",
         AlreadyCancelled: "Cannot resolve a cancelled delulu",
-        Unauthorized: "Only the creator can resolve this delulu",
+        Unauthorized: "Only the creator or contract owner can resolve",
+        InvalidDeadlines: "Resolution deadline has not passed yet",
       };
 
       return new Error(
@@ -144,7 +142,7 @@ function formatErrorForDisplay(error: unknown): Error {
       combinedMsg.includes("only owner") ||
       combinedMsg.includes("unauthorized")
     ) {
-      return new Error("Only the creator can resolve this delulu");
+      return new Error("Only the creator or contract owner can resolve");
     }
     return new Error(
       "Transaction failed. Please check your connection and try again"

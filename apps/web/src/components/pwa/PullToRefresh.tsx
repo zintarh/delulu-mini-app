@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ function isStandalonePwa(): boolean {
 
 export function PullToRefresh() {
   const router = useRouter();
+  const pathname = usePathname();
   const startYRef = useRef<number | null>(null);
   const pullingRef = useRef(false);
   const scrollerRef = useRef<HTMLElement | Window | null>(null);
@@ -25,6 +27,9 @@ export function PullToRefresh() {
     if (typeof window === "undefined") return;
     // Keep it PWA-only so web doesn’t feel “weird”.
     if (!isStandalonePwa()) return;
+    // Disable pull-to-refresh on single delulu pages.
+    if (pathname?.startsWith("/delulu/")) return;
+    if (pathname?.startsWith("/admin")) return;
 
     const threshold = 72;
     const maxPull = 110;
@@ -111,7 +116,7 @@ export function PullToRefresh() {
       window.removeEventListener("touchend", onTouchEnd);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, pullPx]);
+  }, [router, pullPx, pathname]);
 
   if (pullPx <= 0 && !isRefreshing) return null;
 

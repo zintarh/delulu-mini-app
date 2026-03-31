@@ -5,17 +5,21 @@ export interface UserData {
   fid: number;
   address?: string;
   username?: string;
-  email?: string; // Email hash stored on-chain
+  email?: string;
   displayName?: string;
   pfpUrl?: string;
+  referralCode?: string;
 }
 
 interface UserStore {
   user: UserData | null;
   isLoading: boolean;
+  isProfileLoaded: boolean;
   setUser: (_user: UserData | null) => void;
   updateUsername: (_username: string, _email?: string) => void;
   updateAddress: (_address: string) => void;
+  updateProfile: (_data: Partial<Pick<UserData, "pfpUrl" | "referralCode" | "email" | "username">>) => void;
+  setProfileLoaded: (_loaded: boolean) => void;
   setLoading: (_isLoading: boolean) => void;
   logout: () => void;
 }
@@ -25,6 +29,7 @@ export const useUserStore = create<UserStore>()(
     (set) => ({
       user: null,
       isLoading: true,
+      isProfileLoaded: false,
       setUser: (user) => set({ user, isLoading: false }),
       updateUsername: (username: string, email?: string) => 
         set((state) => ({
@@ -40,11 +45,20 @@ export const useUserStore = create<UserStore>()(
             : { fid: 0, address },
           isLoading: false,
         })),
+      updateProfile: (data) =>
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, ...data }
+            : { fid: 0, ...data },
+          isLoading: false,
+        })),
+      setProfileLoaded: (isProfileLoaded) => set({ isProfileLoaded }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
         if (typeof window !== 'undefined') {
-          // Clear all app-owned persisted keys on logout.
-          // Keep non-delulu keys (e.g. browser/tooling/vendor data) intact.
+          // Explicitly clear the Zustand persisted store key.
+          window.localStorage.removeItem('delulu-user-storage');
+          // Clear any other app-owned keys (underscore-prefixed convention).
           const localKeys = Object.keys(window.localStorage);
           for (const key of localKeys) {
             if (key.startsWith('delulu_')) {
@@ -58,7 +72,7 @@ export const useUserStore = create<UserStore>()(
             }
           }
         }
-        set({ user: null, isLoading: false });
+        set({ user: null, isLoading: false, isProfileLoaded: false });
       },
     }),
     {
