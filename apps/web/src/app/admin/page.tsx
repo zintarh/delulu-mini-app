@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useApolloClient } from "@apollo/client/react";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import {
   useAdminDelulus,
@@ -24,6 +25,10 @@ import {
   Sun,
   LogIn,
   User,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
 import { cn, formatGAmount, formatAddress } from "@/lib/utils";
@@ -31,6 +36,8 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { useTheme } from "@/contexts/theme-context";
+
+const PAGE_SIZE = 10;
 
 function StatCard({
   label,
@@ -52,6 +59,101 @@ function StatCard({
       </p>
       {hint && (
         <p className="mt-1 text-xs text-muted-foreground font-medium">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  onPage: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between border-t border-border px-4 py-3">
+      <p className="text-xs text-muted-foreground">
+        Page {page} of {totalPages}
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onPage(page - 1)}
+          disabled={page === 1}
+          className="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+          .reduce<(number | "...")[]>((acc, p, i, arr) => {
+            if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+            acc.push(p);
+            return acc;
+          }, [])
+          .map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => onPage(p as number)}
+                className={cn(
+                  "min-w-[28px] rounded-md border px-2 py-1 text-xs font-bold transition-colors",
+                  page === p
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-card text-foreground hover:bg-muted"
+                )}
+              >
+                {p}
+              </button>
+            )
+          )}
+        <button
+          type="button"
+          onClick={() => onPage(page + 1)}
+          disabled={page === totalPages}
+          className="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SearchInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative w-full max-w-sm">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <input
+        type="search"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border-2 border-border bg-input py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       )}
     </div>
   );
@@ -129,7 +231,7 @@ function DeluluRow({
             <button
               type="button"
               onClick={() => onResolve(delulu)}
-              className="rounded-md border-2 border-border bg-delulu-yellow-reserved px-2.5 py-1 text-[11px] font-bold text-foreground shadow-neo-sm hover:shadow-neo active:scale-[0.98] transition-all"
+              className="rounded-md border-2 border-border bg-delulu-yellow-reserved px-2.5 py-1 text-[11px] font-bold text-delulu-charcoal shadow-neo-sm hover:shadow-neo active:scale-[0.98] transition-all"
             >
               Resolve
             </button>
@@ -146,6 +248,7 @@ export default function AdminDashboardPage() {
   const { address, isConnected } = useAccount();
   const { theme, toggleTheme } = useTheme();
   const apolloClient = useApolloClient();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const {
     delulus,
     isLoading: loadingDelulus,
@@ -157,31 +260,48 @@ export default function AdminDashboardPage() {
     refetch: refetchMilestones,
   } = usePendingMilestones();
 
+  const [activeTab, setActiveTab] = useState<"milestones" | "delulus">("milestones");
   const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [search, setSearch] = useState("");
-  const [resolveTarget, setResolveTarget] = useState<FormattedDelulu | null>(
-    null,
-  );
+  const [deluluSearch, setDeluluSearch] = useState("");
+  const [milestoneSearch, setMilestoneSearch] = useState("");
+  const [deluluPage, setDeluluPage] = useState(1);
+  const [milestonePage, setMilestonePage] = useState(1);
+  const [resolveTarget, setResolveTarget] = useState<FormattedDelulu | null>(null);
   const [milestoneSheet, setMilestoneSheet] = useState<{
     row: PendingMilestoneRow | null;
     mode: "verify" | "reject" | null;
   }>({ row: null, mode: null });
-  const [showCreateChallengeSheet, setShowCreateChallengeSheet] =
-    useState(false);
+  const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
 
   const filteredDelulus = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = deluluSearch.trim().toLowerCase();
     if (!q) return delulus;
     return delulus.filter((d) => {
       const idMatch = String(d.id).includes(q);
       const creator = (d.creator ?? "").toLowerCase();
       const content = (d.content ?? "").toLowerCase();
       const un = (d.username ?? "").toLowerCase();
-      return (
-        idMatch || creator.includes(q) || content.includes(q) || un.includes(q)
-      );
+      return idMatch || creator.includes(q) || content.includes(q) || un.includes(q);
     });
-  }, [delulus, search]);
+  }, [delulus, deluluSearch]);
+
+  const filteredMilestones = useMemo(() => {
+    const q = milestoneSearch.trim().toLowerCase();
+    if (!q) return pendingMilestones;
+    return pendingMilestones.filter((m) => {
+      const deluluId = String(m.delulu.onChainId || m.delulu.id).toLowerCase();
+      const username = (m.delulu.creator?.username ?? "").toLowerCase();
+      const proof = (m.proofLink ?? "").toLowerCase();
+      return deluluId.includes(q) || username.includes(q) || proof.includes(q);
+    });
+  }, [pendingMilestones, milestoneSearch]);
+
+  // Paginated slices
+  const deluluTotalPages = Math.max(1, Math.ceil(filteredDelulus.length / PAGE_SIZE));
+  const pagedDelulus = filteredDelulus.slice((deluluPage - 1) * PAGE_SIZE, deluluPage * PAGE_SIZE);
+
+  const milestoneTotalPages = Math.max(1, Math.ceil(filteredMilestones.length / PAGE_SIZE));
+  const pagedMilestones = filteredMilestones.slice((milestonePage - 1) * PAGE_SIZE, milestonePage * PAGE_SIZE);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -210,8 +330,63 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const tableShell =
-    "overflow-hidden rounded-xl border-2 border-border bg-card shadow-neo";
+  const tableShell = "overflow-hidden rounded-xl border-2 border-border bg-card shadow-neo";
+
+  if (isAdminLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+      </div>
+    );
+  }
+
+  if (!isConnected || !isAdmin) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background text-foreground px-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-border bg-muted">
+          <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-black">Access denied</h1>
+        <p className="text-sm text-muted-foreground text-center max-w-xs">
+          {!isConnected
+            ? "Connect your wallet to continue."
+            : "This page is restricted to the contract owner."}
+        </p>
+        {!isConnected ? (
+          <button
+            type="button"
+            onClick={() => setShowLoginSheet(true)}
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
+          >
+            <LogIn className="w-4 h-4" />
+            Connect wallet
+          </button>
+        ) : (
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go home
+          </Link>
+        )}
+        <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
+      </div>
+    );
+  }
+
+  const tabs = [
+    {
+      id: "milestones" as const,
+      label: "Milestones",
+      badge: stats.pendingMilestones,
+    },
+    {
+      id: "delulus" as const,
+      label: "Delulus",
+      badge: stats.total,
+    },
+  ];
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
@@ -246,7 +421,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={() => setShowCreateChallengeSheet(true)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg border-2 border-border bg-delulu-yellow-reserved px-3 py-2 text-xs sm:text-sm font-bold text-foreground shadow-neo-sm",
+                "inline-flex items-center gap-2 rounded-lg border-2 border-border bg-delulu-yellow-reserved px-3 py-2 text-xs sm:text-sm font-bold text-delulu-charcoal shadow-neo-sm",
                 "hover:shadow-neo active:scale-[0.98] transition-all",
               )}
             >
@@ -260,7 +435,6 @@ export default function AdminDashboardPage() {
               onClick={toggleTheme}
               className="flex items-center justify-center p-2 rounded-lg border-2 border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-neo-sm"
               aria-label="Toggle theme"
-              title="Toggle theme"
             >
               {theme === "dark" ? (
                 <Moon className="w-5 h-5" />
@@ -303,16 +477,17 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
         <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-10">
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Dashboard
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground max-w-xl">
+            <p className="mt-1 text-sm text-muted-foreground">
               Milestone verification, market resolution, and indexed delulus.
             </p>
           </div>
 
-          <section className="mb-10 grid gap-3 sm:grid-cols-3">
+          {/* Stats */}
+          <section className="mb-8 grid gap-3 sm:grid-cols-3">
             <StatCard label="Delulus indexed" value={stats.total} />
             <StatCard
               label="Milestones awaiting verify"
@@ -326,183 +501,218 @@ export default function AdminDashboardPage() {
             />
           </section>
 
-          <section className="mb-12">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-foreground">
-                Milestone verification
-              </h2>
-            </div>
-            <div className={tableShell}>
-              {loadingMilestones ? (
-                <div className="flex justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-                </div>
-              ) : pendingMilestones.length === 0 ? (
-                <p className="py-14 text-center text-sm text-muted-foreground">
-                  No milestones waiting for verification.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left">
-                    <thead>
-                      <tr className="border-b-2 border-border bg-muted/60">
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Delulu
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Ms #
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Proof
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Deadline
-                        </th>
-                        <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingMilestones.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-border hover:bg-muted/40 transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <Link
-                              href={`/delulu/${row.delulu.onChainId || row.delulu.id}`}
-                              className="text-sm font-bold text-foreground underline-offset-2 hover:underline"
-                            >
-                              #{row.delulu.onChainId || row.delulu.id}
-                            </Link>
-                            {row.delulu.creator?.username && (
-                              <p className="text-xs text-muted-foreground">
-                                @{row.delulu.creator.username}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
-                            {row.milestoneId}
-                          </td>
-                          <td className="px-4 py-3 max-w-[200px]">
-                            {row.proofLink ? (
-                              <a
-                                href={row.proofLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-foreground underline break-all line-clamp-2 hover:text-muted-foreground"
-                              >
-                                {row.proofLink}
-                              </a>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {row.deadline.getTime() > 0
-                              ? row.deadline.toLocaleDateString()
-                              : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="inline-flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setMilestoneSheet({
-                                    row,
-                                    mode: "verify",
-                                  })
-                                }
-                                className="rounded-md border-2 border-border bg-delulu-green px-2.5 py-1 text-[11px] font-bold text-white shadow-neo-sm hover:opacity-90 active:scale-[0.98] transition-all"
-                              >
-                                Verify
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setMilestoneSheet({
-                                    row,
-                                    mode: "reject",
-                                  })
-                                }
-                                className="rounded-md border-2 border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/15 active:scale-[0.98] transition-all"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </section>
+          {/* Tabs */}
+          <div className="mb-6 flex items-center gap-1 border-b-2 border-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition-colors",
+                  activeTab === tab.id
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab.label}
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums min-w-[18px]",
+                    activeTab === tab.id
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tab.badge}
+                </span>
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-[-2px] left-0 right-0 h-0.5 bg-foreground rounded-t-full" />
+                )}
+              </button>
+            ))}
+          </div>
 
-          <section>
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-bold text-foreground">All delulus</h2>
-              <div className="relative max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                <input
-                  type="search"
-                  placeholder="Search by id, creator, content…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border-2 border-border bg-input py-2.5 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          {/* Milestones Tab */}
+          {activeTab === "milestones" && (
+            <section>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
+                    Milestone verification
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {filteredMilestones.length} pending
+                    {milestoneSearch && ` · filtered from ${pendingMilestones.length}`}
+                  </p>
+                </div>
+                <SearchInput
+                  value={milestoneSearch}
+                  onChange={(v) => { setMilestoneSearch(v); setMilestonePage(1); }}
+                  placeholder="Search by delulu, user, proof…"
                 />
               </div>
-            </div>
-            <div className={tableShell}>
-              {loadingDelulus ? (
-                <div className="flex justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+              <div className={tableShell}>
+                {loadingMilestones ? (
+                  <div className="flex justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+                  </div>
+                ) : filteredMilestones.length === 0 ? (
+                  <p className="py-14 text-center text-sm text-muted-foreground">
+                    {milestoneSearch ? "No milestones match your search." : "No milestones waiting for verification."}
+                  </p>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[720px] text-left">
+                        <thead>
+                          <tr className="border-b-2 border-border bg-muted/60">
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Delulu</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Ms #</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Proof</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Deadline</th>
+                            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-muted-foreground">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pagedMilestones.map((row) => (
+                            <tr
+                              key={row.id}
+                              className="border-b border-border hover:bg-muted/40 transition-colors"
+                            >
+                              <td className="px-4 py-3">
+                                <Link
+                                  href={`/delulu/${row.delulu.onChainId || row.delulu.id}`}
+                                  className="text-sm font-bold text-foreground underline-offset-2 hover:underline"
+                                >
+                                  #{row.delulu.onChainId || row.delulu.id}
+                                </Link>
+                                {row.delulu.creator?.username && (
+                                  <p className="text-xs text-muted-foreground">
+                                    @{row.delulu.creator.username}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
+                                {row.milestoneId}
+                              </td>
+                              <td className="px-4 py-3 max-w-[200px]">
+                                {row.proofLink ? (
+                                  <a
+                                    href={row.proofLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-foreground underline break-all line-clamp-2 hover:text-muted-foreground"
+                                  >
+                                    {row.proofLink}
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                                {row.deadline.getTime() > 0
+                                  ? row.deadline.toLocaleDateString()
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="inline-flex gap-2">
+                                  {row.proofLink && row.deadline <= new Date() && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setMilestoneSheet({ row, mode: "verify" })}
+                                      className="rounded-md border-2 border-border bg-delulu-green px-2.5 py-1 text-[11px] font-bold text-white shadow-neo-sm hover:opacity-90 active:scale-[0.98] transition-all"
+                                    >
+                                      Verify
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setMilestoneSheet({ row, mode: "reject" })}
+                                    className="rounded-md border-2 border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/15 active:scale-[0.98] transition-all"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Pagination
+                      page={milestonePage}
+                      totalPages={milestoneTotalPages}
+                      onPage={setMilestonePage}
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Delulus Tab */}
+          {activeTab === "delulus" && (
+            <section>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">All delulus</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {filteredDelulus.length} total
+                    {deluluSearch && ` · filtered from ${delulus.length}`}
+                  </p>
                 </div>
-              ) : filteredDelulus.length === 0 ? (
-                <p className="py-14 text-center text-sm text-muted-foreground">
-                  No delulus match your search.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left">
-                    <thead>
-                      <tr className="border-b-2 border-border bg-muted/60">
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          #
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Creator
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          TVL
-                        </th>
-                        <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredDelulus.map((d) => (
-                        <DeluluRow
-                          key={d.id}
-                          delulu={d}
-                          onResolve={setResolveTarget}
-                          allowResolve
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </section>
+                <SearchInput
+                  value={deluluSearch}
+                  onChange={(v) => { setDeluluSearch(v); setDeluluPage(1); }}
+                  placeholder="Search by id, creator, content…"
+                />
+              </div>
+              <div className={tableShell}>
+                {loadingDelulus ? (
+                  <div className="flex justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+                  </div>
+                ) : filteredDelulus.length === 0 ? (
+                  <p className="py-14 text-center text-sm text-muted-foreground">
+                    No delulus match your search.
+                  </p>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left">
+                        <thead>
+                          <tr className="border-b-2 border-border bg-muted/60">
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">#</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Creator</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</th>
+                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">TVL</th>
+                            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-muted-foreground">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pagedDelulus.map((d) => (
+                            <DeluluRow
+                              key={d.id}
+                              delulu={d}
+                              onResolve={setResolveTarget}
+                              allowResolve
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Pagination
+                      page={deluluPage}
+                      totalPages={deluluTotalPages}
+                      onPage={setDeluluPage}
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+          )}
         </div>
       </main>
 

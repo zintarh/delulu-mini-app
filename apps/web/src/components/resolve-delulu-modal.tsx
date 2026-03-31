@@ -50,43 +50,43 @@ export function ResolveDeluluModal({
       onOpenChange={onOpenChange}
       showClose={!isLoading}
       title=""
-      sheetClassName="border-t-2 border-delulu-charcoal !p-0 !z-[100] rounded-t-3xl bg-white"
+      sheetClassName="border-t-2 border-border !p-0 !z-[100] rounded-t-3xl bg-card"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-8 pb-6 px-6 lg:pt-6">
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-black text-delulu-charcoal tracking-tight">
+            <h2 className="text-2xl font-black text-foreground tracking-tight">
               Resolve goal
             </h2>
-            <p className="text-sm text-delulu-charcoal/70 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Marks this delulu as resolved on-chain after the resolution
               deadline. Creator or owner only.
             </p>
           </div>
 
           {delulu && (
-            <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-              <p className="text-sm font-medium text-delulu-charcoal mb-2">
+            <div className="bg-muted rounded-lg p-4 border-2 border-border">
+              <p className="text-sm font-medium text-foreground mb-2">
                 Delulu #{delulu.id}
               </p>
-              <p className="text-xs text-gray-600 line-clamp-2">
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 {delulu.content || "No content available"}
               </p>
             </div>
           )}
 
           {isSuccess && (
-            <div className="p-4 bg-green-50 border-2 border-green-500 rounded-lg">
-              <p className="text-sm font-medium text-green-800 text-center">
+            <div className="p-4 bg-emerald-500/10 border-2 border-emerald-500/40 rounded-lg">
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 text-center">
                 ✓ Submitted successfully
               </p>
             </div>
           )}
 
           {error && (
-            <div className="p-4 bg-red-50 border-2 border-red-500 rounded-lg">
-              <p className="text-sm font-medium text-red-800 text-center">
+            <div className="p-4 bg-destructive/10 border-2 border-destructive/40 rounded-lg">
+              <p className="text-sm font-medium text-destructive text-center">
                 {error.message || "Failed to resolve"}
               </p>
             </div>
@@ -98,9 +98,9 @@ export function ResolveDeluluModal({
               disabled={isLoading}
               className={cn(
                 "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
-                "bg-white text-delulu-charcoal",
-                "border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
-                "hover:bg-gray-50 hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+                "bg-card text-foreground",
+                "border-border shadow-neo-sm",
+                "hover:bg-muted",
                 "active:scale-[0.98] active:shadow-[1px_1px_0px_0px_#1A1A1A]",
                 "transition-all duration-100",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -114,11 +114,11 @@ export function ResolveDeluluModal({
               className={cn(
                 "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
                 "bg-delulu-yellow-reserved text-delulu-charcoal",
-                "border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
-                "hover:bg-delulu-yellow-reserved/90 hover:shadow-[4px_4px_0px_0px_#1A1A1A]",
-                "active:scale-[0.98] active:shadow-[2px_2px_0px_0px_#1A1A1A]",
+                "border-border shadow-neo-sm",
+                "hover:opacity-90",
+                "active:scale-[0.98]",
                 "transition-all duration-100",
-                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
                 "flex items-center justify-center gap-2"
               )}
             >
