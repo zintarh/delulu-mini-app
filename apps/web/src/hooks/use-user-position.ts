@@ -8,13 +8,13 @@ export function useUserPosition(deluluId: number | null) {
   const { address } = useAccount();
   const chainId = useChainId();
   const {
-    data: userPosition,
-    isLoading,
-    error,
+    data: shareBalance,
+    isLoading: isLoadingShares,
+    error: sharesError,
   } = useReadContract({
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
-    functionName: "userStakes",
+    functionName: "shareBalance",
     args:
       deluluId !== null && address ? [BigInt(deluluId), address] : undefined,
     query: {
@@ -22,42 +22,43 @@ export function useUserPosition(deluluId: number | null) {
     },
   });
 
-  if (!userPosition) {
+  const {
+    data: market,
+    isLoading: isLoadingMarket,
+    error: marketError,
+  } = useReadContract({
+    address: getDeluluContractAddress(chainId),
+    abi: DELULU_ABI,
+    functionName: "delulus",
+    args: deluluId !== null ? [BigInt(deluluId)] : undefined,
+    query: {
+      enabled: deluluId !== null && !!address,
+    },
+  });
+
+  if (typeof shareBalance !== "bigint") {
     return {
       hasStaked: false,
       stakeAmount: 0,
-      isBeliever: false,
+      isBeliever: true,
       isClaimed: false,
-      isLoading,
-      error,
+      isLoading: isLoadingShares || isLoadingMarket,
+      error: sharesError || marketError,
     };
   }
 
-  // userPosition is a struct returned as an object with named properties
-  // or as an array tuple depending on how Viem decodes it
-  let amount: bigint;
-  let side: boolean;
-  let claimed: boolean;
-
-  if (Array.isArray(userPosition)) {
-    // If returned as array tuple
-    [amount, side, claimed] = userPosition as [bigint, boolean, boolean];
-  } else {
-    // If returned as object with named properties
-    const pos = userPosition as { amount: bigint; side: boolean; claimed: boolean };
-    amount = pos.amount;
-    side = pos.side;
-    claimed = pos.claimed;
-  }
-
-  const stakeAmount = parseFloat(formatUnits(amount, 18));
+  const stakeAmount = parseFloat(formatUnits(shareBalance, 18));
+  const marketAny = market as Record<string, unknown> | undefined;
+  const creator = (marketAny?.creator as string | undefined)?.toLowerCase();
+  const isCreator = !!address && creator === address.toLowerCase();
+  const isClaimed = isCreator ? Boolean(marketAny?.rewardClaimed) : false;
 
   return {
-    hasStaked: amount > 0n,
+    hasStaked: shareBalance > 0n,
     stakeAmount,
-    isBeliever: side,
-    isClaimed: claimed,
-    isLoading,
-    error,
+    isBeliever: true,
+    isClaimed,
+    isLoading: isLoadingShares || isLoadingMarket,
+    error: sharesError || marketError,
   };
 }

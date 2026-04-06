@@ -1,27 +1,11 @@
-import { useReadContract, useChainId } from "wagmi";
-import { useAccount } from "wagmi";
-import { getDeluluContractAddress } from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
+import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 
 export function useClaimable(deluluId: number | null) {
-  const { address } = useAccount();
-  const chainId = useChainId();
-  const {
-    data: claimable,
-    isLoading,
-    error,
-  } = useReadContract({
-    address: getDeluluContractAddress(chainId),
-    abi: DELULU_ABI,
-    functionName: "isClaimable",
-    args: deluluId !== null && address ? [deluluId, address] : undefined,
-    query: {
-      enabled: deluluId !== null && !!address,
-    },
-  });
+  const { claimableAmount, isLoading, error } = useUserClaimableAmount(deluluId);
 
   return {
-    isClaimable: claimable === true,
+    isClaimable: claimableAmount > 0,
+    claimableAmount,
     isLoading,
     error,
   };

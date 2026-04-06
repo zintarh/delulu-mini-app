@@ -13,29 +13,59 @@ export enum DeluluState {
 export function useDeluluState(deluluId: number | null) {
   const chainId = useChainId();
   const {
-    data: state,
-    isLoading,
-    error,
+    data: market,
+    isLoading: isLoadingMarket,
+    error: marketError,
   } = useReadContract({
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
-    functionName: "getDeluluState",
+    functionName: "delulus",
     args: deluluId !== null && deluluId > 0 ? [BigInt(deluluId)] : undefined,
     query: {
       enabled: deluluId !== null && deluluId > 0,
     },
   });
 
-  // Convert BigInt to number if needed (state is always a number 0-4)
-  const stateValue = state !== undefined && state !== null 
-    ? Number(state) 
-    : null;
+  const {
+    data: isFailed,
+    isLoading: isLoadingFailed,
+    error: failedError,
+  } = useReadContract({
+    address: getDeluluContractAddress(chainId),
+    abi: DELULU_ABI,
+    functionName: "marketIsFailed",
+    args: deluluId !== null && deluluId > 0 ? [BigInt(deluluId)] : undefined,
+    query: {
+      enabled: deluluId !== null && deluluId > 0,
+    },
+  });
+
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  const marketAny = market as Record<string, unknown> | undefined;
+  const stakingDeadline = (marketAny?.stakingDeadline as bigint | undefined) ?? 0n;
+  const resolutionDeadline = (marketAny?.resolutionDeadline as bigint | undefined) ?? 0n;
+  const isResolved = Boolean(marketAny?.isResolved);
+
+  let stateValue: number | null = null;
+  if (marketAny && (marketAny.id as bigint | undefined) !== 0n) {
+    if (Boolean(isFailed)) {
+      stateValue = DeluluState.Cancelled;
+    } else if (isResolved) {
+      stateValue = DeluluState.Resolved;
+    } else if (resolutionDeadline > 0n && nowSec >= resolutionDeadline) {
+      stateValue = DeluluState.Review;
+    } else if (stakingDeadline > 0n && nowSec >= stakingDeadline) {
+      stateValue = DeluluState.Locked;
+    } else {
+      stateValue = DeluluState.Open;
+    }
+  }
 
   return {
     state: stateValue,
     stateEnum: stateValue !== null ? (stateValue as DeluluState) : null,
-    isLoading,
-    error,
+    isLoading: isLoadingMarket || isLoadingFailed,
+    error: marketError || failedError,
   };
 }
 

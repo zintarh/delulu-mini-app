@@ -1,25 +1,23 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
+import { ExternalLink, Search, X } from "lucide-react";
 import { useAllDelulus } from "@/hooks/graph";
-import { useChallenges } from "@/hooks/use-challenges";
 import { useRouter } from "next/navigation";
 import type { FormattedDelulu } from "@/lib/types";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
-import { formatGAmount } from "@/lib/utils";
+
+const DELULU_MONDAY_NOTION_URL =
+  "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTrendingIndex, setCurrentTrendingIndex] = useState(0);
+  const [flyerImageError, setFlyerImageError] = useState(false);
   const trendingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { delulus, isLoading } = useAllDelulus();
-  const {
-    challenges,
-    isLoading: isChallengesLoading,
-  } = useChallenges();
   const router = useRouter();
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
@@ -120,11 +118,6 @@ export function RightSidebar() {
   }, [trendingDelulus.length]);
 
 
-  const activeChallenges = useMemo(
-    () => challenges.filter((c) => c.active),
-    [challenges]
-  );
-
   const handleDeluluClick = (id: string | number) => {
     router.push(`/delulu/${id}`);
   };
@@ -201,54 +194,43 @@ export function RightSidebar() {
         <>
         
 
-          <div className="bg-secondary rounded-2xl border border-border p-4 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-lg font-bold text-foreground">
-                <span className="text-foreground">
-                  Campaigns
-                </span>
-              </h2>
-              
+          <div className="rounded-2xl border border-border bg-card p-3 mb-6 shadow-sm">
+            <div className="rounded-xl overflow-hidden border border-border/70 bg-muted/20 min-h-[240px]">
+              {!flyerImageError ? (
+                <img
+                  src="/flyer.png"
+                  alt="Delulu Monday campaign flyer"
+                  className="w-full h-full object-cover"
+                  onError={() => setFlyerImageError(true)}
+                />
+              ) : (
+                <div className="w-full min-h-[180px] bg-gradient-to-br from-delulu-yellow-reserved/30 via-background to-delulu-green/20 p-4">
+                 
+                  <h3 className="mt-2 text-lg font-black leading-tight text-foreground">
+                    Join the weekly campaign and compete for rewards.
+                  </h3>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    If you want the branded flyer image here, add it to
+                    `apps/web/public/flyer.png`.
+                  </p>
+                </div>
+              )}
             </div>
-
-            {isChallengesLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-muted rounded-xl p-4 border border-border animate-pulse"
-                  >
-                    <div className="h-4 bg-secondary rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-secondary rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : activeChallenges.length > 0 ? (
-              <div className="space-y-3">
-                {activeChallenges.map((challenge, idx) => (
-                  <button
-                    key={`active-${challenge.id}-${idx}`}
-                    onClick={() => router.push(`/campaigns/${challenge.id}`)}
-                    className="w-full text-left p-4 rounded-xl bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-delulu-yellow-reserved/50 hover:shadow-sm group"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2 group-hover:text-blue-500 transition-colors">
-                          {challenge.title || ""}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-delulu-yellow-reserved/10 border border-delulu-yellow-reserved/30">
-                            <span className="text-xs text-foreground font-semibold tabular-nums">
-                              {formatGAmount(challenge.poolAmount)} G$
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            <div className="mt-3 px-1">
+             
+              <p className="mt-1 text-xs text-muted-foreground">
+                Read the full participation guide and rules.
+              </p>
+              <a
+                href={DELULU_MONDAY_NOTION_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+              >
+                How to participate
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
 
         </>
