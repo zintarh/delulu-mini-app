@@ -173,6 +173,10 @@ contract Delulu is
     mapping(address => uint256) public shareReserveByToken;
     mapping(uint256 => bool) public sharesEnabled;
 
+    // Unique buyer tracking — counts distinct addresses that have ever bought shares.
+    mapping(uint256 => uint256) public uniqueBuyerCount;
+    mapping(uint256 => mapping(address => bool)) public hasEverBought;
+
     // --- EVENTS ---
     event ProfileUpdated(address indexed user, string username);
     event ChallengeCreated(
@@ -433,6 +437,38 @@ contract Delulu is
 
     // --- CORE EXECUTION ---
 
+    /**
+     * @dev Binary-search for the maximum whole-share count purchasable with `budget`
+     *      starting from supply == 0, accounting for the protocol fee only
+     *      (no creator fee on the initial purchase).
+     * @return shares    Maximum share count
+     * @return curveCost Curve cost (excluding protocol fee) for those shares
+     */
+    function _sharesForBudget(
+        uint256 budget
+    ) internal pure returns (uint256 shares, uint256 curveCost) {
+        uint256 lo = 1;
+        uint256 hi = 2000; // ~166 800 G$ ceiling; ample for practical use
+        shares = 0;
+        curveCost = 0;
+        while (lo <= hi) {
+            uint256 mid = (lo + hi) / 2;
+            // sum of i^2 for i = 1..mid  (supply starts at 0)
+            uint256 sumSq = (mid * (mid + 1) * (2 * mid + 1)) / 6;
+            uint256 cost = (sumSq * SHARE_PRICE_SCALE) / SHARE_PRICE_FACTOR;
+            uint256 fee = (cost * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+            uint256 total = cost + fee;
+            if (total <= budget) {
+                shares = mid;
+                curveCost = cost;
+                lo = mid + 1;
+            } else {
+                if (mid == 0) break;
+                hi = mid - 1;
+            }
+        }
+    }
+
     function createDelulu(
         address token,
         string calldata contentHash,
@@ -458,21 +494,34 @@ contract Delulu is
         // Tips are tracked separately from creator stake
         d.totalSupportCollected = 0;
         d.totalSupporters = 0;
-        // Optional creator stake – acts as skin in the game
-        marketIsStaked[deluluId] = initialSupport > 0;
-        marketStakedAmount[deluluId] = initialSupport;
 
-        IERC20(token).safeTransferFrom(
-            msg.sender,
-            address(this),
-            initialSupport
-        );
+        // Creator's G$ stake buys shares on the bonding curve.
+        // The creator is the first buyer; more stake = more initial shares = stronger signal.
+        (uint256 initialShares, uint256 curveCost) = _sharesForBudget(initialSupport);
+        if (initialShares == 0) revert StakeTooSmall();
 
-        // Shares: enable trading for this delulu and mint 1 initial share to creator (Friend.tech-style).
-        // This initializes the curve without requiring an extra buy transaction.
+        uint256 protocolFee = (curveCost * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 actualCost = curveCost + protocolFee;
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), actualCost);
+        if (protocolFee > 0) {
+            IERC20(token).safeTransfer(platformFeeAddress, protocolFee);
+        }
+
+        // Stake tracking: creator's commitment is their share position (no separate pool).
+        marketIsStaked[deluluId] = true;
+        marketStakedAmount[deluluId] = 0;
+
+        // Initialize shares: curve reserve holds the collateral.
         sharesEnabled[deluluId] = true;
-        shareSupply[deluluId] = 1;
-        shareBalance[deluluId][msg.sender] = 1;
+        shareSupply[deluluId] = initialShares;
+        shareBalance[deluluId][msg.sender] = initialShares;
+        shareReserveByDelulu[deluluId] = curveCost;
+        shareReserveByToken[token] += curveCost;
+
+        // Creator is the first unique buyer.
+        hasEverBought[deluluId][msg.sender] = true;
+        uniqueBuyerCount[deluluId] = 1;
 
         emit DeluluCreated(
             deluluId,
@@ -481,10 +530,14 @@ contract Delulu is
             contentHash,
             d.stakingDeadline,
             resolutionDeadline,
-            initialSupport,
+            actualCost,
             d.totalSupportCollected, // 0 at creation
             d.totalSupporters // 0 at creation
         );
+
+        // Emit SharesBought so the subgraph counts this as the creator's first trade.
+        emit SharesBought(deluluId, msg.sender, initialShares, curveCost, protocolFee, 0);
+
         return deluluId;
     }
 
@@ -830,6 +883,12 @@ contract Delulu is
         // Mint shares
         shareSupply[deluluId] += amount;
         shareBalance[deluluId][msg.sender] += amount;
+
+        // Track unique buyers — increment only on first-ever buy per address.
+        if (!hasEverBought[deluluId][msg.sender]) {
+            hasEverBought[deluluId][msg.sender] = true;
+            uniqueBuyerCount[deluluId]++;
+        }
 
         emit SharesBought(
             deluluId,

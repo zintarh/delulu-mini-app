@@ -42,7 +42,7 @@ export function SharesMarketCard({
   shareHoldings,
   myShareBalance,
   supportAmount,
-  supportersCount,
+  holdersCount,
   marketToken,
   onBuy,
   onSell,
@@ -53,7 +53,7 @@ export function SharesMarketCard({
   shareHoldings: ShareHolding[];
   myShareBalance: bigint | undefined;
   supportAmount: number;
-  supportersCount: number;
+  holdersCount: number;
   marketToken: string | undefined;
   onBuy: () => void;
   onSell: () => void;
@@ -69,7 +69,7 @@ export function SharesMarketCard({
   // Build running supply + price series from trades
   const chartData = useMemo(() => {
     if (!shareTrades || shareTrades.length === 0) return [];
-    let supply = 1; // starts at 1 (creator gets 1 on creation)
+    let supply = 0; // v3: supply starts at 0; creator's first SharesBought trade accounts for all initial shares
     return shareTrades.map((t) => {
       if (t.isBuy) supply += t.amount;
       else supply -= t.amount;
@@ -83,8 +83,8 @@ export function SharesMarketCard({
     });
   }, [shareTrades]);
 
-  const totalSupply = chartData.length > 0 ? chartData[chartData.length - 1].supply : 1;
-  const currentPrice = priceAtSupply(totalSupply);
+  const totalSupply = chartData.length > 0 ? chartData[chartData.length - 1].supply : 0;
+  const currentPrice = priceAtSupply(Math.max(1, totalSupply));
   const firstPrice = chartData.length > 0 ? chartData[0].price : currentPrice;
   const priceChange = chartData.length > 1 ? currentPrice - firstPrice : 0;
   const priceChangePct = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
@@ -255,7 +255,9 @@ export function SharesMarketCard({
             {formatGAmount(supportAmount)}
             <span className="text-xs font-medium text-muted-foreground ml-1">{tokenSymbol}</span>
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{supportersCount} {supportersCount === 1 ? "holder" : "holders"}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {holdersCount} {holdersCount === 1 ? "holder" : "holders"}
+          </p>
         </div>
       </div>
     </div>

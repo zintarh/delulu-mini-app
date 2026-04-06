@@ -28,18 +28,12 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
 
   const creatorAddress = address?.toLowerCase() ?? "";
 
-  // Build the filter based on status tab
+  // Query by creator only; tab classification is done client-side using
+  // on-chain status + resolution deadline.
   const where = useMemo(() => {
-    const base: Record<string, unknown> = {
+    return {
       creatorAddress,
-    };
-
-    if (status === "ongoing") {
-      base.isResolved = false;
-      base.isCancelled = false;
-    }
-
-    return base;
+    } as Record<string, unknown>;
   }, [creatorAddress, status]);
 
   const { data, loading, error, fetchMore, refetch: apolloRefetch } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(GetDelulusDocument, {
@@ -56,23 +50,25 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
 
 
 
-  // Transform + filter by status
+  // Transform + filter by status tab.
   const rawDelulus = useMemo(() => {
     if (!data?.delulus) return [];
 
-    let transformed = data.delulus.map((d) =>
+    const transformed = data.delulus.map((d) =>
       transformSubgraphDelulu(
         d as SubgraphDeluluRaw,
         getCachedContent(d.contentHash)
       )
     );
 
-    // For "past" tab, we fetched all and need to filter client-side
-    if (status === "past") {
-      transformed = transformed.filter((d) => d.isResolved || d.isCancelled);
-    }
-
-    return transformed;
+    const now = Date.now();
+    return transformed.filter((d) => {
+      const endMs = d.resolutionDeadline?.getTime?.() ?? 0;
+      const hasValidEnd = Number.isFinite(endMs) && endMs > 0;
+      const endedByTime = hasValidEnd ? endMs <= now : false;
+      const isPast = d.isResolved || d.isCancelled || endedByTime;
+      return status === "past" ? isPast : !isPast;
+    });
   }, [data?.delulus, status, ipfsResolved]);
 
   // Resolve IPFS content

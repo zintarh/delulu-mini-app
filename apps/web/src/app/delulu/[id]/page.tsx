@@ -271,6 +271,7 @@ export default function DeluluPage() {
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
+  const holdersCount = shareHoldings?.length ?? 0;
 
   const milestoneView = useMemo(() => {
     if (!milestones || milestones.length === 0 || !delulu)
@@ -806,10 +807,22 @@ export default function DeluluPage() {
     safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
   const isDeluluEnded =
     safeDelulu.resolutionDeadline && new Date() >= safeDelulu.resolutionDeadline;
+  const canAttemptClaim =
+    !!isCreator &&
+    !!safeDelulu.isResolved &&
+    !safeDelulu.isCancelled &&
+    claimableAmount > 0;
   const shouldShowClaimSection =
     !!isCreator &&
-    !isLoadingClaimableAmount &&
-    (claimableAmount > 0 || isClaiming || isClaimConfirming || isClaimSuccess || !!claimError);
+    (
+      isDeluluEnded ||
+      safeDelulu.isResolved ||
+      claimableAmount > 0 ||
+      isClaiming ||
+      isClaimConfirming ||
+      isClaimSuccess ||
+      !!claimError
+    );
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -912,7 +925,18 @@ export default function DeluluPage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span className="text-xs">
-                      {supportersCount} {supportersCount === 1 ? "holder" : "holders"}
+                      {holdersCount} {holdersCount === 1 ? "holder" : "holders"}
+                    </span>
+                  </div>
+                  <div className="h-4 w-px bg-border/60" />
+                  <div className="text-muted-foreground text-xs">
+                    Ends{" "}
+                    <span className="font-semibold text-foreground">
+                      {safeDelulu.resolutionDeadline.toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </span>
                   </div>
                 </div>
@@ -959,7 +983,7 @@ export default function DeluluPage() {
                   shareHoldings={shareHoldings}
                   myShareBalance={myShareBalance as bigint | undefined}
                   supportAmount={supportAmount}
-                  supportersCount={supportersCount}
+                  holdersCount={holdersCount}
                   marketToken={marketToken}
                   onBuy={() => setBuySharesSheetOpen(true)}
                   onSell={() => setSellSharesSheetOpen(true)}
@@ -1053,7 +1077,7 @@ export default function DeluluPage() {
                           onClick={() =>
                             claim(Number(safeDelulu.onChainId ?? safeDelulu.id))
                           }
-                          disabled={isClaiming || isClaimConfirming}
+                          disabled={isClaiming || isClaimConfirming || !canAttemptClaim}
                           className={cn(
                             "w-full py-3.5 rounded-2xl border-2 text-sm font-black",
                             "flex items-center justify-center gap-2",
@@ -1069,7 +1093,11 @@ export default function DeluluPage() {
                             ? "Confirm in wallet..."
                             : isClaimConfirming
                               ? "Processing..."
-                              : "Claim tokens"}
+                              : canAttemptClaim
+                                ? "Claim tokens"
+                                : !safeDelulu.isResolved
+                                  ? "Pending resolution"
+                                  : "No claimable amount"}
                         </button>
                       )}
                     </div>
@@ -1515,14 +1543,26 @@ export default function DeluluPage() {
                               {openMilestoneId === m.id && (
                                 <div className="px-4 md:px-8 pb-5 pt-0 text-xs md:text-sm text-muted-foreground">
                                   {m.proofLink ? (
-                                    <a
-                                      href={m.proofLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-500 text-xs font-bold underline"
-                                    >
-                                      View Evidence
-                                    </a>
+                                    <div className="space-y-1.5">
+                                      <img
+                                        src={m.proofLink}
+                                        alt="Evidence"
+                                        className="max-h-40 rounded-md border border-border object-contain hidden [&:not([data-failed])]:block"
+                                        onLoad={(e) => e.currentTarget.classList.remove("hidden")}
+                                        onError={(e) => {
+                                          e.currentTarget.dataset.failed = "true";
+                                          e.currentTarget.classList.add("hidden");
+                                        }}
+                                      />
+                                      <a
+                                        href={m.proofLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-500 text-xs font-bold underline"
+                                      >
+                                        View Evidence
+                                      </a>
+                                    </div>
                                   ) : (
                                     <p className="text-xs text-muted-foreground italic">No evidence added yet</p>
                                   )}
@@ -1626,10 +1666,10 @@ export default function DeluluPage() {
               [activeProofMilestoneId]: value,
             }))
           }
-          onSubmit={() => {
+          onSubmit={(urlOverride) => {
             if (activeProofMilestoneId) {
               proofSubmittedRef.current = activeProofMilestoneId;
-              handleSubmitMilestoneProof(activeProofMilestoneId);
+              handleSubmitMilestoneProof(activeProofMilestoneId, urlOverride);
             }
           }}
           isSubmitting={isSubmittingMilestone || isConfirmingSubmitMilestone}

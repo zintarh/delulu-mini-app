@@ -41,7 +41,7 @@ const HYPE_TEXT = [
   },
   {
     title: "Put Your Money Where Your Mouth Is",
-    subtitle: "How much do you believe?",
+    subtitle: "Your stake buys your first shares — stake big, start strong",
   },
   {
     title: "Restrict Access?",
@@ -52,6 +52,26 @@ const HYPE_TEXT = [
     subtitle: "Let's seal this delusion",
   },
 ];
+
+/**
+ * Estimate how many initial shares a G$ stake buys on the bonding curve.
+ * Mirrors the contract's _sharesForBudget: sum(i² for i=1..N) / 16000 * 1.01 ≤ budgetG
+ */
+function estimateInitialShares(budgetG: number): number {
+  if (budgetG <= 0) return 0;
+  const FEE_FACTOR = 1.01;
+  let shares = 0;
+  for (let n = 1; n <= 2000; n++) {
+    const sumSq = (n * (n + 1) * (2 * n + 1)) / 6;
+    const total = (sumSq / 16000) * FEE_FACTOR;
+    if (total <= budgetG) {
+      shares = n;
+    } else {
+      break;
+    }
+  }
+  return shares;
+}
 
 interface CreateDelusionSheetProps {
   open: boolean;
@@ -668,6 +688,21 @@ export function CreateDelusionSheet({
                         </div>
                       </div>
 
+                      {/* Share estimate banner */}
+                      {currentStakeAmount >= 1 && (
+                        <div className="rounded-2xl bg-black/10 border border-black/10 px-5 py-4 text-center">
+                          <p className="text-xs text-delulu-dark/50 uppercase tracking-widest mb-1 font-bold">
+                            You start with
+                          </p>
+                          <p className="text-3xl font-black text-delulu-dark">
+                            {estimateInitialShares(currentStakeAmount).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-delulu-dark/60 mt-0.5">
+                            initial shares · the more you stake, the stronger your position
+                          </p>
+                        </div>
+                      )}
+
                       <div className="text-center">
                         <p className="text-sm text-delulu-dark/60">
                           {!isConnected ? (
@@ -691,9 +726,6 @@ export function CreateDelusionSheet({
                           <p className="text-xs text-delulu-dark/40 mt-1">
                             Check console for details
                           </p>
-                        )}
-                        {isConnected && currentStakeAmount < 1 && (
-                          <></>
                         )}
                         {isConnected && hasInsufficientBalance && (
                           <p className="text-sm text-red-600 mt-2 font-bold">
@@ -750,13 +782,13 @@ export function CreateDelusionSheet({
                           <div className="w-px h-12 bg-black/20" />
                           <div>
                             <p className="text-xs text-delulu-dark/50 uppercase tracking-wide mb-1">
-                              Stake
+                              Initial Shares
                             </p>
                             <p className="text-lg font-bold text-delulu-dark inline-flex items-center gap-2">
-                              {stakeAmount[0] != null &&
-                              isFinite(stakeAmount[0])
-                                ? stakeAmount[0]
-                                : "1.00"}{" "}
+                              {estimateInitialShares(currentStakeAmount).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-delulu-dark/40 mt-0.5">
+                              {currentStakeAmount > 0 ? `${currentStakeAmount} ` : ""}
                               <TokenBadge tokenAddress={selectedToken} size="sm" />
                             </p>
                           </div>

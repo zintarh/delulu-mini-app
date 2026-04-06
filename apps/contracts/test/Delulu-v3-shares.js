@@ -67,19 +67,37 @@ describe("Delulu-v3 shares", function () {
       { account: creator.account }
     );
 
-    return fx;
+    // Read the actual initial share count so all tests derive from it dynamically.
+    const initialShares = await delulu.read.shareSupply([1n]);
+
+    return { ...fx, initialShares };
   }
 
-  it("mints 1 initial share to creator on create", async function () {
-    const { delulu, creator } = await loadFixture(createDeluluFixture);
+  it("creator becomes first buyer: shares bought with stake, not free mint", async function () {
+    const { delulu, creator, initialShares } = await loadFixture(createDeluluFixture);
 
+    // Shares are enabled and supply reflects the curve purchase (not 1 free share).
     expect(await delulu.read.sharesEnabled([1n])).to.equal(true);
-    expect(await delulu.read.shareSupply([1n])).to.equal(1n);
-    expect(await delulu.read.shareBalance([1n, creator.account.address])).to.equal(1n);
+    expect(initialShares).to.be.gt(1n); // many shares, not 1
+
+    // Creator holds all initial shares.
+    expect(await delulu.read.shareBalance([1n, creator.account.address])).to.equal(initialShares);
+
+    // Curve reserve is funded (stake entered the bonding curve).
+    expect(await delulu.read.shareReserveByDelulu([1n])).to.be.gt(0n);
+
+    // No separate stake pool — creator's commitment is their share position.
+    expect(await delulu.read.marketStakedAmount([1n])).to.equal(0n);
+
+    // Creator is counted as the first unique buyer.
+    expect(await delulu.read.uniqueBuyerCount([1n])).to.equal(1n);
+    expect(await delulu.read.hasEverBought([1n, creator.account.address])).to.equal(true);
   });
 
-  it("buyShares increases supply/balance and reserves", async function () {
-    const { delulu, buyer } = await loadFixture(createDeluluFixture);
+  it("buyShares increases supply/balance, reserves, and uniqueBuyerCount", async function () {
+    const { delulu, buyer, initialShares } = await loadFixture(createDeluluFixture);
+
+    const initialReserve = await delulu.read.shareReserveByDelulu([1n]);
 
     const curveCost = await delulu.read.getShareBuyPrice([1n, 2n]);
     expect(curveCost).to.be.gt(0n);
@@ -89,13 +107,37 @@ describe("Delulu-v3 shares", function () {
 
     await delulu.write.buyShares([1n, 2n, totalCost], { account: buyer.account });
 
-    expect(await delulu.read.shareSupply([1n])).to.equal(3n);
+    // Supply grows by 2.
+    expect(await delulu.read.shareSupply([1n])).to.equal(initialShares + 2n);
+    // Buyer holds their 2 shares.
     expect(await delulu.read.shareBalance([1n, buyer.account.address])).to.equal(2n);
-    expect(await delulu.read.shareReserveByDelulu([1n])).to.equal(curveCost);
+    // Reserve grows by curveCost of the new buy.
+    expect(await delulu.read.shareReserveByDelulu([1n])).to.equal(initialReserve + curveCost);
+
+    // Buyer is a new unique address — uniqueBuyerCount increments to 2.
+    expect(await delulu.read.uniqueBuyerCount([1n])).to.equal(2n);
+    expect(await delulu.read.hasEverBought([1n, buyer.account.address])).to.equal(true);
+  });
+
+  it("buying again from the same address does NOT increment uniqueBuyerCount", async function () {
+    const { delulu, buyer } = await loadFixture(createDeluluFixture);
+
+    const buy = async () => {
+      const curveCost = await delulu.read.getShareBuyPrice([1n, 1n]);
+      const totalCost = curveCost + (curveCost / 100n) + (curveCost / 100n);
+      await delulu.write.buyShares([1n, 1n, totalCost], { account: buyer.account });
+    };
+
+    await buy(); // first buy — uniqueBuyerCount: 1 → 2
+    await buy(); // second buy — same address, no increment
+
+    expect(await delulu.read.uniqueBuyerCount([1n])).to.equal(2n);
   });
 
   it("sellShares pays out net and releases reserves", async function () {
-    const { delulu, buyer } = await loadFixture(createDeluluFixture);
+    const { delulu, buyer, initialShares } = await loadFixture(createDeluluFixture);
+
+    const initialReserve = await delulu.read.shareReserveByDelulu([1n]);
 
     const curveCost = await delulu.read.getShareBuyPrice([1n, 2n]);
     const totalCost = curveCost + (curveCost / 100n) + (curveCost / 100n);
@@ -106,9 +148,13 @@ describe("Delulu-v3 shares", function () {
 
     await delulu.write.sellShares([1n, 1n, net], { account: buyer.account });
 
-    expect(await delulu.read.shareSupply([1n])).to.equal(2n);
+    // Supply: initialShares + 2 bought - 1 sold.
+    expect(await delulu.read.shareSupply([1n])).to.equal(initialShares + 1n);
     expect(await delulu.read.shareBalance([1n, buyer.account.address])).to.equal(1n);
-    expect(await delulu.read.shareReserveByDelulu([1n])).to.equal(curveCost - curveProceeds);
+    // Reserve: initial + buyCurveCost - sellCurveProceeds.
+    expect(await delulu.read.shareReserveByDelulu([1n])).to.equal(
+      initialReserve + curveCost - curveProceeds
+    );
   });
 
   it("reverts on slippage (buy)", async function () {
@@ -132,4 +178,3 @@ describe("Delulu-v3 shares", function () {
     );
   });
 });
-
