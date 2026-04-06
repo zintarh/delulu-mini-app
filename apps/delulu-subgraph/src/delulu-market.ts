@@ -85,6 +85,8 @@ export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   // Financial data from event
   delulu.creatorStake = event.params.initialSupport
   delulu.totalSupportCollected = event.params.totalSupportCollected
+  // totalG = creatorStake + supporter stakes; used for leaderboard ordering
+  delulu.totalG = event.params.initialSupport.plus(event.params.totalSupportCollected)
   delulu.totalSupporters = event.params.totalSupporters
 
   // v3: best-effort read of live creator stake state (mapping-based)
@@ -102,11 +104,11 @@ export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   delulu.isResolved = false
   delulu.isCancelled = false
   delulu.rewardClaimed = false
-  // Shares: creator gets 1 initial share on creation (contract-side mint)
-  delulu.shareSupply = BigInt.fromI32(1)
+  delulu.shareSupply = BigInt.fromI32(0)
+  delulu.tradeCount = BigInt.fromI32(0)
+  delulu.uniqueBuyerCount = BigInt.fromI32(0)
   
-  // Challenge and milestone tracking
-  // challengeId and points are nullable - don't set them initially (will be set when needed)
+
   delulu.milestoneCount = BigInt.fromI32(0)
   delulu.save()
 }
@@ -119,6 +121,7 @@ function getOrCreateShareHolding(deluluId: string, userId: Bytes, timestamp: Big
     holding.delulu = deluluId
     holding.user = userId
     holding.balance = BigInt.fromI32(0)
+    holding.hasEverBought = false
   }
   holding.updatedAt = timestamp
   return holding as ShareHolding
@@ -133,9 +136,18 @@ export function handleSharesBought(event: SharesBoughtEvent): void {
   if (delulu == null) return
 
   delulu.shareSupply = delulu.shareSupply.plus(event.params.amount)
-  delulu.save()
+  delulu.tradeCount = delulu.tradeCount.plus(BigInt.fromI32(1))
 
   const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
+
+  // Increment uniqueBuyerCount only on the buyer's first-ever purchase.
+  if (!holding.hasEverBought) {
+    holding.hasEverBought = true
+    delulu.uniqueBuyerCount = delulu.uniqueBuyerCount.plus(BigInt.fromI32(1))
+  }
+
+  delulu.save()
+
   holding.balance = holding.balance.plus(event.params.amount)
   holding.save()
 
@@ -162,6 +174,7 @@ export function handleSharesSold(event: SharesSoldEvent): void {
   if (delulu == null) return
 
   delulu.shareSupply = delulu.shareSupply.minus(event.params.amount)
+  delulu.tradeCount = delulu.tradeCount.plus(BigInt.fromI32(1))
   delulu.save()
 
   const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
@@ -193,6 +206,7 @@ export function handleSupportStaked(event: SupportStakedEvent): void {
 
   if (delulu != null) {
     delulu.totalSupportCollected = delulu.totalSupportCollected.plus(event.params.amount)
+    delulu.totalG = delulu.totalG.plus(event.params.amount)
     delulu.totalSupporters = event.params.totalSupporters
     delulu.save()
 

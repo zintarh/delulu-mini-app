@@ -34,8 +34,13 @@ type Delulu @entity(immutable: false) {
   creatorIsStaked: Boolean # v3: whether creator currently has stake locked
   creatorStakeCurrent: BigInt # v3: live creator stake after slashing/refunds
 
+  # Combined G$ total — creatorStake + totalSupportCollected (sorted by this on leaderboard)
+  totalG: BigInt!
+
   # Shares
   shareSupply: BigInt! # Total shares minted for this delulu
+  tradeCount: BigInt! # Total number of share trades (buys + sells)
+  uniqueBuyerCount: BigInt! # Number of distinct addresses that have ever bought shares
   
   # Challenge and Milestone tracking
   challengeId: BigInt # Challenge ID if joined (nullable)
@@ -79,6 +84,7 @@ type ShareHolding @entity(immutable: false) {
   delulu: Delulu!
   user: User!
   balance: BigInt!
+  hasEverBought: Boolean! # true once they've bought; never reset even after selling
   updatedAt: BigInt!
 }
 
