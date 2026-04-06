@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatGAmount } from "@/lib/utils";
 import { KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
 import { TrendingUp, TrendingDown, Users, BarChart2 } from "lucide-react";
 import {
@@ -41,8 +40,6 @@ export function SharesMarketCard({
   shareTrades,
   shareHoldings,
   myShareBalance,
-  supportAmount,
-  holdersCount,
   marketToken,
   onBuy,
   onSell,
@@ -52,8 +49,6 @@ export function SharesMarketCard({
   shareTrades: ShareTrade[];
   shareHoldings: ShareHolding[];
   myShareBalance: bigint | undefined;
-  supportAmount: number;
-  holdersCount: number;
   marketToken: string | undefined;
   onBuy: () => void;
   onSell: () => void;
@@ -92,6 +87,12 @@ export function SharesMarketCard({
 
   const totalBuys = shareTrades.filter((t) => t.isBuy).length;
   const totalSells = shareTrades.filter((t) => !t.isBuy).length;
+  const buyVolume = shareTrades
+    .filter((t) => t.isBuy)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const sellVolume = shareTrades
+    .filter((t) => !t.isBuy)
+    .reduce((sum, t) => sum + t.amount, 0);
 
   // Top holders (sort by balance desc, show top 3)
   const topHolders = [...(shareHoldings ?? [])]
@@ -248,16 +249,21 @@ export function SharesMarketCard({
           )}
         </div>
 
-        {/* Staked */}
+        {/* Trades */}
         <div className="px-5 py-3">
-          <p className="text-[11px] text-muted-foreground font-medium mb-2">Total staked</p>
-          <p className="text-base font-black text-foreground">
-            {formatGAmount(supportAmount)}
-            <span className="text-xs font-medium text-muted-foreground ml-1">{tokenSymbol}</span>
+          <p className="text-[11px] text-muted-foreground font-medium mb-2">
+            Trades
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {holdersCount} {holdersCount === 1 ? "holder" : "holders"}
-          </p>
+          <div className="space-y-1">
+            <p className="text-xs text-emerald-500 font-semibold">
+              Buys: <span className="font-black tabular-nums">{totalBuys}</span>
+              <span className="text-muted-foreground font-medium"> ({buyVolume} shares)</span>
+            </p>
+            <p className="text-xs text-rose-500 font-semibold">
+              Sells: <span className="font-black tabular-nums">{totalSells}</span>
+              <span className="text-muted-foreground font-medium"> ({sellVolume} shares)</span>
+            </p>
+          </div>
         </div>
       </div>
     </div>

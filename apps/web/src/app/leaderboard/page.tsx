@@ -107,7 +107,7 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Ranked by G$ staked · tiebroken by unique buyers
+            Ranked by G$ staked
           </p>
         </div>
 
@@ -202,13 +202,13 @@ export default function LeaderboardPage() {
                         </span>
                       </div>
 
-                      {/* Unique buyers — tiebreaker */}
-                      <div className="flex flex-col items-end">
+                      {/* Shares — desktop only */}
+                      <div className="hidden sm:flex flex-col items-end">
                         <span className="text-sm font-bold text-foreground tabular-nums">
-                          {entry.uniqueBuyerCount}
+                          {entry.shareSupply}
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          unique buyers
+                          shares
                         </span>
                       </div>
 
@@ -219,16 +219,6 @@ export default function LeaderboardPage() {
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                           trades
-                        </span>
-                      </div>
-
-                      {/* Shares — desktop only */}
-                      <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-sm font-bold text-foreground tabular-nums">
-                          {entry.shareSupply}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          shares
                         </span>
                       </div>
                     </div>

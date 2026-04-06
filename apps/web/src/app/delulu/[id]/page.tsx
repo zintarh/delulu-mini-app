@@ -982,8 +982,6 @@ export default function DeluluPage() {
                   shareTrades={shareTrades}
                   shareHoldings={shareHoldings}
                   myShareBalance={myShareBalance as bigint | undefined}
-                  supportAmount={supportAmount}
-                  holdersCount={holdersCount}
                   marketToken={marketToken}
                   onBuy={() => setBuySharesSheetOpen(true)}
                   onSell={() => setSellSharesSheetOpen(true)}
