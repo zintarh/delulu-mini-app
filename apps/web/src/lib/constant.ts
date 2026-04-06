@@ -22,7 +22,7 @@ export function getDeluluContractAddress(_chainId?: number): `0x${string}` {
 export const DELULU_CONTRACT_ADDRESS = DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 
 export const DELULU_IMPLEMENTATION_ADDRESS =
-  "0xd8Fac246D25f470b16500F8bdC724a3965924b52" as const;
+  "0xdc7E139d842410A35c50E82A013eC4bD35D07F86" as const;
 
 
 

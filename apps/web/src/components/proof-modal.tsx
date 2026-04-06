@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, ImageIcon, Link2, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
+
+type EvidenceMode = "link" | "image";
 
 function isValidUrl(str: string): boolean {
   const trimmed = str.trim();
@@ -39,7 +41,7 @@ interface ProofModalProps {
   onOpenChange: (open: boolean) => void;
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (urlOverride?: string) => void;
   isSubmitting?: boolean;
   submitSuccess?: boolean;
   submitError?: Error | null;
@@ -57,12 +59,22 @@ export function ProofModal({
   submitError = null,
   onDone,
 }: ProofModalProps) {
+  const [mode, setMode] = useState<EvidenceMode>("link");
   const [touched, setTouched] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiFired = useRef(false);
+
   const trimmed = value.trim();
   const valid = isValidUrl(value);
-  const showError = touched && trimmed.length > 0 && !valid;
-  const canSubmit = valid && !isSubmitting;
+  const showLinkError = touched && trimmed.length > 0 && !valid;
+
+  const canSubmitLink = valid && !isSubmitting;
+  const canSubmitImage = imageFile !== null && !isSubmitting && !isUploading;
+  const canSubmit = mode === "link" ? canSubmitLink : canSubmitImage;
 
   useEffect(() => {
     if (submitSuccess && !confettiFired.current) {
@@ -72,18 +84,80 @@ export function ProofModal({
   }, [submitSuccess]);
 
   useEffect(() => {
-    if (!open) confettiFired.current = false;
+    if (!open) {
+      confettiFired.current = false;
+      setMode("link");
+      setTouched(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setUploadError(null);
+      setIsUploading(false);
+    }
   }, [open]);
 
-  const handleSubmit = () => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Only image files are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be under 5MB.");
+      return;
+    }
+    setUploadError(null);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-    onSubmit();
+
+    if (mode === "link") {
+      onSubmit();
+      return;
+    }
+
+    // Image mode: upload to IPFS first
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile!);
+      const res = await fetch("/api/ipfs/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+      const { url } = await res.json();
+      onChange(url);
+      onSubmit(url);
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Failed to upload image.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleClose = () => {
     onOpenChange(false);
     onDone?.();
   };
+
+  const busy = isSubmitting || isUploading;
 
   return (
     <ResponsiveSheet
@@ -117,49 +191,128 @@ export function ProofModal({
           </>
         ) : (
           <>
-            {isSubmitting && (
+            {/* Mode tabs */}
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              <button
+                type="button"
+                onClick={() => setMode("link")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors",
+                  mode === "link"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                Link
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("image")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors",
+                  mode === "image"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                Image
+              </button>
+            </div>
+
+            {busy && (
               <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm font-medium">Submitting…</span>
+                <span className="text-sm font-medium">
+                  {isUploading ? "Uploading image…" : "Submitting…"}
+                </span>
               </div>
             )}
 
-            {submitError && !isSubmitting && (
+            {(submitError || uploadError) && !busy && (
               <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                {getContractErrorDisplay(submitError).message}
+                {uploadError ??
+                  (submitError
+                    ? getContractErrorDisplay(submitError).message
+                    : null)}
               </p>
             )}
 
-            <div className={cn(isSubmitting && "pointer-events-none opacity-60")}>
-              <div>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onBlur={() => setTouched(true)}
-                  className={cn(
-                    "w-full px-3 py-2.5 text-sm rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary",
-                    showError
-                      ? "border-destructive focus:border-destructive"
-                      : "border-border focus:border-primary",
+            <div className={cn(busy && "pointer-events-none opacity-60")}>
+              {mode === "link" ? (
+                <div>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onBlur={() => setTouched(true)}
+                    className={cn(
+                      "w-full px-3 py-2.5 text-sm rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary",
+                      showLinkError
+                        ? "border-destructive focus:border-destructive"
+                        : "border-border focus:border-primary",
+                    )}
+                    aria-label="Proof link"
+                    aria-invalid={showLinkError}
+                    aria-describedby={showLinkError ? "proof-link-error" : undefined}
+                  />
+                  {showLinkError && (
+                    <p
+                      id="proof-link-error"
+                      className="text-xs text-destructive mt-1.5"
+                    >
+                      Enter a valid link (e.g. https://...)
+                    </p>
                   )}
-                  aria-label="Proof link"
-                  aria-invalid={showError}
-                  aria-describedby={showError ? "proof-link-error" : undefined}
-                />
-                {showError && (
-                  <p
-                    id="proof-link-error"
-                    className="text-xs text-destructive mt-1.5"
-                  >
-                    Enter a valid link (e.g. https://...)
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Google Drive works well; any shareable link is fine.
                   </p>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Google Drive works well; any shareable link is fine.
-              </p>
+                </div>
+              ) : (
+                <div>
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Evidence preview"
+                        className="w-full max-h-48 object-cover rounded-md border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                        aria-label="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full h-32 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
+                    >
+                      <ImageIcon className="w-8 h-8" />
+                      <span className="text-xs font-medium">
+                        Tap to select an image
+                      </span>
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    JPG, PNG, GIF, WebP — max 5MB. Uploaded to IPFS.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-4">
                 <button
                   type="button"

@@ -22,6 +22,23 @@ function parseMilestoneId(row: PendingMilestoneRow): number | null {
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
+function ProofPreview({ url }: { url: string }) {
+  const [isImage, setIsImage] = useState<boolean | null>(null);
+  return (
+    <img
+      src={url}
+      alt="Proof"
+      onLoad={() => setIsImage(true)}
+      onError={() => setIsImage(false)}
+      className={cn(
+        "w-full max-h-48 object-contain rounded-md border border-border",
+        isImage === false && "hidden",
+        isImage === null && "hidden",
+      )}
+    />
+  );
+}
+
 interface MilestoneActionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -104,19 +121,22 @@ export function MilestoneActionSheet({
       <div className="max-w-lg mx-auto pt-6 pb-8 px-5 space-y-5 text-foreground">
         <h2 className="text-xl font-bold tracking-tight">{title}</h2>
         {row && (
-          <div className="rounded-lg border-2 border-border bg-muted p-3 text-sm space-y-1">
+          <div className="rounded-lg border-2 border-border bg-muted p-3 text-sm space-y-2">
             <p className="text-muted-foreground">
               Delulu #{deluluId ?? "—"} · Milestone #{milestoneId ?? "—"}
             </p>
             {row.proofLink && (
-              <a
-                href={row.proofLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground underline break-all hover:text-muted-foreground"
-              >
-                Proof link
-              </a>
+              <>
+                <ProofPreview url={row.proofLink} />
+                <a
+                  href={row.proofLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline break-all hover:text-muted-foreground"
+                >
+                  Open proof
+                </a>
+              </>
             )}
           </div>
         )}
