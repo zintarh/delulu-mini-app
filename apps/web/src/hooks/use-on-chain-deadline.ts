@@ -11,7 +11,7 @@ export function useOnChainDeadline(deluluId: number | null) {
   } = useReadContract({
     address: getDeluluContractAddress(chainId),
     abi: DELULU_ABI,
-    functionName: "getDelulu",
+    functionName: "delulus",
     args: deluluId !== null ? [BigInt(deluluId)] : undefined,
     query: {
       enabled: deluluId !== null,
@@ -27,31 +27,20 @@ export function useOnChainDeadline(deluluId: number | null) {
     };
   }
 
-  // Handle both array and object return types from Viem
-  let stakingDeadline: bigint;
-  let resolutionDeadline: bigint;
+  // Handle both tuple and object decode styles from viem/wagmi.
+  const raw = deluluData as unknown;
+  let stakingDeadline: bigint = 0n;
+  let resolutionDeadline: bigint = 0n;
 
-  if (Array.isArray(deluluData)) {
-    // If returned as array tuple: [id, creator, token, contentHash, stakingDeadline, resolutionDeadline, ...]
-    stakingDeadline = deluluData[4] as bigint;
-    resolutionDeadline = deluluData[5] as bigint;
-  } else {
-    // If returned as object with named properties
-    const market = deluluData as {
-      id: bigint;
-      creator: `0x${string}`;
-      token: `0x${string}`;
-      contentHash: string;
-      stakingDeadline: bigint;
-      resolutionDeadline: bigint;
-      totalBelieverStake: bigint;
-      totalDoubterStake: bigint;
-      outcome: boolean;
-      isResolved: boolean;
-      isCancelled: boolean;
-    };
-    stakingDeadline = market.stakingDeadline;
-    resolutionDeadline = market.resolutionDeadline;
+  if (Array.isArray(raw)) {
+    // Market tuple layout in v3:
+    // [id, creator, token, contentHash, stakingDeadline, resolutionDeadline, ...]
+    stakingDeadline = (raw[4] as bigint) ?? 0n;
+    resolutionDeadline = (raw[5] as bigint) ?? 0n;
+  } else if (raw && typeof raw === "object") {
+    const market = raw as Record<string, unknown>;
+    stakingDeadline = (market.stakingDeadline as bigint) ?? 0n;
+    resolutionDeadline = (market.resolutionDeadline as bigint) ?? 0n;
   }
 
   return {
