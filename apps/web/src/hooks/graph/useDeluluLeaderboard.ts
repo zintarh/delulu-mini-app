@@ -14,7 +14,7 @@ const DELULU_LEADERBOARD_QUERY = gql`
     delulus(
       first: $first
       skip: $skip
-      orderBy: totalG
+      orderBy: uniqueBuyerCount
       orderDirection: desc
       where: { isCancelled: false }
     ) {
@@ -97,10 +97,11 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
         };
       })
       .sort((a, b) => {
-        // Primary: total G$ descending
-        if (b.totalG !== a.totalG) return b.totalG - a.totalG;
-        // Tiebreaker: unique buyers descending
-        return b.uniqueBuyerCount - a.uniqueBuyerCount;
+        // Primary: unique buyers descending
+        if (b.uniqueBuyerCount !== a.uniqueBuyerCount)
+          return b.uniqueBuyerCount - a.uniqueBuyerCount;
+        // Tiebreaker: total G$ descending
+        return b.totalG - a.totalG;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.delulus, ipfsResolved]);
