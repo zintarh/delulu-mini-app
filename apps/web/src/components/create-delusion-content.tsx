@@ -681,7 +681,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 }}
                 maxLength={MAX_DELULU_LENGTH}
                 placeholder="Enter your delulu title..."
-                className="w-full bg-card border capitalize border-border rounded-sm px-3 py-2.5 sm:px-5 sm:py-3.5 text-base sm:text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-border"
+                className="w-full bg-card border border-border rounded-sm px-3 py-2.5 sm:px-5 sm:py-3.5 text-base sm:text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-border"
                 autoFocus
               />
               <div className="text-right mt-0.5">

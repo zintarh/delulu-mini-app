@@ -65,7 +65,7 @@ export default function LeaderboardPage() {
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[500px] rounded-full bg-[#fcff52]/4 blur-[140px]" />
       </div>
 
-      <div className="relative max-w-2xl mx-auto px-4 pt-8 pb-20">
+      <div className="relative max-w-2xl sm:max-w-3xl mx-auto px-4 pt-8 pb-20">
         {/* Nav */}
         <div className="flex items-center justify-between mb-10">
           <Link
@@ -107,7 +107,7 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Ranked by G$ staked
+            Ranked by unique buyers (UB)
           </p>
         </div>
 
@@ -147,6 +147,25 @@ export default function LeaderboardPage() {
         {!isLoading && !error && entries.length > 0 && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+              {/* Column headers */}
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/30">
+                <div className="w-7 shrink-0" />
+                <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Creator
+                </span>
+                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                  <span className="w-10 sm:w-12 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    G$
+                  </span>
+                  <span className="w-10 sm:w-12 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Shares
+                  </span>
+                  <span className="w-6 sm:w-8 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    UB
+                  </span>
+                </div>
+              </div>
+
               {entries.map((entry, idx) => {
                 const rank = rangeStart + idx;
                 const styles = RANK_STYLES[rank] ?? {
@@ -186,41 +205,16 @@ export default function LeaderboardPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 flex-shrink-0 text-right">
-                      {/* G$ — primary ranking stat */}
-                      <div className="flex flex-col items-end">
-                        <span className="flex items-center gap-1 text-sm font-bold text-[#fcff52] tabular-nums">
-                          <img
-                            src="/gooddollar-logo.png"
-                            alt="G$"
-                            className="w-3 h-3 object-contain"
-                          />
-                          {formatGAmount(entry.totalG)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          G$ staked
-                        </span>
-                      </div>
-
-                      {/* Shares — desktop only */}
-                      <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-sm font-bold text-foreground tabular-nums">
-                          {entry.shareSupply}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          shares
-                        </span>
-                      </div>
-
-                      {/* Trades — desktop only */}
-                      <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-sm font-bold text-foreground tabular-nums">
-                          {entry.tradeCount}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          trades
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                      <span className="w-10 sm:w-12 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
+                        {formatGAmount(entry.totalG)}
+                      </span>
+                      <span className="w-10 sm:w-12 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
+                        {entry.shareSupply}
+                      </span>
+                      <span className="w-6 sm:w-8 text-right text-xs sm:text-sm font-bold text-[#fcff52] tabular-nums">
+                        {entry.uniqueBuyerCount}
+                      </span>
                     </div>
                   </Link>
                 );
