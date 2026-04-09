@@ -7,7 +7,6 @@ import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { useProfilePfp } from "@/hooks/use-profile-pfp";
 import { UsersIcon, Plus, Check, Clock } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
@@ -85,6 +84,7 @@ interface DeluluCardProps {
   disableUsernameLookup?: boolean;
   feedMilestones?: FeedMilestone[];
   totalMilestoneCount?: number;
+  creatorPfpUrl?: string | null;
 }
 
 export function DeluluCard({
@@ -99,6 +99,7 @@ export function DeluluCard({
   disableUsernameLookup = false,
   feedMilestones,
   totalMilestoneCount,
+  creatorPfpUrl,
 }: DeluluCardProps) {
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const creatorSeed = delusion.creatorStake ?? 0;
@@ -116,9 +117,7 @@ export function DeluluCard({
   const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(
     creatorLabel,
   )}`;
-  const avatarUrl = delusion.pfpUrl || fallbackAvatarUrl;
-  const supabasePfpUrl = useProfilePfp(delusion.creator);
-  const resolvedAvatarUrl = supabasePfpUrl || avatarUrl;
+  const resolvedAvatarUrl = creatorPfpUrl || delusion.pfpUrl || fallbackAvatarUrl;
 
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
     disableMilestoneQuery ? null : delusion.id,
