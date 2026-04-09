@@ -38,11 +38,12 @@ export default function HomePage() {
   };
   const router = useRouter();
   const { updateUsername, updateAddress, user, isProfileLoaded } = useUserStore();
-  const { 
-    delulus, 
-    isLoading, 
-    isFetchingNextPage, 
-    hasNextPage, 
+  const {
+    delulus,
+    isLoading,
+    isIpfsLoading,
+    isFetchingNextPage,
+    hasNextPage,
     fetchNextPage,
     refetch: refetchFeed,
   } = useAllDelulus();
@@ -273,7 +274,7 @@ export default function HomePage() {
           </div>
 
           <div className="px-4 lg:px-6 py-6 space-y-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
-            {(activeTab === "fyp" && isLoading) ||
+            {(activeTab === "fyp" && (isLoading || (isIpfsLoading && filteredDelulus.length === 0))) ||
             (activeTab === "board" && isLoadingUserDelulus) ? (
               <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col gap-3"}>
                 {Array.from({ length: activeTab === "board" ? 6 : 5 }).map((_, i) => (

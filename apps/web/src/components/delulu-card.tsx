@@ -15,7 +15,6 @@ import { isDeluluCreator } from "@/lib/delulu-utils";
 import {
   getMilestoneEndTimeMs,
   getMilestoneDurationDays,
-  formatMilestoneCountdown,
   getMilestoneLabel,
   getDeluluCreatedAtMs,
   shouldShowBuyButton,
@@ -196,9 +195,7 @@ export function DeluluCard({
       const sorted = [...effectiveMilestones].sort(
         (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
       );
-      // Use the subgraph's milestoneCount when available — the feed query only
-      // fetches the first 3 milestones, so sorted.length would be wrong for
-      // users with more than 3 milestones.
+
       const total = totalMilestoneCount ?? sorted.length;
       const completedCount = effectiveMilestones.filter(
         (m) => m.isVerified,
@@ -206,13 +203,12 @@ export function DeluluCard({
       const success =
         total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
-      const nowMs = now;
       const deluluCreatedAtMs = getDeluluCreatedAtMs(
         {
           createdAt: delusion.createdAt,
           stakingDeadline: delusion.stakingDeadline,
         },
-        nowMs,
+        now,
       );
 
       const endTimesMs: number[] = [];
@@ -223,7 +219,7 @@ export function DeluluCard({
         prevEnd = endMs;
       }
 
-      const currentIndex = endTimesMs.findIndex((endMs) => endMs > nowMs);
+      const currentIndex = endTimesMs.findIndex((endMs) => endMs > now);
       const passed = currentIndex === -1 ? total : currentIndex;
 
       if (currentIndex === -1) {
@@ -300,12 +296,13 @@ export function DeluluCard({
         successPct: success,
       };
     }, [
-      milestones,
       effectiveMilestones,
       effectiveMilestonesLoading,
       now,
-      delusion.createdAt,
-      delusion.stakingDeadline,
+      // Use timestamp numbers, not Date object references, so Apollo re-fetches
+      // that return the same data don't cause spurious recomputes.
+      delusion.createdAt?.getTime() ?? 0,
+      delusion.stakingDeadline?.getTime() ?? 0,
       totalMilestoneCount,
     ]);
 
@@ -502,7 +499,7 @@ export function DeluluCard({
                             : m.status === "current" && m.isSubmitted
                               ? `Review · ${m.endTimeMs != null ? formatTimeLeftDayHour(now, m.endTimeMs) : "—"}`
                               : m.endTimeMs != null
-                                ? formatMilestoneCountdown(now, m.endTimeMs)
+                                ? formatTimeLeftDayHour(now, m.endTimeMs)
                                 : "—"}
                       </span>
                     </div>

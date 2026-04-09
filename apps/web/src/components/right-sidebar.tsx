@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowRight, Award, ExternalLink, Search, Trophy, X } from "lucide-react";
+import {
+  ExternalLink,
+  Search,
+  X,
+} from "lucide-react";
 import { useAllDelulus, useDeluluLeaderboard } from "@/hooks/graph";
 import { useRouter } from "next/navigation";
 import type { FormattedDelulu } from "@/lib/types";
@@ -19,7 +23,8 @@ export function RightSidebar() {
   const trendingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { delulus, isLoading } = useAllDelulus();
   const { entries: topEntries, isLoading: isLeaderboardLoading } =
-    useDeluluLeaderboard(3, 0);
+    useDeluluLeaderboard(6, 0);
+
   const router = useRouter();
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
@@ -235,55 +240,34 @@ export function RightSidebar() {
             </div>
           </div>
 
-          {/* Leaderboard widget */}
+          {/* Leaderboard */}
           <div className="mb-6">
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black uppercase tracking-widest text-foreground">
-                  Leaderboard
-                </span>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-foreground">Leaderboard</h2>
               <button
                 type="button"
                 onClick={() => router.push("/leaderboard")}
-                className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
-                View all
-                <ArrowRight className="w-3 h-3" />
+                See all
               </button>
             </div>
 
-            {/* List */}
-            <div className="rounded-2xl border border-border overflow-hidden">
-              {/* Column headers */}
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-muted/30">
-                <div className="w-4 shrink-0" />
-                <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Creator
-                </span>
-                <span className="w-10 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  G$
-                </span>
-                <span className="w-6 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  UB
-                </span>
-              </div>
-
+            <div className="space-y-1">
               {isLeaderboardLoading ? (
                 <>
-                  {[1, 2, 3].map((i) => (
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div
-                      key={i}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3.5 animate-pulse",
-                        i < 3 && "border-b border-border",
-                      )}
+                      key={`lb-skel-${i}`}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl animate-pulse"
                     >
-                      <div className="w-4 h-3 rounded bg-muted" />
-                      <div className="flex-1 h-2.5 rounded bg-muted" />
-                      <div className="w-10 h-2.5 rounded bg-muted" />
-                      <div className="w-6 h-2.5 rounded bg-muted" />
+                      <div className="w-5 h-4 bg-muted rounded" />
+                      <div className="w-8 h-8 rounded-full bg-muted shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-2.5 bg-muted rounded w-3/4" />
+                        <div className="h-2 bg-muted rounded w-1/2" />
+                      </div>
+                      <div className="h-2.5 bg-muted rounded w-10" />
                     </div>
                   ))}
                 </>
@@ -293,35 +277,53 @@ export function RightSidebar() {
                   const handle = entry.creatorUsername
                     ? `@${entry.creatorUsername}`
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
+                  const headline = entry.title?.trim() || "Untitled delulu";
+                  const avatarSeed = encodeURIComponent(handle);
+                  const avatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
 
                   return (
                     <button
                       key={entry.id}
                       type="button"
                       onClick={() => router.push(`/delulu/${entry.id}`)}
-                      className={cn(
-                        "group w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
-                        idx < 2 && "border-b border-border",
-                      )}
+                      className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors text-left"
                     >
-                      {rank === 1 && <Trophy className="w-4 h-4 shrink-0 text-[#fcff52]" />}
-                      {rank === 2 && <Award className="w-4 h-4 shrink-0 text-[#f59e0b]" />}
-                      {rank === 3 && <Award className="w-4 h-4 shrink-0 text-[#f59e0b]" />}
+                      <span
+                        className={cn(
+                          "w-5 text-center text-xs font-bold tabular-nums shrink-0",
+                          rank === 1 && "text-[#fcff52]",
+                          rank === 2 && "text-amber-400",
+                          rank === 3 && "text-orange-400",
+                          rank > 3 && "text-muted-foreground",
+                        )}
+                      >
+                        {rank}
+                      </span>
 
-                      <span className="flex-1 text-sm font-bold text-foreground truncate group-hover:text-foreground/70 transition-colors">
-                        {handle}
-                      </span>
-                      <span className="w-10 text-right text-[11px] font-medium text-muted-foreground tabular-nums">
+                      <img
+                        src={avatarUrl}
+                        alt={handle}
+                        className="w-8 h-8 rounded-full object-cover shrink-0 bg-muted"
+                      />
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                          {headline}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          {handle}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 text-xs font-bold tabular-nums text-foreground/80">
                         {formatGAmountInt(entry.totalG)}
-                      </span>
-                      <span className="w-6 text-right text-[11px] font-medium text-muted-foreground tabular-nums">
-                        {entry.uniqueBuyerCount}
+                        <span className="text-[10px] font-normal text-muted-foreground ml-0.5">G$</span>
                       </span>
                     </button>
                   );
                 })
               ) : (
-                <p className="px-4 py-5 text-xs text-center text-muted-foreground">
+                <p className="py-6 text-center text-xs text-muted-foreground">
                   No entries yet.
                 </p>
               )}

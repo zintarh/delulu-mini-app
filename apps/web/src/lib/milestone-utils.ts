@@ -111,15 +111,24 @@ export function getMilestoneLabel(
 
 /**
  * Delulu created-at time in ms for milestone chain. Same fallback as card.
+ *
+ * IMPORTANT: the `nowMs` parameter must NOT be used in the returned value —
+ * only as a last-resort stable anchor computed once per call site. Returning
+ * a value derived from reactive `nowMs` (e.g. `nowMs - 30 days`) causes the
+ * milestone end-time chain to shift every 30 seconds, producing a "reset"
+ * in the countdown display.
  */
-export function getDeluluCreatedAtMs(delulu: { createdAt?: Date; stakingDeadline?: Date }, nowMs: number): number {
+export function getDeluluCreatedAtMs(delulu: { createdAt?: Date; stakingDeadline?: Date }, _nowMs?: number): number {
   if (delulu.createdAt && delulu.createdAt.getTime() > 0) {
     return delulu.createdAt.getTime();
   }
   if (delulu.stakingDeadline && delulu.stakingDeadline.getTime() > 0) {
+    // Approximate: assume staking window is 7 days, so delulu was created 7 days before deadline.
     return delulu.stakingDeadline.getTime() - 7 * MS_PER_DAY;
   }
-  return nowMs - 30 * MS_PER_DAY;
+  // Both missing — return epoch 0. Chain milestones will all appear as past (correct
+  // for unknown-creation-time delulus) and crucially the value is stable across renders.
+  return 0;
 }
 
 /** Milestone shape needed for shouldShowBuyButton */
