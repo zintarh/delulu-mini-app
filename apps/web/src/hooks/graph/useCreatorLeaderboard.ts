@@ -47,7 +47,7 @@ export function useCreatorLeaderboard(first: number = 20, skip: number = 0) {
     // Keep a responsive UI by showing cached results first,
     // then updating from the network.
     fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-and-network",
   });
 
   const entries: CreatorLeaderboardEntry[] = useMemo(() => {

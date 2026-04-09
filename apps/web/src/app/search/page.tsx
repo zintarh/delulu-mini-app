@@ -134,10 +134,10 @@ export default function SearchPage() {
                       key={uniqueKey}
                       delusion={delusion}
                       href={`/delulu/${delusion.id}`}
-                      onStake={() => {
-                        // Handle stake action if needed
-                      }}
+                      onStake={() => {}}
                       isLast={index === filteredDelulus.length - 1}
+                      feedMilestones={(delusion as any).feedMilestones}
+                      totalMilestoneCount={(delusion as any).totalMilestoneCount}
                     />
                   );
                 })}

@@ -45,6 +45,7 @@ export function SharesMarketCard({
   onSell,
   ownsAnyShares,
   canBuy,
+  noBalance = false,
 }: {
   shareTrades: ShareTrade[];
   shareHoldings: ShareHolding[];
@@ -54,6 +55,7 @@ export function SharesMarketCard({
   onSell: () => void;
   ownsAnyShares: boolean;
   canBuy: boolean;
+  noBalance?: boolean;
 }) {
   const tokenSymbol = marketToken
     ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
@@ -118,13 +120,23 @@ export function SharesMarketCard({
           {(canBuy || ownsAnyShares) && (
             <>
               {canBuy && (
-                <button
-                  type="button"
-                  onClick={onBuy}
-                  className="px-3 py-1.5 text-xs font-black rounded-lg border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[1px_1px_0px_0px_#1A1A1A] hover:opacity-90 transition-opacity"
-                >
-                  Buy
-                </button>
+                <div className="flex flex-col items-end gap-0.5">
+                  <button
+                    type="button"
+                    onClick={noBalance ? undefined : onBuy}
+                    disabled={noBalance}
+                    className={noBalance
+                      ? "px-3 py-1.5 text-xs font-black rounded-lg border border-border text-muted-foreground cursor-not-allowed opacity-50"
+                      : "px-3 py-1.5 text-xs font-black rounded-lg border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[1px_1px_0px_0px_#1A1A1A] hover:opacity-90 transition-opacity"}
+                  >
+                    Buy
+                  </button>
+                  {noBalance && (
+                    <span className="text-[10px] font-semibold text-rose-500 whitespace-nowrap">
+                      Insufficient G$
+                    </span>
+                  )}
+                </div>
               )}
               {ownsAnyShares && (
                 <button

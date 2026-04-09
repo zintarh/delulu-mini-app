@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useDisconnect, useBalance } from "wagmi";
 import { usePrivy } from "@privy-io/react-auth";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
 import { SheetTrigger } from "@/components/ui/sheet";
@@ -31,6 +32,7 @@ export function ConnectedAccount({
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { logout: privyLogout } = usePrivy();
+  const router = useRouter();
   const { data: balance } = useBalance({ address });
   const { logout } = useUserStore();
 
@@ -61,6 +63,7 @@ export function ConnectedAccount({
     }
     logout();
     setShowSheet(false);
+    router.push("/sign-in");
   };
   return (
     <>

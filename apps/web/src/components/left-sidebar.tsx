@@ -20,7 +20,6 @@ import { formatAddress } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
-import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 
 interface LeftSidebarProps {
   onProfileClick?: () => void;
@@ -221,22 +220,16 @@ export function LeftSidebar({
         })}
       </nav>
       <div className="mt-4 pt-3 border-t border-border space-y-3">
-        {/* Push reminders */}
-        {authenticated && address ? (
-          <PushRemindersCard compact className="w-full" />
-        ) : null}
-
         {/* Connection status / Login */}
         {!authenticated ? (
           <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={onProfileClick}
+            <a
+              href="/sign-in"
               className="flex w-fit items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
             >
               <LogIn className="w-4 h-4" />
               <span>Sign In</span>
-            </button>
+            </a>
 
             {/* Theme toggle (same row as Sign In) */}
             <button
@@ -254,10 +247,12 @@ export function LeftSidebar({
             </button>
           </div>
         ) : (
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={onProfileClick}
-            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted w-full text-left"
+            onKeyDown={(e) => e.key === "Enter" && onProfileClick?.()}
+            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted w-full text-left cursor-pointer"
             aria-label="Open profile"
           >
             <div className="flex flex-col">
@@ -352,7 +347,7 @@ export function LeftSidebar({
                 </div>
               )}
             </div>
-          </button>
+          </div>
         )}
 
         {/* Theme toggle */}

@@ -43,7 +43,8 @@ const GET_DELULUS_FEED = gql`
       challengeId
       isResolved
       isCancelled
-      milestones(first: 3, orderBy: milestoneId, orderDirection: asc) {
+      milestoneCount
+      milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
         milestoneId
         milestoneURI
         deadline
@@ -75,6 +76,8 @@ export interface FeedMilestone {
 
 export type FormattedDeluluFeed = FormattedDelulu & {
   feedMilestones?: FeedMilestone[];
+  /** Real total milestone count from the subgraph — not capped by the feed query's first:3 */
+  totalMilestoneCount?: number;
 };
 
 type FeedDelulu = Pick<
@@ -97,6 +100,7 @@ type FeedDelulu = Pick<
 >;
 type FeedDeluluWithMilestones = FeedDelulu & {
   milestones?: FeedMilestoneRaw[];
+  milestoneCount?: number;
 };
 
 interface GetDelulusFeedQuery {
@@ -163,6 +167,7 @@ export function useAllDelulus() {
           return {
             ...transformed,
             feedMilestones,
+            totalMilestoneCount: raw.milestoneCount ?? feedMilestones.length,
           } as FormattedDeluluFeed;
         } catch {
           return null;

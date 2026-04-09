@@ -1,15 +1,19 @@
 import {
-  useWriteContract,
   useWaitForTransactionReceipt,
   useChainId,
+  useWriteContract,
 } from "wagmi";
+import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { decodeErrorResult } from "viem";
 
 export function useSetProfile() {
   const chainId = useChainId();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [isPending, setIsPending] = useState(false);
+  const [writeError, setWriteError] = useState<Error | null>(null);
 
   const {
     isLoading: isConfirming,
@@ -21,23 +25,27 @@ export function useSetProfile() {
     if (!username || username.trim().length === 0) {
       throw new Error("Username is required");
     }
-
     try {
-      writeContract({
+      setIsPending(true);
+      setWriteError(null);
+      const txHash = await writeContractAsync({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
         functionName: "setProfile",
         args: [username.trim()],
       });
+      setHash(txHash);
     } catch (err) {
-      throw formatErrorForDisplay(err);
+      const formatted = formatErrorForDisplay(err);
+      setWriteError(formatted);
+      throw formatted;
+    } finally {
+      setIsPending(false);
     }
   };
 
-  const formattedError = error || receiptError;
-  const displayError = formattedError
-    ? formatErrorForDisplay(formattedError)
-    : null;
+  const formattedError = writeError || receiptError;
+  const displayError = formattedError ? formatErrorForDisplay(formattedError) : null;
 
   return {
     setProfile,
@@ -52,42 +60,23 @@ export function useSetProfile() {
 }
 
 function formatErrorForDisplay(error: unknown): Error {
-  const err = error as { message?: string; data?: unknown; cause?: unknown };
+  const err = error as { message?: string; data?: unknown };
 
   if (err?.data) {
     try {
-      const decoded = decodeErrorResult({
-        abi: DELULU_ABI,
-        data: err.data as `0x${string}`,
-      });
-
+      const decoded = decodeErrorResult({ abi: DELULU_ABI, data: err.data as `0x${string}` });
       const errorMessage = decoded.args?.[0];
-      const message = typeof errorMessage === "string" 
-        ? errorMessage 
-        : decoded.errorName || "Transaction failed";
+      const message = typeof errorMessage === "string" ? errorMessage : decoded.errorName || "Transaction failed";
       return new Error(message);
-    } catch {
-      // If decoding fails, fall through to default error handling
-    }
+    } catch {}
   }
 
   if (err?.message) {
-    // Extract user-friendly error messages
-    if (err.message.includes("UsernameAlreadyTaken")) {
-      return new Error("This username is already taken");
-    }
-    if (err.message.includes("UsernameTooShort")) {
-      return new Error("Username must be at least 3 characters");
-    }
-    if (err.message.includes("UsernameTooLong")) {
-      return new Error("Username must be 16 characters or less");
-    }
-    if (err.message.includes("UsernameInvalid")) {
-      return new Error("Username can only contain letters, numbers, and underscores");
-    }
-    if (err.message.includes("user rejected")) {
-      return new Error("Transaction was cancelled");
-    }
+    if (err.message.includes("UsernameAlreadyTaken")) return new Error("This username is already taken");
+    if (err.message.includes("UsernameTooShort")) return new Error("Username must be at least 3 characters");
+    if (err.message.includes("UsernameTooLong")) return new Error("Username must be 16 characters or less");
+    if (err.message.includes("UsernameInvalid")) return new Error("Username can only contain letters, numbers, and underscores");
+    if (err.message.includes("user rejected")) return new Error("Transaction was cancelled");
     return new Error(err.message);
   }
 

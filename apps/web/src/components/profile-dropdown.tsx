@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useUserStore } from "@/stores/useUserStore";
 import { LogOut, User } from "lucide-react";
 
+const DEFAULT_AVATAR_BASE =
+  "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
+
 interface ProfileDropdownProps {
   onProfileClick: () => void;
   onLogoutClick: () => void;
@@ -16,6 +19,9 @@ export function ProfileDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useUserStore();
+  const fallbackSeed = user?.displayName || user?.username || "delulu-user";
+  const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(fallbackSeed)}`;
+  const avatarUrl = user?.pfpUrl || fallbackAvatarUrl;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,15 +59,14 @@ export function ProfileDropdown({
         className="flex items-center justify-center w-12 h-12 rounded-full transition-colors border border-gray-200"
         aria-label="Profile menu"
       >
-        {user?.pfpUrl ? (
-          <img
-            src={user.pfpUrl}
-            alt={user.displayName || user.username || "Profile"}
-            className="w-12 h-12 rounded-full object-cover"
-          />
-        ) : (
-          <User className="w-7 h-7 text-gray-500" />
-        )}
+        <img
+          src={avatarUrl}
+          alt={user?.displayName || user?.username || "Profile"}
+          className="w-12 h-12 rounded-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = fallbackAvatarUrl;
+          }}
+        />
       </button>
 
       {isOpen && (

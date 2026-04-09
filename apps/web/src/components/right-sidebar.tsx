@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import type { FormattedDelulu } from "@/lib/types";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { cn, formatGAmount } from "@/lib/utils";
+import { cn, formatGAmountInt } from "@/lib/utils";
 
 const DELULU_MONDAY_NOTION_URL =
   "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
@@ -312,7 +312,7 @@ export function RightSidebar() {
                         {handle}
                       </span>
                       <span className="w-10 text-right text-[11px] font-medium text-muted-foreground tabular-nums">
-                        {formatGAmount(entry.totalG)}
+                        {formatGAmountInt(entry.totalG)}
                       </span>
                       <span className="w-6 text-right text-[11px] font-medium text-muted-foreground tabular-nums">
                         {entry.uniqueBuyerCount}

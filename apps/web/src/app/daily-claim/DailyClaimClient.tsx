@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
@@ -12,7 +12,7 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useTokenBalance } from "@/hooks/use-token-balance";
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { Pill } from "@/components/ui/pill";
 
 const ConnectorSelectionSheet = dynamic(
@@ -20,10 +20,6 @@ const ConnectorSelectionSheet = dynamic(
     import("@/components/connector-selection-sheet").then(
       (m) => m.ConnectorSelectionSheet,
     ),
-  { ssr: false },
-);
-const FaucetModal = dynamic(
-  () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
   { ssr: false },
 );
 const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
@@ -43,7 +39,6 @@ export default function DailyClaimClient() {
   } = useGoodDollarClaim();
 
   const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [showFaucet, setShowFaucet] = useState(false);
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
 
   const handleProfileClick = () => {
@@ -58,12 +53,6 @@ export default function DailyClaimClient() {
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
   );
-
-  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!address },
-  });
 
   const handleConnectClick = () => {
     setShowLoginSheet(true);
@@ -257,52 +246,6 @@ export default function DailyClaimClient() {
                 )}
               </section>
 
-              <aside className="space-y-4 ">
-                <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-black text-muted-foreground uppercase">
-                      Need gas?
-                    </p>
-                    <Pill
-                      variant="outline"
-                      size="md"
-                      className="inline-flex items-center gap-2 px-3 py-1.5"
-                    >
-                      <img
-                        src="/celo.png"
-                        alt="CELO"
-                        className="h-5 w-5 rounded-full"
-                      />
-                      <span className="text-sm font-semibold leading-tight">
-                        {isCeloLoading
-                          ? "…"
-                          : celoBalance && Number(celoBalance.formatted) > 0
-                            ? Number(celoBalance.formatted).toFixed(4)
-                            : "0.0000"}
-                      </span>
-                    </Pill>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    If you don&apos;t have enough CELO to pay for gas, you can
-                    claim a small top-up here to cover a few transactions.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowFaucet(true)}
-                    className={cn(
-                      "w-fit px-3 py-3 text-xs font-bold",
-                      "rounded-md border-2 border-delulu-charcoal",
-                      "bg-delulu-yellow-reserved text-delulu-charcoal",
-                      "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                      "hover:bg-delulu-yellow-reserved/90 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A]",
-                      "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                      "transition-all",
-                    )}
-                  >
-                    Claim gas (CELO faucet)
-                  </button>
-                </div>
-              </aside>
             </div>
           </div>
         </main>
@@ -325,7 +268,6 @@ export default function DailyClaimClient() {
 
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
 
-      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </div>
   );
 }

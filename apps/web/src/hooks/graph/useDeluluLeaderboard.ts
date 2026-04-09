@@ -64,7 +64,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   >(DELULU_LEADERBOARD_QUERY, {
     variables: { first: fetchSize, skip: 0 },
     fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-and-network",
   });
 
   useEffect(() => {

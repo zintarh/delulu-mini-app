@@ -107,7 +107,10 @@ export function ProfileDeluluCard({
   const canCancel = isCreator && !delusion.isResolved && !delusion.isCancelled;
 
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
-  const tvlValue = delusion.totalSupportCollected ?? totalStake;
+  const creatorSeed = delusion.creatorStake ?? 0;
+  const userBuys = delusion.totalSupportCollected ?? 0;
+  const combinedMarketTotal = creatorSeed + userBuys;
+  const tvlValue = combinedMarketTotal > 0 ? combinedMarketTotal : totalStake;
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollar =
     delusion.tokenAddress?.toLowerCase() ===

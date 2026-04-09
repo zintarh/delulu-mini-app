@@ -64,6 +64,7 @@ function AppWithPrivy({
           logo: "/favicon_io/favicon-32x32.png",
           walletChainType: "ethereum-only",
         },
+        loginMethods: ["email", "wallet"],
         defaultChain: celo,
         supportedChains: [celo],
         embeddedWallets: {

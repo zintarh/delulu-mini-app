@@ -88,6 +88,27 @@ function parseErrorNameFromMessage(error: unknown): string | null {
 }
 
 /**
+ * Returns true if the error is a gas/fee error (user has no CELO).
+ * Use this to show GetGasModal instead of the generic error modal.
+ */
+export function isInsufficientGasError(error: unknown): boolean {
+  if (!error) return false;
+  const msg =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error);
+  return (
+    /insufficient funds/i.test(msg) ||
+    /intrinsic gas too low/i.test(msg) ||
+    /gas required exceeds allowance/i.test(msg) ||
+    /out of gas/i.test(msg) ||
+    /fee payer balance too low/i.test(msg)
+  );
+}
+
+/**
  * Turns a contract/write error into a single user-friendly title and message.
  * Use this for the error modal so you don't need many ifs per error type.
  */

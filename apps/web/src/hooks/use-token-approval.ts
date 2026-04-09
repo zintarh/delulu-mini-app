@@ -1,7 +1,8 @@
 "use client";
 
-import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useReadContract, useAccount, useChainId, useWriteContract } from "wagmi";
 import { parseUnits } from "viem";
+import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 
 const ERC20_ABI = [
@@ -32,11 +33,12 @@ export function useTokenApproval(tokenAddress: string | undefined) {
   const { address } = useAccount();
   const chainId = useChainId();
   const token = tokenAddress as `0x${string}` | undefined;
+  const { writeContractAsync } = useWriteContract();
 
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [isPending, setIsPending] = useState(false);
+
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
   const contractAddress = getDeluluContractAddress(chainId);
 
@@ -49,34 +51,30 @@ export function useTokenApproval(tokenAddress: string | undefined) {
   });
 
   const approve = async (amount: number) => {
-    if (!token) {
-      throw new Error("Token address not available");
-    }
-    if (!isFinite(amount) || isNaN(amount) || amount <= 0) {
-      throw new Error("Invalid amount");
-    }
+    if (!token) throw new Error("Token address not available");
+    if (!isFinite(amount) || isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
 
-    const bufferMultiplier = 1.1;
-    const amountWithBuffer = amount * bufferMultiplier;
-    const amountWei = parseUnits(amountWithBuffer.toString(), 18);
+    const amountWei = parseUnits((amount * 1.1).toString(), 18);
 
-    writeContract({
-      address: token,
-      abi: ERC20_ABI,
-      functionName: "approve",
-      chainId,
-      args: [contractAddress, amountWei],
-    });
+    setIsPending(true);
+    try {
+      const txHash = await writeContractAsync({
+        address: token,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [contractAddress, amountWei],
+      });
+      setHash(txHash);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const needsApproval = (amount: number): boolean => {
-    // No approval needed when not staking anything
     if (!amount || isNaN(amount) || amount <= 0) return false;
     if (!allowance || !token) return true;
-
     try {
-      const amountWei = parseUnits(amount.toString(), 18);
-      return allowance < amountWei;
+      return allowance < parseUnits(amount.toString(), 18);
     } catch {
       return true;
     }
@@ -90,7 +88,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
     isPending,
     isConfirming,
     isSuccess,
-    error: error || receiptError,
+    error: receiptError,
     refetchAllowance,
     isLoadingAllowance,
   };
