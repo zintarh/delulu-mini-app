@@ -35,12 +35,19 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
   }, [router]);
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
-      aria-label="Main navigation"
-    >
-      <div className="flex items-center justify-around h-14 px-2">
+    <>
+      {/* Reserve space so fixed mobile nav never overlaps page content. */}
+      <div
+        className="lg:hidden"
+        style={{ height: "calc(56px + max(env(safe-area-inset-bottom), 8px))" }}
+        aria-hidden="true"
+      />
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
+        aria-label="Main navigation"
+      >
+        <div className="flex items-center justify-around h-14 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.href
@@ -164,7 +171,8 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
             </button>
           );
         })}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   );
 }

@@ -6,7 +6,7 @@ import { useChainId } from "wagmi";
 import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
-import { cn, formatGAmount } from "@/lib/utils";
+import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
 import { ArrowLeft, ExternalLink, Trophy } from "lucide-react";
 import type { DeluluLeaderboardEntry } from "@/hooks/graph/useDeluluLeaderboard";
 
@@ -207,7 +207,7 @@ export default function LeaderboardPage() {
                     {/* Stats */}
                     <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                       <span className="w-10 sm:w-12 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
-                        {formatGAmount(entry.totalG)}
+                        {formatGAmountInt(entry.totalG)}
                       </span>
                       <span className="w-10 sm:w-12 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
                         {entry.shareSupply}

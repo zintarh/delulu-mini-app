@@ -125,10 +125,10 @@ function createApolloClient(subgraphUrl: string) {
     defaultOptions: {
       watchQuery: {
         fetchPolicy: "cache-and-network",
-        nextFetchPolicy: "cache-first",
+        nextFetchPolicy: "cache-and-network",
       },
       query: {
-        fetchPolicy: "cache-first",
+        fetchPolicy: "network-only",
       },
     },
   });

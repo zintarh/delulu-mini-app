@@ -17,14 +17,6 @@ export function useUserClaimableAmount(deluluId: number | null) {
     query: { enabled: marketId !== null && !!address },
   });
 
-  const { data: isFailed, isLoading: isLoadingFailed, error: failedError } = useReadContract({
-    address: contractAddress,
-    abi: DELULU_ABI,
-    functionName: "marketIsFailed",
-    args: marketId !== null ? [marketId] : undefined,
-    query: { enabled: marketId !== null && !!address },
-  });
-
   const { data: stakedAmount, isLoading: isLoadingStake, error: stakeError } = useReadContract({
     address: contractAddress,
     abi: DELULU_ABI,
@@ -63,7 +55,6 @@ export function useUserClaimableAmount(deluluId: number | null) {
   if (
     isCreator &&
     isResolved &&
-    !Boolean(isFailed) &&
     !rewardClaimed &&
     typeof stakedAmount === "bigint" &&
     typeof feeBps === "bigint" &&
@@ -79,13 +70,11 @@ export function useUserClaimableAmount(deluluId: number | null) {
     claimableAmount,
     isLoading:
       isLoadingMarket ||
-      isLoadingFailed ||
       isLoadingStake ||
       isLoadingFeeBps ||
       isLoadingBpsDenominator,
     error:
       marketError ||
-      failedError ||
       stakeError ||
       feeBpsError ||
       bpsDenominatorError,

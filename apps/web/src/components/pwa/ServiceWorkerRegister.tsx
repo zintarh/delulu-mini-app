@@ -19,6 +19,23 @@ export function ServiceWorkerRegister() {
     register();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Hard-disable any browser-driven PWA install popup or mini-infobar.
+    const suppressInstallPrompt = (event: Event) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener("beforeinstallprompt", suppressInstallPrompt as EventListener);
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        suppressInstallPrompt as EventListener,
+      );
+    };
+  }, []);
+
   return null;
 }
 

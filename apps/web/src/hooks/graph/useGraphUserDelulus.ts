@@ -19,6 +19,7 @@ import type { FormattedDelulu } from "@/lib/types";
 
 type DeluluStatus = "ongoing" | "past";
 const PAGE_SIZE = 20;
+const PAST_FETCH_SIZE = 100;
 
 export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
   const { address, isConnected } = useAccount();
@@ -28,24 +29,27 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
 
   const creatorAddress = address?.toLowerCase() ?? "";
 
-  // Query by creator only; tab classification is done client-side using
-  // on-chain status + resolution deadline.
+  // For "ongoing": filter resolved/cancelled at subgraph level for efficiency.
+  // For "past": fetch a large batch (no subgraph filter) so older resolved ones aren't cut off by page size.
   const where = useMemo(() => {
-    return {
-      creatorAddress,
-    } as Record<string, unknown>;
+    if (status === "ongoing") {
+      return { creatorAddress, isResolved: false, isCancelled: false } as Record<string, unknown>;
+    }
+    return { creatorAddress } as Record<string, unknown>;
   }, [creatorAddress, status]);
+
+  const fetchSize = status === "past" ? PAST_FETCH_SIZE : PAGE_SIZE;
 
   const { data, loading, error, fetchMore, refetch: apolloRefetch } = useQuery<GetDelulusQuery, GetDelulusQueryVariables>(GetDelulusDocument, {
     variables: {
-      first: PAGE_SIZE,
+      first: fetchSize,
       skip: 0,
       where,
     },
     skip: !isConnected || !address,
     notifyOnNetworkStatusChange: true,
     fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-and-network",
   });
 
 
@@ -108,22 +112,22 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchMore({
-      variables: { skip: nextPage * PAGE_SIZE, first: PAGE_SIZE },
+      variables: { skip: nextPage * fetchSize, first: fetchSize },
     });
-  }, [page, fetchMore]);
+  }, [page, fetchMore, fetchSize]);
 
   const refetch = useCallback(() => {
     setPage(0);
     setAllDelulus([]);
     apolloRefetch({
-      first: PAGE_SIZE,
+      first: fetchSize,
       skip: 0,
       where,
     });
-  }, [apolloRefetch, where]);
+  }, [apolloRefetch, where, fetchSize]);
 
   const hasNextPage =
-    data?.delulus !== undefined && data.delulus.length === PAGE_SIZE;
+    data?.delulus !== undefined && data.delulus.length === fetchSize;
 
   return {
     delulus: allDelulus,

@@ -140,7 +140,7 @@ export function useGraphDelulu(deluluId: string | number | null) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const id = deluluId !== null ? String(deluluId) : "";
 
-  const { data, loading, error, refetch } = useQuery<
+  const { data, loading, networkStatus, error, refetch } = useQuery<
     GetDeluluByIdQuery,
     GetDeluluByIdQueryVariables
   >(GET_DELULU_BY_ID, {
@@ -148,7 +148,15 @@ export function useGraphDelulu(deluluId: string | number | null) {
     skip: !id,
     fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
   });
+
+  // networkStatus 1 = loading, 2 = setVariables, 4 = refetch, 7 = ready
+  // With cache-and-network, Apollo can briefly set loading=false before the
+  // network response arrives when the cache is empty. Guard against this by
+  // treating the query as still loading until we've had at least one network
+  // response (networkStatus reaches 7) or data is present.
+  const hasSettled = networkStatus === 7 || !!data?.delulu;
 
   useEffect(() => {
     if (!data?.delulu?.contentHash) return;
@@ -235,7 +243,7 @@ export function useGraphDelulu(deluluId: string | number | null) {
     milestones,
     shareTrades,
     shareHoldings,
-    isLoading: loading,
+    isLoading: loading || !hasSettled,
     error: error ?? null,
     refetch,
   };

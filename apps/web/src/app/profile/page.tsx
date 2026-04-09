@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
-import type { FormattedDelulu } from "@/lib/types";
 import { LogoutSheet } from "@/components/logout-sheet";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { formatAddress } from "@/lib/utils";
 import {
   LogOut,
@@ -16,7 +14,10 @@ import {
   Check,
   Plus,
   Trophy,
+  Camera,
+  Loader2,
 } from "lucide-react";
+import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { BottomNav } from "@/components/bottom-nav";
 import { LeftSidebar } from "@/components/left-sidebar";
@@ -28,6 +29,7 @@ import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
+import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 
 type TabType = "ongoing" | "past";
 
@@ -43,14 +45,15 @@ export default function ProfilePage() {
 
   const handleProfileClick = () => {};
   const handleCreateClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!isConnected) router.push("/sign-in");
     else router.push("/board");
   };
 
   const [activeTab, setActiveTab] = useState<TabType>("ongoing");
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const { isUploading: isPfpUploading, inputRef: pfpInputRef, openPicker: openPfpPicker, onFileChange: onPfpFileChange } = usePfpUpload();
 
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || null;
@@ -77,17 +80,8 @@ export default function ProfilePage() {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
-  } = useGraphUserDelulus(activeTab);
+  } = useGraphUserDelulus("past");
 
-  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
-    if (!delulu.content) return false;
-    const isHash =
-      delulu.content.startsWith("Qm") ||
-      (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
-    return !isHash;
-  };
-
-  const delulusWithContent = delulus.filter(isContentLoaded);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -105,8 +99,8 @@ export default function ProfilePage() {
   }, [hasNextPage, isFetchingNextPage, isLoadingDelulus, fetchNextPage]);
 
   useEffect(() => {
-    if (!isConnected && !showLoginSheet) setShowLoginSheet(true);
-  }, [isConnected, showLoginSheet]);
+    if (!isConnected) router.replace("/sign-in");
+  }, [isConnected, router]);
 
   const handleCopyAddress = async () => {
     if (!address) return;
@@ -135,7 +129,12 @@ export default function ProfilePage() {
               <div className="px-4 pt-6 pb-4 border-b border-border">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   {/* Avatar */}
-                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-muted ring-2 ring-border">
+                  <button
+                    type="button"
+                    onClick={openPfpPicker}
+                    disabled={isPfpUploading}
+                    className="relative w-16 h-16 rounded-full flex-shrink-0 bg-muted ring-2 ring-border overflow-hidden group"
+                  >
                     <img
                       src={avatarUrl}
                       alt={displayUsername || formatAddress(address)}
@@ -144,7 +143,20 @@ export default function ProfilePage() {
                         (e.target as HTMLImageElement).src = fallbackAvatarUrl;
                       }}
                     />
-                  </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isPfpUploading
+                        ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        : <Camera className="w-5 h-5 text-white" />
+                      }
+                    </div>
+                  </button>
+                  <input
+                    ref={pfpInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onPfpFileChange}
+                  />
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
@@ -205,10 +217,6 @@ export default function ProfilePage() {
 
                 {/* Stats row */}
                 <div className="flex items-center gap-5 mt-3">
-                  <span className="text-sm">
-                    <span className="font-bold text-foreground">{delulusWithContent.length}</span>
-                    <span className="text-muted-foreground ml-1">delulus</span>
-                  </span>
                   <UserClaimsStats address={address} />
                 </div>
               </div>
@@ -259,57 +267,53 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* ── Delulu grid ──────────────────────────────────── */}
-              <div className="px-4 py-4 pb-24 lg:pb-8">
-                {isLoadingDelulus ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
-                    ))}
-                  </div>
-                ) : delulusWithContent.length === 0 ? (
-                  <div className="flex flex-col items-center py-20 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                      <Plus className="w-7 h-7 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm font-semibold text-foreground mb-1">
-                      No {activeTab} delulus yet
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-5">
-                      {activeTab === "ongoing"
-                        ? "Create your first delulu to get started!"
-                        : "Completed delulus will appear here."}
-                    </p>
-                    {activeTab === "ongoing" && (
-                      <button
-                        onClick={() => router.push("/board")}
-                        className="px-5 py-2 rounded-full bg-[#fcff52] text-[#111111] font-bold text-sm shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:shadow-none transition-all"
-                      >
-                        Create Delulu
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <>
+              {/* ── Tab content ──────────────────────────────────── */}
+              {activeTab === "ongoing" ? (
+                <div className="pb-24 lg:pb-8">
+                  <OngoingMilestonesSection onCreateClick={() => router.push("/board")} />
+                </div>
+              ) : (
+                <div className="px-4 py-4 pb-24 lg:pb-8">
+                  {isLoadingDelulus ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {delulusWithContent.map((delulu) => (
-                        <ProfileDeluluCard
-                          key={delulu.id}
-                          delusion={delulu}
-                          onClick={() => router.push(`/delulu/${delulu.id}`)}
-                        />
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
                       ))}
                     </div>
-                    {isFetchingNextPage && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                        {[1, 2, 3].map((i) => (
-                          <div key={`loading-${i}`} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                  ) : delulus.length === 0 ? (
+                    <div className="flex flex-col items-center py-20 text-center">
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                        <Plus className="w-7 h-7 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground mb-1">
+                        No past delulus yet
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Completed delulus will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {delulus.map((delulu) => (
+                          <ProfileDeluluCard
+                            key={delulu.id}
+                            delusion={delulu}
+                            onClick={() => router.push(`/delulu/${delulu.id}`)}
+                          />
                         ))}
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
+                      {isFetchingNextPage && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                          {[1, 2, 3].map((i) => (
+                            <div key={`loading-${i}`} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>
@@ -333,17 +337,10 @@ export default function ProfilePage() {
           await disconnect();
           setLogoutSheetOpen(false);
           useUserStore.getState().logout();
-          router.push("https://staydelulu.xyz");
+          router.push("/sign-in");
         }}
       />
 
-      <ConnectorSelectionSheet
-        open={showLoginSheet}
-        onOpenChange={(open) => {
-          setShowLoginSheet(open);
-          if (!open && !isConnected) router.back();
-        }}
-      />
     </div>
   );
 }

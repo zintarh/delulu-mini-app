@@ -79,6 +79,14 @@ export function formatTimeAgo(date: Date): string {
  * Format a G$ (or other token) amount for display: use K for thousands, M for millions.
  * Use everywhere we display G$ amounts for consistent, compact display.
  */
+export function formatGAmountInt(value: number): string {
+  if (typeof value !== "number" || Number.isNaN(value)) return "0";
+  const v = Math.round(value);
+  if (v >= 1_000_000) return `${Math.round(v / 1_000_000)}M`;
+  if (v >= 1_000) return `${Math.round(v / 1_000)}K`;
+  return `${v}`;
+}
+
 export function formatGAmount(value: number): string {
   if (typeof value !== "number" || Number.isNaN(value)) return "0";
   if (value >= 1_000_000) {

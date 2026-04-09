@@ -8,13 +8,11 @@ import { BottomNav } from "@/components/bottom-nav";
 import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
-import { FirstRunPwaSheet } from "@/components/pwa/FirstRunPwaSheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
@@ -24,9 +22,8 @@ import type { FormattedDelulu } from "@/lib/types";
 import { Plus } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
-
-const PWA_SEEN_KEY = "pwa_seen_v1";
-const PWA_SEEN_COOKIE = "pwa_seen_v1=1;path=/;max-age=31536000;samesite=lax";
+import { DELULU_ABI } from "@/lib/abi";
+import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
@@ -34,15 +31,15 @@ export default function HomePage() {
   const { logout,  authenticated } = usePrivy();
 
   const handleProfileClick = () => {
-    if (!authenticated) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/profile");
   };
   const handleCreateClick = () => {
-    if (!authenticated) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/board");
   };
   const router = useRouter();
-  const { updateUsername, updateAddress, user } = useUserStore();
+  const { updateUsername, updateAddress, user, isProfileLoaded } = useUserStore();
   const { 
     delulus, 
     isLoading, 
@@ -78,30 +75,43 @@ export default function HomePage() {
     "concept" | "market" | "conviction"
   >("concept");
 
-  const [showFirstRunPwa, setShowFirstRunPwa] = useState(false);
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
 
   const scrollContainerRef = useRef<HTMLElement>(null);
 
+  const { data: onboardingUsername, isLoading: isCheckingOnboarding } = useReadContract({
+    address: DELULU_CONTRACT_ADDRESS,
+    abi: DELULU_ABI,
+    functionName: "getUsername",
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: !!isConnected && !!address },
+  });
+
+  // Contract-only onboarding gate.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const seenInStorage = window.localStorage.getItem(PWA_SEEN_KEY);
-      const seenInCookie = document.cookie
-        .split(";")
-        .map((part) => part.trim())
-        .some((part) => part.startsWith(`${PWA_SEEN_KEY}=`));
-      const seen = seenInStorage === "1" || seenInCookie;
-      if (!seen) setShowFirstRunPwa(true);
-    } catch {
+    if (!isConnected || !address) {
+      setOnboardingChecked(true);
+      return;
     }
-  }, []);
+    if (isCheckingOnboarding) {
+      setOnboardingChecked(false);
+      return;
+    }
+    const hasUsername =
+      typeof onboardingUsername === "string" && onboardingUsername.trim().length > 0;
+    if (!hasUsername) {
+      router.replace("/welcome");
+      return;
+    }
+    setOnboardingChecked(true);
+  }, [isConnected, address, isCheckingOnboarding, onboardingUsername, router]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -131,25 +141,28 @@ export default function HomePage() {
 
   useEffect(() => {
     const id = setInterval(() => setFeedNowMs(Date.now()), 30000);
-    return () => clearInterval(id);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setFeedNowMs(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   useEffect(() => {
-    if (!authenticated) return;
+    // Wait until both auth and profile fetch have settled
+    if (!authenticated || !isProfileLoaded) return;
     if (user?.username) {
       setShowUserSetupModal(false);
       return;
     }
-    if (typeof window !== "undefined") {
-      const suppressed = window.localStorage.getItem(
-        "delulu_profile_setup_suppressed_v1",
-      );
-      if (suppressed === "1") {
-        return;
-      }
-    }
+    try {
+      if (window.localStorage.getItem("delulu_profile_setup_suppressed_v1") === "1") return;
+    } catch {}
     setShowUserSetupModal(true);
-  }, [authenticated, user?.username]);
+  }, [authenticated, isProfileLoaded, user?.username]);
 
   useEffect(() => {
     const onCreated = () => {
@@ -188,6 +201,15 @@ export default function HomePage() {
     return delulusToFilter.filter(isContentLoaded);
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
+  // Block render until onboarding check resolves — prevents feed flash for new users
+  if (!onboardingChecked) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="w-5 h-5 rounded-full border-2 border-border border-t-foreground animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen  overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_360px] h-screen">
@@ -207,7 +229,7 @@ export default function HomePage() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onSearchClick={() => {
-                if (!authenticated) setShowLoginSheet(true);
+                if (!authenticated) router.push("/sign-in");
                 else router.push("/search");
               }}
             />
@@ -268,24 +290,26 @@ export default function HomePage() {
               <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col"}>
                 {filteredDelulus.map((delusion, index) => {
                   const feedDelusion = delusion as FormattedDeluluFeed;
+                  const itemKey = `delulu-${delusion.onChainId || delusion.id}-${index}`;
                   const commonProps = {
-                    key: `delulu-${delusion.onChainId || delusion.id}-${index}`,
                     delusion,
                     href: `/delulu/${delusion.id}`,
                     isLast: index === filteredDelulus.length - 1,
                   };
 
                   return activeTab === "board" ? (
-                    <div key={commonProps.key} className="break-inside-avoid mb-3">
-                      <ProfileDeluluCard {...commonProps} size="masonry" />
+                    <div key={itemKey} className="break-inside-avoid mb-3">
+                      <ProfileDeluluCard key={itemKey} {...commonProps} size="masonry" />
                     </div>
                   ) : (
                     <DeluluCard
+                      key={itemKey}
                       {...commonProps}
                       nowMs={feedNowMs}
                       disableMilestoneQuery
                       disableUsernameLookup
                       feedMilestones={feedDelusion.feedMilestones}
+                      totalMilestoneCount={feedDelusion.totalMilestoneCount}
                     />
                   );
                 })}
@@ -351,19 +375,6 @@ export default function HomePage() {
         type={howItWorksType}
       />
 
-      <FirstRunPwaSheet
-        open={showFirstRunPwa}
-        onOpenChange={(open) => {
-          setShowFirstRunPwa(open);
-          if (!open && typeof window !== "undefined") {
-            try {
-              window.localStorage.setItem(PWA_SEEN_KEY, "1");
-              document.cookie = PWA_SEEN_COOKIE;
-            } catch {
-            }
-          }
-        }}
-      />
 
       <LogoutSheet
         open={logoutSheetOpen}
@@ -374,7 +385,7 @@ export default function HomePage() {
 
            useUserStore.getState().logout();
           setLogoutSheetOpen(false);
-            router.push("https://staydelulu.xyz");
+            router.push("/sign-in");
           
         }}
       />
@@ -384,10 +395,6 @@ export default function HomePage() {
         onOpenChange={setClaimRewardsSheetOpen}
       />
 
-      <ConnectorSelectionSheet
-        open={showLoginSheet}
-        onOpenChange={setShowLoginSheet}
-      />
 
       <BottomNav
         onProfileClick={handleProfileClick}

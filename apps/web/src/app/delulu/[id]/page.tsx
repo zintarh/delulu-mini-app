@@ -368,7 +368,16 @@ export default function DeluluPage() {
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    // When the PWA resumes from background, timers were suspended so `now`
+    // can lag by minutes/hours. Snap it back to real time immediately.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setNow(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const {
@@ -1067,7 +1076,7 @@ export default function DeluluPage() {
                   <div className="text-muted-foreground text-xs">
                     Ends{" "}
                     <span className="font-semibold text-foreground">
-                      {safeDelulu.resolutionDeadline.toLocaleDateString(undefined, {
+                      {safeDelulu.resolutionDeadline.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -1121,7 +1130,12 @@ export default function DeluluPage() {
                   onBuy={() => setBuySharesSheetOpen(true)}
                   onSell={() => setSellSharesSheetOpen(true)}
                   ownsAnyShares={ownsAnyShares}
-                  canBuy={!!(!safeDelulu.isResolved && showBuyButton)}
+                  canBuy={!!(
+                    !safeDelulu.isResolved &&
+                    showBuyButton &&
+                    milestones &&
+                    milestones.length > 0
+                  )}
                 />
 
                 {/* Claim card */}

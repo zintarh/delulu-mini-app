@@ -7,6 +7,7 @@ import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { useProfilePfp } from "@/hooks/use-profile-pfp";
 import { UsersIcon, Plus, Check, Clock } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
@@ -83,6 +84,7 @@ interface DeluluCardProps {
   disableMilestoneQuery?: boolean;
   disableUsernameLookup?: boolean;
   feedMilestones?: FeedMilestone[];
+  totalMilestoneCount?: number;
 }
 
 export function DeluluCard({
@@ -96,9 +98,13 @@ export function DeluluCard({
   disableMilestoneQuery = false,
   disableUsernameLookup = false,
   feedMilestones,
+  totalMilestoneCount,
 }: DeluluCardProps) {
   const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
-  const tvlValue = delusion.totalSupportCollected ?? totalStake;
+  const creatorSeed = delusion.creatorStake ?? 0;
+  const userBuys = delusion.totalSupportCollected ?? 0;
+  const combinedMarketTotal = creatorSeed + userBuys;
+  const tvlValue = combinedMarketTotal > 0 ? combinedMarketTotal : totalStake;
   const creatorAddress = disableUsernameLookup
     ? undefined
     : (delusion.creator as `0x${string}`);
@@ -111,6 +117,8 @@ export function DeluluCard({
     creatorLabel,
   )}`;
   const avatarUrl = delusion.pfpUrl || fallbackAvatarUrl;
+  const supabasePfpUrl = useProfilePfp(delusion.creator);
+  const resolvedAvatarUrl = supabasePfpUrl || avatarUrl;
 
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
     disableMilestoneQuery ? null : delusion.id,
@@ -129,7 +137,14 @@ export function DeluluCard({
   useEffect(() => {
     if (typeof nowMs === "number") return;
     const id = setInterval(() => setLocalNow(Date.now()), 30000);
-    return () => clearInterval(id);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setLocalNow(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [nowMs]);
   const now = typeof nowMs === "number" ? nowMs : localNow;
 
@@ -182,7 +197,10 @@ export function DeluluCard({
       const sorted = [...effectiveMilestones].sort(
         (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
       );
-      const total = sorted.length;
+      // Use the subgraph's milestoneCount when available — the feed query only
+      // fetches the first 3 milestones, so sorted.length would be wrong for
+      // users with more than 3 milestones.
+      const total = totalMilestoneCount ?? sorted.length;
       const completedCount = effectiveMilestones.filter(
         (m) => m.isVerified,
       ).length;
@@ -289,6 +307,7 @@ export function DeluluCard({
       now,
       delusion.createdAt,
       delusion.stakingDeadline,
+      totalMilestoneCount,
     ]);
 
 
@@ -349,7 +368,7 @@ export function DeluluCard({
         <div className="flex items-start gap-3 p-4 pb-2">
           <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-emerald/50 ring-offset-2 ring-offset-background shadow-inner">
             <img
-              src={avatarUrl}
+              src={resolvedAvatarUrl}
               alt={displayUsername || formatAddress(delusion.creator)}
               className="w-full h-full object-cover"
             />

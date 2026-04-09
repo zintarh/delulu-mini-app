@@ -7,8 +7,9 @@ import {
   useAccount,
   useChainId,
   useReadContract,
-  useWriteContract,
   useWaitForTransactionReceipt,
+  useBalance,
+  useWriteContract,
 } from "wagmi";
 import { usePrivy } from "@privy-io/react-auth";
 import { DELULU_ABI } from "@/lib/abi";
@@ -93,6 +94,16 @@ export function SharesSheet({
   const netProceeds = curve > 0n ? curve - protocolFee - creatorFee : 0n;
   const totalCostNum = Number(formatUnits(totalCost, 18));
 
+  const isBuy = mode === "buy";
+
+  const { data: tokenBalanceData } = useBalance({
+    address,
+    token: tokenAddress,
+    query: { enabled: open && !!address && isBuy },
+  });
+  const tokenBalanceNum = tokenBalanceData ? Number(tokenBalanceData.formatted) : undefined;
+  const insufficientBalance = isBuy && tokenBalanceNum !== undefined && totalCostNum > 0 && tokenBalanceNum < totalCostNum;
+
   const {
     approve,
     needsApproval,
@@ -101,8 +112,6 @@ export function SharesSheet({
     isSuccess: isApprovalSuccess,
     refetchAllowance,
   } = useTokenApproval(tokenAddress);
-
-  const isBuy = mode === "buy";
 
   const maxCostWithSlippageNum = Number(formatUnits(maxCostWithSlippage, 18));
 
@@ -113,23 +122,10 @@ export function SharesSheet({
     return needsApproval(maxCostWithSlippageNum);
   }, [mode, curve, maxCostWithSlippageNum, needsApproval]);
 
-  const {
-    writeContract,
-    data: hash,
-    isPending,
-    error: writeError,
-  } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [isPending, setIsPending] = useState(false);
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  useEffect(() => {
-    if (writeError) {
-      setError(
-        (writeError as any)?.shortMessage ??
-          (writeError as any)?.message ??
-          "Transaction failed",
-      );
-    }
-  }, [writeError]);
 
   useEffect(() => {
     if (isApprovalSuccess) refetchAllowance();
@@ -137,7 +133,6 @@ export function SharesSheet({
 
   useEffect(() => {
     if (!isSuccess) return;
-    // Refetch allowance after any successful share tx so approval state is fresh
     refetchAllowance();
   }, [isSuccess, refetchAllowance]);
 
@@ -151,13 +146,19 @@ export function SharesSheet({
     }).catch(() => {});
   }, [isSuccess, isBuy]);
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (!amount || amount <= 0n) { setError("Enter a valid amount."); return; }
     setError(null);
-    if (mode === "buy") {
-      writeContract({ address: contractAddress, abi: DELULU_ABI, functionName: "buyShares", chainId, args: [deluluId, amount, maxCostWithSlippage] });
-    } else {
-      writeContract({ address: contractAddress, abi: DELULU_ABI, functionName: "sellShares", chainId, args: [deluluId, amount, netProceeds] });
+    setIsPending(true);
+    try {
+      const txHash = mode === "buy"
+        ? await writeContractAsync({ address: contractAddress, abi: DELULU_ABI, functionName: "buyShares", args: [deluluId, amount, maxCostWithSlippage] })
+        : await writeContractAsync({ address: contractAddress, abi: DELULU_ABI, functionName: "sellShares", args: [deluluId, amount, netProceeds] });
+      setHash(txHash);
+    } catch (err: any) {
+      setError(err?.shortMessage ?? err?.message ?? "Transaction failed");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -353,23 +354,30 @@ export function SharesSheet({
                   Approve spending
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleAction}
-                  disabled={isLoading || isPriceLoading || !amount || amount <= 0n}
-                  className={cn(
-                    "w-full py-3.5 rounded-2xl border-2 text-sm font-black",
-                    "flex items-center justify-center gap-2",
-                    "active:translate-y-px transition-all",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    isBuy
-                      ? "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal hover:opacity-90 shadow-[2px_2px_0px_0px_#1A1A1A]"
-                      : "border-rose-600 bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_#e11d48]",
+                <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={handleAction}
+                    disabled={isLoading || isPriceLoading || !amount || amount <= 0n || insufficientBalance}
+                    className={cn(
+                      "w-full py-3.5 rounded-2xl border-2 text-sm font-black",
+                      "flex items-center justify-center gap-2",
+                      "active:translate-y-px transition-all",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      isBuy
+                        ? "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal hover:opacity-90 shadow-[2px_2px_0px_0px_#1A1A1A]"
+                        : "border-rose-600 bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_#e11d48]",
+                    )}
+                  >
+                    {(isLoading || isPriceLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isPriceLoading ? "Fetching price..." : isBuy ? "Buy shares" : "Sell shares"}
+                  </button>
+                  {insufficientBalance && (
+                    <p className="text-center text-xs font-semibold text-rose-500">
+                      Insufficient G$ — reduce shares or get more G$
+                    </p>
                   )}
-                >
-                  {(isLoading || isPriceLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isPriceLoading ? "Fetching price..." : isBuy ? "Buy shares" : "Sell shares"}
-                </button>
+                </div>
               )}
             </div>
           </div>

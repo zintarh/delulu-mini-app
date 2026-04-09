@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import {
   X,
   ShieldCheck,
-  ShieldAlert,
   Loader2,
-  Sparkles,
   ExternalLink,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 
 interface IdentityModalProps {
@@ -25,151 +25,148 @@ export function IdentityModal({
   status,
   onRefresh,
 }: IdentityModalProps) {
-  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [opened, setOpened] = useState(false);
 
-  // Auto-close if status becomes verified while modal is open
+  // Reset when modal opens
+  useEffect(() => {
+    if (isOpen) setOpened(false);
+  }, [isOpen]);
+
+  // Auto-close on verified
   useEffect(() => {
     if (status === "verified" && isOpen) {
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      const t = setTimeout(onClose, 2000);
+      return () => clearTimeout(t);
     }
   }, [status, isOpen, onClose]);
 
-  // Prevent background scrolling when modal is open
+  // Prevent background scroll
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
+    document.body.style.overflow = isOpen ? "hidden" : "unset";
+    return () => { document.body.style.overflow = "unset"; };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-      />
+  const handleOpen = () => {
+    if (!fvLink) return;
+    window.open(fvLink, "_blank", "noopener,noreferrer");
+    setOpened(true);
+  };
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-3xl h-[85vh] bg-white dark:bg-neutral-900 rounded-[2.5rem] shadow-2xl border border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-10">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400">
-              <ShieldCheck size={24} />
+            <div className="w-9 h-9 rounded-2xl bg-[#fcff52]/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-foreground" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-neutral-800 dark:text-white">
-                Human Verification
-              </h2>
-            </div>
+            <p className="text-sm font-black text-foreground">Verify your identity</p>
           </div>
           <button
             onClick={onClose}
-            className="p-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-white transition-all active:scale-95"
+            className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
-            <X size={20} />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 relative bg-neutral-50 dark:bg-[#0a0a0b]">
+        <div className="px-6 py-6 space-y-5">
           {status === "verified" ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6">
-                <Sparkles size={48} />
-              </div>
-              <h3 className="text-2xl font-black mb-2 text-neutral-800 dark:text-white">
-                Identity Confirmed! ✨
-              </h3>
-              <p className="text-neutral-500 dark:text-neutral-400 font-medium max-w-sm">
-                You are now a verified Focuser. Your Dinosaur is safe and your
-                G$ rewards are unlocking...
-              </p>
+            /* ── Success ── */
+            <div className="flex flex-col items-center text-center gap-3 py-4">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+              <p className="text-base font-black text-foreground">Identity verified!</p>
+              <p className="text-xs text-muted-foreground">You can now claim G$.</p>
             </div>
-          ) : fvLink ? (
-            <div className="w-full h-full flex flex-col">
-              <div className="flex-1 relative">
-                {!iframeLoaded && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest text-center px-6">
-                      Initializing Secure Face Verification...
-                    </span>
-                  </div>
-                )}
-                <iframe
-                  src={fvLink}
-                  className={`w-full h-full border-0 transition-opacity duration-1000 ${
-                    iframeLoaded ? "opacity-100" : "opacity-0"
-                  }`}
-                  onLoad={() => setIframeLoaded(true)}
-                  allow="camera"
-                />
+
+          ) : !fvLink || status === "loading" ? (
+            /* ── Generating link ── */
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Preparing verification link…</p>
+            </div>
+
+          ) : !opened ? (
+            /* ── Ready to open ── */
+            <>
+              <div className="space-y-1.5">
+                <p className="text-sm text-foreground font-semibold">
+                  GoodDollar identity check
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  To claim G$, you need to verify you&apos;re a unique human via GoodDollar.
+                  The process takes about 1 minute and uses face verification.
+                </p>
               </div>
 
-              {/* Fallback Footer */}
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border-t border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-between gap-4">
-                <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
-                  Having trouble with the camera?
-                </p>
-                <a
-                  href={fvLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-white dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 px-4 py-2 rounded-xl text-[10px] font-black shadow-sm border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-50 transition-all"
-                >
-                  Open in New Tab
-                  <ExternalLink size={12} />
-                </a>
+              <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-1.5 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">How it works:</p>
+                <ol className="space-y-1 list-decimal list-inside">
+                  <li>Tap the button below — it opens in a new tab</li>
+                  <li>Complete the face scan in that tab</li>
+                  <li>Come back here — we&apos;ll detect it automatically</li>
+                </ol>
               </div>
-            </div>
+
+              <button
+                type="button"
+                onClick={handleOpen}
+                className="w-full py-3 rounded-xl border-2 border-[#1A1A1A] bg-[#fcff52] text-[#111111] font-black text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_#1A1A1A] hover:opacity-90 active:translate-y-px transition-all"
+              >
+                Open verification
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </>
+
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-neutral-900">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full animate-pulse" />
-                <ShieldAlert className="w-16 h-16 text-amber-500 relative z-10" />
+            /* ── Waiting for completion ── */
+            <>
+              <div className="flex flex-col items-center gap-3 py-2 text-center">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-sm font-black text-foreground">Waiting for verification…</p>
+                <p className="text-xs text-muted-foreground max-w-[220px]">
+                  Complete the face scan in the tab we opened. We&apos;ll continue automatically once done.
+                </p>
               </div>
-              <h3 className="text-xl font-black mb-2 text-neutral-800 dark:text-white">
-                Synchronizing Portal...
-              </h3>
-              <p className="text-neutral-500 dark:text-neutral-400 text-sm max-w-xs mb-8 font-medium leading-relaxed">
-                We&apos;re establishing a secure connection to the GoodDollar
-                Identity protocol. This ensures your verification is private
-                and tamper-proof.
-              </p>
-              <div className="flex flex-col gap-4 w-full max-w-[200px]">
+
+              <div className="flex gap-2">
                 <button
+                  type="button"
+                  onClick={handleOpen}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Reopen tab
+                </button>
+                <button
+                  type="button"
                   onClick={onRefresh}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Loader2 size={14} className="animate-spin" />
-                  Retry Connection
-                </button>
-                <button
-                  onClick={onClose}
-                  className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 rounded-2xl text-xs font-bold hover:bg-neutral-200 transition-all"
-                >
-                  Cancel
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Check now
                 </button>
               </div>
-            </div>
+            </>
           )}
         </div>
 
-        {/* Footer Warning */}
-        <div className="px-8 py-4 bg-white dark:bg-neutral-900 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-center gap-2">
-          <p className="text-[12px] font-bold text-neutral-400 dark:text-neutral-500 tracking-tight">
-            Delulu integrates with GoodDollar for decentralized,
-            privacy-focused identity verification
+        {/* Footer */}
+        <div className="px-6 pb-5">
+          <p className="text-[10px] text-center text-muted-foreground">
+            Powered by GoodDollar · Privacy-preserving identity verification
           </p>
         </div>
       </div>

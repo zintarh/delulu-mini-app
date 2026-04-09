@@ -4,6 +4,8 @@ import { celo } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { createClient } from "@supabase/supabase-js";
 import { errorResponse, jsonResponse } from "@/lib/api";
+import { DELULU_ABI } from "@/lib/abi";
+import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 
 const DAILY_MS = 24 * 60 * 60 * 1000;
 // Users qualify for the faucet as long as they have less than 0.05 CELO.
@@ -81,7 +83,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Enforce 1 claim per 24h via Supabase table `faucet_claims`
+    // 2. On-chain guard: only brand-new users (no username set) can receive faucet gas.
+    const existingUsername = await publicClient.readContract({
+      address: DELULU_CONTRACT_ADDRESS,
+      abi: DELULU_ABI,
+      functionName: "getUsername",
+      args: [address as `0x${string}`],
+    });
+
+    if (existingUsername.trim().length > 0) {
+      return errorResponse(
+        "Faucet is only available for new wallets that have not created a profile yet.",
+        403
+      );
+    }
+
+    // 3. Enforce 1 claim per 24h via Supabase table `faucet_claims`
     const { data: lastClaim, error: lastClaimError } = await supabase
       .from("faucet_claims")
       .select("created_at")
@@ -117,7 +134,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Send CELO
+    // 4. Send CELO
     let hash: `0x${string}`;
     try {
       hash = await walletClient.sendTransaction({

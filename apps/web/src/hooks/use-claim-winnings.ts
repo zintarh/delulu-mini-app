@@ -1,27 +1,38 @@
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId, useWriteContract } from "wagmi";
+import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useClaimWinnings() {
   const chainId = useChainId();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [isPending, setIsPending] = useState(false);
+  const [writeError, setWriteError] = useState<Error | null>(null);
+
   const {
     isLoading: isConfirming,
     isSuccess,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const claim = (deluluId: number) => {
+  const claim = async (deluluId: number) => {
     if (!deluluId || Number.isNaN(deluluId)) return;
-
-    // v3: creator claims market support from personal market pool.
-    writeContract({
-      address: getDeluluContractAddress(chainId),
-      abi: DELULU_ABI,
-      functionName: "claimPersonalMarketSupport",
-      args: [BigInt(deluluId)],
-    });
+    try {
+      setIsPending(true);
+      setWriteError(null);
+      const txHash = await writeContractAsync({
+        address: getDeluluContractAddress(chainId),
+        abi: DELULU_ABI,
+        functionName: "claimPersonalMarketSupport",
+        args: [BigInt(deluluId)],
+      });
+      setHash(txHash);
+    } catch (err) {
+      setWriteError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return {
@@ -30,6 +41,6 @@ export function useClaimWinnings() {
     isPending,
     isConfirming,
     isSuccess,
-    error: error || receiptError,
+    error: writeError || receiptError,
   };
 }

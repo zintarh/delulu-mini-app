@@ -1,9 +1,10 @@
 import {
-  useWriteContract,
   useWaitForTransactionReceipt,
+  useWriteContract,
 } from "wagmi";
 import { useChainId } from "wagmi";
 import { parseUnits } from "viem";
+import { useState } from "react";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
@@ -14,14 +15,12 @@ import {
 } from "@/lib/create-delulu-helpers";
 
 
-
-
-
-
-
 export function useCreateDelulu() {
   const chainId = useChainId();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [isPending, setIsPending] = useState(false);
+  const [writeError, setWriteError] = useState<Error | null>(null);
 
   const {
     isLoading: isConfirming,
@@ -45,18 +44,12 @@ export function useCreateDelulu() {
         throw new Error("Invalid token address");
       }
 
-      // Validate: G$ is only supported on mainnet
       if (isGoodDollarToken(tokenAddress) && !isGoodDollarSupported(chainId)) {
         throw new Error("G$ (GoodDollar) is only available on Celo Mainnet. Please switch to mainnet to create markets with G$.");
       }
-      if (
-        !content ||
-        typeof content !== "string" ||
-        content.trim().length === 0
-      ) {
+      if (!content || typeof content !== "string" || content.trim().length === 0) {
         throw new Error("Content cannot be empty");
       }
-      // Optional stake: amount can be 0 (no stake) or >= 1 token
       if (!isFinite(amount) || isNaN(amount)) {
         throw new Error("Invalid stake amount");
       }
@@ -70,15 +63,7 @@ export function useCreateDelulu() {
       let contentHash: string;
       try {
         contentHash = await withTimeout(
-          uploadToIPFS(
-            content,
-            description,
-            username,
-            pfpUrl,
-            createdAt,
-            gatekeeper,
-            finalBgImageUrl
-          ),
+          uploadToIPFS(content, description, username, pfpUrl, createdAt, gatekeeper, finalBgImageUrl),
           IPFS_UPLOAD_TIMEOUT,
           "IPFS upload timed out"
         );
@@ -98,7 +83,6 @@ export function useCreateDelulu() {
         throw new Error("Invalid deadline timestamp");
       }
 
-      // v3: UI deadline is the resolution deadline (goal completion), not staking deadline.
       const resolutionDeadline = BigInt(Math.floor(deadlineTimestamp / 1000));
       const now = BigInt(Math.floor(Date.now() / 1000));
       const GENESIS_24H = 24n * 60n * 60n;
@@ -106,10 +90,8 @@ export function useCreateDelulu() {
         throw new Error("Resolution deadline must be at least 24 hours from now");
       }
 
-      // v3: stakingDeadline argument is ignored by the contract, but must be present in the signature.
       const stakingDeadline = 0n;
 
-      // Optional initial support (creator stake)
       let initialSupportWei = 0n;
       if (amount > 0) {
         let parsed;
@@ -118,7 +100,6 @@ export function useCreateDelulu() {
         } catch {
           throw new Error("Invalid stake amount format");
         }
-        // TODO: restore to 100 after testing
         const MIN_STAKE_WEI = 1n * (10n ** 18n);
         if (parsed < MIN_STAKE_WEI) {
           throw new Error("Minimum stake is 1 G$ or 0");
@@ -128,12 +109,12 @@ export function useCreateDelulu() {
 
       const contractAddress = getDeluluContractAddress(chainId);
 
-      // Use standard Wagmi writeContract
-      writeContract({
+      setIsPending(true);
+      setWriteError(null);
+      const txHash = await writeContractAsync({
         address: contractAddress,
         abi: DELULU_ABI,
         functionName: "createDelulu",
-        chainId,
         args: [
           tokenAddress as `0x${string}`,
           contentHash,
@@ -142,25 +123,21 @@ export function useCreateDelulu() {
           initialSupportWei,
         ],
       });
+      setHash(txHash);
     } catch (error) {
+      setWriteError(error instanceof Error ? error : new Error(String(error)));
       if (process.env.NODE_ENV === "development") {
-        console.error("[DEV] Create delulu error:", {
-          error,
-          stack: error instanceof Error ? error.stack : undefined,
-          context: {
-            contentLength: content?.length ?? 0,
-            amount,
-            deadline:
-              deadline instanceof Date ? deadline.toISOString() : "invalid",
-          },
-        });
+        console.error("[DEV] Create delulu error:", error);
       }
       throw error;
+    } finally {
+      setIsPending(false);
     }
   };
 
-  const isError = !!error || !!receiptError;
-  const errorMessage = error?.message || receiptError?.message || null;
+  const error = writeError || receiptError;
+  const isError = !!error;
+  const errorMessage = error?.message || null;
 
   return {
     createDelulu,
