@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { usePrivy, useLoginWithEmail, useLogin, useWallets, useModalStatus } from "@privy-io/react-auth";
+import { usePrivy, useLoginWithEmail, useWallets, useModalStatus } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -92,7 +92,7 @@ function OtpInput({
 }
 
 export default function SignInPage() {
-  const { authenticated, ready } = usePrivy();
+  const { authenticated, ready, login, user } = usePrivy();
   const { wallets } = useWallets();
   const router = useRouter();
 
@@ -105,20 +105,23 @@ export default function SignInPage() {
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const authSettledRef = useRef(false);
+  const hasWalletAddress = Boolean(
+    wallets?.[0]?.address ||
+      (user as any)?.wallet?.address ||
+      (user as any)?.linkedAccounts?.find((a: any) => a.type === "wallet")?.address
+  );
 
-  // If already authenticated, hand off to /welcome which will sort out routing
+  // Redirect only when authenticated AND wallet address is hydrated.
   useEffect(() => {
     if (!ready) return;
-    if (authenticated) {
+    if (authenticated && hasWalletAddress) {
       router.replace("/welcome");
     }
-  }, [ready, authenticated, router]);
+  }, [ready, authenticated, hasWalletAddress, router]);
 
   const { sendCode, loginWithCode } = useLoginWithEmail({
     onComplete: () => {
-      // Privy session is now active — let /welcome do the profile check
       setIsRedirecting(true);
-      router.replace("/welcome");
     },
     onError: (err) => {
       if (authSettledRef.current) return;
@@ -135,22 +138,14 @@ export default function SignInPage() {
     },
   });
 
-  const { login } = useLogin({
-    onComplete: () => {
-      setIsWalletLoading(false);
-      setIsRedirecting(true);
-      router.replace("/welcome");
-    },
-    onError: () => { setIsWalletLoading(false); },
-  });
-
   const { isOpen: isModalOpen } = useModalStatus();
 
   useEffect(() => {
     if (!isModalOpen && isWalletLoading) {
       setIsWalletLoading(false);
+      if (!authenticated) setIsRedirecting(false);
     }
-  }, [isModalOpen, isWalletLoading]);
+  }, [isModalOpen, isWalletLoading, authenticated]);
 
   const handleVerify = async (fullCode: string) => {
     if (isVerifying) return;
@@ -252,12 +247,16 @@ export default function SignInPage() {
 
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setIsWalletLoading(true);
+                  setIsRedirecting(true);
+                  setError(null);
                   try {
-                    login({ loginMethods: ["wallet"] });
+                    await login();
                   } catch {
+                    setError("Unable to open wallet login. Please try again.");
                     setIsWalletLoading(false);
+                    setIsRedirecting(false);
                   }
                 }}
                 disabled={isWalletLoading}
@@ -304,7 +303,11 @@ export default function SignInPage() {
                 {(isVerifying || isRedirecting) && (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {isRedirecting ? "Signing in…" : "Verifying…"}
+                    {isRedirecting
+                      ? hasWalletAddress
+                        ? "Signing in…"
+                        : "Preparing wallet…"
+                      : "Verifying…"}
                   </div>
                 )}
               </div>

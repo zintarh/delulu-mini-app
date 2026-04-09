@@ -13,6 +13,50 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 //   updated_at timestamptz default now()
 // );
 
+/** GET — fetch pfp_url in batch for card rendering */
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+    }
+
+    const raw = request.nextUrl.searchParams.get("addresses") || "";
+    const addresses = Array.from(
+      new Set(
+        raw
+          .split(",")
+          .map((a) => a.trim().toLowerCase())
+          .filter((a) => a.startsWith("0x") && a.length === 42),
+      ),
+    ).slice(0, 200);
+
+    if (addresses.length === 0) {
+      return NextResponse.json({ profiles: {} });
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("address, pfp_url")
+      .in("address", addresses);
+
+    if (error) {
+      throw error;
+    }
+
+    const profiles: Record<string, string | null> = {};
+    for (const row of data ?? []) {
+      profiles[String((row as any).address).toLowerCase()] =
+        typeof (row as any).pfp_url === "string" ? (row as any).pfp_url : null;
+    }
+
+    return NextResponse.json({ profiles });
+  } catch (error) {
+    console.error("[profile] batch get error:", error);
+    return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
+  }
+}
+
 /** PATCH — update pfp_url only, works whether or not a profile row exists yet */
 export async function PATCH(request: NextRequest) {
   try {

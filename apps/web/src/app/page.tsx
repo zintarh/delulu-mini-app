@@ -12,7 +12,7 @@ import { DeluluCard } from "@/components/delulu-card";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
-import { useAccount, useDisconnect, useReadContract } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
@@ -22,8 +22,6 @@ import type { FormattedDelulu } from "@/lib/types";
 import { Plus } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
-import { DELULU_ABI } from "@/lib/abi";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
@@ -80,38 +78,12 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [creatorPfps, setCreatorPfps] = useState<Record<string, string | null>>({});
+  const lastPfpBatchKeyRef = useRef<string>("");
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
 
   const scrollContainerRef = useRef<HTMLElement>(null);
-
-  const { data: onboardingUsername, isLoading: isCheckingOnboarding } = useReadContract({
-    address: DELULU_CONTRACT_ADDRESS,
-    abi: DELULU_ABI,
-    functionName: "getUsername",
-    args: address ? [address as `0x${string}`] : undefined,
-    query: { enabled: !!isConnected && !!address },
-  });
-
-  // Contract-only onboarding gate.
-  useEffect(() => {
-    if (!isConnected || !address) {
-      setOnboardingChecked(true);
-      return;
-    }
-    if (isCheckingOnboarding) {
-      setOnboardingChecked(false);
-      return;
-    }
-    const hasUsername =
-      typeof onboardingUsername === "string" && onboardingUsername.trim().length > 0;
-    if (!hasUsername) {
-      router.replace("/welcome");
-      return;
-    }
-    setOnboardingChecked(true);
-  }, [isConnected, address, isCheckingOnboarding, onboardingUsername, router]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -201,14 +173,43 @@ export default function HomePage() {
     return delulusToFilter.filter(isContentLoaded);
   }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
 
-  // Block render until onboarding check resolves — prevents feed flash for new users
-  if (!onboardingChecked) {
-    return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="w-5 h-5 rounded-full border-2 border-border border-t-foreground animate-spin" />
-      </div>
+  useEffect(() => {
+    if (activeTab !== "fyp" || filteredDelulus.length === 0) return;
+
+    const addresses = Array.from(
+      new Set(filteredDelulus.map((d) => d.creator.toLowerCase())),
     );
-  }
+    addresses.sort();
+    const batchKey = addresses.join(",");
+
+    // Prevent duplicate requests for identical address sets across rerenders.
+    if (batchKey === lastPfpBatchKeyRef.current) return;
+    lastPfpBatchKeyRef.current = batchKey;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile?addresses=${encodeURIComponent(batchKey)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const profiles =
+          payload?.profiles && typeof payload.profiles === "object"
+            ? (payload.profiles as Record<string, string | null>)
+            : {};
+        if (!cancelled) {
+          setCreatorPfps((prev) => ({ ...prev, ...profiles }));
+        }
+      } catch {
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredDelulus, activeTab]);
 
   return (
     <div className="h-screen  overflow-hidden">
@@ -310,6 +311,7 @@ export default function HomePage() {
                       disableUsernameLookup
                       feedMilestones={feedDelusion.feedMilestones}
                       totalMilestoneCount={feedDelusion.totalMilestoneCount}
+                      creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()] ?? null}
                     />
                   );
                 })}

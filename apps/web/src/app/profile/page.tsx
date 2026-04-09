@@ -16,6 +16,7 @@ import {
   Trophy,
   Camera,
   Loader2,
+  Send,
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
@@ -30,6 +31,7 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
+import { TG_GROUP_URL } from "@/components/get-gas-modal";
 
 type TabType = "ongoing" | "past";
 
@@ -272,6 +274,15 @@ export default function ProfilePage() {
                   <Trophy className="w-3.5 h-3.5 text-[#fcff52]" />
                   Leaderboard
                 </Link>
+                <a
+                  href={TG_GROUP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#35d07f]" />
+                  Join TG
+                </a>
               </div>
 
               {/* ── Push reminders ───────────────────────────────── */}
