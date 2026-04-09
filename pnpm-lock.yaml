@@ -135,7 +135,7 @@ importers:
         version: 3.2.0(graphql@16.12.0)
       '@privy-io/react-auth':
         specifier: ^3.14.1
-        version: 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(permissionless@0.2.47)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76)
+        version: 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76)
       '@privy-io/wagmi':
         specifier: ^4.0.2
         version: 4.0.2(@privy-io/react-auth@3.14.1)(react@18.3.1)(viem@2.40.4)(wagmi@2.19.5)
@@ -211,9 +211,6 @@ importers:
       next:
         specifier: 14.2.35
         version: 14.2.35(@babel/core@7.29.0)(react-dom@18.3.1)(react@18.3.1)
-      permissionless:
-        specifier: ^0.2.47
-        version: 0.2.47(viem@2.40.4)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -4045,7 +4042,7 @@ packages:
       viem: 2.46.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
-  /@privy-io/js-sdk-core@0.60.2(permissionless@0.2.47)(viem@2.46.3):
+  /@privy-io/js-sdk-core@0.60.2(viem@2.46.3):
     resolution: {integrity: sha512-T+CqIVdtYggXICCEmMQlKG0D88aixbrRZifLVFfAQedj18NbcMN8vIyrd5zyLUDlAbeGl9U8NToGfTlZpI1oeQ==}
     peerDependencies:
       permissionless: ^0.2.47
@@ -4067,7 +4064,6 @@ packages:
       jose: 4.15.9
       js-cookie: 3.0.5
       libphonenumber-js: 1.12.38
-      permissionless: 0.2.47(viem@2.40.4)
       set-cookie-parser: 2.7.2
       uuid: 9.0.1
       viem: 2.46.3(typescript@5.9.3)(zod@3.25.76)
@@ -4077,7 +4073,7 @@ packages:
     resolution: {integrity: sha512-kkxzZ5TFseqnZRDVhBR1Si9mTHc1jW+hLSbYviauK80enJOGsOGmxeeC/U0t0kLZGLpn0Jj5v5lNS2bmQ4as/Q==}
     dev: false
 
-  /@privy-io/react-auth@3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(permissionless@0.2.47)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76):
+  /@privy-io/react-auth@3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76):
     resolution: {integrity: sha512-1lBzoG8kXgsEhUedhsLnV7iZajMQ6R4R3nw7rEgBGFaXx+37tVQlvBV6mV368T1SqRDSAeFpyp1Ujh7Obx/GQg==}
     peerDependencies:
       '@abstract-foundation/agw-client': ^1.0.0
@@ -4114,7 +4110,7 @@ packages:
       '@privy-io/are-addresses-equal': 0.0.1(typescript@5.9.3)(zod@3.25.76)
       '@privy-io/chains': 0.1.1
       '@privy-io/ethereum': 0.0.8(viem@2.46.3)
-      '@privy-io/js-sdk-core': 0.60.2(permissionless@0.2.47)(viem@2.46.3)
+      '@privy-io/js-sdk-core': 0.60.2(viem@2.46.3)
       '@privy-io/popup': 0.0.2
       '@privy-io/routes': 0.0.7
       '@privy-io/urls': 0.0.3
@@ -4132,7 +4128,6 @@ packages:
       lucide-react: 0.554.0(react@18.3.1)
       mipd: 0.0.7(typescript@5.9.3)
       ofetch: 1.5.1
-      permissionless: 0.2.47(viem@2.40.4)
       pino-pretty: 10.3.1
       qrcode: 1.5.3
       react: 18.3.1
@@ -4205,7 +4200,7 @@ packages:
       viem: ^2.46.1
       wagmi: '>=2'
     dependencies:
-      '@privy-io/react-auth': 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(permissionless@0.2.47)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76)
+      '@privy-io/react-auth': 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76)
       react: 18.3.1
       viem: 2.40.4(typescript@5.9.3)(zod@3.25.76)
       wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76)
@@ -16039,18 +16034,6 @@ packages:
 
   /pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
-    dev: false
-
-  /permissionless@0.2.47(viem@2.40.4):
-    resolution: {integrity: sha512-/Y+2SK+OGrPJuVZ9RcDDBL+U3wGnw3PByc610zvk2G1h//rRez3YZ9CyuMiOf7MpTh53XxmQeKsqKPna0Ilciw==}
-    peerDependencies:
-      ox: 0.6.7
-      viem: ^2.28.1
-    peerDependenciesMeta:
-      ox:
-        optional: true
-    dependencies:
-      viem: 2.40.4(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
   /picocolors@1.1.1:

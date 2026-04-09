@@ -170,15 +170,15 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
                     router.push(`/delulu/${m.delulu.onChainId ?? m.delulu.id}`)
                   }
                 >
-                  <p className="text-xs font-semibold text-foreground truncate">
+                  <p className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
                     {m.label}
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
                     {title}
                   </p>
                   <div className={cn("flex items-center gap-1 mt-0.5", timeClass)}>
                     <Clock className="w-3 h-3" />
-                    <span className="text-[11px] font-mono font-medium">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-medium">
                       {isEnded ? "Ended" : countdown}
                     </span>
                   </div>
