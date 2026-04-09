@@ -40,7 +40,7 @@ export default function ProfilePage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const { logout } = usePrivy();
-  const { user } = useUserStore();
+  const { user, updateProfile } = useUserStore();
   const router = useRouter();
 
   const handleProfileClick = () => {};
@@ -53,7 +53,11 @@ export default function ProfilePage() {
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { isUploading: isPfpUploading, inputRef: pfpInputRef, openPicker: openPfpPicker, onFileChange: onPfpFileChange } = usePfpUpload();
+  const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
+  const [uploadToast, setUploadToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || null;
@@ -101,6 +105,37 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!isConnected) router.replace("/sign-in");
   }, [isConnected, router]);
+
+  useEffect(() => {
+    if (!uploadToast) return;
+    const timer = setTimeout(() => setUploadToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [uploadToast]);
+
+  const handlePfpFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    const previousPfp = user?.pfpUrl;
+    const previewUrl = URL.createObjectURL(file);
+
+    // Optimistic UI: show new image immediately while upload runs.
+    updateProfile({ pfpUrl: previewUrl });
+
+    try {
+      await uploadPfp(file);
+      setUploadToast({ type: "success", message: "Profile photo updated" });
+    } catch (err: any) {
+      updateProfile({ pfpUrl: previousPfp });
+      setUploadToast({
+        type: "error",
+        message: err?.message ?? "Failed to update profile photo",
+      });
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
 
   const handleCopyAddress = async () => {
     if (!address) return;
@@ -155,7 +190,7 @@ export default function ProfilePage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={onPfpFileChange}
+                    onChange={handlePfpFileChange}
                   />
 
                   {/* Actions */}
@@ -340,6 +375,21 @@ export default function ProfilePage() {
           router.push("/sign-in");
         }}
       />
+
+      {uploadToast && (
+        <div className="fixed bottom-24 left-1/2 z-[120] -translate-x-1/2">
+          <div
+            className={cn(
+              "rounded-full border px-4 py-2 text-xs font-semibold shadow-lg",
+              uploadToast.type === "success"
+                ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                : "border-rose-500/30 bg-rose-500/15 text-rose-700 dark:text-rose-300",
+            )}
+          >
+            {uploadToast.message}
+          </div>
+        </div>
+      )}
 
     </div>
   );

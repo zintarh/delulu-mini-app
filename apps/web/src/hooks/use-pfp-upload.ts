@@ -27,8 +27,12 @@ export function usePfpUpload(): UsePfpUploadReturn {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (!address) {
+        throw new Error("Wallet address not available. Please reconnect and try again.");
+      }
+      formData.append("address", address);
 
-      const uploadRes = await fetch("/api/ipfs/upload-image", {
+      const uploadRes = await fetch("/api/profile/upload-image", {
         method: "POST",
         body: formData,
       });
@@ -36,10 +40,6 @@ export function usePfpUpload(): UsePfpUploadReturn {
       if (!uploadRes.ok) throw new Error(uploadData?.error ?? "Image upload failed");
 
       const pfpUrl: string = uploadData.url;
-
-      if (!address) {
-        throw new Error("Wallet address not available. Please reconnect and try again.");
-      }
 
       const persistRes = await fetch("/api/profile", {
         method: "PATCH",
