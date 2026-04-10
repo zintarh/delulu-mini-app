@@ -307,17 +307,17 @@ export function RightSidebar() {
                       />
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                        <p className="text-xs font-medium text-foreground/70 truncate leading-tight">
                           {headline}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">
                           {handle}
                         </p>
                       </div>
 
-                      <span className="shrink-0 text-xs font-bold tabular-nums text-foreground/80">
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground/50">
                         {formatGAmountInt(entry.totalG)}
-                        <span className="text-[10px] font-normal text-muted-foreground ml-0.5">G$</span>
+                        <span className="text-[10px] font-normal text-muted-foreground/50 ml-0.5">G$</span>
                       </span>
                     </button>
                   );

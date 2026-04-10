@@ -114,10 +114,15 @@ class SearchIndex {
     for (const term of terms) {
       const matches = this.index.get(term);
       if (!matches || matches.size === 0) return [];
-      candidates =
-        candidates === null
-          ? new Set(matches)
-          : new Set([...candidates].filter((id) => matches.has(id)));
+      if (candidates === null) {
+        candidates = new Set<string>(matches);
+      } else {
+        const next = new Set<string>();
+        for (const id of candidates) {
+          if (matches.has(id)) next.add(id);
+        }
+        candidates = next;
+      }
       if (candidates.size === 0) return [];
     }
 
