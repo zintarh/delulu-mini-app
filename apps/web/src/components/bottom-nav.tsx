@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Home, Plus, Coins, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAccount } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 
 interface BottomNavProps {
   onProfileClick?: () => void;
@@ -20,14 +20,14 @@ const navItems: Array<{
 }> = [
   { icon: Home, label: "Home", href: "/" },
   { icon: Plus, label: "Create", href: null },
-  { icon: Coins, label: "Claim", href: "/daily-claim", isClaim: true },
+  { icon: Coins, label: "Claim", href: null, isClaim: true },
   { icon: User, label: "Profile", href: null },
 ];
 
 export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { authenticated } = usePrivy();
 
   useEffect(() => {
     ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]
@@ -54,7 +54,8 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
             ? item.href === "/"
               ? pathname === "/"
               : pathname.startsWith(item.href)
-            : pathname.startsWith("/profile") && item.label === "Profile";
+            : (pathname.startsWith("/profile") && item.label === "Profile") ||
+              (pathname.startsWith("/daily-claim") && item.label === "Claim");
           const isClaim = item.isClaim === true;
 
           const content = (
@@ -115,7 +116,7 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
             );
           }
 
-          if (isConnected && item.label === "Create") {
+          if (authenticated && item.label === "Create") {
             return (
               <Link
                 key={item.label}
@@ -133,7 +134,7 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
             );
           }
 
-          if (isConnected && item.label === "Profile") {
+          if (authenticated && item.label === "Profile") {
             return (
               <Link
                 key={item.label}
@@ -151,9 +152,26 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
             );
           }
 
+          if (authenticated && item.label === "Claim") {
+            return (
+              <Link
+                key={item.label}
+                href="/daily-claim"
+                onMouseEnter={() => router.prefetch("/daily-claim")}
+                onTouchStart={() => router.prefetch("/daily-claim")}
+                className={cn(
+                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
+                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
+                )}
+                aria-label={item.label}
+              >
+                {content}
+              </Link>
+            );
+          }
+
           const handleClick = () => {
-            if (item.label === "Profile") onProfileClick?.();
-            if (item.label === "Create") onCreateClick?.();
+            router.push("/sign-in");
           };
 
           return (

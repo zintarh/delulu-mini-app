@@ -130,7 +130,11 @@ export function DeluluCard({
   const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(
     creatorLabel,
   )}`;
-  const resolvedAvatarUrl = creatorPfpUrl || delusion.pfpUrl || fallbackAvatarUrl;
+  const [avatarError, setAvatarError] = useState(false);
+  const preferredAvatarUrl = creatorPfpUrl || delusion.pfpUrl || fallbackAvatarUrl;
+  // Reset error flag whenever the source URL changes (e.g. DB pfp resolves later)
+  useEffect(() => { setAvatarError(false); }, [preferredAvatarUrl]);
+  const resolvedAvatarUrl = avatarError ? fallbackAvatarUrl : preferredAvatarUrl;
 
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
     disableMilestoneQuery ? null : delusion.id,
@@ -488,6 +492,7 @@ export function DeluluCard({
                 src={resolvedAvatarUrl}
                 alt={displayUsername || formatAddress(delusion.creator)}
                 className="w-full h-full object-cover"
+                onError={() => setAvatarError(true)}
               />
             </div>
             {/* Milestone completion arc */}

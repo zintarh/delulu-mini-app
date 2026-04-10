@@ -644,7 +644,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="max-w-xl mx-auto px-4 pt-3 pb-28 space-y-3">
+        <div className="max-w-xl mx-auto px-4 pt-3 pb-6 space-y-3">
 
           {/* Vision board preview + template strip */}
           <div>
@@ -1043,12 +1043,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               </>
             )}
           </div>
-        </div>
-        </div>
 
-        {/* Sticky bottom CTA */}
-        <div className="flex-shrink-0 bg-background/95 backdrop-blur-md border-t border-border px-4 py-4">
-          <div className="max-w-xl mx-auto">
+          {/* Bottom CTA — inside scroll so it's never covered by system/app nav on mobile */}
+          <div className="pt-2 pb-6">
             <button
               onClick={handleCreate}
               disabled={!canCreate || isProcessing}
@@ -1075,6 +1072,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               )}
             </button>
           </div>
+        </div>
         </div>
 
         {/* Calendar Modal */}
