@@ -16,7 +16,11 @@ type Phase = "verifying" | "form";
 
 export default function WelcomePage() {
   const { address: wagmiAddress } = useAccount();
+
+
   const { ready, authenticated, user: privyUser } = usePrivy();
+
+
   const { wallets } = useWallets();
 
 
@@ -62,6 +66,8 @@ export default function WelcomePage() {
     if (linkedEmail) setEmail(linkedEmail);
   }, [privyUser]);
 
+
+
   const {
     data: existingUsername,
     isSuccess: usernameChecked,
@@ -77,6 +83,11 @@ export default function WelcomePage() {
     args: address ? [address] : undefined,
     query: { enabled: !!address, staleTime: 0 },
   });
+
+  
+
+  console.log(address, existingUsername, usernameChecked, usernameCheckFailed);
+
 
   
   useEffect(() => {
@@ -115,6 +126,12 @@ export default function WelcomePage() {
 
     setPhase("form");
   }, [address, usernameChecked, usernameCheckFailed, usernameIsFetching, existingUsername, router]);
+
+
+
+
+
+
 
   useEffect(() => {
     if (!isSuccess || !address || savedRef.current) return;
