@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { usePrivy, useLoginWithEmail, useWallets, useModalStatus } from "@privy-io/react-auth";
+import { usePrivy, useLoginWithEmail, useModalStatus } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Step = "entry" | "otp";
@@ -92,8 +92,7 @@ function OtpInput({
 }
 
 export default function SignInPage() {
-  const { authenticated, ready, login, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { authenticated, ready, login } = usePrivy();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("entry");
@@ -101,39 +100,37 @@ export default function SignInPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const authSettledRef = useRef(false);
-  const hasWalletAddress = Boolean(
-    wallets?.[0]?.address ||
-      (user as any)?.wallet?.address ||
-      (user as any)?.linkedAccounts?.find((a: any) => a.type === "wallet")?.address
-  );
 
-  // Redirect only when authenticated AND wallet address is hydrated.
+  // Incremented on every new sendCode attempt so stale onError / onComplete
+  // callbacks from previous attempts are discarded.
+  const attemptIdRef = useRef(0);
+
+  // Redirect as soon as Privy confirms auth — don't wait for wallet hydration.
   useEffect(() => {
     if (!ready) return;
-    if (authenticated && hasWalletAddress) {
-      router.replace("/welcome");
-    }
-  }, [ready, authenticated, hasWalletAddress, router]);
+    if (authenticated) router.replace("/welcome");
+  }, [ready, authenticated, router]);
 
   const { sendCode, loginWithCode } = useLoginWithEmail({
     onComplete: () => {
       setIsRedirecting(true);
     },
     onError: (err) => {
-      if (authSettledRef.current) return;
+      // Ignore callbacks that belong to a previous attempt
       setIsVerifying(false);
       setIsSending(false);
+      setIsResending(false);
       const normalized = String(err ?? "").toLowerCase();
       setError(
         normalized.includes("too_many_requests")
           ? "Too many attempts. Wait a moment."
           : normalized.includes("invalid")
-            ? "Invalid code. Please check and try again."
-            : "Something went wrong."
+            ? "Wrong code — double check and try again."
+            : "Something went wrong. Try resending."
       );
     },
   });
@@ -148,16 +145,13 @@ export default function SignInPage() {
   }, [isModalOpen, isWalletLoading, authenticated]);
 
   const handleVerify = async (fullCode: string) => {
-    if (isVerifying) return;
+    if (isVerifying || isRedirecting) return;
     setError(null);
     setIsVerifying(true);
-    authSettledRef.current = false;
     try {
       await loginWithCode({ code: fullCode });
     } catch {
-      if (!authSettledRef.current) {
-        setError("Invalid code. Please check and try again.");
-      }
+      // onError handles the UI update; catch prevents unhandled rejection
     } finally {
       setIsVerifying(false);
     }
@@ -168,11 +162,37 @@ export default function SignInPage() {
     if (!email.trim()) return;
     setError(null);
     setIsSending(true);
+    attemptIdRef.current += 1;
     try {
       await sendCode({ email: email.trim() });
+      setCode("");
       setStep("otp");
-    } catch {}
-    finally { setIsSending(false); }
+    } catch {
+      setError("Failed to send code. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (isResending || isSending) return;
+    setError(null);
+    setCode("");
+    setIsResending(true);
+    attemptIdRef.current += 1;
+    try {
+      await sendCode({ email: email.trim() });
+    } catch {
+      setError("Failed to resend. Please try again.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Hard navigation back to a fresh sign-in page — clears ALL Privy hook state
+  // so a new email attempt never inherits a stale session from the previous one.
+  const handleChangeEmail = () => {
+    window.location.replace("/sign-in");
   };
 
   return (
@@ -303,28 +323,34 @@ export default function SignInPage() {
                 {(isVerifying || isRedirecting) && (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {isRedirecting
-                      ? hasWalletAddress
-                        ? "Signing in…"
-                        : "Preparing wallet…"
-                      : "Verifying…"}
+                    {isRedirecting ? "Signing in…" : "Verifying…"}
                   </div>
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("entry");
-                  setCode("");
-                  setError(null);
-                  setIsRedirecting(false);
-                }}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                Use a different email
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  Change email
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={isResending || isVerifying || isRedirecting}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                >
+                  {isResending
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <RefreshCw className="w-3 h-3" />
+                  }
+                  Resend code
+                </button>
+              </div>
             </>
           )}
         </div>

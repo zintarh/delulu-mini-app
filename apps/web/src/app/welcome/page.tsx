@@ -34,11 +34,19 @@ export default function WelcomePage() {
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
   const [walletReadyError, setWalletReadyError] = useState<string | null>(null);
+  const [walletTimeout, setWalletTimeout] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [touched, setTouched] = useState({ username: false, pfp: false });
   const savedRef = useRef(false);
   const faucetFiredRef = useRef(false);
   const verificationDoneRef = useRef(false);
+
+  // If Privy's wallet creation takes over 30s the user gets a helpful message
+  useEffect(() => {
+    if (address || phase !== "verifying") return;
+    const id = setTimeout(() => setWalletTimeout(true), 30_000);
+    return () => clearTimeout(id);
+  }, [address, phase]);
 
   const { setProfile, isPending, isSuccess, error } = useSetProfile();
   const { upload, isUploading, inputRef, openPicker } = usePfpUpload();
@@ -181,16 +189,31 @@ export default function WelcomePage() {
 
   if (phase === "verifying") {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5 px-6">
         <img
           src="/favicon_io/android-chrome-192x192.png"
           alt="Delulu"
           className="w-14 h-14 rounded-2xl opacity-90"
         />
-        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Verifying account&hellip;
-        </div>
+        {walletTimeout ? (
+          <div className="flex flex-col items-center gap-3 text-center max-w-xs">
+            <p className="text-sm font-medium text-foreground">Wallet setup is taking longer than expected</p>
+            <p className="text-xs text-muted-foreground">
+              This can happen on slow networks. Try refreshing the page — your account is safe.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-1 px-4 py-2 rounded-xl bg-muted text-sm font-semibold text-foreground hover:bg-muted/80 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Setting up your wallet&hellip;
+          </div>
+        )}
       </div>
     );
   }
