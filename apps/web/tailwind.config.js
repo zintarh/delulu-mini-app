@@ -85,6 +85,10 @@ module.exports = {
           "0%, 100%": { boxShadow: "0 0 20px rgba(252, 255, 82, 0.3)" },
           "50%": { boxShadow: "0 0 40px rgba(252, 255, 82, 0.6)" },
         },
+        "progress-indeterminate": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -92,6 +96,7 @@ module.exports = {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.4s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "progress-indeterminate": "progress-indeterminate 1.4s ease-in-out infinite",
       },
     },
   },

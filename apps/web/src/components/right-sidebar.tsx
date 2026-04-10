@@ -1,150 +1,138 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  ExternalLink,
-  Search,
-  X,
-} from "lucide-react";
-import { useAllDelulus, useDeluluLeaderboard } from "@/hooks/graph";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ExternalLink, Search, X, Loader2, ChevronRight } from "lucide-react";
+import { useDeluluLeaderboard } from "@/hooks/graph";
 import { useRouter } from "next/navigation";
-import type { FormattedDelulu } from "@/lib/types";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { cn, formatGAmountInt } from "@/lib/utils";
 
 const DELULU_MONDAY_NOTION_URL =
   "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
 
+type SearchResult = {
+  id: string;
+  creator: string;
+  content: string;
+  username: string | null;
+  bgImageUrl: string | null;
+  totalSupportCollected: number;
+};
+
+function tileGradient(creator: string) {
+  const hex = creator.replace("0x", "").toLowerCase();
+  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
+  const h2 = (h1 + 55) % 360;
+  return `linear-gradient(140deg, hsl(${h1},50%,25%) 0%, hsl(${h2},55%,15%) 100%)`;
+}
+
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentTrendingIndex, setCurrentTrendingIndex] = useState(0);
   const [flyerImageError, setFlyerImageError] = useState(false);
-  const trendingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { delulus, isLoading } = useAllDelulus();
   const { entries: topEntries, isLoading: isLeaderboardLoading } =
     useDeluluLeaderboard(6, 0);
 
   const router = useRouter();
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
-  const isHash = (str: string) => {
-    return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
-  };
+  // ── Search state ──────────────────────────────────────────────────────────
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isIndexBuilding, setIsIndexBuilding] = useState(false);
+  const [indexedCount, setIndexedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
-    if (!delulu.content) return false;
-    return !isHash(delulu.content);
-  };
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // For search, filter by content loaded
-  const delulusWithContent = useMemo(() => {
-    return delulus.filter(isContentLoaded);
-  }, [delulus]);
-
-  // For trending, show all delulus (ProfileDeluluCard handles missing content gracefully)
-  const filteredDelulus = useMemo(() => {
-    if (!searchQuery.trim()) {
-      // For trending section, don't filter by content - show all delulus
-      return delulus;
-    }
-
-    // For search, only show delulus with loaded content
-    const query = searchQuery.toLowerCase().trim();
-    return delulusWithContent.filter((d) => {
-      const content = (d.content || "").toLowerCase();
-      const username = (d.username || "").toLowerCase();
-      const creator = d.creator.toLowerCase();
-
-      return (
-        content.includes(query) ||
-        username.includes(query) ||
-        creator.includes(query)
-      );
-    });
-  }, [delulus, delulusWithContent, searchQuery]);
-
-  const formatTvlUsd = (d: FormattedDelulu): string | null => {
-    const tvl =
-      d.totalSupportCollected ?? d.totalStake ?? 0;
-
-    if (tvl <= 0) return null;
-
-    const isGoodDollar =
-      d.tokenAddress?.toLowerCase() ===
-      GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-
-    const approxUsd =
-      isGoodDollar && gDollarUsdPrice
-        ? tvl * gDollarUsdPrice
-        : !isGoodDollar
-        ? tvl // assume ~1:1 for non-G$ tokens like USDm
-        : null;
-
-    if (!approxUsd || approxUsd <= 0) return null;
-
-    if (approxUsd < 0.01) return approxUsd.toFixed(4);
-    return approxUsd.toFixed(2);
-  };
-
-  const trendingDelulus = useMemo(() => {
-    return [...filteredDelulus]
-      .sort(
-        (a, b) =>
-          (b.totalSupportCollected ?? b.totalStake ?? 0) -
-          (a.totalSupportCollected ?? a.totalStake ?? 0)
-      )
-      .slice(0, 4);
-  }, [filteredDelulus]);
-
-  // Auto-rotate carousel every 3 minutes (180000ms)
-  useEffect(() => {
-    if (trendingDelulus.length <= 1) {
-      setCurrentTrendingIndex(0);
+  const runSearch = useCallback(async (q: string, silent = false) => {
+    if (q.trim().length < 2) {
+      setResults([]);
+      setHasSearched(false);
+      setIsSearching(false);
+      setIsIndexBuilding(false);
+      if (pollRef.current) clearTimeout(pollRef.current);
       return;
     }
 
-    // Reset to first card when trending delulus change
-    setCurrentTrendingIndex(0);
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
 
-    // Clear any existing interval
-    if (trendingIntervalRef.current) {
-      clearInterval(trendingIntervalRef.current);
-    }
+    if (!silent) setIsSearching(true);
 
-    // Start new interval
-    trendingIntervalRef.current = setInterval(() => {
-      setCurrentTrendingIndex((prev) => (prev + 1) % trendingDelulus.length);
-    }, 180000); // 3 minutes
+    try {
+      const res = await fetch(
+        `/api/search?q=${encodeURIComponent(q.trim().toLowerCase())}`,
+        { signal: ctrl.signal },
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setResults(data.results ?? []);
+      setHasSearched(true);
+      setIsIndexBuilding(data.isBuilding ?? false);
+      setIndexedCount(data.indexedCount ?? 0);
+      setTotalCount(data.totalCount ?? 0);
 
-    return () => {
-      if (trendingIntervalRef.current) {
-        clearInterval(trendingIntervalRef.current);
+      if (data.isBuilding) {
+        if (pollRef.current) clearTimeout(pollRef.current);
+        pollRef.current = setTimeout(() => runSearch(q, true), 1500);
       }
-    };
-  }, [trendingDelulus.length]);
+    } catch (err: any) {
+      // AbortError is expected on every new keystroke — ignore silently
+    } finally {
+      if (!ctrl.signal.aborted) setIsSearching(false);
+    }
+  }, []);
 
-
-  const handleDeluluClick = (id: string | number) => {
-    router.push(`/delulu/${id}`);
+  const handleQueryChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) {
+      abortRef.current?.abort();
+      setResults([]);
+      setHasSearched(false);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    debounceRef.current = setTimeout(() => runSearch(value), 300);
   };
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, []);
+
+  const hasQuery = searchQuery.trim().length > 0;
 
   return (
     <aside className="h-screen sticky top-0 px-5 py-4 overflow-y-auto scrollbar-hide bg-background border-l border-border text-foreground">
+
+      {/* ── Search bar ── */}
       <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
+          {isSearching ? (
+            <Loader2 className="w-4 h-4 text-muted-foreground shrink-0 animate-spin" />
+          ) : (
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          )}
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search Delulus..."
-            className="w-full pl-10 pr-10 py-3 bg-muted border border-border rounded-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border focus:bg-background transition-colors"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            autoComplete="off"
+            autoCorrect="off"
           />
-          {searchQuery && (
+          {hasQuery && (
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => handleQueryChange("")}
+              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -152,55 +140,73 @@ export function RightSidebar() {
         </div>
       </div>
 
-      {searchQuery.trim() ? (
-        <div className="bg-muted rounded-2xl border border-border p-4 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold text-foreground">
-              Search Results
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              ({filteredDelulus.length})
+      {/* ── Search results ── */}
+      {hasQuery ? (
+        <div>
+          {/* Result count + indexing indicator */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-muted-foreground/60 uppercase tracking-widest">
+              {hasSearched ? `${results.length} result${results.length !== 1 ? "s" : ""}` : "Searching…"}
             </span>
+            {isIndexBuilding && totalCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                {indexedCount}/{totalCount}
+              </span>
+            )}
           </div>
 
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-secondary rounded-xl p-3 border border-border animate-pulse"
-                >
-                  <div className="h-3 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-2 bg-muted rounded w-1/2" />
-                </div>
-              ))}
+          {hasSearched && results.length === 0 && !isSearching ? (
+            isIndexBuilding ? (
+              <p className="text-xs text-muted-foreground/60 text-center py-6">
+                Still indexing… results will appear automatically
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-6">
+                No results for &ldquo;{searchQuery}&rdquo;
+              </p>
+            )
+          ) : (
+            <div className="space-y-px">
+              {results.map((d) => {
+                const handle = d.username
+                  ? `@${d.username}`
+                  : `${d.creator.slice(0, 6)}…${d.creator.slice(-4)}`;
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => router.push(`/delulu/${d.id}`)}
+                    className="w-full flex items-center gap-2.5 py-2.5 hover:bg-muted/50 rounded-xl px-2 -mx-2 transition-colors text-left"
+                  >
+                    <div
+                      className="shrink-0 w-10 h-10 rounded-lg overflow-hidden"
+                      style={{ background: tileGradient(d.creator) }}
+                    >
+                      {d.bgImageUrl && (
+                        <img
+                          src={d.bgImageUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">
+                        {d.content || "Untitled"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{handle}</p>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                  </button>
+                );
+              })}
             </div>
-          ) : filteredDelulus.length > 0 ? (
-            <div className="space-y-3">
-              {filteredDelulus.map((delulu, idx) => (
-                <button
-                  key={`search-${delulu.onChainId || delulu.id}-${idx}`}
-                  onClick={() => handleDeluluClick(delulu.id)}
-                  className="w-full text-left p-3 rounded-xl bg-secondary hover:bg-muted transition-colors border border-border hover:border-border"
-                >
-                  <p className="text-sm text-foreground font-medium mb-1 line-clamp-2">
-                    {delulu.content || "YOUR DELULU HEADLINE"}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className="bg-foreground text-background font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                     
-                      {formatTvlUsd(delulu) ?? "0.00"} USD TVL
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            ) : null}
+          )}
         </div>
       ) : (
         <>
-        
-
+          {/* ── Flyer ── */}
           <div className="rounded-2xl border border-border bg-card p-3 mb-6 shadow-sm">
             <div className="rounded-xl overflow-hidden border border-border/70 bg-muted/20 min-h-[240px]">
               {!flyerImageError ? (
@@ -212,19 +218,13 @@ export function RightSidebar() {
                 />
               ) : (
                 <div className="w-full min-h-[180px] bg-gradient-to-br from-delulu-yellow-reserved/30 via-background to-delulu-green/20 p-4">
-                 
                   <h3 className="mt-2 text-lg font-black leading-tight text-foreground">
                     Join the weekly campaign and compete for rewards.
                   </h3>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    If you want the branded flyer image here, add it to
-                    `apps/web/public/flyer.png`.
-                  </p>
                 </div>
               )}
             </div>
             <div className="mt-3 px-1">
-             
               <p className="mt-1 text-xs text-muted-foreground">
                 Read the full participation guide and rules.
               </p>
@@ -240,7 +240,7 @@ export function RightSidebar() {
             </div>
           </div>
 
-          {/* Leaderboard */}
+          {/* ── Leaderboard ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-foreground">Leaderboard</h2>
@@ -329,7 +329,6 @@ export function RightSidebar() {
               )}
             </div>
           </div>
-
         </>
       )}
     </aside>
