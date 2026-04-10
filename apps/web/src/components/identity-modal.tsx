@@ -8,6 +8,7 @@ import {
   ExternalLink,
   CheckCircle2,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 
 interface IdentityModalProps {
@@ -25,12 +26,12 @@ export function IdentityModal({
   status,
   onRefresh,
 }: IdentityModalProps) {
-  const [opened, setOpened] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  // Reset when modal opens
+  // Reset iframe loaded state when modal opens or link changes
   useEffect(() => {
-    if (isOpen) setOpened(false);
-  }, [isOpen]);
+    if (isOpen) setIframeLoaded(false);
+  }, [isOpen, fvLink]);
 
   // Auto-close on verified
   useEffect(() => {
@@ -48,127 +49,123 @@ export function IdentityModal({
 
   if (!isOpen) return null;
 
-  const handleOpen = () => {
-    if (!fvLink) return;
-    window.open(fvLink, "_blank", "noopener,noreferrer");
-    setOpened(true);
+  const openInNewTab = () => {
+    if (fvLink) window.open(fvLink, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-sm bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
+      {/* Modal — tall enough to house the iframe */}
+      <div className="relative w-full max-w-lg h-[90dvh] bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-[#fcff52]/20 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-foreground" />
+            <div className="w-8 h-8 rounded-xl bg-[#fcff52]/20 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-foreground" />
             </div>
             <p className="text-sm font-black text-foreground">Verify your identity</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {fvLink && status !== "verified" && (
+              <button
+                type="button"
+                onClick={openInNewTab}
+                title="Open in new tab"
+                className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
+        {/* Device warning banner — always visible when link is ready */}
+        {fvLink && status !== "verified" && (
+          <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <p className="flex-1 text-xs text-amber-700 dark:text-amber-400 leading-snug">
+              If you see a <span className="font-semibold">new device</span> or <span className="font-semibold">device change</span> error, tap{" "}
+              <button
+                type="button"
+                onClick={openInNewTab}
+                className="font-semibold underline underline-offset-2"
+              >
+                open in new tab
+              </button>{" "}
+              to complete verification.
+            </p>
+          </div>
+        )}
+
         {/* Content */}
-        <div className="px-6 py-6 space-y-5">
+        <div className="flex-1 min-h-0 relative">
           {status === "verified" ? (
             /* ── Success ── */
-            <div className="flex flex-col items-center text-center gap-3 py-4">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+            <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+              <CheckCircle2 className="w-14 h-14 text-emerald-500" />
               <p className="text-base font-black text-foreground">Identity verified!</p>
               <p className="text-xs text-muted-foreground">You can now claim G$.</p>
             </div>
 
           ) : !fvLink || status === "loading" ? (
             /* ── Generating link ── */
-            <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Preparing verification link…</p>
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+              <img
+                src="/gooddollar-logo.png"
+                alt="GoodDollar"
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Preparing verification…
+              </div>
             </div>
 
-          ) : !opened ? (
-            /* ── Ready to open ── */
-            <>
-              <div className="space-y-1.5">
-                <p className="text-sm text-foreground font-semibold">
-                  GoodDollar identity check
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  To claim G$, you need to verify you&apos;re a unique human via GoodDollar.
-                  The process takes about 1 minute and uses face verification.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-1.5 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">How it works:</p>
-                <ol className="space-y-1 list-decimal list-inside">
-                  <li>Tap the button below — it opens in a new tab</li>
-                  <li>Complete the face scan in that tab</li>
-                  <li>Come back here — we&apos;ll detect it automatically</li>
-                </ol>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleOpen}
-                className="w-full py-3 rounded-xl border-2 border-[#1A1A1A] bg-[#fcff52] text-[#111111] font-black text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_#1A1A1A] hover:opacity-90 active:translate-y-px transition-all"
-              >
-                Open verification
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </>
-
           ) : (
-            /* ── Waiting for completion ── */
+            /* ── iFrame ── */
             <>
-              <div className="flex flex-col items-center gap-3 py-2 text-center">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              {!iframeLoaded && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card z-10">
+                  <img
+                    src="/gooddollar-logo.png"
+                    alt="GoodDollar"
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading…
                   </div>
                 </div>
-                <p className="text-sm font-black text-foreground">Waiting for verification…</p>
-                <p className="text-xs text-muted-foreground max-w-[220px]">
-                  Complete the face scan in the tab we opened. We&apos;ll continue automatically once done.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleOpen}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Reopen tab
-                </button>
-                <button
-                  type="button"
-                  onClick={onRefresh}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Check now
-                </button>
-              </div>
+              )}
+              <iframe
+                key={fvLink}
+                src={fvLink}
+                title="GoodDollar identity verification"
+                className="w-full h-full border-0"
+                allow="camera; microphone; clipboard-write"
+                onLoad={() => setIframeLoaded(true)}
+              />
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-5">
-          <p className="text-[10px] text-center text-muted-foreground">
-            Powered by GoodDollar · Privacy-preserving identity verification
-          </p>
-        </div>
+        {(!fvLink || status === "loading" || status === "verified") && (
+          <div className="px-6 py-3 border-t border-border shrink-0">
+            <p className="text-[10px] text-center text-muted-foreground">
+              Powered by GoodDollar · Privacy-preserving identity verification
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
