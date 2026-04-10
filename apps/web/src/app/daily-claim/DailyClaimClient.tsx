@@ -1,81 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
-import { formatUnits } from "viem";
-import { cn, formatGAmount } from "@/lib/utils";
+import { ArrowLeft, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
-import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
-import { useTokenBalance } from "@/hooks/use-token-balance";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
-import { Pill } from "@/components/ui/pill";
-
-const ConnectorSelectionSheet = dynamic(
-  () =>
-    import("@/components/connector-selection-sheet").then(
-      (m) => m.ConnectorSelectionSheet,
-    ),
-  { ssr: false },
-);
-const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
+import { usePrivy } from "@privy-io/react-auth";
+import { useIdentity } from "@/hooks/identityHook";
 
 export default function DailyClaimClient() {
-  const { address, isConnected } = useAccount();
   const router = useRouter();
-  const {
-    isLoading: isClaimDataLoading,
-    isClaiming,
-    isWhitelisted,
-    entitlement,
-    hasClaimed,
-    nextClaimTime,
-    claim,
-    isInitialized,
-  } = useGoodDollarClaim();
+  const { authenticated } = usePrivy();
+  const { fvLink, isGeneratingLink, setIsVerifying } = useIdentity();
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [showIdentityFlow, setShowIdentityFlow] = useState(false);
+  // Start the verification/claim flow as soon as the page mounts
+  useEffect(() => {
+    setIsVerifying(true);
+    return () => setIsVerifying(false);
+  }, [setIsVerifying]);
 
   const handleProfileClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/profile");
   };
   const handleCreateClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/board");
   };
-
-  const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
-    GOODDOLLAR_ADDRESSES.mainnet,
-  );
-
-  const handleConnectClick = () => {
-    setShowLoginSheet(true);
-  };
-
-  const handleClaim = async () => {
-    if (!isConnected) {
-      setShowLoginSheet(true);
-      return;
-    }
-
-    if (!isWhitelisted) {
-      setShowIdentityFlow(true);
-      return;
-    }
-
-    await claim();
-  };
-
-  const formattedEntitlement = useMemo(() => {
-    if (entitlement === null) return null;
-    return formatUnits(entitlement, 18);
-  }, [entitlement]);
 
   return (
     <div className="h-screen overflow-hidden">
@@ -84,169 +38,94 @@ export default function DailyClaimClient() {
           <LeftSidebar onProfileClick={handleProfileClick} onCreateClick={handleCreateClick} />
         </div>
 
-        <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
-          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
-            <div className="flex items-center justify-between mb-6">
+        <main className="h-screen lg:border-x border-border flex flex-col bg-background overflow-hidden pb-[calc(100px+max(env(safe-area-inset-bottom),8px))] lg:pb-0">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+            <button
+              onClick={() => router.back()}
+              className={cn(
+                "inline-flex items-center gap-2 text-xs font-bold",
+                "px-3 py-1.5 rounded-full border-2 border-border",
+                "bg-delulu-yellow-reserved shadow-[2px_2px_0px_0px_#1A1A1A]",
+                "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
+                "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                "text-delulu-charcoal transition-all",
+              )}
+            >
+              <ArrowLeft className="w-3 h-3" />
+              Back
+            </button>
+
+            {fvLink && (
               <button
-                onClick={() => router.back()}
-                className={cn(
-                  "inline-flex items-center gap-2 text-xs font-bold",
-                  "px-3 py-1.5 rounded-full border-2 border-border",
-                  "bg-delulu-yellow-reserved shadow-[2px_2px_0px_0px_#1A1A1A]",
-                  "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#1A1A1A]",
-                  "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                  "text-delulu-charcoal transition-all",
-                )}
+                type="button"
+                onClick={() => window.open(fvLink, "_blank", "noopener,noreferrer")}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                <ArrowLeft className="w-3 h-3" />
-                Back
+                Open in new tab
+                <ExternalLink className="w-3.5 h-3.5" />
               </button>
+            )}
+          </div>
 
-              <span className="hidden sm:inline-flex items-center rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                daily good vibes · powered by GoodDollar
-              </span>
-            </div>
-
-            <div className="mb-8">
-              <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-2">
-                Claim your daily G$ UBI
-              </h1>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Wake up, claim G$, and keep being deliciously delusional. Your
-                basic income, straight from the Delulu island.
+          {/* Device warning banner — always shown */}
+          {fvLink && (
+            <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <p className="flex-1 text-xs text-amber-700 dark:text-amber-400 leading-snug">
+                If you see a <span className="font-semibold">new device</span> or <span className="font-semibold">device change</span> error, open in a new tab to complete verification.
               </p>
+              <button
+                type="button"
+                onClick={() => window.open(fvLink, "_blank", "noopener,noreferrer")}
+                className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline"
+              >
+                Open
+                <ExternalLink className="w-3 h-3" />
+              </button>
             </div>
+          )}
 
-            <div className="space-y-4">
-              <section className="rounded-3xl border-2 border-border bg-gradient-to-br from-delulu-yellow-reserved/80 via-card to-card p-4 mb-6 lg:p-6 shadow-[4px_4px_0px_0px_#1A1A1A]">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[11px] font-black text-accent-foreground uppercase mb-1 tracking-[0.08em]">
-                      Your GoodDollar wallet
-                    </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      {isConnected && address
-                        ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                        : "Not connected"}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end justify-center h-full gap-2">
-                    <Pill
-                      variant="outline"
-                      size="md"
-                      className="inline-flex items-center gap-2 px-3 py-1.5"
-                    >
-                      <img
-                        src="/gooddollar-logo.png"
-                        alt="G$"
-                        className="h-5 w-5 rounded-full"
-                      />
-                      <span className="text-sm font-semibold leading-tight">
-                        {isGdLoading
-                          ? "…"
-                          : gDollarBalance && Number(gDollarBalance) > 0
-                            ? formatGAmount(Number(gDollarBalance))
-                            : "0"}
-                      </span>
-                    </Pill>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-background/60 border border-border">
-                      <Wallet className="w-5 h-5" />
+          {/* iFrame */}
+          <div className="relative flex-1 overflow-hidden">
+            {(!fvLink || isGeneratingLink) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background z-10">
+                <img
+                  src="/gooddollar-logo.png"
+                  alt="GoodDollar"
+                  className="w-10 h-10 rounded-full"
+                />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Preparing your claim…
+                </div>
+              </div>
+            )}
+
+            {fvLink && (
+              <>
+                {!iframeLoaded && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background z-10">
+                    <img
+                      src="/gooddollar-logo.png"
+                      alt="GoodDollar"
+                      className="w-10 h-10 rounded-full"
+                    />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading…
                     </div>
                   </div>
-                </div>
-
-                {!isConnected ? (
-                  <button
-                    onClick={handleConnectClick}
-                    className={cn(
-                      "w-fit px-4 py-3 text-sm font-medium",
-                      "bg-delulu-yellow-reserved text-delulu-charcoal",
-                      "rounded-md border-2 border-border",
-                      "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                      "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
-                    )}
-                  >
-                    Connect wallet to claim
-                  </button>
-                ) : (
-                  <div className="space-y-4">
-                    {entitlement !== null && entitlement > 0n && (
-                      <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-black text-muted-foreground uppercase mb-1">
-                            Entitlement
-                          </p>
-                          {isClaimDataLoading || !isInitialized ? (
-                            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
-                          ) : (
-                            <p className="text-lg font-black text-foreground">
-                              {formattedEntitlement !== null
-                                ? `${parseFloat(formattedEntitlement).toFixed(2)}`
-                                : "--"}{" "}
-                              <span className="text-xs text-muted-foreground">
-                                G$
-                              </span>
-                            </p>
-                          )}
-                        </div>
-                        {!hasClaimed && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                            Daily claim available
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {isClaimDataLoading || !isInitialized ? (
-                      <div className="rounded-xl border border-border bg-muted p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Checking eligibility…</span>
-                      </div>
-                    ) : hasClaimed ? (
-                      <div className="rounded-xl border border-border bg-muted p-4 text-center space-y-1.5">
-                        {nextClaimTime && (
-                          <p className="text-sm font-medium text-muted-foreground">
-                            Next claim:&nbsp;
-                            <span className="font-semibold text-foreground">
-                              {nextClaimTime.toLocaleString()}
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleClaim}
-                        disabled={isClaiming || hasClaimed}
-                        className={cn(
-                          "w-fit px-4 py-3 text-sm font-medium",
-                          "bg-delulu-yellow-reserved text-delulu-charcoal",
-                          "rounded-md border-2 border-border",
-                          "shadow-[3px_3px_0px_0px_#1A1A1A]",
-                          "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
-                          "disabled:opacity-50 disabled:cursor-not-allowed",
-                          "flex items-center justify-center gap-2",
-                        )}
-                      >
-                        {isClaiming ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Claiming...
-                          </>
-                        ) : entitlement !== null && entitlement > 0n ? (
-                          `Claim ${parseFloat(
-                            formattedEntitlement || "0.00",
-                          ).toFixed(2)} G$`
-                        ) : (
-                          "Claim G$"
-                        )}
-                      </button>
-                    )}
-                  </div>
                 )}
-              </section>
-
-            </div>
+                <iframe
+                  src={fvLink}
+                  title="GoodDollar claim"
+                  className="w-full h-full border-0"
+                  allow="camera; microphone; clipboard-write"
+                  onLoad={() => setIframeLoaded(true)}
+                />
+              </>
+            )}
           </div>
         </main>
 
@@ -256,19 +135,6 @@ export default function DailyClaimClient() {
       </div>
 
       <BottomNav onProfileClick={handleProfileClick} onCreateClick={handleCreateClick} />
-
-      <IdentityFlow
-        open={showIdentityFlow}
-        onOpenChange={setShowIdentityFlow}
-        onVerified={() => {
-          setShowIdentityFlow(false);
-          claim();
-        }}
-      />
-
-      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
-
     </div>
   );
 }
-

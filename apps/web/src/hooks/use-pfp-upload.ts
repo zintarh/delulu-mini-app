@@ -25,6 +25,11 @@ export function usePfpUpload(): UsePfpUploadReturn {
     setError(null);
 
     try {
+      const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+      if (file.size > MAX_SIZE) {
+        throw new Error("Image must be smaller than 2 MB.");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       if (!address) {
