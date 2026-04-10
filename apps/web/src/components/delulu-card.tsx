@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo,  } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { UsersIcon, Plus, Check, Clock } from "lucide-react";
+import { Plus, Flame, Clock, Bell, DollarSign } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAccount } from "wagmi";
@@ -57,6 +57,20 @@ function formatTimeLeft(target: Date) {
   }
 
   return { label, secondsLeft: totalSeconds };
+}
+
+function formatTimeAgo(nowMs: number, pastMs: number): string {
+  const diffMs = nowMs - pastMs;
+  if (diffMs < 0) return "just now";
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
 }
 
 function formatTimeLeftDayHour(nowMs: number, targetMs: number): string {
@@ -167,7 +181,7 @@ export function DeluluCard({
 
   type MilestonePreviewStatus = "past" | "current" | "future";
 
-  const { previewMilestones, passedCount, totalCount, successPct } =
+  const { previewMilestones, passedCount, totalCount, successPct, streakCount } =
     useMemo(() => {
       type PreviewItem = {
         label: string;
@@ -183,6 +197,7 @@ export function DeluluCard({
         passedCount: 0,
         totalCount: 0,
         successPct: 0,
+        streakCount: 0,
       };
       if (
         effectiveMilestonesLoading ||
@@ -195,6 +210,13 @@ export function DeluluCard({
       const sorted = [...effectiveMilestones].sort(
         (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
       );
+
+      // Consecutive verified milestones from the start — drives streak badge
+      let streakCount = 0;
+      for (const m of sorted) {
+        if (m.isVerified) streakCount++;
+        else break;
+      }
 
       const total = totalMilestoneCount ?? sorted.length;
       const completedCount = effectiveMilestones.filter(
@@ -246,6 +268,7 @@ export function DeluluCard({
           passedCount: passed,
           totalCount: total,
           successPct: success,
+          streakCount,
         };
       }
 
@@ -294,6 +317,7 @@ export function DeluluCard({
         passedCount: passed,
         totalCount: total,
         successPct: success,
+        streakCount,
       };
     }, [
       effectiveMilestones,
@@ -348,180 +372,332 @@ export function DeluluCard({
     }
   };
 
+  // ── Card visual values ──
+  const currentMilestone = previewMilestones.find((m) => m.status === "current") ?? null;
+  const lastMilestone = previewMilestones[previewMilestones.length - 1] ?? null;
+  const resolutionMs = delusion.resolutionDeadline.getTime();
+  const isEnded = resolutionMs > 0 && resolutionMs <= now;
+  const timeRemaining = !isEnded ? formatTimeLeftDayHour(now, resolutionMs) : null;
+  // "Hot" when ≥ 5 believers — signals social proof without knowing pool distribution
+  const isHot = !isEnded && (delusion.totalSupporters ?? 0) >= 5;
+
+  const showSupportButton =
+    !isEnded &&
+    !isCreator &&
+    shouldShowBuyButton(effectiveMilestones, now, {
+      createdAt: delusion.createdAt,
+      stakingDeadline: delusion.stakingDeadline,
+    });
+
+  // ── Urgency level — drives border colour, glow and pill copy ──
+  const msLeft = resolutionMs - now;
+  const hoursLeft = msLeft / (1000 * 60 * 60);
+  const urgency: "ended" | "critical" | "warning" | "normal" = isEnded
+    ? "ended"
+    : hoursLeft < 24
+    ? "critical"
+    : hoursLeft < 72
+    ? "warning"
+    : "normal";
+
+  // Deterministic gradient from creator address — each creator always gets the same colour pair
+  const addrHex = delusion.creator.replace("0x", "").toLowerCase();
+  const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
+  const h2 = (h1 + 55) % 360;
+  const cardGradient = `linear-gradient(140deg, hsl(${h1},50%,20%) 0%, hsl(${h2},55%,12%) 100%)`;
+
+  // Avatar progress ring — 52px avatar, SVG bleeds 4px each side → 60×60, r=26
+  const ringR = 26;
+  const ringCircumference = 2 * Math.PI * ringR; // ≈ 163.36
+
   const cardContent = (
-    <>
+    // Outer card: no overflow-hidden so the avatar can float over the header
+    <div
+      onClick={href ? undefined : handleCardClick}
+      onMouseEnter={handleMouseEnter}
+      className={cn(
+        "rounded-2xl bg-card shadow-sm",
+        "transition-all duration-200",
+        "hover:shadow-xl hover:-translate-y-0.5",
+        urgency === "ended" && "opacity-80",
+        href && "cursor-pointer active:scale-[0.99]",
+      )}
+    >
+      {/* ── Hero header: goal text overlaid on the gradient/image ── */}
       <div
-        onClick={href ? undefined : handleCardClick}
-        onMouseEnter={handleMouseEnter}
-        className={cn(
-          "rounded-2xl overflow-hidden transition-all duration-300",
-          "bg-card/95 border border-border shadow-sm",
-          "hover:border-emerald/30 hover:shadow-md hover:shadow-emerald/5",
-          href && "cursor-pointer active:scale-[0.99]",
-        )}
-        style={href ? { cursor: "pointer" } : {}}
+        className="relative rounded-t-2xl overflow-hidden flex flex-col justify-end"
+        style={{ background: cardGradient, minHeight: 130 }}
       >
-        <div className="flex items-start gap-3 p-4 pb-2">
-          <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-emerald/50 ring-offset-2 ring-offset-background shadow-inner">
-            <img
-              src={resolvedAvatarUrl}
-              alt={displayUsername || formatAddress(delusion.creator)}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-foreground font-semibold mb-0.5">
-              {displayUsername
-                ? `@${displayUsername}`
-                : formatAddress(delusion.creator)}
-            </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <span>{timeLeftLabel === "Ended" ? "Ended" : "Active"}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0 bg-secondary border border-border/50 rounded-full px-2 py-1">
-            <span className="text-base font-black tabular-nums text-foreground">
-              {formattedGAmount}
+        {/* Creator bg image */}
+        {delusion.bgImageUrl && (
+          <img
+            src={delusion.bgImageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        {/* Scrim — makes white headline text readable over any image/gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10 pointer-events-none" />
+
+        {/* Hot badge — top left, only when social proof threshold is met */}
+        {isHot && (
+          <div className="absolute top-2.5 left-2.5">
+            <span className="inline-flex items-center gap-0.5 px-2 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm bg-orange-500/25 text-orange-300 border border-orange-400/30">
+              <Flame className="w-2 h-2" />
+              Hot
             </span>
-            {isGoodDollar && (
-              <span className="text-xs font-semibold text-muted-foreground">
-                G$
-              </span>
-            )}
           </div>
+        )}
+
+        {/* Status / urgency pill — top right */}
+        <div className="absolute top-2.5 right-2.5">
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide backdrop-blur-sm",
+              urgency === "critical" && "bg-rose-500/30 text-rose-300 border border-rose-400/40",
+              urgency === "warning"  && "bg-amber-500/25 text-amber-300 border border-amber-400/35",
+              urgency === "ended"    && "bg-black/40 text-white/50",
+              urgency === "normal"   && "bg-delulu-green/20 text-delulu-green border border-delulu-green/35",
+            )}
+          >
+            {urgency === "critical" && <Clock className="w-2 h-2" />}
+            {urgency === "warning"  && <Bell className="w-2 h-2" />}
+            {urgency === "ended" ? "Ended" : urgency === "critical" ? "Ending" : "Active"}
+          </span>
         </div>
 
-        <div className="px-4 pb-3">
-          <p className="text-[17px] leading-relaxed text-foreground whitespace-pre-line font-semibold">
+        {/* Headline — the first thing eyes land on */}
+        <div className="relative px-4 pb-5 pt-10">
+          <p
+            className="text-white font-bold text-[19px] leading-snug line-clamp-3"
+            style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+          >
             {headline}
           </p>
         </div>
+      </div>
 
-        <div className="px-4 pb-4 space-y-3">
-          {totalCount > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1 text-xs">
-                <span className="text-muted-foreground font-medium">
-                  Milestones
-                </span>
-                <span className="tabular-nums text-muted-foreground font-semibold">
-                  {passedCount}/{totalCount}
-                  {successPct > 0 && successPct < 100 && (
-                    <span className="t font-normal"> · {successPct}%</span>
-                  )}
-                </span>
-              </div>
+      {/* ── Content ── */}
+      <div className="px-4">
+        {/* Avatar — negative margin pulls it up to overlap the header */}
+        <div className="-mt-7 mb-2 flex items-end justify-between">
+          <div className="relative w-[52px] h-[52px] shrink-0">
+            {/* Avatar image with card-coloured border creating the "floating" cutout */}
+            <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-[3px] border-card shadow-md">
+              <img
+                src={resolvedAvatarUrl}
+                alt={displayUsername || formatAddress(delusion.creator)}
+                className="w-full h-full object-cover"
+              />
             </div>
-          )}
-          {previewMilestones.length === 0 ? (
-            isCreator ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(href || `/delulu/${delusion.id}`);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+            {/* Milestone completion arc */}
+            {totalCount > 0 && (
+              <svg
+                className="absolute pointer-events-none -rotate-90"
+                style={{ inset: "-4px", width: 60, height: 60 }}
+                viewBox="0 0 60 60"
               >
-                <Plus className="w-3.5 h-3.5" />
-                Add step
-              </button> 
-            ) : null
-          ) : (
-            <div className="space-y-1">
-              {previewMilestones.map((m) => {
-                const isPast = m.status === "past";
-                const isPastFailed = isPast && m.pastLabel === "";
-                const isInReview = isPast && m.pastLabel === "Review";
-                const isCurrentUnderReview =
-                  m.status === "current" && m.isSubmitted;
-                const isCompleted = isPast && m.pastLabel === "Completed";
-                const base =
-                  "flex items-center justify-between rounded-xl py-1.5 text-sm transition-colors";
+                <circle
+                  cx="30" cy="30" r={ringR}
+                  fill="none" strokeWidth="2.5"
+                  className="stroke-border/30"
+                />
+                {successPct > 0 && (
+                  <circle
+                    cx="30" cy="30" r={ringR}
+                    fill="none" strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="stroke-delulu-green transition-all duration-700"
+                    strokeDasharray={`${(successPct / 100) * ringCircumference} ${ringCircumference}`}
+                  />
+                )}
+              </svg>
+            )}
+            {/* Streak badge — shows on corner when ≥ 2 consecutive verified milestones */}
+            {streakCount >= 2 && (
+              <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-card border border-border/60 rounded-full px-1.5 py-0.5 shadow-sm">
+                <Flame className="w-2.5 h-2.5 text-orange-400" />
+                <span className="text-[9px] font-black leading-none text-foreground">{streakCount}</span>
+              </div>
+            )}
+          </div>
 
-                const variant =
-                  m.status === "current"
-                    ? ""
-                    : m.status === "past"
-                      ? "bg-muted/40 border-border/40 text-muted-foreground"
-                      : "bg-muted/30 border-border/30 text-muted-foreground";
+        </div>
 
-                return (
-                  <div
-                    key={`${m.label}-${m.status}`}
-                    className={cn(base, variant)}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {isCompleted ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-delulu-green/20 text-delulu-green">
-                          <Check className="h-3 w-3" strokeWidth={2.5} />
-                        </span>
-                      ) : isInReview || isCurrentUnderReview ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                          <Clock className="h-3 w-3" strokeWidth={2.5} />
-                        </span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "h-2.5 w-2.5 rounded-full shrink-0",
-                            m.status === "current"
-                              ? "bg-emerald shadow-[0_0_6px_rgba(52,211,153,0.5)]"
-                              : m.status === "past"
-                                ? "bg-muted-foreground/50"
-                                : "bg-border",
-                          )}
-                        />
-                      )}
-                      <span
-                        className={cn(
-                          "truncate",
-                          m.status === "current" && "font-medium",
-                        )}
-                      >
-                        {m.status === "current" ? "Now: " : null}
-                        {m.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={cn(
-                          "text-xs tabular-nums font-medium",
-                          isPastFailed && "text-destructive",
-                          isInReview && "text-amber-600 dark:text-amber-400",
-                          m.status === "current" &&
-                            m.isSubmitted &&
-                            "text-amber-600 dark:text-amber-400",
-                        )}
-                      >
-                        {m.status === "past"
-                          ? (m.pastLabel ?? "Done")
-                          : m.status === "future"
-                            ? "Upcoming"
-                            : m.status === "current" && m.isSubmitted
-                              ? `Review · ${m.endTimeMs != null ? formatTimeLeftDayHour(now, m.endTimeMs) : "—"}`
-                              : m.endTimeMs != null
-                                ? formatTimeLeftDayHour(now, m.endTimeMs)
-                                : "—"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Creator name + created-at + buy button on same row */}
+        <div className="flex items-center gap-1.5 mb-3 min-w-0">
+          <span className="text-[12px] font-semibold text-muted-foreground truncate leading-tight">
+            {creatorLabel}
+          </span>
+          {delusion.createdAt && delusion.createdAt.getTime() > 0 && (
+            <>
+              <span className="shrink-0 text-muted-foreground/40 text-[11px]">·</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground/60">
+                {formatTimeAgo(now, delusion.createdAt.getTime())}
+              </span>
+            </>
+          )}
+          {showSupportButton && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/delulu/${delusion.id}?action=buy`);
+              }}
+              className="ml-auto shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary border border-border text-foreground/80 text-[11px] font-semibold shadow-sm hover:bg-muted hover:text-foreground active:scale-95 transition-all"
+            >
+              <DollarSign className="w-3 h-3" />
+              Buy
+            </button>
           )}
         </div>
 
-        {/* <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-muted/30 px-4 py-3 text-xs">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            {delusion.totalSupporters != null && (
-              <span className="inline-flex items-center gap-1 font-medium text-foreground/90">
-                <UsersIcon className="h-3 w-3 text-emerald/80" />
-                <span>{delusion.totalSupporters}</span>
+        {/* ── Milestone list ── */}
+        {totalCount > 0 ? (
+          <div className="pb-4 space-y-0">
+            {previewMilestones.map((m, i) => {
+              const isCurrent = m.status === "current";
+              const isCompleted = m.status === "past" && m.pastLabel === "Completed";
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex items-center gap-2.5 py-1.5",
+                    !isCurrent && "opacity-40",
+                  )}
+                >
+                  {/* Dot */}
+                  <div
+                    className={cn(
+                      "shrink-0 rounded-full",
+                      isCurrent
+                        ? "w-2 h-2 bg-delulu-green shadow-[0_0_6px_2px_rgba(52,211,153,0.5)]"
+                        : isCompleted
+                        ? "w-1.5 h-1.5 bg-delulu-green"
+                        : "w-1.5 h-1.5 bg-border",
+                    )}
+                  />
+                  {/* Label */}
+                  <span
+                    className={cn(
+                      "flex-1 text-xs truncate",
+                      isCurrent ? "text-foreground font-medium" : "text-foreground/70",
+                    )}
+                  >
+                    {m.isSubmitted && isCurrent ? `In review · ${m.label}` : m.label}
+                  </span>
+                  {/* Right tag */}
+                  {isCurrent && m.endTimeMs != null ? (
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {formatTimeLeftDayHour(now, m.endTimeMs)}
+                    </span>
+                  ) : m.status === "past" && m.pastLabel ? (
+                    <span
+                      className={cn(
+                        "shrink-0 text-[10px] font-semibold",
+                        isCompleted ? "text-delulu-green" : "text-muted-foreground",
+                      )}
+                    >
+                      {m.pastLabel}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : isCreator ? (
+          <div className="pb-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(href || `/delulu/${delusion.id}`);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add milestone
+            </button>
+          </div>
+        ) : (
+          <div className="pb-4" />
+        )}
+      </div>
+
+      {/* ── Stats bar ── */}
+      <div className="flex items-stretch border-t border-border/40 divide-x divide-border/40">
+        {/* Pool */}
+        <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
+          <span className="text-sm font-black tabular-nums text-foreground leading-none">
+            {formattedGAmount}
+            {isGoodDollar && (
+              <span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
+                G$
               </span>
             )}
+          </span>
+          <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
+            Pool
+          </span>
+        </div>
+
+        {/* Steps */}
+        {totalCount > 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
+            <span className="text-sm font-black tabular-nums text-foreground leading-none">
+              {passedCount}
+              <span className="text-xs font-normal text-muted-foreground">
+                /{totalCount}
+              </span>
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
+              Steps
+            </span>
           </div>
-        </div> */}
+        )}
+
+        {/* Believers — stacked avatars + overflow count */}
+        {delusion.totalSupporters != null && delusion.totalSupporters > 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center py-3 gap-1">
+            <div className="flex items-center">
+              {Array.from({ length: Math.min(3, delusion.totalSupporters) }).map((_, i) => (
+                <img
+                  key={i}
+                  src={`${DEFAULT_AVATAR_BASE}${delusion.id}-s${i}`}
+                  className="w-[18px] h-[18px] rounded-full border-[1.5px] border-card -ml-1.5 first:ml-0 bg-muted"
+                  alt=""
+                />
+              ))}
+              {delusion.totalSupporters > 3 && (
+                <span className="text-[10px] font-bold text-muted-foreground ml-1 tabular-nums">
+                  +{delusion.totalSupporters - 3}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
+              Believers
+            </span>
+          </div>
+        )}
+
+        {/* Time left — coloured by urgency */}
+        <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
+          <span
+            className={cn(
+              "text-sm font-black tabular-nums leading-none",
+              urgency === "critical" && "text-rose-400",
+              urgency === "warning"  && "text-amber-400",
+              urgency === "ended"    && "text-muted-foreground",
+              urgency === "normal"   && "text-foreground",
+            )}
+          >
+            {timeRemaining ?? "Done"}
+          </span>
+          <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
+            {isEnded ? "Status" : "Left"}
+          </span>
+        </div>
       </div>
-    </>
+    </div>
   );
 
   if (href) {

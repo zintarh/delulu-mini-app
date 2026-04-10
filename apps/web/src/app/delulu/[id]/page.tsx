@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { SharesSheet } from "@/components/shares-sheet";
 import {
@@ -327,7 +327,10 @@ export default function DeluluPage() {
       : `/delulu/${deluluId}`;
   const shareTitle = ipfsMetadata?.text ?? `Delulu #${delulu?.onChainId ?? ""}`;
 
-  const [buySharesSheetOpen, setBuySharesSheetOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const [buySharesSheetOpen, setBuySharesSheetOpen] = useState(
+    () => searchParams.get("action") === "buy",
+  );
   const [sellSharesSheetOpen, setSellSharesSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "milestones">(
