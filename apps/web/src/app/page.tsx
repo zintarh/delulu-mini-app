@@ -9,19 +9,72 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { DeluluCard } from "@/components/delulu-card";
-import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
-import { useAllDelulus, useGraphUserDelulus } from "@/hooks/graph";
+import { useAllDelulus } from "@/hooks/graph";
 import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
+
+function BoardTile({ delusion }: { delusion: FormattedDelulu }) {
+  const addrHex = delusion.creator.replace("0x", "").toLowerCase();
+  const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
+  const h2 = (h1 + 55) % 360;
+  const gradient = `linear-gradient(140deg, hsl(${h1},50%,22%) 0%, hsl(${h2},55%,13%) 100%)`;
+  const headline = delusion.content?.trim() || "YOUR DELULU HEADLINE";
+  const minH = headline.length > 80 ? 380 : headline.length > 40 ? 320 : 260;
+
+  const displayName = delusion.username
+    ? `@${delusion.username}`
+    : `${delusion.creator.slice(0, 6)}…${delusion.creator.slice(-4)}`;
+  const avatarSeed = encodeURIComponent(displayName);
+  const avatarUrl = delusion.pfpUrl ||
+    `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
+
+  return (
+    <Link href={`/delulu/${delusion.id}`} className="block break-inside-avoid mb-3">
+      <div
+        className="relative rounded-2xl overflow-hidden flex flex-col justify-end hover:scale-[1.02] hover:shadow-xl transition-all duration-200 cursor-pointer"
+        style={{ background: gradient, minHeight: minH }}
+      >
+        {delusion.bgImageUrl && (
+          <img
+            src={delusion.bgImageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+        <div className="relative px-3 pb-3 pt-10">
+          <p
+            className="text-white font-bold text-sm leading-snug line-clamp-4 mb-3"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
+          >
+            {headline}
+          </p>
+          {/* Pinterest-style creator row */}
+          <div className="flex items-center gap-1.5">
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-5 h-5 rounded-full object-cover bg-white/20 shrink-0"
+            />
+            <span className="text-white/70 text-[11px] font-medium truncate">
+              {displayName}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export default function HomePage() {
   const { isConnected, address } = useAccount();
@@ -48,10 +101,6 @@ export default function HomePage() {
     refetch: refetchFeed,
   } = useAllDelulus();
   
-  const { 
-    delulus: userCreatedDelulus, 
-    isLoading: isLoadingUserDelulus 
-  } = useGraphUserDelulus("ongoing");
 
 
 
@@ -76,8 +125,18 @@ export default function HomePage() {
 
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"board" | "fyp">("fyp");
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const [activeTab, setActiveTab] = useState<"board" | "fyp">(() => {
+    try {
+      const saved = localStorage.getItem("delulu_feed_tab");
+      if (saved === "board" || saved === "fyp") return saved;
+    } catch {}
+    return "fyp";
+  });
+
+  const handleTabChange = (tab: "board" | "fyp") => {
+    setActiveTab(tab);
+    try { localStorage.setItem("delulu_feed_tab", tab); } catch {}
+  };
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const [creatorPfps, setCreatorPfps] = useState<Record<string, string | null>>({});
   const lastPfpBatchKeyRef = useRef<string>("");
@@ -94,13 +153,7 @@ export default function HomePage() {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-      if (
-        distanceFromBottom < 400 &&
-        hasNextPage &&
-        !isFetchingNextPage &&
-        !isLoading &&
-        activeTab === "fyp"
-      ) {
+      if (distanceFromBottom < 400 && hasNextPage && !isFetchingNextPage && !isLoading) {
         fetchNextPage();
       }
     };
@@ -110,7 +163,7 @@ export default function HomePage() {
       container.removeEventListener("scroll", handleScroll);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage, activeTab]);
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   useEffect(() => {
     const id = setInterval(() => setFeedNowMs(Date.now()), 30000);
@@ -160,22 +213,11 @@ export default function HomePage() {
   };
 
   const filteredDelulus = useMemo(() => {
-    let delulusToFilter: FormattedDelulu[] = [];
-    
-    if (activeTab === "board") {
-      if (!isConnected || !address) {
-        return [];
-      }
-      delulusToFilter = userCreatedDelulus;
-    } else {
-      delulusToFilter = delulus;
-    }
-    
-    return delulusToFilter.filter(isContentLoaded);
-  }, [delulus, activeTab, userCreatedDelulus, isConnected, address]);
+    return delulus.filter(isContentLoaded);
+  }, [delulus]);
 
   useEffect(() => {
-    if (activeTab !== "fyp" || filteredDelulus.length === 0) return;
+    if (filteredDelulus.length === 0) return;
 
     const addresses = Array.from(
       new Set(filteredDelulus.map((d) => d.creator.toLowerCase())),
@@ -222,14 +264,22 @@ export default function HomePage() {
           />
         </div>
 
-        <main 
+        <main
           ref={scrollContainerRef}
           className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background"
         >
+          {/* Indeterminate progress bar — visible during any fetch */}
+          <div className="sticky top-0 z-50 h-[2px] w-full overflow-hidden pointer-events-none">
+            {(isLoading || isFetchingNextPage) && (
+              <div className="absolute inset-0 bg-border/30">
+                <div className="h-full w-1/3 bg-delulu-green animate-[progress-indeterminate_1.4s_ease-in-out_infinite] rounded-full" />
+              </div>
+            )}
+          </div>
           <div className="lg:hidden">
             <Navbar
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               onSearchClick={() => {
                 if (!authenticated) router.push("/sign-in");
                 else router.push("/search");
@@ -240,7 +290,7 @@ export default function HomePage() {
           <div className="hidden lg:block sticky top-0 z-30 bg-secondary/95 backdrop-blur-sm border-b border-border">
             <div className="flex items-center justify-center gap-1 h-14">
               <button
-                onClick={() => setActiveTab("board")}
+                onClick={() => handleTabChange("board")}
                 className={cn(
                   "px-4 h-full flex items-center justify-center text-sm font-bold transition-colors relative",
                   activeTab === "board"
@@ -254,7 +304,7 @@ export default function HomePage() {
                 )}
               </button>
               <button
-                onClick={() => setActiveTab("fyp")}
+                onClick={() => handleTabChange("fyp")}
                 className={cn(
                   "px-4 h-full flex items-center justify-center text-sm font-medium transition-colors relative",
                   activeTab === "fyp"
@@ -273,95 +323,87 @@ export default function HomePage() {
             
           </div>
 
-          <div className="px-4 lg:px-6 py-6 space-y-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
-            {(activeTab === "fyp" && (isLoading || (isIpfsLoading && filteredDelulus.length === 0))) ||
-            (activeTab === "board" && isLoadingUserDelulus) ? (
-              <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col gap-3"}>
-                {Array.from({ length: activeTab === "board" ? 6 : 5 }).map((_, i) => (
-                  activeTab === "board" ? (
+          <div className="px-4 lg:px-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
+            {isLoading || (isIpfsLoading && filteredDelulus.length === 0) ? (
+              activeTab === "board" ? (
+                <div className="columns-2 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
                     <div
                       key={i}
-                      className="break-inside-avoid mb-3 aspect-[16/9] bg-muted rounded-xl border border-border animate-pulse"
+                      className="break-inside-avoid mb-3 rounded-2xl bg-muted animate-pulse"
+                      style={{ height: [280, 360, 300, 380, 260, 340, 320, 270][i] }}
                     />
-                  ) : (
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
                     <DeluluCardSkeleton key={i} index={i} />
-                  )
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : filteredDelulus.length > 0 ? (
-              <div className={activeTab === "board" ? "columns-1 gap-3 space-y-3" : "flex flex-col"}>
-                {filteredDelulus.map((delusion, index) => {
-                  const feedDelusion = delusion as FormattedDeluluFeed;
-                  const itemKey = `delulu-${delusion.onChainId || delusion.id}-${index}`;
-                  const commonProps = {
-                    delusion,
-                    href: `/delulu/${delusion.id}`,
-                    isLast: index === filteredDelulus.length - 1,
-                  };
-
-                  return activeTab === "board" ? (
-                    <div key={itemKey} className="break-inside-avoid mb-3">
-                      <ProfileDeluluCard key={itemKey} {...commonProps} size="masonry" />
-                    </div>
-                  ) : (
-                    <DeluluCard
-                      key={itemKey}
-                      {...commonProps}
-                      nowMs={feedNowMs}
-                      disableMilestoneQuery
-                      disableUsernameLookup
-                      feedMilestones={feedDelusion.feedMilestones}
-                      totalMilestoneCount={feedDelusion.totalMilestoneCount}
-                      creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()] ?? null}
-                    />
-                  );
-                })}
-                {/* Silent pagination: don't replace cards with skeletons while fetching more. */}
-                {activeTab === "fyp" && isFetchingNextPage && (
-                  <div className="mt-4 flex items-center justify-center py-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-                    <div className="mx-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-                    <span className="sr-only">Loading more</span>
+              activeTab === "board" ? (
+                <>
+                  <div className="columns-2 gap-3">
+                    {filteredDelulus.map((delusion, index) => (
+                      <BoardTile
+                        key={`board-${delusion.onChainId || delusion.id}-${index}`}
+                        delusion={delusion}
+                      />
+                    ))}
+                    {/* Skeleton tiles appended inline so masonry columns stay balanced */}
+                    {isFetchingNextPage && Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={`board-skel-${i}`}
+                        className="break-inside-avoid mb-3 rounded-2xl bg-muted animate-pulse"
+                        style={{ height: [300, 260, 340, 280][i] }}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
+                  {!isFetchingNextPage && !hasNextPage && filteredDelulus.length > 0 && (
+                    <p className="text-center text-xs text-muted-foreground/50 py-6">
+                      You&apos;ve seen everything
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col">
+                  {filteredDelulus.map((delusion, index) => {
+                    const feedDelusion = delusion as FormattedDeluluFeed;
+                    const itemKey = `delulu-${delusion.onChainId || delusion.id}-${index}`;
+                    return (
+                      <DeluluCard
+                        key={itemKey}
+                        delusion={delusion}
+                        href={`/delulu/${delusion.id}`}
+                        isLast={index === filteredDelulus.length - 1}
+                        nowMs={feedNowMs}
+                        disableMilestoneQuery
+                        disableUsernameLookup
+                        feedMilestones={feedDelusion.feedMilestones}
+                        totalMilestoneCount={feedDelusion.totalMilestoneCount}
+                        creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()] ?? null}
+                      />
+                    );
+                  })}
+                  {isFetchingNextPage && (
+                    <div className="flex flex-col gap-3 mt-1">
+                      <DeluluCardSkeleton index={0} />
+                      <DeluluCardSkeleton index={1} />
+                    </div>
+                  )}
+                  {!isFetchingNextPage && !hasNextPage && filteredDelulus.length > 0 && (
+                    <p className="text-center text-xs text-muted-foreground/50 py-6">
+                      You&apos;ve seen everything
+                    </p>
+                  )}
+                </div>
+              )
             ) : (
               <div className="text-center py-12 flex flex-col items-center justify-center min-h-[400px]">
-                {activeTab === "board" ? (
-                  <>
-                    <p className="text-muted-foreground text-sm mb-2">
-                      Your board is empty
-                    </p>
-                    <p className="text-muted-foreground/70 text-xs mb-6 max-w-sm">
-                      Create your first delulu to start building your board
-                    </p>
-                    <button
-                      onClick={() => {
-                        if (!isConnected) {
-                          setShowLoginSheet(true);
-                        } else {
-                          router.push("/board");
-                        }
-                      }}
-                      className={cn(
-                        "inline-flex items-center gap-2 px-6 py-3 rounded-md border-2 border-secondary bg-secondary text-foreground shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-sm font-bold"
-                      )}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create Delulu
-                    </button>
-                  </>
-                ) : (
-                  <>
-                <p className="text-gray-500 text-sm">
-                      No delulus yet
-                </p>
-                <p className="text-gray-400 text-xs mt-1">
-                      Start by creating your first delulu
-                </p>
-                  </>
-                )}
+                <p className="text-muted-foreground text-sm">No delulus yet</p>
+                <p className="text-muted-foreground/70 text-xs mt-1">Start by creating your first delulu</p>
               </div>
             )}
           </div>

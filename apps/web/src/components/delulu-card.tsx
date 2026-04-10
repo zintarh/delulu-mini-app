@@ -467,7 +467,7 @@ export function DeluluCard({
         </div>
 
         {/* Headline — the first thing eyes land on */}
-        <div className="relative px-4 pb-5 pt-10">
+        <div className="relative px-4 pb-10 pt-10">
           <p
             className="text-white font-bold text-[19px] leading-snug line-clamp-3"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
