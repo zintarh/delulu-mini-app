@@ -115,6 +115,9 @@ export default function SignInPage() {
     if (authenticated) router.replace("/welcome");
   }, [ready, authenticated, router]);
 
+
+
+
   const { sendCode, loginWithCode } = useLoginWithEmail({
     onComplete: () => {
       setIsRedirecting(true);
@@ -134,6 +137,11 @@ export default function SignInPage() {
       );
     },
   });
+
+
+
+
+  
 
   const { isOpen: isModalOpen } = useModalStatus();
 
@@ -156,6 +164,9 @@ export default function SignInPage() {
       setIsVerifying(false);
     }
   };
+
+
+
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();

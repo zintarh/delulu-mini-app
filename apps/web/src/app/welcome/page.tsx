@@ -19,9 +19,7 @@ export default function WelcomePage() {
   const { ready, authenticated, user: privyUser } = usePrivy();
   const { wallets } = useWallets();
 
-  // Resolve address from multiple sources — wagmi may not have the embedded wallet
-  // address immediately after a Privy email login, so we fall back to Privy's own
-  // wallet list and the user object as a safety net.
+
   const privyWalletAddress = (privyUser as any)?.wallet?.address as `0x${string}` | undefined;
   const firstWalletAddress = wallets?.[0]?.address as `0x${string}` | undefined;
   const address = wagmiAddress ?? firstWalletAddress ?? privyWalletAddress;
@@ -41,7 +39,6 @@ export default function WelcomePage() {
   const faucetFiredRef = useRef(false);
   const verificationDoneRef = useRef(false);
 
-  // If Privy's wallet creation takes over 30s the user gets a helpful message
   useEffect(() => {
     if (address || phase !== "verifying") return;
     const id = setTimeout(() => setWalletTimeout(true), 30_000);
