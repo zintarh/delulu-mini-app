@@ -441,7 +441,7 @@ export function DeluluCard({
           />
         )}
         {/* Scrim — makes white headline text readable over any image/gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20 pointer-events-none" />
 
         {/* Hot badge — top left, only when social proof threshold is met */}
         {isHot && (
