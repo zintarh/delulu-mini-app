@@ -141,15 +141,18 @@ export interface MilestoneForBuyButton {
 }
 
 /**
- * Whether to show the Buy/Support button. Hide if the creator missed a milestone
- * (past deadline, not submitted) and has not yet submitted a later milestone.
+ * Whether to show the Buy/Support button.
+ * Hidden when the creator has no milestones set yet — shares can only be
+ * bought on delulus that have a milestone plan to back.
+ * Also hidden if the creator missed a milestone (past deadline, not submitted)
+ * and has not yet submitted a later milestone.
  */
 export function shouldShowBuyButton(
   milestones: MilestoneForBuyButton[] | null | undefined,
   nowMs: number,
   delulu: { createdAt?: Date; stakingDeadline?: Date }
 ): boolean {
-  if (!milestones || milestones.length === 0) return true;
+  if (!milestones || milestones.length === 0) return false;
   const sorted = [...milestones].sort(
     (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
   );

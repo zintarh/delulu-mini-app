@@ -16,6 +16,8 @@ export type { GraphStake } from "./useGraphDelulu";
 export { useCreatorLeaderboard } from "./useCreatorLeaderboard";
 export { useDeluluLeaderboard } from "./useDeluluLeaderboard";
 export type { DeluluLeaderboardEntry } from "./useDeluluLeaderboard";
+export { useAllUsersLeaderboard } from "./useAllUsersLeaderboard";
+export type { UserLeaderboardEntry } from "./useAllUsersLeaderboard";
 
 // ─── User Profile Hooks ─────────────────────────────────────────
 export { useGraphUserDelulus } from "./useGraphUserDelulus";

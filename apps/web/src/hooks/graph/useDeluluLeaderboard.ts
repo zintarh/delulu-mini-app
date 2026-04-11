@@ -112,6 +112,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
 
   return {
     entries,
+    allEntries,
     hasNextPage,
     isLoading: loading,
     error: error ?? null,
