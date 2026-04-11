@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn, formatGAmount } from "@/lib/utils";
 import {
@@ -127,6 +127,11 @@ export function SharesSheet({
   const [isPending, setIsPending] = useState(false);
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
+  // Track whether we should auto-submit after approval clears
+  const [autoSubmitAfterApproval, setAutoSubmitAfterApproval] = useState(false);
+  // Keep a stable ref to handleAction so we can call it from effects
+  const handleActionRef = useRef<() => Promise<void>>(async () => {});
+
   useEffect(() => {
     if (isApprovalSuccess) refetchAllowance();
   }, [isApprovalSuccess, refetchAllowance]);
@@ -135,6 +140,21 @@ export function SharesSheet({
     if (!isSuccess) return;
     refetchAllowance();
   }, [isSuccess, refetchAllowance]);
+
+  // Auto-trigger buy once approval is confirmed and allowance refetched
+  useEffect(() => {
+    if (autoSubmitAfterApproval && !approvalNeeded && !isPending && !isConfirming) {
+      setAutoSubmitAfterApproval(false);
+      handleActionRef.current();
+    }
+  }, [autoSubmitAfterApproval, approvalNeeded, isPending, isConfirming]);
+
+  // Auto-close sheet 1.5s after successful tx
+  useEffect(() => {
+    if (!isSuccess) return;
+    const timer = setTimeout(() => onOpenChange(false), 1500);
+    return () => clearTimeout(timer);
+  }, [isSuccess, onOpenChange]);
 
   useEffect(() => {
     if (!isSuccess || !isBuy) return;
@@ -162,9 +182,13 @@ export function SharesSheet({
     }
   };
 
+  // Keep ref in sync so effects always call the latest version
+  handleActionRef.current = handleAction;
+
   const handleApprove = () => {
     setError(null);
     if (!Number.isFinite(maxCostWithSlippageNum) || maxCostWithSlippageNum <= 0) { setError("Unable to estimate cost."); return; }
+    setAutoSubmitAfterApproval(true);
     approve(maxCostWithSlippageNum);
   };
 

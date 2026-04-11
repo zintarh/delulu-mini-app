@@ -56,21 +56,21 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     {
       variables: { first: PAGE_SIZE, skip: page * PAGE_SIZE },
       fetchPolicy: "cache-and-network",
-      onError: (err) => {
-        console.error("[AllUsersLeaderboard] query error:", err.message, err.graphQLErrors, err.networkError);
-      },
     }
   );
 
-  // Fetches up to 1000 users sorted by points — used for total count + rank lookup.
-  const { data: rankData, loading: rankLoading } = useQuery<{
+  const { data: rankData, loading: rankLoading, error: rankError } = useQuery<{
     users: { id: string; deluluPoints: string }[];
   }>(ALL_USERS_RANK_QUERY, {
     fetchPolicy: "cache-and-network",
-    onError: (err) => {
-      console.error("[AllUsersRank] query error:", err.message);
-    },
   });
+
+  if (error) {
+    console.error("[AllUsersLeaderboard] query error:", error.message);
+  }
+  if (rankError) {
+    console.error("[AllUsersRank] query error:", rankError.message);
+  }
 
   const entries: UserLeaderboardEntry[] = useMemo(() => {
     if (!data?.users) return [];

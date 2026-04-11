@@ -347,6 +347,7 @@ export default function DeluluPage() {
   };
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [showMilestonePreview, setShowMilestonePreview] = useState(false);
   const [newMilestones, setNewMilestones] = useState<
     { description: string; days: string }[]
   >([{ description: "", days: "" }]);
@@ -588,7 +589,7 @@ export default function DeluluPage() {
     );
   };
 
-  const handleCreateMilestones = () => {
+  const handleContinueMilestones = () => {
     if (!isCreator || !delulu) return;
     const validMilestones = newMilestones.filter(
       (m) => m.description.trim().length > 0 && m.days.trim().length > 0,
@@ -614,7 +615,6 @@ export default function DeluluPage() {
       return;
     }
 
-    // Validate that all days are valid numbers > 0
     const invalidDays = validMilestones.filter((m) => {
       const days = Number(m.days);
       return Number.isNaN(days) || days <= 0;
@@ -627,14 +627,11 @@ export default function DeluluPage() {
       return;
     }
 
-    // Validate that the total sequential duration does not exceed the resolution deadline.
-    // When adding more milestones, calculate from the last existing milestone deadline.
     const totalDurationSeconds = validMilestones.reduce((sum, m) => {
       const days = Number(m.days);
       return sum + days * 24 * 60 * 60;
     }, 0);
 
-    // Find the last milestone deadline if milestones exist, otherwise use current time
     let startTimeSeconds = Math.floor(Date.now() / 1000);
     if (milestones && milestones.length > 0) {
       const lastMilestone = milestones[milestones.length - 1];
@@ -654,13 +651,19 @@ export default function DeluluPage() {
       return;
     }
 
+    // All valid — open preview
+    setShowMilestonePreview(true);
+  };
+
+  const handleCreateMilestones = () => {
+    if (!isCreator || !delulu) return;
+    const validMilestones = newMilestones.filter(
+      (m) => m.description.trim().length > 0 && m.days.trim().length > 0,
+    );
     const mURIs = validMilestones.map((m) => m.description.trim());
-    // Convert days to seconds: 1 day = 86400 seconds, 3 days = 259200 seconds, etc.
-    // The contract expects durations in seconds
     const mDurations = validMilestones.map((m) =>
       BigInt(Math.floor(Number(m.days) * 24 * 60 * 60)),
     );
-
     writeAddMilestones({
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
@@ -833,6 +836,7 @@ export default function DeluluPage() {
   useEffect(() => {
     if (isAddMilestonesSuccess) {
       setShowMilestoneForm(false);
+      setTimeout(() => setShowMilestonePreview(false), 1200);
       setIsWaitingForMilestones(true);
       // Directly refetch the useGraphDelulu query (avoids document reference mismatch in refetchDeluluData)
       setTimeout(() => refetchDelulu(), 3000);
@@ -1468,31 +1472,20 @@ export default function DeluluPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleCreateMilestones()}
+                          onClick={handleContinueMilestones}
                           disabled={
-                            isAddingMilestones ||
-                            isConfirmingAddMilestones ||
                             (milestones && milestones.length >= 10) ||
                             newMilestones.some((m) => !m.days || Number(m.days) <= 0)
                           }
                           className={cn(
                             "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
                             "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
-                            (isAddingMilestones ||
-                              isConfirmingAddMilestones ||
-                              (milestones && milestones.length >= 10) ||
+                            ((milestones && milestones.length >= 10) ||
                               newMilestones.some((m) => !m.days || Number(m.days) <= 0)) &&
                               "opacity-60 cursor-not-allowed",
                           )}
                         >
-                          {isAddingMilestones || isConfirmingAddMilestones ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Save
-                            </>
-                          ) : (
-                            "Save"
-                          )}
+                          Continue
                         </button>
                       </div>
                     </div>
@@ -1996,6 +1989,129 @@ export default function DeluluPage() {
                 </button>
               </div>
             </ModalFooter>
+          </div>
+        </ModalContent>
+      </Modal>
+
+      {/* Milestone Preview Modal */}
+      <Modal open={showMilestonePreview} onOpenChange={(open) => {
+        if (!open && !isAddingMilestones && !isConfirmingAddMilestones) setShowMilestonePreview(false);
+      }}>
+        <ModalContent className="max-w-lg p-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl" showClose={false}>
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 mb-0.5">Preview</p>
+              <h2 className="text-lg font-bold text-white leading-tight">Milestone plan</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => { if (!isAddingMilestones && !isConfirmingAddMilestones) setShowMilestonePreview(false); }}
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+            >
+              <XIcon className="w-3.5 h-3.5 text-zinc-400" />
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/[0.06] mx-5" />
+
+          {/* Steps */}
+          <div className="px-5 py-4 max-h-[42vh] overflow-y-auto space-y-0">
+            {(() => {
+              const valid = newMilestones.filter(
+                (m) => m.description.trim().length > 0 && m.days.trim().length > 0
+              );
+              let cursor =
+                milestones && milestones.length > 0
+                  ? milestones[milestones.length - 1]!.deadline.getTime()
+                  : Date.now();
+              return valid.map((m, i) => {
+                const daysNum = Number(m.days);
+                cursor += daysNum * 24 * 60 * 60 * 1000;
+                const deadline = new Date(cursor);
+                const isLast = i === valid.length - 1;
+                return (
+                  <div key={i} className="flex gap-3.5">
+                    {/* Spine */}
+                    <div className="flex flex-col items-center pt-0.5">
+                      <div className="w-5 h-5 rounded-full border border-white/20 bg-white/5 text-[10px] font-bold text-zinc-300 flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </div>
+                      {!isLast && <div className="w-px flex-1 bg-white/[0.07] mt-1.5 mb-1.5 min-h-[28px]" />}
+                    </div>
+                    {/* Content */}
+                    <div className={cn("flex-1 min-w-0", !isLast ? "pb-4" : "pb-1")}>
+                      <p className="text-sm font-medium text-white leading-snug">{m.description.trim()}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] text-zinc-500">
+                          {daysNum} {daysNum === 1 ? "day" : "days"}
+                        </span>
+                        <span className="text-zinc-700 text-[10px]">·</span>
+                        <span className="text-[11px] text-zinc-600">
+                          {deadline.toLocaleDateString("en", { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/[0.06] mx-5" />
+
+          {/* Footer */}
+          <div className="px-5 pt-4 pb-5 space-y-4">
+            {/* Summary */}
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="text-zinc-500">Total duration</span>
+              <span className="font-semibold text-zinc-200">
+                {newMilestones
+                  .filter((m) => m.description.trim() && m.days.trim())
+                  .reduce((s, m) => s + Number(m.days), 0)} days
+              </span>
+            </div>
+
+            {/* One-time warning */}
+            <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-4 py-3">
+              <p className="text-[12px] text-zinc-400 leading-relaxed">
+                <span className="text-zinc-200 font-semibold">Milestones are final once submitted.</span>{" "}
+                Make sure you've added everything — you won't be able to add more after this.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowMilestonePreview(false)}
+                disabled={isAddingMilestones || isConfirmingAddMilestones}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/10 text-sm font-medium text-zinc-300 transition-colors disabled:opacity-40"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateMilestones}
+                disabled={isAddingMilestones || isConfirmingAddMilestones || isAddMilestonesSuccess}
+                className={cn(
+                  "flex-1 py-2.5 rounded-xl text-sm font-semibold",
+                  "bg-[#fcff52] text-[#111] hover:bg-[#f0f234] transition-colors",
+                  "flex items-center justify-center gap-2",
+                  "disabled:opacity-40 disabled:cursor-not-allowed",
+                )}
+              >
+                {isAddingMilestones || isConfirmingAddMilestones ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Submitting…</>
+                ) : isAddMilestonesSuccess ? (
+                  <><CheckCircle2 className="w-3.5 h-3.5" /> Done</>
+                ) : (
+                  "Confirm & submit"
+                )}
+              </button>
+            </div>
           </div>
         </ModalContent>
       </Modal>
