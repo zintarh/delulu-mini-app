@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import {
@@ -117,6 +117,17 @@ export function useAllDelulus() {
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const [isIpfsLoading, setIsIpfsLoading] = useState(false);
 
+  // Track pagination end using real per-page item counts, not heuristics.
+  // hasMore starts true (optimistic) and is set to false when a page returns
+  // fewer than PAGE_SIZE items — meaning the subgraph has no more data.
+  const [hasMore, setHasMore] = useState(true);
+
+  // Accumulated item count before the most recent fetchMore, used to compute
+  // how many items the last page returned (newTotal - prevTotal).
+  const prevAccumulatedRef = useRef(0);
+  // Guards against double-triggering the post-fetch effect.
+  const isFetchingMoreRef = useRef(false);
+
   const {
     data,
     loading,
@@ -125,22 +136,18 @@ export function useAllDelulus() {
     refetch: apolloRefetch,
     previousData,
     networkStatus,
-  } = useQuery<
-    GetDelulusFeedQuery,
-    GetDelulusFeedQueryVariables
-  >(GET_DELULUS_FEED, {
-    variables: {
-      first: PAGE_SIZE,
-      skip: 0,
-    },
-    fetchPolicy: "cache-and-network",
-    notifyOnNetworkStatusChange: true,
-  });
+  } = useQuery<GetDelulusFeedQuery, GetDelulusFeedQueryVariables>(
+    GET_DELULUS_FEED,
+    {
+      variables: { first: PAGE_SIZE, skip: 0 },
+      fetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
+    }
+  );
 
   const displayData = data?.delulus || previousData?.delulus || [];
-  // With cache-and-network, Apollo can synchronously provide cached empty results (data = []),
-  // which would incorrectly show the "empty state" on first visit while the network request is in flight.
-  const isInitialLoading = (loading || networkStatus === 1) && page === 0 && displayData.length === 0;
+  const isInitialLoading =
+    (loading || networkStatus === 1) && page === 0 && displayData.length === 0;
 
   const delulus = useMemo<FormattedDeluluFeed[]>(() => {
     if (displayData.length === 0) return [];
@@ -151,7 +158,7 @@ export function useAllDelulus() {
           const cached = getCachedContent(d.contentHash);
           const transformed = transformSubgraphDelulu(
             d as SubgraphDeluluRaw,
-            cached,
+            cached
           );
           const raw = d as FeedDeluluWithMilestones;
           const feedMilestones =
@@ -176,7 +183,27 @@ export function useAllDelulus() {
       .filter((d): d is FormattedDeluluFeed => d !== null && !d.isCancelled);
   }, [displayData, ipfsResolved]);
 
+  // After the initial page loads, set hasMore based on whether we got a full page.
+  useEffect(() => {
+    if (page !== 0 || loading || data?.delulus === undefined) return;
+    const count = data.delulus.length;
+    prevAccumulatedRef.current = count;
+    setHasMore(count >= PAGE_SIZE);
+  }, [page, loading, data?.delulus]);
 
+  // After a fetchMore completes (loading flips to false while isFetchingMoreRef
+  // is set), check how many new items arrived from the subgraph.
+  // If fewer than PAGE_SIZE, the subgraph has no more pages.
+  useEffect(() => {
+    if (!isFetchingMoreRef.current || loading) return;
+
+    const newTotal = data?.delulus.length ?? 0;
+    const pageItems = newTotal - prevAccumulatedRef.current;
+
+    setHasMore(pageItems >= PAGE_SIZE);
+    prevAccumulatedRef.current = newTotal;
+    isFetchingMoreRef.current = false;
+  }, [data?.delulus.length, loading]);
 
   useEffect(() => {
     if (!data?.delulus || data.delulus.length === 0) return;
@@ -193,7 +220,11 @@ export function useAllDelulus() {
   }, [data?.delulus]);
 
   const fetchNextPage = useCallback(() => {
+    if (isFetchingMoreRef.current) return;
     const nextPage = page + 1;
+    // Snapshot current accumulated count before the fetch.
+    prevAccumulatedRef.current = data?.delulus.length ?? 0;
+    isFetchingMoreRef.current = true;
     setPage(nextPage);
     fetchMore({
       variables: {
@@ -201,23 +232,22 @@ export function useAllDelulus() {
         skip: nextPage * PAGE_SIZE,
       },
     });
-  }, [page, fetchMore]);
+  }, [page, fetchMore, data?.delulus.length]);
 
   const refetch = useCallback(async () => {
     setPage(0);
+    setHasMore(true);
+    prevAccumulatedRef.current = 0;
+    isFetchingMoreRef.current = false;
     await apolloRefetch({ first: PAGE_SIZE, skip: 0 });
   }, [apolloRefetch]);
-
-  const hasNextPage =
-    data?.delulus !== undefined &&
-    data.delulus.length >= (page + 1) * PAGE_SIZE;
 
   return {
     delulus,
     isLoading: isInitialLoading,
     isFetchingNextPage: loading && page > 0,
     isIpfsLoading,
-    hasNextPage,
+    hasNextPage: hasMore,
     fetchNextPage,
     error: error ?? null,
     refetch,

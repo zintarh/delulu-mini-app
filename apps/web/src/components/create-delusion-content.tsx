@@ -875,9 +875,14 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
           {/* Stake */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-              Stake
-            </label>
+            <div className="flex items-baseline justify-between">
+              <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                Stake
+              </label>
+              <span className="text-[10px] text-muted-foreground">
+                min {MIN_STAKE} G$ · or leave 0
+              </span>
+            </div>
             <div className="bg-background border border-border rounded-xl p-3 space-y-1">
               <div className="flex items-center gap-3">
                 <input
@@ -912,7 +917,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                       setInputText(clampedValue.toFixed(0));
                     }
                   }}
-                  placeholder="0"
+                  placeholder={`0 (min ${MIN_STAKE})`}
                   className="flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-muted-foreground/40"
                 />
 
