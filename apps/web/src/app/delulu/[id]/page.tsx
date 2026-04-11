@@ -348,6 +348,7 @@ export default function DeluluPage() {
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [showMilestonePreview, setShowMilestonePreview] = useState(false);
+  const [milestoneMinError, setMilestoneMinError] = useState(false);
   const [newMilestones, setNewMilestones] = useState<
     { description: string; days: string }[]
   >([{ description: "", days: "" }]);
@@ -552,8 +553,13 @@ export default function DeluluPage() {
     return getMaxDaysPerRow(newMilestones, deluluRemainingDaysTotal);
   }, [newMilestones, deluluRemainingDaysTotal]);
 
-  const handleAddMilestoneRow = () =>
-    setNewMilestones((prev) => [...prev, { description: "", days: "" }]);
+  const handleAddMilestoneRow = () => {
+    setNewMilestones((prev) => {
+      const next = [...prev, { description: "", days: "" }];
+      if (next.length >= 3) setMilestoneMinError(false);
+      return next;
+    });
+  };
   const handleRemoveMilestoneRow = (index: number) =>
     setNewMilestones((prev) => prev.filter((_, i) => i !== index));
   const handleNewMilestoneChange = (
@@ -595,12 +601,11 @@ export default function DeluluPage() {
       (m) => m.description.trim().length > 0 && m.days.trim().length > 0,
     );
 
-    if (validMilestones.length === 0) {
-      setErrorTitle("Missing");
-      setErrorMessage("Add at least one step with description and days.");
-      setShowErrorModal(true);
+    if (validMilestones.length < 3) {
+      setMilestoneMinError(true);
       return;
     }
+    setMilestoneMinError(false);
 
     const incompleteMilestones = newMilestones.filter(
       (m) =>
@@ -1346,9 +1351,10 @@ export default function DeluluPage() {
                         {isCreator && canAddMilestones && deluluRemainingDaysTotal > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setShowMilestoneForm((open) => !open)
-                            }
+                            onClick={() => {
+                              setShowMilestoneForm((open) => !open);
+                              setMilestoneMinError(false);
+                            }}
                             className="w-fit inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
                           >
                             {showMilestoneForm ? "Close" : "Add"}
@@ -1377,6 +1383,14 @@ export default function DeluluPage() {
 
                   {isCreator && canAddMilestones && showMilestoneForm && (
                     <div className="mb-4 border border-dashed border-border rounded-2xl p-3 md:p-4 bg-muted/60">
+                      {milestoneMinError && (
+                        <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3.5 py-3 mb-3">
+                          <span className="text-amber-500 text-base leading-none mt-px">⚠</span>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium leading-snug">
+                            Add at least <span className="font-bold">3 milestones</span> before continuing. A minimum of 3 steps is required.
+                          </p>
+                        </div>
+                      )}
                       {delulu?.resolutionDeadline && (
                         <p className="text-xs text-muted-foreground mb-3">
                           <strong className="text-foreground">
