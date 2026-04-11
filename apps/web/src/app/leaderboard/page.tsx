@@ -382,7 +382,7 @@ function Pagination({
 type Tab = "campaign" | "dreamers";
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("campaign");
+  const [activeTab, setActiveTab] = useState<Tab>("dreamers");
 
   const chainId = useChainId();
   const deluluContractAddress = getDeluluContractAddress(chainId);
@@ -440,19 +440,6 @@ export default function LeaderboardPage() {
         <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border mb-6">
           <button
             type="button"
-            onClick={() => setActiveTab("campaign")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              activeTab === "campaign"
-                ? "bg-card text-foreground shadow-sm border border-border"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            Campaign
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab("dreamers")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all",
@@ -463,6 +450,19 @@ export default function LeaderboardPage() {
           >
             <Users className="w-3.5 h-3.5" />
             Dreamers
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("campaign")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all",
+              activeTab === "campaign"
+                ? "bg-card text-foreground shadow-sm border border-border"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            Weekly Campaign
           </button>
         </div>
 
