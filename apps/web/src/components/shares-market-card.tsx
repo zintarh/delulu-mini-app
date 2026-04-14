@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
 import { TrendingUp, TrendingDown, Users, BarChart2 } from "lucide-react";
 import {
@@ -96,10 +96,14 @@ export function SharesMarketCard({
     .filter((t) => !t.isBuy)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  // Top holders (sort by balance desc, show top 3)
-  const topHolders = [...(shareHoldings ?? [])]
-    .sort((a, b) => b.balance - a.balance)
-    .slice(0, 3);
+  const [showAllHolders, setShowAllHolders] = useState(false);
+
+  const sortedHolders = useMemo(
+    () => [...(shareHoldings ?? [])].sort((a, b) => b.balance - a.balance),
+    [shareHoldings],
+  );
+  const topHolders = showAllHolders ? sortedHolders : sortedHolders.slice(0, 3);
+  const hasMoreHolders = sortedHolders.length > 3;
 
   const hasChart = chartData.length >= 2;
 
@@ -244,8 +248,8 @@ export function SharesMarketCard({
             <Users className="w-3 h-3" /> Share holders
           </p>
           {topHolders.length > 0 ? (
-            <div className="space-y-1">
-              {topHolders.map((h, i) => (
+            <div className="space-y-1.5">
+              {topHolders.map((h) => (
                 <div key={h.userAddress} className="flex items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                     {h.username ?? `${h.userAddress.slice(0, 6)}…${h.userAddress.slice(-4)}`}
@@ -255,6 +259,17 @@ export function SharesMarketCard({
                   </span>
                 </div>
               ))}
+              {hasMoreHolders && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllHolders((v) => !v)}
+                  className="mt-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showAllHolders
+                    ? "Show less"
+                    : `See all ${sortedHolders.length}`}
+                </button>
+              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">None yet</p>

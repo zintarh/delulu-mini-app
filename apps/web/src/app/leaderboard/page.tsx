@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useChainId } from "wagmi";
 import { useAccount } from "wagmi";
@@ -42,13 +42,17 @@ function formatTitle(entry: DeluluLeaderboardEntry) {
   return text.length > 40 ? text.slice(0, 40) + "…" : text;
 }
 
-function UserAvatar({ address, username }: { address: string; username: string | null }) {
+function UserAvatar({ address, username, pfpUrl }: { address: string; username: string | null; pfpUrl?: string | null }) {
   const seed = encodeURIComponent(username ? `@${username}` : address);
+  const src = pfpUrl || `${DEFAULT_AVATAR_BASE}${seed}`;
   return (
     <img
-      src={`${DEFAULT_AVATAR_BASE}${seed}`}
+      src={src}
       alt={username ?? address}
-      className="w-8 h-8 rounded-full bg-muted shrink-0"
+      className="w-8 h-8 rounded-full bg-muted shrink-0 object-cover"
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).src = `${DEFAULT_AVATAR_BASE}${seed}`;
+      }}
     />
   );
 }
@@ -174,6 +178,30 @@ function DreamersLeaderboard() {
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
 
+  // Batch-fetch pfp URLs from the profile API for all addresses on this page
+  const [pfpMap, setPfpMap] = useState<Record<string, string | null>>({});
+  const lastBatchKeyRef = useRef("");
+
+  useEffect(() => {
+    if (entries.length === 0) return;
+    const addresses = entries.map((e) => e.address.toLowerCase());
+    if (address) addresses.push(address.toLowerCase());
+    const unique = Array.from(new Set(addresses));
+    unique.sort();
+    const batchKey = unique.join(",");
+    if (batchKey === lastBatchKeyRef.current) return;
+    lastBatchKeyRef.current = batchKey;
+    let cancelled = false;
+    fetch(`/api/profile?addresses=${encodeURIComponent(batchKey)}`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((payload) => {
+        if (cancelled || !payload?.profiles) return;
+        setPfpMap((prev) => ({ ...prev, ...payload.profiles }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [entries, address]);
+
   if (isLoading && entries.length === 0) return <SkeletonRows />;
 
   if (error) return <ErrorState onRetry={refetch} error={error} />;
@@ -217,7 +245,7 @@ function DreamersLeaderboard() {
             <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0", rankStyle(myRankEntry!.rank).badge)}>
               {myRankEntry!.rank}
             </div>
-            <UserAvatar address={address!} username={myPageEntry?.username ?? null} />
+            <UserAvatar address={address!} username={myPageEntry?.username ?? null} pfpUrl={pfpMap[address!.toLowerCase()]} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">
                 {myPageEntry?.username ? `@${myPageEntry.username}` : formatAddr(address!)}
@@ -255,7 +283,7 @@ function DreamersLeaderboard() {
               </div>
 
               {/* Avatar */}
-              <UserAvatar address={entry.address} username={entry.username} />
+              <UserAvatar address={entry.address} username={entry.username} pfpUrl={pfpMap[entry.address.toLowerCase()]} />
 
               {/* Name + address */}
               <div className="flex-1 min-w-0">
