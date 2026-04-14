@@ -201,8 +201,6 @@ function DreamersLeaderboard() {
           <div className="w-8 shrink-0" />
           <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Dreamer</span>
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <span className="hidden sm:block w-16 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Delulus</span>
-            <span className="w-12 sm:w-14 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">UB</span>
             <span className="w-12 sm:w-14 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pts</span>
           </div>
         </div>
@@ -222,12 +220,6 @@ function DreamersLeaderboard() {
               <p className="text-[11px] text-muted-foreground/60 font-mono">{formatAddr(address!)}</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <span className="hidden sm:block w-16 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
-                {myPageEntry?.deluluCount ?? "—"}
-              </span>
-              <span className="w-12 sm:w-14 text-right text-xs sm:text-sm font-bold text-[#fcff52] tabular-nums">
-                {myPageEntry?.totalUniqueBuyers ?? 0}
-              </span>
               <span className="w-12 sm:w-14 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
                 {myRankEntry!.points}
               </span>
@@ -263,12 +255,6 @@ function DreamersLeaderboard() {
 
               {/* Stats */}
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                <span className="hidden sm:block w-16 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
-                  {entry.deluluCount > 0 ? entry.deluluCount : <span className="text-muted-foreground/40">—</span>}
-                </span>
-                <span className="w-12 sm:w-14 text-right text-xs sm:text-sm font-bold text-[#fcff52] tabular-nums">
-                  {entry.totalUniqueBuyers > 0 ? entry.totalUniqueBuyers : <span className="text-muted-foreground/30 font-normal">0</span>}
-                </span>
                 <span className="w-12 sm:w-14 text-right text-xs sm:text-sm font-bold text-foreground tabular-nums">
                   {entry.points > 0 ? entry.points : <span className="text-muted-foreground/30 font-normal">0</span>}
                 </span>
