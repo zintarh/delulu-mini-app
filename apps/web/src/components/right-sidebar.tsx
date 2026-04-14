@@ -5,6 +5,8 @@ import { ExternalLink, Search, X, Loader2, ChevronRight } from "lucide-react";
 import { useDeluluLeaderboard } from "@/hooks/graph";
 import { useRouter } from "next/navigation";
 import { cn, formatGAmountInt } from "@/lib/utils";
+import { usePfps } from "@/hooks/use-profile-pfp";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const DELULU_MONDAY_NOTION_URL =
   "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
@@ -31,10 +33,8 @@ export function RightSidebar() {
   const { entries: topEntries, isLoading: isLeaderboardLoading } =
     useDeluluLeaderboard(6, 0);
 
-  // Batch-fetch pfp URLs for leaderboard entries
-  const [pfpMap, setPfpMap] = useState<Record<string, string | null>>({});
-  const [pfpsLoading, setPfpsLoading] = useState(false);
-  const lastPfpKeyRef = useRef("");
+  const leaderboardAddresses = topEntries.map((e) => e.creatorAddress.toLowerCase());
+  const pfpMap = usePfps(leaderboardAddresses);
 
   const router = useRouter();
 
@@ -112,27 +112,6 @@ export function RightSidebar() {
     };
   }, []);
 
-  useEffect(() => {
-    if (topEntries.length === 0) return;
-    const addresses = Array.from(
-      new Set(topEntries.map((e) => e.creatorAddress.toLowerCase()))
-    );
-    addresses.sort();
-    const key = addresses.join(",");
-    if (key === lastPfpKeyRef.current) return;
-    lastPfpKeyRef.current = key;
-    let cancelled = false;
-    setPfpsLoading(true);
-    fetch(`/api/profile?addresses=${encodeURIComponent(key)}`, { cache: "no-store" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((payload) => {
-        if (cancelled) return;
-        if (payload?.profiles) setPfpMap(payload.profiles);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setPfpsLoading(false); });
-    return () => { cancelled = true; };
-  }, [topEntries]);
 
   const hasQuery = searchQuery.trim().length > 0;
 
@@ -305,10 +284,7 @@ export function RightSidebar() {
                     ? `@${entry.creatorUsername}`
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
                   const headline = entry.title?.trim() || "Untitled delulu";
-                  const avatarSeed = encodeURIComponent(handle);
-                  const fallbackUrl = `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
-                  const pfpUrl = pfpMap[entry.creatorAddress.toLowerCase()];
-                  const avatarUrl = pfpUrl || fallbackUrl;
+                  const pfpEntry = pfpMap[entry.creatorAddress.toLowerCase()];
 
                   return (
                     <button
@@ -329,16 +305,12 @@ export function RightSidebar() {
                         {rank}
                       </span>
 
-                      {pfpsLoading ? (
-                        <div className="w-8 h-8 rounded-full bg-muted animate-pulse shrink-0" />
-                      ) : (
-                        <img
-                          src={avatarUrl}
-                          alt={handle}
-                          className="w-8 h-8 rounded-full object-cover shrink-0 bg-muted"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackUrl; }}
-                        />
-                      )}
+                      <UserAvatar
+                        address={entry.creatorAddress}
+                        username={entry.creatorUsername}
+                        pfpUrl={pfpEntry}
+                        size={32}
+                      />
 
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground/70 truncate leading-tight">

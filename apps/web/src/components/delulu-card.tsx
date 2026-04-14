@@ -21,13 +21,12 @@ import {
 } from "@/lib/milestone-utils";
 import type { FeedMilestone } from "@/hooks/graph/useAllDelulus";
 import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-const DEFAULT_AVATAR_BASE =
-  "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
 
 function formatTimeLeft(target: Date) {
   const now = Date.now();
@@ -97,7 +96,7 @@ interface DeluluCardProps {
   disableUsernameLookup?: boolean;
   feedMilestones?: FeedMilestone[];
   totalMilestoneCount?: number;
-  creatorPfpUrl?: string | null;
+  creatorPfpUrl?: string | null | undefined;
 }
 
 export function DeluluCard({
@@ -127,14 +126,11 @@ export function DeluluCard({
   const creatorLabel = displayUsername
     ? `@${displayUsername}`
     : formatAddress(delusion.creator);
-  const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(
-    creatorLabel,
-  )}`;
-  const [avatarError, setAvatarError] = useState(false);
-  const preferredAvatarUrl = creatorPfpUrl || delusion.pfpUrl || fallbackAvatarUrl;
-  // Reset error flag whenever the source URL changes (e.g. DB pfp resolves later)
-  useEffect(() => { setAvatarError(false); }, [preferredAvatarUrl]);
-  const resolvedAvatarUrl = avatarError ? fallbackAvatarUrl : preferredAvatarUrl;
+  // creatorPfpUrl comes from Supabase (most reliable). delusion.pfpUrl is from IPFS
+  // metadata — may be stale but used as a fallback for users who set a pfp at creation time.
+  const resolvedPfpUrl = creatorPfpUrl !== undefined
+    ? creatorPfpUrl  // undefined = still loading, pass through as-is
+    : (delusion.pfpUrl ?? null);
 
   const { milestones, isLoading: isMilestonesLoading } = useGraphDelulu(
     disableMilestoneQuery ? null : delusion.id,
@@ -487,12 +483,12 @@ export function DeluluCard({
         <div className="-mt-7 mb-2 flex items-end justify-between">
           <div className="relative w-[52px] h-[52px] shrink-0">
             {/* Avatar image with card-coloured border creating the "floating" cutout */}
-            <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-[3px] border-card shadow-md">
-              <img
-                src={resolvedAvatarUrl}
-                alt={displayUsername || formatAddress(delusion.creator)}
-                className="w-full h-full object-cover"
-                onError={() => setAvatarError(true)}
+            <div className="w-[52px] h-[52px] rounded-full border-[3px] border-card shadow-md overflow-hidden">
+              <UserAvatar
+                address={delusion.creator}
+                username={displayUsername}
+                pfpUrl={resolvedPfpUrl}
+                size={46}
               />
             </div>
             {/* Milestone completion arc */}
@@ -660,24 +656,12 @@ export function DeluluCard({
           </div>
         )}
 
-        {/* Believers — stacked avatars + overflow count */}
+        {/* Believers count */}
         {delusion.totalSupporters != null && delusion.totalSupporters > 0 && (
           <div className="flex-1 flex flex-col items-center justify-center py-3 gap-1">
-            <div className="flex items-center">
-              {Array.from({ length: Math.min(3, delusion.totalSupporters) }).map((_, i) => (
-                <img
-                  key={i}
-                  src={`${DEFAULT_AVATAR_BASE}${delusion.id}-s${i}`}
-                  className="w-[18px] h-[18px] rounded-full border-[1.5px] border-card -ml-1.5 first:ml-0 bg-muted"
-                  alt=""
-                />
-              ))}
-              {delusion.totalSupporters > 3 && (
-                <span className="text-[10px] font-bold text-muted-foreground ml-1 tabular-nums">
-                  +{delusion.totalSupporters - 3}
-                </span>
-              )}
-            </div>
+            <span className="text-sm font-black tabular-nums text-foreground">
+              {delusion.totalSupporters}
+            </span>
             <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
               Believers
             </span>

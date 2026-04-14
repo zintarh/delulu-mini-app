@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useChainId } from "wagmi";
 import { useAccount } from "wagmi";
@@ -12,11 +12,11 @@ import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
 import { ArrowLeft, ExternalLink, Trophy, Users } from "lucide-react";
 import type { DeluluLeaderboardEntry } from "@/hooks/graph/useDeluluLeaderboard";
 import type { UserLeaderboardEntry } from "@/hooks/graph/useAllUsersLeaderboard";
+import { usePfps } from "@/hooks/use-profile-pfp";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PAGE_SIZE = 10;
 
-const DEFAULT_AVATAR_BASE =
-  "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
 
 const RANK_STYLES: Record<number, { badge: string; row: string }> = {
   1: { badge: "bg-[#fcff52] text-black shadow-[0_0_10px_rgba(252,255,82,0.4)]", row: "bg-[#fcff52]/5" },
@@ -42,20 +42,6 @@ function formatTitle(entry: DeluluLeaderboardEntry) {
   return text.length > 40 ? text.slice(0, 40) + "…" : text;
 }
 
-function UserAvatar({ address, username, pfpUrl }: { address: string; username: string | null; pfpUrl?: string | null }) {
-  const seed = encodeURIComponent(username ? `@${username}` : address);
-  const src = pfpUrl || `${DEFAULT_AVATAR_BASE}${seed}`;
-  return (
-    <img
-      src={src}
-      alt={username ?? address}
-      className="w-8 h-8 rounded-full bg-muted shrink-0 object-cover"
-      onError={(e) => {
-        (e.currentTarget as HTMLImageElement).src = `${DEFAULT_AVATAR_BASE}${seed}`;
-      }}
-    />
-  );
-}
 
 // ── Campaign tab ────────────────────────────────────────────────────────────
 
@@ -178,29 +164,11 @@ function DreamersLeaderboard() {
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
 
-  // Batch-fetch pfp URLs from the profile API for all addresses on this page
-  const [pfpMap, setPfpMap] = useState<Record<string, string | null>>({});
-  const lastBatchKeyRef = useRef("");
-
-  useEffect(() => {
-    if (entries.length === 0) return;
-    const addresses = entries.map((e) => e.address.toLowerCase());
-    if (address) addresses.push(address.toLowerCase());
-    const unique = Array.from(new Set(addresses));
-    unique.sort();
-    const batchKey = unique.join(",");
-    if (batchKey === lastBatchKeyRef.current) return;
-    lastBatchKeyRef.current = batchKey;
-    let cancelled = false;
-    fetch(`/api/profile?addresses=${encodeURIComponent(batchKey)}`, { cache: "no-store" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((payload) => {
-        if (cancelled || !payload?.profiles) return;
-        setPfpMap((prev) => ({ ...prev, ...payload.profiles }));
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [entries, address]);
+  const allAddresses = [
+    ...entries.map((e) => e.address.toLowerCase()),
+    ...(address ? [address.toLowerCase()] : []),
+  ];
+  const pfpMap = usePfps(allAddresses);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
 

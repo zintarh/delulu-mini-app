@@ -22,8 +22,16 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
+import { usePfps } from "@/hooks/use-profile-pfp";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
-function BoardTile({ delusion }: { delusion: FormattedDelulu }) {
+function BoardTile({
+  delusion,
+  pfpUrl,
+}: {
+  delusion: FormattedDelulu;
+  pfpUrl?: string | null;
+}) {
   const addrHex = delusion.creator.replace("0x", "").toLowerCase();
   const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
   const h2 = (h1 + 55) % 360;
@@ -34,9 +42,6 @@ function BoardTile({ delusion }: { delusion: FormattedDelulu }) {
   const displayName = delusion.username
     ? `@${delusion.username}`
     : `${delusion.creator.slice(0, 6)}…${delusion.creator.slice(-4)}`;
-  const avatarSeed = encodeURIComponent(displayName);
-  const avatarUrl = delusion.pfpUrl ||
-    `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
 
   return (
     <Link href={`/delulu/${delusion.id}`} className="block break-inside-avoid mb-3">
@@ -61,10 +66,11 @@ function BoardTile({ delusion }: { delusion: FormattedDelulu }) {
           </p>
           {/* Pinterest-style creator row */}
           <div className="flex items-center gap-1.5">
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="w-5 h-5 rounded-full object-cover bg-white/20 shrink-0"
+            <UserAvatar
+              address={delusion.creator}
+              username={delusion.username}
+              pfpUrl={pfpUrl}
+              size={20}
             />
             <span className="text-white/70 text-[11px] font-medium truncate">
               {displayName}
@@ -138,8 +144,6 @@ export default function HomePage() {
     try { localStorage.setItem("delulu_feed_tab", tab); } catch {}
   };
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
-  const [creatorPfps, setCreatorPfps] = useState<Record<string, string | null>>({});
-  const lastPfpBatchKeyRef = useRef<string>("");
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
 
@@ -216,43 +220,11 @@ export default function HomePage() {
     return delulus.filter(isContentLoaded);
   }, [delulus]);
 
-  useEffect(() => {
-    if (filteredDelulus.length === 0) return;
-
-    const addresses = Array.from(
-      new Set(filteredDelulus.map((d) => d.creator.toLowerCase())),
-    );
-    addresses.sort();
-    const batchKey = addresses.join(",");
-
-    // Prevent duplicate requests for identical address sets across rerenders.
-    if (batchKey === lastPfpBatchKeyRef.current) return;
-    lastPfpBatchKeyRef.current = batchKey;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/profile?addresses=${encodeURIComponent(batchKey)}`, {
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const payload = await res.json();
-        const profiles =
-          payload?.profiles && typeof payload.profiles === "object"
-            ? (payload.profiles as Record<string, string | null>)
-            : {};
-        if (!cancelled) {
-          setCreatorPfps((prev) => ({ ...prev, ...profiles }));
-        }
-      } catch {
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [filteredDelulus, activeTab]);
+  const creatorAddresses = useMemo(
+    () => Array.from(new Set(filteredDelulus.map((d) => d.creator.toLowerCase()))),
+    [filteredDelulus],
+  );
+  const creatorPfps = usePfps(creatorAddresses);
 
   return (
     <div className="h-screen  overflow-hidden">
@@ -350,6 +322,7 @@ export default function HomePage() {
                       <BoardTile
                         key={`board-${delusion.onChainId || delusion.id}-${index}`}
                         delusion={delusion}
+                        pfpUrl={creatorPfps[delusion.creator.toLowerCase()]}
                       />
                     ))}
                     {/* Skeleton tiles appended inline so masonry columns stay balanced */}
@@ -383,7 +356,7 @@ export default function HomePage() {
                         disableUsernameLookup
                         feedMilestones={feedDelusion.feedMilestones}
                         totalMilestoneCount={feedDelusion.totalMilestoneCount}
-                        creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()] ?? null}
+                        creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()]}
                       />
                     );
                   })}

@@ -35,14 +35,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ profiles: {} });
     }
 
+    console.log("[profile-api] querying", addresses.length, "addresses:", addresses);
+
     const { data, error } = await supabase
       .from("profiles")
       .select("address, pfp_url")
       .in("address", addresses);
 
     if (error) {
+      console.error("[profile-api] supabase error:", error);
       throw error;
     }
+
+    console.log("[profile-api] supabase returned", data?.length ?? 0, "rows:", JSON.stringify(data));
 
     const profiles: Record<string, string | null> = {};
     for (const row of data ?? []) {
@@ -50,7 +55,14 @@ export async function GET(request: NextRequest) {
         typeof (row as any).pfp_url === "string" ? (row as any).pfp_url : null;
     }
 
-    return NextResponse.json({ profiles });
+    console.log("[profile-api] returning profiles:", JSON.stringify(profiles));
+
+    return NextResponse.json({ profiles }, {
+      headers: {
+        // Cache for 60 s in the browser, 120 s in CDN/edge — pfps rarely change
+        "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     console.error("[profile] batch get error:", error);
     return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });

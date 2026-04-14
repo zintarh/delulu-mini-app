@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAccount } from "wagmi";
+import { invalidatePfpCache } from "@/hooks/use-profile-pfp";
 
 export interface UsePfpUploadReturn {
   upload: (file: File) => Promise<string>;
@@ -57,6 +58,7 @@ export function usePfpUpload(): UsePfpUploadReturn {
       }
 
       updateProfile({ pfpUrl });
+      invalidatePfpCache(address);
 
       return pfpUrl;
     } catch (err: any) {

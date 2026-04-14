@@ -19,6 +19,7 @@ import {
   Send,
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
+import { usePfp } from "@/hooks/use-profile-pfp";
 import { ProfileDeluluCard } from "@/components/profile-delulu-card";
 import { BottomNav } from "@/components/bottom-nav";
 import { LeftSidebar } from "@/components/left-sidebar";
@@ -35,8 +36,6 @@ import { TG_GROUP_URL } from "@/components/get-gas-modal";
 
 type TabType = "ongoing" | "past";
 
-const DEFAULT_AVATAR_BASE =
-  "https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=";
 
 export default function ProfilePage() {
   const { isConnected, address } = useAccount();
@@ -63,13 +62,11 @@ export default function ProfilePage() {
 
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || null;
-  const creatorLabel = displayUsername
-    ? `@${displayUsername}`
-    : address
-    ? formatAddress(address)
-    : "";
-  const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(creatorLabel)}`;
-  const avatarUrl = user?.pfpUrl || fallbackAvatarUrl;
+  // Always fetch live from Supabase — Zustand store only has pfp if set in current session
+  const pfpFromSupabase = usePfp(address);
+  // pfpFromSupabase: undefined = loading, null = no pfp, string = url
+  // Fall back to store value (set optimistically on upload) while Supabase is loading
+  const avatarUrl = (pfpFromSupabase !== undefined ? pfpFromSupabase : user?.pfpUrl) || null;
 
   const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
     useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
@@ -172,14 +169,22 @@ export default function ProfilePage() {
                     disabled={isPfpUploading}
                     className="relative w-16 h-16 rounded-full flex-shrink-0 bg-muted ring-2 ring-border overflow-hidden group"
                   >
-                    <img
-                      src={avatarUrl}
-                      alt={displayUsername || formatAddress(address)}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = fallbackAvatarUrl;
-                      }}
-                    />
+                    {pfpFromSupabase === undefined && !user?.pfpUrl ? (
+                      /* Loading skeleton */
+                      <div className="w-full h-full bg-muted animate-pulse rounded-full" />
+                    ) : avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={displayUsername || formatAddress(address)}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      /* No pfp — initials */
+                      <div className="w-full h-full flex items-center justify-center text-lg font-bold bg-muted text-muted-foreground">
+                        {(displayUsername || address || "?").slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isPfpUploading
                         ? <Loader2 className="w-5 h-5 text-white animate-spin" />
