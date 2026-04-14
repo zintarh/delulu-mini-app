@@ -207,7 +207,7 @@ function DreamersLeaderboard() {
   if (error) return <ErrorState onRetry={refetch} error={error} />;
 
   if (entries.length === 0) return (
-    <EmptyState message="No dreamers indexed yet." />
+    <EmptyState message="No dreamers yet." />
   );
 
   const showPinnedMe = address && myRankEntry;
@@ -221,7 +221,7 @@ function DreamersLeaderboard() {
           {isRankLoading ? (
             <span className="inline-block w-16 h-4 bg-muted rounded animate-pulse" />
           ) : (
-            <><span className="font-bold text-foreground">{totalCount ?? "…"}</span> dreamers indexed</>
+            <><span className="font-bold text-foreground">{totalCount ?? "…"}</span> dreamers</>
           )}
         </span>
       </div>

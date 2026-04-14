@@ -31,6 +31,11 @@ export function RightSidebar() {
   const { entries: topEntries, isLoading: isLeaderboardLoading } =
     useDeluluLeaderboard(6, 0);
 
+  // Batch-fetch pfp URLs for leaderboard entries
+  const [pfpMap, setPfpMap] = useState<Record<string, string | null>>({});
+  const [pfpsLoading, setPfpsLoading] = useState(false);
+  const lastPfpKeyRef = useRef("");
+
   const router = useRouter();
 
   // ── Search state ──────────────────────────────────────────────────────────
@@ -106,6 +111,28 @@ export function RightSidebar() {
       if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (topEntries.length === 0) return;
+    const addresses = Array.from(
+      new Set(topEntries.map((e) => e.creatorAddress.toLowerCase()))
+    );
+    addresses.sort();
+    const key = addresses.join(",");
+    if (key === lastPfpKeyRef.current) return;
+    lastPfpKeyRef.current = key;
+    let cancelled = false;
+    setPfpsLoading(true);
+    fetch(`/api/profile?addresses=${encodeURIComponent(key)}`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((payload) => {
+        if (cancelled) return;
+        if (payload?.profiles) setPfpMap(payload.profiles);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPfpsLoading(false); });
+    return () => { cancelled = true; };
+  }, [topEntries]);
 
   const hasQuery = searchQuery.trim().length > 0;
 
@@ -279,7 +306,9 @@ export function RightSidebar() {
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
                   const headline = entry.title?.trim() || "Untitled delulu";
                   const avatarSeed = encodeURIComponent(handle);
-                  const avatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
+                  const fallbackUrl = `https://api.dicebear.com/7.x/adventurer/svg?radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9&seed=${avatarSeed}`;
+                  const pfpUrl = pfpMap[entry.creatorAddress.toLowerCase()];
+                  const avatarUrl = pfpUrl || fallbackUrl;
 
                   return (
                     <button
@@ -300,11 +329,16 @@ export function RightSidebar() {
                         {rank}
                       </span>
 
-                      <img
-                        src={avatarUrl}
-                        alt={handle}
-                        className="w-8 h-8 rounded-full object-cover shrink-0 bg-muted"
-                      />
+                      {pfpsLoading ? (
+                        <div className="w-8 h-8 rounded-full bg-muted animate-pulse shrink-0" />
+                      ) : (
+                        <img
+                          src={avatarUrl}
+                          alt={handle}
+                          className="w-8 h-8 rounded-full object-cover shrink-0 bg-muted"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackUrl; }}
+                        />
+                      )}
 
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground/70 truncate leading-tight">
