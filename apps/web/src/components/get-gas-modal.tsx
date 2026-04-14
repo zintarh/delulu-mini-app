@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Copy, Check, ExternalLink } from "lucide-react";
 import { Modal, ModalContent } from "@/components/ui/modal";
 
-export const TG_GROUP_URL = "https://t.me/staydelulu"; // update with your group link
+export const TG_GROUP_URL = "https://t.me/+96pLkvSh0I4wZThk";
 
 export function GetGasModal({
   open,
