@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/push/supabase";
+
+const PAGE_SIZE = 20;
+
+export async function GET(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+  }
+
+  const { searchParams } = request.nextUrl;
+  const username = searchParams.get("username") ?? "";
+  const dateFilter = searchParams.get("date") ?? ""; // "today" | "yesterday" | "YYYY-MM-DD" | ""
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+
+  let query = supabase
+    .from("profiles")
+    .select("address, username, email, pfp_url, referral_code, created_at", { count: "exact" })
+    .order("created_at", { ascending: false });
+
+  if (username.trim()) {
+    query = query.ilike("username", `%${username.trim()}%`);
+  }
+
+  if (dateFilter === "today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    query = query.gte("created_at", start.toISOString());
+  } else if (dateFilter === "yesterday") {
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 1);
+    query = query
+      .gte("created_at", start.toISOString())
+      .lt("created_at", end.toISOString());
+  } else if (dateFilter) {
+    // specific date "YYYY-MM-DD"
+    const start = new Date(`${dateFilter}T00:00:00.000Z`);
+    const end = new Date(`${dateFilter}T00:00:00.000Z`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    query = query
+      .gte("created_at", start.toISOString())
+      .lt("created_at", end.toISOString());
+  }
+
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error("[admin/users] supabase error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    users: data ?? [],
+    total: count ?? 0,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+}

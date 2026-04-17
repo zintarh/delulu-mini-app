@@ -25,6 +25,7 @@ import {
   Sun,
   LogIn,
   User,
+  Users,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -417,6 +418,17 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Link
+              href="/admin/users"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border-2 border-border bg-secondary px-3 py-2 text-xs sm:text-sm font-bold text-foreground shadow-neo-sm",
+                "hover:shadow-neo active:scale-[0.98] transition-all",
+              )}
+            >
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Users</span>
+            </Link>
+
             <button
               type="button"
               onClick={() => setShowCreateChallengeSheet(true)}

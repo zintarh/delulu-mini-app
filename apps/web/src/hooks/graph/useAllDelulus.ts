@@ -23,7 +23,7 @@ const GET_DELULUS_FEED = gql`
       skip: $skip
       orderBy: createdAt
       orderDirection: desc
-      where: { isCancelled: false }
+      where: { isCancelled: false, milestoneCount_gt: 0 }
     ) {
       id
       onChainId
