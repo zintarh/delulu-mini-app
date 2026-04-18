@@ -14,37 +14,43 @@ export interface SideEffectHabit {
   emoji: string;
 }
 
-const SYSTEM_PROMPT = `You are a practical life coach helping people in the Global South achieve their everyday goals.
-When given a goal, break it down into 5-8 specific, actionable prerequisite habits or conditions the person needs to have in place.
-Focus on realistic, concrete things — not generic advice.
+const SYSTEM_PROMPT = `You are a practical habit coach helping people build daily routines that move them toward their goals.
+Your job is to break a goal into 4-6 DAILY REPEATABLE HABITS — things a person does every single day for a streak of days, not one-time setup tasks.
+
+A valid habit looks like: "Read 20 minutes daily", "Drink 8 glasses of water", "Work out every morning".
+An invalid habit looks like: "Choose a book", "Set up a schedule", "Join a group", "Create an environment" — these are one-time actions, NOT habits.
+
+Every habit you return must pass this test: "Can someone do this action again tomorrow, and the day after, for 7 days in a row?" If no, do not include it.
 Return ONLY valid JSON, no markdown, no explanation.`;
 
-const USER_PROMPT = (goal: string) => `My immediate goal is: "${goal}"
+const USER_PROMPT = (goal: string) => `My goal is: "${goal}"
 
-List the 5-8 most important habits, conditions, or sub-goals I need to have in place to achieve this.
-Think about what someone actually needs step-by-step.
+Give me 4-6 daily habits I need to practise every day for up to 7 days to make progress on this goal.
+Each habit must be a repeatable daily action, not a one-time task.
 
 Return this exact JSON structure:
 {
   "habits": [
     {
       "id": "habit_1",
-      "title": "short title (max 5 words)",
-      "description": "one sentence explaining why this matters",
+      "title": "Read 20 minutes daily",
+      "description": "one sentence on why doing this every day moves you closer to the goal",
       "priority": "high",
-      "suggestedDays": 90,
-      "category": "finance",
-      "emoji": "💰"
+      "suggestedDays": 7,
+      "category": "mindset",
+      "emoji": "📖"
     }
   ]
 }
 
 Rules:
+- Every habit title must describe a daily action (include words like "daily", "every day", "each morning", or a daily quantity like "20 minutes", "8 glasses")
 - priority must be "high", "medium", or "low"
-- suggestedDays is realistic (7-365)
+- suggestedDays must be between 1 and 7
 - category is one of: finance, health, career, education, social, mindset, other
-- emoji must match the category/habit
-- Sort by priority: high first, then medium, then low`;
+- emoji must match the habit
+- Sort by priority: high first, then medium, then low
+- Reject any habit that is a one-time setup step`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,7 +92,7 @@ export async function POST(req: NextRequest) {
         title: String(h.title || "").slice(0, 60),
         description: String(h.description || "").slice(0, 200),
         priority: (["high", "medium", "low"].includes(h.priority) ? h.priority : "medium") as SideEffectHabit["priority"],
-        suggestedDays: Math.max(7, Math.min(365, Number(h.suggestedDays) || 60)),
+        suggestedDays: Math.max(1, Math.min(7, Number(h.suggestedDays) || 7)),
         category: (["finance","health","career","education","social","mindset","other"].includes(h.category) ? h.category : "other") as SideEffectHabit["category"],
         emoji: String(h.emoji || "🎯"),
       }));

@@ -2,8 +2,7 @@ import { parseUnits } from "viem";
 
 // Constants
 export const MAX_DELULU_LENGTH = 140;
-// NOTE: MIN_STAKE represents the minimum *non-zero* stake in whole tokens (G$).
-// A stake of 0 is allowed at the UI level and treated as "no stake".
+// Minimum stake required to create a delulu (G$ tokens, whole number).
 export const MIN_STAKE = 100;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
@@ -30,11 +29,12 @@ export interface ProgressStep {
 }
 
 // Date helpers
-export const MIN_DURATION_DAYS = 7;
+export const MIN_DURATION_DAYS = 1;
+export const MAX_DURATION_DAYS = 7;
 
 export function getDefaultDeadline(): Date {
   const date = new Date();
-  date.setDate(date.getDate() + MIN_DURATION_DAYS);
+  date.setDate(date.getDate() + MAX_DURATION_DAYS);
   date.setHours(23, 59, 59, 999); // End of day local time
   return date;
 }
@@ -48,7 +48,8 @@ export function getMinDeadline(): Date {
 
 export function getMaxDeadline(): Date {
   const date = new Date();
-  date.setFullYear(date.getFullYear() + 1);
+  date.setDate(date.getDate() + MAX_DURATION_DAYS);
+  date.setHours(23, 59, 59, 999);
   return date;
 }
 
@@ -73,15 +74,17 @@ export function validateDeluluInputs(
     errors.text = `Text must be ${MAX_DELULU_LENGTH} characters or less`;
   }
 
-  // Stake validation: 0 = no stake (valid). If staking, minimum is 100 G$.
-  if (stakeAmount > 0 && stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE} G$ or 0`;
+  // Stake validation: exactly MIN_STAKE or more required.
+  if (stakeAmount <= 0) {
+    errors.stake = `A stake of at least ${MIN_STAKE} G$ is required to create a dream`;
+  } else if (stakeAmount < MIN_STAKE) {
+    errors.stake = `Minimum stake is ${MIN_STAKE} G$`;
   }
 
-  // Balance validation (only when staking)
+  // Balance validation
   if (stakeAmount >= MIN_STAKE) {
     if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
-      errors.balance = `Insufficient balance. You need at least ${MIN_STAKE} to stake.`;
+      errors.balance = `You need at least ${MIN_STAKE} G$ to stake. Claim your free G$ first.`;
     } else if (stakeAmount > maxStakeValue) {
       const displayBalance = isFinite(maxStakeValue)
         ? maxStakeValue.toFixed(2)
@@ -98,8 +101,7 @@ export function validateDeluluInputs(
   const isValid =
     !errors.text && !errors.stake && !errors.balance && !errors.image;
   const stakeOk =
-    stakeAmount === 0 ||
-    (stakeAmount >= MIN_STAKE && stakeAmount <= maxStakeValue);
+    stakeAmount >= MIN_STAKE && stakeAmount <= maxStakeValue;
   const canCreate =
     isValid &&
     delusionText.trim().length > 0 &&
