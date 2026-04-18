@@ -35,6 +35,7 @@ export default function DailyClaimClient() {
     hasClaimed,
     nextClaimTime,
     claim,
+    refresh,
     isInitialized,
   } = useGoodDollarClaim();
 
@@ -259,9 +260,12 @@ export default function DailyClaimClient() {
       <IdentityFlow
         open={showIdentityFlow}
         onOpenChange={setShowIdentityFlow}
-        onVerified={() => {
+        onVerified={async () => {
           setShowIdentityFlow(false);
-          claim();
+          // Re-check whitelist so isWhitelisted reflects the newly verified state,
+          // then claim. GoodDollar may take a moment to propagate on-chain.
+          await refresh();
+          await claim();
         }}
       />
 

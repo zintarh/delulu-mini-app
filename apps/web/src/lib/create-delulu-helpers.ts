@@ -30,18 +30,19 @@ export interface ProgressStep {
 }
 
 // Date helpers
+export const MIN_DURATION_DAYS = 7;
+
 export function getDefaultDeadline(): Date {
   const date = new Date();
-  // Default to "tomorrow" in the user's local calendar, so the picker highlights
-  // the day after today (e.g. 11th when today is the 10th), regardless of timezone.
-  date.setDate(date.getDate() + 1);
+  date.setDate(date.getDate() + MIN_DURATION_DAYS);
   date.setHours(23, 59, 59, 999); // End of day local time
   return date;
 }
 
 export function getMinDeadline(): Date {
   const date = new Date();
-  date.setHours(date.getHours() + 24);
+  date.setDate(date.getDate() + MIN_DURATION_DAYS);
+  date.setHours(0, 0, 0, 0);
   return date;
 }
 

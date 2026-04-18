@@ -3,8 +3,8 @@ import {
   useWriteContract,
 } from "wagmi";
 import { useChainId } from "wagmi";
-import { parseUnits } from "viem";
-import { useState } from "react";
+import { parseUnits, parseEventLogs } from "viem";
+import { useState, useMemo } from "react";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
@@ -25,8 +25,27 @@ export function useCreateDelulu() {
   const {
     isLoading: isConfirming,
     isSuccess,
+    data: receipt,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
+
+  const createdDeluluId = useMemo(() => {
+    if (!receipt || !isSuccess) return null;
+    try {
+      const logs = parseEventLogs({
+        abi: DELULU_ABI,
+        eventName: "DeluluCreated",
+        logs: receipt.logs,
+      });
+      if (logs.length > 0) {
+        const id = (logs[0].args as { deluluId?: bigint }).deluluId;
+        return id != null ? String(id) : null;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return null;
+  }, [receipt, isSuccess]);
 
   const createDelulu = async (
     tokenAddress: string,
@@ -148,5 +167,6 @@ export function useCreateDelulu() {
     errorMessage,
     isWalletPending: isPending,
     isConfirming,
+    createdDeluluId,
   };
 }

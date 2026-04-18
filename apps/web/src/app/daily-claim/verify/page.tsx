@@ -12,7 +12,7 @@ export default function VerifyGoodDollarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isConnected } = useAccount();
-  const { status, fvLink, setIsVerifying } = useIdentity();
+  const { status, isVerified, fvLink, setIsVerifying } = useIdentity();
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
   );
@@ -30,13 +30,18 @@ export default function VerifyGoodDollarPage() {
     return () => setIsVerifying(false);
   }, [setIsVerifying]);
 
+  // Redirect once verified (even if G$ hasn't arrived yet — they'll claim on the next page)
   useEffect(() => {
     if (!isConnected) return;
-    if (isGdLoading) return;
-    if (gdBalance > 0) {
+    if (isVerified) {
+      router.replace(returnTo);
+      return;
+    }
+    // Fallback: also redirect if they somehow already have G$
+    if (!isGdLoading && gdBalance > 0) {
       router.replace(returnTo);
     }
-  }, [isConnected, isGdLoading, gdBalance, returnTo, router]);
+  }, [isConnected, isVerified, isGdLoading, gdBalance, returnTo, router]);
 
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-8">

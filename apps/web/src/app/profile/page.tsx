@@ -33,8 +33,9 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
+import { ContinueJourneyCard } from "@/components/continue-journey-card";
 
-type TabType = "ongoing" | "past";
+type TabType = "milestones" | "ongoing" | "past";
 
 
 export default function ProfilePage() {
@@ -50,7 +51,7 @@ export default function ProfilePage() {
     else router.push("/board");
   };
 
-  const [activeTab, setActiveTab] = useState<TabType>("ongoing");
+  const [activeTab, setActiveTab] = useState<TabType>("milestones");
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -76,6 +77,11 @@ export default function ProfilePage() {
     chainId: CELO_MAINNET_ID,
     query: { enabled: !!address },
   });
+
+  const {
+    delulus: ongoingDelulus,
+    isLoading: isLoadingOngoing,
+  } = useGraphUserDelulus("ongoing");
 
   const {
     delulus,
@@ -295,10 +301,15 @@ export default function ProfilePage() {
                 <PushRemindersCard />
               </div>
 
+              {/* ── Journey card ─────────────────────────────────── */}
+              <div className="px-4 py-3 border-b border-border">
+                <ContinueJourneyCard />
+              </div>
+
               {/* ── Tabs ─────────────────────────────────────────── */}
               <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
                 <div className="flex items-center">
-                  {(["ongoing", "past"] as TabType[]).map((tab) => (
+                  {(["milestones", "ongoing", "past"] as TabType[]).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -319,11 +330,94 @@ export default function ProfilePage() {
               </div>
 
               {/* ── Tab content ──────────────────────────────────── */}
-              {activeTab === "ongoing" ? (
+
+              {/* Milestones */}
+              {activeTab === "milestones" && (
                 <div className="pb-24 lg:pb-8">
                   <OngoingMilestonesSection onCreateClick={() => router.push("/board")} />
                 </div>
-              ) : (
+              )}
+
+              {/* Ongoing goals */}
+              {activeTab === "ongoing" && (
+                <div className="px-4 pt-4 pb-24 lg:pb-8">
+                  {isLoadingOngoing ? (
+                    <div className="columns-2 gap-2">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="break-inside-avoid mb-2 w-full bg-muted rounded-2xl animate-pulse"
+                          style={{ height: [180, 220, 160, 200][i] }}
+                        />
+                      ))}
+                    </div>
+                  ) : ongoingDelulus.length === 0 ? (
+                    <div className="flex flex-col items-center py-20 text-center">
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                        <Plus className="w-7 h-7 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground mb-1">No active goals</p>
+                      <p className="text-xs text-muted-foreground mb-5">Start manifesting something new.</p>
+                      <button
+                        onClick={() => router.push("/board")}
+                        className="px-5 py-2.5 rounded-full bg-[#fcff52] text-[#111111] text-sm font-bold shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] transition-all"
+                      >
+                        Create a goal
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="columns-2 gap-2">
+                      {ongoingDelulus.map((d) => {
+                        const daysLeft = d.resolutionDeadline
+                          ? Math.max(0, Math.ceil((d.resolutionDeadline.getTime() - Date.now()) / 86_400_000))
+                          : null;
+                        const headline = d.content?.trim() || "Your goal";
+                        const minH = headline.length > 60 ? 220 : headline.length > 30 ? 180 : 155;
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => router.push(`/delulu/${d.id}`)}
+                            className="break-inside-avoid mb-2 w-full text-left block"
+                          >
+                            <div
+                              className="relative rounded-2xl overflow-hidden flex flex-col justify-end"
+                              style={{ minHeight: minH }}
+                            >
+                              {d.bgImageUrl ? (
+                                <>
+                                  <img src={d.bgImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                                </>
+                              ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
+                              )}
+                              <div className="relative px-3 pb-3 pt-8">
+                                <p className="text-white text-xs font-bold leading-snug line-clamp-3 drop-shadow mb-1.5">
+                                  {headline}
+                                </p>
+                                {daysLeft !== null && (
+                                  <span className={cn(
+                                    "inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                                    daysLeft === 0 ? "bg-rose-500/25 text-rose-300"
+                                    : daysLeft <= 3 ? "bg-rose-500/20 text-rose-300"
+                                    : daysLeft <= 7 ? "bg-amber-500/20 text-amber-300"
+                                    : "bg-white/10 text-white/60"
+                                  )}>
+                                    {daysLeft === 0 ? "Due today" : `${daysLeft}d left`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Past */}
+              {activeTab === "past" && (
                 <div className="px-4 py-4 pb-24 lg:pb-8">
                   {isLoadingDelulus ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -336,12 +430,8 @@ export default function ProfilePage() {
                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                         <Plus className="w-7 h-7 text-muted-foreground" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground mb-1">
-                        No past delulus yet
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Completed delulus will appear here.
-                      </p>
+                      <p className="text-sm font-semibold text-foreground mb-1">No past goals yet</p>
+                      <p className="text-xs text-muted-foreground">Completed goals will appear here.</p>
                     </div>
                   ) : (
                     <>

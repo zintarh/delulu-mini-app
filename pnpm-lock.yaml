@@ -211,6 +211,9 @@ importers:
       next:
         specifier: 14.2.35
         version: 14.2.35(@babel/core@7.29.0)(react-dom@18.3.1)(react@18.3.1)
+      openai:
+        specifier: ^6.34.0
+        version: 6.34.0(ws@8.19.0)(zod@3.25.76)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -15516,6 +15519,22 @@ packages:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
+    dev: false
+
+  /openai@6.34.0(ws@8.19.0)(zod@3.25.76):
+    resolution: {integrity: sha512-yEr2jdGf4tVFYG6ohmr3pF6VJuveP0EA/sS8TBx+4Eq5NT10alu5zg2dmxMXMgqpihRDQlFGpRt2XwsGj+Fyxw==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      ws: 8.19.0
+      zod: 3.25.76
     dev: false
 
   /openapi-fetch@0.13.8:

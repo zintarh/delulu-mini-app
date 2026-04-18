@@ -38,6 +38,7 @@ export interface UseGoodDollarClaimReturn {
   hasClaimed: boolean;
   nextClaimTime: Date | null;
   claim: () => Promise<void>;
+  refresh: () => Promise<void>;
   error: Error | null;
   isInitialized: boolean;
 }
@@ -66,7 +67,9 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   // which would otherwise leave isWhitelisted=false for already-verified users.
   const canCheckWhitelist =
     !!address && !!publicClient && !!identitySDK && !!ClaimSDK;
-  const canClaim = canCheckWhitelist && !!walletClient;
+  // walletClient is only required at tx time — don't gate canClaim on it so
+  // the claim button stays enabled while Privy's embedded wallet initialises.
+  const canClaim = canCheckWhitelist;
 
   // Exposed isLoading: true while we can't even read whitelist status yet.
   const isLoading = !canCheckWhitelist;
@@ -256,8 +259,18 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
 
 
+  const refresh = useCallback(async () => {
+    const whitelisted = await checkWhitelisted();
+    setIsWhitelisted(whitelisted);
+    await checkClaimStatus();
+  }, [checkWhitelisted, checkClaimStatus]);
+
   const claim = async () => {
     if (!canClaim) return;
+    if (!walletClient) {
+      setError(new Error("Wallet not ready. Please wait a moment and try again."));
+      return;
+    }
 
     try {
       setIsClaiming(true);
@@ -312,6 +325,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     hasClaimed,
     nextClaimTime,
     claim,
+    refresh,
     error,
     isInitialized, // Track when all checks are complete
   };

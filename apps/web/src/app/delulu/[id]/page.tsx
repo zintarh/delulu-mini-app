@@ -27,6 +27,8 @@ import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
+import { useDeluluMetadata } from "@/hooks/use-delulu-metadata";
+import { EditDeluluSheet } from "@/components/edit-delulu-sheet";
 const FeedbackModal = dynamic(
   () => import("@/components/feedback-modal").then((m) => m.FeedbackModal),
   { ssr: false },
@@ -70,6 +72,7 @@ import {
   ChevronDown,
   ChevronUp,
   Share2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn, formatAddress, formatGAmount } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
@@ -334,7 +337,7 @@ export default function DeluluPage() {
   const [sellSharesSheetOpen, setSellSharesSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "milestones">(
-    "details",
+    () => searchParams.get("milestones") === "1" ? "milestones" : "details",
   );
 
   const handleProfileClick = () => {
@@ -346,7 +349,9 @@ export default function DeluluPage() {
     else router.push("/board");
   };
 
-  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [showMilestoneForm, setShowMilestoneForm] = useState(
+    () => searchParams.get("milestones") === "1",
+  );
   const [showMilestonePreview, setShowMilestonePreview] = useState(false);
   const [milestoneMinError, setMilestoneMinError] = useState(false);
   const [newMilestones, setNewMilestones] = useState<
@@ -408,10 +413,20 @@ export default function DeluluPage() {
 
   const supportAmount = delulu?.totalSupportCollected || 0;
 
-  const deluluTitle =
-    ipfsMetadata?.text || ipfsMetadata?.content || delulu?.content || "";
+  // ── Supabase metadata override ──────────────────────────────────────────────
+  const { data: deluluMeta } = useDeluluMetadata(delulu?.onChainId ?? null);
 
-  const deluluDescription = (ipfsMetadata as any)?.description ?? "";
+  const deluluTitle =
+    deluluMeta?.title_override ||
+    ipfsMetadata?.text ||
+    ipfsMetadata?.content ||
+    delulu?.content ||
+    "";
+
+  const deluluDescription =
+    deluluMeta?.description_override ??
+    (ipfsMetadata as any)?.description ??
+    "";
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
@@ -473,6 +488,13 @@ export default function DeluluPage() {
     address &&
     delulu?.creator &&
     address.toLowerCase() === delulu.creator.toLowerCase();
+
+  const [showEditSheet, setShowEditSheet] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    if (deluluMeta?.is_hidden) setIsHidden(true);
+  }, [deluluMeta?.is_hidden]);
 
   const {
     writeContract: writeAddMilestones,
@@ -1051,9 +1073,28 @@ export default function DeluluPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
               </div>
               <div className="p-6 space-y-3">
-                <h1 className="text-2xl font-black mb-1 text-foreground">
-                  {deluluTitle || safeDelulu.content}
-                </h1>
+                {/* Hidden banner (visible only to creator) */}
+                {isHidden && isCreator && (
+                  <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-2">
+                    <span className="text-xs text-amber-400 font-semibold">
+                      Hidden from feed — only you can see this
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-2xl font-black mb-1 text-foreground flex-1">
+                    {deluluTitle || safeDelulu.content}
+                  </h1>
+                  {isCreator && (
+                    <button
+                      onClick={() => setShowEditSheet(true)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-xs font-semibold text-muted-foreground mt-0.5"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="font-semibold text-foreground">
                     @{safeDelulu.username || formatAddress(safeDelulu.creator)}
@@ -1332,6 +1373,17 @@ export default function DeluluPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Onboarding banner — shown right after creation when no milestones exist yet */}
+                {searchParams.get("milestones") === "1" && milestoneView.sorted.length === 0 && (
+                  <div className="flex items-start gap-3 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                      <span className="font-bold block mb-0.5">Your delulu won't appear on the home feed yet.</span>
+                      Add at least 3 milestones below so supporters can see your roadmap and buy your shares.
+                    </p>
+                  </div>
+                )}
+
                 <div className="rounded-2xl border border-border bg-card p-5 md:p-6 lg:p-8">
                   <div className="flex flex-col gap-4 mb-5 md:mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -2129,6 +2181,22 @@ export default function DeluluPage() {
           </div>
         </ModalContent>
       </Modal>
+
+      {/* Edit / Delete sheet (creator only) */}
+      {isCreator && delulu?.onChainId && (
+        <EditDeluluSheet
+          open={showEditSheet}
+          onOpenChange={setShowEditSheet}
+          onChainId={String(delulu.onChainId)}
+          creatorAddress={address!}
+          currentTitle={deluluTitle}
+          currentDescription={deluluDescription}
+          onDeleted={() => {
+            setIsHidden(true);
+            setShowEditSheet(false);
+          }}
+        />
+      )}
 
     </div>
   );
