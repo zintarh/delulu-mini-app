@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
@@ -12,7 +12,7 @@ import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useTokenBalance } from "@/hooks/use-token-balance";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { Pill } from "@/components/ui/pill";
 
 const ConnectorSelectionSheet = dynamic(
@@ -20,6 +20,10 @@ const ConnectorSelectionSheet = dynamic(
     import("@/components/connector-selection-sheet").then(
       (m) => m.ConnectorSelectionSheet,
     ),
+  { ssr: false },
+);
+const FaucetModal = dynamic(
+  () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
   { ssr: false },
 );
 const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
@@ -35,11 +39,11 @@ export default function DailyClaimClient() {
     hasClaimed,
     nextClaimTime,
     claim,
-    refresh,
     isInitialized,
   } = useGoodDollarClaim();
 
   const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const [showFaucet, setShowFaucet] = useState(false);
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
 
   const handleProfileClick = () => {
@@ -54,6 +58,12 @@ export default function DailyClaimClient() {
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
   );
+
+  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
+    address,
+    chainId: CELO_MAINNET_ID,
+    query: { enabled: !!address },
+  });
 
   const handleConnectClick = () => {
     setShowLoginSheet(true);
@@ -86,7 +96,7 @@ export default function DailyClaimClient() {
         </div>
 
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
-          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-[calc(100px+max(env(safe-area-inset-bottom),8px))] lg:pb-10">
+          <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10 pb-24 lg:pb-10">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => router.back()}
@@ -246,6 +256,8 @@ export default function DailyClaimClient() {
                   </div>
                 )}
               </section>
+
+             
             </div>
           </div>
         </main>
@@ -260,16 +272,15 @@ export default function DailyClaimClient() {
       <IdentityFlow
         open={showIdentityFlow}
         onOpenChange={setShowIdentityFlow}
-        onVerified={async () => {
+        onVerified={() => {
           setShowIdentityFlow(false);
-          // Re-check whitelist so isWhitelisted reflects the newly verified state,
-          // then claim. GoodDollar may take a moment to propagate on-chain.
-          await refresh();
-          await claim();
+          claim();
         }}
       />
 
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
+
+      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </div>
   );
 }

@@ -38,7 +38,6 @@ export interface UseGoodDollarClaimReturn {
   hasClaimed: boolean;
   nextClaimTime: Date | null;
   claim: () => Promise<void>;
-  refresh: () => Promise<void>;
   error: Error | null;
   isInitialized: boolean;
 }
@@ -61,34 +60,22 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Whitelist check only needs a publicClient (read-only). walletClient is only
-  // required for the actual claim transaction. Separating these prevents the
-  // common case where Privy's embedded walletClient is null on first render,
-  // which would otherwise leave isWhitelisted=false for already-verified users.
-  const canCheckWhitelist =
-    !!address && !!publicClient && !!identitySDK && !!ClaimSDK;
-  // walletClient is only required at tx time — don't gate canClaim on it so
-  // the claim button stays enabled while Privy's embedded wallet initialises.
-  const canClaim = canCheckWhitelist;
-
-  // Exposed isLoading: true while we can't even read whitelist status yet.
-  const isLoading = !canCheckWhitelist;
+  const isLoading =
+    !address || !publicClient || !walletClient || !identitySDK || !ClaimSDK;
 
   const checkWhitelisted = useCallback(async (): Promise<boolean> => {
-    if (!ClaimSDK || !address || !publicClient || !identitySDK) {
+    if (!ClaimSDK || !address || !publicClient || !walletClient || !identitySDK) {
       return false;
     }
     try {
       const claimSDK = new ClaimSDK({
         account: address,
         publicClient: publicClient as any,
-        // walletClient is optional for read-only status checks; pass it if available
-        walletClient: (walletClient as any) ?? undefined,
+        walletClient: walletClient as any,
         identitySDK: identitySDK as any,
         env: "production",
       });
       const walletStatus = await claimSDK.getWalletClaimStatus();
-      console.log("[claim-debug] getWalletClaimStatus:", walletStatus);
       return walletStatus.status !== "not_whitelisted";
     } catch (err: any) {
       // Suppress network errors from alternative chain checks
@@ -108,14 +95,14 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   }, [address, publicClient, walletClient, identitySDK]);
 
   const checkClaimStatus = useCallback(async () => {
-    if (!ClaimSDK || !address || !publicClient || !identitySDK) {
+    if (!ClaimSDK || !address || !publicClient || !walletClient || !identitySDK) {
       return;
     }
     try {
       const claimSDK = new ClaimSDK({
         account: address,
         publicClient: publicClient as any,
-        walletClient: (walletClient as any) ?? undefined,
+        walletClient: walletClient as any,
         identitySDK: identitySDK as any,
         env: "production",
       });
@@ -176,21 +163,9 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
 
 
-  // Initialize SDK and check status on mount (silently, no loading state shown to user).
-  // Intentionally depends on canCheckWhitelist rather than isLoading so that the
-  // whitelist check runs as soon as publicClient + identitySDK are ready, without
-  // waiting for walletClient (which Privy may not provide until a tx is requested).
+  // Initialize SDK and check status on mount (silently, no loading state shown to user)
   useEffect(() => {
-    console.log("[claim-debug] init effect fired", {
-      address,
-      hasPublicClient: !!publicClient,
-      hasWalletClient: !!walletClient,
-      hasIdentitySDK: !!identitySDK,
-      hasClaimSDK: !!ClaimSDK,
-      canCheckWhitelist,
-    });
-
-    if (!canCheckWhitelist) {
+    if (isLoading) {
       setIsInitialized(false);
       return;
     }
@@ -198,7 +173,6 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     (async () => {
       try {
         const whitelisted = await checkWhitelisted();
-        console.log("[claim-debug] checkWhitelisted result:", whitelisted);
         setIsWhitelisted(whitelisted);
         await checkClaimStatus();
         setIsInitialized(true);
@@ -207,11 +181,11 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
         setIsInitialized(true); // Still mark as initialized to avoid blocking UI
       }
     })();
-  }, [canCheckWhitelist, checkWhitelisted, checkClaimStatus]);
+  }, [isLoading, checkWhitelisted, checkClaimStatus]);
 
   // Poll claim status periodically to keep it updated
   useEffect(() => {
-    if (!canCheckWhitelist || !address) return;
+    if (isLoading || !address) return;
 
     // Only poll if we have a valid address and SDKs are loaded
     const interval = setInterval(() => {
@@ -222,7 +196,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     }, 60000); // Check every 60 seconds (reduced frequency to minimize errors)
 
     return () => clearInterval(interval);
-  }, [canCheckWhitelist, address, checkClaimStatus]);
+  }, [isLoading, address, checkClaimStatus]);
 
   // Background polling while verifying
   useEffect(() => {
@@ -259,18 +233,8 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
 
 
-  const refresh = useCallback(async () => {
-    const whitelisted = await checkWhitelisted();
-    setIsWhitelisted(whitelisted);
-    await checkClaimStatus();
-  }, [checkWhitelisted, checkClaimStatus]);
-
   const claim = async () => {
-    if (!canClaim) return;
-    if (!walletClient) {
-      setError(new Error("Wallet not ready. Please wait a moment and try again."));
-      return;
-    }
+    if (!address || !publicClient || !walletClient || !identitySDK) return;
 
     try {
       setIsClaiming(true);
@@ -325,7 +289,6 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     hasClaimed,
     nextClaimTime,
     claim,
-    refresh,
     error,
     isInitialized, // Track when all checks are complete
   };
