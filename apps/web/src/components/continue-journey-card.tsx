@@ -14,7 +14,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   mindset:   Brain,
   other:     Target,
 };
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import {
   useGoalSeries,
@@ -55,7 +55,7 @@ interface ContinueJourneyCardProps {
 }
 
 export function ContinueJourneyCard({ className }: ContinueJourneyCardProps) {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const router = useRouter();
   const { data: series, isLoading } = useGoalSeries(address);
   const [showAbandonModal, setShowAbandonModal] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import {
@@ -12,6 +12,8 @@ import {
 export type AuthProvider = "privy" | "web3auth" | null;
 
 const PROVIDER_KEY = "delulu:auth_provider";
+// Never cleared on logout — used by sign-in page to open the right modal for returning users.
+const LAST_PROVIDER_KEY = "delulu:last_provider";
 
 export interface UseAuthReturn {
   address: `0x${string}` | undefined;
@@ -45,16 +47,39 @@ export function useAuth(): UseAuthReturn {
 
   if (initError) console.error("[auth] web3auth init error:", initError);
 
+  // ── Resolve Web3Auth address directly from its provider ───────────────────
+  // We don't rely on wagmi here — web3Auth.provider is the EIP-1193 source of truth.
+  const [web3authAddress, setWeb3authAddress] = useState<`0x${string}` | undefined>();
+
+  useEffect(() => {
+    if (!web3authConnected || !web3Auth?.provider) {
+      setWeb3authAddress(undefined);
+      return;
+    }
+    (web3Auth.provider as any)
+      .request({ method: "eth_accounts" })
+      .then((accounts: string[]) => {
+        if (accounts?.[0]) setWeb3authAddress(accounts[0] as `0x${string}`);
+      })
+      .catch(() => {});
+  }, [web3authConnected, web3Auth]);
+
   // ── Persist active provider to localStorage on auth state change ──────────
   useEffect(() => {
     if (privyAuthenticated) {
-      try { localStorage.setItem(PROVIDER_KEY, "privy"); } catch {}
+      try {
+        localStorage.setItem(PROVIDER_KEY, "privy");
+        localStorage.setItem(LAST_PROVIDER_KEY, "privy");
+      } catch {}
     }
   }, [privyAuthenticated]);
 
   useEffect(() => {
     if (web3authConnected) {
-      try { localStorage.setItem(PROVIDER_KEY, "web3auth"); } catch {}
+      try {
+        localStorage.setItem(PROVIDER_KEY, "web3auth");
+        localStorage.setItem(LAST_PROVIDER_KEY, "web3auth");
+      } catch {}
     }
   }, [web3authConnected]);
 
@@ -65,6 +90,7 @@ export function useAuth(): UseAuthReturn {
 
   const address: `0x${string}` | undefined =
     account.address ??
+    web3authAddress ??
     (wallets?.[0]?.address as `0x${string}` | undefined) ??
     privyEmbeddedAddress;
 
@@ -77,7 +103,6 @@ export function useAuth(): UseAuthReturn {
     ? "web3auth"
     : null;
 
-  // Privy ready is enough to show the UI — Web3Auth initialization is non-blocking
   const isReady = ready;
 
   // ── Email resolution ──────────────────────────────────────────────────────
@@ -109,7 +134,7 @@ export function useAuth(): UseAuthReturn {
     });
   };
 
-  // ── Logout — reads localStorage so it works after a page refresh ──────────
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     let storedProvider: AuthProvider = null;
     try {
@@ -129,6 +154,7 @@ export function useAuth(): UseAuthReturn {
     }
 
     try { localStorage.removeItem(PROVIDER_KEY); } catch {}
+    setWeb3authAddress(undefined);
     disconnect();
   };
 

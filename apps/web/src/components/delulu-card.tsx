@@ -10,7 +10,7 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { Plus, Flame, Clock, Bell, DollarSign } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import {
   getMilestoneEndTimeMs,
@@ -140,7 +140,7 @@ export function DeluluCard({
     ? false
     : isMilestonesLoading;
 
-  const { address } = useAccount();
+  const { address } = useAuth();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
   const apolloClient = useApolloClient();

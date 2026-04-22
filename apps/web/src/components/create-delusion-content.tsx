@@ -39,7 +39,8 @@ import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { useAccount, useBalance } from "wagmi";
+import { useBalance } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { DateTimePicker } from "@/components/date-time-picker";
 import { CELO_MAINNET_ID } from "@/lib/constant";
@@ -212,7 +213,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
   const [selectedToken, setSelectedToken] = useState<string>(initialToken);
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAuth();
   const [inputText, setInputText] = useState<string>("");
   const [stakeInputTouched, setStakeInputTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);

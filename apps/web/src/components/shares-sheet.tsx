@@ -8,8 +8,8 @@ import {
   useReadContract,
   useWaitForTransactionReceipt,
   useBalance,
-  useWriteContract,
 } from "wagmi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { DELULU_ABI } from "@/lib/abi";
 import { getDeluluContractAddress, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
@@ -120,7 +120,7 @@ export function SharesSheet({
     return needsApproval(maxCostWithSlippageNum);
   }, [mode, curve, maxCostWithSlippageNum, needsApproval]);
 
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useUnifiedWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

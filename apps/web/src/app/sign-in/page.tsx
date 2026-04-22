@@ -9,11 +9,24 @@ import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { usePrivy } from "@privy-io/react-auth";
 
+const LAST_PROVIDER_KEY = "delulu:last_provider";
+
 export default function SignInPage() {
   const { authenticated, isReady, address, login } = useAuth();
 
-
   const { login: privyLogin } = usePrivy();
+
+  const handleReturningUser = () => {
+    let lastProvider = "privy";
+    try {
+      lastProvider = localStorage.getItem(LAST_PROVIDER_KEY) ?? "privy";
+    } catch {}
+    if (lastProvider === "web3auth") {
+      login();
+    } else {
+      privyLogin({ disableSignup: true });
+    }
+  };
   const router = useRouter();
 
   const { data: existingUsername, isSuccess, isError } = useReadContract({
@@ -107,9 +120,9 @@ export default function SignInPage() {
             Get Started
           </button>
 
-          {/* Returning users → Privy modal (all pre-Web3Auth accounts are Privy) */}
+          {/* Returning users → opens the provider they last used */}
           <button
-            onClick={() => privyLogin()}
+            onClick={handleReturningUser}
             className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl
               bg-transparent text-foreground font-bold text-base
               border-2 border-border

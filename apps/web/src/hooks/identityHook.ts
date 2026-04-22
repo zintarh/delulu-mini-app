@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 import { useIdentitySDK, IdentitySDK } from "@goodsdks/identity-sdk";
 import { ClaimSDK } from "@goodsdks/citizen-sdk";
+import { useAuth } from "@/hooks/use-auth";
+import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
 
 export type IdentityStatus = "loading" | "verified" | "not_verified" | "error";
 
 export function useIdentity() {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useUnifiedWalletClient();
   const identitySDK = useIdentitySDK("production");
 
   const [status, setStatus] = useState<IdentityStatus>("loading");

@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, ExternalLink } from "lucide-react";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useIdentity } from "@/hooks/identityHook";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -11,7 +11,7 @@ import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 export default function VerifyGoodDollarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isConnected } = useAccount();
+  const { isConnected } = useAuth();
   const { status, isVerified, fvLink, setIsVerifying } = useIdentity();
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,

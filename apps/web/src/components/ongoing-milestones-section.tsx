@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { Clock, ChevronRight, FileCheck, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMilestoneCountdown } from "@/lib/milestone-utils";
@@ -66,7 +67,7 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
     isPending: isSubmittingMilestone,
     error: submitMilestoneError,
     reset: resetSubmit,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
 
   const { isLoading: isConfirming, isSuccess: isSubmitSuccess } =
     useWaitForTransactionReceipt({ hash: submitHash });

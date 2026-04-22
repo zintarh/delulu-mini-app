@@ -2,11 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useChainId,
-} from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { Loader2, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
@@ -55,7 +52,7 @@ export function AiMilestonesModal({
     isPending,
     error: writeError,
     reset,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
   const { isLoading: isConfirming, isSuccess } =
     useWaitForTransactionReceipt({ hash });
 

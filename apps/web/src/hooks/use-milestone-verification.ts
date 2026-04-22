@@ -1,17 +1,14 @@
 "use client";
 
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useChainId,
-} from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useMilestoneVerification() {
   const chainId = useChainId();
   const { writeContract, data: hash, isPending, error, reset } =
-    useWriteContract();
+    useUnifiedWriteContract();
   const {
     isLoading: isConfirming,
     isSuccess,
