@@ -37,6 +37,7 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { useTheme } from "@/contexts/theme-context";
+import { useAdminOpsSession } from "@/hooks/use-admin-ops-session";
 
 const PAGE_SIZE = 10;
 
@@ -251,6 +252,12 @@ export default function AdminDashboardPage() {
   const apolloClient = useApolloClient();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const {
+    configured: isOpsConfigured,
+    authenticated: isOpsAuthenticated,
+    email: opsEmail,
+    isLoading: isOpsLoading,
+  } = useAdminOpsSession();
+  const {
     delulus,
     isLoading: loadingDelulus,
     refetch: refetchDelulus,
@@ -332,8 +339,9 @@ export default function AdminDashboardPage() {
   };
 
   const tableShell = "overflow-hidden rounded-xl border-2 border-border bg-card shadow-neo";
+  const hasAdminAccess = isOpsAuthenticated || (isConnected && isAdmin);
 
-  if (isAdminLoading) {
+  if (isAdminLoading || isOpsLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-foreground" />
@@ -341,7 +349,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!isConnected || !isAdmin) {
+  if (!hasAdminAccess) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background text-foreground px-4">
         <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-border bg-muted">
@@ -349,20 +357,32 @@ export default function AdminDashboardPage() {
         </div>
         <h1 className="text-xl font-black">Access denied</h1>
         <p className="text-sm text-muted-foreground text-center max-w-xs">
-          {!isConnected
-            ? "Connect your wallet to continue."
-            : "This page is restricted to the contract owner."}
+          {isOpsConfigured
+            ? "Login with Ops credentials or use the contract-owner wallet."
+            : !isConnected
+              ? "Connect your wallet to continue."
+              : "This page is restricted to the contract owner."}
         </p>
-        {!isConnected ? (
-          <button
-            type="button"
-            onClick={() => setShowLoginSheet(true)}
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
-          >
-            <LogIn className="w-4 h-4" />
-            Connect wallet
-          </button>
-        ) : (
+        <div className="flex items-center gap-2">
+          {isOpsConfigured && (
+            <Link
+              href="/admin/login"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-foreground text-background px-4 py-2 text-sm font-bold shadow-neo-sm"
+            >
+              <LogIn className="w-4 h-4" />
+              Login as Ops
+            </Link>
+          )}
+          {!isConnected && (
+            <button
+              type="button"
+              onClick={() => setShowLoginSheet(true)}
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              Connect wallet
+            </button>
+          )}
           <Link
             href="/"
             className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
@@ -370,7 +390,7 @@ export default function AdminDashboardPage() {
             <ArrowLeft className="w-4 h-4" />
             Go home
           </Link>
-        )}
+        </div>
         <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       </div>
     );
@@ -390,8 +410,8 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
-      <header className="shrink-0 z-20 border-b-2 border-border bg-card/90 backdrop-blur-md">
+    <div className="h-screen flex flex-col bg-muted/20 text-foreground">
+      <header className="shrink-0 z-20 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
@@ -405,19 +425,36 @@ export default function AdminDashboardPage() {
               <span className="hidden sm:inline">Home</span>
             </Link>
             <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-border bg-muted shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted shrink-0">
                 <LayoutDashboard className="h-4 w-4 text-foreground" />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
-                  Console
+                  Operations
                 </p>
-                <p className="text-sm font-black truncate">Admin</p>
+                <p className="text-sm font-black truncate">Admin Dashboard</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {isOpsAuthenticated && (
+              <>
+                <span className="hidden md:inline-flex rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                  Ops: {opsEmail}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetch("/api/admin/auth/logout", { method: "POST" });
+                    window.location.href = "/admin/login";
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  Logout ops
+                </button>
+              </>
+            )}
             <Link
               href="/admin/users"
               className={cn(
@@ -494,7 +531,7 @@ export default function AdminDashboardPage() {
               Dashboard
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Milestone verification, market resolution, and indexed delulus.
+              Milestone verification, market resolution, and indexed delulus in one workspace.
             </p>
           </div>
 

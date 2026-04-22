@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { isOpsAuthConfigured, readAdminSession } from "@/lib/admin-session";
 
 const PAGE_SIZE = 20;
 
 export async function GET(request: NextRequest) {
+  if (isOpsAuthConfigured()) {
+    const session = await readAdminSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
@@ -16,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("profiles")
-    .select("address, username, email, pfp_url, referral_code, created_at", { count: "exact" })
+    .select("address, username, email, pfp_url, referral_code, created_at, auth_provider", { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (username.trim()) {
@@ -55,10 +63,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Provider breakdown for admin visibility
+  const { data: providerStats } = await supabase
+    .from("profiles")
+    .select("auth_provider")
+    .then(({ data, error }) => {
+      if (error || !data) return { data: { privy: 0, web3auth: 0 } };
+      const breakdown = data.reduce(
+        (acc, row) => {
+          const p = (row.auth_provider as string) ?? "privy";
+          acc[p] = (acc[p] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+      return { data: { privy: breakdown["privy"] ?? 0, web3auth: breakdown["web3auth"] ?? 0 } };
+    });
+
   return NextResponse.json({
     users: data ?? [],
     total: count ?? 0,
     page,
     pageSize: PAGE_SIZE,
+    providerStats,
   });
 }
