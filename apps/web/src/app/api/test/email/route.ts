@@ -8,7 +8,7 @@ import { jsonResponse, errorResponse } from "@/lib/api";
  * Usage (dev only, guarded by PUSH_CRON_SECRET):
  *   GET /api/test/email?to=you@example.com&secret=YOUR_CRON_SECRET
  *
- * Optional params:
+ *
  *   name=YourName        (default: "Visionary")
  *   milestone=Some%20goal (default: "Milestone #1")
  */
