@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
@@ -15,18 +15,7 @@ import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 type Phase = "verifying" | "form";
 
 export default function WelcomePage() {
-  const { address: wagmiAddress } = useAccount();
-
-
-  const { ready, authenticated, user: privyUser } = usePrivy();
-
-
-  const { wallets } = useWallets();
-
-
-  const privyWalletAddress = (privyUser as any)?.wallet?.address as `0x${string}` | undefined;
-  const firstWalletAddress = wallets?.[0]?.address as `0x${string}` | undefined;
-  const address = wagmiAddress ?? firstWalletAddress ?? privyWalletAddress;
+  const { address, isReady: ready, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
   const router = useRouter();
   const { updateUsername, updateProfile } = useUserStore();
 
@@ -58,13 +47,8 @@ export default function WelcomePage() {
   }, [ready, authenticated, router]);
 
   useEffect(() => {
-    if (!privyUser) return;
-    const linkedEmail =
-      (privyUser as any)?.email?.address ??
-      (privyUser as any)?.linkedAccounts?.find((a: any) => a.type === "email")?.address ??
-      null;
-    if (linkedEmail) setEmail(linkedEmail);
-  }, [privyUser]);
+    if (resolvedEmail) setEmail(resolvedEmail);
+  }, [resolvedEmail]);
 
 
 
@@ -147,6 +131,7 @@ export default function WelcomePage() {
             username: username.trim(),
             email: email.trim() || `${address.toLowerCase()}@wallet.local`,
             pfpUrl: pfpUrl ?? undefined,
+            auth_provider: authProvider ?? "web3auth",
           }),
         });
       } catch {}

@@ -11,7 +11,7 @@ import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { DeluluCard } from "@/components/delulu-card";
 import { LogoutSheet } from "@/components/logout-sheet";
 import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus } from "@/hooks/graph";
@@ -20,7 +20,6 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
 import { UserSetupModal } from "@/components/user-setup-modal";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -84,9 +83,7 @@ function BoardTile({
 }
 
 export default function HomePage() {
-  const { isConnected, address } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { logout,  authenticated } = usePrivy();
+  const { isConnected, address, authenticated, logout } = useAuth();
 
   const handleProfileClick = () => {
     if (!authenticated) router.push("/sign-in");
@@ -401,14 +398,11 @@ export default function HomePage() {
       <LogoutSheet
         open={logoutSheetOpen}
         onOpenChange={setLogoutSheetOpen}
-        onLogout={ async () => {
+        onLogout={async () => {
           await logout();
-          await disconnect();
-
-           useUserStore.getState().logout();
+          useUserStore.getState().logout();
           setLogoutSheetOpen(false);
-            router.push("/sign-in");
-          
+          router.push("/sign-in");
         }}
       />
 

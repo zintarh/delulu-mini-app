@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ConnectorSelectionSheetProps {
   open: boolean;
@@ -12,7 +12,7 @@ export function ConnectorSelectionSheet({
   open,
   onOpenChange,
 }: ConnectorSelectionSheetProps) {
-  const { login, authenticated } = usePrivy();
+  const { login, authenticated } = useAuth();
   const hasTriggeredRef = useRef(false);
 
   useEffect(() => {

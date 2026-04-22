@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("address")
+    .select("address, auth_provider")
     .eq("email", email.toLowerCase().trim())
     .maybeSingle();
 
@@ -23,5 +23,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Check failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ taken: !!data });
+  return NextResponse.json({
+    taken: !!data,
+    auth_provider: (data?.auth_provider as "privy" | "web3auth") ?? null,
+  });
 }

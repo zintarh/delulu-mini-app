@@ -34,6 +34,7 @@
     "@tanstack/react-query-devtools": "^5.91.2",
     "@types/uuid": "^11.0.0",
     "@vercel/og": "^0.8.6",
+    "@web3auth/modal": "^10.15.0",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",

@@ -84,10 +84,9 @@ const GOAL_SUGGESTIONS: { icon: LucideIcon; label: string }[] = [
   { icon: Flame,         label: "Get fit" },
   { icon: Droplets,      label: "Stay hydrated" },
   { icon: Video,         label: "Create content" },
-  { icon: Heart,         label: "Get a boyfriend/girlfriend" },
+  { icon: Heart,         label: "Relationship" },
   { icon: Moon,          label: "Sleep better" },
-  { icon: GraduationCap, label: "Pass my exams" },
-  { icon: Brain,         label: "Study every day" },
+  { icon: GraduationCap,         label: "Study every day" },
   { icon: Briefcase,     label: "Get a new job" },
   { icon: PiggyBank,     label: "Save money" },
 ];
@@ -822,14 +821,14 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                 onChange={(e) => setUltimateGoal(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && ultimateGoal.trim()) handleAnalyzeGoal(); }}
                 placeholder="e.g. sleep better, create content, get fit…"
-                className="w-full bg-muted rounded-2xl px-4 py-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/15 transition-all"
+                className="w-full bg-transparent border-2 border-border  rounded-xl px-4 py-5 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/15 transition-all"
                 autoFocus
               />
 
               {/* Inspiration grid */}
               <div>
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase mb-3">Inspiration</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {GOAL_SUGGESTIONS.map((s) => {
                     const Icon = s.icon;
                     const selected = ultimateGoal === s.label;
@@ -838,9 +837,9 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                         key={s.label}
                         onClick={() => setUltimateGoal(s.label)}
                         className={cn(
-                          "flex items-center gap-3 px-3.5 py-3 rounded-xl border-2 text-left transition-all",
+                          "flex bg-secondary items-center gap-3 px-3.5 py-1 rounded-xl border-2 text-left transition-all",
                           selected
-                            ? "border-delulu-yellow-reserved bg-delulu-yellow-reserved/10"
+                            ? "border-delulu-yellow-reserved border-[0.5px] bg-delulu-yellow-reserved/10"
                             : "border-border hover:border-border/80 hover:bg-muted/50"
                         )}
                       >
@@ -862,12 +861,12 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               {aiError && <p className="text-xs text-destructive -mt-2">{aiError}</p>}
 
               {/* CTA */}
-              <div className="flex flex-col gap-2 pt-1">
+              <div className="flex items-center mt-4 flex-col gap-2 pt-1">
                 <button
                   onClick={handleAnalyzeGoal}
                   disabled={!ultimateGoal.trim() || isLoadingAI}
                   className={cn(
-                    "w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
+                    "w-fit py-3.5 px-5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all",
                     "bg-delulu-yellow text-delulu-charcoal active:scale-[0.98]",
                     (!ultimateGoal.trim() || isLoadingAI) && "opacity-40 cursor-not-allowed"
                   )}

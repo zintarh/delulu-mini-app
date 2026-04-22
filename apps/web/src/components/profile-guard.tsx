@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 
 const UNGUARDED_PATHS = ["/setup-profile"];
@@ -11,8 +10,7 @@ const UNGUARDED_PATHS = ["/setup-profile"];
 export function ProfileGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authenticated, ready } = usePrivy();
-  const { address } = useAccount();
+  const { authenticated, isReady: ready, address } = useAuth();
   const { username, isLoading } = useUsernameByAddress(
     address as `0x${string}` | undefined
   );

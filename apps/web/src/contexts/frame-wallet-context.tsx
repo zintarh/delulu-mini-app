@@ -7,6 +7,7 @@ import { WagmiProvider, createConfig } from "@privy-io/wagmi";
 import { http, fallback } from "wagmi";
 import { celo, fuse } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
+import { web3AuthConnector } from "@/lib/web3auth-bridge";
 
 const chains = [celo, fuse] as const;
 
@@ -24,6 +25,7 @@ export default function FrameWalletProvider({
     const baseConnectors = [
       farcasterMiniApp(),
       injected(),
+      web3AuthConnector,
     ];
 
     const configOptions = {

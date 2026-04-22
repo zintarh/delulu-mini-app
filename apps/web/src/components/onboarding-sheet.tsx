@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 
 interface OnboardingSheetProps {
   open: boolean;
@@ -78,7 +78,7 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
-  const { login } = usePrivy();
+  const { login } = useAuth();
 
   const handleNext = () => {
     if (isLast) {

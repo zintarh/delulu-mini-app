@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { cn, formatGAmount } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme-context";
-import { useAccount, useBalance } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useBalance } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { formatAddress } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -33,8 +33,7 @@ export function LeftSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { authenticated } = usePrivy();
-  const { address } = useAccount();
+  const { authenticated, address } = useAuth();
   const { username } = useUsernameByAddress(authenticated ? address : undefined);
   const [selectedAsset, setSelectedAsset] = useState<"CELO" | "G$">("CELO");
   const [isBalanceOpen, setIsBalanceOpen] = useState(false);

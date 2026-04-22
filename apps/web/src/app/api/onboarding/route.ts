@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 /** POST — mark a wallet address as onboarded */
 export async function POST(request: NextRequest) {
   try {
-    const { address } = await request.json();
+    const { address, auth_provider = "privy" } = await request.json();
 
     if (!address || typeof address !== "string") {
       return NextResponse.json({ error: "address is required" }, { status: 400 });
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       .update({
         onboarded_at: nowIso,
         updated_at: nowIso,
+        auth_provider,
       })
       .eq("address", normalizedAddress)
       .select("address");
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
         email: `${normalizedAddress}@wallet.local`,
         onboarded_at: nowIso,
         updated_at: nowIso,
+        auth_provider,
       });
 
       // Ignore duplicate conflict from race conditions.
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest) {
           .update({
             onboarded_at: nowIso,
             updated_at: nowIso,
+            auth_provider,
           })
           .eq("address", normalizedAddress);
         if (retryError) throw retryError;

@@ -6,11 +6,14 @@ import { ApolloProvider } from "@/components/providers/ApolloProvider";
 import dynamic from "next/dynamic";
 import { ThemeProvider, useTheme } from "@/contexts/theme-context";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { Web3AuthProvider } from "@web3auth/modal/react";
 import { celo } from "wagmi/chains";
 import { useSessionSigner } from "@/hooks/use-session-signer";
 import { env } from "@/lib/env";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { PullToRefresh } from "@/components/pwa/PullToRefresh";
+import { web3AuthContextConfig } from "@/lib/web3auth-config";
+import { Web3AuthWagmiSync } from "@/components/web3auth-wagmi-sync";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -40,6 +43,7 @@ function AppWithPrivy({
 
   const appTree = (
     <FrameWalletProvider>
+      <Web3AuthWagmiSync />
       <ApolloProvider>
         <QueryProvider>
           <MiniAppProvider addMiniAppOnLoad={true}>
@@ -55,28 +59,30 @@ function AppWithPrivy({
   const isDark = theme === "dark";
 
   return (
-    <PrivyProvider
-      appId={privyAppId as string}
-      config={{
-        appearance: {
-          theme: isDark ? "#151515" : "#ffffff",
-          accentColor: isDark ? "#151515" : "#466567",
-          logo: "/favicon_io/favicon-32x32.png",
-          walletChainType: "ethereum-only",
-        },
-        loginMethods: ["email", "wallet"],
-        defaultChain: celo,
-        supportedChains: [celo],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "users-without-wallets",
+    <Web3AuthProvider config={web3AuthContextConfig}>
+      <PrivyProvider
+        appId={privyAppId as string}
+        config={{
+          appearance: {
+            theme: isDark ? "#050505" : "#ffffff",
+            accentColor: isDark ? "#141414" : "#466567",
+            logo: "/favicon_io/favicon-32x32.png",
+            walletChainType: "ethereum-only",
           },
-        },
-      }}
-    >
-      <SessionSignerSetup signerKeyQuorumId={signerKeyQuorumId} />
-      {appTree}
-    </PrivyProvider>
+          loginMethods: ["email", "wallet"],
+          defaultChain: celo,
+          supportedChains: [celo],
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: "users-without-wallets",
+            },
+          },
+        }}
+      >
+        <SessionSignerSetup signerKeyQuorumId={signerKeyQuorumId} />
+        {appTree}
+      </PrivyProvider>
+    </Web3AuthProvider>
   );
 }
 

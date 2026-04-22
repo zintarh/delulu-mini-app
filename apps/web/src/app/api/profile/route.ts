@@ -131,7 +131,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { address, username, email, pfpUrl, referralCode } = await request.json();
+    const { address, username, email, pfpUrl, referralCode, auth_provider } = await request.json();
 
     if (!address || typeof address !== "string") {
       return NextResponse.json({ error: "address is required" }, { status: 400 });
@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
         email,
         pfp_url: pfpUrl || null,
         referral_code: referralCode || null,
+        auth_provider: auth_provider ?? "web3auth",
         updated_at: new Date().toISOString(),
       },
       { onConflict: "address" }

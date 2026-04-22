@@ -55,31 +55,31 @@ body {
 /* Dark theme tokens (applied when html has class="dark") */
 .dark {
   /* Primary background & text */
-  --background: #010001;
+  --background: oklch(0 0 0);
   --foreground:  rgb(255 255 255 / 0.9);   /* also used for icons */
 
   /* Surfaces */
-  --card: #151515;
-  --card-foreground: #fefeff;
-  --popover: #151515;
+  --card: oklch(0.2103 0 267.51);
+  --card-foreground: oklch(0.9461 0 0);
+  --popover: oklch(0.25 0 0);
   --popover-foreground: #fefeff;
   /* App chrome / base surface (slightly darker than cards) */
-  --secondary: #0f0f10;
-  --secondary-foreground: #fefeff;
+  --secondary: oklch(0.25 0 0);
+  --secondary-foreground: oklch(0.97 0.014 254.604);
   /* Elevated subtle surface for separating items on secondary */
-  --muted: #1b1b1d;
-  --muted-foreground: #a3a3aa;
-  --accent: #151515;
-  --accent-foreground: #fefeff;
+  --muted: oklch(0.23 0 0);
+  --muted-foreground: oklch(0.9461 0 0);
+  --accent: oklch(0.25 0 0);
+  --accent-foreground: oklch(0.9214 0.0248 257.65);
 
   /* Feedback / semantic */
-  --destructive: #ef4444;
-  --destructive-foreground: #fefeff;
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.97 0.014 254.604);
 
   /* Borders & inputs */
-  --border: #1f1f1f;
-  --input: #1b1b1d;
-  --ring: #fefeff;
+  --border: oklch(0.26 0 0);
+  --input: oklch(0.32 0 0);
+  --ring: oklch(0.5144 0.1605 267.44);
 
   /* Charts (keep reasonable contrast on dark) */
   --chart-1: #fefeff;

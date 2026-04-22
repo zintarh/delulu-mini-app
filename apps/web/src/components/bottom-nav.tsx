@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Home, Plus, Coins, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 
 interface BottomNavProps {
   onProfileClick?: () => void;
@@ -27,7 +27,7 @@ const navItems: Array<{
 export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { authenticated } = usePrivy();
+  const { authenticated } = useAuth();
 
   useEffect(() => {
     ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]

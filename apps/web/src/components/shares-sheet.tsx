@@ -4,14 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn, formatGAmount } from "@/lib/utils";
 import {
-  useAccount,
   useChainId,
   useReadContract,
   useWaitForTransactionReceipt,
   useBalance,
   useWriteContract,
 } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { DELULU_ABI } from "@/lib/abi";
 import { getDeluluContractAddress, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -37,8 +36,7 @@ export function SharesSheet({
   isCreator?: boolean;
   isEnded?: boolean;
 }) {
-  const { authenticated } = usePrivy();
-  const { address } = useAccount();
+  const { authenticated, address } = useAuth();
   const chainId = useChainId();
   const contractAddress = getDeluluContractAddress(chainId);
 

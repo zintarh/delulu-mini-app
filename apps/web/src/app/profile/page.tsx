@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { useAccount, useDisconnect, useBalance } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useBalance } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
@@ -39,9 +39,7 @@ type TabType = "milestones" | "ongoing" | "past";
 
 
 export default function ProfilePage() {
-  const { isConnected, address } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { logout } = usePrivy();
+  const { isConnected, address, logout } = useAuth();
   const { user, updateProfile } = useUserStore();
   const router = useRouter();
 
@@ -475,7 +473,6 @@ export default function ProfilePage() {
         onOpenChange={setLogoutSheetOpen}
         onLogout={async () => {
           await logout();
-          await disconnect();
           setLogoutSheetOpen(false);
           useUserStore.getState().logout();
           router.push("/sign-in");

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X, ArrowLeft, TrendingUp, ChevronRight, Loader2 } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useAllDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
@@ -46,7 +46,7 @@ function isContentLoaded(d: FormattedDelulu) {
 export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { authenticated } = usePrivy();
+  const { authenticated } = useAuth();
 
   // Trending uses the already-loaded feed data (fast, no extra fetch)
   const { delulus, isLoading: isFeedLoading } = useAllDelulus();

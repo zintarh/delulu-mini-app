@@ -11,7 +11,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
 import {
@@ -226,8 +226,7 @@ export default function DeluluPage() {
   const params = useParams();
   const deluluId = params.id as string;
 
-  const { authenticated } = usePrivy();
-  const { isConnected, address } = useAccount();
+  const { authenticated, isConnected, address } = useAuth();
   const chainId = useChainId();
   const contractAddress = getDeluluContractAddress(chainId);
   const apolloClient = useApolloClient();

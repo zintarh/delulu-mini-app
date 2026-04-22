@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useDisconnect, useBalance } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useBalance } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/useUserStore";
@@ -29,9 +29,7 @@ export function ConnectedAccount({
   const [copied, setCopied] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
 
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { logout: privyLogout } = usePrivy();
+  const { address, isConnected, logout: authLogout } = useAuth();
   const router = useRouter();
   const { data: balance } = useBalance({ address });
   const { logout } = useUserStore();
@@ -52,12 +50,7 @@ export function ConnectedAccount({
 
   const handleDisconnect = async () => {
     try {
-      await privyLogout();
-    } catch {
-      // best-effort
-    }
-    try {
-      await disconnect();
+      await authLogout();
     } catch {
       // best-effort
     }
