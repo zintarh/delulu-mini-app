@@ -5,12 +5,11 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { SharesSheet } from "@/components/shares-sheet";
 import {
-  useAccount,
   useChainId,
   useReadContract,
-  useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
@@ -500,7 +499,7 @@ export default function DeluluPage() {
     data: addMilestonesHash,
     isPending: isAddingMilestones,
     error: addMilestonesError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
   const {
     isLoading: isConfirmingAddMilestones,
     isSuccess: isAddMilestonesSuccess,
@@ -510,7 +509,7 @@ export default function DeluluPage() {
     data: submitMilestoneHash,
     isPending: isSubmittingMilestone,
     error: submitMilestoneError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
   const {
     isLoading: isConfirmingSubmitMilestone,
     isSuccess: isSubmitMilestoneSuccess,
@@ -520,7 +519,7 @@ export default function DeluluPage() {
     data: resetMilestonesHash,
     isPending: isResettingMilestones,
     error: resetMilestonesError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
   const {
     isLoading: isConfirmingResetMilestones,
     isSuccess: isResetMilestonesSuccess,
@@ -530,7 +529,7 @@ export default function DeluluPage() {
     data: deleteMilestoneHash,
     isPending: isDeletingMilestone,
     error: deleteMilestoneError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
   const {
     isLoading: isConfirmingDeleteMilestone,
     isSuccess: isDeleteMilestoneSuccess,

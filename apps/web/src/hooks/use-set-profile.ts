@@ -4,9 +4,11 @@ import {
   useWriteContract,
 } from "wagmi";
 import { useState } from "react";
+import { createWalletClient, custom, decodeErrorResult } from "viem";
+import { celo } from "wagmi/chains";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
-import { decodeErrorResult } from "viem";
+import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 
 export function useSetProfile() {
   const chainId = useChainId();
@@ -28,12 +30,37 @@ export function useSetProfile() {
     try {
       setIsPending(true);
       setWriteError(null);
-      const txHash = await writeContractAsync({
-        address: getDeluluContractAddress(chainId),
-        abi: DELULU_ABI,
-        functionName: "setProfile",
-        args: [username.trim()],
-      });
+
+      const w3aProvider = getWeb3AuthProvider();
+
+      let txHash: `0x${string}`;
+
+      if (w3aProvider) {
+        // Web3Auth path — wagmi has no wallet client for this user,
+        // so write directly via viem using the Web3Auth EIP-1193 provider.
+        const walletClient = createWalletClient({
+          chain: celo,
+          transport: custom(w3aProvider),
+        });
+        const [account] = await walletClient.getAddresses();
+        txHash = await walletClient.writeContract({
+          address: getDeluluContractAddress(chainId),
+          abi: DELULU_ABI,
+          functionName: "setProfile",
+          args: [username.trim()],
+          account,
+          chain: celo,
+        });
+      } else {
+        // Privy / Farcaster path — wagmi connector is connected normally.
+        txHash = await writeContractAsync({
+          address: getDeluluContractAddress(chainId),
+          abi: DELULU_ABI,
+          functionName: "setProfile",
+          args: [username.trim()],
+        });
+      }
+
       setHash(txHash);
     } catch (err) {
       const formatted = formatErrorForDisplay(err);

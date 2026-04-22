@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useChainId } from "wagmi";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
@@ -47,7 +47,7 @@ function formatTitle(entry: DeluluLeaderboardEntry) {
 
 function CampaignLeaderboard() {
   const [page, setPage] = useState(0);
-  const { address } = useAccount();
+  const { address } = useAuth();
   const { entries, allEntries, hasNextPage, isLoading, error, refetch } = useDeluluLeaderboard(PAGE_SIZE, page);
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
@@ -57,7 +57,10 @@ function CampaignLeaderboard() {
     ? allEntries.find((e) => e.creatorAddress.toLowerCase() === address.toLowerCase()) ?? null
     : null;
   const myRank = myEntry ? allEntries.indexOf(myEntry) + 1 : null;
-  const showPinnedMe = myEntry && myRank;
+  const isOnCurrentPage = !!address && entries.some(
+    (e) => e.creatorAddress.toLowerCase() === address.toLowerCase()
+  );
+  const showPinnedMe = myEntry && myRank && !isOnCurrentPage;
 
   if (isLoading) return <SkeletonRows />;
 
@@ -157,7 +160,7 @@ function CampaignLeaderboard() {
 
 function DreamersLeaderboard() {
   const [page, setPage] = useState(0);
-  const { address } = useAccount();
+  const { address } = useAuth();
   const { entries, hasNextPage, hasPrevPage, isLoading, totalCount, isRankLoading, myRankEntry, myPageEntry, error, refetch } =
     useAllUsersLeaderboard(page, address);
 
@@ -178,7 +181,10 @@ function DreamersLeaderboard() {
     <EmptyState message="No dreamers yet." />
   );
 
-  const showPinnedMe = address && myRankEntry;
+  const isOnCurrentPage = !!address && entries.some(
+    (e) => e.address.toLowerCase() === address.toLowerCase()
+  );
+  const showPinnedMe = address && myRankEntry && !isOnCurrentPage;
 
   return (
     <div className="space-y-4">

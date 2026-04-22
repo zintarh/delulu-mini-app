@@ -1,11 +1,13 @@
 "use client";
 
-import { useAccount, useBalance } from "wagmi";
+import { useBalance, useChainId } from "wagmi";
 import { getAddress } from "viem";
 import { CELO_MAINNET_ID } from "@/lib/constant";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useTokenBalance(tokenAddress: string | undefined) {
-  const { address, chainId } = useAccount();
+  const { address } = useAuth();
+  const chainId = useChainId();
 
   const isMainnet = chainId === CELO_MAINNET_ID;
 

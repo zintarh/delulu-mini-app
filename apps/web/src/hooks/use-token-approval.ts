@@ -1,9 +1,11 @@
 "use client";
 
-import { useWaitForTransactionReceipt, useReadContract, useAccount, useChainId, useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt, useReadContract, useChainId } from "wagmi";
 import { parseUnits } from "viem";
 import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
+import { useAuth } from "@/hooks/use-auth";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 const ERC20_ABI = [
   {
@@ -30,10 +32,10 @@ const ERC20_ABI = [
 
 /** Per-market token approval. Pass the market's token address. */
 export function useTokenApproval(tokenAddress: string | undefined) {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const chainId = useChainId();
   const token = tokenAddress as `0x${string}` | undefined;
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useUnifiedWriteContract();
 
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);

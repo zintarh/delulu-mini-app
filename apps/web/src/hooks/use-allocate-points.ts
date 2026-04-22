@@ -1,9 +1,10 @@
 "use client";
 
-import { useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { parseUnits } from "viem";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useAllocatePoints() {
   const chainId = useChainId();
@@ -12,7 +13,7 @@ export function useAllocatePoints() {
     data: hash,
     isPending: isAllocating,
     error: allocateError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
 
   const {
     isLoading: isConfirming,

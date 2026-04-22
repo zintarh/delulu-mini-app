@@ -1,8 +1,9 @@
 "use client";
 
-import { useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useJoinChallenge() {
   const chainId = useChainId();
@@ -12,7 +13,7 @@ export function useJoinChallenge() {
     data: hash,
     isPending: isJoining,
     error: joinError,
-  } = useWriteContract();
+  } = useUnifiedWriteContract();
 
   const {
     isLoading: isConfirming,

@@ -1,16 +1,13 @@
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { parseUnits } from "viem";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { decodeErrorResult } from "viem";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useCreateChallenge() {
   const chainId = useChainId();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, data: hash, isPending, error } = useUnifiedWriteContract();
 
   const {
     isLoading: isConfirming,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useApolloClient } from "@apollo/client/react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
@@ -247,7 +247,7 @@ function DeluluRow({
 }
 
 export default function AdminDashboardPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const apolloClient = useApolloClient();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();

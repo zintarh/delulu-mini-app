@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import {
@@ -114,7 +114,7 @@ function Pagination({
 }
 
 export default function AdminUsersPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const {

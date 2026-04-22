@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import { usePublicClient } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
+import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
 
 let ClaimSDK: any;
 let useIdentitySDK: any;
@@ -43,9 +45,9 @@ export interface UseGoodDollarClaimReturn {
 }
 
 export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useUnifiedWalletClient();
   // Use the safe wrapper that always calls the hook unconditionally
   const identitySDK = useIdentitySDKSafe();
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useUserStore } from "@/stores/useUserStore";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { invalidatePfpCache } from "@/hooks/use-profile-pfp";
 
 export interface UsePfpUploadReturn {
@@ -16,7 +16,7 @@ export interface UsePfpUploadReturn {
 
 export function usePfpUpload(): UsePfpUploadReturn {
   const { updateProfile } = useUserStore();
-  const { address } = useAccount();
+  const { address } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);

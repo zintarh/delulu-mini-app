@@ -1,11 +1,12 @@
-import { useWaitForTransactionReceipt, useChainId, useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useClaimWinnings() {
   const chainId = useChainId();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useUnifiedWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [writeError, setWriteError] = useState<Error | null>(null);

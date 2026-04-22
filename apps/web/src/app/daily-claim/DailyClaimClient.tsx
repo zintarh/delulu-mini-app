@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount, useBalance } from "wagmi";
+import { useBalance } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
@@ -29,7 +30,7 @@ const FaucetModal = dynamic(
 const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
 
 export default function DailyClaimClient() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAuth();
   const router = useRouter();
   const {
     isLoading: isClaimDataLoading,
