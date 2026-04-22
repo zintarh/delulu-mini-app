@@ -62,12 +62,14 @@ function AppWithPrivy({
     <Web3AuthProvider config={web3AuthContextConfig}>
       <PrivyProvider
         appId={privyAppId as string}
+        
         config={{
           appearance: {
             theme: isDark ? "#050505" : "#ffffff",
             accentColor: isDark ? "#141414" : "#466567",
             logo: "/favicon_io/favicon-32x32.png",
             walletChainType: "ethereum-only",
+            loginMessage: "Welcome back",
           },
           loginMethods: ["email", "wallet"],
           defaultChain: celo,
