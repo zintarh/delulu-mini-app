@@ -13,7 +13,6 @@ import { jsonResponse, errorResponse } from "@/lib/api";
  *   milestone=Some%20goal (default: "Milestone #1")
  */
 export async function GET(req: NextRequest) {
-  // Lightweight smoke-test endpoint for Resend delivery checks.
   // Auth: require cron secret so this can't be abused in prod
   const secret = process.env.PUSH_CRON_SECRET;
   const provided = req.nextUrl.searchParams.get("secret") || req.headers.get("x-cron-secret");
