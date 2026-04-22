@@ -38,8 +38,8 @@ export const web3AuthContextConfig: Web3AuthContextConfig = {
             line:      HIDDEN,
             kakao:     HIDDEN,
             wechat:    HIDDEN,
-            telegram:  HIDDEN,
             farcaster: HIDDEN,
+            
           },
         },
       },
