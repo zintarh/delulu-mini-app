@@ -420,7 +420,7 @@ export default function LeaderboardPage() {
             >
               <img src="/gooddollar-logo.png" alt="G$" className="w-3.5 h-3.5 object-contain" />
               <span className="font-bold text-foreground">{formattedGAmount}</span>
-              <span className="text-muted-foreground/60 hidden sm:inline">G$ in contract</span>
+              <span className="text-muted-foreground/60 hidden sm:inline">G$ in circulation</span>
               <ExternalLink className="w-2.5 h-2.5 text-muted-foreground/40" />
             </Link>
           )}
