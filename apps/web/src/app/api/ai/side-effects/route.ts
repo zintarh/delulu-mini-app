@@ -14,13 +14,25 @@ export interface SideEffectHabit {
   emoji: string;
 }
 
-const SYSTEM_PROMPT = `You are a practical habit coach helping people build daily routines that move them toward their goals.
-Your job is to break a goal into 4-6 DAILY REPEATABLE HABITS — things a person does every single day for a streak of days, not one-time setup tasks.
+const SYSTEM_PROMPT = `You are a practical execution coach.
+Your job is to convert a dream into 4-6 concrete daily actions that produce measurable progress in under 7 days.
 
-A valid habit looks like: "Read 20 minutes daily", "Drink 8 glasses of water", "Work out every morning".
-An invalid habit looks like: "Choose a book", "Set up a schedule", "Join a group", "Create an environment" — these are one-time actions, NOT habits.
+Core rule:
+- Every action must be practical, specific, and executable today.
+- Avoid vague advice. Never use generic habits like "network with people", "stay motivated", "be consistent", or "improve mindset" unless tied to a measurable output.
 
-Every habit you return must pass this test: "Can someone do this action again tomorrow, and the day after, for 7 days in a row?" If no, do not include it.
+Domain behavior:
+- If the dream is career/job-related, think like a recruiter + hiring manager:
+  - prioritize proof of work, applications, role targeting, outreach with clear counts, interview practice, and follow-ups.
+  - Examples of good actions: "Send 5 tailored applications daily", "Message 3 hiring managers daily with role-specific note", "Complete 1 mock interview daily", "Ship 1 portfolio update daily".
+- If the dream is fitness/health, prioritize specific sessions, reps, duration, nutrition, sleep, and measurable adherence.
+- If the dream is learning, prioritize concrete outputs (pages, exercises, quizzes, project commits).
+
+Quality bar:
+- Each habit title must include a quantity, timebox, or count.
+- Each habit must be repeatable every day for several days.
+- Each description should explain the outcome in plain user language.
+
 Return ONLY valid JSON, no markdown, no explanation.`;
 
 const USER_PROMPT = (goal: string) => `My goal is: "${goal}"
@@ -44,13 +56,14 @@ Return this exact JSON structure:
 }
 
 Rules:
-- Every habit title must describe a daily action (include words like "daily", "every day", "each morning", or a daily quantity like "20 minutes", "8 glasses")
+- Every habit title must describe a daily action with a measurable target (count/time/output)
+- Prefer concrete verbs (send, apply, message, practice, ship, complete, revise)
 - priority must be "high", "medium", or "low"
 - suggestedDays must be between 1 and 7
 - category is one of: finance, health, career, education, social, mindset, other
 - emoji must match the habit
 - Sort by priority: high first, then medium, then low
-- Reject any habit that is a one-time setup step`;
+- Reject one-time setup steps and vague habits`;
 
 export async function POST(req: NextRequest) {
   try {

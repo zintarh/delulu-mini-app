@@ -9,28 +9,36 @@ export interface AiMilestone {
   days: number;
 }
 
-const SYSTEM_PROMPT = `You are a goal-tracking coach. Given a daily habit goal that lasts up to 7 days, you create exactly 3 milestone checkpoints that mark real progress.
+const SYSTEM_PROMPT = `You are a practical milestone planner.
+Given a dream and a duration (1-7 days), generate concrete checkpoint milestones that a real person can verify.
 
 Rules:
-- Return exactly 3 milestones
-- Each milestone title must be a short, specific, observable checkpoint (max 8 words) — something the user can tick off as done
-- Days must be whole numbers between 1 and 7, distributed sensibly across the goal duration (e.g. day 2, day 5, day 7)
-- No repeated days — each milestone must be on a different day
-- Milestone 3 must be the final day of the goal (day 7 or the total duration)
-- Return ONLY valid JSON, no markdown`;
+- Return practical checkpoints, not motivational phrases.
+- Each milestone title should describe observable progress/output (max 10 words).
+- Milestone days must be whole numbers within the duration and strictly increasing.
+- Final milestone must always be on the final day of the duration.
+
+Important behavior:
+- If the dream is repetitive/habit-based (gym, workout, running, reading, studying, practice, meditation, posting content, etc), create a streak-style timeline that spans the full duration.
+  - For repetitive goals, prefer one checkpoint per day (up to duration), each representing streak progress.
+- If the dream is project/outcome-based, create fewer but meaningful checkpoints (usually 3-5) distributed across the duration.
+
+For job/career dreams, think like a recruiter/hiring manager:
+- checkpoints should reflect real hiring progress (tailored applications sent, outreach sent, interviews practiced, portfolio/resume improvements, follow-ups).
+
+Return ONLY valid JSON, no markdown.`;
 
 const USER_PROMPT = (goal: string, durationDays: number) =>
   `My dream: "${goal}" (${durationDays} day${durationDays !== 1 ? "s" : ""} total)
 
-Give me exactly 3 milestone checkpoints distributed across this dream's duration.
+Generate practical milestone checkpoints for this duration.
 No milestone day can exceed ${durationDays}. The final milestone must be on day ${durationDays}.
 
 Return this exact JSON:
 {
   "milestones": [
-    { "title": "Complete first ${Math.ceil(durationDays / 3)} days without stopping", "days": ${Math.ceil(durationDays / 3)} },
-    { "title": "Hit the halfway mark", "days": ${Math.ceil(durationDays * 0.6)} },
-    { "title": "Finish the full ${durationDays}-day commitment", "days": ${durationDays} }
+    { "title": "Checkpoint title", "days": 1 },
+    { "title": "Checkpoint title", "days": ${durationDays} }
   ]
 }`;
 
@@ -55,7 +63,7 @@ export async function POST(req: NextRequest) {
         { role: "user", content: USER_PROMPT(goal.trim(), duration) },
       ],
       temperature: 0.6,
-      max_tokens: 300,
+      max_tokens: 500,
       response_format: { type: "json_object" },
     });
 
@@ -67,10 +75,75 @@ export async function POST(req: NextRequest) {
       return errorResponse("Invalid AI response", 502);
     }
 
-    const milestones: AiMilestone[] = parsed.milestones.slice(0, 5).map((m) => ({
-      title: String(m.title || "").slice(0, 80),
-      days: Math.max(1, Math.min(duration, Math.round(Number(m.days) || 1))),
-    }));
+    const isLikelyRepetitiveGoal = /gym|workout|run|running|lift|exercise|read|study|practice|meditat|journal|post|content|daily|habit/i.test(
+      goal
+    );
+
+    const desiredCount = isLikelyRepetitiveGoal
+      ? Math.max(3, duration)
+      : duration <= 3
+      ? 3
+      : duration <= 5
+      ? 4
+      : 5;
+
+    const cleaned = parsed.milestones
+      .slice(0, 10)
+      .map((m) => ({
+        title: String(m.title || "").slice(0, 80).trim(),
+        days: Math.max(1, Math.min(duration, Math.round(Number(m.days) || 1))),
+      }))
+      .filter((m) => m.title.length > 0);
+
+    const uniqueByDay = new Map<number, AiMilestone>();
+    for (const m of cleaned) {
+      if (!uniqueByDay.has(m.days)) uniqueByDay.set(m.days, m);
+    }
+
+    const milestones: AiMilestone[] = [];
+    if (isLikelyRepetitiveGoal) {
+      for (let day = 1; day <= duration; day++) {
+        const existing = uniqueByDay.get(day);
+        milestones.push(
+          existing ?? {
+            title: day === duration ? `Complete day ${day} streak` : `Finish day ${day} streak`,
+            days: day,
+          }
+        );
+      }
+    } else {
+      const fallbackDays = Array.from(new Set([
+        1,
+        Math.max(1, Math.ceil(duration * 0.4)),
+        Math.max(1, Math.ceil(duration * 0.7)),
+        duration,
+      ])).sort((a, b) => a - b);
+
+      const source = Array.from(uniqueByDay.values()).sort((a, b) => a.days - b.days);
+      for (const m of source) {
+        if (milestones.length >= desiredCount) break;
+        milestones.push(m);
+      }
+      for (const day of fallbackDays) {
+        if (milestones.length >= desiredCount) break;
+        if (!milestones.some((m) => m.days === day)) {
+          milestones.push({
+            title: day === duration ? "Final checkpoint complete" : `Checkpoint complete by day ${day}`,
+            days: day,
+          });
+        }
+      }
+      milestones.sort((a, b) => a.days - b.days);
+    }
+
+    if (!milestones.some((m) => m.days === duration)) {
+      milestones.push({
+        title: `Finish full ${duration}-day commitment`,
+        days: duration,
+      });
+    }
+
+    milestones.sort((a, b) => a.days - b.days);
 
     return jsonResponse({ milestones });
   } catch (err: any) {
