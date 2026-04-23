@@ -1117,7 +1117,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
                         alt="Vision"
                         className="absolute inset-0 w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
                       {delusionText && (
                         <div className="absolute bottom-0 left-0 right-0 p-5">
                           <p className="text-white text-xl font-bold leading-snug line-clamp-2 drop-shadow-md">
@@ -1201,7 +1201,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
               {/* Title */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                <label className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">
                   Title
                 </label>
                 <input
@@ -1226,7 +1226,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                <label className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">
                   Description{" "}
                   <span className="font-normal normal-case tracking-normal">(optional)</span>
                 </label>
@@ -1242,7 +1242,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
               {/* Deadline */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                  <label className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">
                     Deadline
                   </label>
                   {/* Toggle pills */}
@@ -1319,7 +1319,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
 
               {/* Stake */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                <label className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">
                   Stake
                 </label>
                 <div className="bg-muted/50 border border-border rounded-xl p-3 space-y-1">

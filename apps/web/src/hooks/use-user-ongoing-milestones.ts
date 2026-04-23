@@ -34,9 +34,9 @@ export interface OngoingMilestone {
 }
 
 const GET_USER_ONGOING_DELULUS_WITH_MILESTONES = gql`
-  query GetUserOngoingDelulusWithMilestones($creatorAddress: String!, $first: Int!) {
+  query GetUserOngoingDelulusWithMilestones($creatorAddresses: [String!], $first: Int!) {
     delulus(
-      where: { creatorAddress_nocase: $creatorAddress, isResolved: false, isCancelled: false }
+      where: { creatorAddress_in: $creatorAddresses, isResolved: false, isCancelled: false }
       first: $first
       orderBy: createdAt
       orderDirection: desc
@@ -95,13 +95,16 @@ interface GetUserOngoingDelulusWithMilestonesData {
 }
 
 interface GetUserOngoingDelulusWithMilestonesVars {
-  creatorAddress: string;
+  creatorAddresses: string[];
   first: number;
 }
 
 export function useUserOngoingMilestones() {
   const { address } = useAuth();
-  const creatorAddress = address?.toLowerCase() ?? "";
+  const creatorAddresses = useMemo(() => {
+    if (!address) return [] as string[];
+    return Array.from(new Set([address, address.toLowerCase()]));
+  }, [address]);
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
   const { data, loading, error, refetch } = useQuery<
@@ -110,7 +113,7 @@ export function useUserOngoingMilestones() {
   >(
     GET_USER_ONGOING_DELULUS_WITH_MILESTONES,
     {
-      variables: { creatorAddress, first: 50 },
+      variables: { creatorAddresses, first: 50 },
       skip: !address,
       fetchPolicy: "cache-and-network",
       nextFetchPolicy: "cache-and-network",
