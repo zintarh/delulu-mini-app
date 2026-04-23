@@ -328,8 +328,8 @@ export function RightSidebar() {
                       />
 
                       <div className="flex-1 min-w-0">
-                        {/* L1: title */}
-                        <p className="text-xs font-semibold text-white truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
+                        {/* L1: title — small */}
+                        <p className="text-[11px] font-semibold text-white truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
                           {headline}
                         </p>
                         {/* L3: creator handle */}
@@ -338,10 +338,10 @@ export function RightSidebar() {
                         </p>
                       </div>
 
-                      {/* UB — primary metric in yellow */}
-                      <span className="shrink-0 text-[11px] font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
-                        {entry.uniqueBuyerCount}
-                        <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">UB</span>
+                      {/* G$ in circulation for this delulu */}
+                      <span className="shrink-0 text-[11px] font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
+                        {formatGAmountInt(entry.totalG)}
+                        <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">G$</span>
                       </span>
                     </button>
                   );
