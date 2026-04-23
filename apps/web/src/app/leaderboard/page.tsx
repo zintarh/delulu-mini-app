@@ -9,9 +9,8 @@ import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
-import { ArrowLeft, ExternalLink, Trophy, Users, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Trophy, Users } from "lucide-react";
 import type { DeluluLeaderboardEntry } from "@/hooks/graph/useDeluluLeaderboard";
-import type { UserLeaderboardEntry } from "@/hooks/graph/useAllUsersLeaderboard";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -410,39 +409,35 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Hero */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-1">
-            <Star className="w-4 h-4 text-[#fcff52]" fill="#fcff52" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#fcff52]/70" style={{ fontFamily: "var(--font-manrope)" }}>Rankings</span>
-          </div>
+        <div className="mb-8 text-center">
           <h1
-            className="text-[2.75rem] leading-none font-semibold text-foreground tracking-tight"
+            className="text-3xl leading-none font-semibold text-foreground tracking-tight"
             style={{ fontFamily: "'Clash Display', sans-serif" }}
           >
             Leaderboard
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground/60" style={{ fontFamily: "var(--font-manrope)" }}>
-            {activeTab === "campaign" ? "Top campaigns this week · resets every 7 days" : "Top dreamers by points earned"}
+          <p className="mt-2 text-xs text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>
+            {activeTab === "campaign" ? "Delulu Monday · resets every 7 days" : "Top dreamers by points earned"}
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-2xl bg-muted/20 border border-border/40 mb-8">
+        <div className="flex items-center gap-1 p-1 rounded-full bg-muted/20 border border-border/40 mb-6">
           {(["dreamers", "campaign"] as Tab[]).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
                 activeTab === tab
                   ? "bg-card text-foreground shadow-sm border border-border/60"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
               )}
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              {tab === "dreamers" ? <Users className="w-3.5 h-3.5" /> : <Trophy className="w-3.5 h-3.5" />}
-              {tab === "dreamers" ? "Dreamers" : "Campaigns"}
+              {tab === "dreamers" ? <Users className="w-3 h-3" /> : <Trophy className="w-3 h-3" />}
+              {tab === "dreamers" ? "Dreamers" : "Delulu Monday"}
             </button>
           ))}
         </div>
