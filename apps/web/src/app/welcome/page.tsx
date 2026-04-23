@@ -12,115 +12,73 @@ import { cn } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 
-type Phase = "verifying" | "form";
-
 export default function WelcomePage() {
-  const { address, isReady: ready, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
   const router = useRouter();
+  const { address, isReady, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
   const { updateUsername, updateProfile } = useUserStore();
 
-  const [phase, setPhase] = useState<Phase>("verifying");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
-  const [walletReadyError, setWalletReadyError] = useState<string | null>(null);
-  const [walletTimeout, setWalletTimeout] = useState(false);
+  const [pfpError, setPfpError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [touched, setTouched] = useState({ username: false, pfp: false });
+
   const savedRef = useRef(false);
   const faucetFiredRef = useRef(false);
-  const verificationDoneRef = useRef(false);
 
-  useEffect(() => {
-    if (address || phase !== "verifying") return;
-    const id = setTimeout(() => setWalletTimeout(true), 30_000);
-    return () => clearTimeout(id);
-  }, [address, phase]);
-
-  const { setProfile, isPending, isSuccess, error } = useSetProfile();
+  const { setProfile, isPending, isSuccess, error: contractError } = useSetProfile();
   const { upload, isUploading, inputRef, openPicker } = usePfpUpload();
 
-  useEffect(() => {
-    if (!ready) return;
-    if (!authenticated) router.replace("/sign-in");
-  }, [ready, authenticated, router]);
-
+  // Pre-fill email from auth provider
   useEffect(() => {
     if (resolvedEmail) setEmail(resolvedEmail);
   }, [resolvedEmail]);
 
+  // Guard: must be authenticated
+  useEffect(() => {
+    if (isReady && !authenticated) router.replace("/sign-in");
+  }, [isReady, authenticated, router]);
 
-
-  const {
-    data: existingUsername,
-    isSuccess: usernameChecked,
-    isError: usernameCheckFailed,
-    isFetching: usernameIsFetching,
-    error: usernameCheckError,
-    status: usernameCheckStatus,
-    fetchStatus: usernameCheckFetchStatus,
-  } = useReadContract({
+  // Single source of truth: does this address already have a profile?
+  const { data: existingUsername, isFetching: isCheckingProfile } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getUsername",
     args: address ? [address] : undefined,
-    query: { enabled: !!address, staleTime: 0 },
+    query: { enabled: !!address, staleTime: 0, gcTime: 0 },
   });
 
-  
+  const alreadyOnboarded =
+    !isCheckingProfile &&
+    typeof existingUsername === "string" &&
+    existingUsername.trim().length > 0;
 
-  console.log(address, existingUsername, usernameChecked, usernameCheckFailed);
-
-
-  
+  // Already has a profile — send home
   useEffect(() => {
-    if (!address) return;
-    if (verificationDoneRef.current) return;
+    if (alreadyOnboarded) router.replace("/");
+  }, [alreadyOnboarded, router]);
 
-   
-    if (usernameIsFetching) return;
+  // New user confirmed — fire faucet once
+  useEffect(() => {
+    if (!address || isCheckingProfile || alreadyOnboarded || faucetFiredRef.current) return;
+    faucetFiredRef.current = true;
+    fetch("/api/faucet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
+    }).catch(() => {});
+  }, [address, isCheckingProfile, alreadyOnboarded]);
 
-    if (!usernameChecked && !usernameCheckFailed) return;
-
-    verificationDoneRef.current = true;
-
-    if (usernameCheckFailed) {
-      console.warn("[welcome] contract read failed, showing form as fallback");
-      setPhase("form");
-      return;
-    }
-
-    const existing = typeof existingUsername === "string" ? existingUsername.trim() : "";
-    if (existing.length > 0) {
-      console.log("[welcome] returning user detected, redirecting to /");
-      router.replace("/");
-      return;
-    }
-
-
-    if (!faucetFiredRef.current) {
-      faucetFiredRef.current = true;
-      fetch("/api/faucet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      }).catch(() => {});
-    }
-
-    setPhase("form");
-  }, [address, usernameChecked, usernameCheckFailed, usernameIsFetching, existingUsername, router]);
-
-
-
-
-
-
-
+  // After on-chain setProfile confirms, save to Supabase then redirect
   useEffect(() => {
     if (!isSuccess || !address || savedRef.current) return;
     savedRef.current = true;
-    const saveToSupabase = async () => {
+
+    const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+
+    (async () => {
       setIsSavingProfile(true);
       try {
         await fetch("/api/profile", {
@@ -129,114 +87,81 @@ export default function WelcomePage() {
           body: JSON.stringify({
             address,
             username: username.trim(),
-            email: email.trim() || `${address.toLowerCase()}@wallet.local`,
+            email: normalizedEmail,
             pfpUrl: pfpUrl ?? undefined,
             auth_provider: authProvider ?? "web3auth",
           }),
         });
-      } catch {}
-      const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+      } catch {
+        // Profile saved on-chain; Supabase failure is non-blocking
+      } finally {
+        setIsSavingProfile(false);
+      }
+
       updateUsername(username.trim(), normalizedEmail);
       updateProfile({ email: normalizedEmail, pfpUrl: pfpUrl ?? undefined });
-      setIsSavingProfile(false);
-      if (typeof window !== "undefined") {
-        try {
-          window.sessionStorage.setItem("delulu:new-user", "1");
-        } catch {
-          // ignore storage errors
-        }
-      }
+
+      try { window.sessionStorage.setItem("delulu:new-user", "1"); } catch {}
       router.replace("/");
-    };
-    saveToSupabase();
-  }, [isSuccess, address, username, email, pfpUrl, updateUsername, updateProfile, router]);
+    })();
+  }, [isSuccess, address]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
+    setPfpError(null);
     setPfpPreview(URL.createObjectURL(file));
-    setTouched((t) => ({ ...t, pfp: true }));
+    setTouched(t => ({ ...t, pfp: true }));
     try {
       const url = await upload(file);
       setPfpUrl(url);
     } catch {
       setPfpPreview(null);
       setPfpUrl(null);
+      setPfpError("Upload failed. Please try a different image.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ username: true, pfp: true });
-    if (!username.trim() || !pfpUrl) return;
-    if (!address) {
-      setWalletReadyError("Finalizing wallet connection. Try again in a moment.");
-      return;
-    }
-    setWalletReadyError(null);
-    try {
-      await setProfile(username.trim());
-    } catch {}
+    if (!username.trim() || !pfpUrl || !address) return;
+    try { await setProfile(username.trim()); } catch {}
   };
 
-  const isLoading = isPending || isSavingProfile || isSuccess;
-  const canSubmit = !!username.trim() && !!pfpUrl && !isLoading && !isUploading;
-  const missingPfp = touched.pfp && !pfpUrl && !isUploading;
-  const missingUsername = touched.username && !username.trim();
+  // Loading: Privy not ready, or authenticated but still waiting for address/contract check
+  const isCheckingOnboarding = !isReady || (authenticated && (!address || isCheckingProfile));
 
-
-  if (phase === "verifying") {
+  if (isCheckingOnboarding) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5 px-6">
-        <img
-          src="/favicon_io/android-chrome-192x192.png"
-          alt="Delulu"
-          className="w-14 h-14 rounded-2xl opacity-90"
-        />
-        {walletTimeout ? (
-          <div className="flex flex-col items-center gap-3 text-center max-w-xs">
-            <p className="text-sm font-medium text-foreground">Wallet setup is taking longer than expected</p>
-            <p className="text-xs text-muted-foreground">
-              This can happen on slow networks. Try refreshing the page — your account is safe.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-1 px-4 py-2 rounded-xl bg-muted text-sm font-semibold text-foreground hover:bg-muted/80 transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Setting up your wallet&hellip;
-          </div>
-        )}
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="w-14 h-14 rounded-2xl opacity-90" />
+        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Setting up your wallet…
+        </div>
       </div>
     );
   }
 
-  // ── Phase 2: Pinterest-style profile setup ─────────────────────────────────
+  const isSubmitting = isPending || isSavingProfile || isSuccess;
+  const canSubmit = !!username.trim() && !!pfpUrl && !isSubmitting && !isUploading;
+  const missingPfp = touched.pfp && !pfpUrl && !isUploading;
+  const missingUsername = touched.username && !username.trim();
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
 
-      {/* Top wordmark */}
       <div className="flex justify-center pt-10 pb-2">
         <div className="flex items-center gap-2">
-          <img
-            src="/favicon_io/android-chrome-192x192.png"
-            alt="Delulu"
-            className="h-6 w-6 rounded-md"
-          />
+          <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-6 w-6 rounded-md" />
           <span className="text-sm font-black tracking-tight text-foreground">delulu</span>
         </div>
       </div>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
 
-        {/* Headline */}
         <div className="text-center mb-10 max-w-xs">
           <h1 className="text-[2rem] font-black text-foreground leading-[1.15] tracking-tight">
             Set up your profile
@@ -248,23 +173,16 @@ export default function WelcomePage() {
 
         <form onSubmit={handleSubmit} className="w-full max-w-xs flex flex-col gap-0">
 
-          {/* Avatar — large, prominent */}
+          {/* Avatar */}
           <div className="flex flex-col items-center mb-9">
             <button
               type="button"
-              onClick={() => {
-                setTouched((t) => ({ ...t, pfp: true }));
-                openPicker();
-              }}
-              disabled={isLoading || isUploading}
+              onClick={() => { setTouched(t => ({ ...t, pfp: true })); openPicker(); }}
+              disabled={isSubmitting || isUploading}
               className={cn(
                 "relative w-32 h-32 rounded-full overflow-hidden transition-all duration-200",
                 "ring-[3px] ring-offset-[4px] ring-offset-background",
-                missingPfp
-                  ? "ring-rose-500"
-                  : pfpPreview
-                  ? "ring-[#fcff52]"
-                  : "ring-border hover:ring-muted-foreground/60",
+                missingPfp ? "ring-rose-500" : pfpPreview ? "ring-[#fcff52]" : "ring-border hover:ring-muted-foreground/60",
               )}
             >
               {pfpPreview ? (
@@ -274,7 +192,6 @@ export default function WelcomePage() {
                   <Camera className="h-8 w-8 text-muted-foreground/70" />
                 </div>
               )}
-
               {isUploading ? (
                 <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-foreground" />
@@ -285,18 +202,9 @@ export default function WelcomePage() {
                 </div>
               )}
             </button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <p className={cn(
-              "mt-3 text-xs font-medium",
-              missingPfp ? "text-rose-500" : pfpPreview ? "text-muted-foreground" : "text-muted-foreground",
-            )}>
-              {missingPfp ? "Photo is required" : pfpPreview ? "Tap to change" : "Add your photo"}
+            <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <p className={cn("mt-3 text-xs font-medium", missingPfp || pfpError ? "text-rose-500" : "text-muted-foreground")}>
+              {pfpError ?? (missingPfp ? "Photo is required" : pfpPreview ? "Tap to change" : "Add your photo")}
             </p>
           </div>
 
@@ -311,20 +219,16 @@ export default function WelcomePage() {
               <input
                 type="text"
                 value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))
-                }
-                onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+                onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))}
+                onBlur={() => setTouched(t => ({ ...t, username: true }))}
                 placeholder="yourname"
                 autoFocus
                 autoComplete="off"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
               />
             </div>
-            {missingUsername && (
-              <p className="mt-1.5 text-xs text-rose-500 px-1">Username is required</p>
-            )}
+            {missingUsername && <p className="mt-1.5 text-xs text-rose-500 px-1">Username is required</p>}
           </div>
 
           {/* Email */}
@@ -333,23 +237,19 @@ export default function WelcomePage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
               />
             </div>
           </div>
 
-          {/* Errors */}
-          {(walletReadyError || error) && (
-            <p className="mb-3 text-xs text-rose-500 text-center">
-              {walletReadyError ?? error?.message}
-            </p>
+          {contractError && (
+            <p className="mb-3 text-xs text-rose-500 text-center">{contractError.message}</p>
           )}
 
-          {/* CTA */}
           <button
             type="submit"
             disabled={!canSubmit}
@@ -369,25 +269,22 @@ export default function WelcomePage() {
               ) : isSuccess ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Redirecting…</>
               ) : (
-                <>Continue<ArrowRight className="h-4 w-4" /></>
+                <>Continue <ArrowRight className="h-4 w-4" /></>
               )}
             </span>
           </button>
 
-          {/* Hint */}
-          {!canSubmit && !isLoading && (
+          {!canSubmit && !isSubmitting && (
             <p className="mt-4 text-center text-xs text-muted-foreground">
               {!pfpUrl && !username.trim()
                 ? "Add a photo and username to continue"
-                : !pfpUrl
-                ? "Add a profile photo to continue"
+                : !pfpUrl ? "Add a profile photo to continue"
                 : "Choose a username to continue"}
             </p>
           )}
         </form>
       </div>
 
-      {/* Progress dots */}
       <div className="flex justify-center items-center gap-1.5 pb-10">
         <span className="block h-1.5 w-7 rounded-full bg-[#fcff52]" />
         <span className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />

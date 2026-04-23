@@ -246,14 +246,20 @@ export function RightSidebar() {
             </div>
           </div>
 
-          {/* ── Leaderboard ── */}
+          {/* ── Delulu Monday leaderboard ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-foreground">Leaderboard</h2>
+              <h2
+                className="text-sm font-semibold text-foreground"
+                style={{ fontFamily: "'Clash Display', sans-serif" }}
+              >
+                Delulu Monday
+              </h2>
               <button
                 type="button"
-                onClick={() => router.push("/leaderboard")}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
+                onClick={() => router.push("/leaderboard?tab=campaign")}
+                className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors font-medium"
+                style={{ fontFamily: "var(--font-manrope)" }}
               >
                 See all
               </button>
@@ -263,17 +269,14 @@ export function RightSidebar() {
               {isLeaderboardLoading ? (
                 <>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={`lb-skel-${i}`}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl animate-pulse"
-                    >
-                      <div className="w-5 h-4 bg-muted rounded" />
-                      <div className="w-8 h-8 rounded-full bg-muted shrink-0" />
+                    <div key={`lb-skel-${i}`} className="flex items-center gap-2.5 px-2 py-2 rounded-xl animate-pulse">
+                      <div className="w-6 h-6 rounded-full bg-muted shrink-0" />
+                      <div className="w-7 h-7 rounded-full bg-muted shrink-0" />
                       <div className="flex-1 space-y-1.5">
                         <div className="h-2.5 bg-muted rounded w-3/4" />
                         <div className="h-2 bg-muted rounded w-1/2" />
                       </div>
-                      <div className="h-2.5 bg-muted rounded w-10" />
+                      <div className="h-2.5 bg-muted rounded w-8" />
                     </div>
                   ))}
                 </>
@@ -283,7 +286,8 @@ export function RightSidebar() {
                   const handle = entry.creatorUsername
                     ? `@${entry.creatorUsername}`
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
-                  const headline = entry.title?.trim() || "Untitled delulu";
+                  const raw = entry.title?.trim() || "Untitled delulu";
+                  const headline = raw.length > 32 ? raw.slice(0, 32) + "…" : raw;
                   const pfpEntry = pfpMap[entry.creatorAddress.toLowerCase()];
 
                   return (
@@ -291,46 +295,42 @@ export function RightSidebar() {
                       key={entry.id}
                       type="button"
                       onClick={() => router.push(`/delulu/${entry.id}`)}
-                      className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors text-left"
+                      className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-xl transition-colors text-left bg-card/30 hover:bg-card/70 border border-border/30"
                     >
-                      <span
-                        className={cn(
-                          "w-5 text-center text-xs font-bold tabular-nums shrink-0",
-                          rank === 1 && "text-[#fcff52]",
-                          rank === 2 && "text-amber-400",
-                          rank === 3 && "text-orange-400",
-                          rank > 3 && "text-muted-foreground",
-                        )}
-                      >
-                        {rank}
-                      </span>
+                      {/* Rank number — uniform style */}
+                      <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                        <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
+                      </div>
 
                       <UserAvatar
                         address={entry.creatorAddress}
                         username={entry.creatorUsername}
                         pfpUrl={pfpEntry}
-                        size={32}
+                        size={28}
                       />
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground/70 truncate leading-tight">
+                        {/* L1: title — small */}
+                        <p className="text-[11px] font-semibold text-white truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
                           {headline}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">
+                        {/* L3: creator handle */}
+                        <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
                           {handle}
                         </p>
                       </div>
 
-                      <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground/50">
+                      {/* G$ in circulation for this delulu */}
+                      <span className="shrink-0 text-[11px] font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
                         {formatGAmountInt(entry.totalG)}
-                        <span className="text-[10px] font-normal text-muted-foreground/50 ml-0.5">G$</span>
+                        <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">G$</span>
                       </span>
                     </button>
                   );
                 })
               ) : (
-                <p className="py-6 text-center text-xs text-muted-foreground">
-                  No entries yet.
+                <p className="py-6 text-center text-[11px] text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>
+                  No entries this week yet.
                 </p>
               )}
             </div>

@@ -44,6 +44,7 @@ export function SharesMarketCard({
   onBuy,
   onSell,
   ownsAnyShares,
+  canSell = true,
   canBuy,
   noBalance = false,
 }: {
@@ -54,6 +55,7 @@ export function SharesMarketCard({
   onBuy: () => void;
   onSell: () => void;
   ownsAnyShares: boolean;
+  canSell?: boolean;
   canBuy: boolean;
   noBalance?: boolean;
 }) {
@@ -142,7 +144,7 @@ export function SharesMarketCard({
                   )}
                 </div>
               )}
-              {ownsAnyShares && (
+              {ownsAnyShares && canSell && (
                 <button
                   type="button"
                   onClick={onSell}

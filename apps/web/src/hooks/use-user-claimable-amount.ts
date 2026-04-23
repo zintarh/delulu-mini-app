@@ -1,10 +1,11 @@
-import { useReadContract, useChainId, useAccount } from "wagmi";
+import { useReadContract, useChainId } from "wagmi";
 import { formatUnits } from "viem";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useUserClaimableAmount(deluluId: number | null) {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const chainId = useChainId();
   const contractAddress = getDeluluContractAddress(chainId);
   const marketId = deluluId !== null ? BigInt(deluluId) : null;

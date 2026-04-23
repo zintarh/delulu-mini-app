@@ -2,11 +2,7 @@
 
 import { useReadContract, useChainId } from "wagmi";
 import { formatUnits } from "viem";
-import {
-  GOODDOLLAR_ADDRESSES,
-  CELO_MAINNET_ID,
-  getDeluluContractAddress,
-} from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES, CELO_MAINNET_ID, getDeluluContractAddress } from "@/lib/constant";
 
 const ERC20_BALANCE_OF_ABI = [
   {
@@ -20,7 +16,7 @@ const ERC20_BALANCE_OF_ABI = [
 
 const ERC20_DECIMALS = 18;
 
-/** G$ held by the Delulu contract (G$ in circulation in our protocol). */
+/** Total G$ held by the Delulu contract (all staked + bonding curve reserves). */
 export function useGoodDollarTotalSupply() {
   const chainId = useChainId();
   const isMainnet = chainId === CELO_MAINNET_ID;

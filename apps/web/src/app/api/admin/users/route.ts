@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-import { isOpsAuthConfigured, readAdminSession } from "@/lib/admin-session";
 
 const PAGE_SIZE = 20;
 
 export async function GET(request: NextRequest) {
-  if (isOpsAuthConfigured()) {
-    const session = await readAdminSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
-
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });

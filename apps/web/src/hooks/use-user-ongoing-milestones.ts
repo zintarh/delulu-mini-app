@@ -3,7 +3,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import {
   transformSubgraphDelulu,
   timestampToDate,
@@ -36,7 +36,7 @@ export interface OngoingMilestone {
 const GET_USER_ONGOING_DELULUS_WITH_MILESTONES = gql`
   query GetUserOngoingDelulusWithMilestones($creatorAddress: String!, $first: Int!) {
     delulus(
-      where: { creatorAddress: $creatorAddress, isResolved: false, isCancelled: false }
+      where: { creatorAddress_nocase: $creatorAddress, isResolved: false, isCancelled: false }
       first: $first
       orderBy: createdAt
       orderDirection: desc
@@ -100,7 +100,7 @@ interface GetUserOngoingDelulusWithMilestonesVars {
 }
 
 export function useUserOngoingMilestones() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAuth();
   const creatorAddress = address?.toLowerCase() ?? "";
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
@@ -111,7 +111,7 @@ export function useUserOngoingMilestones() {
     GET_USER_ONGOING_DELULUS_WITH_MILESTONES,
     {
       variables: { creatorAddress, first: 50 },
-      skip: !isConnected || !address,
+      skip: !address,
       fetchPolicy: "cache-and-network",
       nextFetchPolicy: "cache-and-network",
     },
@@ -161,9 +161,9 @@ export function useUserOngoingMilestones() {
         );
         prevEnd = endTimeMs;
 
-        // Only include milestones that are active (not ended) and not yet submitted/verified
+        // Include active milestones and those under review (submitted but not verified).
         if (endTimeMs <= now) continue;
-        if (m.isSubmitted || m.isVerified) continue;
+        if (m.isVerified) continue;
         if (m.isMissed) continue;
 
         result.push({

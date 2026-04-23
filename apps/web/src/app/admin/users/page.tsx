@@ -9,6 +9,8 @@ import {
   Loader2,
   Search,
   LayoutDashboard,
+  BarChart3,
+  Home,
   ArrowLeft,
   Moon,
   Sun,
@@ -21,7 +23,6 @@ import {
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme-context";
-import { useAdminOpsSession } from "@/hooks/use-admin-ops-session";
 
 interface UserRow {
   address: string;
@@ -117,12 +118,6 @@ export default function AdminUsersPage() {
   const { address, isConnected } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const {
-    configured: isOpsConfigured,
-    authenticated: isOpsAuthenticated,
-    email: opsEmail,
-    isLoading: isOpsLoading,
-  } = useAdminOpsSession();
   const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const [usernameSearch, setUsernameSearch] = useState("");
@@ -133,7 +128,6 @@ export default function AdminUsersPage() {
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasAdminAccess = isOpsAuthenticated || (isConnected && isAdmin);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -158,8 +152,8 @@ export default function AdminUsersPage() {
   }, [usernameSearch, datePreset, customDate, page]);
 
   useEffect(() => {
-    if (hasAdminAccess) fetchUsers();
-  }, [hasAdminAccess, fetchUsers]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Reset page when filters change
   const handleUsernameChange = (v: string) => {
@@ -179,57 +173,10 @@ export default function AdminUsersPage() {
     ? Math.max(1, Math.ceil(data.total / data.pageSize))
     : 1;
 
-  if (isAdminLoading || isOpsLoading) {
+  if (isAdminLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
-    );
-  }
-
-  if (!hasAdminAccess) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background text-foreground px-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-border bg-muted">
-          <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <h1 className="text-xl font-black">Access denied</h1>
-        <p className="text-sm text-muted-foreground text-center max-w-xs">
-          {isOpsConfigured
-            ? "Login with Ops credentials or use the contract-owner wallet."
-            : !isConnected
-              ? "Connect your wallet to continue."
-              : "This page is restricted to the contract owner."}
-        </p>
-        <div className="flex items-center gap-2">
-          {isOpsConfigured && (
-            <Link
-              href="/admin/login"
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-foreground text-background px-4 py-2 text-sm font-bold shadow-neo-sm"
-            >
-              <LogIn className="w-4 h-4" />
-              Login as Ops
-            </Link>
-          )}
-          {!isConnected && (
-            <button
-              type="button"
-              onClick={() => setShowLoginSheet(true)}
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              Connect wallet
-            </button>
-          )}
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go back
-          </Link>
-        </div>
-        <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       </div>
     );
   }
@@ -264,23 +211,6 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            {isOpsAuthenticated && (
-              <>
-                <span className="hidden md:inline-flex rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                  Ops: {opsEmail}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await fetch("/api/admin/auth/logout", { method: "POST" });
-                    window.location.href = "/admin/login";
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  Logout ops
-                </button>
-              </>
-            )}
             <button
               type="button"
               onClick={toggleTheme}
@@ -313,7 +243,24 @@ export default function AdminUsersPage() {
 
       {/* Main */}
       <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-10">
+        <div className="max-w-7xl mx-auto w-full px-4 py-6 pb-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
+          <aside className="hidden lg:block">
+            <div className="sticky top-6 rounded-2xl border border-border bg-card p-3">
+              <p className="px-2 pb-2 text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Workspace</p>
+              <div className="space-y-1">
+                <Link href="/admin" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
+                  <BarChart3 className="w-4 h-4" /> Overview
+                </Link>
+                <Link href="/admin/users" className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
+                  <Users className="w-4 h-4" /> Users
+                </Link>
+                <Link href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
+                  <Home className="w-4 h-4" /> Back to app
+                </Link>
+              </div>
+            </div>
+          </aside>
+          <div>
           <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Users
@@ -459,6 +406,7 @@ export default function AdminUsersPage() {
                 <Pagination page={page} totalPages={totalPages} onPage={setPage} />
               </>
             )}
+          </div>
           </div>
         </div>
       </main>

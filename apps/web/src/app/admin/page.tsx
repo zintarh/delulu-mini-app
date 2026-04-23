@@ -19,6 +19,10 @@ import {
   ExternalLink,
   Search,
   LayoutDashboard,
+  BarChart3,
+  Activity,
+  Home,
+  ShieldCheck,
   Trophy,
   ArrowLeft,
   Moon,
@@ -37,7 +41,6 @@ import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import { useTheme } from "@/contexts/theme-context";
-import { useAdminOpsSession } from "@/hooks/use-admin-ops-session";
 
 const PAGE_SIZE = 10;
 
@@ -252,12 +255,6 @@ export default function AdminDashboardPage() {
   const apolloClient = useApolloClient();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const {
-    configured: isOpsConfigured,
-    authenticated: isOpsAuthenticated,
-    email: opsEmail,
-    isLoading: isOpsLoading,
-  } = useAdminOpsSession();
-  const {
     delulus,
     isLoading: loadingDelulus,
     refetch: refetchDelulus,
@@ -339,59 +336,12 @@ export default function AdminDashboardPage() {
   };
 
   const tableShell = "overflow-hidden rounded-xl border-2 border-border bg-card shadow-neo";
-  const hasAdminAccess = isOpsAuthenticated || (isConnected && isAdmin);
+  const canModerate = Boolean(isConnected && isAdmin);
 
-  if (isAdminLoading || isOpsLoading) {
+  if (isAdminLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
-    );
-  }
-
-  if (!hasAdminAccess) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background text-foreground px-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-border bg-muted">
-          <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <h1 className="text-xl font-black">Access denied</h1>
-        <p className="text-sm text-muted-foreground text-center max-w-xs">
-          {isOpsConfigured
-            ? "Login with Ops credentials or use the contract-owner wallet."
-            : !isConnected
-              ? "Connect your wallet to continue."
-              : "This page is restricted to the contract owner."}
-        </p>
-        <div className="flex items-center gap-2">
-          {isOpsConfigured && (
-            <Link
-              href="/admin/login"
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-foreground text-background px-4 py-2 text-sm font-bold shadow-neo-sm"
-            >
-              <LogIn className="w-4 h-4" />
-              Login as Ops
-            </Link>
-          )}
-          {!isConnected && (
-            <button
-              type="button"
-              onClick={() => setShowLoginSheet(true)}
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              Connect wallet
-            </button>
-          )}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-neo-sm hover:bg-muted transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go home
-          </Link>
-        </div>
-        <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
       </div>
     );
   }
@@ -438,23 +388,6 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            {isOpsAuthenticated && (
-              <>
-                <span className="hidden md:inline-flex rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                  Ops: {opsEmail}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await fetch("/api/admin/auth/logout", { method: "POST" });
-                    window.location.href = "/admin/login";
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  Logout ops
-                </button>
-              </>
-            )}
             <Link
               href="/admin/users"
               className={cn(
@@ -525,7 +458,39 @@ export default function AdminDashboardPage() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-10">
+        <div className="max-w-7xl mx-auto w-full px-4 py-6 pb-10 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
+          <aside className="hidden lg:block">
+            <div className="sticky top-6 rounded-2xl border border-border bg-card p-3">
+              <p className="px-2 pb-2 text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Workspace</p>
+              <div className="space-y-1">
+                <Link href="/admin" className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
+                  <LayoutDashboard className="w-4 h-4" /> Overview
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("milestones")}
+                  className="w-full text-left flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Milestones
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("delulus")}
+                  className="w-full text-left flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" /> Delulus
+                </button>
+                <Link href="/admin/users" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
+                  <Users className="w-4 h-4" /> Users
+                </Link>
+                <Link href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
+                  <Home className="w-4 h-4" /> Back to app
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          <div>
           <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Dashboard
@@ -548,6 +513,33 @@ export default function AdminDashboardPage() {
               value={stats.endedUnresolved}
               hint="Past staking deadline"
             />
+          </section>
+
+          <section className="mb-8 columns-1 md:columns-2 xl:columns-3 gap-3 [column-fill:_balance]">
+            <div className="break-inside-avoid mb-3 rounded-2xl border border-border bg-card p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action readiness</p>
+              <p className="mt-2 text-2xl font-black">{canModerate ? "Admin Wallet Connected" : "Read-only Mode"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {canModerate
+                  ? "Resolve and verify actions are enabled."
+                  : "Connect the contract owner wallet to unlock verify/resolve buttons."}
+              </p>
+            </div>
+            <div className="break-inside-avoid mb-3 rounded-2xl border border-border bg-card p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Health pulse</p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs"><span>Pending milestones</span><span className="font-semibold">{stats.pendingMilestones}</span></div>
+                <div className="flex items-center justify-between text-xs"><span>Ended unresolved</span><span className="font-semibold">{stats.endedUnresolved}</span></div>
+                <div className="flex items-center justify-between text-xs"><span>Total indexed</span><span className="font-semibold">{stats.total}</span></div>
+              </div>
+            </div>
+            <div className="break-inside-avoid mb-3 rounded-2xl border border-border bg-card p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ops activity</p>
+              <p className="mt-2 text-sm text-muted-foreground">Track moderation throughput and queue health.</p>
+              <div className="mt-3 h-16 rounded-xl bg-muted/50 grid place-items-center">
+                <Activity className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </div>
           </section>
 
           {/* Tabs */}
@@ -667,7 +659,7 @@ export default function AdminDashboardPage() {
                               </td>
                               <td className="px-4 py-3 text-right">
                                 <div className="inline-flex gap-2">
-                                  {row.proofLink && row.deadline <= new Date() && (
+                                  {canModerate && row.proofLink && row.deadline <= new Date() && (
                                     <button
                                       type="button"
                                       onClick={() => setMilestoneSheet({ row, mode: "verify" })}
@@ -676,13 +668,17 @@ export default function AdminDashboardPage() {
                                       Verify
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setMilestoneSheet({ row, mode: "reject" })}
-                                    className="rounded-md border-2 border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/15 active:scale-[0.98] transition-all"
-                                  >
-                                    Reject
-                                  </button>
+                                  {canModerate ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setMilestoneSheet({ row, mode: "reject" })}
+                                      className="rounded-md border-2 border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/15 active:scale-[0.98] transition-all"
+                                    >
+                                      Reject
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground">Admin wallet required</span>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -746,7 +742,7 @@ export default function AdminDashboardPage() {
                               key={d.id}
                               delulu={d}
                               onResolve={setResolveTarget}
-                              allowResolve
+                              allowResolve={canModerate}
                             />
                           ))}
                         </tbody>
@@ -762,6 +758,7 @@ export default function AdminDashboardPage() {
               </div>
             </section>
           )}
+          </div>
         </div>
       </main>
 

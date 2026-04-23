@@ -6,27 +6,28 @@ import { useQuery } from "@apollo/client/react";
 import { weiToNumber } from "@/lib/graph/transformers";
 import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
 
-// After subgraph redeployment with totalG + tradeCount fields, switch
-// orderBy to totalG for accurate ranking (creatorStake + totalSupportCollected).
-// Until then we fetch a larger batch and sort client-side by the combined total.
 const DELULU_LEADERBOARD_QUERY = gql`
-  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0) {
+  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $weekStart: BigInt = "0") {
     delulus(
       first: $first
       skip: $skip
       orderBy: uniqueBuyerCount
       orderDirection: desc
-      where: { isCancelled: false }
+      where: { isCancelled: false, createdAt_gte: $weekStart }
     ) {
       id
       onChainId
       contentHash
       creatorStake
       totalSupportCollected
-      totalG
       shareSupply
       tradeCount
       uniqueBuyerCount
+      createdAt
+      shareTrades(first: 500, orderBy: createdAt, orderDirection: asc) {
+        isBuy
+        curveAmount
+      }
       creator {
         id
         username
@@ -40,9 +41,10 @@ export interface DeluluLeaderboardEntry {
   onChainId: string;
   contentHash: string;
   title: string | null;
+  bgImageUrl: string | null;
   creatorAddress: string;
   creatorUsername: string | null;
-  /** creatorStake + totalSupportCollected — the true total G$ on this delulu */
+  /** creatorStake + support + net G$ from bonding curve share trades */
   totalG: number;
   creatorStake: number;
   totalSupportCollected: number;
@@ -54,15 +56,20 @@ export interface DeluluLeaderboardEntry {
 export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
+  // Weekly campaign: only delulus created in the last 7 days
+  const weekStart = useMemo(() => {
+    const ts = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+    return String(ts);
+  }, []);
+
   // Fetch a generous batch so client-side sort by totalG is accurate.
-  // Once totalG is indexed in the subgraph this can be reduced to pageSize+1.
   const fetchSize = Math.max(50, (page + 1) * pageSize + pageSize);
 
   const { data, loading, error, refetch } = useQuery<
     { delulus: any[] },
-    { first: number; skip: number }
+    { first: number; skip: number; weekStart: string }
   >(DELULU_LEADERBOARD_QUERY, {
-    variables: { first: fetchSize, skip: 0 },
+    variables: { first: fetchSize, skip: 0, weekStart },
     fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",
   });
@@ -81,14 +88,21 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
         const cached = getCachedContent(d.contentHash);
         const creatorStake = weiToNumber(d.creatorStake);
         const totalSupportCollected = weiToNumber(d.totalSupportCollected);
+        // Sum G$ from bonding curve: buys add, sells subtract
+        const netShareG = ((d.shareTrades ?? []) as any[]).reduce((acc, t) => {
+          const amt = weiToNumber(t.curveAmount ?? "0");
+          return t.isBuy ? acc + amt : acc - amt;
+        }, 0);
+        const totalG = creatorStake + totalSupportCollected + Math.max(0, netShareG);
         return {
           id: d.id,
           onChainId: d.onChainId,
           contentHash: d.contentHash,
           title: cached?.text ?? null,
+          bgImageUrl: cached?.bgImageUrl ?? null,
           creatorAddress: d.creator?.id ?? "",
           creatorUsername: d.creator?.username ?? null,
-          totalG: creatorStake + totalSupportCollected,
+          totalG,
           creatorStake,
           totalSupportCollected,
           shareSupply: Number(d.shareSupply ?? "0"),
