@@ -27,16 +27,23 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
   const [allDelulus, setAllDelulus] = useState<FormattedDelulu[]>([]);
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
-  const creatorAddress = address?.toLowerCase() ?? "";
+  const creatorAddressVariants = useMemo(() => {
+    if (!address) return [] as string[];
+    return Array.from(new Set([address, address.toLowerCase()]));
+  }, [address]);
 
   // For "ongoing": filter resolved/cancelled at subgraph level for efficiency.
   // For "past": fetch a large batch (no subgraph filter) so older resolved ones aren't cut off by page size.
   const where = useMemo(() => {
     if (status === "ongoing") {
-      return { creatorAddress_nocase: creatorAddress, isResolved: false, isCancelled: false } as Record<string, unknown>;
+      return {
+        creatorAddress_in: creatorAddressVariants,
+        isResolved: false,
+        isCancelled: false,
+      } as Record<string, unknown>;
     }
-    return { creatorAddress_nocase: creatorAddress } as Record<string, unknown>;
-  }, [creatorAddress, status]);
+    return { creatorAddress_in: creatorAddressVariants } as Record<string, unknown>;
+  }, [creatorAddressVariants, status]);
 
   const fetchSize = status === "past" ? PAST_FETCH_SIZE : PAGE_SIZE;
 
