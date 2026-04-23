@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   Inter,
+  Manrope,
   Gloria_Hallelujah,
   Bebas_Neue,
   Oswald,
@@ -31,6 +32,12 @@ export const dynamic = "force-dynamic";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -240,7 +247,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.className} ${gloriaHallelujah.variable} ${bebasNeue.variable} ${oswald.variable} ${playfairDisplay.variable} ${pacifico.variable} ${montserrat.variable} ${raleway.variable} ${poppins.variable} ${robotoCondensed.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${satisfy.variable} ${kalam.variable} ${permanentMarker.variable} ${indieFlower.variable} ${shadowsIntoLight.variable} ${amaticSC.variable} antialiased`}
+        className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} ${bebasNeue.variable} ${oswald.variable} ${playfairDisplay.variable} ${pacifico.variable} ${montserrat.variable} ${raleway.variable} ${poppins.variable} ${robotoCondensed.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${satisfy.variable} ${kalam.variable} ${permanentMarker.variable} ${indieFlower.variable} ${shadowsIntoLight.variable} ${amaticSC.variable} antialiased`}
       >
         <Providers privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
           {children}
