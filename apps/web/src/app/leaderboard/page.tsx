@@ -57,7 +57,7 @@ function RankBadge({ rank }: { rank: number }) {
   );
   return (
     <div className="w-7 h-7 flex items-center justify-center shrink-0">
-      <span className="text-xs text-muted-foreground/40 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
+      <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
     </div>
   );
 }
@@ -108,7 +108,7 @@ function CampaignLeaderboard() {
             <RankBadge rank={myRank!} />
             {/* Thumbnail */}
             <div
-              className="w-9 h-9 rounded-lg shrink-0 overflow-hidden"
+              className="w-9 h-9 rounded-sm shrink-0 overflow-hidden"
               style={{ background: tileGradient(myEntry!.creatorAddress) }}
             >
               {myEntry!.bgImageUrl && (
@@ -127,11 +127,8 @@ function CampaignLeaderboard() {
               <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>{formatCampaignName(myEntry!)}</p>
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
-              {/* L2: G$ = green (money) */}
-              <span className="w-11 text-right text-xs font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(myEntry!.totalG)}</span>
-              {/* L3: shares = dimmer */}
-              <span className="w-10 text-right text-xs font-medium text-muted-foreground/60 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.shareSupply}</span>
-              {/* L1: UB = yellow, primary metric */}
+              <span className="w-11 text-right text-xs font-medium text-muted-foreground/60 tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(myEntry!.totalG)}<span className="text-[9px] ml-0.5 text-muted-foreground/35">G$</span></span>
+              <span className="w-10 text-right text-xs font-medium text-muted-foreground/40 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.shareSupply}</span>
               <span className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.uniqueBuyerCount}</span>
             </div>
           </Link>
@@ -155,7 +152,7 @@ function CampaignLeaderboard() {
               <RankBadge rank={rank} />
               {/* Thumbnail */}
               <div
-                className="w-9 h-9 rounded-lg shrink-0 overflow-hidden"
+                className="w-9 h-9 rounded-sm shrink-0 overflow-hidden"
                 style={{ background: tileGradient(entry.creatorAddress) }}
               >
                 {entry.bgImageUrl && (
@@ -163,23 +160,20 @@ function CampaignLeaderboard() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                {/* L1: primary identity */}
+                {/* L1: title — owns the spotlight */}
                 <p className="text-sm font-semibold text-white leading-snug truncate" style={{ fontFamily: "var(--font-manrope)" }}>
                   {formatTitle(entry)}
                 </p>
-                {/* L3 + L4: creator handle · id */}
-                <p className="text-[11px] truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
-                  <span className="text-muted-foreground/60">{formatCampaignName(entry)}</span>
-                  <span className="mx-1 text-muted-foreground/25">·</span>
-                  <span className="text-muted-foreground/30">#{entry.onChainId}</span>
+                {/* L3: creator handle, very dim */}
+                <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
+                  {formatCampaignName(entry)}
                 </p>
               </div>
               <div className="flex items-center gap-2.5 shrink-0">
-                {/* L2: G$ = green */}
-                <span className="w-11 text-right text-xs font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(entry.totalG)}</span>
-                {/* L3: shares */}
-                <span className="w-10 text-right text-xs font-medium text-muted-foreground/60 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{entry.shareSupply}</span>
-                {/* L1: UB = yellow, primary metric */}
+                {/* G$: subordinate to title */}
+                <span className="w-11 text-right text-xs font-medium text-muted-foreground/60 tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(entry.totalG)}<span className="text-[9px] ml-0.5 text-muted-foreground/35">G$</span></span>
+                <span className="w-10 text-right text-xs font-medium text-muted-foreground/40 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{entry.shareSupply}</span>
+                {/* UB: accent metric */}
                 <span className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{entry.uniqueBuyerCount}</span>
               </div>
             </Link>
