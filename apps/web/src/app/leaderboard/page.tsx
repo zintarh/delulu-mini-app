@@ -16,6 +16,13 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PAGE_SIZE = 10;
 
+function tileGradient(addr: string) {
+  const hex = addr.replace("0x", "").toLowerCase();
+  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
+  const h2 = (h1 + 55) % 360;
+  return `linear-gradient(140deg, hsl(${h1},50%,25%) 0%, hsl(${h2},55%,15%) 100%)`;
+}
+
 function formatAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
 }
@@ -82,6 +89,7 @@ function CampaignLeaderboard() {
       {/* Column headers */}
       <div className="flex items-center gap-2.5 px-3 pb-1.5">
         <div className="w-7 shrink-0" />
+        <div className="w-9 shrink-0" />
         <span className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>Creator</span>
         <div className="flex items-center gap-2.5 shrink-0">
           <span className="w-11 text-right text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>G$</span>
@@ -98,6 +106,15 @@ function CampaignLeaderboard() {
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#fcff52]/8 border border-[#fcff52]/20 hover:bg-[#fcff52]/12 transition-colors"
           >
             <RankBadge rank={myRank!} />
+            {/* Thumbnail */}
+            <div
+              className="w-9 h-9 rounded-lg shrink-0 overflow-hidden"
+              style={{ background: tileGradient(myEntry!.creatorAddress) }}
+            >
+              {myEntry!.bgImageUrl && (
+                <img src={myEntry!.bgImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 {/* L1: primary identity */}
@@ -136,6 +153,15 @@ function CampaignLeaderboard() {
               )}
             >
               <RankBadge rank={rank} />
+              {/* Thumbnail */}
+              <div
+                className="w-9 h-9 rounded-lg shrink-0 overflow-hidden"
+                style={{ background: tileGradient(entry.creatorAddress) }}
+              >
+                {entry.bgImageUrl && (
+                  <img src={entry.bgImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 {/* L1: primary identity */}
                 <p className="text-sm font-semibold text-white leading-snug truncate" style={{ fontFamily: "var(--font-manrope)" }}>

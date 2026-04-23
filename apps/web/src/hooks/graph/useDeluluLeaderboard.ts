@@ -41,6 +41,7 @@ export interface DeluluLeaderboardEntry {
   onChainId: string;
   contentHash: string;
   title: string | null;
+  bgImageUrl: string | null;
   creatorAddress: string;
   creatorUsername: string | null;
   /** creatorStake + support + net G$ from bonding curve share trades */
@@ -98,6 +99,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           onChainId: d.onChainId,
           contentHash: d.contentHash,
           title: cached?.text ?? null,
+          bgImageUrl: cached?.bgImageUrl ?? null,
           creatorAddress: d.creator?.id ?? "",
           creatorUsername: d.creator?.username ?? null,
           totalG,
