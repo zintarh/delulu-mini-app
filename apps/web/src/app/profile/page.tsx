@@ -20,22 +20,20 @@ import {
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
-import { ProfileDeluluCard } from "@/components/profile-delulu-card";
+import { DeluluCard } from "@/components/delulu-card";
 import { BottomNav } from "@/components/bottom-nav";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
-import { UserClaimsStats } from "@/components/user-claims-stats";
 import { cn } from "@/lib/utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { PushRemindersCard } from "@/components/pwa/PushRemindersCard";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { ContinueJourneyCard } from "@/components/continue-journey-card";
 
-type TabType = "milestones" | "ongoing" | "past";
+type TabType = "milestones" | "active" | "ended";
 
 
 export default function ProfilePage() {
@@ -208,7 +206,8 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => router.push("/board")}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#fcff52] text-[#111111] font-bold text-sm shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border bg-card text-foreground text-sm font-semibold hover:bg-muted transition-colors"
+                      style={{ fontFamily: "var(--font-manrope)" }}
                     >
                       <Plus className="w-4 h-4" />
                       Manifest
@@ -216,6 +215,7 @@ export default function ProfilePage() {
                     <button
                       onClick={() => setLogoutSheetOpen(true)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border hover:bg-muted text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      style={{ fontFamily: "var(--font-manrope)" }}
                     >
                       <LogOut className="h-3.5 w-3.5" />
                     </button>
@@ -223,17 +223,26 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Name + handle */}
-                <h1 className="text-xl font-bold text-foreground capitalize leading-tight">
+                <h1
+                  className="text-xl font-bold text-foreground capitalize leading-tight"
+                  style={{ fontFamily: '"Clash Display", sans-serif' }}
+                >
                   {displayUsername || formatAddress(address)}
                 </h1>
                 {displayUsername && (
-                  <p className="text-sm text-muted-foreground">@{displayUsername}</p>
+                  <p
+                    className="text-sm text-muted-foreground"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    @{displayUsername}
+                  </p>
                 )}
 
                 {/* Wallet address */}
                 <button
                   onClick={handleCopyAddress}
                   className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
                 >
                   <span className="font-mono">{formatAddress(address)}</span>
                   {copied ? (
@@ -261,10 +270,6 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* Stats row */}
-                <div className="flex items-center gap-5 mt-3">
-                  <UserClaimsStats address={address} />
-                </div>
               </div>
 
               {/* ── Quick links ──────────────────────────────────── */}
@@ -272,6 +277,7 @@ export default function ProfilePage() {
                 <Link
                   href="/daily-claim"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
                 >
                   <img src="/gooddollar-logo.png" alt="G$" className="w-3.5 h-3.5 object-contain" />
                   Claim G$ UBI
@@ -279,8 +285,9 @@ export default function ProfilePage() {
                 <Link
                   href="/leaderboard"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
                 >
-                  <Trophy className="w-3.5 h-3.5 text-[#fcff52]" />
+                  <Trophy className="w-3.5 h-3.5 text-muted-foreground" />
                   Leaderboard
                 </Link>
                 <a
@@ -288,15 +295,11 @@ export default function ProfilePage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
                 >
                   <Send className="w-3.5 h-3.5 text-[#35d07f]" />
                   Join TG
                 </a>
-              </div>
-
-              {/* ── Push reminders ───────────────────────────────── */}
-              <div className="px-4 py-3 border-b border-border">
-                <PushRemindersCard />
               </div>
 
               {/* ── Journey card ─────────────────────────────────── */}
@@ -305,23 +308,21 @@ export default function ProfilePage() {
               </div>
 
               {/* ── Tabs ─────────────────────────────────────────── */}
-              <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
-                <div className="flex items-center">
-                  {(["milestones", "ongoing", "past"] as TabType[]).map((tab) => (
+              <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+                <div className="flex items-center gap-1 p-1 rounded-full bg-muted/20 border border-border/40">
+                  {(["milestones", "active", "ended"] as TabType[]).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={cn(
-                        "flex-1 py-3.5 text-sm font-semibold capitalize relative transition-colors",
+                        "flex-1 py-1.5 rounded-full text-xs font-semibold capitalize transition-all",
                         activeTab === tab
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-card text-foreground shadow-sm border border-border/60"
+                          : "text-muted-foreground/60 hover:text-muted-foreground"
                       )}
+                      style={{ fontFamily: "var(--font-manrope)" }}
                     >
                       {tab}
-                      {activeTab === tab && (
-                        <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-full bg-[#fcff52]" />
-                      )}
                     </button>
                   ))}
                 </div>
@@ -336,16 +337,15 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Ongoing goals */}
-              {activeTab === "ongoing" && (
+              {/* Active */}
+              {activeTab === "active" && (
                 <div className="px-4 pt-4 pb-24 lg:pb-8">
                   {isLoadingOngoing ? (
-                    <div className="columns-2 gap-2">
+                    <div className="space-y-3">
                       {Array.from({ length: 4 }).map((_, i) => (
                         <div
                           key={i}
-                          className="break-inside-avoid mb-2 w-full bg-muted rounded-2xl animate-pulse"
-                          style={{ height: [180, 220, 160, 200][i] }}
+                          className="w-full h-52 bg-muted rounded-2xl animate-pulse"
                         />
                       ))}
                     </div>
@@ -354,73 +354,48 @@ export default function ProfilePage() {
                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                         <Plus className="w-7 h-7 text-muted-foreground" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground mb-1">No active goals</p>
-                      <p className="text-xs text-muted-foreground mb-5">Start manifesting something new.</p>
+                      <p
+                        className="text-sm font-semibold text-foreground mb-1"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        No active delulu
+                      </p>
+                      <p
+                        className="text-xs text-muted-foreground mb-5"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        Start manifesting something new.
+                      </p>
                       <button
                         onClick={() => router.push("/board")}
-                        className="px-5 py-2.5 rounded-full bg-[#fcff52] text-[#111111] text-sm font-bold shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] transition-all"
+                        className="px-5 py-2.5 rounded-full border border-border bg-card text-foreground text-sm font-semibold hover:bg-muted transition-colors"
+                        style={{ fontFamily: "var(--font-manrope)" }}
                       >
-                        Create a goal
+                        Create a delulu
                       </button>
                     </div>
                   ) : (
-                    <div className="columns-2 gap-2">
-                      {ongoingDelulus.map((d) => {
-                        const daysLeft = d.resolutionDeadline
-                          ? Math.max(0, Math.ceil((d.resolutionDeadline.getTime() - Date.now()) / 86_400_000))
-                          : null;
-                        const headline = d.content?.trim() || "Your goal";
-                        const minH = headline.length > 60 ? 220 : headline.length > 30 ? 180 : 155;
-                        return (
-                          <button
-                            key={d.id}
-                            onClick={() => router.push(`/delulu/${d.id}`)}
-                            className="break-inside-avoid mb-2 w-full text-left block"
-                          >
-                            <div
-                              className="relative rounded-2xl overflow-hidden flex flex-col justify-end"
-                              style={{ minHeight: minH }}
-                            >
-                              {d.bgImageUrl ? (
-                                <>
-                                  <img src={d.bgImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-                                </>
-                              ) : (
-                                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
-                              )}
-                              <div className="relative px-3 pb-3 pt-8">
-                                <p className="text-white text-xs font-bold leading-snug line-clamp-3 drop-shadow mb-1.5">
-                                  {headline}
-                                </p>
-                                {daysLeft !== null && (
-                                  <span className={cn(
-                                    "inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                                    daysLeft === 0 ? "bg-rose-500/25 text-rose-300"
-                                    : daysLeft <= 3 ? "bg-rose-500/20 text-rose-300"
-                                    : daysLeft <= 7 ? "bg-amber-500/20 text-amber-300"
-                                    : "bg-white/10 text-white/60"
-                                  )}>
-                                    {daysLeft === 0 ? "Due today" : `${daysLeft}d left`}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="space-y-3">
+                      {ongoingDelulus.map((d) => (
+                        <DeluluCard
+                          key={d.id}
+                          delusion={d}
+                          href={`/delulu/${d.id}`}
+                          className="mb-0"
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Past */}
-              {activeTab === "past" && (
+              {/* Ended */}
+              {activeTab === "ended" && (
                 <div className="px-4 py-4 pb-24 lg:pb-8">
                   {isLoadingDelulus ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                    <div className="space-y-3">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="w-full h-52 bg-muted rounded-2xl animate-pulse" />
                       ))}
                     </div>
                   ) : delulus.length === 0 ? (
@@ -428,24 +403,32 @@ export default function ProfilePage() {
                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                         <Plus className="w-7 h-7 text-muted-foreground" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground mb-1">No past goals yet</p>
-                      <p className="text-xs text-muted-foreground">Completed goals will appear here.</p>
+                      <p
+                        className="text-sm font-semibold text-foreground mb-1"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        No ended delulu yet
+                      </p>
+                      <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                        Ended and resolved delulu will appear here.
+                      </p>
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="space-y-3">
                         {delulus.map((delulu) => (
-                          <ProfileDeluluCard
+                          <DeluluCard
                             key={delulu.id}
                             delusion={delulu}
-                            onClick={() => router.push(`/delulu/${delulu.id}`)}
+                            href={`/delulu/${delulu.id}`}
+                            className="mb-0"
                           />
                         ))}
                       </div>
                       {isFetchingNextPage && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                          {[1, 2, 3].map((i) => (
-                            <div key={`loading-${i}`} className="w-full aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                        <div className="space-y-3 mt-3">
+                          {[1, 2].map((i) => (
+                            <div key={`loading-${i}`} className="w-full h-52 bg-muted rounded-2xl animate-pulse" />
                           ))}
                         </div>
                       )}

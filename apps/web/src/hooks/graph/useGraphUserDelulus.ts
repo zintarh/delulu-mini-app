@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
-import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
 import {
   GetDelulusDocument,
   type GetDelulusQuery,
@@ -22,7 +22,7 @@ const PAGE_SIZE = 20;
 const PAST_FETCH_SIZE = 100;
 
 export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
-  const { address, isConnected } = useAccount();
+  const { address } = useAuth();
   const [page, setPage] = useState(0);
   const [allDelulus, setAllDelulus] = useState<FormattedDelulu[]>([]);
   const [ipfsResolved, setIpfsResolved] = useState(0);
@@ -33,9 +33,9 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
   // For "past": fetch a large batch (no subgraph filter) so older resolved ones aren't cut off by page size.
   const where = useMemo(() => {
     if (status === "ongoing") {
-      return { creatorAddress, isResolved: false, isCancelled: false } as Record<string, unknown>;
+      return { creatorAddress_nocase: creatorAddress, isResolved: false, isCancelled: false } as Record<string, unknown>;
     }
-    return { creatorAddress } as Record<string, unknown>;
+    return { creatorAddress_nocase: creatorAddress } as Record<string, unknown>;
   }, [creatorAddress, status]);
 
   const fetchSize = status === "past" ? PAST_FETCH_SIZE : PAGE_SIZE;
@@ -46,7 +46,7 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
       skip: 0,
       where,
     },
-    skip: !isConnected || !address,
+    skip: !address,
     notifyOnNetworkStatusChange: true,
     fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",

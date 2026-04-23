@@ -27,7 +27,7 @@ import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
 import { useDeluluMetadata } from "@/hooks/use-delulu-metadata";
-import { EditDeluluSheet } from "@/components/edit-delulu-sheet";
+import { EditDeluluSheet, type EditSheetMode } from "@/components/edit-delulu-sheet";
 const FeedbackModal = dynamic(
   () => import("@/components/feedback-modal").then((m) => m.FeedbackModal),
   { ssr: false },
@@ -72,6 +72,7 @@ import {
   ChevronUp,
   Share2,
   AlertTriangle,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn, formatAddress, formatGAmount } from "@/lib/utils";
 import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
@@ -488,11 +489,25 @@ export default function DeluluPage() {
     address.toLowerCase() === delulu.creator.toLowerCase();
 
   const [showEditSheet, setShowEditSheet] = useState(false);
+  const [editSheetMode, setEditSheetMode] = useState<EditSheetMode>("update");
+  const [showCreatorActions, setShowCreatorActions] = useState(false);
+  const creatorActionsRef = useRef<HTMLDivElement>(null);
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
     if (deluluMeta?.is_hidden) setIsHidden(true);
   }, [deluluMeta?.is_hidden]);
+
+  useEffect(() => {
+    if (!showCreatorActions) return;
+    const handler = (e: MouseEvent) => {
+      if (creatorActionsRef.current && !creatorActionsRef.current.contains(e.target as Node)) {
+        setShowCreatorActions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showCreatorActions]);
 
   const {
     writeContract: writeAddMilestones,
@@ -986,7 +1001,6 @@ export default function DeluluPage() {
   const shouldShowClaimSection =
     !!isCreator &&
     (
-      isDeluluEnded ||
       safeDelulu.isResolved ||
       claimableAmount > 0 ||
       isClaiming ||
@@ -994,6 +1008,8 @@ export default function DeluluPage() {
       isClaimSuccess ||
       !!claimError
     );
+  const showPendingResolutionNotice =
+    !!isCreator && !!isDeluluEnded && !safeDelulu.isResolved;
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -1079,18 +1095,57 @@ export default function DeluluPage() {
                     </span>
                   </div>
                 )}
+                {showPendingResolutionNotice && (
+                  <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2 mb-2">
+                    <span
+                      className="text-xs text-muted-foreground font-medium"
+                      style={{ fontFamily: "var(--font-manrope)" }}
+                    >
+                      Pending resolution. Rewards become claimable after this delulu is resolved.
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-start justify-between gap-3">
                   <h1 className="text-2xl font-black mb-1 text-foreground flex-1">
                     {deluluTitle || safeDelulu.content}
                   </h1>
                   {isCreator && (
-                    <button
-                      onClick={() => setShowEditSheet(true)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-xs font-semibold text-muted-foreground mt-0.5"
-                    >
-                      Edit
-                    </button>
+                    <div ref={creatorActionsRef} className="relative">
+                      <button
+                        onClick={() => setShowCreatorActions((v) => !v)}
+                        className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full border border-border bg-secondary/80 hover:bg-muted transition-colors text-muted-foreground mt-0.5"
+                        aria-label="More actions"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                      {showCreatorActions && (
+                        <div className="absolute right-0 top-11 z-40 w-40 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                          <button
+                            onClick={() => {
+                              setEditSheetMode("update");
+                              setShowEditSheet(true);
+                              setShowCreatorActions(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                            style={{ fontFamily: "var(--font-manrope)" }}
+                          >
+                            Update
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditSheetMode("hide");
+                              setShowEditSheet(true);
+                              setShowCreatorActions(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors border-t border-border"
+                            style={{ fontFamily: "var(--font-manrope)" }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1172,6 +1227,7 @@ export default function DeluluPage() {
                   onBuy={() => setBuySharesSheetOpen(true)}
                   onSell={() => setSellSharesSheetOpen(true)}
                   ownsAnyShares={ownsAnyShares}
+                  canSell={!isCreator}
                   canBuy={!!(
                     !safeDelulu.isResolved &&
                     showBuyButton &&
@@ -1595,7 +1651,7 @@ export default function DeluluPage() {
                             <div
                               key={m.id}
                               className={cn(
-                                "border-2 rounded-xl overflow-hidden transition-colors",
+                                "border rounded-lg overflow-hidden transition-colors",
                                 isOngoing
                                   ? "border-delulu-yellow-reserved bg-delulu-yellow-reserved/10"
                                   : isUpcoming
@@ -1610,7 +1666,7 @@ export default function DeluluPage() {
                                     prev === m.id ? null : m.id,
                                   )
                                 }
-                                className="w-full flex gap-4 p-4 md:p-5 items-start text-left"
+                                className="w-full flex gap-3 p-3 md:p-4 items-start text-left"
                               >
                                 <div className="pt-1">
                                   {openMilestoneId === m.id ? (
@@ -1635,7 +1691,7 @@ export default function DeluluPage() {
                                   <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <p
                                       className={cn(
-                                        "font-bold text-sm",
+                                        "font-semibold text-xs md:text-sm",
                                         isUpcoming
                                           ? "text-muted-foreground"
                                           : "text-foreground",
@@ -1681,7 +1737,7 @@ export default function DeluluPage() {
                                             }
                                           }}
                                           className={cn(
-                                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border cursor-default",
+                                            "inline-flex items-center rounded-full px-1.5 py-0 text-[9px] md:text-[10px] font-semibold border cursor-default",
                                             m.isVerified
                                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                                               : isInReview ||
@@ -1724,7 +1780,7 @@ export default function DeluluPage() {
                                     {showTimeOrReview && (
                                       <span
                                         className={cn(
-                                          "text-[11px] tabular-nums font-medium",
+                                          "text-[9px] md:text-[10px] tabular-nums font-medium",
                                           isPastExpired && "text-destructive",
                                           (isInReview ||
                                             (isOngoing && m.isSubmitted)) &&
@@ -1739,8 +1795,8 @@ export default function DeluluPage() {
                               </button>
 
                               {openMilestoneId === m.id && (
-                                <div className="px-4 md:px-8 pb-5 pt-0 text-xs md:text-sm text-muted-foreground">
-                                  {m.proofLink ? (
+                                <div className="px-4 md:px-6 pb-4 pt-0 text-xs text-muted-foreground">
+                                  {isCreator && m.proofLink ? (
                                     <div className="space-y-1.5">
                                       <img
                                         src={m.proofLink}
@@ -1761,6 +1817,10 @@ export default function DeluluPage() {
                                         View Evidence
                                       </a>
                                     </div>
+                                  ) : !isCreator && m.proofLink ? (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      Evidence is only visible to the creator.
+                                    </p>
                                   ) : (
                                     <p className="text-xs text-muted-foreground italic">No evidence added yet</p>
                                   )}
@@ -2176,6 +2236,7 @@ export default function DeluluPage() {
         <EditDeluluSheet
           open={showEditSheet}
           onOpenChange={setShowEditSheet}
+          mode={editSheetMode}
           onChainId={String(delulu.onChainId)}
           creatorAddress={address!}
           currentTitle={deluluTitle}

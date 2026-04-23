@@ -88,12 +88,6 @@ export function useAuth(): UseAuthReturn {
     (a: any) => a.type === "wallet" && a.walletClientType === "privy"
   )?.address as `0x${string}` | undefined;
 
-  const address: `0x${string}` | undefined =
-    account.address ??
-    web3authAddress ??
-    (wallets?.[0]?.address as `0x${string}` | undefined) ??
-    privyEmbeddedAddress;
-
   // ── Unified state ─────────────────────────────────────────────────────────
   const authenticated = privyAuthenticated || web3authConnected;
 
@@ -102,6 +96,20 @@ export function useAuth(): UseAuthReturn {
     : web3authConnected
     ? "web3auth"
     : null;
+
+  // Prefer address by active auth provider to avoid stale wagmi addresses
+  // overshadowing Web3Auth/Privy sessions.
+  const privyAddress =
+    (wallets?.[0]?.address as `0x${string}` | undefined) ?? privyEmbeddedAddress;
+  const fallbackAddress: `0x${string}` | undefined =
+    account.address ?? web3authAddress ?? privyAddress;
+
+  const address: `0x${string}` | undefined =
+    provider === "web3auth"
+      ? web3authAddress ?? account.address ?? privyAddress
+      : provider === "privy"
+      ? privyAddress ?? account.address ?? web3authAddress
+      : fallbackAddress;
 
   const isReady = ready;
 
