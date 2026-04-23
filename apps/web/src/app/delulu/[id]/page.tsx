@@ -930,7 +930,7 @@ export default function DeluluPage() {
               />
             </div>
 
-            <div className="px-4 lg:px-6 py-6 space-y-6">
+            <div className="px-3 lg:px-6 py-6 space-y-6">
               <div className="bg-card border border-border rounded-2xl overflow-hidden">
                 <div className="h-48 bg-muted animate-pulse" />
                 <div className="p-6 space-y-3">
