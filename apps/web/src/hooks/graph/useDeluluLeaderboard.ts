@@ -10,13 +10,13 @@ import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
 // orderBy to totalG for accurate ranking (creatorStake + totalSupportCollected).
 // Until then we fetch a larger batch and sort client-side by the combined total.
 const DELULU_LEADERBOARD_QUERY = gql`
-  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0) {
+  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $weekStart: BigInt = "0") {
     delulus(
       first: $first
       skip: $skip
       orderBy: uniqueBuyerCount
       orderDirection: desc
-      where: { isCancelled: false }
+      where: { isCancelled: false, createdAt_gte: $weekStart }
     ) {
       id
       onChainId
@@ -27,6 +27,7 @@ const DELULU_LEADERBOARD_QUERY = gql`
       shareSupply
       tradeCount
       uniqueBuyerCount
+      createdAt
       creator {
         id
         username
@@ -54,15 +55,20 @@ export interface DeluluLeaderboardEntry {
 export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
+  // Weekly campaign: only delulus created in the last 7 days
+  const weekStart = useMemo(() => {
+    const ts = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+    return String(ts);
+  }, []);
+
   // Fetch a generous batch so client-side sort by totalG is accurate.
-  // Once totalG is indexed in the subgraph this can be reduced to pageSize+1.
   const fetchSize = Math.max(50, (page + 1) * pageSize + pageSize);
 
   const { data, loading, error, refetch } = useQuery<
     { delulus: any[] },
-    { first: number; skip: number }
+    { first: number; skip: number; weekStart: string }
   >(DELULU_LEADERBOARD_QUERY, {
-    variables: { first: fetchSize, skip: 0 },
+    variables: { first: fetchSize, skip: 0, weekStart },
     fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",
   });
