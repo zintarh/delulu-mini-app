@@ -286,7 +286,8 @@ export function RightSidebar() {
                   const handle = entry.creatorUsername
                     ? `@${entry.creatorUsername}`
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
-                  const headline = entry.title?.trim() || "Untitled delulu";
+                  const raw = entry.title?.trim() || "Untitled delulu";
+                  const headline = raw.length > 32 ? raw.slice(0, 32) + "…" : raw;
                   const pfpEntry = pfpMap[entry.creatorAddress.toLowerCase()];
 
                   return (
