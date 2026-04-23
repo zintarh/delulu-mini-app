@@ -111,7 +111,7 @@ function CampaignLeaderboard() {
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
               {/* L2: G$ = green (money) */}
-              <span className="w-11 text-right text-xs font-semibold text-[#35d07f] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(myEntry!.totalG)}</span>
+              <span className="w-11 text-right text-xs font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(myEntry!.totalG)}</span>
               {/* L3: shares = dimmer */}
               <span className="w-10 text-right text-xs font-medium text-muted-foreground/60 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.shareSupply}</span>
               {/* L1: UB = yellow, primary metric */}
@@ -150,7 +150,7 @@ function CampaignLeaderboard() {
               </div>
               <div className="flex items-center gap-2.5 shrink-0">
                 {/* L2: G$ = green */}
-                <span className="w-11 text-right text-xs font-semibold text-[#35d07f] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(entry.totalG)}</span>
+                <span className="w-11 text-right text-xs font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(entry.totalG)}</span>
                 {/* L3: shares */}
                 <span className="w-10 text-right text-xs font-medium text-muted-foreground/60 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{entry.shareSupply}</span>
                 {/* L1: UB = yellow, primary metric */}

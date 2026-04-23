@@ -87,6 +87,11 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
         const cached = getCachedContent(d.contentHash);
         const creatorStake = weiToNumber(d.creatorStake);
         const totalSupportCollected = weiToNumber(d.totalSupportCollected);
+        // Prefer the subgraph's totalG (includes share trade G$ flows) over the
+        // client-side sum which only counts creatorStake + direct support.
+        const totalG = d.totalG
+          ? weiToNumber(d.totalG)
+          : creatorStake + totalSupportCollected;
         return {
           id: d.id,
           onChainId: d.onChainId,
@@ -94,7 +99,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           title: cached?.text ?? null,
           creatorAddress: d.creator?.id ?? "",
           creatorUsername: d.creator?.username ?? null,
-          totalG: creatorStake + totalSupportCollected,
+          totalG,
           creatorStake,
           totalSupportCollected,
           shareSupply: Number(d.shareSupply ?? "0"),
