@@ -6,9 +6,6 @@ import { useQuery } from "@apollo/client/react";
 import { weiToNumber } from "@/lib/graph/transformers";
 import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
 
-// After subgraph redeployment with totalG + tradeCount fields, switch
-// orderBy to totalG for accurate ranking (creatorStake + totalSupportCollected).
-// Until then we fetch a larger batch and sort client-side by the combined total.
 const DELULU_LEADERBOARD_QUERY = gql`
   query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $weekStart: BigInt = "0") {
     delulus(
@@ -23,11 +20,14 @@ const DELULU_LEADERBOARD_QUERY = gql`
       contentHash
       creatorStake
       totalSupportCollected
-      totalG
       shareSupply
       tradeCount
       uniqueBuyerCount
       createdAt
+      shareTrades(first: 500, orderBy: createdAt, orderDirection: asc) {
+        isBuy
+        curveAmount
+      }
       creator {
         id
         username
@@ -43,7 +43,7 @@ export interface DeluluLeaderboardEntry {
   title: string | null;
   creatorAddress: string;
   creatorUsername: string | null;
-  /** creatorStake + totalSupportCollected — the true total G$ on this delulu */
+  /** creatorStake + support + net G$ from bonding curve share trades */
   totalG: number;
   creatorStake: number;
   totalSupportCollected: number;
@@ -87,11 +87,12 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
         const cached = getCachedContent(d.contentHash);
         const creatorStake = weiToNumber(d.creatorStake);
         const totalSupportCollected = weiToNumber(d.totalSupportCollected);
-        // Prefer the subgraph's totalG (includes share trade G$ flows) over the
-        // client-side sum which only counts creatorStake + direct support.
-        const totalG = d.totalG
-          ? weiToNumber(d.totalG)
-          : creatorStake + totalSupportCollected;
+        // Sum G$ from bonding curve: buys add, sells subtract
+        const netShareG = ((d.shareTrades ?? []) as any[]).reduce((acc, t) => {
+          const amt = weiToNumber(t.curveAmount ?? "0");
+          return t.isBuy ? acc + amt : acc - amt;
+        }, 0);
+        const totalG = creatorStake + totalSupportCollected + Math.max(0, netShareG);
         return {
           id: d.id,
           onChainId: d.onChainId,
