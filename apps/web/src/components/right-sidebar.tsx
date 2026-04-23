@@ -295,31 +295,12 @@ export function RightSidebar() {
                       key={entry.id}
                       type="button"
                       onClick={() => router.push(`/delulu/${entry.id}`)}
-                      className={cn(
-                        "group w-full flex items-center gap-2.5 px-2 py-2 rounded-xl transition-colors text-left",
-                        rank === 1
-                          ? "bg-[#fcff52]/5 hover:bg-[#fcff52]/8 border border-[#fcff52]/10"
-                          : "bg-card/30 hover:bg-card/70 border border-border/30",
-                      )}
+                      className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-xl transition-colors text-left bg-card/30 hover:bg-card/70 border border-border/30"
                     >
-                      {/* Rank badge — matches leaderboard page */}
-                      {rank === 1 ? (
-                        <div className="w-6 h-6 rounded-full bg-[#fcff52] flex items-center justify-center shadow-[0_0_8px_rgba(252,255,82,0.4)] shrink-0">
-                          <span className="text-[10px] font-bold text-black" style={{ fontFamily: "'Clash Display', sans-serif" }}>1</span>
-                        </div>
-                      ) : rank === 2 ? (
-                        <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-zinc-200" style={{ fontFamily: "'Clash Display', sans-serif" }}>2</span>
-                        </div>
-                      ) : rank === 3 ? (
-                        <div className="w-6 h-6 rounded-full bg-[#35d07f]/20 border border-[#35d07f]/30 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-[#35d07f]" style={{ fontFamily: "'Clash Display', sans-serif" }}>3</span>
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] text-muted-foreground/40 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
-                        </div>
-                      )}
+                      {/* Rank number — uniform style */}
+                      <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                        <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
+                      </div>
 
                       <UserAvatar
                         address={entry.creatorAddress}

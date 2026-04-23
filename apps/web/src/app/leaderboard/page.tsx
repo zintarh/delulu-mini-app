@@ -40,21 +40,6 @@ function formatTitle(entry: DeluluLeaderboardEntry) {
 // ── Rank medal ────────────────────────────────────────────────────────────────
 
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return (
-    <div className="w-7 h-7 rounded-full bg-[#fcff52] flex items-center justify-center shadow-[0_0_10px_rgba(252,255,82,0.4)] shrink-0">
-      <span className="text-xs font-bold text-black" style={{ fontFamily: "'Clash Display', sans-serif" }}>1</span>
-    </div>
-  );
-  if (rank === 2) return (
-    <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-      <span className="text-xs font-bold text-zinc-200" style={{ fontFamily: "'Clash Display', sans-serif" }}>2</span>
-    </div>
-  );
-  if (rank === 3) return (
-    <div className="w-7 h-7 rounded-full bg-[#35d07f]/20 border border-[#35d07f]/30 flex items-center justify-center shrink-0">
-      <span className="text-xs font-bold text-[#35d07f]" style={{ fontFamily: "'Clash Display', sans-serif" }}>3</span>
-    </div>
-  );
   return (
     <div className="w-7 h-7 flex items-center justify-center shrink-0">
       <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
@@ -142,12 +127,7 @@ function CampaignLeaderboard() {
             <Link
               key={entry.id}
               href={`/delulu/${entry.id}`}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors group",
-                rank === 1
-                  ? "bg-[#fcff52]/5 hover:bg-[#fcff52]/8 border border-[#fcff52]/10"
-                  : "bg-card/30 hover:bg-card/70 border border-border/30",
-              )}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors group bg-card/30 hover:bg-card/70 border border-border/30"
             >
               <RankBadge rank={rank} />
               {/* Thumbnail */}
@@ -260,12 +240,7 @@ function DreamersLeaderboard() {
           return (
             <div
               key={entry.address}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors",
-                entry.rank === 1
-                  ? "bg-[#fcff52]/5 border border-[#fcff52]/10"
-                  : "bg-card/30 hover:bg-card/70 border border-border/30",
-              )}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors bg-card/30 hover:bg-card/70 border border-border/30"
             >
               <RankBadge rank={entry.rank} />
               <UserAvatar address={entry.address} username={entry.username} pfpUrl={pfpMap[entry.address.toLowerCase()]} />
