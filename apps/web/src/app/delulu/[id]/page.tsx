@@ -1061,7 +1061,7 @@ export default function DeluluPage() {
             <ShareMenu shareUrl={shareUrl} shareTitle={shareTitle} creatorHandle={safeDelulu.username} />
           </div>
 
-          <div className="px-4 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
+          <div className="px-3 lg:px-6 py-6 space-y-6 pt-20 lg:pt-6">
             {/* Market banner / hero */}
             <div className="bg-card border border-border rounded-2xl overflow-hidden">
               <div
@@ -1070,7 +1070,7 @@ export default function DeluluPage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
               </div>
-              <div className="p-6 space-y-3">
+              <div className="p-4 lg:p-6 space-y-3">
                 {/* Hidden banner (visible only to creator) */}
                 {isHidden && isCreator && (
                   <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-2">
@@ -1145,30 +1145,21 @@ export default function DeluluPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-border gap-4 text-sm">
-              <button
-                onClick={() => setActiveTab("details")}
-                className={cn(
-                  "pb-2 font-semibold border-b-2 transition-all",
-                  activeTab === "details"
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Details
-              </button>
-
-              <button
-                onClick={() => setActiveTab("milestones")}
-                className={cn(
-                  "pb-2 font-semibold border-b-2 transition-all",
-                  activeTab === "milestones"
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Milestones
-              </button>
+            <div className="flex items-center gap-1 p-1 rounded-full bg-muted/20 border border-border/40">
+              {(["details", "milestones"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "flex-1 py-1.5 rounded-full text-xs font-semibold capitalize transition-all",
+                    activeTab === tab
+                      ? "bg-card text-foreground shadow-sm border border-border/60"
+                      : "text-muted-foreground/60 hover:text-muted-foreground",
+                  )}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </div>
 
             {activeTab === "details" ? (
