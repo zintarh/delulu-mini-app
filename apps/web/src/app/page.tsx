@@ -23,7 +23,6 @@ import Link from "next/link";
 import { UserSetupModal } from "@/components/user-setup-modal";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { ContinueJourneyCard } from "@/components/continue-journey-card";
 
 function BoardTile({
   delusion,
@@ -294,9 +293,6 @@ export default function HomePage() {
           </div>
 
           <div className="px-4 lg:px-6 pb-20 lg:pb-6 pt-20 lg:pt-6">
-            {/* Continue Journey card — shown to connected users with an active series */}
-            <ContinueJourneyCard className="mb-4" />
-
             {isLoading || (isIpfsLoading && filteredDelulus.length === 0) ? (
               activeTab === "board" ? (
                 <div className="columns-2 gap-3">
