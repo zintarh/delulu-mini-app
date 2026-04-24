@@ -116,7 +116,40 @@ export function IdentityModal({
               <p className="text-xs text-muted-foreground">You can now claim G$.</p>
             </div>
 
-          ) : !fvLink || status === "loading" ? (
+          ) : status === "error" ? (
+            /* ── Error ── */
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
+              <AlertTriangle className="w-10 h-10 text-amber-500" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Verification couldn&apos;t start
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Please refresh and try again. If it still fails, open verification in a new tab.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry
+                </button>
+                {fvLink && (
+                  <button
+                    type="button"
+                    onClick={openInNewTab}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open in new tab
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : status === "loading" ? (
             /* ── Generating link ── */
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
               <img
@@ -128,6 +161,27 @@ export function IdentityModal({
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Preparing verification…
               </div>
+            </div>
+          ) : !fvLink ? (
+            /* ── Missing link fallback ── */
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
+              <AlertTriangle className="w-10 h-10 text-amber-500" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Verification link unavailable
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  We couldn&apos;t generate your verification session yet. Retry to continue.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Retry
+              </button>
             </div>
 
           ) : (
@@ -159,7 +213,7 @@ export function IdentityModal({
         </div>
 
         {/* Footer */}
-        {(!fvLink || status === "loading" || status === "verified") && (
+        {(!fvLink || status === "loading" || status === "verified" || status === "error") && (
           <div className="px-6 py-3 border-t border-border shrink-0">
             <p className="text-[10px] text-center text-muted-foreground">
               Powered by GoodDollar · Privacy-preserving identity verification
