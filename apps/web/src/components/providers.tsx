@@ -65,13 +65,15 @@ function AppWithPrivy({
         
         config={{
           appearance: {
-            theme: isDark ? "#050505" : "#ffffff",
-            accentColor: isDark ? "#141414" : "#466567",
+            theme: "light",
+          // accentColor: "#35d07f",
             logo: "/favicon_io/favicon-32x32.png",
+            
             walletChainType: "ethereum-only",
             loginMessage: "Welcome back",
           },
           loginMethods: ["email", "wallet"],
+        
           defaultChain: celo,
           supportedChains: [celo],
           embeddedWallets: {

@@ -114,7 +114,7 @@ export function FaucetModal({ open, onOpenChange }: FaucetModalProps) {
             )}
           >
             {isClaiming && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{isClaiming ? "Requesting gas..." : "Claim 1 CELO"}</span>
+            <span>{isClaiming ? "Requesting gas..." : "Claim 0.7 CELO"}</span>
           </button>
 
           <p className="text-[10px] text-muted-foreground leading-relaxed text-center">
