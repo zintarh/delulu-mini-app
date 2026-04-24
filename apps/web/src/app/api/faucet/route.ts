@@ -11,7 +11,7 @@ const DAILY_MS = 24 * 60 * 60 * 1000;
 // Users qualify for the faucet as long as they have less than 0.05 CELO.
 // If their balance later drops below 0.05 again, they can claim again (subject to daily rate limit).
 const MIN_NATIVE_BALANCE = parseEther("0.05");
-const FAUCET_AMOUNT = parseEther("1"); // amount of CELO to send
+const FAUCET_AMOUNT = parseEther("0.7"); // amount of CELO to send
 
 const RPC_URL =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ??
@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
       transport: http(RPC_URL),
     });
 
-    // 0. Check faucet wallet balance first so users get a clear error.
     const faucetBalance = await publicClient.getBalance({ address: account.address });
     if (faucetBalance < FAUCET_AMOUNT) {
       return errorResponse(
@@ -74,7 +73,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Check user native CELO balance
     const balance = await publicClient.getBalance({ address: address as `0x${string}` });
     if (balance >= MIN_NATIVE_BALANCE) {
       return errorResponse(
@@ -152,7 +150,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Store claim record in Supabase (table: faucet_claims)
     const { error: insertError } = await supabase.from("faucet_claims").insert({
       address: address.toLowerCase(),
       amount: Number(FAUCET_AMOUNT) / 1e18,

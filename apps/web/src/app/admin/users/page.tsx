@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Trash2,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme-context";
@@ -30,6 +31,7 @@ interface UserRow {
   email: string;
   pfp_url: string | null;
   referral_code: string | null;
+  claim_count: number | null;
   created_at: string;
 }
 
@@ -121,6 +123,7 @@ export default function AdminUsersPage() {
   const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const [usernameSearch, setUsernameSearch] = useState("");
+  const [emailSearch, setEmailSearch] = useState("");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [customDate, setCustomDate] = useState("");
   const [page, setPage] = useState(1);
@@ -128,6 +131,7 @@ export default function AdminUsersPage() {
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -135,6 +139,7 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams();
       if (usernameSearch.trim()) params.set("username", usernameSearch.trim());
+      if (emailSearch.trim()) params.set("email", emailSearch.trim());
       if (datePreset === "today") params.set("date", "today");
       else if (datePreset === "yesterday") params.set("date", "yesterday");
       else if (datePreset === "custom" && customDate) params.set("date", customDate);
@@ -149,7 +154,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [usernameSearch, datePreset, customDate, page]);
+  }, [usernameSearch, emailSearch, datePreset, customDate, page]);
 
   useEffect(() => {
     fetchUsers();
@@ -158,6 +163,10 @@ export default function AdminUsersPage() {
   // Reset page when filters change
   const handleUsernameChange = (v: string) => {
     setUsernameSearch(v);
+    setPage(1);
+  };
+  const handleEmailChange = (v: string) => {
+    setEmailSearch(v);
     setPage(1);
   };
   const handlePreset = (p: DatePreset) => {
@@ -172,6 +181,31 @@ export default function AdminUsersPage() {
   const totalPages = data
     ? Math.max(1, Math.ceil(data.total / data.pageSize))
     : 1;
+
+  const handleDeleteUser = async (targetAddress: string) => {
+    const confirmed = window.confirm(
+      `Delete user ${formatAddress(targetAddress as `0x${string}`)}? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingAddress(targetAddress);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/users?address=${encodeURIComponent(targetAddress)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? `Delete failed: ${res.status}`);
+      }
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setDeletingAddress(null);
+    }
+  };
 
   if (isAdminLoading) {
     return (
@@ -293,6 +327,27 @@ export default function AdminUsersPage() {
               )}
             </div>
 
+            {/* Email search */}
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="search"
+                placeholder="Filter by email…"
+                value={emailSearch}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                className="w-full rounded-lg border-2 border-border bg-input py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {emailSearch && (
+                <button
+                  type="button"
+                  onClick={() => handleEmailChange("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
             {/* Date preset pills */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {DATE_PRESETS.map((preset) => (
@@ -364,6 +419,12 @@ export default function AdminUsersPage() {
                         <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                           Joined
                         </th>
+                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                          Claims
+                        </th>
+                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -396,6 +457,24 @@ export default function AdminUsersPage() {
                                   day: "numeric",
                                 })
                               : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-xs font-semibold text-foreground whitespace-nowrap">
+                            {u.claim_count ?? 0}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(u.address)}
+                              disabled={deletingAddress === u.address}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-red-500/40 px-2.5 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {deletingAddress === u.address ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                              Delete
+                            </button>
                           </td>
                         </tr>
                       ))}

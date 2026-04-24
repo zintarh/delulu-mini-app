@@ -1,35 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { usePublicClient } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
-
-let ClaimSDK: any;
-let useIdentitySDK: any;
-
-try {
-  const identitySDK = require("@goodsdks/identity-sdk");
-  const citizenSDK = require("@goodsdks/citizen-sdk");
-  useIdentitySDK =
-    identitySDK.useIdentitySDK || identitySDK.default?.useIdentitySDK;
-  ClaimSDK =
-    citizenSDK.ClaimSDK ||
-    citizenSDK.default?.ClaimSDK ||
-    identitySDK.ClaimSDK;
-} catch (error) {
-  console.warn("[useGoodDollarClaim] SDK packages not found:", error);
-}
-
-// Safe wrapper hook that always calls useIdentitySDK if it exists
-// This ensures hooks are always called in the same order
-function useIdentitySDKSafe() {
-  if (useIdentitySDK) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useIdentitySDK("production");
-  }
-  return null;
-}
+import { IdentitySDK, useIdentitySDK } from "@goodsdks/identity-sdk";
+import { ClaimSDK } from "@goodsdks/citizen-sdk";
 
 export interface UseGoodDollarClaimReturn {
   isLoading: boolean;
@@ -48,8 +24,14 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const { address } = useAuth();
   const publicClient = usePublicClient();
   const walletClient = useUnifiedWalletClient();
-  // Use the safe wrapper that always calls the hook unconditionally
-  const identitySDK = useIdentitySDKSafe();
+  const identitySDKFromHook = useIdentitySDK("production");
+  const walletClientAddress = walletClient?.account?.address;
+  const hasWalletAccount = !!walletClientAddress;
+  const identitySDK = useMemo(() => {
+    if (identitySDKFromHook) return identitySDKFromHook;
+    if (!publicClient || !walletClient || !hasWalletAccount) return null;
+    return new (IdentitySDK as any)(publicClient, walletClient, "production");
+  }, [identitySDKFromHook, publicClient, walletClient, hasWalletAccount]);
 
   const [isClaiming, setIsClaiming] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -63,10 +45,22 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const isLoading =
-    !address || !publicClient || !walletClient || !identitySDK || !ClaimSDK;
+    !address ||
+    !publicClient ||
+    !walletClient ||
+    !hasWalletAccount ||
+    !identitySDK ||
+    !ClaimSDK;
 
   const checkWhitelisted = useCallback(async (): Promise<boolean> => {
-    if (!ClaimSDK || !address || !publicClient || !walletClient || !identitySDK) {
+    if (
+      !ClaimSDK ||
+      !address ||
+      !publicClient ||
+      !walletClient ||
+      !hasWalletAccount ||
+      !identitySDK
+    ) {
       return false;
     }
     try {
@@ -94,10 +88,17 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
       console.error("[useGoodDollarClaim] isWhitelisted check failed:", err);
       return false;
     }
-  }, [address, publicClient, walletClient, identitySDK]);
+  }, [address, publicClient, walletClient, hasWalletAccount, identitySDK]);
 
   const checkClaimStatus = useCallback(async () => {
-    if (!ClaimSDK || !address || !publicClient || !walletClient || !identitySDK) {
+    if (
+      !ClaimSDK ||
+      !address ||
+      !publicClient ||
+      !walletClient ||
+      !hasWalletAccount ||
+      !identitySDK
+    ) {
       return;
     }
     try {
@@ -111,7 +112,6 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
       // Use getWalletClaimStatus to get status, entitlement, and nextClaimTime
       const walletStatus = await claimSDK.getWalletClaimStatus();
-
       // Get nextClaimTime separately (returns epoch 0 if can claim now)
       // Wrap in try-catch to handle alternative chain RPC errors
       let nextTime: Date;
@@ -158,7 +158,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
       console.error("[useGoodDollarClaim] Failed to check claim status:", err);
       setError(err instanceof Error ? err : new Error("Failed to check claim status"));
     }
-  }, [address, publicClient, walletClient, identitySDK]);
+  }, [address, publicClient, walletClient, hasWalletAccount, identitySDK]);
 
 
 
@@ -236,7 +236,9 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
 
   const claim = async () => {
-    if (!address || !publicClient || !walletClient || !identitySDK) return;
+    if (!address || !publicClient || !walletClient || !hasWalletAccount || !identitySDK) {
+      return;
+    }
 
     try {
       setIsClaiming(true);
@@ -254,6 +256,15 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
       // Wait a bit for the blockchain state to update
       console.log("[useGoodDollarClaim] Claim successful, waiting for state update...");
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Quietly persist claim count in profile DB; never block UX on this side effect.
+      fetch("/api/profile/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      }).catch(() => {
+        // intentionally swallowed
+      });
 
       // Refresh claim status after claim
       await checkClaimStatus();

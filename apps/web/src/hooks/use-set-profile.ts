@@ -99,12 +99,47 @@ function formatErrorForDisplay(error: unknown): Error {
   }
 
   if (err?.message) {
-    if (err.message.includes("UsernameAlreadyTaken")) return new Error("This username is already taken");
-    if (err.message.includes("UsernameTooShort")) return new Error("Username must be at least 3 characters");
-    if (err.message.includes("UsernameTooLong")) return new Error("Username must be 16 characters or less");
-    if (err.message.includes("UsernameInvalid")) return new Error("Username can only contain letters, numbers, and underscores");
-    if (err.message.includes("user rejected")) return new Error("Transaction was cancelled");
-    return new Error(err.message);
+    const rawMessage = err.message;
+    const message = rawMessage.toLowerCase();
+
+    if (message.includes("usernamealreadytaken")) {
+      return new Error("This username is already taken");
+    }
+    if (message.includes("usernametooshort")) {
+      return new Error("Username must be at least 3 characters");
+    }
+    if (message.includes("usernametoolong")) {
+      return new Error("Username must be 16 characters or less");
+    }
+    if (message.includes("usernameinvalid")) {
+      return new Error("Username can only contain letters, numbers, and underscores");
+    }
+    if (
+      message.includes("insufficient funds") ||
+      message.includes("fee payer balance too low") ||
+      message.includes("gas * price + value")
+    ) {
+      return new Error("Your wallet doesn’t have enough CELO for gas. Please top up and try again.");
+    }
+    if (
+      message.includes("user rejected") ||
+      message.includes("transaction was cancelled") ||
+      message.includes("request rejected")
+    ) {
+      return new Error("Transaction was cancelled.");
+    }
+    if (
+      message.includes("failed to sign message") ||
+      message.includes("transaction signature")
+    ) {
+      return new Error("We couldn’t sign this transaction. Please try again.");
+    }
+    if (message.includes("popup window is blocked")) {
+      return new Error("Your browser blocked the wallet popup. Allow popups and try again.");
+    }
+
+    // Never leak raw stack-heavy provider errors to end users.
+    return new Error("We couldn’t update your profile right now. Please try again.");
   }
 
   return new Error("An unknown error occurred");

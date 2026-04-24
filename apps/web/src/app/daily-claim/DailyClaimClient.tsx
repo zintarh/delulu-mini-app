@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -16,13 +16,6 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { Pill } from "@/components/ui/pill";
 
-const ConnectorSelectionSheet = dynamic(
-  () =>
-    import("@/components/connector-selection-sheet").then(
-      (m) => m.ConnectorSelectionSheet,
-    ),
-  { ssr: false },
-);
 const FaucetModal = dynamic(
   () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
   { ssr: false },
@@ -30,7 +23,7 @@ const FaucetModal = dynamic(
 const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
 
 export default function DailyClaimClient() {
-  const { address, isConnected } = useAuth();
+  const { address, authenticated, isReady } = useAuth();
   const router = useRouter();
   const {
     isLoading: isClaimDataLoading,
@@ -43,16 +36,22 @@ export default function DailyClaimClient() {
     isInitialized,
   } = useGoodDollarClaim();
 
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showFaucet, setShowFaucet] = useState(false);
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
 
+  useEffect(() => {
+    if (!isReady) return;
+    if (!authenticated) {
+      router.replace("/sign-in");
+    }
+  }, [isReady, authenticated, router]);
+
   const handleProfileClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/profile");
   };
   const handleCreateClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) router.push("/sign-in");
     else router.push("/board");
   };
 
@@ -67,14 +66,15 @@ export default function DailyClaimClient() {
   });
 
   const handleConnectClick = () => {
-    setShowLoginSheet(true);
+    router.push("/sign-in");
   };
 
   const handleClaim = async () => {
-    if (!isConnected) {
-      setShowLoginSheet(true);
+    if (!authenticated) {
+      router.push("/sign-in");
       return;
     }
+    if (!address) return;
 
     if (!isWhitelisted) {
       setShowIdentityFlow(true);
@@ -137,7 +137,7 @@ export default function DailyClaimClient() {
                       Your GoodDollar wallet
                     </p>
                     <p className="text-sm font-semibold text-foreground">
-                      {isConnected && address
+                      {authenticated && address
                         ? `${address.slice(0, 6)}...${address.slice(-4)}`
                         : "Not connected"}
                     </p>
@@ -167,7 +167,7 @@ export default function DailyClaimClient() {
                   </div>
                 </div>
 
-                {!isConnected ? (
+                {!authenticated ? (
                   <button
                     onClick={handleConnectClick}
                     className={cn(
@@ -229,7 +229,7 @@ export default function DailyClaimClient() {
                     ) : (
                       <button
                         onClick={handleClaim}
-                        disabled={isClaiming || hasClaimed}
+                        disabled={isClaiming || hasClaimed || !address}
                         className={cn(
                           "w-fit px-4 py-3 text-sm font-medium",
                           "bg-delulu-yellow-reserved text-delulu-charcoal",
@@ -278,8 +278,6 @@ export default function DailyClaimClient() {
           claim();
         }}
       />
-
-      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
 
       <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </div>
