@@ -6,7 +6,7 @@ const HIDDEN = { showOnModal: false } as const;
 export const web3AuthContextConfig: Web3AuthContextConfig = {
   web3AuthOptions: {
     clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID!,
-    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
     chains: [
       {
         chainNamespace: "eip155",
@@ -26,21 +26,20 @@ export const web3AuthContextConfig: Web3AuthContextConfig = {
         auth: {
           label: "auth",
           loginMethods: {
-            email_passwordless: { showOnModal: true },
-            sms_passwordless:   HIDDEN,
-            google:             HIDDEN,
-            twitter:            HIDDEN,
-            facebook:           HIDDEN,
-            discord:            HIDDEN,
-            apple:              HIDDEN,
-            github:             HIDDEN,
-            reddit:             HIDDEN,
-            twitch:             HIDDEN,
-            linkedin:           HIDDEN,
-            line:               HIDDEN,
-            kakao:              HIDDEN,
-            wechat:             HIDDEN,
-            farcaster:          HIDDEN,
+            google:    HIDDEN,
+            twitter:   HIDDEN,
+            facebook:  HIDDEN,
+            discord:   HIDDEN,
+            apple:     HIDDEN,
+            github:    HIDDEN,
+            reddit:    HIDDEN,
+            twitch:    HIDDEN,
+            linkedin:  HIDDEN,
+            line:      HIDDEN,
+            kakao:     HIDDEN,
+            wechat:    HIDDEN,
+            farcaster: HIDDEN,
+            
           },
         },
       },
