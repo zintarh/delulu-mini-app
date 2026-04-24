@@ -1,15 +1,16 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useBalance, useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
-import { Loader2, Mail, Wallet } from "lucide-react";
+import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { DELULU_ABI } from "@/lib/abi";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@privy-io/react-auth";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import { WALLET_CONNECTORS } from "@web3auth/modal";
+import { TG_GROUP_URL } from "@/components/get-gas-modal";
 
 type ProfileProvider = "privy" | "web3auth" | null;
 type EmailCheckResponse = {
@@ -37,6 +38,7 @@ export default function SignInPage() {
   const [resolvedProvider, setResolvedProvider] = useState<ProfileProvider>(null);
   const [resolvedEmail, setResolvedEmail] = useState<string>("");
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const isEmailValid = useMemo(
@@ -56,13 +58,37 @@ export default function SignInPage() {
     args: address ? [address] : undefined,
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
+  const { data: celoBalance, isLoading: isBalanceLoading, refetch: refetchBalance } = useBalance(
+    {
+      address,
+      chainId: CELO_MAINNET_ID,
+      query: { enabled: !!authenticated && !!address },
+    },
+  );
+  const hasProfile =
+    typeof username === "string" && username.trim().length > 0;
+  const hasGas = (celoBalance?.value ?? 0n) > 0n;
+  const safeAddress = address ?? "";
 
   useEffect(() => {
-    if (!isReady || !authenticated || !address || isFetching) return;
-    const hasProfile =
-      typeof username === "string" && username.trim().length > 0;
-    router.replace(hasProfile ? "/" : "/welcome");
-  }, [isReady, authenticated, address, isFetching, username, router]);
+    if (!isReady || !authenticated || !address || isFetching || isBalanceLoading) return;
+    if (hasProfile) {
+      router.replace("/");
+      return;
+    }
+    if (hasGas) {
+      router.replace("/welcome");
+    }
+  }, [
+    isReady,
+    authenticated,
+    address,
+    isFetching,
+    isBalanceLoading,
+    hasProfile,
+    hasGas,
+    router,
+  ]);
 
   const checkEmailRoute = async (
     value: string,
@@ -158,6 +184,80 @@ export default function SignInPage() {
   }
 
   if (authenticated) {
+    if (isFetching || isBalanceLoading) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+          <img
+            src="/favicon_io/android-chrome-192x192.png"
+            alt="Delulu"
+            className="w-12 h-12 rounded-2xl opacity-90"
+          />
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Checking your account…
+          </div>
+        </div>
+      );
+    }
+
+    if (!hasProfile && !hasGas) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+          <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/95 p-6 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">You need gas to continue</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Join our Telegram group to receive CELO gas. After you get gas, come back and refresh this page.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-muted/30 px-3 py-3">
+              <span className="flex-1 text-xs font-mono text-foreground break-all">
+                {safeAddress}
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(safeAddress);
+                    setCopiedAddress(true);
+                    setTimeout(() => setCopiedAddress(false), 2000);
+                  } catch {}
+                }}
+                className="shrink-0 p-1.5 rounded-lg hover:bg-muted transition-colors"
+              >
+                {copiedAddress ? (
+                  <Check className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+
+            <a
+              href={TG_GROUP_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center w-full py-3 rounded-2xl bg-foreground text-background font-semibold text-sm border border-foreground/90 shadow-sm hover:opacity-90 transition-opacity"
+            >
+              Join Telegram group
+            </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                refetchBalance();
+                window.location.reload();
+              }}
+              className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Refresh this page after receiving gas
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
         <img
