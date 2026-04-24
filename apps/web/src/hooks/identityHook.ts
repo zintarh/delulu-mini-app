@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { useIdentitySDK, IdentitySDK } from "@goodsdks/identity-sdk";
 import { ClaimSDK } from "@goodsdks/citizen-sdk";
@@ -13,7 +13,12 @@ export function useIdentity() {
   const { address } = useAuth();
   const publicClient = usePublicClient();
   const walletClient = useUnifiedWalletClient();
-  const identitySDK = useIdentitySDK("production");
+  const identitySDKFromHook = useIdentitySDK("production");
+  const identitySDK = useMemo(() => {
+    if (identitySDKFromHook) return identitySDKFromHook;
+    if (!publicClient || !walletClient) return null;
+    return new (IdentitySDK as any)(publicClient, walletClient, "production");
+  }, [identitySDKFromHook, publicClient, walletClient]);
 
   const [status, setStatus] = useState<IdentityStatus>("loading");
   const [fvLink, setFvLink] = useState<string | null>(null);
@@ -21,8 +26,8 @@ export function useIdentity() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const checkVerification = async () => {
-    if (!address || !publicClient || !identitySDK) {
-      if (!address) setStatus("not_verified");
+    if (!address || !publicClient || !identitySDK || !walletClient?.account?.address) {
+      setStatus("not_verified");
       return;
     }
 
@@ -39,7 +44,7 @@ export function useIdentity() {
         env: "production",
       });
 
-      const entitlement = await claimSDK.checkEntitlement();
+      await claimSDK.checkEntitlement();
       const walletStatus = await claimSDK.getWalletClaimStatus();
 
 
@@ -92,9 +97,13 @@ export function useIdentity() {
 
       if (finalLink) {
         setFvLink(finalLink);
+        setStatus("not_verified");
+      } else {
+        setStatus("error");
       }
     } catch (e: any) {
       console.error("❌ Failed to generate FV link:", e);
+      setStatus("error");
     } finally {
       setIsGeneratingLink(false);
     }
@@ -102,7 +111,7 @@ export function useIdentity() {
 
   useEffect(() => {
     checkVerification();
-  }, [address, !!publicClient, !!identitySDK]);
+  }, [address, !!publicClient, !!identitySDK, !!walletClient?.account?.address]);
 
   // Generate link only once when verification process starts
   useEffect(() => {
@@ -125,7 +134,6 @@ export function useIdentity() {
 
     if (isVerifying && status !== "verified") {
       interval = setInterval(() => {
-        console.log("🔍 Polling identity status...");
         checkVerification();
       }, 5000); // Poll every 5 seconds while verifying
     }
