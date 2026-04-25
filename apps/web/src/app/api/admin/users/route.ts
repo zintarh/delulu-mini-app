@@ -10,8 +10,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = request.nextUrl;
-  const username = searchParams.get("username") ?? "";
-  const email = searchParams.get("email") ?? "";
+  const searchQuery = searchParams.get("query") ?? "";
   const dateFilter = searchParams.get("date") ?? ""; // "today" | "yesterday" | "YYYY-MM-DD" | ""
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
@@ -23,11 +22,9 @@ export async function GET(request: NextRequest) {
     )
     .order("created_at", { ascending: false });
 
-  if (username.trim()) {
-    query = query.ilike("username", `%${username.trim()}%`);
-  }
-  if (email.trim()) {
-    query = query.ilike("email", `%${email.trim()}%`);
+  if (searchQuery.trim()) {
+    const term = searchQuery.trim();
+    query = query.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
   }
 
   if (dateFilter === "today") {
@@ -68,11 +65,9 @@ export async function GET(request: NextRequest) {
       })
       .order("created_at", { ascending: false });
 
-    if (username.trim()) {
-      fallbackQuery = fallbackQuery.ilike("username", `%${username.trim()}%`);
-    }
-    if (email.trim()) {
-      fallbackQuery = fallbackQuery.ilike("email", `%${email.trim()}%`);
+    if (searchQuery.trim()) {
+      const term = searchQuery.trim();
+      fallbackQuery = fallbackQuery.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
     }
     if (dateFilter === "today") {
       const start = new Date();

@@ -8,19 +8,20 @@ import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet"
 import {
   Loader2,
   Search,
-  LayoutDashboard,
   BarChart3,
   Home,
   ArrowLeft,
   Moon,
   Sun,
-  LogIn,
   User,
   Users,
   ChevronLeft,
   ChevronRight,
   X,
   Trash2,
+  Copy,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme-context";
@@ -122,8 +123,7 @@ export default function AdminUsersPage() {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const [showLoginSheet, setShowLoginSheet] = useState(false);
 
-  const [usernameSearch, setUsernameSearch] = useState("");
-  const [emailSearch, setEmailSearch] = useState("");
+  const [search, setSearch] = useState("");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [customDate, setCustomDate] = useState("");
   const [page, setPage] = useState(1);
@@ -132,14 +132,14 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<string | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (usernameSearch.trim()) params.set("username", usernameSearch.trim());
-      if (emailSearch.trim()) params.set("email", emailSearch.trim());
+      if (search.trim()) params.set("query", search.trim());
       if (datePreset === "today") params.set("date", "today");
       else if (datePreset === "yesterday") params.set("date", "yesterday");
       else if (datePreset === "custom" && customDate) params.set("date", customDate);
@@ -154,19 +154,15 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [usernameSearch, emailSearch, datePreset, customDate, page]);
+  }, [search, datePreset, customDate, page]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   // Reset page when filters change
-  const handleUsernameChange = (v: string) => {
-    setUsernameSearch(v);
-    setPage(1);
-  };
-  const handleEmailChange = (v: string) => {
-    setEmailSearch(v);
+  const handleSearchChange = (v: string) => {
+    setSearch(v);
     setPage(1);
   };
   const handlePreset = (p: DatePreset) => {
@@ -176,6 +172,12 @@ export default function AdminUsersPage() {
   const handleCustomDate = (v: string) => {
     setCustomDate(v);
     setPage(1);
+  };
+
+  const handleCopyAddress = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   const totalPages = data
@@ -306,41 +308,20 @@ export default function AdminUsersPage() {
 
           {/* Filters */}
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
-            {/* Username search */}
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <input
-                type="search"
-                placeholder="Filter by username…"
-                value={usernameSearch}
-                onChange={(e) => handleUsernameChange(e.target.value)}
-                className="w-full rounded-lg border-2 border-border bg-input py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              {usernameSearch && (
-                <button
-                  type="button"
-                  onClick={() => handleUsernameChange("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Email search */}
+            {/* Combined search */}
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="search"
-                placeholder="Filter by email…"
-                value={emailSearch}
-                onChange={(e) => handleEmailChange(e.target.value)}
+                placeholder="Search by username or email…"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full rounded-lg border-2 border-border bg-input py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
-              {emailSearch && (
+              {search && (
                 <button
                   type="button"
-                  onClick={() => handleEmailChange("")}
+                  onClick={() => handleSearchChange("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -396,7 +377,7 @@ export default function AdminUsersPage() {
                 <div className="border-b border-border px-4 py-2.5">
                   <p className="text-xs text-muted-foreground">
                     {data.total} user{data.total !== 1 ? "s" : ""}
-                    {(usernameSearch || datePreset !== "all") && " matching filters"}
+                    {(search || datePreset !== "all") && " matching filters"}
                   </p>
                 </div>
 
@@ -433,8 +414,33 @@ export default function AdminUsersPage() {
                           key={u.address}
                           className="border-b border-border hover:bg-muted/50 transition-colors"
                         >
-                          <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            {formatAddress(u.address as `0x${string}`)}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {formatAddress(u.address as `0x${string}`)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyAddress(u.address)}
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                title="Copy full address"
+                              >
+                                {copiedAddress === u.address ? (
+                                  <Check className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <a
+                                href={`https://celoscan.io/address/${u.address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                title="View on Celoscan"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-foreground">
                             {u.username ? (
