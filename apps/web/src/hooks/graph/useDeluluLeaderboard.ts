@@ -56,10 +56,17 @@ export interface DeluluLeaderboardEntry {
 export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
-  // Weekly campaign: only delulus created in the last 7 days
+  // Weekly campaign: delulus created since the most recent Monday 00:00:00 UTC.
+  // Anchoring to Monday midnight means the board resets at a fixed calendar
+  // boundary each week, not a rolling 7-day window.
   const weekStart = useMemo(() => {
-    const ts = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    return String(ts);
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay(); // 0 = Sunday … 6 = Saturday
+    const daysBackToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setUTCDate(monday.getUTCDate() - daysBackToMonday);
+    monday.setUTCHours(0, 0, 0, 0);
+    return String(Math.floor(monday.getTime() / 1000));
   }, []);
 
   // Fetch a generous batch so client-side sort by totalG is accurate.

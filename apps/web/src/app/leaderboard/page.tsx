@@ -16,6 +16,32 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PAGE_SIZE = 10;
 
+/** Returns "Mon Apr 21 – Sun Apr 27 · resets Mon Apr 28" based on current UTC date. */
+function mondayWeekLabel(): string {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0 = Sunday … 6 = Saturday
+  const daysBackToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  const monday = new Date(now);
+  monday.setUTCDate(monday.getUTCDate() - daysBackToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+
+  const daysToNextMonday = dayOfWeek === 1 ? 7 : (1 - dayOfWeek + 7) % 7;
+  const nextMonday = new Date(now);
+  nextMonday.setUTCDate(nextMonday.getUTCDate() + daysToNextMonday);
+  nextMonday.setUTCHours(0, 0, 0, 0);
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+
+  return `${fmt(monday)} – ${fmt(sunday)} · resets ${fmtDay(nextMonday)}`;
+}
+
 function tileGradient(addr: string) {
   const hex = addr.replace("0x", "").toLowerCase();
   const h1 = parseInt(hex.slice(0, 6), 16) % 360;
@@ -618,7 +644,7 @@ export default function LeaderboardPage() {
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             {activeTab === "campaign"
-              ? "Delulu Monday · resets every 7 days"
+              ? `Delulu Monday · ${mondayWeekLabel()}`
               : "Top dreamers by points earned"}
           </p>
         </div>
