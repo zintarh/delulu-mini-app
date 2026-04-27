@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+@import url("https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap");
 
 /* Reduce native rubber-band overscroll in PWA */
 html,
@@ -26,39 +26,69 @@ body {
   --delulu-light-gray: #f8f9fa; /* Secondary background */
   --delulu-border: #e5e7eb; /* Light border color */
 
-  /* Default to light token values; dark theme overrides via .dark */
   --background: #ffffff;
-  --foreground: #1a1a1a;
+  --foreground: #333333;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #333333;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #111111;
-  --primary-foreground: #f9fafb;
-  --secondary: #f8f9fa;
-  --secondary-foreground: #111111;
-  --muted: #f3f4f6;
+  --popover-foreground: #333333;
+  --primary: #2e5a27;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #4b5563;
+  --muted: #f9fafb;
   --muted-foreground: #6b7280;
-  --accent: #f8f9fa;
-  --accent-foreground: #111111;
+  --accent: #e0f2fe;
+  --accent-foreground: #1e3a8a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #e5e7eb;
-  --input: #f3f4f6;
-  --ring: #111111;
-  --chart-1: #111111;
-  --chart-2: #35d07f;
-  --chart-3: #6b7280;
-  --chart-4: #fcff52;
-  --chart-5: #e5e7eb;
-  --radius: 1rem;
+  --input: #e5e7eb;
+  --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-2: #2563eb;
+  --chart-3: #1d4ed8;
+  --chart-4: #1e40af;
+  --chart-5: #1e3a8a;
+  --sidebar: #f9fafb;
+  --sidebar-foreground: #333333;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e0f2fe;
+  --sidebar-accent-foreground: #1e3a8a;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #3b82f6;
+  --font-sans: Syne, ui-sans-serif, sans-serif, system-ui;
+  --font-serif: Source Serif 4, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.375rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
 }
 
 /* Dark theme tokens (applied when html has class="dark") */
 .dark {
   /* Primary background & text */
   --background: oklch(0 0 0);
-  --foreground:  rgb(255 255 255 / 0.9);   /* also used for icons */
+  --foreground: rgb(255 255 255 / 0.9); /* also used for icons */
 
   /* Surfaces */
   --card: oklch(0.2103 0 267.51);
@@ -93,25 +123,6 @@ body {
 
 /* Explicit light theme class (optional; html.classList may toggle "light") */
 .light {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #111111;
-  --primary-foreground: #f9fafb;
-  --secondary: #f8f9fa;
-  --secondary-foreground: #111111;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --accent: #f8f9fa;
-  --accent-foreground: #111111;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e5e7eb;
-  --input: #f3f4f6;
-  --ring: #111111;
 }
 
 @layer base {
@@ -125,23 +136,51 @@ body {
 
 /* Custom color utilities for Tailwind */
 @layer utilities {
-  .bg-delulu-yellow { background-color: var(--delulu-yellow); }
-  .bg-delulu-yellow-reserved { background-color: var(--delulu-yellow-reserved); }
-  .bg-delulu-green { background-color: var(--delulu-green); }
-  .bg-delulu-charcoal { background-color: var(--delulu-charcoal); }
-  .bg-delulu-white { background-color: var(--delulu-white); }
-  .bg-delulu-light-gray { background-color: var(--delulu-light-gray); }
-  
+  .bg-delulu-yellow {
+    background-color: var(--delulu-yellow);
+  }
+  .bg-delulu-yellow-reserved {
+    background-color: var(--delulu-yellow-reserved);
+  }
+  .bg-delulu-green {
+    background-color: var(--delulu-green);
+  }
+  .bg-delulu-charcoal {
+    background-color: var(--delulu-charcoal);
+  }
+  .bg-delulu-white {
+    background-color: var(--delulu-white);
+  }
+  .bg-delulu-light-gray {
+    background-color: var(--delulu-light-gray);
+  }
+
   /* Text colors - Yellow text should NEVER be used on light backgrounds */
-  .text-delulu-charcoal { color: var(--delulu-charcoal); }
-  .text-delulu-green { color: var(--delulu-green); }
-  .text-delulu-white { color: var(--delulu-white); }
-  
-  .border-delulu-yellow { border-color: var(--delulu-yellow); }
-  .border-delulu-yellow-reserved { border-color: var(--delulu-yellow-reserved); }
-  .border-delulu-green { border-color: var(--delulu-green); }
-  .border-delulu-charcoal { border-color: var(--delulu-charcoal); }
-  .border-delulu-white { border-color: var(--delulu-white); }
+  .text-delulu-charcoal {
+    color: var(--delulu-charcoal);
+  }
+  .text-delulu-green {
+    color: var(--delulu-green);
+  }
+  .text-delulu-white {
+    color: var(--delulu-white);
+  }
+
+  .border-delulu-yellow {
+    border-color: var(--delulu-yellow);
+  }
+  .border-delulu-yellow-reserved {
+    border-color: var(--delulu-yellow-reserved);
+  }
+  .border-delulu-green {
+    border-color: var(--delulu-green);
+  }
+  .border-delulu-charcoal {
+    border-color: var(--delulu-charcoal);
+  }
+  .border-delulu-white {
+    border-color: var(--delulu-white);
+  }
 
   /* Theme-aware neo-brutalist shadow (uses --border for light/dark) */
   .shadow-neo {
@@ -159,7 +198,7 @@ body {
 
   /* Home page gradient background - Light version */
   .bg-home-gradient {
-    background: linear-gradient(180deg, #ffffff 0%, #F8F9FA 40%, #ffffff 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 40%, #ffffff 100%);
   }
 
   .btn-game {
@@ -168,31 +207,27 @@ body {
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border: 3px solid #1A1A1A;
-    box-shadow: 
-      4px 4px 0 #1A1A1A;
+    border: 3px solid #1a1a1a;
+    box-shadow: 4px 4px 0 #1a1a1a;
     transition: all 0.1s ease;
     transform-style: preserve-3d;
   }
 
   .btn-game:hover {
     transform: translate(2px, 2px);
-    box-shadow: 
-      2px 2px 0 #1A1A1A;
+    box-shadow: 2px 2px 0 #1a1a1a;
   }
 
   .btn-game:active {
     transform: translate(4px, 4px);
-    box-shadow: 
-      0px 0px 0 #1A1A1A;
+    box-shadow: 0px 0px 0 #1a1a1a;
   }
 
   .btn-game:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-    box-shadow: 
-      2px 2px 0 rgba(26, 26, 26, 0.3);
+    box-shadow: 2px 2px 0 rgba(26, 26, 26, 0.3);
   }
 }
 
@@ -209,7 +244,8 @@ body {
 }
 
 @keyframes bounce-slow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -229,7 +265,8 @@ body {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -249,7 +286,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(252, 255, 82, 0.3);
   }
   50% {
@@ -332,16 +370,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F3F4F6;
+  background: #f3f4f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #d1d5db;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #9ca3af;
 }
 
 /* Hide scrollbar utility */
@@ -368,12 +406,12 @@ textarea {
 .rdp {
   --rdp-cell-size: 32px;
   /* Use theme tokens so the calendar matches light/dark modes */
-  --rdp-accent-color: #1A1A1A;
-  --rdp-accent-color-dark: #1A1A1A;
+  --rdp-accent-color: #1a1a1a;
+  --rdp-accent-color-dark: #1a1a1a;
   --rdp-background-color: var(--card);
   --rdp-background-color-dark: var(--card);
-  --rdp-outline: 2px solid #1A1A1A;
-  --rdp-outline-selected: 2px solid #1A1A1A;
+  --rdp-outline: 2px solid #1a1a1a;
+  --rdp-outline-selected: 2px solid #1a1a1a;
   margin: 0;
 }
 
@@ -402,17 +440,16 @@ textarea {
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: #1A1A1A !important;
-  color: #FFFFFF !important;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: #1A1A1A !important;
-  color: #FFFFFF !important;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
 }
 
-
-.rdp-selected .rdp-day_button{
+.rdp-selected .rdp-day_button {
   border-color: var(--delulu-yellow-reserved) !important;
 }
 
@@ -457,16 +494,18 @@ textarea {
 }
 
 .delulu-slider [data-slot="slider-thumb"] {
-  border-color: #1A1A1A !important;
+  border-color: #1a1a1a !important;
   background-color: var(--delulu-yellow-reserved) !important;
 }
 
 /* Blinking caret animation */
 @keyframes blink-caret {
-  0%, 50% {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
@@ -504,8 +543,11 @@ textarea {
   border: 2px solid rgba(0, 0, 0, 0.5);
   pointer-events: none;
   animation: support-border-orbit 1.8s linear infinite;
-  mask:
-    conic-gradient(from var(--_angle, 0deg), #000 0 25%, transparent 25% 100%);
+  mask: conic-gradient(
+    from var(--_angle, 0deg),
+    #000 0 25%,
+    transparent 25% 100%
+  );
 }
 
 @keyframes support-border-orbit {
@@ -524,7 +566,7 @@ textarea {
 
 /* Gradient text - using charcoal base */
 .gradient-text {
-  background: linear-gradient(135deg, #1A1A1A, var(--delulu-green));
+  background: linear-gradient(135deg, #1a1a1a, var(--delulu-green));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -551,3 +593,43 @@ textarea {
     aspect-ratio: 3/2 !important;
   }
 }
+
+/* ── Delulu Wrap – slide transitions ───────────────────────────────────────── */
+@keyframes wrap-from-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0);    }
+}
+@keyframes wrap-from-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0);     }
+}
+.wrap-enter-right {
+  animation: wrap-from-right 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.wrap-enter-left {
+  animation: wrap-from-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Stat number thumps in on mount */
+@keyframes wrap-thump {
+  0%   { opacity: 0; transform: scale(1.25); }
+  55%  { transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.wrap-thump {
+  animation: wrap-thump 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.15s;
+}
+
+/* Supporting text rises after number */
+@keyframes wrap-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.wrap-rise {
+  animation: wrap-rise 0.45s ease-out both;
+}
+.wrap-rise-1 { animation-delay: 0.35s; }
+.wrap-rise-2 { animation-delay: 0.5s; }
+.wrap-rise-3 { animation-delay: 0.65s; }
+.wrap-rise-4 { animation-delay: 0.8s; }

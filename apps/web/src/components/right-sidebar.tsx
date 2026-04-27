@@ -310,8 +310,7 @@ export function RightSidebar() {
                       />
 
                       <div className="flex-1 min-w-0">
-                        {/* L1: title — small */}
-                        <p className="text-[11px] font-semibold text-white truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
+                        <p className="text-[11px] font-semibold text-foreground truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
                           {headline}
                         </p>
                         {/* L3: creator handle */}
@@ -321,7 +320,7 @@ export function RightSidebar() {
                       </div>
 
                       {/* G$ in circulation for this delulu */}
-                      <span className="shrink-0 text-[11px] font-semibold text-white tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
+                      <span className="shrink-0 text-[11px] font-semibold text-foreground tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
                         {formatGAmountInt(entry.totalG)}
                         <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">G$</span>
                       </span>

@@ -20,18 +20,22 @@ type SubgraphMilestoneRow = {
   delulu: {
     id: string;
     creatorAddress: string;
+    contentHash: string;
     createdAt: string;
     stakingDeadline: string;
     resolutionDeadline: string;
+    isResolved: boolean;
+    isCancelled: boolean;
   };
 };
 
 function requireCronAuth(req: NextRequest) {
-  const secret = process.env.PUSH_CRON_SECRET;
+  const secret = process.env.PUSH_CRON_SECRET || process.env.CRON_SECRET;
   if (!secret) return true;
   const header = req.headers.get("x-cron-secret");
+  const authHeader = req.headers.get("authorization");
   const qp = req.nextUrl.searchParams.get("secret");
-  return header === secret || qp === secret;
+  return header === secret || qp === secret || authHeader === `Bearer ${secret}`;
 }
 
 async function fetchJson(url: string, body: unknown) {
@@ -45,11 +49,49 @@ async function fetchJson(url: string, body: unknown) {
   return res.json();
 }
 
+const IPFS_GATEWAYS = [
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://ipfs.io/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+];
+
+async function resolveDeluluTitle(contentHash: string): Promise<string | null> {
+  if (!contentHash) return null;
+  for (const gateway of IPFS_GATEWAYS) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${gateway}${contentHash}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const title =
+        (typeof data?.text === "string" ? data.text : "") ||
+        (typeof data?.content === "string" ? data.content : "");
+      if (title.trim()) return title.trim();
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 function toDateSeconds(s: string | null | undefined): Date | null {
   if (!s) return null;
   const n = Number(s);
   if (!Number.isFinite(n) || n <= 0) return null;
   return new Date(n * 1000);
+}
+
+function formatRemainingTime(nowSec: number, targetSec: number): string {
+  const diff = targetSec - nowSec;
+  if (diff <= 0) return "Ends now";
+  const hours = Math.ceil(diff / 3600);
+  if (hours <= 1) return "1 hour left";
+  return `${hours} hours left`;
 }
 
 function makeEventKey({
@@ -94,9 +136,9 @@ export async function GET(req: NextRequest) {
 
     const nowMs = Date.now();
     const nowSec = Math.floor(nowMs / 1000);
-    // 1 hour reminder, with jitter tolerance: [55m, 65m]
-    const windowStartSec = nowSec + 55 * 60;
-    const windowEndSec = nowSec + 65 * 60;
+    // Hobby-safe daily run: remind for milestones ending in next 24 hours.
+    const windowStartSec = nowSec;
+    const windowEndSec = nowSec + 24 * 60 * 60;
 
     const milestoneQuery = `
       query MilestonesForEmailReminders($from: BigInt!, $to: BigInt!) {
@@ -116,9 +158,12 @@ export async function GET(req: NextRequest) {
           delulu {
             id
             creatorAddress
+            contentHash
             createdAt
             stakingDeadline
             resolutionDeadline
+            isResolved
+            isCancelled
           }
         }
       }
@@ -140,6 +185,17 @@ export async function GET(req: NextRequest) {
     for (const m of milestones) {
       const creatorAddress = (m.delulu?.creatorAddress || "").toLowerCase();
       if (!creatorAddress.startsWith("0x") || creatorAddress.length !== 42) {
+        skipped++;
+        continue;
+      }
+
+      const resolutionDeadlineSec = Number(m.delulu.resolutionDeadline || "0");
+      const isDeluluOngoing =
+        !m.delulu.isResolved &&
+        !m.delulu.isCancelled &&
+        Number.isFinite(resolutionDeadlineSec) &&
+        resolutionDeadlineSec > nowSec;
+      if (!isDeluluOngoing) {
         skipped++;
         continue;
       }
@@ -168,10 +224,14 @@ export async function GET(req: NextRequest) {
         skipped++;
         continue;
       }
+      if (endSec <= nowSec) {
+        skipped++;
+        continue;
+      }
 
-      const scheduledForSec = endSec - 60 * 60;
+      const scheduledForSec = Math.floor(windowStartSec / 3600) * 3600;
       const eventKey = makeEventKey({
-        kind: "milestone_due_1h_email",
+        kind: "milestone_due_24h_email",
         deluluId: m.delulu.id,
         milestoneId: m.milestoneId,
         address: creatorAddress,
@@ -204,21 +264,33 @@ export async function GET(req: NextRequest) {
         { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
         80,
       );
+      const deluluTitle =
+        (await resolveDeluluTitle(m.delulu.contentHash)) ??
+        "Your ongoing delulu";
 
       const milestoneUrl = `${appUrl}/delulu/${m.delulu.id}?milestone=${m.milestoneId}`;
       await sendReminderEmail(
         (profile as any).email,
         {
           username: (profile as any).username ?? "Visionary",
-          goalTitle: "Complete your milestone before expiry",
-          pendingHabits: [{ emoji: "⏰", title: milestoneLabel }],
+          goalTitle: "A milestone on your ongoing delulu is due within 24 hours",
+          pendingHabits: [
+            {
+              emoji: "",
+              title: deluluTitle,
+              milestoneTitle: milestoneLabel,
+              timeLeftText: formatRemainingTime(nowSec, endSec),
+              ctaUrl: milestoneUrl,
+              ctaLabel: "Submit proof",
+            },
+          ],
           appUrl,
           ctaUrl: milestoneUrl,
-          ctaLabel: "Submit proof now",
+          ctaLabel: "Submit proof",
           manageUrl: `${appUrl}/profile`,
         },
         {
-          subject: `⏰ 1 hour left on "${milestoneLabel}" — don't let it expire`,
+          subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
         },
       );
       sent++;

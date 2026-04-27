@@ -42,7 +42,12 @@ function formatTitle(entry: DeluluLeaderboardEntry) {
 function RankBadge({ rank }: { rank: number }) {
   return (
     <div className="w-7 h-7 flex items-center justify-center shrink-0">
-      <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
+      <span
+        className="text-[10px] text-foreground/25 tabular-nums"
+        style={{ fontFamily: "'Clash Display', sans-serif" }}
+      >
+        {rank}
+      </span>
     </div>
   );
 }
@@ -52,22 +57,30 @@ function RankBadge({ rank }: { rank: number }) {
 function CampaignLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, allEntries, hasNextPage, isLoading, error, refetch } = useDeluluLeaderboard(PAGE_SIZE, page);
+  const { entries, allEntries, hasNextPage, isLoading, error, refetch } =
+    useDeluluLeaderboard(PAGE_SIZE, page);
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
 
   const myEntry = address
-    ? allEntries.find((e) => e.creatorAddress.toLowerCase() === address.toLowerCase()) ?? null
+    ? (allEntries.find(
+        (e) => e.creatorAddress.toLowerCase() === address.toLowerCase(),
+      ) ?? null)
     : null;
   const myRank = myEntry ? allEntries.indexOf(myEntry) + 1 : null;
-  const isOnCurrentPage = !!address && entries.some(
-    (e) => e.creatorAddress.toLowerCase() === address.toLowerCase()
-  );
+  const isOnCurrentPage =
+    !!address &&
+    entries.some(
+      (e) => e.creatorAddress.toLowerCase() === address.toLowerCase(),
+    );
   const showPinnedMe = myEntry && myRank && !isOnCurrentPage;
 
   if (isLoading) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) return <EmptyState message="No campaigns this week yet — create a Delulu and lead the board!" />;
+  if (entries.length === 0)
+    return (
+      <EmptyState message="No campaigns this week yet — create a Delulu and lead the board!" />
+    );
 
   return (
     <div className="space-y-3">
@@ -75,11 +88,31 @@ function CampaignLeaderboard() {
       <div className="flex items-center gap-2.5 px-3 pb-1.5">
         <div className="w-7 shrink-0" />
         <div className="w-9 shrink-0" />
-        <span className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>Creator</span>
+        <span
+          className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-foreground/35"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Creator
+        </span>
         <div className="flex items-center gap-2.5 shrink-0">
-          <span className="w-11 text-right text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>G$</span>
-          <span className="w-10 text-right text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35 hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>Shares</span>
-          <span className="w-7 text-right text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>UB</span>
+          <span
+            className="w-11 text-right text-[10px] font-semibold uppercase tracking-widest text-foreground/35"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            G$
+          </span>
+          <span
+            className="w-10 text-right text-[10px] font-semibold uppercase tracking-widest text-foreground/35 hidden sm:block"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            Shares
+          </span>
+          <span
+            className="w-7 text-right text-[10px] font-semibold uppercase tracking-widest text-foreground/35"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            UB
+          </span>
         </div>
       </div>
 
@@ -97,68 +130,136 @@ function CampaignLeaderboard() {
               style={{ background: tileGradient(myEntry!.creatorAddress) }}
             >
               {myEntry!.bgImageUrl && (
-                <img src={myEntry!.bgImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img
+                  src={myEntry!.bgImageUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 {/* L1: primary identity */}
-                <p className="text-sm font-semibold text-white leading-snug truncate" style={{ fontFamily: "var(--font-manrope)" }}>
+                <p
+                  className="text-sm font-semibold text-foreground leading-snug truncate"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
                   {formatTitle(myEntry!)}
                 </p>
-                <span className="shrink-0 text-[9px] font-bold text-[#fcff52] bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">YOU</span>
+                <span className="shrink-0 text-[9px] font-bold text-primary bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
+                  YOU
+                </span>
               </div>
               {/* L3: secondary label */}
-              <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>{formatCampaignName(myEntry!)}</p>
+              <p
+                className="text-[11px] text-foreground/60 truncate mt-0.5"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                {formatCampaignName(myEntry!)}
+              </p>
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
-              <span className="w-11 text-right text-xs font-medium text-muted-foreground/60 tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(myEntry!.totalG)}<span className="text-[9px] ml-0.5 text-muted-foreground/35">G$</span></span>
-              <span className="w-10 text-right text-xs font-medium text-muted-foreground/40 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.shareSupply}</span>
-              <span className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{myEntry!.uniqueBuyerCount}</span>
+              <span
+                className="w-11 text-right text-xs font-medium text-foreground/60 tabular-nums"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                {formatGAmountInt(myEntry!.totalG)}
+                <span className="text-[9px] ml-0.5 text-foreground/35">G$</span>
+              </span>
+              <span
+                className="w-10 text-right text-xs font-medium text-foreground/40 tabular-nums hidden sm:block"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                {myEntry!.shareSupply}
+              </span>
+              <span
+                className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                {myEntry!.uniqueBuyerCount}
+              </span>
             </div>
           </Link>
         )}
 
-        {entries.filter((entry) =>
-          !showPinnedMe || entry.creatorAddress.toLowerCase() !== address!.toLowerCase()
-        ).map((entry, idx) => {
-          const rank = rangeStart + idx;
-          return (
-            <Link
-              key={entry.id}
-              href={`/delulu/${entry.id}`}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors group bg-card/30 hover:bg-card/70 border border-border/30"
-            >
-              <RankBadge rank={rank} />
-              {/* Thumbnail */}
-              <div
-                className="w-9 h-9 rounded-sm shrink-0 overflow-hidden"
-                style={{ background: tileGradient(entry.creatorAddress) }}
+        {entries
+          .filter(
+            (entry) =>
+              !showPinnedMe ||
+              entry.creatorAddress.toLowerCase() !== address!.toLowerCase(),
+          )
+          .map((entry, idx) => {
+            const rank = rangeStart + idx;
+            return (
+              <Link
+                key={entry.id}
+                href={`/delulu/${entry.id}`}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors group bg-card/30 hover:bg-card/70 border border-border/30"
               >
-                {entry.bgImageUrl && (
-                  <img src={entry.bgImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                {/* L1: title — owns the spotlight */}
-                <p className="text-sm font-semibold text-white leading-snug truncate" style={{ fontFamily: "var(--font-manrope)" }}>
-                  {formatTitle(entry)}
-                </p>
-                {/* L3: creator handle, very dim */}
-                <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
-                  {formatCampaignName(entry)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0">
-                {/* G$: subordinate to title */}
-                <span className="w-11 text-right text-xs font-medium text-muted-foreground/60 tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{formatGAmountInt(entry.totalG)}<span className="text-[9px] ml-0.5 text-muted-foreground/35">G$</span></span>
-                <span className="w-10 text-right text-xs font-medium text-muted-foreground/40 tabular-nums hidden sm:block" style={{ fontFamily: "var(--font-manrope)" }}>{entry.shareSupply}</span>
-                {/* UB: accent metric */}
-                <span className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>{entry.uniqueBuyerCount}</span>
-              </div>
-            </Link>
-          );
-        })}
+                <RankBadge rank={rank} />
+                {/* Thumbnail */}
+                <div
+                  className="w-9 h-9 rounded-sm shrink-0 overflow-hidden"
+                  style={{ background: tileGradient(entry.creatorAddress) }}
+                >
+                  {entry.bgImageUrl && (
+                    <img
+                      src={entry.bgImageUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {/* L1: title — owns the spotlight */}
+                  <p
+                    className="text-sm font-semibold text-foreground leading-snug truncate"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {formatTitle(entry)}
+                  </p>
+                  {/* L3: creator handle, very dim */}
+                  <p
+                    className="text-[10px] text-foreground/40 truncate mt-0.5"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {formatCampaignName(entry)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {/* G$: subordinate to title */}
+                  <span
+                    className="w-11 text-right text-xs font-medium text-foreground/60 tabular-nums"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {formatGAmountInt(entry.totalG)}
+                    <span className="text-[9px] ml-0.5 text-foreground/35">
+                      G$
+                    </span>
+                  </span>
+                  <span
+                    className="w-10 text-right text-xs font-medium text-foreground/40 tabular-nums hidden sm:block"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {entry.shareSupply}
+                  </span>
+                  {/* UB: accent metric */}
+                  <span
+                    className="w-7 text-right text-xs font-bold text-[#fcff52] tabular-nums"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {entry.uniqueBuyerCount}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
       </div>
 
       <Pagination
@@ -178,8 +279,17 @@ function CampaignLeaderboard() {
 function DreamersLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, isRankLoading, myRankEntry, myPageEntry, error, refetch } =
-    useAllUsersLeaderboard(page, address);
+  const {
+    entries,
+    hasNextPage,
+    isLoading,
+    totalCount,
+    isRankLoading,
+    myRankEntry,
+    myPageEntry,
+    error,
+    refetch,
+  } = useAllUsersLeaderboard(page, address);
 
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
@@ -194,73 +304,114 @@ function DreamersLeaderboard() {
   if (error) return <ErrorState onRetry={refetch} error={error} />;
   if (entries.length === 0) return <EmptyState message="No dreamers yet." />;
 
-  const isOnCurrentPage = !!address && entries.some(
-    (e) => e.address.toLowerCase() === address.toLowerCase()
-  );
+  const isOnCurrentPage =
+    !!address &&
+    entries.some((e) => e.address.toLowerCase() === address.toLowerCase());
   const showPinnedMe = address && myRankEntry && !isOnCurrentPage;
 
   return (
     <div className="space-y-3">
-      {/* Column headers */}
       <div className="flex items-center gap-2.5 px-3 pb-1.5">
         <div className="w-7 shrink-0" />
         <div className="w-8 shrink-0" />
-        <span className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>Dreamer</span>
-        <span className="w-14 text-right text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35" style={{ fontFamily: "var(--font-manrope)" }}>Points</span>
+        <span
+          className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-foreground/35"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Dreamer
+        </span>
+        <span
+          className="w-14 text-right text-[10px] font-semibold uppercase tracking-widest text-foreground/35"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Points
+        </span>
       </div>
 
       <div className="space-y-1">
-        {/* Pinned "you" row */}
         {showPinnedMe && (
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#fcff52]/8 border border-[#fcff52]/20">
             <RankBadge rank={myRankEntry!.rank} />
-            <UserAvatar address={address!} username={myPageEntry?.username ?? null} pfpUrl={pfpMap[address!.toLowerCase()]} />
+            <UserAvatar
+              address={address!}
+              username={myPageEntry?.username ?? null}
+              pfpUrl={pfpMap[address!.toLowerCase()]}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 {/* L1: primary identity */}
-                <p className="text-sm font-semibold text-white truncate" style={{ fontFamily: "var(--font-manrope)" }}>
-                  {myPageEntry?.username ? `@${myPageEntry.username}` : formatAddr(address!)}
+                <p
+                  className="text-sm font-semibold text-foreground truncate"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
+                  {myPageEntry?.username
+                    ? `@${myPageEntry.username}`
+                    : formatAddr(address!)}
                 </p>
-                <span className="shrink-0 text-[9px] font-bold text-[#fcff52] bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">YOU</span>
+                <span className="shrink-0 text-[9px] font-bold text-[#fcff52] bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
+                  YOU
+                </span>
               </div>
               {/* L4: address */}
-              <p className="text-[11px] text-muted-foreground/30 font-mono mt-0.5">{formatAddr(address!)}</p>
+              <p className="text-[11px] text-foreground/30 font-mono mt-0.5">
+                {formatAddr(address!)}
+              </p>
             </div>
             {/* L1: points = yellow, primary metric */}
-            <span className="w-14 text-right text-xs font-bold text-[#fcff52] tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
+            <span
+              className="w-14 text-right text-xs font-bold text-foreground tabular-nums"
+              style={{ fontFamily: "var(--font-manrope)" }}
+            >
               {myRankEntry!.points}
             </span>
           </div>
         )}
 
-        {entries.filter((entry) =>
-          !showPinnedMe || entry.address.toLowerCase() !== address!.toLowerCase()
-        ).map((entry) => {
-          const name = entry.username ? `@${entry.username}` : formatAddr(entry.address);
-          return (
-            <div
-              key={entry.address}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors bg-card/30 hover:bg-card/70 border border-border/30"
-            >
-              <RankBadge rank={entry.rank} />
-              <UserAvatar address={entry.address} username={entry.username} pfpUrl={pfpMap[entry.address.toLowerCase()]} />
-              <div className="flex-1 min-w-0">
-                {/* L1: primary identity */}
-                <p className="text-sm font-semibold text-white leading-snug truncate" style={{ fontFamily: "var(--font-manrope)" }}>
-                  {name}
-                </p>
-                {/* L4: address */}
-                <p className="text-[11px] text-muted-foreground/30 font-mono mt-0.5">{formatAddr(entry.address)}</p>
+        {entries
+          .filter(
+            (entry) =>
+              !showPinnedMe ||
+              entry.address.toLowerCase() !== address!.toLowerCase(),
+          )
+          .map((entry) => {
+            const name = entry.username
+              ? `@${entry.username}`
+              : formatAddr(entry.address);
+            return (
+              <div
+                key={entry.address}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors bg-card/30 hover:bg-card/70 border border-border/30"
+              >
+                <RankBadge rank={entry.rank} />
+                <UserAvatar
+                  address={entry.address}
+                  username={entry.username}
+                  pfpUrl={pfpMap[entry.address.toLowerCase()]}
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-sm font-semibold text-foreground leading-snug truncate"
+                    style={{ fontFamily: "var(--font-manrope)" }}
+                  >
+                    {name}
+                  </p>
+                  <p className="text-[11px] text-foreground/30 font-mono mt-0.5">
+                    {formatAddr(entry.address)}
+                  </p>
+                </div>
+                <span
+                  className="w-14 text-right text-xs font-bold tabular-nums"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
+                  {entry.points > 0 ? (
+                    <span className="text-primary">{entry.points}</span>
+                  ) : (
+                    <span className="text-foreground/25">—</span>
+                  )}
+                </span>
               </div>
-              {/* Points: yellow if > 0, very dim if 0 */}
-              <span className="w-14 text-right text-xs font-bold tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
-                {entry.points > 0
-                  ? <span className="text-[#fcff52]">{entry.points}</span>
-                  : <span className="text-muted-foreground/25">—</span>}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       <Pagination
@@ -282,7 +433,10 @@ function SkeletonRows() {
   return (
     <div className="space-y-1">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/20 bg-card/20 animate-pulse">
+        <div
+          key={i}
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/20 bg-card/20 animate-pulse"
+        >
           <div className="w-7 h-7 rounded-full bg-muted/50 shrink-0" />
           <div className="w-8 h-8 rounded-full bg-muted/40 shrink-0" />
           <div className="flex-1 space-y-1.5 min-w-0">
@@ -296,12 +450,25 @@ function SkeletonRows() {
   );
 }
 
-function ErrorState({ onRetry, error }: { onRetry: () => void; error?: Error | null }) {
+function ErrorState({
+  onRetry,
+  error,
+}: {
+  onRetry: () => void;
+  error?: Error | null;
+}) {
   return (
     <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
-      <p className="font-semibold text-destructive mb-1 text-sm" style={{ fontFamily: "var(--font-manrope)" }}>Failed to load</p>
+      <p
+        className="font-semibold text-destructive mb-1 text-sm"
+        style={{ fontFamily: "var(--font-manrope)" }}
+      >
+        Failed to load
+      </p>
       {error?.message && (
-        <p className="text-xs text-muted-foreground/60 mb-4 font-mono break-all">{error.message}</p>
+        <p className="text-xs text-foreground/60 mb-4 font-mono break-all">
+          {error.message}
+        </p>
       )}
       <button
         type="button"
@@ -318,8 +485,13 @@ function ErrorState({ onRetry, error }: { onRetry: () => void; error?: Error | n
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="text-center py-24">
-      <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-10" />
-      <p className="text-sm text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>{message}</p>
+      <Trophy className="w-12 h-12 mx-auto mb-4 text-foreground opacity-10" />
+      <p
+        className="text-sm text-foreground/50"
+        style={{ fontFamily: "var(--font-manrope)" }}
+      >
+        {message}
+      </p>
     </div>
   );
 }
@@ -352,8 +524,12 @@ function Pagination({
       >
         ← Prev
       </button>
-      <span className="text-xs text-muted-foreground/50 tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
-        {rangeStart}–{rangeEnd}{total != null ? ` of ${total}` : hasNextPage ? "+" : ""}
+      <span
+        className="text-xs text-foreground/50 tabular-nums"
+        style={{ fontFamily: "var(--font-manrope)" }}
+      >
+        {rangeStart}–{rangeEnd}
+        {total != null ? ` of ${total}` : hasNextPage ? "+" : ""}
       </span>
       <button
         type="button"
@@ -379,23 +555,27 @@ export default function LeaderboardPage() {
   const deluluContractAddress = getDeluluContractAddress(chainId);
   const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
-  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } = useGoodDollarTotalSupply();
-  const formattedGAmount = typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
+  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
+    useGoodDollarTotalSupply();
+  const formattedGAmount =
+    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
 
   return (
     <div className="h-screen overflow-y-auto scrollbar-hide bg-background relative">
       {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+      <div
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        aria-hidden
+      >
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-[#fcff52]/3 blur-[120px]" />
       </div>
 
       <div className="relative max-w-lg sm:max-w-2xl lg:max-w-3xl mx-auto px-4 pt-8 pb-24">
-
         {/* Top nav */}
         <div className="flex items-center justify-between mb-12">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-foreground transition-colors"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -409,10 +589,18 @@ export default function LeaderboardPage() {
               className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card/60 px-3 py-1.5 text-xs hover:bg-card transition-colors"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              <img src="/gooddollar-logo.png" alt="G$" className="w-3.5 h-3.5 object-contain" />
-              <span className="font-bold text-foreground">{formattedGAmount}</span>
-              <span className="text-muted-foreground/60 hidden sm:inline">G$ in circulation</span>
-              <ExternalLink className="w-2.5 h-2.5 text-muted-foreground/40" />
+              <img
+                src="/gooddollar-logo.png"
+                alt="G$"
+                className="w-3.5 h-3.5 object-contain"
+              />
+              <span className="font-bold text-foreground">
+                {formattedGAmount}
+              </span>
+              <span className="text-foreground/60 hidden sm:inline">
+                G$ in circulation
+              </span>
+              <ExternalLink className="w-2.5 h-2.5 text-foreground/40" />
             </Link>
           )}
         </div>
@@ -425,8 +613,13 @@ export default function LeaderboardPage() {
           >
             Leaderboard
           </h1>
-          <p className="mt-2 text-xs text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>
-            {activeTab === "campaign" ? "Delulu Monday · resets every 7 days" : "Top dreamers by points earned"}
+          <p
+            className="mt-2 text-xs text-foreground/50"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            {activeTab === "campaign"
+              ? "Delulu Monday · resets every 7 days"
+              : "Top dreamers by points earned"}
           </p>
         </div>
 
@@ -441,18 +634,26 @@ export default function LeaderboardPage() {
                 "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
                 activeTab === tab
                   ? "bg-card text-foreground shadow-sm border border-border/60"
-                  : "text-muted-foreground/50 hover:text-muted-foreground"
+                  : "text-foreground/50 hover:text-foreground",
               )}
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              {tab === "dreamers" ? <Users className="w-3 h-3" /> : <Trophy className="w-3 h-3" />}
+              {tab === "dreamers" ? (
+                <Users className="w-3 h-3" />
+              ) : (
+                <Trophy className="w-3 h-3" />
+              )}
               {tab === "dreamers" ? "Dreamers" : "Delulu Monday"}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        {activeTab === "campaign" ? <CampaignLeaderboard /> : <DreamersLeaderboard />}
+        {activeTab === "campaign" ? (
+          <CampaignLeaderboard />
+        ) : (
+          <DreamersLeaderboard />
+        )}
       </div>
     </div>
   );

@@ -8,8 +8,8 @@ export async function sendReminderEmail(
   data: ReminderEmailData,
   options?: { subject?: string },
 ) {
-  const from = process.env.RESEND_FROM_EMAIL ?? "Delulu <onboarding@resend.dev>";
-  const subject = options?.subject ?? `${data.username}, your goals are waiting 🎯`;
+  const from = process.env.RESEND_FROM_EMAIL ?? "Zinta from Delulu <onboarding@resend.dev>";
+  const subject = options?.subject ?? `Zinta from Delulu: ${data.username}, your milestone is waiting`;
 
   const { error } = await resend.emails.send({
     from,

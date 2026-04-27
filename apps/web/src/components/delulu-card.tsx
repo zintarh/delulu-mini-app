@@ -578,15 +578,19 @@ export function DeluluCard({
                         : "w-1.5 h-1.5 bg-border",
                     )}
                   />
+
+                  
                   {/* Label */}
                   <span
                     className={cn(
-                      "flex-1 text-xs truncate",
-                      isCurrent ? "text-foreground font-medium" : "text-foreground/70",
+                      "flex-1 text-sm truncate",
+                      isCurrent ? "text-foreground font-medium" : "text-foreground/90",
                     )}
                   >
                     {m.isSubmitted && isCurrent ? `In review · ${m.label}` : m.label}
                   </span>
+
+
                   {/* Right tag */}
                   {isCurrent && m.endTimeMs != null ? (
                     <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">

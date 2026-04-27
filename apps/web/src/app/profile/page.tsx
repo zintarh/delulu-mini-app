@@ -17,6 +17,7 @@ import {
   Camera,
   Loader2,
   Send,
+  Sparkles,
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
@@ -289,6 +290,14 @@ export default function ProfilePage() {
                 >
                   <Trophy className="w-3.5 h-3.5 text-muted-foreground" />
                   Leaderboard
+                </Link>
+                <Link
+                  href="/wrap"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#fcff52]/30 bg-[#fcff52]/8 hover:bg-[#fcff52]/15 text-xs font-medium text-[#fcff52] transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Wrapped
                 </Link>
                 <a
                   href={TG_GROUP_URL}
