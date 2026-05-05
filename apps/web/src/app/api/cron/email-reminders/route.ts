@@ -286,7 +286,7 @@ export async function GET(req: NextRequest) {
       await sendReminderEmail(
         recipientEmail,
         {
-          username: (profile as any).username ?? "Visionary",
+          username: (profile as any)?.username ?? "Visionary",
           goalTitle: "A milestone on your ongoing delulu is due within 24 hours",
           pendingHabits: [
             {
