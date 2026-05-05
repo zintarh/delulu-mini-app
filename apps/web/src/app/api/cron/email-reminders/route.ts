@@ -12,7 +12,7 @@ import { sendReminderEmail } from "@/lib/email/send-reminder";
 // Temporary safety mode for production testing.
 // While enabled, cron only sends to this inbox (not real users).
 const TEST_RECIPIENT_EMAIL = "zintarh2024@gmail.com";
-const TEST_MODE_ENABLED = true;
+const TEST_MODE_ENABLED = false;
 const MAX_TEST_EMAILS_PER_RUN = 1;
 
 type SubgraphMilestoneRow = {
@@ -142,9 +142,9 @@ export async function GET(req: NextRequest) {
 
     const nowMs = Date.now();
     const nowSec = Math.floor(nowMs / 1000);
-    // Hobby-safe daily run: remind for milestones ending in next 24 hours.
+    // 30-minute cadence: remind milestones ending within next 1 hour.
     const windowStartSec = nowSec;
-    const windowEndSec = nowSec + 24 * 60 * 60;
+    const windowEndSec = nowSec + 60 * 60;
 
     const milestoneQuery = `
       query MilestonesForEmailReminders($from: BigInt!, $to: BigInt!) {
@@ -235,9 +235,10 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const scheduledForSec = Math.floor(windowStartSec / 3600) * 3600;
+      // Stable reminder anchor (exact 1h-before point), prevents overlap spam.
+      const scheduledForSec = endSec - 60 * 60;
       const eventKey = makeEventKey({
-        kind: "milestone_due_24h_email",
+        kind: "milestone_due_1h_email",
         deluluId: m.delulu.id,
         milestoneId: m.milestoneId,
         address: creatorAddress,
@@ -287,7 +288,7 @@ export async function GET(req: NextRequest) {
         recipientEmail,
         {
           username: (profile as any)?.username ?? "Visionary",
-          goalTitle: "A milestone on your ongoing delulu is due within 24 hours",
+          goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
           pendingHabits: [
             {
               emoji: "",
