@@ -12,7 +12,7 @@ import { sendReminderEmail } from "@/lib/email/send-reminder";
 // Temporary safety mode for production testing.
 // While enabled, cron only sends to this inbox (not real users).
 const TEST_RECIPIENT_EMAIL = "zintarh2024@gmail.com";
-const TEST_MODE_ENABLED = false;
+const TEST_MODE_ENABLED = true;
 const MAX_TEST_EMAILS_PER_RUN = 1;
 
 type SubgraphMilestoneRow = {
@@ -116,6 +116,12 @@ function makeEventKey({
   return [kind, deluluId, milestoneId ?? "-", address.toLowerCase(), String(scheduledForSec)].join(":");
 }
 
+function isValidEmail(email: string | null | undefined): email is string {
+  if (!email) return false;
+  if (email.endsWith("@wallet.local")) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export async function GET(req: NextRequest) {
   try {
     if (!requireCronAuth(req)) {
@@ -187,6 +193,7 @@ export async function GET(req: NextRequest) {
 
     let sent = 0;
     let skipped = 0;
+    let sendErrors = 0;
 
     for (const m of milestones) {
       const creatorAddress = (m.delulu?.creatorAddress || "").toLowerCase();
@@ -283,32 +290,50 @@ export async function GET(req: NextRequest) {
         (await resolveDeluluTitle(m.delulu.contentHash)) ??
         "Your ongoing delulu";
 
+      if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
+        skipped++;
+        continue;
+      }
+
       const milestoneUrl = `${appUrl}/delulu/${m.delulu.id}?milestone=${m.milestoneId}`;
-      await sendReminderEmail(
-        recipientEmail,
-        {
-          username: (profile as any)?.username ?? "Visionary",
-          goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
-          pendingHabits: [
-            {
-              emoji: "",
-              title: deluluTitle,
-              milestoneTitle: milestoneLabel,
-              timeLeftText: formatRemainingTime(nowSec, endSec),
-              ctaUrl: milestoneUrl,
-              ctaLabel: "Submit proof",
-            },
-          ],
-          appUrl,
-          ctaUrl: milestoneUrl,
-          ctaLabel: "Submit proof",
-          manageUrl: `${appUrl}/profile`,
-        },
-        {
-          subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
-        },
-      );
-      sent++;
+      try {
+        await sendReminderEmail(
+          recipientEmail,
+          {
+            username: (profile as any)?.username ?? "Visionary",
+            goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
+            pendingHabits: [
+              {
+                emoji: "",
+                title: deluluTitle,
+                milestoneTitle: milestoneLabel,
+                timeLeftText: formatRemainingTime(nowSec, endSec),
+                ctaUrl: milestoneUrl,
+                ctaLabel: "Submit proof",
+              },
+            ],
+            appUrl,
+            ctaUrl: milestoneUrl,
+            ctaLabel: "Submit proof",
+            manageUrl: `${appUrl}/profile`,
+          },
+          {
+            subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
+          },
+        );
+        sent++;
+      } catch (sendErr: any) {
+        sendErrors++;
+        skipped++;
+        console.error("[email-reminders] send failed:", {
+          address: creatorAddress,
+          recipientEmail,
+          deluluId: m.delulu.id,
+          milestoneId: m.milestoneId,
+          message: String(sendErr?.message || sendErr),
+        });
+        continue;
+      }
 
       // In test mode, send at most one email per run.
       if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
@@ -323,6 +348,7 @@ export async function GET(req: NextRequest) {
       windowEndSec,
       sent,
       skipped,
+      sendErrors,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Cron failed";
