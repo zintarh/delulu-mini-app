@@ -12,7 +12,7 @@ import { sendReminderEmail } from "@/lib/email/send-reminder";
 // Temporary safety mode for production testing.
 // While enabled, cron only sends to this inbox (not real users).
 const TEST_RECIPIENT_EMAIL = "zintarh2024@gmail.com";
-const TEST_MODE_ENABLED = true;
+const TEST_MODE_ENABLED = false;
 const MAX_TEST_EMAILS_PER_RUN = 1;
 
 type SubgraphMilestoneRow = {
