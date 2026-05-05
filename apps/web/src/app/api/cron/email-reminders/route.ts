@@ -9,6 +9,12 @@ import {
 } from "@/lib/milestone-utils";
 import { sendReminderEmail } from "@/lib/email/send-reminder";
 
+// Temporary safety mode for production testing.
+// While enabled, cron only sends to this inbox (not real users).
+const TEST_RECIPIENT_EMAIL = "zintarh2024@gmail.com";
+const TEST_MODE_ENABLED = true;
+const MAX_TEST_EMAILS_PER_RUN = 1;
+
 type SubgraphMilestoneRow = {
   id: string;
   milestoneId: string;
@@ -248,17 +254,25 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      // Look up user email and username from profiles table
+      // Look up user profile for personalization (email may be overridden by test mode)
       const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("email, username")
         .eq("address", creatorAddress)
         .maybeSingle();
 
-      if (profileErr || !profile?.email) {
+      if (profileErr) {
         skipped++;
         continue;
       }
+      if (!TEST_MODE_ENABLED && !profile?.email) {
+        skipped++;
+        continue;
+      }
+
+      const recipientEmail = TEST_MODE_ENABLED
+        ? TEST_RECIPIENT_EMAIL
+        : (profile?.email as string);
 
       const milestoneLabel = getMilestoneLabel(
         { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
@@ -270,7 +284,7 @@ export async function GET(req: NextRequest) {
 
       const milestoneUrl = `${appUrl}/delulu/${m.delulu.id}?milestone=${m.milestoneId}`;
       await sendReminderEmail(
-        (profile as any).email,
+        recipientEmail,
         {
           username: (profile as any).username ?? "Visionary",
           goalTitle: "A milestone on your ongoing delulu is due within 24 hours",
@@ -294,6 +308,11 @@ export async function GET(req: NextRequest) {
         },
       );
       sent++;
+
+      // In test mode, send at most one email per run.
+      if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
+        break;
+      }
     }
 
     return jsonResponse({

@@ -66,7 +66,6 @@ import {
   Target,
   Users,
   XIcon,
-  Circle,
   Search,
   ChevronDown,
   ChevronUp,
