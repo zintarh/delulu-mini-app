@@ -499,7 +499,6 @@ export function DeluluCard({
   const resolutionMs = delusion.resolutionDeadline.getTime();
   const isEnded = resolutionMs > 0 && resolutionMs <= now;
   const timeRemaining = !isEnded ? formatTimeLeftDayHour(now, resolutionMs) : null;
-  // "Hot" when ≥ 5 believers — signals social proof without knowing pool distribution
   const isHot = !isEnded && (delusion.totalSupporters ?? 0) >= 5;
 
   const showSupportButton =
@@ -510,7 +509,6 @@ export function DeluluCard({
       stakingDeadline: delusion.stakingDeadline,
     });
 
-  // ── Urgency level — drives border colour, glow and pill copy ──
   const msLeft = resolutionMs - now;
   const hoursLeft = msLeft / (1000 * 60 * 60);
   const urgency: "ended" | "critical" | "warning" | "normal" = isEnded

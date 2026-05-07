@@ -56,9 +56,7 @@ export const useUserStore = create<UserStore>()(
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
         if (typeof window !== 'undefined') {
-          // Explicitly clear the Zustand persisted store key.
           window.localStorage.removeItem('delulu-user-storage');
-          // Clear any other app-owned keys (underscore-prefixed convention).
           const localKeys = Object.keys(window.localStorage);
           for (const key of localKeys) {
             if (key.startsWith('delulu_')) {
