@@ -31,18 +31,13 @@ dataSources:
       eventHandlers:
         - event: DeluluCreated(indexed uint256,indexed address,indexed address,string,uint256,uint256,uint256,uint256,uint256)
           handler: handleDeluluCreated
-        - event: DeluluResolved(indexed uint256)
-          handler: handleDeluluResolved
         - event: DeluluJoinedChallenge(indexed uint256,indexed uint256)
           handler: handleDeluluJoinedChallenge
         - event: PointsAllocated(indexed uint256,uint256,uint256)
           handler: handlePointsAllocated
-        - event: SupportStaked(indexed uint256,indexed address,uint256,uint256)
-          handler: handleSupportStaked
         - event: SupportClaimed(indexed uint256,indexed address,uint256,uint256)
           handler: handleSupportClaimed
-        - event: ChallengeRewardClaimed(indexed uint256,indexed uint256,indexed
-            address,uint256,uint256)
+        - event: ChallengeRewardClaimed(indexed uint256,indexed uint256,indexed address,uint256,uint256)
           handler: handleChallengeRewardClaimed
         - event: ProfileUpdated(indexed address,string)
           handler: handleProfileUpdated
@@ -54,14 +49,20 @@ dataSources:
           handler: handleMilestoneSubmitted
         - event: MilestoneVerified(indexed uint256,indexed uint256,uint256)
           handler: handleMilestoneVerified
-        - event: MilestoneRejected(indexed uint256,indexed uint256,string)
-          handler: handleMilestoneRejected
         - event: MilestoneDeleted(indexed uint256,indexed uint256)
           handler: handleMilestoneDeleted
         - event: TipExecuted((uint256,uint256,address,uint256,bool,bool,bool))
           handler: handleTipExecuted
+        - event: TipPointsAwarded(indexed uint256,indexed address,indexed address,uint256,uint256)
+          handler: handleTipPointsAwarded
+        - event: EarlyCompletionBonus(indexed uint256,indexed uint256,indexed address,uint256)
+          handler: handleEarlyCompletionBonus
+        - event: StreakBonus(indexed uint256,indexed uint256,indexed address,uint256)
+          handler: handleStreakBonus
         - event: ChallengeCreated(indexed uint256,string,uint256,uint256,uint256)
           handler: handleChallengeCreated
+        - event: GoalFailed(indexed uint256,uint256)
+          handler: handleGoalFailed
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
         - event: Paused(address)

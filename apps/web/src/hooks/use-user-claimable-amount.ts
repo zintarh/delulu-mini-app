@@ -25,6 +25,17 @@ export function useUserClaimableAmount(deluluId: number | null) {
     args: marketId !== null ? [marketId] : undefined,
     query: { enabled: marketId !== null && !!address },
   });
+  const {
+    data: marketIsFailed,
+    isLoading: isLoadingMarketFailed,
+    error: marketFailedError,
+  } = useReadContract({
+    address: contractAddress,
+    abi: DELULU_ABI,
+    functionName: "marketIsFailed",
+    args: marketId !== null ? [marketId] : undefined,
+    query: { enabled: marketId !== null && !!address },
+  });
 
   const { data: feeBps, isLoading: isLoadingFeeBps, error: feeBpsError } = useReadContract({
     address: contractAddress,
@@ -47,15 +58,21 @@ export function useUserClaimableAmount(deluluId: number | null) {
   const marketAny = market as Record<string, unknown> | undefined;
   const creator = (marketAny?.creator as string | undefined)?.toLowerCase();
   const isCreator = !!address && creator === address.toLowerCase();
-  const isResolved = Boolean(marketAny?.isResolved);
+  const resolutionDeadline =
+    (marketAny?.resolutionDeadline as bigint | undefined) ?? 0n;
+  const isDurationOver =
+    resolutionDeadline > 0n &&
+    BigInt(Math.floor(Date.now() / 1000)) >= resolutionDeadline;
   const rewardClaimed = Boolean(marketAny?.rewardClaimed);
+  const isFailed = Boolean(marketIsFailed);
   const totalSupportCollected =
     (marketAny?.totalSupportCollected as bigint | undefined) ?? 0n;
 
   let claimableAmount = 0;
   if (
     isCreator &&
-    isResolved &&
+    isDurationOver &&
+    !isFailed &&
     !rewardClaimed &&
     typeof stakedAmount === "bigint" &&
     typeof feeBps === "bigint" &&
@@ -72,11 +89,13 @@ export function useUserClaimableAmount(deluluId: number | null) {
     isLoading:
       isLoadingMarket ||
       isLoadingStake ||
+      isLoadingMarketFailed ||
       isLoadingFeeBps ||
       isLoadingBpsDenominator,
     error:
       marketError ||
       stakeError ||
+      marketFailedError ||
       feeBpsError ||
       bpsDenominatorError,
   };

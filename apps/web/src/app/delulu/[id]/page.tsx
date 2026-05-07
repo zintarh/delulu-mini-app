@@ -765,10 +765,7 @@ export default function DeluluPage() {
     const activeMilestone = milestones?.find(
       (m) => m.milestoneId === milestoneId,
     );
-    const milestoneDescription =
-      activeMilestone?.milestoneURI ??
-      activeMilestone?.descriptionHash ??
-      "milestone";
+    const milestoneDescription = activeMilestone?.milestoneURI ?? "";
 
     setProofAiError(null);
     setIsVerifyingAi(true);
@@ -776,7 +773,11 @@ export default function DeluluPage() {
       const res = await fetch("/api/ai/verify-milestone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: link, milestoneDescription }),
+        body: JSON.stringify({
+          imageUrl: link,
+          deluluGoal: deluluTitle,
+          milestoneDescription,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.verified) {
@@ -1286,7 +1287,7 @@ export default function DeluluPage() {
                   <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-delulu-yellow-reserved">
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-delulu-charcoal dark:text-delulu-yellow-reserved">
                           Dream Support
                         </p>
                         <h3 className="mt-1 text-lg md:text-xl font-black text-foreground">
@@ -1598,7 +1599,7 @@ export default function DeluluPage() {
                         aria-valuemax={milestoneView.sorted.length}
                       >
                         <div
-                          className="h-full rounded-full bg-delulu-yellow-reserved transition-all duration-300 min-w-0"
+                          className="h-full rounded-full bg-delulu-yellow-reserved transition-all duration-300 min-w-0 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.15)]"
                           style={{
                             width: `${(milestoneView.passedCount / milestoneView.sorted.length) * 100}%`,
                           }}
@@ -1741,10 +1742,12 @@ export default function DeluluPage() {
                           const fullTitle = getMilestoneLabel(m, 999);
                           const shortTitle = getMilestoneLabel(m, 80);
 
+                          // A verified milestone is always treated as past regardless of its time window
                           const isPast =
+                            m.isVerified ||
                             milestoneView.currentIndex === -1 ||
                             i < milestoneView.currentIndex;
-                          const isOngoing = i === milestoneView.currentIndex;
+                          const isOngoing = i === milestoneView.currentIndex && !m.isVerified;
                           const isUpcoming = !isPast && !isOngoing;
                           let statusLabel = "Upcoming";
                           if (m.isVerified) {

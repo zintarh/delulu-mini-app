@@ -6,18 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
-import { LogoutSheet } from "@/components/logout-sheet";
 import { formatAddress } from "@/lib/utils";
 import {
-  LogOut,
+  Settings as SettingsIcon,
   Copy,
   Check,
   Plus,
-  Trophy,
   Camera,
   Loader2,
-  Send,
-  Sparkles,
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
@@ -31,14 +27,12 @@ import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
-import { TG_GROUP_URL } from "@/components/get-gas-modal";
-import { ContinueJourneyCard } from "@/components/continue-journey-card";
 
 type TabType = "milestones" | "active" | "ended";
 
 
 export default function ProfilePage() {
-  const { isConnected, address, logout } = useAuth();
+  const { isConnected, address } = useAuth();
   const { user, updateProfile } = useUserStore();
   const router = useRouter();
 
@@ -49,7 +43,6 @@ export default function ProfilePage() {
   };
 
   const [activeTab, setActiveTab] = useState<TabType>("milestones");
-  const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
@@ -162,18 +155,33 @@ export default function ProfilePage() {
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background" ref={scrollContainerRef}>
           {address && (
             <>
-              {/* ── Profile header ─────────────────────────────── */}
-              <div className="px-4 pt-6 pb-4 border-b border-border">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  {/* Avatar */}
+              {/* ── Hero ─────────────────────────────────────── */}
+              <section className="relative px-4 pt-6 pb-5">
+                {/* Subtle ambient glow behind hero */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(120%_60%_at_50%_0%,rgba(252,255,82,0.06),transparent_70%)]"
+                />
+
+                {/* Settings — subtle top-right */}
+                <Link
+                  href="/settings"
+                  aria-label="Settings"
+                  className="absolute top-4 right-4 inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                </Link>
+
+                {/* Avatar + identity */}
+                <div className="relative flex items-start gap-4">
                   <button
                     type="button"
                     onClick={openPfpPicker}
                     disabled={isPfpUploading}
-                    className="relative w-16 h-16 rounded-full flex-shrink-0 bg-muted ring-2 ring-border overflow-hidden group"
+                    className="relative w-20 h-20 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
                   >
                     {pfpFromSupabase === undefined && !user?.pfpUrl ? (
-                      /* Loading skeleton */
                       <div className="w-full h-full bg-muted animate-pulse rounded-full" />
                     ) : avatarUrl ? (
                       <img
@@ -183,12 +191,11 @@ export default function ProfilePage() {
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
                     ) : (
-                      /* No pfp — initials */
-                      <div className="w-full h-full flex items-center justify-center text-lg font-bold bg-muted text-muted-foreground">
+                      <div className="w-full h-full flex items-center justify-center text-xl font-bold bg-muted text-muted-foreground">
                         {(displayUsername || address || "?").slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isPfpUploading
                         ? <Loader2 className="w-5 h-5 text-white animate-spin" />
                         : <Camera className="w-5 h-5 text-white" />
@@ -203,118 +210,84 @@ export default function ProfilePage() {
                     onChange={handlePfpFileChange}
                   />
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1 pt-1 pr-12">
+                    <h1
+                      className="text-2xl font-bold leading-tight truncate capitalize"
+                      style={{ fontFamily: '"Clash Display", sans-serif' }}
+                    >
+                      {displayUsername || formatAddress(address)}
+                    </h1>
+                    {displayUsername && (
+                      <p
+                        className="mt-0.5 text-sm text-muted-foreground truncate"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        @{displayUsername}
+                      </p>
+                    )}
                     <button
-                      onClick={() => router.push("/board")}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border bg-card text-foreground text-sm font-semibold hover:bg-muted transition-colors"
+                      onClick={handleCopyAddress}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                       style={{ fontFamily: "var(--font-manrope)" }}
                     >
-                      <Plus className="w-4 h-4" />
-                      Manifest
-                    </button>
-                    <button
-                      onClick={() => setLogoutSheetOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border hover:bg-muted text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                      style={{ fontFamily: "var(--font-manrope)" }}
-                    >
-                      <LogOut className="h-3.5 w-3.5" />
+                      <span className="font-mono">{formatAddress(address)}</span>
+                      {copied ? (
+                        <Check className="w-3 h-3 text-[#35d07f]" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
 
-                {/* Name + handle */}
-                <h1
-                  className="text-xl font-bold text-foreground capitalize leading-tight"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                >
-                  {displayUsername || formatAddress(address)}
-                </h1>
-                {displayUsername && (
-                  <p
-                    className="text-sm text-muted-foreground"
-                    style={{ fontFamily: "var(--font-manrope)" }}
-                  >
-                    @{displayUsername}
-                  </p>
-                )}
-
-                {/* Wallet address */}
-                <button
-                  onClick={handleCopyAddress}
-                  className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <span className="font-mono">{formatAddress(address)}</span>
-                  {copied ? (
-                    <Check className="w-3 h-3 text-[#35d07f]" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-
-                {/* Balance chips */}
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  {!isCeloLoading && celoBalance && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground">
-                      <img src="/celo.png" alt="CELO" className="h-3.5 w-3.5 rounded-full" />
-                      {parseFloat(celoBalance.formatted).toFixed(3)}{" "}
-                      <span className="text-muted-foreground">CELO</span>
-                    </span>
-                  )}
-                  {!isBalanceLoading && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground">
-                      <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="sm" showText={false} />
-                      {parseFloat(gDollarBalance).toFixed(2)}{" "}
-                      <span className="text-muted-foreground">G$</span>
-                    </span>
-                  )}
+                {/* Balance cards */}
+                <div className="relative mt-5 grid grid-cols-2 gap-2">
+                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
+                    <img src="/celo.png" alt="" className="w-7 h-7 rounded-full shrink-0" />
+                    <div className="min-w-0">
+                      <p
+                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        Celo
+                      </p>
+                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
+                        {!isCeloLoading && celoBalance
+                          ? parseFloat(celoBalance.formatted).toFixed(3)
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
+                    <TokenBadge
+                      tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
+                      size="sm"
+                      showText={false}
+                    />
+                    <div className="min-w-0">
+                      <p
+                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        G$
+                      </p>
+                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
+                        {!isBalanceLoading ? parseFloat(gDollarBalance).toFixed(2) : "—"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-              </div>
-
-              {/* ── Quick links ──────────────────────────────────── */}
-              <div className="px-4 py-3 border-b border-border flex items-center gap-2 flex-wrap">
-                <Link
-                  href="/daily-claim"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                {/* Primary CTA */}
+                <button
+                  onClick={() => router.push("/board")}
+                  className="relative mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-delulu-yellow text-delulu-charcoal text-sm font-bold shadow-sm hover:brightness-105 active:scale-[0.99] transition-all"
                   style={{ fontFamily: "var(--font-manrope)" }}
                 >
-                  <img src="/gooddollar-logo.png" alt="G$" className="w-3.5 h-3.5 object-contain" />
-                  Claim G$ UBI
-                </Link>
-                <Link
-                  href="/leaderboard"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <Trophy className="w-3.5 h-3.5 text-muted-foreground" />
-                  Leaderboard
-                </Link>
-                <Link
-                  href="/wrap"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#fcff52]/30 bg-[#fcff52]/8 hover:bg-[#fcff52]/15 text-xs font-medium text-[#fcff52] transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Wrapped
-                </Link>
-                <a
-                  href={TG_GROUP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-muted/30 hover:bg-muted text-xs font-medium text-foreground transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <Send className="w-3.5 h-3.5 text-[#35d07f]" />
-                  Join TG
-                </a>
-              </div>
-
-              {/* ── Journey card ─────────────────────────────────── */}
-              <div className="px-4 py-3 border-b border-border">
-                <ContinueJourneyCard />
-              </div>
+                  <Plus className="w-4 h-4" strokeWidth={3} />
+                  Manifest a new dream
+                </button>
+              </section>
 
               {/* ── Tabs ─────────────────────────────────────────── */}
               <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
@@ -458,17 +431,6 @@ export default function ProfilePage() {
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
-      />
-
-      <LogoutSheet
-        open={logoutSheetOpen}
-        onOpenChange={setLogoutSheetOpen}
-        onLogout={async () => {
-          await logout();
-          setLogoutSheetOpen(false);
-          useUserStore.getState().logout();
-          router.push("/sign-in");
-        }}
       />
 
       {uploadToast && (

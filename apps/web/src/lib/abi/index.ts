@@ -2711,6 +2711,11 @@ export const DELULU_ABI = [
 				"internalType": "string",
 				"name": "proofLink",
 				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "aiApproved",
+				"type": "bool"
 			}
 		],
 		"name": "submitMilestone",

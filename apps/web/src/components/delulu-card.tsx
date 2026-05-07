@@ -18,6 +18,7 @@ import { getDeluluContractAddress } from "@/lib/constant";
 import { parseUnits } from "viem";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useTokenApproval } from "@/hooks/use-token-approval";
 import { isDeluluCreator } from "@/lib/delulu-utils";
 import {
   getMilestoneEndTimeMs,
@@ -159,7 +160,20 @@ export function DeluluCard({
   } = useUnifiedWriteContract();
   const { isLoading: isConfirmingQuickTip, isSuccess: isQuickTipSuccess } =
     useWaitForTransactionReceipt({ hash: quickTipHash });
-  const isQuickTipping = isQuickTipPending || isConfirmingQuickTip;
+  const {
+    approve: approveToken,
+    needsApproval,
+    isPending: isApproving,
+    isConfirming: isApprovalConfirming,
+    isSuccess: isApprovalSuccess,
+    refetchAllowance,
+  } = useTokenApproval(delusion.tokenAddress);
+
+  const isDoingApproval = isApproving || isApprovalConfirming;
+  const isQuickTipping = isQuickTipPending || isConfirmingQuickTip || isDoingApproval;
+
+  const [autoTipAfterApproval, setAutoTipAfterApproval] = useState(false);
+  const pendingTipAmountRef = useRef<number>(100);
 
   const [showTipSuccess, setShowTipSuccess] = useState(false);
   useEffect(() => {
@@ -170,6 +184,30 @@ export function DeluluCard({
     const t = setTimeout(() => setShowTipSuccess(false), 2500);
     return () => clearTimeout(t);
   }, [isQuickTipSuccess, apolloClient, delusion.onChainId, delusion.id]);
+
+  // Refetch allowance once the approval tx is confirmed on-chain
+  useEffect(() => {
+    if (isApprovalSuccess) refetchAllowance();
+  }, [isApprovalSuccess, refetchAllowance]);
+
+  // Auto-fire the tip once allowance is sufficient after approval
+  useEffect(() => {
+    if (!autoTipAfterApproval || isDoingApproval) return;
+    const amount = pendingTipAmountRef.current;
+    if (needsApproval(amount)) return;
+    setAutoTipAfterApproval(false);
+    try {
+      const amountWei = parseUnits(String(amount), 18);
+      writeQuickTip({
+        address: getDeluluContractAddress(chainId),
+        abi: DELULU_ABI,
+        functionName: "tipMilestone",
+        args: [BigInt(delusion.onChainId ?? delusion.id), 0n, amountWei],
+      });
+    } catch {
+      // silent — tip flow stays quiet on errors
+    }
+  }, [autoTipAfterApproval, isDoingApproval, needsApproval, writeQuickTip, chainId, delusion.onChainId, delusion.id]);
 
   const TIP_STEP_G = 50;
   const MIN_TIP_G = 50;
@@ -193,6 +231,12 @@ export function DeluluCard({
       router.push(`/delulu/${delusion.id}?milestones=1`);
       return;
     }
+    pendingTipAmountRef.current = tipAmount;
+    if (needsApproval(tipAmount)) {
+      setAutoTipAfterApproval(true);
+      approveToken(tipAmount).catch(() => setAutoTipAfterApproval(false));
+      return;
+    }
     try {
       const amountWei = parseUnits(String(tipAmount), 18);
       writeQuickTip({
@@ -202,7 +246,7 @@ export function DeluluCard({
         args: [BigInt(delusion.onChainId ?? delusion.id), 0n, amountWei],
       });
     } catch {
-      // Ignore — quick action stays silent on bad input.
+      // silent — quick action stays quiet on bad input
     }
   };
 
@@ -264,6 +308,7 @@ export function DeluluCard({
         pastLabel?: string;
         endTimeMs?: number;
         isSubmitted?: boolean;
+        isVerified?: boolean;
       };
       const empty = {
         previewMilestones: [] as PreviewItem[],
@@ -334,6 +379,7 @@ export function DeluluCard({
             pastLabel,
             endTimeMs: undefined,
             isSubmitted: m.isSubmitted,
+            isVerified: m.isVerified,
           };
         });
         return {
@@ -359,8 +405,9 @@ export function DeluluCard({
       const list = unique.map((idx) => {
         const m = sorted[idx];
         const endMs = endTimesMs[idx];
+        // A verified milestone is always "past/Completed" even if its time window hasn't closed yet
         let status: MilestonePreviewStatus =
-          idx < currentIndex
+          idx < currentIndex || (idx === currentIndex && m.isVerified)
             ? "past"
             : idx === currentIndex
               ? "current"
@@ -383,6 +430,7 @@ export function DeluluCard({
           pastLabel,
           endTimeMs: status === "current" ? endMs : undefined,
           isSubmitted: m.isSubmitted,
+          isVerified: m.isVerified,
         };
       });
       return {
@@ -521,6 +569,27 @@ export function DeluluCard({
           </div>
         )}
 
+        {/* Time badge — always visible when tip is active; mobile-only otherwise */}
+        <div className={cn(
+          "absolute top-2.5 right-2.5",
+          !(showSupportButton && isGoodDollar) && "sm:hidden",
+        )}>
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm border",
+              urgency === "critical"
+                ? "bg-rose-500/25 text-rose-300 border-rose-400/30"
+                : urgency === "warning"
+                ? "bg-amber-500/25 text-amber-300 border-amber-400/30"
+                : urgency === "ended"
+                ? "bg-white/10 text-white/50 border-white/15"
+                : "bg-white/15 text-white/80 border-white/20",
+            )}
+          >
+            {timeRemaining ?? "Done"}
+          </span>
+        </div>
+
         
 
         {/* Headline — the first thing eyes land on */}
@@ -634,7 +703,7 @@ export function DeluluCard({
                         : "text-foreground/80",
                     )}
                   >
-                    {m.isSubmitted && isCurrent ? `In review · ${m.label}` : m.label}
+                    {m.isSubmitted && !m.isVerified && isCurrent ? `In review · ${m.label}` : m.label}
                   </span>
 
 
@@ -701,8 +770,11 @@ export function DeluluCard({
           </span>
         </div>
 
-        {/* Time left — secondary stat, lighter weight */}
-        <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
+        {/* Time left — in stats bar only when tip is inactive; always in hero badge when tip is active */}
+        <div className={cn(
+          "flex-1 flex-col items-center justify-center py-3 gap-0.5",
+          (showSupportButton && isGoodDollar) ? "hidden" : "hidden sm:flex",
+        )}>
           <span
             className={cn(
               "text-sm font-semibold tabular-nums leading-none",
@@ -766,7 +838,7 @@ export function DeluluCard({
                         : "bg-secondary text-foreground/80 ring-1 ring-border",
                     )}
                   >
-                    Tip {tipAmount} G$
+                    {isDoingApproval ? "Approving…" : `Tip ${tipAmount} G$`}
                   </span>
                 </button>
 

@@ -102,9 +102,7 @@ export default async function Image({
       ? `${delulu.creator.id.slice(0, 6)}…${delulu.creator.id.slice(-4)}`
       : null;
 
-  const totalG = fmtG(
-    weiToG(delulu?.creatorStake) + weiToG(delulu?.totalSupportCollected),
-  );
+  const totalG = fmtG(weiToG(delulu?.totalSupportCollected));
   const shares = Number(delulu?.shareSupply ?? 0);
   const ub = Number(delulu?.uniqueBuyerCount ?? 0);
 

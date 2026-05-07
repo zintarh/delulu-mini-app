@@ -76,7 +76,6 @@ interface ProfileDeluluCardProps {
   onClick?: () => void;
   href?: string;
   onStake?: () => void;
-  onResolve?: () => void;
   className?: string;
   isLast?: boolean;
   size?: "sm" | "md" | "lg" | "masonry" | "full";
@@ -87,7 +86,6 @@ export function ProfileDeluluCard({
   onClick,
   href,
   onStake,
-  onResolve,
   className = "",
   isLast = false,
   size = "sm",
@@ -106,11 +104,10 @@ export function ProfileDeluluCard({
   const isCreator = isDeluluCreator(address, delusion);
   const canCancel = isCreator && !delusion.isResolved && !delusion.isCancelled;
 
-  const totalStake = delusion.totalBelieverStake + delusion.totalDoubterStake;
-  const creatorSeed = delusion.creatorStake ?? 0;
-  const userBuys = delusion.totalSupportCollected ?? 0;
-  const combinedMarketTotal = creatorSeed + userBuys;
-  const tvlValue = combinedMarketTotal > 0 ? combinedMarketTotal : totalStake;
+  const legacyStakeTotal = delusion.totalBelieverStake + delusion.totalDoubterStake;
+  const totalReceived = delusion.totalSupportCollected ?? 0;
+  const fallbackReceived = (delusion.creatorStake ?? 0) + legacyStakeTotal;
+  const tvlValue = totalReceived > 0 ? totalReceived : fallbackReceived;
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollar =
     delusion.tokenAddress?.toLowerCase() ===

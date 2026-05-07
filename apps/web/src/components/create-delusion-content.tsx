@@ -63,7 +63,6 @@ import {
   getErrorMessage,
   checkAllowanceWithRetry,
   getProgressStep,
-  getOrigin,
 } from "@/lib/create-delulu-helpers";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -709,8 +708,7 @@ export function CreateDelusionContent({ onClose }: CreateDelusionContentProps) {
         }
         finalImageUrl = data.url;
       } else if (selectedTemplate?.image) {
-        const origin = getOrigin();
-        finalImageUrl = `${origin}${selectedTemplate.image}`;
+        finalImageUrl = selectedTemplate.image;
       } else {
         setIsUploadingImage(false);
         throw new Error("Please select a template or upload an image");

@@ -175,7 +175,7 @@ function CampaignLeaderboard() {
                 >
                   {formatTitle(myEntry!)}
                 </p>
-                <span className="shrink-0 text-[9px] font-bold text-primary bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
+                <span className="shrink-0 text-[9px] font-bold text-delulu-charcoal dark:text-[#fcff52] bg-delulu-charcoal/10 dark:bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
                   YOU
                 </span>
               </div>
@@ -374,7 +374,7 @@ function DreamersLeaderboard() {
                     ? `@${myPageEntry.username}`
                     : formatAddr(address!)}
                 </p>
-                <span className="shrink-0 text-[9px] font-bold text-[#fcff52] bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
+                <span className="shrink-0 text-[9px] font-bold text-delulu-charcoal dark:text-[#fcff52] bg-delulu-charcoal/10 dark:bg-[#fcff52]/15 px-1.5 py-0.5 rounded-full tracking-wide">
                   YOU
                 </span>
               </div>

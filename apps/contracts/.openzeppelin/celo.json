@@ -1,0 +1,1511 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x7692199630F3865160fB1Fa496961251fA15aFEa",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "15b608c728c402fc2c5a0ce089bf8e34a1504fae2b5a7dfe4a8fdbd66e897522": {
+      "address": "0xdc7E139d842410A35c50E82A013eC4bD35D07F86",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "currency",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC20)2208",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:77"
+          },
+          {
+            "label": "vault",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:78"
+          },
+          {
+            "label": "platformFeeAddress",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:79"
+          },
+          {
+            "label": "nextDeluluId",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:80"
+          },
+          {
+            "label": "nextChallengeId",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:81"
+          },
+          {
+            "label": "totalReservedRewards",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:82"
+          },
+          {
+            "label": "delulus",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_uint256,t_struct(Market)3325_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:128"
+          },
+          {
+            "label": "deluluMilestones",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Milestone)3283_storage))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:129"
+          },
+          {
+            "label": "challenges",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_uint256,t_struct(Challenge)3298_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:130"
+          },
+          {
+            "label": "userDeluluPoints",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:131"
+          },
+          {
+            "label": "addressToUsername",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_address,t_string_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:132"
+          },
+          {
+            "label": "usernameToAddress",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_string_memory_ptr,t_address)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:133"
+          },
+          {
+            "label": "isSupportedToken",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:134"
+          },
+          {
+            "label": "firstScouts",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint256,t_array(t_address)3_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:139"
+          },
+          {
+            "label": "scoutCount",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_uint256,t_uint8)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:140"
+          },
+          {
+            "label": "scoutEarnings",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:141"
+          },
+          {
+            "label": "failedStakePool",
+            "offset": 0,
+            "slot": "16",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:144"
+          },
+          {
+            "label": "totalSupportForProRata",
+            "offset": 0,
+            "slot": "17",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:145"
+          },
+          {
+            "label": "supporterAmount",
+            "offset": 0,
+            "slot": "18",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:146"
+          },
+          {
+            "label": "refundClaimed",
+            "offset": 0,
+            "slot": "19",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:147"
+          },
+          {
+            "label": "milestoneTotalSupport",
+            "offset": 0,
+            "slot": "20",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:150"
+          },
+          {
+            "label": "finishedGoalsCount",
+            "offset": 0,
+            "slot": "21",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:153"
+          },
+          {
+            "label": "verifier",
+            "offset": 0,
+            "slot": "22",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:157"
+          },
+          {
+            "label": "milestoneStartTime",
+            "offset": 0,
+            "slot": "23",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:157"
+          },
+          {
+            "label": "milestoneTippingStart",
+            "offset": 0,
+            "slot": "24",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:158"
+          },
+          {
+            "label": "milestoneTippingEnd",
+            "offset": 0,
+            "slot": "25",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:159"
+          },
+          {
+            "label": "milestoneIsMissed",
+            "offset": 0,
+            "slot": "26",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:160"
+          },
+          {
+            "label": "marketIsStaked",
+            "offset": 0,
+            "slot": "27",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:162"
+          },
+          {
+            "label": "marketStakedAmount",
+            "offset": 0,
+            "slot": "28",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:163"
+          },
+          {
+            "label": "marketFinisherWindowEnd",
+            "offset": 0,
+            "slot": "29",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:164"
+          },
+          {
+            "label": "marketIsFailed",
+            "offset": 0,
+            "slot": "30",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:165"
+          },
+          {
+            "label": "milestoneURI",
+            "offset": 0,
+            "slot": "31",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:167"
+          },
+          {
+            "label": "milestoneIsDeleted",
+            "offset": 0,
+            "slot": "32",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:169"
+          },
+          {
+            "label": "shareSupply",
+            "offset": 0,
+            "slot": "33",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:172"
+          },
+          {
+            "label": "shareBalance",
+            "offset": 0,
+            "slot": "34",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:173"
+          },
+          {
+            "label": "pendingCreatorShareFeesByToken",
+            "offset": 0,
+            "slot": "35",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:174"
+          },
+          {
+            "label": "shareReserveByDelulu",
+            "offset": 0,
+            "slot": "36",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:178"
+          },
+          {
+            "label": "shareReserveByToken",
+            "offset": 0,
+            "slot": "37",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:179"
+          },
+          {
+            "label": "sharesEnabled",
+            "offset": 0,
+            "slot": "38",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:180"
+          },
+          {
+            "label": "uniqueBuyerCount",
+            "offset": 0,
+            "slot": "39",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:183"
+          },
+          {
+            "label": "hasEverBought",
+            "offset": 0,
+            "slot": "40",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:184"
+          },
+          {
+            "label": "challengeRewardClaimed",
+            "offset": 0,
+            "slot": "41",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:187"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "42",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:1369"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)3_storage": {
+            "label": "address[3]",
+            "numberOfBytes": "96"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)2208": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_string_storage)": {
+            "label": "mapping(address => string)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_string_memory_ptr,t_address)": {
+            "label": "mapping(string => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_address)3_storage)": {
+            "label": "mapping(uint256 => address[3])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint256 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))": {
+            "label": "mapping(uint256 => mapping(uint256 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => string))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Milestone)3283_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => struct Delulu.Milestone))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))": {
+            "label": "mapping(uint256 => mapping(uint256 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Challenge)3298_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Challenge)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Market)3325_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Milestone)3283_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Milestone)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint8)": {
+            "label": "mapping(uint256 => uint8)",
+            "numberOfBytes": "32"
+          },
+          "t_string_memory_ptr": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Challenge)3298_storage": {
+            "label": "struct Delulu.Challenge",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "contentHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "poolAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "duration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalPoints",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "active",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "6"
+              }
+            ],
+            "numberOfBytes": "224"
+          },
+          "t_struct(Market)3325_storage": {
+            "label": "struct Delulu.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "creator",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "token",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "contentHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "stakingDeadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "resolutionDeadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "totalSupportCollected",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "totalSupporters",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "milestoneCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "challengeId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "points",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "isResolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "rewardClaimed",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "11"
+              }
+            ],
+            "numberOfBytes": "384"
+          },
+          "t_struct(Milestone)3283_storage": {
+            "label": "struct Delulu.Milestone",
+            "members": [
+              {
+                "label": "descriptionHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "deadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "proofLink",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "isSubmitted",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isVerified",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "ac86e209aa7ab954e60dee033ce2d6ef2ce69820a61efdb636f7e49aa99c6907": {
+      "address": "0x78D6e48781c00B01DF4E5958f2C37941a69aB1D8",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "currency",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC20)1482",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:78"
+          },
+          {
+            "label": "vault",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:79"
+          },
+          {
+            "label": "platformFeeAddress",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:80"
+          },
+          {
+            "label": "nextDeluluId",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:81"
+          },
+          {
+            "label": "nextChallengeId",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:82"
+          },
+          {
+            "label": "totalReservedRewards",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:83"
+          },
+          {
+            "label": "delulus",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_uint256,t_struct(Market)2543_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:129"
+          },
+          {
+            "label": "deluluMilestones",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Milestone)2501_storage))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:130"
+          },
+          {
+            "label": "challenges",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_uint256,t_struct(Challenge)2516_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:131"
+          },
+          {
+            "label": "userDeluluPoints",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:132"
+          },
+          {
+            "label": "addressToUsername",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_address,t_string_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:133"
+          },
+          {
+            "label": "usernameToAddress",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_string_memory_ptr,t_address)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:134"
+          },
+          {
+            "label": "isSupportedToken",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:135"
+          },
+          {
+            "label": "firstScouts",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint256,t_array(t_address)3_storage)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:140"
+          },
+          {
+            "label": "scoutCount",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_uint256,t_uint8)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:141"
+          },
+          {
+            "label": "scoutEarnings",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:142"
+          },
+          {
+            "label": "failedStakePool",
+            "offset": 0,
+            "slot": "16",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:145"
+          },
+          {
+            "label": "totalSupportForProRata",
+            "offset": 0,
+            "slot": "17",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:146"
+          },
+          {
+            "label": "supporterAmount",
+            "offset": 0,
+            "slot": "18",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:147"
+          },
+          {
+            "label": "refundClaimed",
+            "offset": 0,
+            "slot": "19",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:148"
+          },
+          {
+            "label": "milestoneTotalSupport",
+            "offset": 0,
+            "slot": "20",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:151"
+          },
+          {
+            "label": "finishedGoalsCount",
+            "offset": 0,
+            "slot": "21",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:154"
+          },
+          {
+            "label": "verifier",
+            "offset": 0,
+            "slot": "22",
+            "type": "t_address",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:158"
+          },
+          {
+            "label": "milestoneStartTime",
+            "offset": 0,
+            "slot": "23",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:158"
+          },
+          {
+            "label": "milestoneTippingStart",
+            "offset": 0,
+            "slot": "24",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:159"
+          },
+          {
+            "label": "milestoneTippingEnd",
+            "offset": 0,
+            "slot": "25",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:160"
+          },
+          {
+            "label": "milestoneIsMissed",
+            "offset": 0,
+            "slot": "26",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:161"
+          },
+          {
+            "label": "marketIsStaked",
+            "offset": 0,
+            "slot": "27",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:163"
+          },
+          {
+            "label": "marketStakedAmount",
+            "offset": 0,
+            "slot": "28",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:164"
+          },
+          {
+            "label": "marketFinisherWindowEnd",
+            "offset": 0,
+            "slot": "29",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:165"
+          },
+          {
+            "label": "marketIsFailed",
+            "offset": 0,
+            "slot": "30",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:166"
+          },
+          {
+            "label": "milestoneURI",
+            "offset": 0,
+            "slot": "31",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:168"
+          },
+          {
+            "label": "milestoneIsDeleted",
+            "offset": 0,
+            "slot": "32",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:170"
+          },
+          {
+            "label": "shareSupply",
+            "offset": 0,
+            "slot": "33",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:173"
+          },
+          {
+            "label": "shareBalance",
+            "offset": 0,
+            "slot": "34",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:174"
+          },
+          {
+            "label": "pendingCreatorShareFeesByToken",
+            "offset": 0,
+            "slot": "35",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:175"
+          },
+          {
+            "label": "shareReserveByDelulu",
+            "offset": 0,
+            "slot": "36",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:179"
+          },
+          {
+            "label": "shareReserveByToken",
+            "offset": 0,
+            "slot": "37",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:180"
+          },
+          {
+            "label": "sharesEnabled",
+            "offset": 0,
+            "slot": "38",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:181"
+          },
+          {
+            "label": "uniqueBuyerCount",
+            "offset": 0,
+            "slot": "39",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:184"
+          },
+          {
+            "label": "hasEverBought",
+            "offset": 0,
+            "slot": "40",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:185"
+          },
+          {
+            "label": "challengeRewardClaimed",
+            "offset": 0,
+            "slot": "41",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:188"
+          },
+          {
+            "label": "treasuryPendingByToken",
+            "offset": 0,
+            "slot": "42",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:189"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "43",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "Delulu",
+            "src": "contracts/Delulu-v3.sol:1434"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)3_storage": {
+            "label": "address[3]",
+            "numberOfBytes": "96"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)1482": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_string_storage)": {
+            "label": "mapping(address => string)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_string_memory_ptr,t_address)": {
+            "label": "mapping(string => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_address)3_storage)": {
+            "label": "mapping(uint256 => address[3])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint256 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_bool))": {
+            "label": "mapping(uint256 => mapping(uint256 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => string))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Milestone)2501_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => struct Delulu.Milestone))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))": {
+            "label": "mapping(uint256 => mapping(uint256 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Challenge)2516_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Challenge)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Market)2543_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Milestone)2501_storage)": {
+            "label": "mapping(uint256 => struct Delulu.Milestone)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint8)": {
+            "label": "mapping(uint256 => uint8)",
+            "numberOfBytes": "32"
+          },
+          "t_string_memory_ptr": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Challenge)2516_storage": {
+            "label": "struct Delulu.Challenge",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "contentHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "poolAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "duration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalPoints",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "active",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "6"
+              }
+            ],
+            "numberOfBytes": "224"
+          },
+          "t_struct(Market)2543_storage": {
+            "label": "struct Delulu.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "creator",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "token",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "contentHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "stakingDeadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "resolutionDeadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "totalSupportCollected",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "totalSupporters",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "milestoneCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "challengeId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "points",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "isResolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "rewardClaimed",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "11"
+              }
+            ],
+            "numberOfBytes": "384"
+          },
+          "t_struct(Milestone)2501_storage": {
+            "label": "struct Delulu.Milestone",
+            "members": [
+              {
+                "label": "descriptionHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "deadline",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "proofLink",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "isSubmitted",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isVerified",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

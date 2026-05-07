@@ -48,11 +48,11 @@ type Delulu @entity(immutable: false) {
   milestoneCount: BigInt! # Number of milestones
   
   # Status trackers
-  isResolved: Boolean! # Whether delulu is resolved
+  isResolved: Boolean! # Whether delulu is resolved (time-based: resolutionDeadline passed)
   isCancelled: Boolean! # Whether delulu is cancelled
-  rewardClaimed: Boolean! # Whether rewards have been claimed
+  rewardClaimed: Boolean! # Whether personal support has been claimed
+  challengeRewardClaimed: Boolean! # Whether challenge reward has been claimed (separate flag)
   isFailed: Boolean # v3: whether goal has been marked failed
-  finisherWindowEnd: BigInt # v3: end of finisher tipping window
   failedStakePool: BigInt # v3: total stake pool for refunds on failure
   totalSupportForProRata: BigInt # v3: total support used for pro‑rata refunds
   
@@ -132,6 +132,10 @@ type Milestone @entity(immutable: false) {
   rejectedAt: BigInt # Block timestamp when rejected (nullable)
   rejectionReason: String # Reason for rejection if rejected
   isDeleted: Boolean! # Whether milestone has been deleted by creator
+  earlyCompletionBonus: BigInt # Bonus points awarded for early completion
+  streakBonus: BigInt # Bonus points awarded for streak
+  tipCount: BigInt! # Number of tips received on this milestone
+  totalTipSupport: BigInt! # Total G$ tipped to this milestone
 }
 
 # Aggregated creator stats for leaderboards
@@ -151,6 +155,10 @@ type CreatorStats @entity(immutable: false) {
   # Support
   totalSupportCollected: BigInt!
 
+  # Tips
+  totalTipsReceived: BigInt!   # total number of tips received
+  totalTipPoints: BigInt!      # points earned purely from tips
+
   createdAt: BigInt!  # first time this creator appeared
 }
 
@@ -165,6 +173,18 @@ type Challenge @entity(immutable: false) {
   totalPoints: BigInt! # Total points allocated across all delulus
   active: Boolean! # Whether challenge is active
   createdAt: BigInt! # Block timestamp when created
+}
+
+# Tip entity - tracks each individual tip
+type Tip @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  delulu: Delulu!
+  tipper: User!
+  milestoneId: BigInt!
+  amount: BigInt!
+  isScout: Boolean!
+  txHash: Bytes!
+  createdAt: BigInt!
 }
 
 # Upgraded entity - tracks contract upgrades

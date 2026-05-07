@@ -5,7 +5,7 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ delulu-subgraph",
+    "deploy": "goldsky subgraph deploy delulu-mainnet-v1/1.0.9 --path .",
     "create-local": "graph create --node http://localhost:8020/ delulu-subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ delulu-subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 delulu-subgraph",

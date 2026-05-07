@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox-viem");
 require("@nomicfoundation/hardhat-chai-matchers");
+require("@openzeppelin/hardhat-upgrades");
 
 const config = {
   solidity: {

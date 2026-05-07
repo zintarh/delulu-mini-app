@@ -107,6 +107,7 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageUrl: link,
+          deluluGoal: active.delulu.content ?? "",
           milestoneDescription: active.label,
         }),
       });

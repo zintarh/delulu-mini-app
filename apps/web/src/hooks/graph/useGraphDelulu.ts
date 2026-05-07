@@ -75,7 +75,6 @@ export const GET_DELULU_BY_ID = gql`
       isCancelled
       rewardClaimed
       isFailed
-      finisherWindowEnd
       stakes(first: 100, orderBy: createdAt, orderDirection: desc) {
         id
         user {
@@ -156,7 +155,7 @@ export function useGraphDelulu(deluluId: string | number | null) {
   // network response arrives when the cache is empty. Guard against this by
   // treating the query as still loading until we've had at least one network
   // response (networkStatus reaches 7) or data is present.
-  const hasSettled = networkStatus === 7 || !!data?.delulu;
+  const hasSettled = networkStatus === 7 || networkStatus === 8 || !!data?.delulu || !!error;
 
   useEffect(() => {
     if (!data?.delulu?.contentHash) return;
@@ -243,7 +242,7 @@ export function useGraphDelulu(deluluId: string | number | null) {
     milestones,
     shareTrades,
     shareHoldings,
-    isLoading: loading || !hasSettled,
+    isLoading: loading || (!hasSettled && !error),
     error: error ?? null,
     refetch,
   };

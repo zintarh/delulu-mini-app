@@ -9,56 +9,105 @@ export interface VerifyMilestoneResponse {
   reason: string;
 }
 
-const SYSTEM_PROMPT = `You are a lenient milestone proof reviewer for a personal goal-tracking app.
+/** IPFS CIDv0/CIDv1 or raw hex hash — not human-readable, useless as context. */
+function isIPFSHash(str: string): boolean {
+  return (
+    str.startsWith("Qm") ||
+    str.startsWith("bafy") ||
+    str.startsWith("ipfs://") ||
+    (str.length > 40 && /^[a-f0-9]+$/i.test(str))
+  );
+}
 
-Your default answer is YES. Verify the image unless it is obviously, completely unrelated to the milestone.
+const SYSTEM_PROMPT = `You are a very lenient proof reviewer for a personal goal-tracking app.
 
-How to decide:
-- Ask yourself: "Could this image plausibly be from someone doing this activity?" If yes, verify it.
-- Any image that shows the person in the right context, environment, or doing something related counts as proof. It does not need to be perfect or show the exact moment.
-- Squatting in a gym = verified for any fitness or workout milestone.
-- A plate of healthy food = verified for any nutrition or diet milestone.
-- A textbook, notes, or learning app = verified for any study or language milestone.
-- Outdoor photo = verified for running, walking, or outdoor activity milestones.
-- A screenshot of a completed task, calendar, or tracker = verified for habit or productivity milestones.
-- Blurry, dark, or partial images that still hint at the activity = verified.
-- Only return verified: false if the image is completely and obviously unrelated — for example, a picture of a car for a cooking goal, or a pet photo for a coding goal.
-- When in doubt, verify. It is better to approve an imperfect proof than to reject someone who genuinely did the work.
+Your job is simple: does this image show ANY connection to the stated goal?
 
-Tone:
-- Address the user in second person ("your image", "you").
-- If verified: one short sentence confirming what you see connects to the milestone.
-- If rejected: one sentence saying what you see and why it has no connection to the milestone.
-- Never mention AI, models, or technical systems.
+Rules:
+- Default answer is YES. Only say NO if the image has zero conceivable connection to the goal.
+- You are verifying effort and context, not perfection.
+- Gym, workout clothes, weights, sweat = any fitness or exercise goal.
+- Food, meals, cooking, grocery = any diet, nutrition, or cooking goal.
+- Books, notes, screen with text, study desk = any study, reading, or learning goal.
+- Outdoor scenery, running shoes, a path = any running, walking, or outdoor goal.
+- A completed app screen, calendar, habit tracker = any productivity or habit goal.
+- A blurry, dark, or partial image that hints at the activity = YES.
+- When in doubt: YES.
+- Only say NO if you can clearly describe what you see AND explain why it has absolutely no link to the goal.
 
-Return ONLY valid JSON, no markdown.`;
+Tone: second person, one sentence only. Never mention AI or technical systems.
 
-const USER_PROMPT = (milestoneDescription: string) =>
-  `Milestone: "${milestoneDescription}"
+Return ONLY valid JSON:
+{"verified": true | false, "reason": "one sentence"}`;
 
-Look at this image. Is there any connection — even loose — between what you see and this milestone?
+const USER_PROMPT = (goal: string, milestone?: string) => {
+  const lines: string[] = [`Goal: "${goal}"`];
+  if (milestone && milestone !== goal) {
+    lines.push(`Current step: "${milestone}"`);
+  }
+  lines.push(
+    "",
+    "Look at this image. Is there any connection — even loose or indirect — between what you see and this goal?",
+    "",
+    'Return exactly: {"verified": true | false, "reason": "one sentence in second person"}',
+  );
+  return lines.join("\n");
+};
 
-Return this exact JSON:
-{
-  "verified": true | false,
-  "reason": "one sentence in second person"
-}`;
+/** Fetch the image and return a base64 data URI so OpenAI doesn't have to hit IPFS gateways. */
+async function toDataUri(url: string): Promise<string> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+  const contentType = res.headers.get("content-type") ?? "image/jpeg";
+  const buffer = await res.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString("base64");
+  return `data:${contentType};base64,${base64}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { imageUrl, milestoneDescription } = body;
+    const { imageUrl, milestoneDescription, deluluGoal } = body;
 
     if (!imageUrl || typeof imageUrl !== "string") {
       return errorResponse("imageUrl is required", 400);
     }
 
-    if (!milestoneDescription || typeof milestoneDescription !== "string" || milestoneDescription.trim().length < 3) {
-      return errorResponse("A valid milestoneDescription is required", 400);
-    }
-
     if (!process.env.OPENAI_API_KEY) {
       return errorResponse("AI service not configured", 503);
+    }
+
+    // Use deluluGoal as primary context; fall back to milestoneDescription only if readable
+    const rawGoal = typeof deluluGoal === "string" ? deluluGoal.trim() : "";
+    const rawMilestone =
+      typeof milestoneDescription === "string" ? milestoneDescription.trim() : "";
+    const readableMilestone =
+      rawMilestone.length >= 3 && !isIPFSHash(rawMilestone) ? rawMilestone : "";
+
+    const goal =
+      rawGoal.length >= 3
+        ? rawGoal
+        : readableMilestone.length >= 3
+        ? readableMilestone
+        : "";
+
+    if (!goal) {
+      return errorResponse("A valid goal or milestone description is required", 400);
+    }
+
+    console.log("[verify-milestone] request:", {
+      goal,
+      milestone: readableMilestone || "(none)",
+      imageUrl: imageUrl.slice(0, 120),
+    });
+
+    // Download the image server-side so OpenAI never has to reach IPFS gateways
+    let imagePayload: string;
+    try {
+      imagePayload = await toDataUri(imageUrl);
+    } catch (fetchErr) {
+      console.error("[verify-milestone] image fetch error:", fetchErr);
+      return errorResponse("Could not download the image. Please try again.", 422);
     }
 
     const completion = await openai.chat.completions.create({
@@ -70,21 +119,23 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: "image_url",
-              image_url: { url: imageUrl, detail: "auto" },
+              image_url: { url: imagePayload, detail: "auto" },
             },
             {
               type: "text",
-              text: USER_PROMPT(milestoneDescription.trim()),
+              text: USER_PROMPT(goal, readableMilestone || undefined),
             },
           ],
         },
       ],
       temperature: 0.1,
-      max_tokens: 150,
+      max_tokens: 200,
       response_format: { type: "json_object" },
     });
 
     const raw = completion.choices[0]?.message?.content;
+    console.log("[verify-milestone] AI raw response:", raw);
+
     if (!raw) return errorResponse("No response from AI", 502);
 
     const parsed = JSON.parse(raw) as VerifyMilestoneResponse;
@@ -92,6 +143,8 @@ export async function POST(req: NextRequest) {
     if (typeof parsed.verified !== "boolean" || typeof parsed.reason !== "string") {
       return errorResponse("Invalid AI response format", 502);
     }
+
+    console.log("[verify-milestone] result:", { verified: parsed.verified, reason: parsed.reason });
 
     return jsonResponse({
       verified: parsed.verified,
