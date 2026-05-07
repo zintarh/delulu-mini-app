@@ -1,23 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Loader2, ImageIcon, Link2, X } from "lucide-react";
+import { CheckCircle, Loader2, ImageIcon, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
-
-type EvidenceMode = "link" | "image";
-
-function isValidUrl(str: string): boolean {
-  const trimmed = str.trim();
-  if (!trimmed) return false;
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 async function fireConfetti() {
   try {
@@ -39,9 +26,7 @@ async function fireConfetti() {
 interface ProofModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: (urlOverride?: string) => void;
+  onSubmit: (imageUrl: string) => void;
   isSubmitting?: boolean;
   submitSuccess?: boolean;
   submitError?: Error | null;
@@ -51,16 +36,12 @@ interface ProofModalProps {
 export function ProofModal({
   open,
   onOpenChange,
-  value,
-  onChange,
   onSubmit,
   isSubmitting = false,
   submitSuccess = false,
   submitError = null,
   onDone,
 }: ProofModalProps) {
-  const [mode, setMode] = useState<EvidenceMode>("link");
-  const [touched, setTouched] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,13 +49,7 @@ export function ProofModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiFired = useRef(false);
 
-  const trimmed = value.trim();
-  const valid = isValidUrl(value);
-  const showLinkError = touched && trimmed.length > 0 && !valid;
-
-  const canSubmitLink = valid && !isSubmitting;
-  const canSubmitImage = imageFile !== null && !isSubmitting && !isUploading;
-  const canSubmit = mode === "link" ? canSubmitLink : canSubmitImage;
+  const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
 
   useEffect(() => {
     if (submitSuccess && !confettiFired.current) {
@@ -86,8 +61,6 @@ export function ProofModal({
   useEffect(() => {
     if (!open) {
       confettiFired.current = false;
-      setMode("link");
-      setTouched(false);
       setImageFile(null);
       setImagePreview(null);
       setUploadError(null);
@@ -103,7 +76,7 @@ export function ProofModal({
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Image must be under 5MB.");
+      setUploadError("Image must be under 5 MB.");
       return;
     }
     setUploadError(null);
@@ -119,19 +92,13 @@ export function ProofModal({
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !imageFile) return;
 
-    if (mode === "link") {
-      onSubmit();
-      return;
-    }
-
-    // Image mode: upload to IPFS first
     setIsUploading(true);
     setUploadError(null);
     try {
       const formData = new FormData();
-      formData.append("file", imageFile!);
+      formData.append("file", imageFile);
       const res = await fetch("/api/ipfs/upload-image", {
         method: "POST",
         body: formData,
@@ -141,11 +108,10 @@ export function ProofModal({
         throw new Error(err.error || "Upload failed");
       }
       const { url } = await res.json();
-      onChange(url);
       onSubmit(url);
     } catch (err) {
       setUploadError(
-        err instanceof Error ? err.message : "Failed to upload image.",
+        err instanceof Error ? err.message : "Failed to upload image. Please try again.",
       );
     } finally {
       setIsUploading(false);
@@ -158,6 +124,7 @@ export function ProofModal({
   };
 
   const busy = isSubmitting || isUploading;
+  const displayError = uploadError ?? (submitError ? getContractErrorDisplay(submitError).message : null);
 
   return (
     <ResponsiveSheet
@@ -166,7 +133,7 @@ export function ProofModal({
         if (!open) onDone?.();
         onOpenChange(open);
       }}
-      title="Submit Evidence"
+      title="Submit Proof"
       sheetClassName="bg-card rounded-t-3xl pb-8 border-t border-border"
       modalClassName="max-w-md"
     >
@@ -179,7 +146,7 @@ export function ProofModal({
               </div>
             </div>
             <p className="text-center text-foreground font-semibold">
-              Evidence submitted.
+              Proof submitted successfully.
             </p>
             <button
               type="button"
@@ -191,127 +158,61 @@ export function ProofModal({
           </>
         ) : (
           <>
-            {/* Mode tabs */}
-            <div className="flex gap-1 p-1 bg-muted rounded-lg">
-              <button
-                type="button"
-                onClick={() => setMode("link")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors",
-                  mode === "link"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                Link
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("image")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors",
-                  mode === "image"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                Image
-              </button>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Upload a photo or screenshot that clearly shows you completed this milestone.
+            </p>
 
             {busy && (
               <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm font-medium">
-                  {isUploading ? "Uploading image…" : "Submitting…"}
+                  {isUploading ? "Uploading…" : "Verifying proof…"}
                 </span>
               </div>
             )}
 
-            {(submitError || uploadError) && !busy && (
-              <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                {uploadError ??
-                  (submitError
-                    ? getContractErrorDisplay(submitError).message
-                    : null)}
-              </p>
+            {displayError && !busy && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/8 px-3 py-2.5">
+                <p className="text-xs font-semibold text-destructive mb-0.5">Proof not accepted</p>
+                <p className="text-xs text-destructive/80">{displayError}</p>
+              </div>
             )}
 
             <div className={cn(busy && "pointer-events-none opacity-60")}>
-              {mode === "link" ? (
-                <div>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    onBlur={() => setTouched(true)}
-                    className={cn(
-                      "w-full px-3 py-2.5 text-sm rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary",
-                      showLinkError
-                        ? "border-destructive focus:border-destructive"
-                        : "border-border focus:border-primary",
-                    )}
-                    aria-label="Proof link"
-                    aria-invalid={showLinkError}
-                    aria-describedby={showLinkError ? "proof-link-error" : undefined}
+              {imagePreview ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Proof preview"
+                    className="w-full max-h-52 object-cover rounded-md border border-border"
                   />
-                  {showLinkError && (
-                    <p
-                      id="proof-link-error"
-                      className="text-xs text-destructive mt-1.5"
-                    >
-                      Enter a valid link (e.g. https://...)
-                    </p>
-                  )}
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    Google Drive works well; any shareable link is fine.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                    aria-label="Remove image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ) : (
-                <div>
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Evidence preview"
-                        className="w-full max-h-48 object-cover rounded-md border border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={clearImage}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                        aria-label="Remove image"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-32 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
-                    >
-                      <ImageIcon className="w-8 h-8" />
-                      <span className="text-xs font-medium">
-                        Tap to select an image
-                      </span>
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageSelect}
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    JPG, PNG, GIF, WebP — max 5MB. Uploaded to IPFS.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-36 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
+                >
+                  <ImageIcon className="w-8 h-8" />
+                  <span className="text-xs font-medium">Tap to select an image</span>
+                  <span className="text-[10px] text-muted-foreground/60">JPG, PNG, GIF, WebP — max 5 MB</span>
+                </button>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
 
               <div className="flex gap-2 pt-4">
                 <button

@@ -56,9 +56,10 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
 
   const { milestones, isLoading, refetch } = useUserOngoingMilestones();
 
-  const [proofLink, setProofLink] = useState("");
   const [activeMilestoneKey, setActiveMilestoneKey] = useState<string | null>(null);
   const [proofSuccess, setProofSuccess] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const submittedKeyRef = useRef<string | null>(null);
 
   const {
@@ -88,20 +89,44 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
   const openProofModal = (key: string) => {
     submittedKeyRef.current = null;
     setProofSuccess(false);
+    setAiError(null);
     resetSubmit();
-    setProofLink("");
     setActiveMilestoneKey(key);
   };
 
-  const handleProofSubmit = (urlOverride?: string) => {
+  const handleProofSubmit = async (imageUrl: string) => {
     const active = milestones.find((m) => m.key === activeMilestoneKey);
     if (!active) return;
-    const link = (urlOverride ?? proofLink).trim();
+    const link = imageUrl.trim();
+
+    setAiError(null);
+    setIsVerifyingAi(true);
+    try {
+      const res = await fetch("/api/ai/verify-milestone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: link,
+          milestoneDescription: active.label,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        setAiError(data.reason ?? "Your image doesn't clearly show this milestone was completed. Please upload a photo or screenshot that directly demonstrates your progress.");
+        return;
+      }
+    } catch {
+      setAiError("Could not reach the verification service. Please try again.");
+      return;
+    } finally {
+      setIsVerifyingAi(false);
+    }
+
     writeSubmitMilestone({
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
       functionName: "submitMilestone",
-      args: [BigInt(active.deluluNumericId), BigInt(active.milestoneId), link],
+      args: [BigInt(active.deluluNumericId), BigInt(active.milestoneId), link, true],
     });
   };
 
@@ -216,22 +241,24 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
             if (!open) {
               setActiveMilestoneKey(null);
               setProofSuccess(false);
+              setAiError(null);
               resetSubmit();
             }
           }}
-          value={proofLink}
-          onChange={setProofLink}
           onSubmit={handleProofSubmit}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || isVerifyingAi}
           submitSuccess={proofSuccess}
           submitError={
-            submitMilestoneError
-              ? new Error(getContractErrorDisplay(submitMilestoneError).message)
-              : null
+            aiError
+              ? new Error(aiError)
+              : submitMilestoneError
+                ? new Error(getContractErrorDisplay(submitMilestoneError).message)
+                : null
           }
           onDone={() => {
             setActiveMilestoneKey(null);
             setProofSuccess(false);
+            setAiError(null);
             resetSubmit();
           }}
         />

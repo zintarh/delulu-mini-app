@@ -3,12 +3,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { SharesSheet } from "@/components/shares-sheet";
 import {
   useChainId,
   useReadContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
+import { parseUnits } from "viem";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -86,10 +86,8 @@ import {
   getMilestoneLabel,
   getDeluluCreatedAtMs,
   formatMilestoneCountdown,
-  shouldShowBuyButton,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
-import { SharesMarketCard } from "@/components/shares-market-card";
 import {
   buildDeluluLeaderboard,
   getDeluluRemainingDaysTotal,
@@ -234,9 +232,8 @@ export default function DeluluPage() {
   const {
     delulu,
     milestones,
-    shareTrades,
-    shareHoldings,
     isLoading: isLoadingDelulu,
+    error: deluluError,
     refetch: refetchDelulu,
   } = useGraphDelulu(deluluId);
 
@@ -274,21 +271,8 @@ export default function DeluluPage() {
       ? Number(delulu.onChainId)
       : (delulu?.id ?? null);
 
-  // Support/staking has been removed in favor of shares.
   const marketToken = delulu?.tokenAddress;
-  const deluluIdForHooks = delulu?.id && isConnected ? delulu.id : null;
-
-  const { data: myShareBalance } = useReadContract({
-    address: contractAddress,
-    abi: DELULU_ABI,
-    functionName: "shareBalance",
-    args:
-      isConnected && address && delulu?.onChainId
-        ? [BigInt(delulu.onChainId), address]
-        : undefined,
-    query: { enabled: isConnected && !!address && !!delulu?.onChainId },
-  });
-  const ownsAnyShares = ((myShareBalance as bigint | undefined) ?? 0n) > 0n;
+  const deluluIdForHooks = deluluIdForState && isConnected ? deluluIdForState : null;
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
@@ -329,10 +313,6 @@ export default function DeluluPage() {
   const shareTitle = ipfsMetadata?.text ?? `Delulu #${delulu?.onChainId ?? ""}`;
 
   const searchParams = useSearchParams();
-  const [buySharesSheetOpen, setBuySharesSheetOpen] = useState(
-    () => searchParams.get("action") === "buy",
-  );
-  const [sellSharesSheetOpen, setSellSharesSheetOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "milestones">(
     () => searchParams.get("milestones") === "1" ? "milestones" : "details",
@@ -351,6 +331,9 @@ export default function DeluluPage() {
     () => searchParams.get("milestones") === "1",
   );
   const [showMilestonePreview, setShowMilestonePreview] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
+  const [tipAmountInput, setTipAmountInput] = useState("");
+  const [tipError, setTipError] = useState<string | null>(null);
   const [milestoneMinError, setMilestoneMinError] = useState(false);
   const [newMilestones, setNewMilestones] = useState<
     { description: string; days: string }[]
@@ -367,6 +350,8 @@ export default function DeluluPage() {
     string | null
   >(null);
   const [proofSubmitSuccess, setProofSubmitSuccess] = useState(false);
+  const [proofAiError, setProofAiError] = useState<string | null>(null);
+  const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const proofSubmittedRef = useRef<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const [isWaitingForMilestones, setIsWaitingForMilestones] = useState(false);
@@ -428,7 +413,6 @@ export default function DeluluPage() {
 
   const supportersCount =
     delulu?.totalSupporters ?? (stakes ? stakes.length : 0);
-  const holdersCount = shareHoldings?.length ?? 0;
 
   const milestoneView = useMemo(() => {
     if (!milestones || milestones.length === 0 || !delulu)
@@ -452,17 +436,6 @@ export default function DeluluPage() {
     return { sorted, endTimesMs, currentIndex, passedCount };
   }, [milestones, delulu, now]);
 
-  const showBuyButton = useMemo(
-    () =>
-      !delulu
-        ? true
-        : shouldShowBuyButton(milestones, now, {
-            createdAt: delulu.createdAt,
-            stakingDeadline: delulu.stakingDeadline,
-          }),
-    [milestones, now, delulu],
-  );
-
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const isGoodDollarMarket =
     delulu?.tokenAddress &&
@@ -480,6 +453,20 @@ export default function DeluluPage() {
     totalSupportUsd && supportersCount > 0
       ? totalSupportUsd / supportersCount
       : null;
+  const tokenSymbol = marketToken
+    ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
+    : "tokens";
+  const walletBalanceNum = Number(tokenBalance?.formatted ?? "0");
+  const walletBalanceLabel = Number.isFinite(walletBalanceNum)
+    ? walletBalanceNum.toFixed(2)
+    : "0.00";
+
+  const toUsd = (amount: number | null | undefined): string | null => {
+    if (!isGoodDollarMarket) return null;
+    if (!gDollarUsdPrice) return null;
+    if (!amount || !Number.isFinite(amount) || amount <= 0) return null;
+    return (amount * gDollarUsdPrice).toFixed(2);
+  };
 
   const isCreator =
     authenticated &&
@@ -548,6 +535,16 @@ export default function DeluluPage() {
     isLoading: isConfirmingDeleteMilestone,
     isSuccess: isDeleteMilestoneSuccess,
   } = useWaitForTransactionReceipt({ hash: deleteMilestoneHash });
+  const {
+    writeContract: writeTipMilestone,
+    data: tipMilestoneHash,
+    isPending: isTippingMilestone,
+    error: tipMilestoneError,
+  } = useUnifiedWriteContract();
+  const {
+    isLoading: isConfirmingTipMilestone,
+    isSuccess: isTipMilestoneSuccess,
+  } = useWaitForTransactionReceipt({ hash: tipMilestoneHash });
 
   useEffect(() => {
     const err =
@@ -568,6 +565,54 @@ export default function DeluluPage() {
     resetMilestonesError,
     claimError,
   ]);
+
+  useEffect(() => {
+    if (!tipMilestoneError) return;
+    const { message } = getContractErrorDisplay(tipMilestoneError);
+    setTipError(message);
+  }, [tipMilestoneError]);
+
+  useEffect(() => {
+    if (!isTipMilestoneSuccess) return;
+    setShowTipModal(false);
+    setTipAmountInput("");
+    setTipError(null);
+    refetchDelulu();
+    refetchStakes();
+    queryClient.invalidateQueries();
+  }, [isTipMilestoneSuccess, refetchDelulu, refetchStakes, queryClient]);
+
+  const handleSubmitTip = () => {
+    if (!delulu || !marketToken) return;
+    const amountNum = Number(tipAmountInput);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      setTipError("Enter a valid tip amount greater than 0.");
+      return;
+    }
+    let amountWei: bigint;
+    try {
+      amountWei = parseUnits(tipAmountInput, 18);
+    } catch {
+      setTipError("Tip amount format is invalid.");
+      return;
+    }
+    if (amountWei <= 0n) {
+      setTipError("Enter a valid tip amount greater than 0.");
+      return;
+    }
+    setTipError(null);
+    writeTipMilestone({
+      address: getDeluluContractAddress(chainId),
+      abi: DELULU_ABI,
+      functionName: "tipMilestone",
+      // General support mode: milestoneId kept at 0 for analytics compatibility.
+      args: [BigInt(delulu.onChainId ?? delulu.id), 0n, amountWei],
+    });
+  };
+
+  const applyQuickTip = (amount: number) => {
+    setTipAmountInput(String(amount));
+  };
 
   const deluluRemainingDaysTotal = useMemo(() => {
     // Use the sorted milestone view's last deadline (accounts for deletions in the middle)
@@ -711,20 +756,45 @@ export default function DeluluPage() {
     });
   };
 
-  const handleSubmitMilestoneProof = (
+  const handleSubmitMilestoneProof = async (
     milestoneId: string,
-    linkOverride?: string,
+    imageUrl: string,
   ) => {
-    const link = (
-      linkOverride ??
-      milestoneProofLinks[milestoneId] ??
-      ""
-    ).trim();
+    const link = imageUrl.trim();
+
+    const activeMilestone = milestones?.find(
+      (m) => m.milestoneId === milestoneId,
+    );
+    const milestoneDescription =
+      activeMilestone?.milestoneURI ??
+      activeMilestone?.descriptionHash ??
+      "milestone";
+
+    setProofAiError(null);
+    setIsVerifyingAi(true);
+    try {
+      const res = await fetch("/api/ai/verify-milestone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: link, milestoneDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        setProofAiError(data.reason ?? "Your image doesn't clearly show this milestone was completed. Please upload a photo or screenshot that directly demonstrates your progress.");
+        return;
+      }
+    } catch {
+      setProofAiError("Could not reach the verification service. Please try again.");
+      return;
+    } finally {
+      setIsVerifyingAi(false);
+    }
+
     writeSubmitMilestone({
       address: getDeluluContractAddress(chainId),
       abi: DELULU_ABI,
       functionName: "submitMilestone",
-      args: [BigInt(delulu!.id), BigInt(milestoneId), link],
+      args: [BigInt(delulu!.id), BigInt(milestoneId), link, true],
     });
   };
 
@@ -734,6 +804,7 @@ export default function DeluluPage() {
   ) => {
     proofSubmittedRef.current = null;
     setProofSubmitSuccess(false);
+    setProofAiError(null);
     setMilestoneProofLinks((prev) => ({
       ...prev,
       [milestoneId]: prev[milestoneId] ?? existingProof ?? "",
@@ -976,6 +1047,13 @@ export default function DeluluPage() {
   }
 
   if (!isLoadingDelulu && !delulu) {
+    if (deluluError) {
+      return (
+        <div className="p-20 text-center text-foreground">
+          Unable to load this delulu right now. Please refresh in a moment.
+        </div>
+      );
+    }
     return (
       <div className="p-20 text-center text-foreground">Delulu not found</div>
     );
@@ -994,21 +1072,19 @@ export default function DeluluPage() {
     safeDelulu.resolutionDeadline && new Date() >= safeDelulu.resolutionDeadline;
   const canAttemptClaim =
     !!isCreator &&
-    !!safeDelulu.isResolved &&
+    !!isDeluluEnded &&
     !safeDelulu.isCancelled &&
     claimableAmount > 0;
   const shouldShowClaimSection =
     !!isCreator &&
     (
-      safeDelulu.isResolved ||
+      !!isDeluluEnded ||
       claimableAmount > 0 ||
       isClaiming ||
       isClaimConfirming ||
       isClaimSuccess ||
       !!claimError
     );
-  const showPendingResolutionNotice =
-    !!isCreator && !!isDeluluEnded && !safeDelulu.isResolved;
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -1094,17 +1170,6 @@ export default function DeluluPage() {
                     </span>
                   </div>
                 )}
-                {showPendingResolutionNotice && (
-                  <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2 mb-2">
-                    <span
-                      className="text-xs text-muted-foreground font-medium"
-                      style={{ fontFamily: "var(--font-manrope)" }}
-                    >
-                      Pending resolution. Rewards become claimable after this delulu is resolved.
-                    </span>
-                  </div>
-                )}
-
                 <div className="flex items-start justify-between gap-3">
                   <h1 className="text-2xl font-black mb-1 text-foreground flex-1">
                     {deluluTitle || safeDelulu.content}
@@ -1174,7 +1239,7 @@ export default function DeluluPage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="w-4 h-4" />
                     <span className="text-xs">
-                      {holdersCount} {holdersCount === 1 ? "holder" : "holders"}
+                      {supportersCount} {supportersCount === 1 ? "supporter" : "supporters"}
                     </span>
                   </div>
                   <div className="h-4 w-px bg-border/60" />
@@ -1218,22 +1283,80 @@ export default function DeluluPage() {
 
             {activeTab === "details" ? (
               <div className="space-y-6">
-                <SharesMarketCard
-                  shareTrades={shareTrades}
-                  shareHoldings={shareHoldings}
-                  myShareBalance={myShareBalance as bigint | undefined}
-                  marketToken={marketToken}
-                  onBuy={() => setBuySharesSheetOpen(true)}
-                  onSell={() => setSellSharesSheetOpen(true)}
-                  ownsAnyShares={ownsAnyShares}
-                  canSell={!isCreator}
-                  canBuy={!!(
-                    !safeDelulu.isResolved &&
-                    showBuyButton &&
-                    milestones &&
-                    milestones.length > 0
-                  )}
-                />
+                  <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-delulu-yellow-reserved">
+                          Dream Support
+                        </p>
+                        <h3 className="mt-1 text-lg md:text-xl font-black text-foreground">
+                          Help turn this goal into reality
+                        </h3>
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          Direct tips help fund progress across milestones.
+                        </p>
+                      </div>
+                      {!!deluluRemainingDaysTotal && deluluRemainingDaysTotal > 0 && (
+                        <span className="shrink-0 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          {deluluRemainingDaysTotal}d left
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Raised</p>
+                        <p className="mt-1 text-base font-black text-foreground tabular-nums">
+                          {formatGAmount(supportAmount)}{" "}
+                          <span className="text-xs text-muted-foreground font-semibold">
+                            {marketToken
+                              ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
+                              : "tokens"}
+                          </span>
+                        </p>
+                        {toUsd(supportAmount) && (
+                          <p className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
+                            ≈ ${toUsd(supportAmount)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Supporters</p>
+                        <p className="mt-1 text-base font-black text-foreground tabular-nums">
+                          {supportersCount}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg support</p>
+                        {avgSupportUsd && avgSupportUsd > 0 ? (
+                          <p className="mt-1 text-base font-black text-foreground tabular-nums">
+                            ${avgSupportUsd.toFixed(2)}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                            No tips yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isCreator ? (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowTipModal(true)}
+                          className={cn(
+                            "w-full h-14 rounded-xl border text-base font-black",
+                            "bg-gradient-to-b from-[#f7f9a6] to-[#e8ec79] text-[#1b1b1b]",
+                            "border-[#d5da6f] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
+                            "transition-all duration-200 hover:brightness-105 active:scale-[0.995]",
+                          )}
+                        >
+                          Tip now
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
 
                 {/* Claim card */}
                 {shouldShowClaimSection && (
@@ -1263,15 +1386,22 @@ export default function DeluluPage() {
                           {isLoadingClaimableAmount ? (
                             <div className="h-9 w-28 bg-muted animate-pulse rounded-md" />
                           ) : (
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-3xl font-black tabular-nums text-foreground leading-none">
-                                {formatGAmount(claimableAmount)}
-                              </span>
-                              <span className="text-sm font-semibold text-muted-foreground">
-                                {marketToken
-                                  ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
-                                  : "tokens"}
-                              </span>
+                            <div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-3xl font-black tabular-nums text-foreground leading-none">
+                                  {formatGAmount(claimableAmount)}
+                                </span>
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                  {marketToken
+                                    ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
+                                    : "tokens"}
+                                </span>
+                              </div>
+                              {toUsd(claimableAmount) && (
+                                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                                  ≈ ${toUsd(claimableAmount)}
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1339,8 +1469,8 @@ export default function DeluluPage() {
                               ? "Processing..."
                               : canAttemptClaim
                                 ? "Claim tokens"
-                                : !safeDelulu.isResolved
-                                  ? "Pending resolution"
+                                : !isDeluluEnded
+                                  ? "Pending deadline"
                                   : "No claimable amount"}
                         </button>
                       )}
@@ -1423,7 +1553,7 @@ export default function DeluluPage() {
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
                       <span className="font-bold block mb-0.5">Your delulu won't appear on the home feed yet.</span>
-                      Add at least 3 milestones below so supporters can see your roadmap and buy your shares.
+                      Add at least 3 milestones below so people can follow the roadmap and support this goal.
                     </p>
                   </div>
                 )}
@@ -1869,29 +1999,6 @@ export default function DeluluPage() {
         </div>
       </div>
 
-      {marketToken && safeDelulu.onChainId ? (
-        <>
-          <SharesSheet
-            open={buySharesSheetOpen}
-            onOpenChange={setBuySharesSheetOpen}
-            deluluId={BigInt(safeDelulu.onChainId)}
-            tokenAddress={marketToken as `0x${string}`}
-            mode="buy"
-            isCreator={!!isCreator}
-            isEnded={!!safeDelulu.isResolved}
-          />
-          <SharesSheet
-            open={sellSharesSheetOpen}
-            onOpenChange={setSellSharesSheetOpen}
-            deluluId={BigInt(safeDelulu.onChainId)}
-            tokenAddress={marketToken as `0x${string}`}
-            mode="sell"
-            isCreator={!!isCreator}
-            isEnded={!!safeDelulu.isResolved}
-          />
-        </>
-      ) : null}
-
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
@@ -1902,6 +2009,124 @@ export default function DeluluPage() {
         onOpenChange={setShowLoginSheet}
       />
 
+      <Modal
+        open={showTipModal}
+        onOpenChange={(open) => {
+          setShowTipModal(open);
+          if (!open) setTipError(null);
+        }}
+      >
+        <ModalContent className="max-w-lg p-0 overflow-hidden bg-card border-border/60">
+          <ModalHeader className="px-6 pt-6 pb-2">
+            <ModalTitle className="text-foreground text-xl font-black">
+              Support this goal
+            </ModalTitle>
+            <ModalDescription className="mt-1.5 text-muted-foreground">
+              Help bring this creator's dream to life with your support.
+            </ModalDescription>
+          </ModalHeader>
+          {tipError ? (
+            <div
+              role="alert"
+              className="mx-6 mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-500"
+            >
+              {tipError}
+            </div>
+          ) : null}
+          <div className="px-6 pb-4 space-y-5">
+            <div className="rounded-2xl bg-muted/25 p-4">
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-sm font-semibold text-muted-foreground tracking-wide">
+                  Tip amount
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setTipAmountInput(String(Math.max(0, walletBalanceNum)))}
+                  className="h-7 px-2.5 rounded-full text-xs font-semibold bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                >
+                  Max
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={tipAmountInput}
+                  onChange={(e) => {
+                    setTipAmountInput(e.target.value.replace(/[^0-9.]/g, ""));
+                    if (tipError) setTipError(null);
+                  }}
+                  placeholder="0.00"
+                  className="w-full h-16 rounded-xl  bg-transparent ring-1 ring-border/40 pl-4 pr-20 text-[42px] leading-none font-black text-foreground tracking-tight focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved/30"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                  {tokenSymbol}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Available</span>
+                <span className="font-semibold">
+                  {isLoadingBalance ? (
+                    "Loading..."
+                  ) : (
+                    <>
+                      {walletBalanceLabel} {tokenSymbol}
+                      {toUsd(walletBalanceNum) && (
+                        <span className="ml-1 text-muted-foreground/70 font-normal">
+                          (≈ ${toUsd(walletBalanceNum)})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-muted-foreground tracking-wide">
+                Quick amounts
+              </label>
+              <div className="rounded-2xl bg-muted/20 p-2">
+                <div className="grid grid-cols-4 gap-2.5">
+                {[5, 10, 25, 50].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => applyQuickTip(v)}
+                    className={cn(
+                      "h-11 rounded-xl text-lg font-bold transition-colors",
+                      Number(tipAmountInput) === v
+                        ? "bg-secondary ring-1 ring-border/40 hover:bg-secondary/80"
+                        : " text-foreground bg-secondary  hover:bg-muted/60",
+                    )}
+                  >
+                    {v}
+                  </button>
+                ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <ModalFooter className="px-6 pb-6 pt-2 gap-2 flex items-center justify-center">
+          
+            <button
+              type="button"
+              onClick={handleSubmitTip}
+              disabled={isTippingMilestone || isConfirmingTipMilestone}
+              className={cn(
+                "w-full border-2 border-foreground/50 px-4 py-4  text-base font-bold text-foreground hover:scale-[0.98] transition-transform shadow-[0_6px_0_rgba(0,0,0,0.35)]",
+              )}
+            >
+              {isTippingMilestone
+                ? "Confirm..."
+                : isConfirmingTipMilestone
+                  ? "Sending..."
+                  : "Send tip"}
+            </button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
       {isCreator && (
         <ProofModal
           open={!!activeProofMilestoneId}
@@ -1909,32 +2134,26 @@ export default function DeluluPage() {
             if (!open) {
               setActiveProofMilestoneId(null);
               setProofSubmitSuccess(false);
+              setProofAiError(null);
             }
           }}
-          value={
-            activeProofMilestoneId
-              ? (milestoneProofLinks[activeProofMilestoneId] ?? "")
-              : ""
-          }
-          onChange={(value) =>
-            activeProofMilestoneId &&
-            setMilestoneProofLinks((prev) => ({
-              ...prev,
-              [activeProofMilestoneId]: value,
-            }))
-          }
-          onSubmit={(urlOverride) => {
+          onSubmit={(imageUrl) => {
             if (activeProofMilestoneId) {
               proofSubmittedRef.current = activeProofMilestoneId;
-              handleSubmitMilestoneProof(activeProofMilestoneId, urlOverride);
+              handleSubmitMilestoneProof(activeProofMilestoneId, imageUrl);
             }
           }}
-          isSubmitting={isSubmittingMilestone || isConfirmingSubmitMilestone}
+          isSubmitting={isSubmittingMilestone || isConfirmingSubmitMilestone || isVerifyingAi}
           submitSuccess={proofSubmitSuccess}
-          submitError={submitMilestoneError}
+          submitError={
+            proofAiError
+              ? new Error(proofAiError)
+              : submitMilestoneError ?? null
+          }
           onDone={() => {
             setActiveProofMilestoneId(null);
             setProofSubmitSuccess(false);
+            setProofAiError(null);
           }}
         />
       )}
