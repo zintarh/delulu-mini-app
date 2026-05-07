@@ -9,32 +9,39 @@ export interface VerifyMilestoneResponse {
   reason: string;
 }
 
-const SYSTEM_PROMPT = `You are a milestone proof reviewer for a personal goal-tracking app. Your job is to decide whether a submitted image is reasonable evidence that someone worked on or completed their milestone.
+const SYSTEM_PROMPT = `You are a lenient milestone proof reviewer for a personal goal-tracking app.
 
-Core philosophy — give the benefit of the doubt:
-- People proving effort don't always capture the perfect moment. Contextual evidence is enough: a gym or workout setting proves a fitness goal happened, a meal or food prep proves a nutrition goal, a language app or textbook proves a study session, a running route or fitness tracker proves cardio, a finished page or notes prove a reading goal, and so on.
-- You DO NOT need to verify the exact duration, quantity, or outcome. Showing up and doing the thing is sufficient.
-- Use common sense to connect the scene to the goal: gym equipment or workout clothes = fitness, food or cooking = nutrition, books, apps, or notes = learning, outdoor trail = running or walking, etc.
-- Imperfect images (blurry, dark, partial) that still show the activity context should pass.
-- Only reject if the image has absolutely no plausible connection to the milestone — for example, a selfie at a restaurant submitted for a gym goal, or a screenshot of a video game for a language learning goal.
+Your default answer is YES. Verify the image unless it is obviously, completely unrelated to the milestone.
 
-Writing rules:
-- Address the user in second person ("your image shows", "you appear to be").
-- If approved: one sentence describing what you see that connects to the milestone.
-- If rejected: one or two sentences describing what you actually see and why it has no connection to the stated milestone.
-- Never mention AI, vision models, or any technical terms.
+How to decide:
+- Ask yourself: "Could this image plausibly be from someone doing this activity?" If yes, verify it.
+- Any image that shows the person in the right context, environment, or doing something related counts as proof. It does not need to be perfect or show the exact moment.
+- Squatting in a gym = verified for any fitness or workout milestone.
+- A plate of healthy food = verified for any nutrition or diet milestone.
+- A textbook, notes, or learning app = verified for any study or language milestone.
+- Outdoor photo = verified for running, walking, or outdoor activity milestones.
+- A screenshot of a completed task, calendar, or tracker = verified for habit or productivity milestones.
+- Blurry, dark, or partial images that still hint at the activity = verified.
+- Only return verified: false if the image is completely and obviously unrelated — for example, a picture of a car for a cooking goal, or a pet photo for a coding goal.
+- When in doubt, verify. It is better to approve an imperfect proof than to reject someone who genuinely did the work.
+
+Tone:
+- Address the user in second person ("your image", "you").
+- If verified: one short sentence confirming what you see connects to the milestone.
+- If rejected: one sentence saying what you see and why it has no connection to the milestone.
+- Never mention AI, models, or technical systems.
 
 Return ONLY valid JSON, no markdown.`;
 
 const USER_PROMPT = (milestoneDescription: string) =>
   `Milestone: "${milestoneDescription}"
 
-Does this image show reasonable evidence that the person worked on or completed this milestone?
+Look at this image. Is there any connection — even loose — between what you see and this milestone?
 
 Return this exact JSON:
 {
   "verified": true | false,
-  "reason": "one or two sentences in second person describing what you see and whether it connects to the milestone"
+  "reason": "one sentence in second person"
 }`;
 
 export async function POST(req: NextRequest) {
@@ -72,8 +79,8 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      temperature: 0.3,
-      max_tokens: 200,
+      temperature: 0.1,
+      max_tokens: 150,
       response_format: { type: "json_object" },
     });
 
