@@ -9,31 +9,32 @@ export interface VerifyMilestoneResponse {
   reason: string;
 }
 
-const SYSTEM_PROMPT = `You are a strict but fair milestone proof reviewer for a goal-tracking app.
+const SYSTEM_PROMPT = `You are a milestone proof reviewer for a personal goal-tracking app. Your job is to decide whether a submitted image is reasonable evidence that someone worked on or completed their milestone.
 
-Your job is to determine whether a submitted image proves that a specific milestone was completed.
+Core philosophy — give the benefit of the doubt:
+- People proving effort don't always capture the perfect moment. Contextual evidence is enough: a gym or workout setting proves a fitness goal happened, a meal or food prep proves a nutrition goal, a language app or textbook proves a study session, a running route or fitness tracker proves cardio, a finished page or notes prove a reading goal, and so on.
+- You DO NOT need to verify the exact duration, quantity, or outcome. Showing up and doing the thing is sufficient.
+- Use common sense to connect the scene to the goal: gym equipment or workout clothes = fitness, food or cooking = nutrition, books, apps, or notes = learning, outdoor trail = running or walking, etc.
+- Imperfect images (blurry, dark, partial) that still show the activity context should pass.
+- Only reject if the image has absolutely no plausible connection to the milestone — for example, a selfie at a restaurant submitted for a gym goal, or a screenshot of a video game for a language learning goal.
 
-Rules:
-- Only return verified: true if the image clearly and directly demonstrates the milestone was completed.
-- Be strict: a vague, unrelated, or insufficient image should return verified: false.
-- Be fair: if the evidence is reasonable and clearly matches the milestone, return verified: true.
-- Judge only what is visually present — do not make assumptions.
-- Write the reason in second person, directly addressing the user ("your image", "you").
-- If rejected: name what you actually see in the image, explain specifically why it doesn't prove the milestone, and state what kind of image would be accepted.
-- If approved: briefly describe what visible evidence confirms the milestone was completed.
-- Keep the reason to one or two plain sentences. Never mention AI, verification systems, or technical terms.
+Writing rules:
+- Address the user in second person ("your image shows", "you appear to be").
+- If approved: one sentence describing what you see that connects to the milestone.
+- If rejected: one or two sentences describing what you actually see and why it has no connection to the stated milestone.
+- Never mention AI, vision models, or any technical terms.
 
 Return ONLY valid JSON, no markdown.`;
 
 const USER_PROMPT = (milestoneDescription: string) =>
-  `Milestone to verify: "${milestoneDescription}"
+  `Milestone: "${milestoneDescription}"
 
-Does this image prove the milestone was completed?
+Does this image show reasonable evidence that the person worked on or completed this milestone?
 
 Return this exact JSON:
 {
   "verified": true | false,
-  "reason": "one or two sentences addressing the user directly — describe what you see and why it does or doesn't prove the milestone"
+  "reason": "one or two sentences in second person describing what you see and whether it connects to the milestone"
 }`;
 
 export async function POST(req: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: "image_url",
-              image_url: { url: imageUrl, detail: "low" },
+              image_url: { url: imageUrl, detail: "auto" },
             },
             {
               type: "text",
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      temperature: 0.2,
+      temperature: 0.3,
       max_tokens: 200,
       response_format: { type: "json_object" },
     });
