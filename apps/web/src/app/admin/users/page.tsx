@@ -1,19 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import {
   Loader2,
   Search,
-  BarChart3,
-  Home,
-  ArrowLeft,
-  Moon,
-  Sun,
-  User,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -24,7 +15,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
-import { useTheme } from "@/contexts/theme-context";
 
 interface UserRow {
   address: string;
@@ -63,7 +53,7 @@ function Pagination({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between border-t border-border px-4 py-3">
+    <div className="flex items-center justify-between border-t border-border px-5 py-3">
       <p className="text-xs text-muted-foreground">
         Page {page} of {totalPages}
       </p>
@@ -72,7 +62,7 @@ function Pagination({
           type="button"
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
-          className="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -85,18 +75,16 @@ function Pagination({
           }, [])
           .map((p, i) =>
             p === "..." ? (
-              <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">
-                …
-              </span>
+              <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
             ) : (
               <button
                 key={p}
                 type="button"
                 onClick={() => onPage(p as number)}
                 className={cn(
-                  "min-w-[28px] rounded-md border px-2 py-1 text-xs font-bold transition-colors",
+                  "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-foreground bg-foreground text-background"
+                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -108,7 +96,7 @@ function Pagination({
           type="button"
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
-          className="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -118,10 +106,7 @@ function Pagination({
 }
 
 export default function AdminUsersPage() {
-  const { address, isConnected } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
+  const { isLoading: isAdminLoading } = useIsAdmin();
 
   const [search, setSearch] = useState("");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
@@ -160,19 +145,9 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Reset page when filters change
-  const handleSearchChange = (v: string) => {
-    setSearch(v);
-    setPage(1);
-  };
-  const handlePreset = (p: DatePreset) => {
-    setDatePreset(p);
-    setPage(1);
-  };
-  const handleCustomDate = (v: string) => {
-    setCustomDate(v);
-    setPage(1);
-  };
+  const handleSearchChange = (v: string) => { setSearch(v); setPage(1); };
+  const handlePreset = (p: DatePreset) => { setDatePreset(p); setPage(1); };
+  const handleCustomDate = (v: string) => { setCustomDate(v); setPage(1); };
 
   const handleCopyAddress = (addr: string) => {
     navigator.clipboard.writeText(addr);
@@ -180,9 +155,7 @@ export default function AdminUsersPage() {
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
-  const totalPages = data
-    ? Math.max(1, Math.ceil(data.total / data.pageSize))
-    : 1;
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   const handleDeleteUser = async (targetAddress: string) => {
     const confirmed = window.confirm(
@@ -211,292 +184,196 @@ export default function AdminUsersPage() {
 
   if (isAdminLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-muted/20 text-foreground">
-      {/* Header */}
-      <header className="shrink-0 z-20 border-b-2 border-border bg-card/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto w-full px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <Link
-              href="/admin"
-              className={cn(
-                "inline-flex items-center gap-2 rounded-lg border-2 border-border bg-secondary px-3 py-2 text-sm font-bold",
-                "text-foreground shadow-neo-sm hover:shadow-neo active:scale-[0.98] transition-all",
-              )}
-            >
-              <ArrowLeft className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </Link>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-border bg-muted shrink-0">
-                <Users className="h-4 w-4 text-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
-                  Admin
-                </p>
-                <p className="text-sm font-black truncate">Users</p>
-              </div>
-            </div>
-          </div>
+    <div className="w-full px-5 sm:px-7 py-6 pb-12">
 
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-black tracking-tight text-foreground">Users</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          All registered profiles from Supabase.
+        </p>
+      </div>
+
+      {/* KPI strip */}
+      {data && (
+        <div className="mb-6 inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-bold text-foreground tabular-nums">{data.total}</span>
+          <span className="text-sm text-muted-foreground">
+            registered user{data.total !== 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Search by username or email…"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="w-full rounded-lg border border-border bg-muted/40 py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          {search && (
             <button
               type="button"
-              onClick={toggleTheme}
-              className="flex items-center justify-center p-2 rounded-lg border-2 border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-neo-sm"
-              aria-label="Toggle theme"
+              onClick={() => handleSearchChange("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              {theme === "dark" ? (
-                <Moon className="w-5 h-5" />
-              ) : (
-                <Sun className="w-5 h-5" />
-              )}
+              <X className="w-3.5 h-3.5" />
             </button>
-            {isConnected && address && (
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex rounded-lg border-2 border-border bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">
-                  <span className="font-mono text-foreground">{formatAddress(address)}</span>
-                </div>
-                <Link
-                  href="/profile"
-                  className="inline-flex items-center justify-center p-2 rounded-lg border-2 border-border bg-card text-foreground hover:bg-muted transition-colors shadow-neo-sm"
-                  aria-label="Profile"
-                >
-                  <User className="w-5 h-5" />
-                </Link>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </header>
 
-      {/* Main */}
-      <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        <div className="max-w-7xl mx-auto w-full px-4 py-6 pb-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
-          <aside className="hidden lg:block">
-            <div className="sticky top-6 rounded-2xl border border-border bg-card p-3">
-              <p className="px-2 pb-2 text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Workspace</p>
-              <div className="space-y-1">
-                <Link href="/admin" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
-                  <BarChart3 className="w-4 h-4" /> Overview
-                </Link>
-                <Link href="/admin/users" className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
-                  <Users className="w-4 h-4" /> Users
-                </Link>
-                <Link href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-muted/70 transition-colors">
-                  <Home className="w-4 h-4" /> Back to app
-                </Link>
-              </div>
-            </div>
-          </aside>
-          <div>
-          <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-              Users
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              All registered profiles from Supabase.
-            </p>
-          </div>
-
-          {/* Filters */}
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
-            {/* Combined search */}
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <input
-                type="search"
-                placeholder="Search by username or email…"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full rounded-lg border-2 border-border bg-input py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchChange("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {DATE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => handlePreset(preset.id)}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                datePreset === preset.id
+                  ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                  : "border-border bg-card text-foreground hover:bg-muted",
               )}
-            </div>
-
-            {/* Date preset pills */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {DATE_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handlePreset(preset.id)}
-                  className={cn(
-                    "rounded-lg border-2 px-3 py-1.5 text-xs font-bold transition-colors",
-                    datePreset === preset.id
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-card text-foreground hover:bg-muted",
-                  )}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Custom date picker */}
-            {datePreset === "custom" && (
-              <input
-                type="date"
-                value={customDate}
-                onChange={(e) => handleCustomDate(e.target.value)}
-                className="rounded-lg border-2 border-border bg-input px-3 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            )}
-          </div>
-
-          {/* Table */}
-          <div className="overflow-hidden rounded-xl border-2 border-border bg-card shadow-neo">
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-              </div>
-            ) : error ? (
-              <p className="py-14 text-center text-sm text-destructive">{error}</p>
-            ) : !data || data.users.length === 0 ? (
-              <p className="py-14 text-center text-sm text-muted-foreground">
-                No users found.
-              </p>
-            ) : (
-              <>
-                {/* Count */}
-                <div className="border-b border-border px-4 py-2.5">
-                  <p className="text-xs text-muted-foreground">
-                    {data.total} user{data.total !== 1 ? "s" : ""}
-                    {(search || datePreset !== "all") && " matching filters"}
-                  </p>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left">
-                    <thead>
-                      <tr className="border-b-2 border-border bg-muted/60">
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Address
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Username
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Email
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Referral code
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Joined
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Claims
-                        </th>
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.users.map((u) => (
-                        <tr
-                          key={u.address}
-                          className="border-b border-border hover:bg-muted/50 transition-colors"
-                        >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {formatAddress(u.address as `0x${string}`)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyAddress(u.address)}
-                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                title="Copy full address"
-                              >
-                                {copiedAddress === u.address ? (
-                                  <Check className="w-3.5 h-3.5 text-green-500" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <a
-                                href={`https://celoscan.io/address/${u.address}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                title="View on Celoscan"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-foreground">
-                            {u.username ? (
-                              <span className="font-semibold">@{u.username}</span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-foreground max-w-[220px] truncate">
-                            {u.email}
-                          </td>
-                          <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
-                            {u.referral_code ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {u.created_at
-                              ? new Date(u.created_at).toLocaleDateString(undefined, {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })
-                              : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-xs font-semibold text-foreground whitespace-nowrap">
-                            {u.claim_count ?? 0}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(u.address)}
-                              disabled={deletingAddress === u.address}
-                              className="inline-flex items-center gap-1.5 rounded-md border border-red-500/40 px-2.5 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {deletingAddress === u.address ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <Pagination page={page} totalPages={totalPages} onPage={setPage} />
-              </>
-            )}
-          </div>
-          </div>
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
-      </main>
 
-      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
+        {datePreset === "custom" && (
+          <input
+            type="date"
+            value={customDate}
+            onChange={(e) => handleCustomDate(e.target.value)}
+            className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <p className="py-14 text-center text-sm text-destructive">{error}</p>
+        ) : !data || data.users.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-20">
+            <Users className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm font-semibold text-foreground">No users found</p>
+            <p className="text-xs text-muted-foreground">Try adjusting your filters.</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Address</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Username</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Email</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Referral</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Joined</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Claims</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.users.map((u) => (
+                    <tr
+                      key={u.address}
+                      className="border-b border-border hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {formatAddress(u.address as `0x${string}`)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyAddress(u.address)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copy full address"
+                          >
+                            {copiedAddress === u.address ? (
+                              <Check className="w-3.5 h-3.5 text-[#35d07f]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <a
+                            href={`https://celoscan.io/address/${u.address}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="View on Celoscan"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-foreground">
+                        {u.username ? (
+                          <span className="font-semibold">@{u.username}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-foreground max-w-[200px] truncate">
+                        {u.email}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs font-mono text-muted-foreground">
+                        {u.referral_code ?? "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {u.created_at
+                          ? new Date(u.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs font-semibold text-foreground">
+                        {u.claim_count ?? 0}
+                      </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(u.address)}
+                          disabled={deletingAddress === u.address}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deletingAddress === u.address ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+          </>
+        )}
+      </div>
     </div>
   );
 }

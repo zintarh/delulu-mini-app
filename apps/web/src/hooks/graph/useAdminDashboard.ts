@@ -132,6 +132,44 @@ export function useAdminDelulus() {
   };
 }
 
+const GET_ALL_MILESTONE_DELULU_IDS = gql`
+  query GetAllMilestoneDeluluIds($first: Int!) {
+    milestones(first: $first, where: { isDeleted: false }) {
+      delulu {
+        onChainId
+      }
+    }
+  }
+`;
+
+export function useDelulusWithoutMilestones(allDelulus: FormattedDelulu[]) {
+  const { data, loading } = useQuery<{
+    milestones: Array<{ delulu: { onChainId: string } }>;
+  }>(GET_ALL_MILESTONE_DELULU_IDS, {
+    variables: { first: 1000 },
+    fetchPolicy: "cache-and-network",
+  });
+
+  const idsWithMilestones = useMemo(() => {
+    const s = new Set<string>();
+    for (const m of data?.milestones ?? []) {
+      if (m.delulu?.onChainId) s.add(String(m.delulu.onChainId));
+    }
+    return s;
+  }, [data]);
+
+  const delulusWithoutMilestones = useMemo(() => {
+    if (loading && !data) return [];
+    return allDelulus.filter((d) => {
+      if (d.isResolved || d.isCancelled) return false;
+      const id = d.onChainId ?? String(d.id);
+      return !idsWithMilestones.has(id);
+    });
+  }, [allDelulus, idsWithMilestones, loading, data]);
+
+  return { delulusWithoutMilestones, isLoading: loading && !data };
+}
+
 export function usePendingMilestones() {
   const { data, loading, error, refetch } = useQuery<{
     milestones: Array<{
