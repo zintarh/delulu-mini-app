@@ -107,10 +107,10 @@ export default function AdminBroadcastsPage() {
 
   const isLoading = loadingDelulus || loadingMilestones;
 
-  // Filter: non-expired staking deadline only
+  // Filter: market hasn't resolved yet (resolutionDeadline is when the whole market ends)
   const eligibleDelulus = useMemo<FormattedDelulu[]>(() => {
     const now = new Date();
-    return delulusWithoutMilestones.filter((d) => d.stakingDeadline > now);
+    return delulusWithoutMilestones.filter((d) => d.resolutionDeadline > now);
   }, [delulusWithoutMilestones]);
 
   // All unique creator addresses across the full eligible list
@@ -260,7 +260,7 @@ export default function AdminBroadcastsPage() {
                     <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">ID</th>
                     <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Creator</th>
                     <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Delulu</th>
-                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Staking ends</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ends</th>
                     <th className="px-5 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">View</th>
                   </tr>
                 </thead>
@@ -277,7 +277,7 @@ export default function AdminBroadcastsPage() {
                       ? d.content.slice(0, 60) + (d.content.length > 60 ? "…" : "")
                       : "—";
                     const daysLeft = Math.ceil(
-                      (d.stakingDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                      (d.resolutionDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
                     );
                     return (
                       <tr
@@ -307,7 +307,7 @@ export default function AdminBroadcastsPage() {
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-xs text-muted-foreground">
-                              {d.stakingDeadline.toLocaleDateString(undefined, {
+                              {d.resolutionDeadline.toLocaleDateString(undefined, {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",

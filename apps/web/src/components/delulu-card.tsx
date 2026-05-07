@@ -7,7 +7,7 @@ import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { Plus, Minus, Flame, DollarSign, Check } from "lucide-react";
+import { Plus, Minus, Flame, Check } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAuth } from "@/hooks/use-auth";
@@ -760,14 +760,13 @@ export function DeluluCard({
                   )}
                   <span
                     className={cn(
-                      "relative z-[1] inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold tabular-nums",
+                      "relative z-[1] inline-flex items-center rounded-full px-2.5 py-1.5 text-[11px] font-bold tabular-nums",
                       hasEnoughForTip
                         ? "bg-delulu-yellow text-delulu-charcoal shadow-sm"
                         : "bg-secondary text-foreground/80 ring-1 ring-border",
                     )}
                   >
-                    <DollarSign className="w-3 h-3 shrink-0" />
-                    {tipAmount} G$
+                    Tip {tipAmount} G$
                   </span>
                 </button>
 

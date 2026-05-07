@@ -134,7 +134,7 @@ export function useAdminDelulus() {
 
 const GET_ALL_MILESTONE_DELULU_IDS = gql`
   query GetAllMilestoneDeluluIds($first: Int!) {
-    milestones(first: $first, where: { isDeleted: false }) {
+    milestones(first: $first) {
       delulu {
         onChainId
       }
