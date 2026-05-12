@@ -147,7 +147,7 @@ export function DeluluCard({
     ? false
     : isMilestonesLoading;
 
-  const { address } = useAuth();
+  const { address, authenticated } = useAuth();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
   const apolloClient = useApolloClient();
@@ -502,6 +502,7 @@ export function DeluluCard({
   const isHot = !isEnded && (delusion.totalSupporters ?? 0) >= 5;
 
   const showSupportButton =
+    authenticated &&
     !isEnded &&
     !isCreator &&
     shouldShowBuyButton(effectiveMilestones, now, {
