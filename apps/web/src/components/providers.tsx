@@ -14,6 +14,7 @@ import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { web3AuthContextConfig } from "@/lib/web3auth-config";
 import { Web3AuthWagmiSync } from "@/components/web3auth-wagmi-sync";
+import { EmailCaptureGate } from "@/components/email-capture-gate";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -49,6 +50,7 @@ function AppWithPrivy({
           <MiniAppProvider addMiniAppOnLoad={true}>
             <ServiceWorkerRegister />
             <PullToRefresh />
+            <EmailCaptureGate />
             {children}
           </MiniAppProvider>
         </QueryProvider>
