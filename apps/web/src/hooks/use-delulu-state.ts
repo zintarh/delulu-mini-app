@@ -1,6 +1,7 @@
-import { useReadContract, useChainId } from "wagmi";
-import { getDeluluContractAddress } from "@/lib/constant";
+import { useReadContract } from "wagmi";
+import { DELULU_CHAIN_ID, getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { normalizeDeluluMarketRead } from "@/lib/delulu-market-read";
 
 export enum DeluluState {
   Open = 0,
@@ -11,14 +12,14 @@ export enum DeluluState {
 }
 
 export function useDeluluState(deluluId: number | null) {
-  const chainId = useChainId();
+  const addr = getDeluluContractAddress(DELULU_CHAIN_ID);
+  const readBase = { address: addr, abi: DELULU_ABI, chainId: DELULU_CHAIN_ID } as const;
   const {
     data: market,
     isLoading: isLoadingMarket,
     error: marketError,
   } = useReadContract({
-    address: getDeluluContractAddress(chainId),
-    abi: DELULU_ABI,
+    ...readBase,
     functionName: "delulus",
     args: deluluId !== null && deluluId > 0 ? [BigInt(deluluId)] : undefined,
     query: {
@@ -31,8 +32,7 @@ export function useDeluluState(deluluId: number | null) {
     isLoading: isLoadingFailed,
     error: failedError,
   } = useReadContract({
-    address: getDeluluContractAddress(chainId),
-    abi: DELULU_ABI,
+    ...readBase,
     functionName: "marketIsFailed",
     args: deluluId !== null && deluluId > 0 ? [BigInt(deluluId)] : undefined,
     query: {
@@ -41,7 +41,7 @@ export function useDeluluState(deluluId: number | null) {
   });
 
   const nowSec = BigInt(Math.floor(Date.now() / 1000));
-  const marketAny = market as Record<string, unknown> | undefined;
+  const marketAny = normalizeDeluluMarketRead(market);
   const stakingDeadline = (marketAny?.stakingDeadline as bigint | undefined) ?? 0n;
   const resolutionDeadline = (marketAny?.resolutionDeadline as bigint | undefined) ?? 0n;
   const isResolved = Boolean(marketAny?.isResolved);

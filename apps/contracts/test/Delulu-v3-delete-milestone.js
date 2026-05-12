@@ -118,9 +118,12 @@ describe("Delulu-v3 deleteMilestone", function () {
       createDeluluWithTwoMilestonesFixture
     );
 
-    await delulu.write.submitMilestone([1n, 0n, "https://proof.example.com"], {
-      account: creator.account,
-    });
+    await delulu.write.submitMilestone(
+      [1n, 0n, "https://proof.example.com", true],
+      {
+        account: creator.account,
+      },
+    );
 
     await assertRevert(
       delulu.write.deleteMilestone([1n, 0n], { account: creator.account }),

@@ -2,6 +2,9 @@
 export const CELO_MAINNET_ID = 42220;
 export const CELO_SEPOLIA_ID = 11142220;
 
+/** Delulu proxy lives here in production — pin RPC reads/writes so wallet chain (e.g. Fuse in wagmi config) cannot point calls at the wrong network. */
+export const DELULU_CHAIN_ID = CELO_MAINNET_ID;
+
 export const DELULU_CONTRACT_ADDRESSES = {
   mainnet:
     process.env.NEXT_PUBLIC_DELULU_CONTRACT_MAINNET ||
@@ -10,19 +13,19 @@ export const DELULU_CONTRACT_ADDRESSES = {
 } as const;
 
 /**
- * Get the Delulu contract address - always returns mainnet address
- * @param chainId - The chain ID (ignored, always returns mainnet)
- * @returns The mainnet contract address
+ * Proxy address for reads/writes. Must match the connected wallet network or RPC returns wrong/empty markets.
  */
-export function getDeluluContractAddress(_chainId?: number): `0x${string}` {
-  // Always return mainnet address
+export function getDeluluContractAddress(chainId?: number): `0x${string}` {
+  if (chainId === CELO_SEPOLIA_ID) {
+    return DELULU_CONTRACT_ADDRESSES.sepolia as `0x${string}`;
+  }
   return DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 }
 
 export const DELULU_CONTRACT_ADDRESS = DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 
 export const DELULU_IMPLEMENTATION_ADDRESS =
-  "0xdc7E139d842410A35c50E82A013eC4bD35D07F86" as const;
+  "0x181070E2D677637d9EDAF2b1576B9D798c028C6b" as const;
 
 
 

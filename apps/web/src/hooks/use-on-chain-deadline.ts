@@ -1,16 +1,16 @@
-import { useReadContract, useChainId } from "wagmi";
-import { getDeluluContractAddress } from "@/lib/constant";
+import { useReadContract } from "wagmi";
+import { DELULU_CHAIN_ID, getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 
 export function useOnChainDeadline(deluluId: number | null) {
-  const chainId = useChainId();
   const {
     data: deluluData,
     isLoading,
     error,
   } = useReadContract({
-    address: getDeluluContractAddress(chainId),
+    address: getDeluluContractAddress(DELULU_CHAIN_ID),
     abi: DELULU_ABI,
+    chainId: DELULU_CHAIN_ID,
     functionName: "delulus",
     args: deluluId !== null ? [BigInt(deluluId)] : undefined,
     query: {

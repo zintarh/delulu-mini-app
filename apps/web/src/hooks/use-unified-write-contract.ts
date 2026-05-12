@@ -61,9 +61,10 @@ export function useUnifiedWriteContract() {
       } else {
         setIsPending(true);
         try {
-          const txHash = await wagmiWriteAsync(
-            params as Parameters<typeof wagmiWriteAsync>[0]
-          );
+          const txHash = await wagmiWriteAsync({
+            ...(params as Parameters<typeof wagmiWriteAsync>[0]),
+            chainId: celo.id,
+          });
           setHash(txHash);
           return txHash;
         } catch (err) {

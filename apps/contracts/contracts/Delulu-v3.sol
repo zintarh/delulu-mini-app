@@ -1128,22 +1128,6 @@ contract Delulu is
     }
 
     // --- SETTLEMENT ---
-    function _allMilestonesExpired(uint256 deluluId) internal view returns (bool) {
-        Market storage d = delulus[deluluId];
-        if (d.milestoneCount == 0) return false;
-
-        bool foundActive = false;
-        for (uint256 i = 0; i < d.milestoneCount; i++) {
-            if (milestoneIsDeleted[deluluId][i]) continue;
-            foundActive = true;
-            Milestone storage m = deluluMilestones[deluluId][i];
-            if (m.isVerified) return false;
-            if (block.timestamp <= m.deadline) return false;
-        }
-
-        return foundActive;
-    }
-
     function claimPersonalMarketSupport(
         uint256 deluluId
     ) external nonReentrant {
@@ -1155,16 +1139,6 @@ contract Delulu is
         finishedGoalsCount[d.creator] += 1;
 
         uint256 stakeEscrow = marketStakedAmount[deluluId];
-        uint256 grossAmount = d.totalSupportCollected + stakeEscrow;
-
-        // If all milestones expired without completion, route funds to treasury bucket.
-        if (_allMilestonesExpired(deluluId)) {
-            d.rewardClaimed = true;
-            marketStakedAmount[deluluId] = 0;
-            treasuryPendingByToken[d.token] += grossAmount;
-            emit TreasuryFundsAccrued(deluluId, d.token, grossAmount);
-            return;
-        }
 
         uint256 fee = (d.totalSupportCollected * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
         uint256 payout = (d.totalSupportCollected - fee) + stakeEscrow;

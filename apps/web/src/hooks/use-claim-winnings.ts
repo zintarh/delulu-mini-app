@@ -1,11 +1,10 @@
-import { useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
 import { useState } from "react";
-import { getDeluluContractAddress } from "@/lib/constant";
+import { DELULU_CHAIN_ID, getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useClaimWinnings() {
-  const chainId = useChainId();
   const { writeContractAsync } = useUnifiedWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
@@ -18,12 +17,12 @@ export function useClaimWinnings() {
   } = useWaitForTransactionReceipt({ hash });
 
   const claim = async (deluluId: number) => {
-    if (!deluluId || Number.isNaN(deluluId)) return;
+    if (!Number.isFinite(deluluId) || deluluId < 0) return;
     try {
       setIsPending(true);
       setWriteError(null);
       const txHash = await writeContractAsync({
-        address: getDeluluContractAddress(chainId),
+        address: getDeluluContractAddress(DELULU_CHAIN_ID),
         abi: DELULU_ABI,
         functionName: "claimPersonalMarketSupport",
         args: [BigInt(deluluId)],

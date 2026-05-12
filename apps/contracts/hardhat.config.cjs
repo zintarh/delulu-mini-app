@@ -2,6 +2,16 @@ require("@nomicfoundation/hardhat-toolbox-viem");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
 
+/** Prefer PRIVATE_KEY; apps/web/.env.local often uses CELO_FAUCET_PRIVATE_KEY for scripts. */
+function celoDeployerAccounts() {
+  const key =
+    process.env.PRIVATE_KEY ||
+    process.env.CELO_FAUCET_PRIVATE_KEY ||
+    process.env.CELO_DEPLOYER_PRIVATE_KEY ||
+    "";
+  return key ? [key] : [];
+}
+
 const config = {
   solidity: {
     version: "0.8.28",
@@ -16,12 +26,12 @@ const config = {
   networks: {
     celo: {
       url: "https://forno.celo.org",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: celoDeployerAccounts(),
       chainId: 42220,
     },
     sepolia: {
       url: "https://forno.celo-sepolia.celo-testnet.org",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: celoDeployerAccounts(),
       chainId: 11142220,
     },
     localhost: {

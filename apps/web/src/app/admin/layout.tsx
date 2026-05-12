@@ -24,6 +24,7 @@ import {
   Sun,
   Zap,
   Bell,
+  Mail,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 
@@ -66,6 +67,7 @@ const BREADCRUMBS: Record<string, string> = {
   "/admin/milestones": "Milestone Queue",
   "/admin/markets": "All Markets",
   "/admin/broadcasts": "Broadcasts",
+  "/admin/send-email": "Send Email",
   "/admin/users": "Users",
 };
 
@@ -151,6 +153,12 @@ function AdminShell({ pathname, children }: { pathname: string; children: React.
                 label="Broadcasts"
                 href="/admin/broadcasts"
                 active={pathname.startsWith("/admin/broadcasts")}
+              />
+              <NavItem
+                icon={Mail}
+                label="Send Email"
+                href="/admin/send-email"
+                active={pathname.startsWith("/admin/send-email")}
               />
             </div>
           </div>

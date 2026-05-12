@@ -1,19 +1,20 @@
-import { useReadContract, useChainId } from "wagmi";
-import { useAccount } from "wagmi";
+import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
-import { getDeluluContractAddress } from "@/lib/constant";
+import { DELULU_CHAIN_ID, getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useAuth } from "@/hooks/use-auth";
+import { normalizeDeluluMarketRead } from "@/lib/delulu-market-read";
 
 export function useUserPosition(deluluId: number | null) {
-  const { address } = useAccount();
-  const chainId = useChainId();
+  const { address } = useAuth();
+  const addr = getDeluluContractAddress(DELULU_CHAIN_ID);
+  const readBase = { address: addr, abi: DELULU_ABI, chainId: DELULU_CHAIN_ID } as const;
   const {
     data: shareBalance,
     isLoading: isLoadingShares,
     error: sharesError,
   } = useReadContract({
-    address: getDeluluContractAddress(chainId),
-    abi: DELULU_ABI,
+    ...readBase,
     functionName: "shareBalance",
     args:
       deluluId !== null && address ? [BigInt(deluluId), address] : undefined,
@@ -27,8 +28,7 @@ export function useUserPosition(deluluId: number | null) {
     isLoading: isLoadingMarket,
     error: marketError,
   } = useReadContract({
-    address: getDeluluContractAddress(chainId),
-    abi: DELULU_ABI,
+    ...readBase,
     functionName: "delulus",
     args: deluluId !== null ? [BigInt(deluluId)] : undefined,
     query: {
@@ -48,7 +48,7 @@ export function useUserPosition(deluluId: number | null) {
   }
 
   const stakeAmount = parseFloat(formatUnits(shareBalance, 18));
-  const marketAny = market as Record<string, unknown> | undefined;
+  const marketAny = normalizeDeluluMarketRead(market);
   const creator = (marketAny?.creator as string | undefined)?.toLowerCase();
   const isCreator = !!address && creator === address.toLowerCase();
   const isClaimed = isCreator ? Boolean(marketAny?.rewardClaimed) : false;

@@ -41,8 +41,8 @@ async function main() {
 
   let cUSDAddress, gDollarAddress;
 
-  if (network === "localhost") {
-    // Deploy mock tokens for local testing
+  if (network === "localhost" || network === "hardhat") {
+    // Deploy mock tokens for local / in-process Hardhat network
     console.log("\nDeploying MockERC20 tokens...");
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     const cusd = await MockERC20.deploy("cUSD", "cUSD");

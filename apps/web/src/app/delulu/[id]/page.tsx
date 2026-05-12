@@ -3,11 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import {
-  useChainId,
-  useReadContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
@@ -74,7 +70,12 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { cn, formatAddress, formatGAmount } from "@/lib/utils";
-import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES, KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
+import {
+  DELULU_CHAIN_ID,
+  getDeluluContractAddress,
+  GOODDOLLAR_ADDRESSES,
+  KNOWN_TOKEN_SYMBOLS,
+} from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import {
   resolveIPFSContent,
@@ -224,8 +225,6 @@ export default function DeluluPage() {
   const deluluId = params.id as string;
 
   const { authenticated, isConnected, address } = useAuth();
-  const chainId = useChainId();
-  const contractAddress = getDeluluContractAddress(chainId);
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
@@ -236,6 +235,12 @@ export default function DeluluPage() {
     error: deluluError,
     refetch: refetchDelulu,
   } = useGraphDelulu(deluluId);
+
+  const parsedRouteDeluluId = useMemo(() => {
+    const n = Number.parseInt(deluluId, 10);
+    if (deluluId === "" || Number.isNaN(n) || !Number.isFinite(n) || n < 0) return null;
+    return n;
+  }, [deluluId]);
 
   const [ipfsMetadata, setIpfsMetadata] = useState<DeluluIPFSMetadata | null>(
     null,
@@ -266,19 +271,34 @@ export default function DeluluPage() {
     };
   }, [delulu?.contentHash]);
 
-  const deluluIdForState =
-    delulu?.onChainId && !Number.isNaN(Number(delulu.onChainId))
-      ? Number(delulu.onChainId)
-      : (delulu?.id ?? null);
+  /** Prefer transformer `id` (parses onChainId first); avoids subgraph string quirks vs contract uint256. */
+  const deluluIdForState = useMemo(() => {
+    if (!delulu) return parsedRouteDeluluId;
+    if (typeof delulu.id === "number" && Number.isFinite(delulu.id) && delulu.id >= 0) {
+      return delulu.id;
+    }
+    if (
+      delulu.onChainId != null &&
+      delulu.onChainId !== "" &&
+      !Number.isNaN(Number(delulu.onChainId))
+    ) {
+      return Number(delulu.onChainId);
+    }
+    return parsedRouteDeluluId;
+  }, [delulu, parsedRouteDeluluId]);
 
   const marketToken = delulu?.tokenAddress;
-  const deluluIdForHooks = deluluIdForState && isConnected ? deluluIdForState : null;
+  /** Must allow on-chain id `0` — `0 && isConnected` was falsely disabling all contract reads. */
+  const deluluIdForHooks =
+    deluluIdForState !== null && Number.isFinite(deluluIdForState) && isConnected
+      ? deluluIdForState
+      : null;
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
   const { hasStaked, isClaimed } = useUserPosition(deluluIdForHooks);
 
-  const { claimableAmount, isLoading: isLoadingClaimableAmount } =
+  const { claimableAmount, isLoading: isLoadingClaimableAmount, creatorClaimHint, isWalletMarketCreator, onChainResolutionReached, canAttemptClaimOnChain } =
     useUserClaimableAmount(deluluIdForHooks);
 
   const {
@@ -304,7 +324,8 @@ export default function DeluluPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("Staking Failed");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showClaimSuccessModal, setShowClaimSuccessModal] = useState(false);
+  const [lastClaimedAmount, setLastClaimedAmount] = useState<number | null>(null);
+  const pendingClaimAmountRef = useRef<number | null>(null);
 
   const shareUrl =
     typeof window !== "undefined"
@@ -602,7 +623,7 @@ export default function DeluluPage() {
     }
     setTipError(null);
     writeTipMilestone({
-      address: getDeluluContractAddress(chainId),
+      address: getDeluluContractAddress(DELULU_CHAIN_ID),
       abi: DELULU_ABI,
       functionName: "tipMilestone",
       // General support mode: milestoneId kept at 0 for analytics compatibility.
@@ -749,7 +770,7 @@ export default function DeluluPage() {
       BigInt(Math.floor(Number(m.days) * 24 * 60 * 60)),
     );
     writeAddMilestones({
-      address: getDeluluContractAddress(chainId),
+      address: getDeluluContractAddress(DELULU_CHAIN_ID),
       abi: DELULU_ABI,
       functionName: "addMilestones",
       args: [BigInt(delulu.id), mURIs, mDurations],
@@ -792,7 +813,7 @@ export default function DeluluPage() {
     }
 
     writeSubmitMilestone({
-      address: getDeluluContractAddress(chainId),
+      address: getDeluluContractAddress(DELULU_CHAIN_ID),
       abi: DELULU_ABI,
       functionName: "submitMilestone",
       args: [BigInt(delulu!.id), BigInt(milestoneId), link, true],
@@ -821,13 +842,41 @@ export default function DeluluPage() {
     }
   };
 
+  const handleClaimRequest = () => {
+    pendingClaimAmountRef.current =
+      claimableAmount > 0 ? claimableAmount : pendingClaimAmountRef.current;
+    const chainIdArg =
+      deluluIdForState !== null && Number.isFinite(deluluIdForState)
+        ? deluluIdForState
+        : Number(safeDelulu.onChainId ?? safeDelulu.id);
+    void claim(chainIdArg);
+  };
 
   useEffect(() => {
     if (isClaimSuccess) {
-      setShowClaimSuccessModal(true);
+      setLastClaimedAmount(pendingClaimAmountRef.current ?? claimableAmount);
       refetchAfterClaim(apolloClient, queryClient, deluluId);
+      (async () => {
+        try {
+          const confettiModule = await import("canvas-confetti");
+          const confetti = (confettiModule as any).default || confettiModule;
+          if (typeof confetti === "function") {
+            confetti({
+              particleCount: 90,
+              spread: 70,
+              origin: { y: 0.5 },
+              colors: ["#FCFF52", "#22C55E", "#1F2937"],
+            });
+          }
+        } catch {}
+      })();
     }
   }, [isClaimSuccess, deluluId, apolloClient, queryClient]);
+
+  const displayedClaimAmount =
+    isClaimed || isClaimSuccess
+      ? (lastClaimedAmount ?? (isCreator ? supportAmount : claimableAmount))
+      : claimableAmount;
 
   useEffect(() => {
     if (isResetMilestonesSuccess) {
@@ -889,7 +938,7 @@ export default function DeluluPage() {
     if (!milestoneToDelete || !delulu) return;
 
     writeDeleteMilestone({
-      address: getDeluluContractAddress(chainId),
+      address: getDeluluContractAddress(DELULU_CHAIN_ID),
       abi: DELULU_ABI,
       functionName: "deleteMilestone",
       args: [BigInt(delulu.id), BigInt(milestoneToDelete.id)],
@@ -1071,21 +1120,17 @@ export default function DeluluPage() {
     safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
   const isDeluluEnded =
     safeDelulu.resolutionDeadline && new Date() >= safeDelulu.resolutionDeadline;
-  const canAttemptClaim =
-    !!isCreator &&
-    !!isDeluluEnded &&
-    !safeDelulu.isCancelled &&
-    claimableAmount > 0;
+  const canAttemptClaim = canAttemptClaimOnChain;
+  const claimUiEnded = onChainResolutionReached || !!isDeluluEnded;
   const shouldShowClaimSection =
-    !!isCreator &&
-    (
-      !!isDeluluEnded ||
+    (isCreator || isWalletMarketCreator) &&
+    (claimUiEnded ||
       claimableAmount > 0 ||
+      canAttemptClaimOnChain ||
       isClaiming ||
       isClaimConfirming ||
       isClaimSuccess ||
-      !!claimError
-    );
+      !!claimError);
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -1341,7 +1386,7 @@ export default function DeluluPage() {
                       </div>
                     </div>
 
-                    {!isCreator ? (
+                    {!isCreator && authenticated && !claimUiEnded && milestoneView.sorted.length > 0 ? (
                       <div className="space-y-2">
                         <button
                           type="button"
@@ -1361,121 +1406,95 @@ export default function DeluluPage() {
 
                 {/* Claim card */}
                 {shouldShowClaimSection && (
-                  <div className="rounded-2xl border-2 border-border bg-card overflow-hidden">
-                    {/* Header strip */}
-                    <div className="bg-delulu-yellow-reserved/10 dark:bg-delulu-yellow-reserved/5 px-5 py-3 flex items-center justify-between border-b border-border">
-                      <div className="flex items-center gap-2">
-                        <Trophy className="w-4 h-4 text-delulu-charcoal dark:text-delulu-yellow-reserved" />
-                        <span className="text-xs font-black uppercase tracking-widest text-delulu-charcoal dark:text-delulu-yellow-reserved">
-                          {isCreator ? "Earnings" : "Claimable"}
-                        </span>
-                      </div>
-                      {(isClaimed || isClaimSuccess) && (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Claimed
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="px-5 py-5 space-y-5">
-                      {/* Amount display */}
-                      <div className="flex items-end justify-between gap-4">
-                        <div>
-                          <p className="text-[11px] text-muted-foreground font-medium mb-1">
-                            {isCreator ? "Your reward" : "Your share"}
-                          </p>
-                          {isLoadingClaimableAmount ? (
-                            <div className="h-9 w-28 bg-muted animate-pulse rounded-md" />
-                          ) : (
-                            <div>
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-3xl font-black tabular-nums text-foreground leading-none">
-                                  {formatGAmount(claimableAmount)}
-                                </span>
-                                <span className="text-sm font-semibold text-muted-foreground">
-                                  {marketToken
-                                    ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "tokens")
-                                    : "tokens"}
-                                </span>
-                              </div>
-                              {toUsd(claimableAmount) && (
-                                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                                  ≈ ${toUsd(claimableAmount)}
-                                </p>
-                              )}
-                            </div>
-                          )}
+                  <div className="rounded-2xl border border-border/70 bg-card p-3.5 md:p-4 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 md:gap-4 items-end">
+                      <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-delulu-yellow-reserved/15 border border-delulu-yellow-reserved/35">
+                              <Trophy className="w-3.5 h-3.5 text-delulu-yellow-reserved" />
+                            </span>
+                            <p className="text-[11px] uppercase tracking-[0.16em] font-black text-muted-foreground truncate">
+                              {isCreator ? "Earnings" : "Claimable"}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Status pill */}
-                        {!isClaimed && !isClaimSuccess && (
-                          <div className={cn(
-                            "shrink-0 px-3 py-1 rounded-full text-[11px] font-black border",
-                            claimableAmount > 0
-                              ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-                              : "bg-muted border-border text-muted-foreground"
-                          )}>
-                            {claimableAmount > 0 ? "Available" : "Not available"}
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {isCreator ? "Your reward" : "Your share"}
+                        </p>
+
+                        {isLoadingClaimableAmount ? (
+                          <div className="mt-2 h-9 w-28 bg-muted animate-pulse rounded-md" />
+                        ) : (
+                          <div className="mt-1.5 flex items-end gap-2">
+                            <span className="text-[1.9rem] leading-none font-black tabular-nums text-foreground">
+                              {formatGAmount(displayedClaimAmount)}
+                            </span>
+                            <span className="pb-1 text-sm font-semibold text-muted-foreground">
+                              {tokenSymbol}
+                            </span>
+                            {toUsd(displayedClaimAmount) && (
+                              <span className="pb-1 ml-1 text-xs text-muted-foreground tabular-nums">
+                                ≈ ${toUsd(displayedClaimAmount)}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
 
-                      {/* Divider */}
-                      <div className="h-px bg-border" />
-
-                      {/* Error */}
-                      {claimError && (
-                        <div className="flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2.5">
-                          <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                          <p className="text-xs text-destructive font-medium leading-snug">
-                            {(claimError as any)?.shortMessage ?? (claimError as any)?.message ?? "Claim failed"}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* CTA */}
-                      {isClaimed || isClaimSuccess ? (
-                        <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3.5">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                          <div>
-                            <p className="text-sm font-black text-emerald-700 dark:text-emerald-300">
-                              Tokens claimed
-                            </p>
-                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
-                              Sent to your wallet
-                            </p>
+                      <div className="flex items-center justify-end">
+                        {isClaimed || isClaimSuccess ? (
+                          <div className="h-11 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm font-semibold flex items-center justify-center">
+                            Claimed
                           </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            claim(Number(safeDelulu.onChainId ?? safeDelulu.id))
-                          }
-                          disabled={isClaiming || isClaimConfirming || !canAttemptClaim}
-                          className={cn(
-                            "w-full py-3.5 rounded-2xl border-2 text-sm font-black",
-                            "flex items-center justify-center gap-2",
-                            "transition-all active:translate-y-px",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
-                            "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:opacity-90",
-                          )}
-                        >
-                          {(isClaiming || isClaimConfirming) && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          )}
-                          {isClaiming
-                            ? "Confirm in wallet..."
-                            : isClaimConfirming
-                              ? "Processing..."
-                              : canAttemptClaim
-                                ? "Claim tokens"
-                                : !isDeluluEnded
-                                  ? "Pending deadline"
-                                  : "No claimable amount"}
-                        </button>
-                      )}
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleClaimRequest}
+                            disabled={isClaiming || isClaimConfirming || !canAttemptClaim}
+                            className={cn(
+                              "w-fit px-6 h-11 rounded-xl border-2 text-sm font-black",
+                              "flex items-center justify-center gap-2",
+                              "transition-all duration-200 active:translate-y-px",
+                              "disabled:opacity-50 disabled:cursor-not-allowed",
+                              "border-[#1d3b2f] bg-delulu-yellow-reserved text-black shadow-[2px_2px_0px_0px_#0b1f15] hover:brightness-95",
+                            )}
+                          >
+                            {(isClaiming || isClaimConfirming) && (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            )}
+                            {isClaiming
+                              ? "Confirm"
+                              : isClaimConfirming
+                                ? "Processing"
+                                : canAttemptClaim
+                                  ? "Claim"
+                                  : !onChainResolutionReached
+                                    ? "Pending"
+                                    : "No claim"}
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {claimError && (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-2.5 py-2">
+                        <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <p className="text-xs text-destructive font-medium leading-snug">
+                          {(claimError as any)?.shortMessage ?? (claimError as any)?.message ?? "Claim failed"}
+                        </p>
+                      </div>
+                    )}
+
+                    {!canAttemptClaim && claimUiEnded && !isClaiming && !isClaimConfirming && !isClaimSuccess && !isClaimed && (
+                      <div className="mt-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2.5">
+                        <p className="text-xs text-amber-700 dark:text-amber-300 leading-snug">
+                          {creatorClaimHint ??
+                            "Refresh the page and confirm you are on the correct network with the wallet that created this delulu."}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
