@@ -50,7 +50,7 @@ export function buildMarketingEmailInnerHtml(params: {
                     style="display:block;border-radius:8px;border:0;outline:none;text-decoration:none;" />
                 </td>
                 <td valign="middle" style="padding-left:12px;">
-                  <p style="margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;font-weight:600;color:#000000;">Zinta by Dululu</p>
+                  <p style="margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;font-weight:600;color:#000000;">Dululu</p>
                 </td>
               </tr>
             </table>
