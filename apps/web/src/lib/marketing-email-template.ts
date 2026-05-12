@@ -58,7 +58,6 @@ export function buildMarketingEmailInnerHtml(params: {
         </tr>
         <tr>
           <td style="padding:32px 40px;background-color:#ffffff;">
-            <h1 style="margin:0 0 16px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:600;line-height:1.4;color:#000000;letter-spacing:-0.5px;">${safeSubject || "—"}</h1>
             <p style="margin:0 0 20px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#333333;">Hello, ${safeUsername}</p>
             <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#666666;margin-bottom:28px;">
               ${bodyHtml}
