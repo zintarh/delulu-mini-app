@@ -87,6 +87,7 @@ import {
   getMilestoneLabel,
   getDeluluCreatedAtMs,
   formatMilestoneCountdown,
+  formatResolutionEndsLine,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
 import {
@@ -1040,6 +1041,16 @@ export default function DeluluPage() {
     }
   }, [isSubmitMilestoneSuccess, activeProofMilestoneId]);
 
+  const resolutionEndsLine = useMemo(() => {
+    if (!delulu?.resolutionDeadline) return null;
+    return formatResolutionEndsLine(now, delulu.resolutionDeadline);
+  }, [delulu?.resolutionDeadline, now]);
+
+  const msUntilResolutionEnd = useMemo(() => {
+    if (!delulu?.resolutionDeadline) return null;
+    return delulu.resolutionDeadline.getTime() - now;
+  }, [delulu?.resolutionDeadline, now]);
+
   if (isLoadingDelulu && !delulu) {
     return (
       <div className="h-screen overflow-hidden bg-background">
@@ -1289,16 +1300,14 @@ export default function DeluluPage() {
                     </span>
                   </div>
                   <div className="h-4 w-px bg-border/60" />
-                  <div className="text-muted-foreground text-xs">
-                    Ends{" "}
-                    <span className="font-semibold text-foreground">
-                      {safeDelulu.resolutionDeadline.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
+                  {resolutionEndsLine && (
+                    <div className="text-muted-foreground text-xs">
+                      {resolutionEndsLine.prefix}{" "}
+                      <span className="font-semibold text-foreground">
+                        {resolutionEndsLine.value}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {deluluDescription && (
@@ -1342,11 +1351,23 @@ export default function DeluluPage() {
                           Direct tips help fund progress across milestones.
                         </p>
                       </div>
-                      {!!deluluRemainingDaysTotal && deluluRemainingDaysTotal > 0 && (
-                        <span className="shrink-0 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                          {deluluRemainingDaysTotal}d left
-                        </span>
-                      )}
+                      {msUntilResolutionEnd !== null &&
+                        msUntilResolutionEnd > 0 &&
+                        msUntilResolutionEnd < MS_PER_DAY && (
+                          <span className="shrink-0 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            {formatResolutionEndsLine(now, safeDelulu.resolutionDeadline).value}{" "}
+                            left
+                          </span>
+                        )}
+                      {!!deluluRemainingDaysTotal &&
+                        deluluRemainingDaysTotal > 0 &&
+                        msUntilResolutionEnd !== null &&
+                        msUntilResolutionEnd > 0 &&
+                        msUntilResolutionEnd >= MS_PER_DAY && (
+                          <span className="shrink-0 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            {deluluRemainingDaysTotal}d left
+                          </span>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">

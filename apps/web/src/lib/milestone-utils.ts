@@ -4,6 +4,38 @@
  */
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MS_PER_MINUTE = 60 * 1000;
+
+/**
+ * Single delulu page — resolution row: under 24h left shows "Ends in Xh Ym"; once ended, "Ended on {date}";
+ * otherwise "Ends {date}".
+ */
+export function formatResolutionEndsLine(
+  nowMs: number,
+  resolutionDeadline: Date,
+): { prefix: string; value: string } {
+  const endMs = resolutionDeadline.getTime();
+  const diff = endMs - nowMs;
+  const dateStr = resolutionDeadline.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  if (diff <= 0) {
+    return { prefix: "Ended on", value: dateStr };
+  }
+  if (diff < MS_PER_DAY) {
+    if (diff < MS_PER_MINUTE) {
+      return { prefix: "Ends in", value: "<1m" };
+    }
+    const totalMins = Math.floor(diff / MS_PER_MINUTE);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    const value = h > 0 && m > 0 ? `${h}h ${m}m` : h > 0 ? `${h}h` : `${m}m`;
+    return { prefix: "Ends in", value };
+  }
+  return { prefix: "Ends", value: dateStr };
+}
 
 export interface MilestoneWithDeadline {
   startTime: Date | null;
