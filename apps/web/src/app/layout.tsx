@@ -226,6 +226,8 @@ export const metadata: Metadata = {
   },
   other: {
     "fc:frame": JSON.stringify(frame),
+    "talentapp:project_verification":
+      "388013914dddfaf9eef917711abcf5a4e51ad8b8bb32543a6ea374464cf32bd8ed80df08cbac444af7058282ea33c0415a72bda68b0da574009e714f082e2781",
   },
 };
 
