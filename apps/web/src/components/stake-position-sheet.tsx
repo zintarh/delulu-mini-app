@@ -42,7 +42,7 @@ export function StakePositionSheet({
       open={open}
       onOpenChange={onOpenChange}
       title=""
-      sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[80] rounded-t-3xl bg-card"
+      sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[80] rounded-t-3xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-10 pb-8 px-6 lg:pt-6 text-center text-foreground">

@@ -134,7 +134,7 @@ export function ProofModal({
         onOpenChange(open);
       }}
       title="Submit Proof"
-      sheetClassName="bg-card rounded-t-3xl pb-8 border-t border-border"
+      sheetClassName="rounded-t-3xl pb-8 border-t border-border"
       modalClassName="max-w-md"
     >
       <div className="space-y-4 pt-2">

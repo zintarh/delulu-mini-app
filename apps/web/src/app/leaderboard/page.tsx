@@ -644,7 +644,7 @@ export default function LeaderboardPage() {
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             {activeTab === "campaign"
-              ? `Delulu Monday · ${mondayWeekLabel()}`
+              ? `Leaderboard · ${mondayWeekLabel()}`
               : "Top dreamers by points earned"}
           </p>
         </div>
@@ -669,7 +669,7 @@ export default function LeaderboardPage() {
               ) : (
                 <Trophy className="w-3 h-3" />
               )}
-              {tab === "dreamers" ? "Dreamers" : "Delulu Monday"}
+              {tab === "dreamers" ? "Dreamers" : "Leaderboard"}
             </button>
           ))}
         </div>

@@ -11,7 +11,6 @@ import {
   LogOut,
   Mail,
   Send,
-  Sparkles,
   Trophy,
   User as UserIcon,
   Wallet,
@@ -27,6 +26,7 @@ import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { LogoutSheet } from "@/components/logout-sheet";
+import { AddEmailSheet } from "@/components/add-email-sheet";
 import { TokenBadge } from "@/components/token-badge";
 
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const { user } = useUserStore();
 
   const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
+  const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const { username: contractUsername } = useUsernameByAddress(address);
@@ -109,51 +110,69 @@ export default function SettingsPage() {
               {/* Account */}
               <section>
                 <SectionLabel>Account</SectionLabel>
-                <div className="mt-2 rounded-2xl bg-muted/20 divide-y divide-border/40 overflow-hidden">
-                  <Row
-                    icon={<UserIcon className="w-4 h-4" />}
-                    label="Username"
-                    value={displayUsername ?? "—"}
-                  />
-                  <Row
-                    icon={<Mail className="w-4 h-4" />}
-                    label="Email"
-                    value={email ?? "—"}
-                    valueClassName={email ? undefined : "text-muted-foreground"}
-                  />
+                <div className="mt-2 rounded-2xl bg-muted/20 overflow-hidden flex divide-x divide-border/40">
+                  {/* Username */}
+                  <div className="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                      <UserIcon className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                        Username
+                      </p>
+                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "—"}</p>
+                    </div>
+                  </div>
+                  {/* Email */}
+                  {email ? (
+                    <div className="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                        <Mail className="w-3.5 h-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                          Email
+                        </p>
+                        <p className="text-xs font-medium text-foreground truncate">{email}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setAddEmailSheetOpen(true)}
+                      className="flex-1 flex items-center gap-2 px-3 py-3 hover:bg-muted/40 transition-colors text-left min-w-0"
+                    >
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                        <Mail className="w-3.5 h-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                          Email
+                        </p>
+                        <p className="text-xs font-medium text-[#35d07f] truncate">+ Add email</p>
+                      </div>
+                    </button>
+                  )}
+                  {/* Wallet */}
                   <button
                     type="button"
                     onClick={handleCopyAddress}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                    className="flex-1 flex items-center gap-2 px-3 py-3 hover:bg-muted/40 transition-colors text-left min-w-0"
                     aria-label="Copy wallet address"
                   >
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted/60 text-muted-foreground">
-                      <Wallet className="w-4 h-4" />
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                      <Wallet className="w-3.5 h-3.5" />
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
-                        style={{ fontFamily: "var(--font-manrope)" }}
-                      >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
                         Wallet
                       </p>
-                      <p className="text-sm font-mono text-foreground truncate">
-                        {formatAddress(address)}
-                      </p>
+                      <p className="text-xs font-mono text-foreground truncate">{formatAddress(address)}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                      {copied ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-[#35d07f]" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          Copy
-                        </>
-                      )}
-                    </span>
+                    {copied
+                      ? <Check className="w-3 h-3 text-[#35d07f] shrink-0" />
+                      : <Copy className="w-3 h-3 text-muted-foreground shrink-0" />
+                    }
                   </button>
                 </div>
               </section>
@@ -257,13 +276,6 @@ export default function SettingsPage() {
                     href="/leaderboard"
                   />
                   <LinkRow
-                    icon={<Sparkles className="w-4 h-4" />}
-                    title="Wrapped"
-                    description="Your delulu year in review"
-                    href="/wrap"
-                    accent
-                  />
-                  <LinkRow
                     icon={<Send className="w-4 h-4 text-[#35d07f]" />}
                     title="Join Telegram"
                     description="Talk to the community"
@@ -297,6 +309,11 @@ export default function SettingsPage() {
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
+      />
+
+      <AddEmailSheet
+        open={addEmailSheetOpen}
+        onOpenChange={setAddEmailSheetOpen}
       />
 
       <LogoutSheet

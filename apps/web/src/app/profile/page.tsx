@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +13,9 @@ import {
   Plus,
   Camera,
   Loader2,
+  ChevronRight,
+  ArrowRightLeft,
+  User as UserIcon,
 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
@@ -22,14 +24,12 @@ import { BottomNav } from "@/components/bottom-nav";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { cn } from "@/lib/utils";
-import { useTokenBalance } from "@/hooks/use-token-balance";
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
-import { TokenBadge } from "@/components/token-badge";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
+import { TransferSheet } from "@/components/transfer-sheet";
+import { AddEmailSheet } from "@/components/add-email-sheet";
 
 type TabType = "milestones" | "active" | "ended";
-
 
 export default function ProfilePage() {
   const { isConnected, address } = useAuth();
@@ -44,6 +44,9 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<TabType>("milestones");
   const [copied, setCopied] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [addEmailOpen, setAddEmailOpen] = useState(false);
+  const [profileExpanded, setProfileExpanded] = useState(false);
 
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   const [uploadToast, setUploadToast] = useState<{
@@ -53,20 +56,10 @@ export default function ProfilePage() {
 
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || null;
-  // Always fetch live from Supabase — Zustand store only has pfp if set in current session
   const pfpFromSupabase = usePfp(address);
-  // pfpFromSupabase: undefined = loading, null = no pfp, string = url
-  // Fall back to store value (set optimistically on upload) while Supabase is loading
   const avatarUrl = (pfpFromSupabase !== undefined ? pfpFromSupabase : user?.pfpUrl) || null;
 
-  const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
-    useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
-
-  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!address },
-  });
+  const email = user?.email ?? null;
 
   const {
     delulus: ongoingDelulus,
@@ -114,8 +107,6 @@ export default function ProfilePage() {
 
     const previousPfp = user?.pfpUrl;
     const previewUrl = URL.createObjectURL(file);
-
-    // Optimistic UI: show new image immediately while upload runs.
     updateProfile({ pfpUrl: previewUrl });
 
     try {
@@ -156,52 +147,53 @@ export default function ProfilePage() {
           {address && (
             <>
               {/* ── Hero ─────────────────────────────────────── */}
-              <section className="relative px-4 pt-6 pb-5">
-                {/* Subtle ambient glow behind hero */}
+              <section className="relative px-4 pt-8 pb-6">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(120%_60%_at_50%_0%,rgba(252,255,82,0.06),transparent_70%)]"
                 />
 
-                {/* Settings — subtle top-right */}
-                <Link
-                  href="/settings"
-                  aria-label="Settings"
-                  className="absolute top-4 right-4 inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <SettingsIcon className="w-4 h-4" />
-                </Link>
-
-                {/* Avatar + identity */}
-                <div className="relative flex items-start gap-4">
-                  <button
-                    type="button"
-                    onClick={openPfpPicker}
-                    disabled={isPfpUploading}
-                    className="relative w-20 h-20 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
-                  >
-                    {pfpFromSupabase === undefined && !user?.pfpUrl ? (
-                      <div className="w-full h-full bg-muted animate-pulse rounded-full" />
-                    ) : avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayUsername || formatAddress(address)}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl font-bold bg-muted text-muted-foreground">
-                        {(displayUsername || address || "?").slice(0, 2).toUpperCase()}
+                {/* Avatar centred with camera button */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={openPfpPicker}
+                      disabled={isPfpUploading}
+                      className="relative w-24 h-24 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
+                    >
+                      {pfpFromSupabase === undefined && !user?.pfpUrl ? (
+                        <div className="w-full h-full bg-muted animate-pulse rounded-full" />
+                      ) : avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayUsername || formatAddress(address)}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl font-bold bg-muted text-muted-foreground">
+                          {(displayUsername || address || "?").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isPfpUploading
+                          ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          : <Camera className="w-5 h-5 text-white" />
+                        }
                       </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isPfpUploading
-                        ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-                        : <Camera className="w-5 h-5 text-white" />
-                      }
-                    </div>
-                  </button>
+                    </button>
+                    {/* Camera badge */}
+                    <button
+                      type="button"
+                      onClick={openPfpPicker}
+                      disabled={isPfpUploading}
+                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#35d07f] border-2 border-background flex items-center justify-center shadow"
+                      aria-label="Change photo"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
                   <input
                     ref={pfpInputRef}
                     type="file"
@@ -210,25 +202,17 @@ export default function ProfilePage() {
                     onChange={handlePfpFileChange}
                   />
 
-                  <div className="min-w-0 flex-1 pt-1 pr-12">
+                  {/* Name */}
+                  <div className="text-center">
                     <h1
-                      className="text-2xl font-bold leading-tight truncate capitalize"
+                      className="text-2xl font-bold leading-tight capitalize"
                       style={{ fontFamily: '"Clash Display", sans-serif' }}
                     >
                       {displayUsername || formatAddress(address)}
                     </h1>
-                    {displayUsername && (
-                      <p
-                        className="mt-0.5 text-sm text-muted-foreground truncate"
-                        style={{ fontFamily: "var(--font-manrope)" }}
-                      >
-                        @{displayUsername}
-                      </p>
-                    )}
                     <button
                       onClick={handleCopyAddress}
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      style={{ fontFamily: "var(--font-manrope)" }}
+                      className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <span className="font-mono">{formatAddress(address)}</span>
                       {copied ? (
@@ -239,57 +223,123 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-
-                {/* Balance cards */}
-                <div className="relative mt-5 grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
-                    <img src="/celo.png" alt="" className="w-7 h-7 rounded-full shrink-0" />
-                    <div className="min-w-0">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={{ fontFamily: "var(--font-manrope)" }}
-                      >
-                        Celo
-                      </p>
-                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
-                        {!isCeloLoading && celoBalance
-                          ? parseFloat(celoBalance.formatted).toFixed(3)
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
-                    <TokenBadge
-                      tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
-                      size="sm"
-                      showText={false}
-                    />
-                    <div className="min-w-0">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={{ fontFamily: "var(--font-manrope)" }}
-                      >
-                        G$
-                      </p>
-                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
-                        {!isBalanceLoading ? parseFloat(gDollarBalance).toFixed(2) : "—"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Primary CTA */}
-                <button
-                  onClick={() => router.push("/board")}
-                  className="relative mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-delulu-yellow text-delulu-charcoal text-sm font-bold shadow-sm hover:brightness-105 active:scale-[0.99] transition-all"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  <Plus className="w-4 h-4" strokeWidth={3} />
-                  Manifest a new dream
-                </button>
               </section>
 
-              {/* ── Tabs ─────────────────────────────────────────── */}
+              {/* ── Menu rows ────────────────────────────────────── */}
+              <section className="px-4 pb-2">
+                <div className="rounded-2xl bg-muted/20 border border-border/40 divide-y divide-border/40 overflow-hidden">
+
+                  {/* Profile row */}
+                  <button
+                    type="button"
+                    onClick={() => setProfileExpanded((v) => !v)}
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                      <UserIcon className="w-4 h-4" />
+                    </span>
+                    <span
+                      className="flex-1 text-sm font-semibold text-foreground"
+                      style={{ fontFamily: "var(--font-manrope)" }}
+                    >
+                      Profile
+                    </span>
+                    <ChevronRight
+                      className={cn(
+                        "w-4 h-4 text-muted-foreground/60 transition-transform",
+                        profileExpanded && "rotate-90"
+                      )}
+                    />
+                  </button>
+
+                  {/* Profile expanded details */}
+                  {profileExpanded && (
+                    <div className="bg-muted/10 divide-y divide-border/30">
+                      <ProfileDetailRow label="Username" value={displayUsername ?? "—"} />
+                      <button
+                        type="button"
+                        onClick={handleCopyAddress}
+                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                      >
+                        <div className="flex-1 min-w-0 pl-12">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+                            Wallet address
+                          </p>
+                          <p className="text-sm font-mono text-foreground truncate">{formatAddress(address)}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground inline-flex items-center gap-1 pt-3 shrink-0">
+                          {copied ? (
+                            <><Check className="w-3.5 h-3.5 text-[#35d07f]" />Copied</>
+                          ) : (
+                            <><Copy className="w-3.5 h-3.5" />Copy</>
+                          )}
+                        </span>
+                      </button>
+                      {email ? (
+                        <ProfileDetailRow label="Email" value={email} />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setAddEmailOpen(true)}
+                          className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                        >
+                          <div className="flex-1 min-w-0 pl-12">
+                            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+                              Email
+                            </p>
+                            <p className="text-sm font-medium text-[#35d07f]">+ Add email</p>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Transfer row */}
+                  <button
+                    type="button"
+                    onClick={() => setTransferOpen(true)}
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#35d07f]/15 text-[#35d07f] shrink-0">
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-sm font-semibold text-foreground"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        Transfer
+                      </p>
+                      <p
+                        className="text-xs text-muted-foreground"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
+                        Send G$ or CELO to another wallet
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                  </button>
+
+                  {/* Settings row */}
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-3 px-4 py-4 hover:bg-muted/40 transition-colors"
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                      <SettingsIcon className="w-4 h-4" />
+                    </span>
+                    <span
+                      className="flex-1 text-sm font-semibold text-foreground"
+                      style={{ fontFamily: "var(--font-manrope)" }}
+                    >
+                      Settings
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                  </Link>
+                </div>
+              </section>
+
+{/* ── Tabs ─────────────────────────────────────────── */}
               <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
                 <div className="flex items-center gap-1 p-1 rounded-full bg-muted/20 border border-border/40">
                   {(["milestones", "active", "ended"] as TabType[]).map((tab) => (
@@ -312,23 +362,18 @@ export default function ProfilePage() {
 
               {/* ── Tab content ──────────────────────────────────── */}
 
-              {/* Milestones */}
               {activeTab === "milestones" && (
                 <div className="pb-24 lg:pb-8">
                   <OngoingMilestonesSection onCreateClick={() => router.push("/board")} />
                 </div>
               )}
 
-              {/* Active */}
               {activeTab === "active" && (
                 <div className="px-4 pt-4 pb-24 lg:pb-8">
                   {isLoadingOngoing ? (
                     <div className="space-y-3">
                       {Array.from({ length: 4 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-full h-52 bg-muted rounded-2xl animate-pulse"
-                        />
+                        <div key={i} className="w-full h-52 bg-muted rounded-2xl animate-pulse" />
                       ))}
                     </div>
                   ) : ongoingDelulus.length === 0 ? (
@@ -359,19 +404,13 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-3">
                       {ongoingDelulus.map((d) => (
-                        <DeluluCard
-                          key={d.id}
-                          delusion={d}
-                          href={`/delulu/${d.id}`}
-                          className="mb-0"
-                        />
+                        <DeluluCard key={d.id} delusion={d} href={`/delulu/${d.id}`} className="mb-0" />
                       ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Ended */}
               {activeTab === "ended" && (
                 <div className="px-4 py-4 pb-24 lg:pb-8">
                   {isLoadingDelulus ? (
@@ -433,6 +472,9 @@ export default function ProfilePage() {
         onCreateClick={handleCreateClick}
       />
 
+      <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} />
+      <AddEmailSheet open={addEmailOpen} onOpenChange={setAddEmailOpen} />
+
       {uploadToast && (
         <div className="fixed bottom-24 left-1/2 z-[120] -translate-x-1/2">
           <div
@@ -447,7 +489,19 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
+function ProfileDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3">
+      <div className="flex-1 min-w-0 pl-12">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-medium">
+          {label}
+        </p>
+        <p className="text-sm font-medium text-foreground truncate">{value}</p>
+      </div>
     </div>
   );
 }

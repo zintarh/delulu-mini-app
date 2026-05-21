@@ -43,12 +43,12 @@ export function VerificationSheet({
         open={open}
         onOpenChange={onOpenChange}
         title="Verify Your Identity"
-        sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+        sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
         modalClassName="max-w-lg"
       >
         <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
           <div className="text-center py-8">
-            <p className="text-sm text-white/60">Loading gate info...</p>
+            <p className="text-sm text-muted-foreground">Loading gate info...</p>
           </div>
         </div>
       </ResponsiveSheet>
@@ -60,15 +60,15 @@ export function VerificationSheet({
       open={open}
       onOpenChange={onOpenChange}
       title="Verify Your Identity"
-      sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+      sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-6 pb-8 px-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               Verify Your Identity
             </h2>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-muted-foreground">
               Please verify your nationality to stake on this delulu
             </p>
           </div>

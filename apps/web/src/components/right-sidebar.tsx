@@ -246,14 +246,14 @@ export function RightSidebar() {
             </div>
           </div>
 
-          {/* ── Delulu Monday leaderboard ── */}
+          {/* ── Leaderboard ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2
                 className="text-sm font-semibold text-foreground"
                 style={{ fontFamily: "'Clash Display', sans-serif" }}
               >
-                Delulu Monday
+                Leaderboard
               </h2>
               <button
                 type="button"

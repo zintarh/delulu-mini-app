@@ -101,14 +101,14 @@ export function HowItWorksSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={content.title}
-      sheetClassName="border-t-2 border-white/10 max-h-[90vh] overflow-hidden p-0 rounded-t-3xl bg-black [&>button]:text-white [&>button]:bg-black/80 [&>button]:hover:bg-black/20"
+      sheetClassName="border-t border-border max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-muted-foreground [&>button]:bg-muted/40 [&>button]:hover:bg-muted/60"
       modalClassName="max-w-2xl"
     >
         <div className="relative flex flex-col overflow-y-auto pb-8">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
             <div className="mb-6">
-              <h2 className="text-lg font-black text-white">
+              <h2 className="text-lg font-black text-foreground">
                 {content.title}
               </h2>
             </div>
@@ -118,19 +118,19 @@ export function HowItWorksSheet({
               {content.steps.map((step, index) => (
                 <div
                   key={index}
-                  className="bg-black rounded-2xl p-4 border border-white/10"
+                  className="bg-muted/20 rounded-2xl p-4 border border-border"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-black text-white">
+                    <div className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-black text-foreground">
                         {index + 1}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-black text-white mb-1">
+                      <h3 className="text-sm font-black text-foreground mb-1">
                         {step.title}
                       </h3>
-                      <p className="text-sm text-white/70 leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {step.description}
                       </p>
                     </div>

@@ -32,21 +32,21 @@ export function LogoutSheet({
       open={open}
       onOpenChange={onOpenChange}
       title="Logout"
-      sheetClassName="border-t border-white/10 !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl bg-black"
+      sheetClassName="border-t border-border !h-auto !max-h-[90vh] overflow-y-auto !p-0 !z-[70] rounded-t-3xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-8 px-6 lg:pt-6">
         <div className="text-center mb-4">
-          <h2 className="text-sm text-white/60">{displayName}</h2>
+          <h2 className="text-sm text-muted-foreground">{displayName}</h2>
         </div>
       </div>
 
-      <div className="w-full border-t border-white/10 my-6" />
+      <div className="w-full border-t border-border my-6" />
 
       <div className="max-w-lg mx-auto px-6 pb-8">
         <button
           onClick={onLogout}
-          className="w-full py-3 font-bold text-sm rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000] bg-black text-white"
+          className="w-full py-3 font-bold text-sm rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 transition-colors"
         >
           Logout
         </button>

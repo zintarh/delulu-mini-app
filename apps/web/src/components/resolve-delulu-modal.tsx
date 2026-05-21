@@ -50,7 +50,7 @@ export function ResolveDeluluModal({
       onOpenChange={onOpenChange}
       showClose={!isLoading}
       title=""
-      sheetClassName="border-t-2 border-border !p-0 !z-[100] rounded-t-3xl bg-card"
+      sheetClassName="border-t-2 border-border !p-0 !z-[100] rounded-t-3xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-8 pb-6 px-6 lg:pt-6">

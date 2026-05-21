@@ -251,7 +251,7 @@ export function UserSetupModal({
       onOpenChange={handleClose}
       showClose={false}
       title=""
-      sheetClassName="border-t border-border !p-0 !z-[100] rounded-t-3xl bg-card"
+      sheetClassName="border-t border-border !p-0 !z-[100] rounded-t-3xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-8 pb-6 px-6 lg:pt-6 text-foreground">
@@ -303,7 +303,7 @@ export function UserSetupModal({
                   placeholder="yourusername"
                   className={cn(
                     "w-full pl-8 pr-12 py-3 rounded-lg border font-medium",
-                    "bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
+                    "bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
                     "transition-all",
                     usernameError
                       ? "border-destructive"
@@ -354,7 +354,7 @@ export function UserSetupModal({
                 placeholder="you@example.com"
                 className={cn(
                   "w-full px-4 py-3 rounded-lg border font-medium",
-                  "bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
+                  "bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
                   "transition-all",
                   emailError ? "border-destructive" : "border-border"
                 )}

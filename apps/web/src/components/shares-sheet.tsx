@@ -207,7 +207,7 @@ export function SharesSheet({
       open={open}
       onOpenChange={onOpenChange}
       title=""
-      sheetClassName="border-t border-border max-h-[85vh] overflow-hidden p-0 rounded-t-3xl bg-background"
+      sheetClassName="border-t border-border max-h-[85vh] overflow-hidden p-0 rounded-t-3xl"
       modalClassName="max-w-sm"
     >
       <div className="flex flex-col h-full">
@@ -260,7 +260,7 @@ export function SharesSheet({
         ) : (
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
             {/* Amount input */}
-            <div className="rounded-2xl border-2 border-border bg-card p-4">
+            <div className="rounded-2xl border-2 border-border p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   {isBuy ? "Shares to buy" : "Shares to sell"}
