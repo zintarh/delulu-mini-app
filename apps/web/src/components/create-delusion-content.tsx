@@ -32,7 +32,6 @@ import {
   createFlowGap,
 } from "@/components/create-flow-layout";
 import { CreateFlowStepProgress } from "@/components/create-flow-step-progress";
-import { CreateFlowMobileFooter } from "@/components/create-flow-mobile-footer";
 
 const UserSetupModal = dynamic(
   () => import("@/components/user-setup-modal").then((m) => m.UserSetupModal),
@@ -356,241 +355,167 @@ export function CreateDelusionContent({
         </div>
 
         {step === "dream" && (
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-            <div
-              className={cn(
-                "flex-1 min-h-0 overflow-y-auto scrollbar-hide",
-                createFlowPx,
-                createFlowPy,
-              )}
-            >
-              <div className="flex flex-col gap-5">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight lg:text-[1.75rem]">
-                    What&apos;s your dream?
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    We&apos;ll suggest three daily habits to get you started.
-                  </p>
-                </div>
-
-                <textarea
-                  value={ultimateGoal}
-                  onChange={(e) => setUltimateGoal(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. sleep better, get fit, land a job…"
-                  className="w-full min-h-[96px] resize-none rounded-2xl border border-border bg-background px-4 py-3.5 text-base font-semibold leading-snug placeholder:text-muted-foreground/50 focus-delulu"
-                  autoFocus
-                />
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Quick picks
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 lg:grid-cols-5">
-                    {GOAL_SUGGESTIONS.map((label) => {
-                      const selected = ultimateGoal === label;
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => setUltimateGoal(label)}
-                          className={cn(
-                            "rounded-full px-2 py-1.5 text-center text-[11px] font-semibold leading-tight transition-all sm:px-3 sm:py-2 sm:text-xs",
-                            selected
-                              ? "bg-delulu-blue text-white"
-                              : "bg-secondary text-foreground hover:bg-secondary/80",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="hidden lg:flex flex-col gap-2 pt-1">
-                  {aiError && <p className="text-xs text-destructive">{aiError}</p>}
-                  <button
-                    type="button"
-                    onClick={handleAnalyzeGoal}
-                    disabled={!ultimateGoal.trim() || isLoadingAI}
-                    className={cn(
-                      "w-full rounded-full py-3.5 text-sm font-bold transition-all lg:w-fit lg:min-w-[200px] lg:px-8",
-                      "bg-foreground text-background active:scale-[0.98]",
-                      (!ultimateGoal.trim() || isLoadingAI) &&
-                        "cursor-not-allowed opacity-40",
-                    )}
-                  >
-                    {isLoadingAI ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Suggesting habits…
-                      </span>
-                    ) : (
-                      "Get habit ideas"
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStep("manifest")}
-                    className="w-fit text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
-                    Skip to manifest →
-                  </button>
-                </div>
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+            <div className={cn("flex flex-col gap-5", createFlowPx, createFlowPy)}>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight lg:text-[1.75rem]">
+                  What&apos;s your dream?
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  We&apos;ll suggest three daily habits to get you started.
+                </p>
               </div>
-            </div>
 
-            <CreateFlowMobileFooter>
-              {aiError && <p className="mb-2 text-xs text-destructive">{aiError}</p>}
-              <button
-                type="button"
-                onClick={handleAnalyzeGoal}
-                disabled={!ultimateGoal.trim() || isLoadingAI}
-                className={cn(
-                  "w-full rounded-full py-3.5 text-sm font-bold transition-all",
-                  "bg-foreground text-background active:scale-[0.98]",
-                  (!ultimateGoal.trim() || isLoadingAI) && "cursor-not-allowed opacity-40",
-                )}
-              >
-                {isLoadingAI ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Suggesting habits…
-                  </span>
-                ) : (
-                  "Get habit ideas"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("manifest")}
-                className="mt-2.5 w-full py-2 text-center text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Skip to manifest →
-              </button>
-            </CreateFlowMobileFooter>
-          </div>
-        )}
+              <textarea
+                value={ultimateGoal}
+                onChange={(e) => setUltimateGoal(e.target.value)}
+                rows={3}
+                placeholder="e.g. sleep better, get fit, land a job…"
+                className="w-full min-h-[96px] resize-none rounded-2xl border border-border bg-background px-4 py-3.5 text-base font-semibold leading-snug placeholder:text-muted-foreground/50 focus-delulu"
+                autoFocus
+              />
 
-        {step === "habits" && (
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-            <div
-              className={cn(
-                "flex-1 min-h-0 overflow-y-auto scrollbar-hide",
-                createFlowPx,
-                createFlowPy,
-              )}
-            >
-              <div className={cn("flex flex-col", createFlowGap)}>
-                <div>
-                  <p className="text-xs text-muted-foreground truncate">{ultimateGoal}</p>
-                  <h2 className="mt-0.5 text-2xl font-black tracking-tight lg:text-3xl">
-                    Already doing any?
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Uncheck what you already do. We start with the first one left.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  {aiHabits.map((habit) => {
-                    const has = alreadyHas.has(habit.id);
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Quick picks
+                </p>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 lg:grid-cols-5">
+                  {GOAL_SUGGESTIONS.map((label) => {
+                    const selected = ultimateGoal === label;
                     return (
                       <button
-                        key={habit.id}
+                        key={label}
                         type="button"
-                        onClick={() => toggleAlreadyHas(habit.id)}
+                        onClick={() => setUltimateGoal(label)}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all",
-                          has
-                            ? "border-border/60 bg-secondary/50 opacity-60"
-                            : "border-border bg-secondary hover:border-foreground/20",
+                          "rounded-full px-2 py-1.5 text-center text-[11px] font-semibold leading-tight transition-all sm:px-3 sm:py-2 sm:text-xs",
+                          selected
+                            ? "bg-delulu-blue text-white"
+                            : "bg-secondary text-foreground hover:bg-secondary/80",
                         )}
                       >
-                        <div
-                          className={cn(
-                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
-                            has
-                              ? "border-foreground/40 bg-foreground/10"
-                              : "border-border bg-background",
-                          )}
-                        >
-                          {has && (
-                            <Check className="h-3 w-3 text-foreground/60" strokeWidth={3} />
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "min-w-0 flex-1 text-sm font-semibold leading-snug",
-                            has && "line-through text-muted-foreground",
-                          )}
-                        >
-                          {habit.title}
-                        </span>
+                        {label}
                       </button>
                     );
                   })}
                 </div>
+              </div>
 
-                <div className="hidden lg:block pt-1">
-                  {aiError && <p className="mb-2 text-xs text-destructive">{aiError}</p>}
-                  <button
-                    type="button"
-                    onClick={handleContinueToManifest}
-                    disabled={isSavingRoadmap || !address}
-                    className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-all lg:w-fit lg:px-8",
-                      "bg-foreground text-background active:scale-[0.98]",
-                      (isSavingRoadmap || !address) && "cursor-not-allowed opacity-40",
-                    )}
-                  >
-                    {isSavingRoadmap ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Preparing…
-                      </>
-                    ) : roadmapHabits.length > 0 ? (
-                      <>
-                        Continue
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    ) : (
-                      "Create without habits"
-                    )}
-                  </button>
-                </div>
+              <div className="flex flex-col gap-2 pt-1 pb-8">
+                {aiError && <p className="text-xs text-destructive">{aiError}</p>}
+                <button
+                  type="button"
+                  onClick={handleAnalyzeGoal}
+                  disabled={!ultimateGoal.trim() || isLoadingAI}
+                  className={cn(
+                    "w-full rounded-full py-3.5 text-sm font-bold transition-all lg:w-fit lg:min-w-[200px] lg:px-8",
+                    "bg-foreground text-background active:scale-[0.98]",
+                    (!ultimateGoal.trim() || isLoadingAI) &&
+                      "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  {isLoadingAI ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Suggesting habits…
+                    </span>
+                  ) : (
+                    "Get habit ideas"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("manifest")}
+                  className="py-2 text-center text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground lg:text-left"
+                >
+                  Skip to manifest →
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            <CreateFlowMobileFooter>
-              {aiError && <p className="mb-2 text-xs text-destructive">{aiError}</p>}
-              <button
-                type="button"
-                onClick={handleContinueToManifest}
-                disabled={isSavingRoadmap || !address}
-                className={cn(
-                  "flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-all",
-                  "bg-foreground text-background active:scale-[0.98]",
-                  (isSavingRoadmap || !address) && "cursor-not-allowed opacity-40",
-                )}
-              >
-                {isSavingRoadmap ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Preparing…
-                  </>
-                ) : roadmapHabits.length > 0 ? (
-                  <>
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                ) : (
-                  "Create without habits"
-                )}
-              </button>
-            </CreateFlowMobileFooter>
+        {step === "habits" && (
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+            <div className={cn("flex flex-col", createFlowGap, createFlowPx, createFlowPy)}>
+              <div>
+                <p className="text-xs text-muted-foreground truncate">{ultimateGoal}</p>
+                <h2 className="mt-0.5 text-2xl font-black tracking-tight lg:text-3xl">
+                  Already doing any?
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Uncheck what you already do. We start with the first one left.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {aiHabits.map((habit) => {
+                  const has = alreadyHas.has(habit.id);
+                  return (
+                    <button
+                      key={habit.id}
+                      type="button"
+                      onClick={() => toggleAlreadyHas(habit.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all",
+                        has
+                          ? "border-border/60 bg-secondary/50 opacity-60"
+                          : "border-border bg-secondary hover:border-foreground/20",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
+                          has
+                            ? "border-foreground/40 bg-foreground/10"
+                            : "border-border bg-background",
+                        )}
+                      >
+                        {has && (
+                          <Check className="h-3 w-3 text-foreground/60" strokeWidth={3} />
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 text-sm font-semibold leading-snug",
+                          has && "line-through text-muted-foreground",
+                        )}
+                      >
+                        {habit.title}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1 pb-8">
+                {aiError && <p className="text-xs text-destructive">{aiError}</p>}
+                <button
+                  type="button"
+                  onClick={handleContinueToManifest}
+                  disabled={isSavingRoadmap || !address}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-all lg:w-fit lg:px-8",
+                    "bg-foreground text-background active:scale-[0.98]",
+                    (isSavingRoadmap || !address) && "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  {isSavingRoadmap ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Preparing…
+                    </>
+                  ) : roadmapHabits.length > 0 ? (
+                    <>
+                      Continue
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  ) : (
+                    "Create without habits"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

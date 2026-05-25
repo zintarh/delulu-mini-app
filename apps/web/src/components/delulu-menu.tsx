@@ -38,18 +38,18 @@ export function DeluluMenu({ delulu, onCancel }: DeluluMenuProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-full hover:bg-black/80 transition-colors"
+        className="p-1.5 rounded-full hover:bg-secondary transition-colors"
         aria-label="More options"
       >
-        <MoreVertical className="w-4 h-4 text-white/60" />
+        <MoreVertical className="w-4 h-4 text-muted-foreground" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-8 w-40 bg-black border border-white/10 rounded-xl shadow-lg overflow-hidden z-50">
+        <div className="absolute right-0 top-8 w-40 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
           {!delulu.isCancelled && !delulu.isResolved && (
             <button
               onClick={handleCancel}
-              className="w-full px-4 py-2.5 flex items-center gap-2 text-left hover:bg-black transition-colors"
+              className="w-full px-4 py-2.5 flex items-center gap-2 text-left hover:bg-secondary transition-colors"
             >
               <X className="w-4 h-4 text-red-400" />
               <span className="text-sm text-red-400 font-medium">Cancel</span>

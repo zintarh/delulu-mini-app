@@ -148,7 +148,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
       {/* Dropdown for Browser Testing (MetaMask, etc) */}
       {!isFarcasterEnv && showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-black border-2 border-delulu-dark rounded-xl shadow-[0_4px_0_0_#0a0a0a] z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-card border-2 border-border rounded-xl shadow-neo z-50 overflow-hidden">
           <div className="p-2 space-y-1">
             {browserConnectors.length === 0 ? (
               <div className="px-4 py-2 text-sm text-gray-500">
@@ -162,7 +162,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
                     connect({ connector });
                     setShowDropdown(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-black/20 rounded-lg transition-colors flex items-center gap-3"
+                  className="w-full text-left px-4 py-3 text-sm font-bold text-foreground hover:bg-secondary rounded-lg transition-colors flex items-center gap-3"
                 >
                   {getConnectorIcon(connector)}
                   {getConnectorLabel(connector)}

@@ -64,23 +64,23 @@ export function ConnectedAccount({
         <button
           className={cn(
             "flex items-center gap-2 pl-1 pr-4 py-1",
-            "bg-gradient-to-b from-white/20 via-white/10 to-white/5",
+            "bg-secondary",
             "rounded-xl",
-            "border border-gray-700",
-            "shadow-[0_2px_0_0_rgba(0,0,0,0.2)]",
-            "active:shadow-[0_1px_0_0_rgba(0,0,0,0.2)] active:translate-y-0.5",
+            "border border-border",
+            "shadow-neo-sm",
+            "active:shadow-none active:translate-y-0.5",
             "transition-all duration-150",
             className
           )}
           onClick={() => setShowSheet(true)}
         >
           {/* Avatar */}
-          <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center">
-            <span className="text-[10px] font-bold text-delulu-dark">
+          <div className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center">
+            <span className="text-[10px] font-bold text-background">
               {initials}
             </span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-foreground">
             {truncatedAddress}
           </span>
         </button>

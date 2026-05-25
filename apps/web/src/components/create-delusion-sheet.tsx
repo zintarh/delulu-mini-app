@@ -345,7 +345,7 @@ export function CreateDelusionSheet({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent
           side="bottom"
-          className="border-t-2 border-white/10 h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-white [&>button]:bg-black/80 [&>button]:hover:bg-black/20 relative bg-black !animate-none !transition-none data-[state=open]:!slide-in-from-bottom-0 data-[state=closed]:!slide-out-to-bottom-0"
+          className="border-t-2 border-border h-screen max-h-screen overflow-hidden p-0 rounded-t-3xl [&>button]:text-foreground [&>button]:bg-secondary [&>button]:hover:bg-secondary/80 relative bg-background !animate-none !transition-none data-[state=open]:!slide-in-from-bottom-0 data-[state=closed]:!slide-out-to-bottom-0"
         >
           <div className="relative z-10 h-full flex flex-col [&_button[data-radix-dialog-close]]:z-[100]">
             <SheetTitle className="sr-only">Manifest</SheetTitle>
@@ -372,10 +372,10 @@ export function CreateDelusionSheet({
                         key={step}
                         className={`h-1 rounded-full transition-all duration-300 ${
                           step === currentStep
-                            ? "w-12 bg-black"
+                            ? "w-12 bg-foreground"
                             : step < currentStep
-                            ? "w-12 bg-black/80"
-                            : "w-12 bg-black/20"
+                            ? "w-12 bg-foreground/60"
+                            : "w-12 bg-foreground/20"
                         }`}
                       />
                     ))}
@@ -383,7 +383,7 @@ export function CreateDelusionSheet({
 
                   <div className="absolute top-16 left-0 right-0 text-center px-6 z-10">
                     <p
-                      className="text-sm font-bold text-white/80 "
+                      className="text-sm font-bold text-foreground/80 "
                       style={{ fontFamily: "var(--font-gloria)" }}
                     >
                       {HYPE_TEXT[currentStep]?.subtitle || "Continue"}
@@ -654,7 +654,7 @@ export function CreateDelusionSheet({
                             min={0}
                             max={10000}
                             step="0.01"
-                            className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-black rounded-2xl px-4 transition-colors"
+                            className="text-6xl font-black text-delulu-dark bg-transparent border-none outline-none text-center w-auto inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:bg-secondary rounded-2xl px-4 transition-colors"
                             style={{
                               width: `${
                                 Math.max(stakeAmount[0].toString().length, 2) *
@@ -690,7 +690,7 @@ export function CreateDelusionSheet({
 
                       {/* Share estimate banner */}
                       {currentStakeAmount >= 1 && (
-                        <div className="rounded-2xl bg-black/10 border border-black/10 px-5 py-4 text-center">
+                        <div className="rounded-2xl bg-secondary/50 border border-border px-5 py-4 text-center">
                           <p className="text-xs text-delulu-dark/50 uppercase tracking-widest mb-1 font-bold">
                             You start with
                           </p>
@@ -779,7 +779,7 @@ export function CreateDelusionSheet({
                                 : "Invalid date"}
                             </p>
                           </div>
-                          <div className="w-px h-12 bg-black/20" />
+                          <div className="w-px h-12 bg-border" />
                           <div>
                             <p className="text-xs text-delulu-dark/50 uppercase tracking-wide mb-1">
                               Initial Shares
@@ -802,7 +802,7 @@ export function CreateDelusionSheet({
                           </div>
                         )}
 
-                        <div className="inline-block px-6 py-3 bg-black/80 rounded-full">
+                        <div className="inline-block px-6 py-3 bg-secondary rounded-full">
                           <p className="text-sm font-bold text-delulu-dark">
                             Staking as BELIEVER
                           </p>
@@ -813,7 +813,7 @@ export function CreateDelusionSheet({
                 )}
               </div>
 
-              <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-black border-t border-white/10">
+              <div className="sticky bottom-0 left-0 right-0 px-6 py-4 bg-background border-t border-border">
                 {currentStep < 4 ? (
                   <div className="w-full max-w-md mx-auto flex items-center gap-4">
                     {currentStep > 0 && (
@@ -821,8 +821,8 @@ export function CreateDelusionSheet({
                         onClick={handleBack}
                         className={cn(
                           "w-14 h-14",
-                          "bg-black text-white",
-                          "rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000]",
+                          "bg-secondary text-foreground",
+                          "rounded-md border-2 border-border shadow-neo",
                           "flex items-center justify-center"
                         )}
                       >
@@ -836,8 +836,8 @@ export function CreateDelusionSheet({
                       onClick={handleBack}
                       className={cn(
                         "w-14 h-14",
-                        "bg-black text-white",
-                        "rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000]",
+                        "bg-secondary text-foreground",
+                        "rounded-md border-2 border-border shadow-neo",
                         "flex items-center justify-center"
                       )}
                     >
@@ -865,8 +865,8 @@ export function CreateDelusionSheet({
                         className={cn(
                           "flex-1",
                           "px-8 py-4",
-                          "bg-black text-delulu-dark text-lg",
-                          "rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000]",
+                          "bg-delulu-charcoal text-white text-lg",
+                          "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19]",
                           "flex items-center justify-center gap-2"
                         )}
                       >
@@ -931,8 +931,8 @@ export function CreateDelusionSheet({
                         className={cn(
                           "flex-1",
                           "px-8 py-4",
-                          "bg-black text-delulu-dark text-lg",
-                          "rounded-md border-2 border-black shadow-[3px_3px_0px_0px_#000000]",
+                          "bg-delulu-charcoal text-white text-lg",
+                          "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19]",
                           "flex items-center justify-center gap-2"
                         )}
                       >

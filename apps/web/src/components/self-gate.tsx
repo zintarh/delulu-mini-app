@@ -114,13 +114,13 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-black border border-white/10">
+    <div className="w-full max-w-md mx-auto p-6 rounded-2xl bg-card border border-border">
       <div className="text-center space-y-4">
         <div>
-          <p className="text-xs font-semibold text-white/80 mb-1">
+          <p className="text-xs font-semibold text-foreground/80 mb-1">
             Verify that you&apos;re a {countryName} citizen to stake
           </p>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-muted-foreground">
             Age {SELF_CONFIG.MINIMUM_AGE}+ & Nationality required
           </p>
         </div>
@@ -141,8 +141,8 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
               </div>
             </div>
             <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-white mb-4" />
-              <p className="text-sm text-white/60">
+              <Loader2 className="w-8 h-8 animate-spin text-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">
                 Generating verification code...
               </p>
             </div>
@@ -161,10 +161,10 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
               <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
                 <CheckCircle className="w-12 h-12 text-green-500" />
               </div>
-              <p className="text-lg font-bold text-white mb-2">
+              <p className="text-lg font-bold text-foreground mb-2">
                 Verification Successful! ✅
               </p>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-muted-foreground">
                 Verified as {countryName} citizen
               </p>
             </div>
@@ -188,7 +188,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-2 bg-black rounded-xl inline-block">
+              <div className="p-2 bg-white rounded-xl inline-block">
                 <div className="w-50 h-50 overflow-hidden flex items-center justify-center">
                   <div
                     style={{ transform: "scale(1)", transformOrigin: "center" }}
@@ -202,7 +202,7 @@ export function SelfGate({ countryCode, onVerified }: SelfGateProps) {
                 </div>
               </div>
             </div>
-            <p className="text-xs text-white/40 text-center">
+            <p className="text-xs text-muted-foreground/60 text-center">
               Scan QR code to verify
             </p>
           </div>
