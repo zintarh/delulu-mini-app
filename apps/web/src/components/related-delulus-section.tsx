@@ -66,7 +66,7 @@ export function RelatedDelulusSection({
       </h2>
 
       <div
-        className="-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1 scrollbar-hide snap-x snap-mandatory overscroll-x-contain touch-pan-x lg:overflow-visible"
+        className="-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1 scrollbar-hide overscroll-x-contain lg:overflow-visible"
         role="region"
         aria-label="More delulus to explore"
       >
