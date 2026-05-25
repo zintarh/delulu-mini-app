@@ -607,6 +607,12 @@ export default function DeluluPage() {
       setTipError("Enter a valid tip amount greater than 0.");
       return;
     }
+    if (amountNum > walletBalanceNum) {
+      setTipError(
+        `Insufficient balance. You have ${walletBalanceLabel} ${tokenSymbol} available.`,
+      );
+      return;
+    }
     let amountWei: bigint;
     try {
       amountWei = parseUnits(tipAmountInput, 18);
@@ -1803,38 +1809,35 @@ export default function DeluluPage() {
           if (!open) setTipError(null);
         }}
       >
-        <ModalContent className="max-w-lg p-0 overflow-hidden bg-card border-border/60">
-          <ModalHeader className="px-6 pt-6 pb-2">
-            <ModalTitle className="text-foreground text-xl font-black">
-              Support this goal
-            </ModalTitle>
-            <ModalDescription className="mt-1.5 text-muted-foreground">
-              Help bring this creator's dream to life with your support.
-            </ModalDescription>
-          </ModalHeader>
-          {tipError ? (
-            <div
-              role="alert"
-              className="mx-6 mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-500"
-            >
-              {tipError}
+        <ModalContent className="max-w-sm p-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-5 space-y-5">
+            <div>
+              <h2 className="text-xl font-black tracking-tight text-foreground">
+                Support this goal
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Send a tip to help bring this dream to life.
+              </p>
             </div>
-          ) : null}
-          <div className="px-6 pb-4 space-y-5">
-            <div className="rounded-2xl bg-muted/25 p-4">
-              <div className="flex items-center justify-between mb-2.5">
-                <label className="text-sm font-semibold text-muted-foreground tracking-wide">
-                  Tip amount
-                </label>
+
+            {/* Amount input */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Amount
+                </span>
                 <button
                   type="button"
-                  onClick={() => setTipAmountInput(String(Math.max(0, walletBalanceNum)))}
-                  className="h-7 px-2.5 rounded-full text-xs font-semibold bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                  onClick={() => {
+                    setTipAmountInput(String(Math.max(0, walletBalanceNum)));
+                    if (tipError) setTipError(null);
+                  }}
+                  className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
                 >
                   Max
                 </button>
               </div>
-              <div className="relative">
+              <div className="relative rounded-2xl border border-border bg-secondary/40 focus-within:border-foreground/30 transition-colors">
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1843,25 +1846,30 @@ export default function DeluluPage() {
                     setTipAmountInput(e.target.value.replace(/[^0-9.]/g, ""));
                     if (tipError) setTipError(null);
                   }}
-                  placeholder="0.00"
-                  className="w-full h-16 rounded-xl  bg-transparent ring-1 ring-border/40 pl-4 pr-20 text-[42px] leading-none font-black text-foreground tracking-tight focus:outline-none focus:ring-2 focus:ring-delulu-yellow-reserved/30"
+                  placeholder="0"
+                  className="w-full h-16 rounded-2xl bg-transparent pl-5 pr-20 text-4xl font-black text-foreground tracking-tight focus:outline-none"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
                   {tokenSymbol}
                 </span>
               </div>
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>Available</span>
-                <span className="font-semibold">
-                  {isLoadingBalance ? (
-                    "Loading..."
+              {/* Balance row */}
+              <div className="flex items-center justify-between px-1 text-xs">
+                {(() => {
+                  const tipNum = Number(tipAmountInput);
+                  const isOver = Number.isFinite(tipNum) && tipNum > 0 && tipNum > walletBalanceNum;
+                  return isOver ? (
+                    <span className="font-semibold text-destructive">Insufficient balance</span>
                   ) : (
+                    <span className="text-muted-foreground">Available</span>
+                  );
+                })()}
+                <span className="font-semibold text-muted-foreground">
+                  {isLoadingBalance ? "…" : (
                     <>
                       {walletBalanceLabel} {tokenSymbol}
                       {toUsd(walletBalanceNum) && (
-                        <span className="ml-1 text-muted-foreground/70 font-normal">
-                          (≈ ${toUsd(walletBalanceNum)})
-                        </span>
+                        <span className="ml-1 font-normal opacity-70">(≈ ${toUsd(walletBalanceNum)})</span>
                       )}
                     </>
                   )}
@@ -1869,48 +1877,60 @@ export default function DeluluPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground tracking-wide">
-                Quick amounts
-              </label>
-              <div className="rounded-2xl bg-muted/20 p-2">
-                <div className="grid grid-cols-4 gap-2.5">
-                {[5, 10, 25, 50].map((v) => (
+            {/* Quick amounts */}
+            <div className="grid grid-cols-4 gap-2">
+              {[5, 10, 25, 50].map((v) => {
+                const isSelected = Number(tipAmountInput) === v;
+                const isAffordable = v <= walletBalanceNum;
+                return (
                   <button
                     key={v}
                     type="button"
-                    onClick={() => applyQuickTip(v)}
+                    onClick={() => {
+                      applyQuickTip(v);
+                      if (tipError) setTipError(null);
+                    }}
+                    disabled={!isAffordable}
                     className={cn(
-                      "h-11 rounded-xl text-lg font-bold transition-colors",
-                      Number(tipAmountInput) === v
-                        ? "bg-secondary ring-1 ring-border/40 hover:bg-secondary/80"
-                        : "text-foreground bg-secondary hover:bg-secondary/80",
+                      "h-11 rounded-xl text-sm font-bold transition-all",
+                      isSelected
+                        ? "bg-foreground text-background"
+                        : isAffordable
+                          ? "bg-secondary text-foreground hover:bg-secondary/80"
+                          : "bg-secondary/40 text-muted-foreground/40 cursor-not-allowed",
                     )}
                   >
                     {v}
                   </button>
-                ))}
-                </div>
-              </div>
+                );
+              })}
             </div>
-          </div>
-          <ModalFooter className="px-6 pb-6 pt-2 gap-2 flex items-center justify-center">
-          
+
+            {/* Error */}
+            {tipError ? (
+              <div role="alert" className="rounded-xl bg-destructive/10 px-3 py-2.5 text-xs font-semibold text-destructive">
+                {tipError}
+              </div>
+            ) : null}
+
+            {/* Submit */}
             <button
               type="button"
               onClick={handleSubmitTip}
-              disabled={isTippingMilestone || isConfirmingTipMilestone}
+              disabled={isTippingMilestone || isConfirmingTipMilestone || (() => { const n = Number(tipAmountInput); return !Number.isFinite(n) || n <= 0 || n > walletBalanceNum; })()}
               className={cn(
-                "w-full border-2 border-foreground/50 px-4 py-4  text-base font-bold text-foreground hover:scale-[0.98] transition-transform shadow-[0_6px_0_rgba(0,0,0,0.35)]",
+                "w-full h-13 rounded-full py-3.5 text-sm font-black text-white transition-all",
+                "bg-delulu-charcoal hover:bg-delulu-charcoal/90 active:scale-[0.98]",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
               )}
             >
               {isTippingMilestone
-                ? "Confirm..."
+                ? "Confirm in wallet…"
                 : isConfirmingTipMilestone
-                  ? "Sending..."
+                  ? "Sending…"
                   : "Send tip"}
             </button>
-          </ModalFooter>
+          </div>
         </ModalContent>
       </Modal>
 

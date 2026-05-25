@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  DollarSign,
   Heart,
   MessageCircle,
   MoreHorizontal,
@@ -302,13 +303,14 @@ export function DeluluDetailPinCard({
                     onClick={handleTipClick}
                     disabled={tipDisabled}
                     className={cn(
-                      "flex h-10 items-center justify-center rounded-full px-4 text-sm font-black transition-all",
-                      "bg-gradient-to-b from-[#f7f9a6] to-[#e8ec79] text-[#1b1b1b]",
-                      "border border-[#d5da6f] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
-                      "hover:brightness-105 active:scale-[0.98]",
+                      "inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold text-white transition-all duration-150",
+                      "bg-delulu-charcoal shadow-[0_4px_14px_rgba(0,0,0,0.35)]",
+                      "hover:shadow-[0_6px_18px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 hover:bg-delulu-charcoal/90",
+                      "active:shadow-[0_2px_8px_rgba(0,0,0,0.25)] active:scale-[0.97]",
                       tipDisabled && "cursor-not-allowed opacity-50",
                     )}
                   >
+                    <DollarSign className="h-3.5 w-3.5" strokeWidth={2.5} />
                     Tip
                   </button>
                 ) : null}

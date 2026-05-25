@@ -49,7 +49,7 @@ export function LeftSidebar() {
     useClaimPanel();
 
   useEffect(() => {
-    ["/", "/board", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
+    ["/", "/board", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
     void import("@/components/create-delusion-content");
     prefetchCreateManifestStep();
   }, [router]);

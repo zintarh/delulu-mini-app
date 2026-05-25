@@ -1,5 +1,6 @@
 import {
   Bell,
+  Compass,
   Gift,
   Home,
   Plus,
@@ -17,6 +18,7 @@ export type MainNavItem = {
     | "notifications"
     | "create"
     | "claim"
+    | "explore"
     | "leaderboard"
     | "profile";
 };
@@ -43,6 +45,7 @@ const coreNavItems = (authenticated: boolean): MainNavItem[] => [
     href: authenticated ? "/board" : undefined,
     action: "create",
   },
+  { icon: Compass, label: "Explore", href: "/explore", action: "explore" },
   { icon: Gift, label: "Claim G$", action: "claim" },
 ];
 
@@ -101,6 +104,11 @@ export function isMainNavItemActive(
       return isNavHrefActive(path, "/board");
     case "claim":
       return options.claimOpen;
+    case "explore":
+      return (
+        options.layoutSegment === "explore" ||
+        isNavHrefActive(path, "/explore")
+      );
     case "leaderboard":
       return (
         options.layoutSegment === "leaderboard" ||

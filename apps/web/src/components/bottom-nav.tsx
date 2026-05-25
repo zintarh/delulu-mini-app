@@ -34,7 +34,7 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const isHomeRoute = segment === null && path === "/";
 
   useEffect(() => {
-    ["/", "/board", "/profile"].forEach((href) => router.prefetch(href));
+    ["/", "/board", "/explore", "/profile"].forEach((href) => router.prefetch(href));
     void import("@/components/create-delusion-content");
     prefetchCreateManifestStep();
   }, [router]);
