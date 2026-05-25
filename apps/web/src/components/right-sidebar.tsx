@@ -238,7 +238,7 @@ export function RightSidebar() {
                 href={DELULU_MONDAY_NOTION_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-secondary/80"
               >
                 How to participate
                 <ExternalLink className="h-4 w-4" />

@@ -14,8 +14,10 @@ export interface SideEffectHabit {
   emoji: string;
 }
 
+const HABIT_COUNT = 3;
+
 const SYSTEM_PROMPT = `You are a practical execution coach.
-Your job is to convert a dream into 4-6 concrete daily actions that produce measurable progress in under 7 days.
+Your job is to convert a dream into exactly ${HABIT_COUNT} concrete daily actions that produce measurable progress in under 7 days.
 
 Core rule:
 - Every action must be practical, specific, and executable today.
@@ -37,7 +39,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
 
 const USER_PROMPT = (goal: string) => `My goal is: "${goal}"
 
-Give me 4-6 daily habits I need to practise every day for up to 7 days to make progress on this goal.
+Give me exactly ${HABIT_COUNT} daily habits I need to practise every day for up to 7 days to make progress on this goal.
 Each habit must be a repeatable daily action, not a one-time task.
 
 Return this exact JSON structure:
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     // Sanitise and enforce schema
     const habits: SideEffectHabit[] = parsed.habits
-      .slice(0, 8)
+      .slice(0, HABIT_COUNT)
       .map((h, i) => ({
         id: h.id || `habit_${i + 1}`,
         title: String(h.title || "").slice(0, 60),

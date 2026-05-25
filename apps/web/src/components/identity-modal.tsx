@@ -63,7 +63,7 @@ export function IdentityModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#fcff52]/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#f6c324]/20 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-foreground" />
             </div>
             <p className="text-sm font-black text-foreground">Verify your identity</p>
@@ -74,14 +74,14 @@ export function IdentityModal({
                 type="button"
                 onClick={openInNewTab}
                 title="Open in new tab"
-                className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-foreground"
               >
                 <ExternalLink className="w-4 h-4" />
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -92,7 +92,7 @@ export function IdentityModal({
         {fvLink && status !== "verified" && (
           <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <p className="flex-1 text-xs text-amber-700 dark:text-amber-400 leading-snug">
+            <p className="flex-1 text-xs text-amber-700 leading-snug">
               If you see a <span className="font-semibold">new device</span> or <span className="font-semibold">device change</span> error, tap{" "}
               <button
                 type="button"
@@ -132,7 +132,7 @@ export function IdentityModal({
                 <button
                   type="button"
                   onClick={onRefresh}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Retry
@@ -141,7 +141,7 @@ export function IdentityModal({
                   <button
                     type="button"
                     onClick={openInNewTab}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Open in new tab
@@ -177,7 +177,7 @@ export function IdentityModal({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Retry

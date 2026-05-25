@@ -78,7 +78,7 @@ export function ResolveDeluluModal({
 
           {isSuccess && (
             <div className="p-4 bg-emerald-500/10 border-2 border-emerald-500/40 rounded-lg">
-              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 text-center">
+              <p className="text-sm font-medium text-emerald-600 text-center">
                 ✓ Submitted successfully
               </p>
             </div>
@@ -98,10 +98,10 @@ export function ResolveDeluluModal({
               disabled={isLoading}
               className={cn(
                 "flex-1 py-3 px-4 rounded-lg border-2 font-bold text-sm",
-                "bg-card text-foreground",
+                "bg-secondary text-foreground",
                 "border-border shadow-neo-sm",
-                "hover:bg-muted",
-                "active:scale-[0.98] active:shadow-[1px_1px_0px_0px_#1A1A1A]",
+                "hover:bg-secondary/80",
+                "active:scale-[0.98] active:shadow-[1px_1px_0px_0px_#1a1a19]",
                 "transition-all duration-100",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}

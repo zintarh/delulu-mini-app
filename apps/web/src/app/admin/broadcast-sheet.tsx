@@ -54,8 +54,8 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
 
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;">
     <div style="padding:24px 28px 18px;text-align:center;border-bottom:1px solid #e5e7eb;background:#fafafa;">
-      <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#111111;border-radius:10px;margin-bottom:8px;">
-        <span style="color:#fcff52;font-size:20px;">⚡</span>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#1a1a19;border-radius:10px;margin-bottom:8px;">
+        <span style="color:#f6c324;font-size:20px;">⚡</span>
       </div>
       <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">From the Delulu team</p>
     </div>
@@ -66,7 +66,7 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
       <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 20px;" />
       <div style="font-size:14px;color:#374151;line-height:1.75;">${safeMessage || "<em style='color:#9ca3af;'>Type a message to preview it here…</em>"}</div>
       <div style="margin-top:28px;text-align:center;">
-        <span style="display:inline-block;background:#111111;color:#ffffff;font-size:13px;font-weight:800;padding:12px 28px;border-radius:8px;letter-spacing:0.3px;">
+        <span style="display:inline-block;background:#1a1a19;color:#ffffff;font-size:13px;font-weight:800;padding:12px 28px;border-radius:8px;letter-spacing:0.3px;">
           Set your milestone →
         </span>
       </div>
@@ -372,7 +372,7 @@ export function BroadcastSheet({ open, onOpenChange, delulus, isLoading }: Broad
                               <span className="text-xs font-bold text-foreground">{label}</span>
                               <span className="text-[10px] font-mono text-muted-foreground">#{d.onChainId ?? d.id}</span>
                               {isExpired && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-950/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-400">
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">
                                   <AlertTriangle className="h-2.5 w-2.5" /> Expired
                                 </span>
                               )}

@@ -98,7 +98,7 @@ export function AddEmailSheet({ open, onOpenChange }: AddEmailSheetProps) {
             className={cn(
               "w-full py-3 rounded-xl text-sm font-bold transition-all",
               isSubmitting || !emailInput.trim()
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                ? "bg-secondary text-muted-foreground cursor-not-allowed"
                 : "bg-delulu-yellow text-delulu-charcoal hover:brightness-105 active:scale-[0.99]"
             )}
             style={{ fontFamily: "var(--font-manrope)" }}

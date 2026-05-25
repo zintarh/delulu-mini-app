@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Loader2, ImageIcon, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  CheckCircle2,
+  ImagePlus,
+  Loader2,
+  Upload,
+  X,
+} from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
@@ -9,17 +15,17 @@ import { getContractErrorDisplay } from "@/lib/contract-error";
 async function fireConfetti() {
   try {
     const confettiModule = await import("canvas-confetti");
-    const confetti = (confettiModule as any).default || confettiModule;
+    const confetti = ((confettiModule as unknown as { default?: unknown }).default ?? confettiModule) as unknown;
     if (typeof confetti === "function") {
       confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.4 },
-        colors: ["#FCD34D", "#4B5563", "#A855F7"],
+        colors: ["#2563eb", "#f7f9a6", "#35d07f"],
       });
     }
   } catch {
-    // Confetti is optional
+    // optional
   }
 }
 
@@ -32,6 +38,8 @@ interface ProofModalProps {
   submitError?: Error | null;
   onDone?: () => void;
 }
+
+const MAX_BYTES = 5 * 1024 * 1024;
 
 export function ProofModal({
   open,
@@ -46,15 +54,19 @@ export function ProofModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiFired = useRef(false);
 
   const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
+  const busy = isSubmitting || isUploading;
+  const displayError =
+    uploadError ?? (submitError ? getContractErrorDisplay(submitError).message : null);
 
   useEffect(() => {
     if (submitSuccess && !confettiFired.current) {
       confettiFired.current = true;
-      fireConfetti();
+      void fireConfetti();
     }
   }, [submitSuccess]);
 
@@ -65,30 +77,53 @@ export function ProofModal({
       setImagePreview(null);
       setUploadError(null);
       setIsUploading(false);
+      setIsDragging(false);
     }
   }, [open]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  const applyFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
-      setUploadError("Only image files are allowed.");
+      setUploadError("Please choose an image file (JPG, PNG, WebP, or GIF).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_BYTES) {
       setUploadError("Image must be under 5 MB.");
       return;
     }
     setUploadError(null);
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }, []);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) applyFile(file);
   };
 
   const clearImage = () => {
     setImageFile(null);
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
     setUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) applyFile(file);
   };
 
   const handleSubmit = async () => {
@@ -123,120 +158,199 @@ export function ProofModal({
     onDone?.();
   };
 
-  const busy = isSubmitting || isUploading;
-  const displayError = uploadError ?? (submitError ? getContractErrorDisplay(submitError).message : null);
-
   return (
     <ResponsiveSheet
       open={open}
-      onOpenChange={(open) => {
-        if (!open) onDone?.();
-        onOpenChange(open);
+      onOpenChange={(next) => {
+        if (!next) onDone?.();
+        onOpenChange(next);
       }}
-      title="Submit Proof"
-      sheetClassName="rounded-t-3xl pb-8 border-t border-border"
-      modalClassName="max-w-md"
+      title="Submit evidence"
+      sheetClassName="rounded-t-3xl px-5 pb-12 pt-5"
+      modalClassName="max-w-lg p-0 overflow-hidden"
+      contentClassName="lg:p-0"
     >
-      <div className="space-y-4 pt-2">
+      <div className="lg:px-6 lg:pb-6 lg:pt-2">
         {submitSuccess ? (
-          <>
-            <div className="flex justify-center py-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-emerald-500" />
-              </div>
+          <div className="flex flex-col items-center px-2 py-6 text-center sm:py-8">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-delulu-blue-light">
+              <CheckCircle2 className="h-11 w-11 text-delulu-blue" strokeWidth={2} />
             </div>
-            <p className="text-center text-foreground font-semibold">
-              Proof submitted successfully.
+            <h3 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">
+              Evidence submitted
+            </h3>
+            <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+              Your proof is on chain. We&apos;ll verify this milestone soon.
             </p>
             <button
               type="button"
               onClick={handleClose}
-              className="w-full py-2.5 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform"
+              className="mt-8 h-12 w-full max-w-sm rounded-full bg-delulu-blue text-sm font-black text-white transition-all hover:bg-delulu-blue/90 active:scale-[0.98]"
             >
               Done
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            <p className="text-xs text-muted-foreground">
-              Upload a photo or screenshot that clearly shows you completed this milestone.
+          <div className="space-y-5">
+            <div className="lg:hidden">
+              <h2 className="text-xl font-black tracking-tight text-foreground">
+                Submit evidence
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Show progress with a photo or screenshot.
+              </p>
+            </div>
+            <p className="hidden text-sm leading-relaxed text-muted-foreground lg:block">
+              Show progress with a photo or screenshot. Clear evidence helps
+              supporters trust the journey.
             </p>
 
-            {busy && (
-              <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm font-medium">
-                  {isUploading ? "Uploading…" : "Verifying proof…"}
-                </span>
+            {displayError && !busy ? (
+              <div
+                role="alert"
+                className="rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3"
+              >
+                <p className="text-sm font-bold text-destructive">
+                  Couldn&apos;t submit
+                </p>
+                <p className="mt-0.5 text-sm text-destructive/85">{displayError}</p>
               </div>
-            )}
+            ) : null}
 
-            {displayError && !busy && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/8 px-3 py-2.5">
-                <p className="text-xs font-semibold text-destructive mb-0.5">Proof not accepted</p>
-                <p className="text-xs text-destructive/80">{displayError}</p>
-              </div>
-            )}
+            <div
+              className={cn(
+                "relative",
+                busy && "pointer-events-none",
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleImageSelect}
+              />
 
-            <div className={cn(busy && "pointer-events-none opacity-60")}>
               {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Proof preview"
-                    className="w-full max-h-52 object-cover rounded-md border border-border"
-                  />
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                    aria-label="Remove image"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                <div className="group relative overflow-hidden rounded-2xl border border-border bg-muted shadow-sm">
+                  <div className="aspect-[4/3] w-full sm:aspect-[16/10]">
+                    <img
+                      src={imagePreview}
+                      alt="Evidence preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                  </div>
+
+                  {busy ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/45 backdrop-blur-[2px]">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                      <p className="text-sm font-semibold text-white">
+                        {isUploading ? "Uploading photo…" : "Submitting proof…"}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+                        aria-label="Remove photo"
+                      >
+                        <X className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 flex gap-2 p-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1 rounded-full bg-white/95 py-2.5 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-white"
+                        >
+                          Change photo
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-36 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
-                >
-                  <ImageIcon className="w-8 h-8" />
-                  <span className="text-xs font-medium">Tap to select an image</span>
-                  <span className="text-[10px] text-muted-foreground/60">JPG, PNG, GIF, WebP — max 5 MB</span>
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageSelect}
-              />
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="flex-1 py-2.5 text-sm font-semibold rounded-md border border-border text-foreground hover:bg-muted transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
                   className={cn(
-                    "flex-1 py-2.5 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
-                    "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
-                    !canSubmit && "opacity-60 cursor-not-allowed",
+                    "flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all sm:py-12",
+                    "bg-secondary/40 hover:bg-secondary/70",
+                    isDragging
+                      ? "border-delulu-blue bg-delulu-blue-light/50 ring-2 ring-delulu-blue/20"
+                      : "border-border hover:border-delulu-blue/40",
                   )}
                 >
-                  Submit
+                  <div
+                    className={cn(
+                      "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors",
+                      isDragging
+                        ? "bg-delulu-blue text-white"
+                        : "bg-background text-foreground shadow-sm",
+                    )}
+                  >
+                    {isDragging ? (
+                      <ImagePlus className="h-7 w-7" strokeWidth={2} />
+                    ) : (
+                      <Upload className="h-7 w-7" strokeWidth={2} />
+                    )}
+                  </div>
+                  <p className="text-base font-bold text-foreground">
+                    {isDragging ? "Drop your image here" : "Add evidence photo"}
+                  </p>
+                  <p className="mt-1.5 max-w-[240px] text-sm text-muted-foreground">
+                    Tap to browse or drag and drop
+                  </p>
+                  <p className="mt-3 rounded-full bg-background/80 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                    JPG · PNG · WebP · GIF · max 5 MB
+                  </p>
                 </button>
-              </div>
+              )}
             </div>
-          </>
+
+            <div className="flex items-start gap-2.5 rounded-2xl bg-secondary/50 px-4 py-3.5 text-xs text-muted-foreground sm:text-sm">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-delulu-blue" />
+              <span>Use a clear shot of the result — screenshots and timestamps are totally fine.</span>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={busy}
+                className="h-12 flex-1 rounded-full border border-border bg-background text-sm font-bold text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className={cn(
+                  "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black transition-all",
+                  "bg-delulu-blue text-white hover:bg-delulu-blue/90 active:scale-[0.98]",
+                  !canSubmit && "cursor-not-allowed opacity-45",
+                )}
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Submitting…
+                  </>
+                ) : (
+                  "Submit evidence"
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </ResponsiveSheet>

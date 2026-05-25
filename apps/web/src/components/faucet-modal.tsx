@@ -108,7 +108,7 @@ export function FaucetModal({ open, onOpenChange }: FaucetModalProps) {
             onClick={handleClaim}
             disabled={!isConnected || isClaiming}
             className={cn(
-              "w-full inline-flex items-center justify-center gap-2 rounded-md border-2 border-delulu-charcoal px-4 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#1A1A1A]",
+              "w-full inline-flex items-center justify-center gap-2 rounded-md border-2 border-delulu-charcoal px-4 py-3 text-sm font-bold shadow-[3px_3px_0px_0px_#1a1a19]",
               "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90",
               (!isConnected || isClaiming) && "opacity-60 cursor-not-allowed"
             )}

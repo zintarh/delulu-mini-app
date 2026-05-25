@@ -24,6 +24,8 @@ function pickProvider(input: EmailCheckResponse): "privy" | "web3auth" {
   return "web3auth";
 }
 
+const BG_IMAGES = ["/bg.jpg", "/bg1.jpg"];
+
 export default function SignInPage() {
   const router = useRouter();
   const { authenticated, isReady, address, login } = useAuth();
@@ -39,6 +41,12 @@ export default function SignInPage() {
   const [resolvedEmail, setResolvedEmail] = useState<string>("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActiveImg((i) => (i + 1) % BG_IMAGES.length), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const isEmailValid = useMemo(
@@ -274,103 +282,123 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-[360px] flex flex-col items-center gap-10">
-        <div className="flex flex-col items-center gap-3">
-          <img
-            src="/favicon_io/android-chrome-192x192.png"
-            alt="Delulu"
-            className="w-14 h-14 rounded-2xl"
-          />
-          <h1
-            className="text-4xl font-black text-white"
-            style={{
-              textShadow:
-                "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A",
-            }}
-          >
-            Delulu
-          </h1>
-          <p className="text-sm text-muted-foreground text-center">
-            Make your wildest dreams real.
-          </p>
-        </div>
+    <div className="min-h-screen relative overflow-hidden bg-[#1a1a19]">
+      {/* Cycling background images */}
+      {BG_IMAGES.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          aria-hidden="true"
+          className={`absolute inset-0 w-full h-full object-cover object-[center_15%] transition-opacity duration-1000 ${
+            i === activeImg ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ))}
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
-          <div className="w-full rounded-2xl border border-border bg-background/80 px-4 py-3.5 transition-colors focus-within:border-foreground/40 focus-within:bg-background">
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Enter your email"
-              autoComplete="email"
-              className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80"
-              disabled={isAnyPending}
+      {/* Dark gradient overlay: transparent at top → dark in middle → solid charcoal */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to bottom, transparent 0%, transparent 22%, rgba(0,0,0,0.52) 46%, rgba(0,0,0,0.86) 64%, #1a1a19 80%)",
+        }}
+      />
+
+      {/* Content — pulled up from the very bottom */}
+      <div className="relative z-10 min-h-screen flex flex-col justify-end px-6 pb-28">
+        <div className="w-full max-w-[360px] mx-auto flex flex-col items-center gap-7">
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src="/favicon_io/android-chrome-192x192.png"
+              alt="Delulu"
+              className="w-14 h-14 rounded-2xl"
             />
+            <h1
+              className="text-4xl font-black text-white"
+              style={{ fontFamily: "var(--font-gloria), cursive" }}
+            >
+              Delulu
+            </h1>
+            <p className="text-sm text-white/60 text-center">
+              Make your wildest dreams real.
+            </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={!isEmailValid || isAnyPending}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
-              bg-[#fcff52] text-[#111111] font-extrabold text-[15px]
-              border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A]
-              hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#1A1A1A]
-              active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all
-              disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0"
-          >
-            {isEmailPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {isChecking
-                  ? "Checking your account…"
-                  : "Starting secure sign in…"}
-              </>
-            ) : (
-              <>
-                <Mail className="w-5 h-5" />
-                Continue with email
-              </>
-            )}
-          </button>
+          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
+            <div className="w-full rounded-2xl border border-white/15 bg-white/10 backdrop-blur-sm px-4 py-3.5 transition-colors focus-within:border-white/30 focus-within:bg-white/15">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Enter your email"
+                autoComplete="email"
+                className="w-full bg-transparent text-base text-white outline-none placeholder:text-white/50"
+                disabled={isAnyPending}
+              />
+            </div>
 
-          <p className="text-center text-xs text-muted-foreground">or</p>
+            <button
+              type="submit"
+              disabled={!isEmailValid || isAnyPending}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
+                bg-[#f6c324] text-[#1a1a19] font-extrabold text-[15px]
+                border-2 border-[#1a1a19] shadow-[3px_3px_0px_0px_#1a1a19]
+                hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#1a1a19]
+                active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all
+                disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0"
+            >
+              {isEmailPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isChecking ? "Checking your account…" : "Starting secure sign in…"}
+                </>
+              ) : (
+                <>
+                  <Mail className="w-5 h-5" />
+                  Continue with email
+                </>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleWalletContinue}
-            disabled={isAnyPending}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
-              bg-transparent text-foreground font-semibold text-[15px] border border-border
-              hover:bg-muted/40 active:bg-muted/60 transition-all
-              disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isWalletPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Opening wallet options…
-              </>
-            ) : (
-              <>
-                <Wallet className="w-5 h-5" />
-                Continue with wallet
-              </>
-            )}
-          </button>
+            <p className="text-center text-xs text-white/40">or</p>
 
-          {routeError ? (
-            <p className="text-center text-sm text-rose-500">{routeError}</p>
-          ) : null}
-          {!isEmailValid && email.length > 0 ? (
-            <p className="text-center text-xs text-muted-foreground">
-              Enter a valid email to continue.
-            </p>
-          ) : null}
-        </form>
+            <button
+              type="button"
+              onClick={handleWalletContinue}
+              disabled={isAnyPending}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
+                bg-white/10 text-white font-semibold text-[15px] border border-white/20
+                hover:bg-white/15 active:bg-white/20 transition-all
+                disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isWalletPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Opening wallet options…
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-5 h-5" />
+                  Continue with wallet
+                </>
+              )}
+            </button>
 
-        <p className="text-center text-xs text-muted-foreground">
-          By continuing you agree to our terms of service.
-        </p>
+            {routeError ? (
+              <p className="text-center text-sm text-rose-400">{routeError}</p>
+            ) : null}
+            {!isEmailValid && email.length > 0 ? (
+              <p className="text-center text-xs text-white/50">
+                Enter a valid email to continue.
+              </p>
+            ) : null}
+          </form>
+
+          <p className="text-center text-xs text-white/40">
+            By continuing you agree to our terms of service.
+          </p>
+        </div>
       </div>
     </div>
   );

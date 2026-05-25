@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import { useTheme } from "@/contexts/theme-context";
 import { usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
@@ -20,8 +19,6 @@ import {
   LogIn,
   User,
   Menu,
-  Moon,
-  Sun,
   Zap,
   Bell,
   Mail,
@@ -79,7 +76,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminShell({ pathname, children }: { pathname: string; children: React.ReactNode }) {
   const { address, isConnected } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { isAdmin } = useIsAdmin();
   const { milestones: pendingMilestones } = usePendingMilestones();
 
@@ -92,7 +88,7 @@ function AdminShell({ pathname, children }: { pathname: string; children: React.
   const breadcrumb = BREADCRUMBS[pathname] ?? "Admin";
 
   return (
-    <div className="h-screen flex overflow-hidden bg-[#f6f7f9] dark:bg-[#0d0d0d] text-foreground">
+    <div className="h-screen flex overflow-hidden bg-[#f9f8f4] text-foreground">
 
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -100,13 +96,13 @@ function AdminShell({ pathname, children }: { pathname: string; children: React.
 
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-[#111111] transition-transform duration-200 lg:static lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-[#1a1a19] transition-transform duration-200 lg:static lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
       )}>
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#fcff52]">
-            <Zap className="h-4 w-4 text-[#111111]" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f6c324]">
+            <Zap className="h-4 w-4 text-[#1a1a19]" />
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Platform</p>
@@ -223,14 +219,6 @@ function AdminShell({ pathname, children }: { pathname: string; children: React.
                 <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-red-500" />
               </Link>
             )}
-
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
-            >
-              {theme === "dark" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            </button>
 
             <button
               type="button"

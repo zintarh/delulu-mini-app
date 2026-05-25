@@ -1,370 +1,198 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
 import Link from "next/link";
-import {
-  Home,
-  Plus,
-  User,
-  Coins,
-  Moon,
-  Sun,
-  LogIn,
-} from "lucide-react";
-import { cn, formatGAmount } from "@/lib/utils";
-import { useTheme } from "@/contexts/theme-context";
-import { useBalance } from "wagmi";
+import { type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { formatAddress } from "@/lib/utils";
-import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
-import { TokenBadge } from "@/components/token-badge";
+import { useNotificationsPanel, useClaimPanel } from "@/contexts/right-panel-context";
+import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
+import {
+  getMainNavItems,
+  getProfileNavItem,
+  isMainNavItemActive,
+  normalizePathname,
+} from "@/components/main-nav-config";
 
-interface LeftSidebarProps {
-  onProfileClick?: () => void;
-  onCreateClick?: () => void;
+function Tooltip({ label }: { label: string }) {
+  return (
+    <span className="absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-foreground text-background text-xs font-semibold whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-md z-[200]">
+      {label}
+    </span>
+  );
 }
 
-export function LeftSidebar({
-  onProfileClick,
-  onCreateClick,
-}: LeftSidebarProps) {
+function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+  return (
+    <Icon
+      className={cn(
+        "h-7 w-7 transition-colors",
+        active ? "text-delulu-blue" : "text-primary",
+      )}
+      strokeWidth={active ? 2.25 : 2}
+      fill="none"
+    />
+  );
+}
+
+export function LeftSidebar() {
   const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
-  const { authenticated, address } = useAuth();
-  const { username } = useUsernameByAddress(authenticated ? address : undefined);
-  const [selectedAsset, setSelectedAsset] = useState<"CELO" | "G$">("CELO");
-  const [isBalanceOpen, setIsBalanceOpen] = useState(false);
-
+  const { authenticated } = useAuth();
   const {
-    data: celoBalance,
-    isLoading: isCeloLoading,
-  } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: {
-      enabled: !!address,
-    },
-  });
-
-  const {
-    data: gDollarBalance,
-    isLoading: isGdLoading,
-  } = useBalance({
-    address,
-    token: GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`,
-    chainId: CELO_MAINNET_ID,
-    query: {
-      enabled: !!address,
-    },
-  });
-
-  const displayName = username
-    ? `@${username}`
-    : address
-    ? formatAddress(address as `0x${string}`)
-    : "";
-
-  const navItems = [
-    {
-      icon: Home,
-      label: "Home",
-      href: "/",
-      active: pathname === "/",
-      onClick: undefined as (() => void) | undefined,
-    },
-    {
-      icon: Plus,
-      label: "Create",
-      href: undefined,
-      active: false,
-      onClick: onCreateClick,
-    },
-    {
-      icon: Coins,
-      label: "Claim",
-      href: "/daily-claim",
-      active: pathname === "/daily-claim",
-      onClick: undefined,
-    },
-    {
-      icon: User,
-      label: "Profile",
-      href: undefined,
-      active: false,
-      onClick: onProfileClick,
-    },
-  ];
+    isOpen: notificationsOpen,
+    toggle: toggleNotifications,
+  } = useNotificationsPanel();
+  const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
+    useClaimPanel();
 
   useEffect(() => {
-    // Warm common routes so sidebar navigation feels instant.
-    ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]
-      .forEach((href) => router.prefetch(href));
+    ["/", "/board", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
+    void import("@/components/create-delusion-content");
+    prefetchCreateManifestStep();
   }, [router]);
 
+  const prefetchCreate = () => {
+    router.prefetch("/board");
+    void import("@/components/create-delusion-content");
+    prefetchCreateManifestStep();
+  };
+
+  const path = normalizePathname(pathname ?? "");
+  const isHomeRoute = segment === null && path === "/";
+  const navItems = getMainNavItems(authenticated);
+  const profileItem = getProfileNavItem(authenticated);
+  const profileActive = isMainNavItemActive(profileItem, path, {
+    isHomeRoute,
+    notificationsOpen,
+    claimOpen,
+    layoutSegment: segment,
+  });
+
+  const activeOptions = {
+    isHomeRoute,
+    notificationsOpen,
+    claimOpen,
+    layoutSegment: segment,
+  };
+
+  const itemCls = (active: boolean) =>
+    cn(
+      "flex items-center justify-center w-14 h-14 rounded-xl border border-transparent transition-all",
+      active
+        ? "border-delulu-blue-border bg-delulu-blue-light"
+        : "hover:bg-secondary/80",
+    );
+
   return (
-    <aside className="h-screen sticky top-0 flex flex-col px-4 py-4 border-r border border-border bg-background text-foreground">
-      <div className="mb-8 px-2">
-        <a
-          href="https://staydelulu.xyz"
-          className="inline-block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-          aria-label="Delulu home"
+    <aside className="h-full flex flex-col items-center py-6 border-r border-border bg-background w-24">
+      <div className="mb-8">
+        <Link
+          href="/"
+          aria-label="Home"
+          className="flex items-center justify-center w-14 h-14"
+          onClick={() => closePanels()}
         >
-          <h1
-            className="text-xl font-black text-delulu-yellow-reserved"
+          <span
+            className="text-3xl font-black text-delulu-yellow-reserved leading-none"
             style={{
               fontFamily: "var(--font-gloria), cursive",
-              textShadow:
-                "3px 3px 0px #1A1A1A, -2px -2px 0px #1A1A1A, 2px -2px 0px #1A1A1A, -2px 2px 0px #1A1A1A",
+              textShadow: "2px 2px 0 #1a1a19, -1px -1px 0 #1a1a19",
             }}
           >
-            Delulu
-          </h1>
-        </a>
+            D
+          </span>
+        </Link>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-2">
+      <nav className="flex-1 flex flex-col items-center gap-4">
         {navItems.map((item) => {
-          const Icon = item.icon;
-          const isClaimG = item.href === "/daily-claim";
-          const className = cn(
-            "flex items-center gap-3 transition-colors text-sm",
-             "px-3 py-2.5 rounded-lg w-full",
-            item.active
-              ? isClaimG
-                ? "bg-[#01B1FF]/20"
-                : "bg-secondary text-foreground"
-              : isClaimG
-              ? ""
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          );
-          const style = isClaimG ? { color: "#01B1FF" } : undefined;
-          const content = (
-            <>
-              {isClaimG ? (
-                <img
-                  src="/gooddollar-logo.png"
-                  alt="G$"
-                  className="w-6 h-6 flex-shrink-0 object-contain"
-                />
-              ) : (
-                <Icon className="w-6 h-6 flex-shrink-0" />
-              )}
-              <span className="text-base font-">{item.label}</span>
-            </>
-          );
+          const { icon, label, href, action } = item;
+          const active = isMainNavItemActive(item, path, activeOptions);
 
-          if (item.href) {
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onMouseEnter={() => router.prefetch(item.href!)}
-                onTouchStart={() => router.prefetch(item.href!)}
-                className={className}
-                style={style}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
-            );
-          }
-
-          // Prefer Link navigation for connected users (faster transitions + prefetch).
-          if (authenticated && item.label === "Create") {
-            return (
-              <Link
-                key={item.label}
-                href="/board"
-                onMouseEnter={() => router.prefetch("/board")}
-                onTouchStart={() => router.prefetch("/board")}
-                className={className}
-                style={style}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
-            );
-          }
-
-          if (authenticated && item.label === "Profile") {
-            return (
-              <Link
-                key={item.label}
-                href="/profile"
-                onMouseEnter={() => router.prefetch("/profile")}
-                onTouchStart={() => router.prefetch("/profile")}
-                className={className}
-                style={style}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
-            );
-          }
+          const handlePanelAction = () => {
+            if (action === "notifications") {
+              toggleNotifications();
+              return;
+            }
+            closePanels();
+            if (action === "claim") toggleClaim();
+          };
 
           return (
-            <button
-              key={item.label}
-              onClick={item.onClick}
-              className={className}
-              style={style}
-              aria-label={item.label}
-            >
-              {content}
-            </button>
+            <div key={action} className="group relative">
+              {href ? (
+                <Link
+                  href={href}
+                  className={itemCls(active)}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => closePanels()}
+                  onMouseEnter={() => {
+                    router.prefetch(href);
+                    if (action === "create") prefetchCreate();
+                  }}
+                >
+                  <NavIcon icon={icon} active={active} />
+                </Link>
+              ) : authenticated ? (
+                <button
+                  type="button"
+                  onClick={handlePanelAction}
+                  onMouseEnter={action === "create" ? prefetchCreate : undefined}
+                  className={itemCls(active)}
+                  aria-label={label}
+                  aria-expanded={
+                    action === "claim"
+                      ? claimOpen
+                      : action === "notifications"
+                        ? notificationsOpen
+                        : undefined
+                  }
+                >
+                  <NavIcon icon={icon} active={active} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => router.push("/sign-in")}
+                  className={itemCls(active)}
+                  aria-label={label}
+                >
+                  <NavIcon icon={icon} active={active} />
+                </button>
+              )}
+              <Tooltip label={label} />
+            </div>
           );
         })}
       </nav>
-      <div className="mt-4 pt-3 border-t border-border space-y-3">
-        {/* Connection status / Login */}
-        {!authenticated ? (
-          <div className="flex items-center justify-between gap-2">
-            <a
-              href="/sign-in"
-              className="flex w-fit items-center justify-center gap-2 px-3 py-2 rounded-full border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-xs font-bold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Sign In</span>
-            </a>
 
-            {/* Theme toggle (same row as Sign In) */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex items-center justify-center p-2 rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="Toggle theme"
-              title="Toggle theme"
-            >
-              {theme === "dark" ? (
-                <Moon className="w-5 h-5" />
-              ) : (
-                <Sun className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        ) : (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={onProfileClick}
-            onKeyDown={(e) => e.key === "Enter" && onProfileClick?.()}
-            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted w-full text-left cursor-pointer"
-            aria-label="Open profile"
+      <div className="group relative mt-auto pt-4">
+        {profileItem.href ? (
+          <Link
+            href={profileItem.href}
+            className={itemCls(profileActive)}
+            aria-label={profileItem.label}
+            aria-current={profileActive ? "page" : undefined}
+            onClick={() => closePanels()}
+            onMouseEnter={() => router.prefetch(profileItem.href!)}
           >
-            <div className="flex flex-col">
-              <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                Account
-              </span>
-              {displayName && (
-                <span className="text-xs font-medium text-foreground">
-                  {displayName}
-                </span>
-              )}
-            </div>
-            {/* Balance dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsBalanceOpen((open) => !open);
-                }}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 text-[11px] text-foreground hover:bg-background"
-                title="View balances"
-              >
-                {selectedAsset === "CELO" ? (
-                  <img
-                    src="/celo.png"
-                    alt="CELO"
-                    className="h-3.5 w-3.5 rounded-full"
-                  />
-                ) : (
-                  <TokenBadge
-                    tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
-                    size="sm"
-                    showText={false}
-                  />
-                )}
-                <span className="font-medium">
-                  {selectedAsset === "CELO" && !isCeloLoading && celoBalance
-                    ? `${parseFloat(celoBalance.formatted).toFixed(3)}`
-                    : null}
-                  {selectedAsset === "G$" && !isGdLoading && gDollarBalance
-                    ? formatGAmount(parseFloat(gDollarBalance.formatted))
-                    : null}
-                </span>
-              </button>
-
-              {isBalanceOpen && (
-                <div className="absolute right-0 mt-1 w-32 rounded-md border border-border bg-background shadow-lg z-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAsset("CELO");
-                      setIsBalanceOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] hover:bg-muted"
-                  >
-                    <div className="flex items-center gap-1">
-                      <img
-                        src="/celo.png"
-                        alt="CELO"
-                        className="h-3.5 w-3.5 rounded-full"
-                      />
-                    </div>
-                    {!isCeloLoading && celoBalance && (
-                      <span className="font-medium">
-                        {parseFloat(celoBalance.formatted).toFixed(3)}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAsset("G$");
-                      setIsBalanceOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] hover:bg-muted"
-                  >
-                    <div className="flex items-center gap-1">
-                      <TokenBadge
-                        tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
-                        size="sm"
-                        showText={false}
-                      />
-                      <span>G$</span>
-                    </div>
-                    {!isGdLoading && gDollarBalance && (
-                      <span className="font-medium">
-                        {formatGAmount(parseFloat(gDollarBalance.formatted))}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Theme toggle */}
-        {authenticated ? (
+            <NavIcon icon={profileItem.icon} active={profileActive} />
+          </Link>
+        ) : (
           <button
             type="button"
-            onClick={toggleTheme}
-            className="flex items-center gap-2 px-3 py-2 rounded-full border border-border text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-fit"
+            onClick={() => router.push("/sign-in")}
+            className={itemCls(profileActive)}
+            aria-label={profileItem.label}
           >
-            <span className="flex items-center gap-2">
-              {theme === "dark" ? (
-                <Moon className="w-6 h-6" />
-              ) : (
-                <Sun className="w-6 h-6" />
-              )}
-            </span>
+            <NavIcon icon={profileItem.icon} active={profileActive} />
           </button>
-        ) : null}
+        )}
+        <Tooltip label={profileItem.label} />
       </div>
     </aside>
   );

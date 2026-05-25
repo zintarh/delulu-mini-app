@@ -128,9 +128,9 @@ export function reminderEmailHtml(data: ReminderEmailData): string {
                 <tr>
                   <td align="center">
                     <a href="${finalCtaUrl}"
-                      style="display: inline-block; background-color: #fcff52; color: #111111; font-size: 14px; font-weight: 900;
+                      style="display: inline-block; background-color: #f6c324; color: #1a1a19; font-size: 14px; font-weight: 900;
                              text-decoration: none; padding: 14px 30px; border-radius: 12px;
-                             border: 2px solid #1a1a1a; box-shadow: 3px 3px 0px #1a1a1a; letter-spacing: 0.2px;">
+                             border: 2px solid #1a1a19; box-shadow: 3px 3px 0px #1a1a19; letter-spacing: 0.2px;">
                       ${finalCtaLabel}
                     </a>
                   </td>

@@ -35,13 +35,13 @@ function StatusBadge({ isResolved, isCancelled }: { isResolved: boolean; isCance
   }
   if (isResolved) {
     return (
-      <span className="inline-flex items-center rounded-full bg-sky-100 dark:bg-sky-950/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-400">
+      <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
         Resolved
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-[#35d07f]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1a8f53] dark:text-[#35d07f]">
+    <span className="inline-flex items-center rounded-full bg-[#35d07f]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1a8f53]">
       Active
     </span>
   );
@@ -89,7 +89,7 @@ function Pagination({
                 className={cn(
                   "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                    ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -199,7 +199,7 @@ export default function AdminMarketsPage() {
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 statusFilter === f.id
-                  ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                  ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                   : "border-border bg-card text-foreground hover:bg-muted",
               )}
             >

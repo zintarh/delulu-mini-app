@@ -120,7 +120,7 @@ export function PushRemindersCard({
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold transition-colors",
             subscribed
-              ? "bg-muted/60 hover:bg-muted"
+              ? "bg-secondary hover:bg-secondary/80"
               : "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90",
             (!isSupported || !isConnected || isWorking) &&
               "opacity-60 cursor-not-allowed",

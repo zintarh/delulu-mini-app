@@ -141,10 +141,7 @@ export default function ChallengeDetailPage() {
     <div className="h-screen overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
-          <LeftSidebar
-            onProfileClick={handleProfileClick}
-            onCreateClick={handleCreateClick}
-          />
+          <LeftSidebar />
         </div>
 
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
@@ -180,7 +177,7 @@ export default function ChallengeDetailPage() {
                       <div className="h-5 bg-muted rounded w-28 animate-pulse" />
                     </div>
                   ) : (
-                    <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-10 text-center">
+                    <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1a1a19] p-10 text-center">
                       <p className="text-muted-foreground font-medium">
                         Campaign not found
                       </p>
@@ -272,7 +269,7 @@ export default function ChallengeDetailPage() {
                         <div
                           key={entry.deluluId}
                           className={cn(
-                            "bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1A1A1A] p-3 sm:p-4 hover:shadow-[3px_3px_0px_0px_#1A1A1A] transition-all",
+                            "bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1a1a19] p-3 sm:p-4 hover:shadow-[3px_3px_0px_0px_#1a1a19] transition-all",
                             isTopThree && "bg-card border-foreground/20"
                           )}
                         >
@@ -321,7 +318,7 @@ export default function ChallengeDetailPage() {
                                       ).toString()
                                     );
                                   }}
-                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-border bg-card text-foreground shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] hover:border-foreground/20 active:scale-[0.98] transition-all w-full sm:w-auto"
+                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-border bg-card text-foreground shadow-[2px_2px_0px_0px_#1a1a19] hover:shadow-[3px_3px_0px_0px_#1a1a19] hover:border-foreground/20 active:scale-[0.98] transition-all w-full sm:w-auto"
                                 >
                                   Allocate
                                 </button>
@@ -391,7 +388,7 @@ export default function ChallengeDetailPage() {
                 disabled={isAllocating || isConfirming || !pointsInput}
                 onClick={() => handleAllocatePoints(editingPoints)}
                 className={cn(
-                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A]",
+                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
                   "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
                   (isAllocating || isConfirming || !pointsInput) &&
                     "opacity-60 cursor-not-allowed"

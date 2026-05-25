@@ -20,7 +20,7 @@ function KpiCard({
   isLoading?: boolean;
 }) {
   const border = { green: "border-l-[#35d07f]", red: "border-l-red-400", blue: "border-l-sky-400", neutral: "border-l-border" };
-  const icon = { green: "text-[#1a8f53] dark:text-[#35d07f]", red: "text-red-500", blue: "text-sky-500", neutral: "text-muted-foreground" };
+  const icon = { green: "text-[#1a8f53]", red: "text-red-500", blue: "text-sky-500", neutral: "text-muted-foreground" };
   return (
     <div className={cn("rounded-xl border border-border border-l-4 bg-card px-5 py-5 shadow-sm", border[accent])}>
       <div className="flex items-start justify-between">
@@ -111,15 +111,15 @@ export default function AdminOverviewPage() {
       {stats.pendingMilestones > 0 && (
         <Link
           href="/admin/milestones"
-          className="mb-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-950/30 px-4 py-3"
+          className="mb-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
         >
           <div className="flex items-center gap-3">
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+            <p className="text-sm font-semibold text-amber-800">
               {stats.pendingMilestones} milestone{stats.pendingMilestones !== 1 ? "s" : ""} waiting for verification
             </p>
           </div>
-          <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Review →</span>
+          <span className="text-xs font-bold text-amber-700">Review →</span>
         </Link>
       )}
 

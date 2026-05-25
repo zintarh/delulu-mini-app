@@ -133,7 +133,7 @@ export function SharesMarketCard({
                     disabled={noBalance}
                     className={noBalance
                       ? "px-3 py-1.5 text-xs font-black rounded-lg border border-border text-muted-foreground cursor-not-allowed opacity-50"
-                      : "px-3 py-1.5 text-xs font-black rounded-lg border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[1px_1px_0px_0px_#1A1A1A] hover:opacity-90 transition-opacity"}
+                      : "px-3 py-1.5 text-xs font-black rounded-lg border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[1px_1px_0px_0px_#1a1a19] hover:opacity-90 transition-opacity"}
                   >
                     Buy
                   </button>
@@ -148,7 +148,7 @@ export function SharesMarketCard({
                 <button
                   type="button"
                   onClick={onSell}
-                  className="px-3 py-1.5 text-xs font-black rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="px-3 py-1.5 text-xs font-black rounded-lg border border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
                 >
                   Sell
                 </button>

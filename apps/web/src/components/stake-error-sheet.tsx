@@ -46,7 +46,7 @@ export function StakeErrorSheet({
           {/* Close Button */}
           <button
             onClick={() => onOpenChange(false)}
-            className="w-full py-3 font-bold text-sm rounded-md border border-border bg-secondary text-foreground hover:bg-muted active:scale-[0.98] transition-all duration-100"
+            className="w-full py-3 font-bold text-sm rounded-md border border-border bg-secondary text-foreground hover:bg-secondary/80 active:scale-[0.98] transition-all duration-100"
           >
             Close
           </button>

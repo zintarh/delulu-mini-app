@@ -26,7 +26,7 @@ export function FeedbackModal({
       open={isOpen}
       onOpenChange={onClose}
       title={title}
-      sheetClassName="bg-card rounded-t-3xl pb-8 border-t border-border [&>button]:text-muted-foreground [&>button]:bg-muted [&>button]:hover:bg-secondary"
+      sheetClassName="rounded-t-3xl pb-8"
       modalClassName="max-w-md"
     >
       <div className="flex justify-center mb-6 lg:mb-4">
@@ -49,7 +49,7 @@ export function FeedbackModal({
           {/* Action Button */}
           <button
             onClick={onClose}
-            className="w-full h-14 rounded-md bg-secondary hover:bg-muted text-foreground font-bold text-lg transition-all border border-border"
+            className="w-full h-14 rounded-md bg-secondary hover:bg-secondary/80 text-foreground font-bold text-lg transition-all border border-border"
           >
             {actionText}
           </button>

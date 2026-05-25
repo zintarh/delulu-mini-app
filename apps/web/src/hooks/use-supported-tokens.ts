@@ -1,15 +1,7 @@
 "use client";
 
-import { useChainId } from "wagmi";
-import { useReadContract } from "wagmi";
 import { useMemo } from "react";
-import {
-  getDeluluContractAddress,
-  CUSD_ADDRESSES,
-  GOODDOLLAR_ADDRESSES,
-  CELO_MAINNET_ID,
-} from "@/lib/constant";
-import { DELULU_ABI } from "@/lib/abi";
+import { CUSD_ADDRESSES, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 
 interface TokenInfo {
   address: string;
@@ -19,8 +11,6 @@ interface TokenInfo {
 
 /** Chain-aware supported tokens - queries contract to verify support */
 export function useSupportedTokens() {
-  const chainId = useChainId();
-
   // Always return both tokens with mainnet addresses
   const potentialTokens = useMemo(
     () => [
@@ -38,28 +28,6 @@ export function useSupportedTokens() {
     []
   );
 
-  // Get the correct contract address for the current chain
-  const contractAddress = getDeluluContractAddress(chainId);
-
-  // Query contract to check if each token is supported (for reference, but we always return both)
-  const cusdSupported = useReadContract({
-    address: contractAddress,
-    abi: DELULU_ABI,
-    functionName: "isSupportedToken",
-    args: [potentialTokens[0]?.address as `0x${string}`],
-    query: { enabled: !!potentialTokens[0]?.address },
-  });
-
-  const gTokenSupported = useReadContract({
-    address: contractAddress,
-    abi: DELULU_ABI,
-    functionName: "isSupportedToken",
-    args: [potentialTokens[1]?.address as `0x${string}`],
-    query: { enabled: !!potentialTokens[1]?.address },
-  });
-
-  // Always return both tokens
-  return useMemo(() => {
-    return potentialTokens;
-  }, [potentialTokens, cusdSupported.data, gTokenSupported.data, chainId]);
+  // Both tokens are supported on mainnet; skip RPC on mount (was 2 extra reads per page).
+  return useMemo(() => potentialTokens, [potentialTokens]);
 }

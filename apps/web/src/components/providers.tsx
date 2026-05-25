@@ -4,7 +4,6 @@ import FrameWalletProvider from "@/contexts/frame-wallet-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ApolloProvider } from "@/components/providers/ApolloProvider";
 import dynamic from "next/dynamic";
-import { ThemeProvider, useTheme } from "@/contexts/theme-context";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { Web3AuthProvider } from "@web3auth/modal/react";
 import { celo } from "wagmi/chains";
@@ -35,8 +34,6 @@ function AppWithPrivy({
   privyAppId?: string;
   signerKeyQuorumId?: string;
 }) {
-  const { theme } = useTheme();
-  // Use server-passed id first; fallback to client env so Privy works with either PRIVY_APP_ID or NEXT_PUBLIC_PRIVY_APP_ID
   const privyAppId =
     (privyAppIdProp && privyAppIdProp.trim()) || env.NEXT_PUBLIC_PRIVY_APP_ID || undefined;
   const signerKeyQuorumId =
@@ -58,24 +55,18 @@ function AppWithPrivy({
     </FrameWalletProvider>
   );
 
-  const isDark = theme === "dark";
-
   return (
     <Web3AuthProvider config={web3AuthContextConfig}>
       <PrivyProvider
         appId={privyAppId as string}
-        
         config={{
           appearance: {
             theme: "light",
-          // accentColor: "#35d07f",
             logo: "/favicon_io/favicon-32x32.png",
-            
             walletChainType: "ethereum-only",
             loginMessage: "Welcome back",
           },
           loginMethods: ["email", "wallet"],
-        
           defaultChain: celo,
           supportedChains: [celo],
           embeddedWallets: {
@@ -103,11 +94,9 @@ export default function Providers({
 }) {
   return (
     <ErudaProvider>
-      <ThemeProvider>
-        <AppWithPrivy privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
-          {children}
-        </AppWithPrivy>
-      </ThemeProvider>
+      <AppWithPrivy privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
+        {children}
+      </AppWithPrivy>
     </ErudaProvider>
   );
 }

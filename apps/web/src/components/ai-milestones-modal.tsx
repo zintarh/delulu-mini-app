@@ -53,10 +53,10 @@ interface AiMilestonesModalProps {
 
 const STEP_COLORS = [
   "bg-delulu-yellow-reserved text-delulu-charcoal",
-  "bg-muted text-muted-foreground",
+  "bg-secondary text-muted-foreground",
   "bg-foreground text-background",
-  "bg-muted text-muted-foreground",
-  "bg-muted text-muted-foreground",
+  "bg-secondary text-muted-foreground",
+  "bg-secondary text-muted-foreground",
 ] as const;
 
 export function AiMilestonesModal({
@@ -224,7 +224,7 @@ export function AiMilestonesModal({
                   </h2>
                 </div>
                 <DialogPrimitive.Close
-                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5 hover:bg-muted/80 transition-colors"
+                  className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-0.5 hover:bg-secondary/80 transition-colors"
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" strokeWidth={2.5} />
@@ -334,7 +334,7 @@ export function AiMilestonesModal({
                                 type="button"
                                 onClick={() => updateDays(idx, -1)}
                                 disabled={m.days <= 1}
-                                className="w-5 h-5 rounded-md bg-muted hover:bg-muted/70 flex items-center justify-center text-muted-foreground font-bold text-sm leading-none transition-colors disabled:opacity-30"
+                                className="w-5 h-5 rounded-md bg-secondary hover:bg-secondary/80 flex items-center justify-center text-muted-foreground font-bold text-sm leading-none transition-colors disabled:opacity-30"
                               >
                                 −
                               </button>
@@ -345,7 +345,7 @@ export function AiMilestonesModal({
                                 type="button"
                                 onClick={() => updateDays(idx, 1)}
                                 disabled={daysRemaining <= 0}
-                                className="w-5 h-5 rounded-md bg-muted hover:bg-muted/70 flex items-center justify-center text-muted-foreground font-bold text-sm leading-none transition-colors disabled:opacity-30"
+                                className="w-5 h-5 rounded-md bg-secondary hover:bg-secondary/80 flex items-center justify-center text-muted-foreground font-bold text-sm leading-none transition-colors disabled:opacity-30"
                               >
                                 +
                               </button>

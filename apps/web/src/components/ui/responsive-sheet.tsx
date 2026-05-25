@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sheet, SheetContent, SheetTitle } from "./sheet";
+import { Sheet, SheetContent, SheetTitle, bottomSheetShellClassName } from "./sheet";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "./modal";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +46,7 @@ export function ResponsiveSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className={cn("bg-primary border-t border-border", sheetClassName, contentClassName)}
+          className={cn(bottomSheetShellClassName, sheetClassName, contentClassName)}
         >
           {title && <SheetTitle className="sr-only">{title}</SheetTitle>}
           {children}

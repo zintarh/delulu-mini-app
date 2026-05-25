@@ -90,7 +90,7 @@ export function ConnectedAccount({
         open={showSheet}
         onOpenChange={setShowSheet}
         title={displayName}
-        sheetClassName="bg-zinc-900 flex flex-col items-center justify-center rounded-t-3xl pb-8 [&>button]:text-white [&>button]:bg-white/10 [&>button]:hover:bg-white/20"
+        sheetClassName="flex flex-col items-center justify-center rounded-t-3xl pb-8"
         modalClassName="max-w-md"
       >
         <div className="mt-6 space-y-4 lg:mt-4">
@@ -100,7 +100,7 @@ export function ConnectedAccount({
             }}
             className={cn(
               "w-full py-3",
-              "bg-gradient-to-b from-delulu-dark via-delulu-dark to-[#1a1a1a]",
+              "bg-gradient-to-b from-delulu-dark via-delulu-dark to-[#1a1a19]",
               "text-white",
               "rounded-xl font-black",
               "border-2 border-black/30",

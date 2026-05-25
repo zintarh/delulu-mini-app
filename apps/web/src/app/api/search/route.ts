@@ -37,11 +37,15 @@ type Doc = {
   creatorStake: number;
   createdAt: string;
   isResolved: boolean;
+  countryCode: string | null;
+  countryLabel: string | null;
+  tokenAddress: string;
 };
 
 type SubgraphRow = {
   id: string;
   onChainId: string;
+  token: string;
   creatorAddress: string;
   contentHash: string;
   totalSupportCollected: string | null;
@@ -88,8 +92,14 @@ class SearchIndex {
   add(doc: Doc) {
     this.docs.set(doc.id, doc);
 
-    // Index: title + username (both IPFS and on-chain) + creator address
-    const text = [doc.content, doc.username ?? "", doc.creator].join(" ");
+    // Index: title + username + creator + country label
+    const text = [
+      doc.content,
+      doc.username ?? "",
+      doc.creator,
+      doc.countryLabel ?? "",
+      doc.countryCode ?? "",
+    ].join(" ");
     for (const token of tokenize(text)) {
       let set = this.index.get(token);
       if (!set) { set = new Set(); this.index.set(token, set); }
@@ -98,7 +108,32 @@ class SearchIndex {
     this.indexedCount++;
   }
 
-  search(query: string): Doc[] {
+  getTrending(limit = 8): Doc[] {
+    return [...this.docs.values()]
+      .sort((a, b) => b.totalSupportCollected - a.totalSupportCollected)
+      .slice(0, limit);
+  }
+
+  getCountries(): { code: string; label: string; count: number }[] {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const doc of this.docs.values()) {
+      if (!doc.countryCode) continue;
+      const existing = map.get(doc.countryCode);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(doc.countryCode, {
+          label: doc.countryLabel ?? doc.countryCode,
+          count: 1,
+        });
+      }
+    }
+    return [...map.entries()]
+      .map(([code, { label, count }]) => ({ code, label, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  search(query: string, countryCode?: string | null): Doc[] {
     const q = query.trim().toLowerCase();
     if (q.length < 2) return [];
 
@@ -109,30 +144,38 @@ class SearchIndex {
 
     if (terms.length === 0) return [];
 
-    // Intersect candidate sets for each query term
-    let candidates: Set<string> | null = null;
+    const country = countryCode?.trim().toUpperCase() ?? null;
+
+    // Score each doc by how many terms match (OR union, ranked by coverage)
+    const scores = new Map<string, number>();
     for (const term of terms) {
       const matches = this.index.get(term);
-      if (!matches || matches.size === 0) return [];
-      if (candidates === null) {
-        candidates = new Set<string>(matches);
-      } else {
-        const next = new Set<string>();
-        for (const id of candidates) {
-          if (matches.has(id)) next.add(id);
-        }
-        candidates = next;
+      if (!matches) continue;
+      for (const id of matches) {
+        scores.set(id, (scores.get(id) ?? 0) + 1);
       }
-      if (candidates.size === 0) return [];
     }
 
-    if (!candidates) return [];
+    if (scores.size === 0) return [];
 
-    return [...candidates]
-      .map((id) => this.docs.get(id)!)
-      .filter(Boolean)
+    return [...scores.entries()]
+      .map(([id, score]) => ({ doc: this.docs.get(id)!, score }))
+      .filter(({ doc }) => doc && (!country || doc.countryCode === country))
+      .sort((a, b) => {
+        // Full matches first, then by support collected
+        if (b.score !== a.score) return b.score - a.score;
+        return b.doc.totalSupportCollected - a.doc.totalSupportCollected;
+      })
+      .slice(0, MAX_RESULTS)
+      .map(({ doc }) => doc);
+  }
+
+  filterByCountry(countryCode: string, limit = MAX_RESULTS): Doc[] {
+    const code = countryCode.trim().toUpperCase();
+    return [...this.docs.values()]
+      .filter((doc) => doc.countryCode === code)
       .sort((a, b) => b.totalSupportCollected - a.totalSupportCollected)
-      .slice(0, MAX_RESULTS);
+      .slice(0, limit);
   }
 
   clear() {
@@ -146,7 +189,18 @@ class SearchIndex {
 // Global state (persists across requests within the same process/instance)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type IPFSMeta = { text: string; username?: string; pfpUrl?: string; bgImageUrl?: string };
+type IPFSMeta = {
+  text: string;
+  username?: string;
+  pfpUrl?: string;
+  bgImageUrl?: string;
+  gatekeeper?: {
+    enabled?: boolean;
+    type?: string;
+    value?: string;
+    label?: string;
+  };
+};
 
 const g = global as any;
 if (!g.__deluluSearchIndex) g.__deluluSearchIndex = new SearchIndex();
@@ -162,27 +216,50 @@ const subgraphStore: { rows: SubgraphRow[]; fetchedAt: number } = g.__deluluSubg
 // IPFS resolver
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function resolveIPFS(hash: string): Promise<{
-  text: string; username?: string; pfpUrl?: string; bgImageUrl?: string;
-} | null> {
+function parseContentMeta(data: Record<string, unknown>): IPFSMeta | null {
+  const text: string =
+    (typeof data.text === "string" ? data.text : "") ||
+    (typeof data.content === "string" ? data.content : "");
+  if (!text.trim()) return null;
+  return {
+    text,
+    username: typeof data.username === "string" ? data.username : undefined,
+    pfpUrl: typeof data.pfpUrl === "string" ? data.pfpUrl : undefined,
+    bgImageUrl: typeof data.bgImageUrl === "string" ? data.bgImageUrl : undefined,
+    gatekeeper:
+      data.gatekeeper && typeof data.gatekeeper === "object"
+        ? (data.gatekeeper as IPFSMeta["gatekeeper"])
+        : undefined,
+  };
+}
+
+async function resolveContent(contentHash: string): Promise<IPFSMeta | null> {
+  // Supabase / direct URL — fetch straight from the source
+  if (contentHash.startsWith("https://") || contentHash.startsWith("http://")) {
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), IPFS_TIMEOUT_MS);
+      const res = await fetch(contentHash, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return parseContentMeta(data as Record<string, unknown>);
+    } catch {
+      return null;
+    }
+  }
+
+  // IPFS hash — try gateways in order
   for (const gateway of IPFS_GATEWAYS) {
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), IPFS_TIMEOUT_MS);
-      const res = await fetch(`${gateway}${hash}`, { signal: ctrl.signal });
+      const res = await fetch(`${gateway}${contentHash}`, { signal: ctrl.signal });
       clearTimeout(tid);
       if (!res.ok) continue;
       const data = await res.json();
-      const text: string =
-        (typeof data.text === "string" ? data.text : "") ||
-        (typeof data.content === "string" ? data.content : "");
-      if (!text.trim()) continue;
-      return {
-        text,
-        username: typeof data.username === "string" ? data.username : undefined,
-        pfpUrl: typeof data.pfpUrl === "string" ? data.pfpUrl : undefined,
-        bgImageUrl: typeof data.bgImageUrl === "string" ? data.bgImageUrl : undefined,
-      };
+      const meta = parseContentMeta(data as Record<string, unknown>);
+      if (meta) return meta;
     } catch {
       continue;
     }
@@ -222,7 +299,7 @@ async function fetchSubgraphRows(): Promise<SubgraphRow[]> {
               orderDirection: desc
               where: { isCancelled: false }
             ) {
-              id onChainId creatorAddress contentHash
+              id onChainId token creatorAddress contentHash
               totalSupportCollected totalSupporters creatorStake
               createdAt isResolved
               creator { username }
@@ -276,8 +353,8 @@ async function buildIndex(): Promise<void> {
           if (ipfsCache.has(row.contentHash)) {
             meta = ipfsCache.get(row.contentHash) ?? null;
           } else {
-            meta = await resolveIPFS(row.contentHash);
-            ipfsCache.set(row.contentHash, meta); // store full meta, not just text
+            meta = await resolveContent(row.contentHash);
+            ipfsCache.set(row.contentHash, meta);
           }
 
           if (!meta?.text) return;
@@ -285,6 +362,14 @@ async function buildIndex(): Promise<void> {
           // On-chain username takes priority over IPFS username
           const onChainUsername = row.creator?.username ?? null;
           const resolvedUsername = onChainUsername || meta.username || null;
+
+          const gk = meta.gatekeeper;
+          const countryCode =
+            gk?.enabled && gk.type === "country" && gk.value
+              ? gk.value.toUpperCase()
+              : null;
+          const countryLabel =
+            gk?.enabled && gk.label ? gk.label : null;
 
           const doc: Doc = {
             id: row.id,
@@ -299,6 +384,9 @@ async function buildIndex(): Promise<void> {
             creatorStake: Number(row.creatorStake ?? 0),
             createdAt: row.createdAt,
             isResolved: row.isResolved,
+            countryCode,
+            countryLabel,
+            tokenAddress: row.token ?? "",
           };
 
           searchIndex.add(doc);
@@ -318,27 +406,44 @@ async function buildIndex(): Promise<void> {
 
 export async function GET(req: NextRequest) {
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().toLowerCase();
+  const bootstrap = req.nextUrl.searchParams.get("bootstrap") === "1";
+  const country = req.nextUrl.searchParams.get("country");
 
   // Kick off background index build (non-blocking — don't await)
-  // On first call this starts the build; subsequent calls are no-ops.
   buildIndex().catch(() => {});
+
+  const meta = {
+    isBuilding: searchIndex.isBuilding,
+    indexedCount: searchIndex.indexedCount,
+    totalCount: searchIndex.totalCount,
+  };
+
+  if (bootstrap) {
+    return NextResponse.json({
+      ...meta,
+      trending: searchIndex.getTrending(8),
+      countries: searchIndex.getCountries(),
+    });
+  }
+
+  if (country && !q) {
+    return NextResponse.json({
+      ...meta,
+      results: searchIndex.filterByCountry(country),
+    });
+  }
 
   if (q.length < 2) {
     return NextResponse.json({
       results: [],
-      isBuilding: searchIndex.isBuilding,
-      indexedCount: searchIndex.indexedCount,
-      totalCount: searchIndex.totalCount,
+      ...meta,
     });
   }
 
-  // Search the index — instant O(1) lookup regardless of db size
-  const results = searchIndex.search(q);
+  const results = searchIndex.search(q, country);
 
   return NextResponse.json({
     results,
-    isBuilding: searchIndex.isBuilding,
-    indexedCount: searchIndex.indexedCount,
-    totalCount: searchIndex.totalCount,
+    ...meta,
   });
 }

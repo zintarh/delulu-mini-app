@@ -164,7 +164,7 @@ export function ChallengeDetailModal({
                     <div
                       key={entry.deluluId}
                       className={cn(
-                        "bg-white rounded-lg border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] p-4",
+                        "bg-white rounded-lg border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19] p-4",
                         rank <= 3 && "bg-gradient-to-r from-yellow-50 to-white"
                       )}
                     >
@@ -211,10 +211,10 @@ export function ChallengeDetailModal({
                                   onClick={() => handleAllocatePoints(entry.deluluId)}
                                   disabled={isAllocating || isConfirming}
                                   className={cn(
-                                    "px-3 py-1.5 text-xs font-bold rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] transition-all",
+                                    "px-3 py-1.5 text-xs font-bold rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19] transition-all",
                                     isAllocating || isConfirming
                                       ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                      : "bg-delulu-yellow-reserved text-delulu-charcoal hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98]"
+                                      : "bg-delulu-yellow-reserved text-delulu-charcoal hover:shadow-[3px_3px_0px_0px_#1a1a19] active:scale-[0.98]"
                                   )}
                                 >
                                   {isAllocating || isConfirming ? (
@@ -239,7 +239,7 @@ export function ChallengeDetailModal({
                                   setEditingPoints(entry.deluluId);
                                   setPointsInput(entry.points.toString());
                                 }}
-                                className="px-4 py-1.5 text-xs font-bold rounded-md border-2 border-delulu-charcoal bg-white text-delulu-charcoal shadow-[2px_2px_0px_0px_#1A1A1A] hover:shadow-[3px_3px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all"
+                                className="px-4 py-1.5 text-xs font-bold rounded-md border-2 border-delulu-charcoal bg-white text-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19] hover:shadow-[3px_3px_0px_0px_#1a1a19] active:scale-[0.98] transition-all"
                               >
                                 Allocate Points
                               </button>

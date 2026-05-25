@@ -142,7 +142,7 @@ export function FirstRunPwaSheet({
               onClick={() => onOpenChange(false)}
               className={cn(
                 "px-4 py-2 rounded-full text-xs font-semibold border border-border text-muted-foreground",
-                "hover:bg-muted/60 hover:text-foreground transition-colors",
+                "bg-secondary hover:bg-secondary/80 hover:text-foreground transition-colors",
               )}
             >
               Not now

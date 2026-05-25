@@ -528,7 +528,7 @@ export function CreateChallengeSheet({
                 "flex-1",
                 "px-8 py-4",
                 "bg-delulu-yellow text-delulu-charcoal text-lg font-bold",
-                "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A]",
+                "rounded-md border-2 border-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19]",
                 "flex items-center justify-center gap-2 hover:bg-delulu-yellow/90 transition-colors",
                 (!canGoNext() ||
                   isCreating ||

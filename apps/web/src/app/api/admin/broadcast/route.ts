@@ -72,7 +72,7 @@ function broadcastEmailHtml({
                 <tr>
                   <td align="center">
                     <a href="${deluluUrl}"
-                      style="display:inline-block;background:#111111;color:#ffffff;font-size:14px;font-weight:800;
+                      style="display:inline-block;background:#1a1a19;color:#ffffff;font-size:14px;font-weight:800;
                              text-decoration:none;padding:14px 32px;border-radius:10px;letter-spacing:0.3px;">
                       Set your milestone →
                     </a>

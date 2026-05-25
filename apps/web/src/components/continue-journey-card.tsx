@@ -195,7 +195,7 @@ function NextHabitRow({
         <button
           onClick={handleSkip}
           disabled={skip.isPending}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground"
           title="Skip this step"
         >
           {skip.isPending ? (
@@ -207,7 +207,7 @@ function NextHabitRow({
 
         <button
           onClick={onStartOver}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground"
           title="Start over"
         >
           <RefreshCw className="w-4 h-4" />
@@ -254,7 +254,7 @@ function AbandonModal({
           <div className="flex gap-2">
             <button
               onClick={() => onOpenChange(false)}
-              className="flex-1 py-3 rounded-xl bg-muted text-sm font-semibold hover:bg-muted/80 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-secondary text-sm font-semibold hover:bg-secondary/80 transition-colors"
             >
               Keep going
             </button>

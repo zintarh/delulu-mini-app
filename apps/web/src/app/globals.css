@@ -17,47 +17,51 @@ body {
 }
 
 :root {
-  /* Delulu color palette - shared */
-  --delulu-yellow: #fcff52; /* Brand yellow - for buttons/accents only */
-  --delulu-yellow-reserved: #fcff52;
+  /* Delulu color palette */
+  --delulu-yellow: #f6c324;
+  --delulu-yellow-reserved: #f6c324;
   --delulu-green: #35d07f;
-  --delulu-charcoal: #111111; /* Primary text color - Pinterest sharp black */
+  --delulu-charcoal: #1a1a19;
   --delulu-white: #ffffff;
-  --delulu-light-gray: #f8f9fa; /* Secondary background */
-  --delulu-border: #e5e7eb; /* Light border color */
+  --delulu-light-gray: #dfdfd9;
+  --delulu-border: #d4d4ce;
+  /* Standard active blue (Tailwind blue-600) — inputs, focus rings, highlights */
+  --delulu-blue: #2563eb;
+  --delulu-blue-light: #eff6ff;
+  --delulu-blue-border: #bfdbfe;
 
-  --background: #ffffff;
-  --foreground: #333333;
-  --card: #ffffff;
-  --card-foreground: #333333;
-  --popover: #ffffff;
-  --popover-foreground: #333333;
-  --primary: #2e5a27;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #4b5563;
-  --muted: #f9fafb;
-  --muted-foreground: #6b7280;
-  --accent: #e0f2fe;
-  --accent-foreground: #1e3a8a;
+  --background: #f9f8f4;
+  --foreground: #1a1a19;
+  --card: #f9f8f4;
+  --card-foreground: #1a1a19;
+  --popover: #f9f8f4;
+  --popover-foreground: #1a1a19;
+  --primary: #1a1a19;
+  --primary-foreground: #f9f8f4;
+  --secondary: #dfdfd9;
+  --secondary-foreground: #1a1a19;
+  --muted: #dfdfd9;
+  --muted-foreground: #5c5c58;
+  --accent: var(--delulu-blue-light);
+  --accent-foreground: #1d4ed8;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #3b82f6;
-  --chart-1: #3b82f6;
-  --chart-2: #2563eb;
-  --chart-3: #1d4ed8;
-  --chart-4: #1e40af;
-  --chart-5: #1e3a8a;
-  --sidebar: #f9fafb;
-  --sidebar-foreground: #333333;
-  --sidebar-primary: #3b82f6;
+  --border: #d4d4ce;
+  --input: #d4d4ce;
+  --ring: var(--delulu-blue);
+  --chart-1: var(--delulu-blue);
+  --chart-2: #1d4ed8;
+  --chart-3: #1e40af;
+  --chart-4: #1e3a8a;
+  --chart-5: #172554;
+  --sidebar: #f9f8f4;
+  --sidebar-foreground: #1a1a19;
+  --sidebar-primary: var(--delulu-blue);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e0f2fe;
-  --sidebar-accent-foreground: #1e3a8a;
-  --sidebar-border: #e5e7eb;
-  --sidebar-ring: #3b82f6;
+  --sidebar-accent: var(--delulu-blue-light);
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-border: #d4d4ce;
+  --sidebar-ring: var(--delulu-blue);
   --font-sans: Syne, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Source Serif 4, serif;
   --font-mono: JetBrains Mono, monospace;
@@ -82,47 +86,6 @@ body {
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-}
-
-/* Dark theme tokens (applied when html has class="dark") */
-.dark {
-  /* Primary background & text */
-  --background: oklch(0 0 0);
-  --foreground: rgb(255 255 255 / 0.9); /* also used for icons */
-
-  /* Surfaces */
-  --card: oklch(0.2103 0 267.51);
-  --card-foreground: oklch(0.9461 0 0);
-  --popover: oklch(0.25 0 0);
-  --popover-foreground: #fefeff;
-  /* App chrome / base surface (slightly darker than cards) */
-  --secondary: oklch(0.25 0 0);
-  --secondary-foreground: oklch(0.97 0.014 254.604);
-  /* Elevated subtle surface for separating items on secondary */
-  --muted: oklch(0.23 0 0);
-  --muted-foreground: oklch(0.9461 0 0);
-  --accent: oklch(0.25 0 0);
-  --accent-foreground: oklch(0.9214 0.0248 257.65);
-
-  /* Feedback / semantic */
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.97 0.014 254.604);
-
-  /* Borders & inputs */
-  --border: oklch(0.26 0 0);
-  --input: oklch(0.32 0 0);
-  --ring: oklch(0.5144 0.1605 267.44);
-
-  /* Charts (keep reasonable contrast on dark) */
-  --chart-1: #fefeff;
-  --chart-2: #35d07f;
-  --chart-3: #a3a3aa;
-  --chart-4: #fcff52;
-  --chart-5: #1f1f1f;
-}
-
-/* Explicit light theme class (optional; html.classList may toggle "light") */
-.light {
 }
 
 @layer base {
@@ -154,6 +117,29 @@ body {
   .bg-delulu-light-gray {
     background-color: var(--delulu-light-gray);
   }
+  .bg-delulu-blue {
+    background-color: var(--delulu-blue);
+  }
+  .bg-delulu-blue-light {
+    background-color: var(--delulu-blue-light);
+  }
+  .text-delulu-blue {
+    color: var(--delulu-blue);
+  }
+  .border-delulu-blue {
+    border-color: var(--delulu-blue);
+  }
+  .ring-delulu-blue {
+    --tw-ring-color: var(--delulu-blue);
+  }
+
+  /* Shared focus for text fields */
+  .focus-delulu {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring;
+  }
+  .focus-within-delulu {
+    @apply focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:border-ring;
+  }
 
   /* Text colors - Yellow text should NEVER be used on light backgrounds */
   .text-delulu-charcoal {
@@ -182,7 +168,7 @@ body {
     border-color: var(--delulu-white);
   }
 
-  /* Theme-aware neo-brutalist shadow (uses --border for light/dark) */
+  /* Neo-brutalist shadow (uses --border) */
   .shadow-neo {
     box-shadow: 3px 3px 0 0 var(--border);
   }
@@ -198,7 +184,7 @@ body {
 
   /* Home page gradient background - Light version */
   .bg-home-gradient {
-    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 40%, #ffffff 100%);
+    background: linear-gradient(180deg, #f9f8f4 0%, #dfdfd9 40%, #f9f8f4 100%);
   }
 
   .btn-game {
@@ -207,20 +193,20 @@ body {
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border: 3px solid #1a1a1a;
-    box-shadow: 4px 4px 0 #1a1a1a;
+    border: 3px solid #1a1a19;
+    box-shadow: 4px 4px 0 #1a1a19;
     transition: all 0.1s ease;
     transform-style: preserve-3d;
   }
 
   .btn-game:hover {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0 #1a1a1a;
+    box-shadow: 2px 2px 0 #1a1a19;
   }
 
   .btn-game:active {
     transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0 #1a1a1a;
+    box-shadow: 0px 0px 0 #1a1a19;
   }
 
   .btn-game:disabled {
@@ -405,13 +391,10 @@ textarea {
 /* Custom Date Picker Styles - Light Theme */
 .rdp {
   --rdp-cell-size: 32px;
-  /* Use theme tokens so the calendar matches light/dark modes */
-  --rdp-accent-color: #1a1a1a;
-  --rdp-accent-color-dark: #1a1a1a;
+  --rdp-accent-color: #1a1a19;
   --rdp-background-color: var(--card);
-  --rdp-background-color-dark: var(--card);
-  --rdp-outline: 2px solid #1a1a1a;
-  --rdp-outline-selected: 2px solid #1a1a1a;
+  --rdp-outline: 2px solid #1a1a19;
+  --rdp-outline-selected: 2px solid #1a1a19;
   margin: 0;
 }
 
@@ -440,12 +423,12 @@ textarea {
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: #1a1a1a !important;
+  background-color: #1a1a19 !important;
   color: #ffffff !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: #1a1a1a !important;
+  background-color: #1a1a19 !important;
   color: #ffffff !important;
 }
 
@@ -494,7 +477,7 @@ textarea {
 }
 
 .delulu-slider [data-slot="slider-thumb"] {
-  border-color: #1a1a1a !important;
+  border-color: #1a1a19 !important;
   background-color: var(--delulu-yellow-reserved) !important;
 }
 
@@ -566,7 +549,7 @@ textarea {
 
 /* Gradient text - using charcoal base */
 .gradient-text {
-  background: linear-gradient(135deg, #1a1a1a, var(--delulu-green));
+  background: linear-gradient(135deg, #1a1a19, var(--delulu-green));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -242,7 +242,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-4 py-3">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Transfer sent!</p>
+              <p className="text-sm font-semibold text-emerald-600">Transfer sent!</p>
               {txHash && (
                 <a
                   href={`https://celoscan.io/tx/${txHash}`}
@@ -260,7 +260,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
         {txError && (
           <div className="flex items-start gap-2 rounded-xl bg-rose-500/10 border border-rose-500/30 px-4 py-3">
             <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-            <p className="text-[12px] text-rose-600 dark:text-rose-400 leading-snug">{txError}</p>
+            <p className="text-[12px] text-rose-600 leading-snug">{txError}</p>
           </div>
         )}
 
@@ -273,7 +273,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             "w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all",
             canSubmit
               ? "bg-[#35d07f] text-white hover:brightness-105 active:scale-[0.99] shadow-sm"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
+              : "bg-secondary text-muted-foreground cursor-not-allowed"
           )}
         >
           {isPending || isConfirming ? (

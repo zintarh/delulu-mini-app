@@ -61,7 +61,7 @@ function Pagination({
                 className={cn(
                   "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                    ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -211,7 +211,7 @@ export default function AdminMilestonesPage() {
                             <button
                               type="button"
                               onClick={() => openAction(row, "verify")}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#35d07f]/40 px-2.5 py-1.5 text-xs font-semibold text-[#1a8f53] dark:text-[#35d07f] hover:bg-[#35d07f]/10 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#35d07f]/40 px-2.5 py-1.5 text-xs font-semibold text-[#1a8f53] hover:bg-[#35d07f]/10 transition-colors"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               Verify
@@ -219,7 +219,7 @@ export default function AdminMilestonesPage() {
                             <button
                               type="button"
                               onClick={() => openAction(row, "reject")}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors"
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Reject

@@ -145,7 +145,7 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
           style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(64px, 18vw, 96px)" }}
         >
           YOUR<br />
-          <span style={{ color: "#fcff52" }}>DREAM</span><br />
+          <span style={{ color: "#f6c324" }}>DREAM</span><br />
           WRAPPED
         </h1>
         <p className="text-sm text-white/35 mt-4" style={{ fontFamily: "var(--font-manrope)" }}>
@@ -195,12 +195,12 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
               This Month
             </p>
             <p
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "0.03em", color: "#fcff52" }}
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "0.03em", color: "#f6c324" }}
             >
               LAST 30 DAYS
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#fcff52]/30 group-hover:text-[#fcff52]/70 transition-colors" />
+          <ChevronRight className="w-5 h-5 text-[#f6c324]/30 group-hover:text-[#f6c324]/70 transition-colors" />
         </button>
       </div>
     </div>
@@ -228,7 +228,7 @@ function IntroSlide({ address, period }: { address?: string; period: WrapPeriod 
         style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(72px, 20vw, 110px)" }}
       >
         YOUR<br />
-        <span style={{ color: "#fcff52" }}>{label}</span><br />
+        <span style={{ color: "#f6c324" }}>{label}</span><br />
         WRAPPED
       </h1>
 
@@ -457,7 +457,7 @@ function ArchetypeSlide({ rating, insight }: { rating: string; insight: string }
       </h2>
 
       <div className="wrap-rise wrap-rise-2 w-10 h-0.5 my-5 rounded-full"
-        style={{ background: "#fcff52" }} />
+        style={{ background: "#f6c324" }} />
 
       <p
         className="wrap-rise wrap-rise-3 text-white/55 text-sm leading-relaxed max-w-xs"
@@ -486,7 +486,7 @@ function InsightSlide({
       <div className="absolute top-20 right-6 w-40 h-40 rounded-full blur-[80px] pointer-events-none"
         style={{ background: "rgba(252,255,82,0.06)" }} />
 
-      <Sparkles className="wrap-rise wrap-rise-1 w-8 h-8 mb-6" style={{ color: "#fcff52" }} />
+      <Sparkles className="wrap-rise wrap-rise-1 w-8 h-8 mb-6" style={{ color: "#f6c324" }} />
 
       <p
         className="wrap-thump text-white leading-snug mb-6"
@@ -566,7 +566,7 @@ function CtaSlide({
           type="button"
           onClick={(e) => { e.stopPropagation(); onShare(); }}
           className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
-          style={{ background: "#fcff52", color: "#111111", fontFamily: "var(--font-manrope)" }}
+          style={{ background: "#f6c324", color: "#1a1a19", fontFamily: "var(--font-manrope)" }}
         >
           <Share2 className="w-4 h-4" />
           {shared ? "Copied to clipboard!" : "Share your Wrap"}
@@ -601,7 +601,7 @@ function Loader({ label = "Loading your wrap…" }: { label?: string }) {
     <div className="fixed inset-0 flex flex-col items-center justify-center gap-4"
       style={{ background: "#0d0011" }}>
       <div className="w-7 h-7 rounded-full border-2 animate-spin"
-        style={{ borderColor: "rgba(252,255,82,0.2)", borderTopColor: "#fcff52" }} />
+        style={{ borderColor: "rgba(252,255,82,0.2)", borderTopColor: "#f6c324" }} />
       <p className="text-sm text-white/30" style={{ fontFamily: "var(--font-manrope)" }}>{label}</p>
     </div>
   );
@@ -677,7 +677,7 @@ export default function WrapPage() {
   const fireConfetti = useCallback(async () => {
     try {
       const confetti = (await import("canvas-confetti")).default;
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 }, colors: ["#fcff52", "#35d07f", "#ffffff"] });
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 }, colors: ["#f6c324", "#35d07f", "#ffffff"] });
     } catch {}
   }, []);
 

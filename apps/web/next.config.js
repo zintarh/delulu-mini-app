@@ -2,6 +2,35 @@
 const nextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "https",
+        hostname: "gateway.pinata.cloud",
+        pathname: "/ipfs/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ipfs.io",
+        pathname: "/ipfs/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cloudflare-ipfs.com",
+        pathname: "/ipfs/**",
+      },
+      {
+        protocol: "https",
+        hostname: "w3s.link",
+        pathname: "/ipfs/**",
+      },
+    ],
+  },
   async redirects() {
     return [{ source: "/market", destination: "/admin", permanent: false }];
   },

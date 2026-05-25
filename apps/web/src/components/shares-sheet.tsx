@@ -159,7 +159,7 @@ export function SharesSheet({
     import("canvas-confetti").then((mod) => {
       const confetti = (mod as any).default ?? mod;
       if (typeof confetti === "function") {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#FCD34D", "#1A1A1A", "#ffffff"] });
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#FCD34D", "#1a1a19", "#ffffff"] });
       }
     }).catch(() => {});
   }, [isSuccess, isBuy]);
@@ -218,11 +218,11 @@ export function SharesSheet({
         )}>
           <div className={cn(
             "w-9 h-9 rounded-2xl flex items-center justify-center shrink-0",
-            isBuy ? "bg-delulu-yellow-reserved/30 dark:bg-delulu-yellow-reserved/20" : "bg-rose-100 dark:bg-rose-900/40"
+            isBuy ? "bg-delulu-yellow-reserved/30" : "bg-rose-100"
           )}>
             {isBuy
-              ? <TrendingUp className="w-4 h-4 text-delulu-charcoal dark:text-delulu-yellow-reserved" />
-              : <TrendingDown className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+              ? <TrendingUp className="w-4 h-4 text-delulu-charcoal" />
+              : <TrendingDown className="w-4 h-4 text-rose-500" />
             }
           </div>
           <div className="flex-1 min-w-0">
@@ -300,7 +300,7 @@ export function SharesSheet({
                       "flex-1 py-1.5 text-xs font-black rounded-lg border transition-colors",
                       amountStr === String(n)
                         ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted",
+                        : "border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80",
                     )}
                   >
                     {n}
@@ -336,13 +336,13 @@ export function SharesSheet({
 
             {/* Success banner */}
             {isSuccess && (
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-emerald-700 dark:text-emerald-300">
+                  <p className="text-sm font-black text-emerald-700">
                     {isBuy ? "Shares purchased!" : "Shares sold!"}
                   </p>
-                  <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+                  <p className="text-xs text-emerald-600/80">
                     {isBuy ? "You now hold more of this delulu." : "Proceeds sent to your wallet."}
                   </p>
                 </div>
@@ -387,7 +387,7 @@ export function SharesSheet({
                       "active:translate-y-px transition-all",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
                       isBuy
-                        ? "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal hover:opacity-90 shadow-[2px_2px_0px_0px_#1A1A1A]"
+                        ? "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal hover:opacity-90 shadow-[2px_2px_0px_0px_#1a1a19]"
                         : "border-rose-600 bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_#e11d48]",
                     )}
                   >

@@ -61,7 +61,7 @@ function Pagination({
                 className={cn(
                   "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                    ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -314,7 +314,7 @@ export default function AdminBroadcastsPage() {
                               })}
                             </span>
                             {daysLeft <= 7 && daysLeft > 0 && (
-                              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                              <span className="text-[10px] font-bold text-amber-600">
                                 {daysLeft}d left
                               </span>
                             )}

@@ -72,10 +72,7 @@ export default function ChallengesPage() {
     <div className="h-screen overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr_320px] h-screen">
         <div className="hidden lg:block">
-          <LeftSidebar
-            onProfileClick={handleProfileClick}
-            onCreateClick={handleCreateClick}
-          />
+          <LeftSidebar />
         </div>
 
         <main className="h-screen lg:border-x border-border overflow-y-auto scrollbar-hide bg-background">
@@ -106,7 +103,7 @@ export default function ChallengesPage() {
                 <button
                   onClick={() => setShowCreateChallengeSheet(true)}
                   className={cn(
-                    "inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[3px_3px_0px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_0px_#1A1A1A] active:scale-[0.98] transition-all text-xs sm:text-sm font-bold"
+                    "inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded-md border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19] hover:shadow-[4px_4px_0px_0px_#1a1a19] active:scale-[0.98] transition-all text-xs sm:text-sm font-bold"
                   )}
                 >
                   <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -118,7 +115,7 @@ export default function ChallengesPage() {
 
             {/* Content */}
               {error && !isLoading ? (
-              <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-12 text-center">
+              <div className="bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1a1a19] p-12 text-center">
                 <p className="text-muted-foreground font-medium">
                   Error loading campaigns: {error.message}
                 </p>
@@ -144,7 +141,7 @@ export default function ChallengesPage() {
                       <Link
                         key={challenge.id}
                         href={`/campaigns/${challenge.id}`}
-                        className="block bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1A1A1A] p-4 sm:p-6 hover:shadow-[4px_4px_0px_0px_#1A1A1A] hover:border-foreground/20 transition-all cursor-pointer"
+                        className="block bg-card rounded-xl border-2 border-border shadow-[3px_3px_0px_0px_#1a1a19] p-4 sm:p-6 hover:shadow-[4px_4px_0px_0px_#1a1a19] hover:border-foreground/20 transition-all cursor-pointer"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
@@ -199,7 +196,7 @@ export default function ChallengesPage() {
                               className={cn(
                                 "inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-bold border-2 shadow-neo-sm",
                                 !isEnded
-                                  ? "bg-green-100 text-green-800 border-green-600 dark:bg-green-900/50 dark:text-green-200 dark:border-green-500"
+                                  ? "bg-green-100 text-green-800 border-green-600"
                                   : "bg-muted text-muted-foreground border-border"
                               )}
                             >

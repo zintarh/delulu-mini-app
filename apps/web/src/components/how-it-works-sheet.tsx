@@ -101,7 +101,7 @@ export function HowItWorksSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={content.title}
-      sheetClassName="border-t border-border max-h-[90vh] overflow-hidden p-0 rounded-t-3xl [&>button]:text-muted-foreground [&>button]:bg-muted/40 [&>button]:hover:bg-muted/60"
+      sheetClassName="max-h-[90vh] overflow-hidden p-0 rounded-t-3xl"
       modalClassName="max-w-2xl"
     >
         <div className="relative flex flex-col overflow-y-auto pb-8">

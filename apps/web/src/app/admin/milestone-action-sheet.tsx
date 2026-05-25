@@ -115,7 +115,7 @@ export function MilestoneActionSheet({
       onOpenChange={onOpenChange}
       showClose={!busy}
       title=""
-      sheetClassName="border-t-2 border-border !p-0 !z-[100] rounded-t-2xl bg-card"
+      sheetClassName="border-t-2 !p-0 !z-[100] rounded-t-2xl"
       modalClassName="max-w-lg"
     >
       <div className="max-w-lg mx-auto pt-6 pb-8 px-5 space-y-5 text-foreground">
@@ -191,7 +191,7 @@ export function MilestoneActionSheet({
             disabled={busy}
             className={cn(
               "flex-1 py-3 rounded-lg border-2 border-border bg-card text-sm font-bold text-foreground shadow-neo-sm",
-              "hover:bg-muted disabled:opacity-50 transition-colors"
+              "bg-secondary hover:bg-secondary/80 disabled:opacity-50 transition-colors"
             )}
           >
             Cancel

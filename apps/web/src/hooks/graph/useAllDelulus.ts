@@ -14,10 +14,10 @@ import {
 } from "@/lib/graph/ipfs-cache";
 import type { FormattedDelulu } from "@/lib/types";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 const GET_DELULUS_FEED = gql`
-  query GetDelulusFeed($first: Int = 10, $skip: Int = 0) {
+  query GetDelulusFeed($first: Int = 30, $skip: Int = 0) {
     delulus(
       first: $first
       skip: $skip

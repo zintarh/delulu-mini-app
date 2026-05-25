@@ -182,7 +182,7 @@ export default function WelcomePage() {
               className={cn(
                 "relative w-32 h-32 rounded-full overflow-hidden transition-all duration-200",
                 "ring-[3px] ring-offset-[4px] ring-offset-background",
-                missingPfp ? "ring-rose-500" : pfpPreview ? "ring-[#fcff52]" : "ring-border hover:ring-muted-foreground/60",
+                missingPfp ? "ring-rose-500" : pfpPreview ? "ring-[#f6c324]" : "ring-border hover:ring-muted-foreground/60",
               )}
             >
               {pfpPreview ? (
@@ -254,11 +254,11 @@ export default function WelcomePage() {
             type="submit"
             disabled={!canSubmit}
             className={cn(
-              "w-full rounded-2xl border-2 border-[#1A1A1A] bg-[#fcff52] py-4 text-sm font-black text-[#111111]",
-              "shadow-[4px_4px_0px_0px_#1A1A1A] transition-all",
-              "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#1A1A1A]",
+              "w-full rounded-2xl border-2 border-[#1a1a19] bg-[#f6c324] py-4 text-sm font-black text-[#1a1a19]",
+              "shadow-[4px_4px_0px_0px_#1a1a19] transition-all",
+              "hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#1a1a19]",
               "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-              "disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0px_0px_#1A1A1A]",
+              "disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0px_0px_#1a1a19]",
             )}
           >
             <span className="inline-flex items-center justify-center gap-2">
@@ -286,7 +286,7 @@ export default function WelcomePage() {
       </div>
 
       <div className="flex justify-center items-center gap-1.5 pb-10">
-        <span className="block h-1.5 w-7 rounded-full bg-[#fcff52]" />
+        <span className="block h-1.5 w-7 rounded-full bg-[#f6c324]" />
         <span className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
         <span className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
       </div>

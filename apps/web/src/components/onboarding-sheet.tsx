@@ -106,10 +106,8 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
       onOpenChange={handleChange}
       title=""
       sheetClassName={cn(
-        "border-t border-border max-h-[88vh] overflow-hidden p-0 rounded-t-3xl",
-        "bg-secondary/95 backdrop-blur-xl",
+        "max-h-[88vh] overflow-hidden p-0 rounded-t-3xl",
         "shadow-[0_24px_80px_rgba(0,0,0,0.75)]",
-        "[&>button]:text-foreground [&>button]:bg-transparent [&>button]:hover:bg-muted/60",
       )}
       modalClassName="max-w-xl"
     >
@@ -179,7 +177,7 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
                 className={cn(
                   "px-5 py-2.5 rounded-full text-sm font-black",
                   "bg-delulu-yellow-reserved text-delulu-charcoal border border-delulu-charcoal",
-                  "shadow-[2px_2px_0px_0px_#1A1A1A] hover:brightness-105 active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_#1A1A1A]",
+                  "shadow-[2px_2px_0px_0px_#1a1a19] hover:brightness-105 active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_#1a1a19]",
                 )}
               >
                 Get Started

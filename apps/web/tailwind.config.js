@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ["class"],
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx}',
@@ -15,14 +14,20 @@ module.exports = {
     },
     extend: {
       colors: {
-        // Delulu brand colors - Light Theme
-        "delulu-yellow": "#fcff52", // Brand yellow - buttons/accents only
-        "delulu-yellow-reserved": "#fcff52",
+        // Delulu brand colors
+        "delulu-yellow": "#f6c324",
+        "delulu-yellow-reserved": "#f6c324",
         "delulu-green": "#35d07f",
-        "delulu-charcoal": "#111111", // Primary text color - Pinterest sharp black
+        "delulu-charcoal": "#1a1a19",
+        "delulu-dark": "#1a1a19",
         "delulu-white": "#ffffff",
-        "delulu-light-gray": "#F8F9FA", // Secondary background
-        "delulu-border": "#E5E7EB", // Border color
+        "delulu-light-gray": "#dfdfd9",
+        "delulu-border": "#d4d4ce",
+        "delulu-blue": {
+          DEFAULT: "#2563eb",
+          light: "#eff6ff",
+          border: "#bfdbfe",
+        },
         
         // Semantic colors using CSS variables
         border: "var(--border)",

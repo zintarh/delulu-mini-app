@@ -237,7 +237,7 @@ export function EmailCaptureGate() {
               className={cn(
                 "w-full h-11 rounded-xl border-2 text-sm font-black",
                 "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal",
-                "shadow-[2px_2px_0px_0px_#1A1A1A] hover:brightness-95 transition-all",
+                "shadow-[2px_2px_0px_0px_#1a1a19] hover:brightness-95 transition-all",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "inline-flex items-center justify-center gap-2",
               )}

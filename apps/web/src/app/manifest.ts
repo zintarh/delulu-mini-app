@@ -9,9 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    // Default to dark since the app boots in dark mode.
-    background_color: "#151515",
-    theme_color: "#151515",
+    background_color: "#f9f8f4",
+    theme_color: "#f9f8f4",
     icons: [
       {
         src: "/favicon_io/android-chrome-192x192.png",

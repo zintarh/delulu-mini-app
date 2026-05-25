@@ -84,7 +84,7 @@ function Pagination({
                 className={cn(
                   "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                    ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -243,7 +243,7 @@ export default function AdminUsersPage() {
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 datePreset === preset.id
-                  ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                  ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                   : "border-border bg-card text-foreground hover:bg-muted",
               )}
             >
@@ -355,7 +355,7 @@ export default function AdminUsersPage() {
                           type="button"
                           onClick={() => handleDeleteUser(u.address)}
                           disabled={deletingAddress === u.address}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                         >
                           {deletingAddress === u.address ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />

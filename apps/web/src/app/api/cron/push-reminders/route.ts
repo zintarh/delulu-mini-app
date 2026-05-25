@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import webpush from "web-push";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { createNotification } from "@/lib/notifications";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
 import {
   getDeluluCreatedAtMs,
@@ -221,6 +222,12 @@ export async function GET(req: NextRequest) {
           url: `/delulu/${m.delulu.id}?milestone=${m.milestoneId}`,
         }),
       );
+      await createNotification({
+        recipientAddress: creatorAddress,
+        type: "milestone_due",
+        message: "Your milestone proof is due in **30 minutes**.",
+        actionUrl: `/delulu/${m.delulu.id}?milestone=${m.milestoneId}`,
+      });
       sent++;
     }
 
@@ -300,6 +307,12 @@ export async function GET(req: NextRequest) {
           url: `/delulu/${d.id}`,
         }),
       );
+      await createNotification({
+        recipientAddress: creatorAddress,
+        type: "delulu_ending",
+        message: "Your delulu ends in **30 minutes**.",
+        actionUrl: `/delulu/${d.id}`,
+      });
       sent++;
     }
 

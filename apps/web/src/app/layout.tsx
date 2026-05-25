@@ -194,11 +194,8 @@ const frame = {
 };
 
 export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#151515" },
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-  ],
-  colorScheme: "dark light",
+  themeColor: "#f9f8f4",
+  colorScheme: "light",
 } as const;
 
 export const metadata: Metadata = {
@@ -247,7 +244,7 @@ export default function RootLayout({
   const signerKeyQuorumId = typeof signerKeyQuorumIdRaw === "string" && signerKeyQuorumIdRaw.trim() ? signerKeyQuorumIdRaw.trim() : undefined;
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} ${bebasNeue.variable} ${oswald.variable} ${playfairDisplay.variable} ${pacifico.variable} ${montserrat.variable} ${raleway.variable} ${poppins.variable} ${robotoCondensed.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${satisfy.variable} ${kalam.variable} ${permanentMarker.variable} ${indieFlower.variable} ${shadowsIntoLight.variable} ${amaticSC.variable} antialiased`}
       >

@@ -5,7 +5,10 @@ import { DELULU_ABI } from "@/lib/abi";
 /**
  * Hook to fetch username from contract by address
  */
-export function useUsernameByAddress(address: `0x${string}` | undefined) {
+export function useUsernameByAddress(
+  address: `0x${string}` | undefined,
+  enabled = true
+) {
   const chainId = useChainId();
   const {
     data: username,
@@ -18,7 +21,7 @@ export function useUsernameByAddress(address: `0x${string}` | undefined) {
     functionName: "getUsername",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: enabled && !!address,
     },
   });
 

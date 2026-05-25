@@ -59,7 +59,7 @@ export function GetGasModal({
             href={TG_GROUP_URL}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#fcff52] text-[#111111] font-black text-sm border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_#1A1A1A] hover:opacity-90 active:translate-y-px transition-all"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#f6c324] text-[#1a1a19] font-black text-sm border-2 border-[#1a1a19] shadow-[2px_2px_0px_0px_#1a1a19] hover:opacity-90 active:translate-y-px transition-all"
           >
             Join Telegram group
             <ExternalLink className="w-3.5 h-3.5" />

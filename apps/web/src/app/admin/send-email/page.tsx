@@ -97,7 +97,7 @@ function Pagination({
                 className={cn(
                   "min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-colors",
                   page === p
-                    ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                    ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
               >
@@ -167,8 +167,8 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
   });
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10">
-      <div className="email-preview-frame max-h-[min(78vh,860px)] overflow-y-auto overscroll-contain bg-[#f5f5f5] dark:bg-[#1a1a1a]">
+    <div className="rounded-xl border border-border overflow-hidden shadow-lg ring-1 ring-black/5">
+      <div className="email-preview-frame max-h-[min(78vh,860px)] overflow-y-auto overscroll-contain bg-[#f5f5f5]">
         <div dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     </div>
@@ -472,9 +472,9 @@ export default function AdminSendEmailPage() {
       )}
 
       {sendError && (
-        <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-400/30 bg-red-50 dark:bg-red-950/20 px-5 py-3.5">
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-400/30 bg-red-50 px-5 py-3.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-          <p className="text-sm text-red-600 dark:text-red-400 flex-1">{sendError}</p>
+          <p className="text-sm text-red-600 flex-1">{sendError}</p>
           <button type="button" onClick={() => setSendError(null)} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
@@ -553,7 +553,7 @@ export default function AdminSendEmailPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
               activeFilter === f.id
-                ? "border-[#111111] bg-[#111111] text-white dark:border-white dark:bg-white dark:text-[#111111]"
+                ? "border-[#1a1a19] bg-[#1a1a19] text-white"
                 : "border-border bg-card text-foreground hover:bg-muted",
             )}
           >
@@ -563,7 +563,7 @@ export default function AdminSendEmailPage() {
                 className={cn(
                   "inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums",
                   activeFilter === f.id
-                    ? "bg-white/20 text-white dark:bg-black/20 dark:text-black"
+                    ? "bg-white/20 text-white"
                     : "bg-muted text-muted-foreground",
                 )}
               >
@@ -758,8 +758,8 @@ export default function AdminSendEmailPage() {
                             className={cn(
                               "inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase",
                               r.cardActive
-                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                                : "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                                ? "bg-emerald-500/15 text-emerald-700"
+                                : "bg-amber-500/15 text-amber-800",
                             )}
                           >
                             {r.cardActive ? "Yes" : "No"}

@@ -1,45 +1,62 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
 import Link from "next/link";
-import { Home, Plus, Coins, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useClaimPanel, useNotificationsPanel } from "@/contexts/right-panel-context";
+import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
+import {
+  getMobileBottomNavItems,
+  isMainNavItemActive,
+  normalizePathname,
+} from "@/components/main-nav-config";
+import { MOBILE_BOTTOM_NAV_HEIGHT } from "@/lib/mobile-bottom-nav";
 
 interface BottomNavProps {
+  /** @deprecated Profile is not in main nav; kept for existing callers */
   onProfileClick?: () => void;
   onCreateClick?: () => void;
 }
 
-const navItems: Array<{
-  icon: typeof Home;
-  label: string;
-  href: string | null;
-  isClaim?: boolean;
-}> = [
-  { icon: Home, label: "Home", href: "/" },
-  { icon: Plus, label: "Create", href: null },
-  { icon: Coins, label: "Claim", href: null, isClaim: true },
-  { icon: User, label: "Profile", href: null },
-];
-
-export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
+export function BottomNav({ onCreateClick }: BottomNavProps) {
   const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
   const router = useRouter();
   const { authenticated } = useAuth();
+  const { isOpen: notificationsOpen } = useNotificationsPanel();
+  const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
+    useClaimPanel();
+
+  const navItems = getMobileBottomNavItems(authenticated);
+  const path = normalizePathname(pathname ?? "");
+  const isHomeRoute = segment === null && path === "/";
 
   useEffect(() => {
-    ["/", "/board", "/profile", "/daily-claim", "/leaderboard"]
-      .forEach((href) => router.prefetch(href));
+    ["/", "/board", "/profile"].forEach((href) => router.prefetch(href));
+    void import("@/components/create-delusion-content");
+    prefetchCreateManifestStep();
   }, [router]);
+
+  const prefetchCreate = () => {
+    router.prefetch("/board");
+    void import("@/components/create-delusion-content");
+    prefetchCreateManifestStep();
+  };
+
+  const activeOptions = {
+    isHomeRoute,
+    notificationsOpen,
+    claimOpen,
+    layoutSegment: segment,
+  };
 
   return (
     <>
-      {/* Reserve space so fixed mobile nav never overlaps page content. */}
       <div
         className="lg:hidden"
-        style={{ height: "calc(56px + max(env(safe-area-inset-bottom), 8px))" }}
+        style={{ height: MOBILE_BOTTOM_NAV_HEIGHT }}
         aria-hidden="true"
       />
       <nav
@@ -47,148 +64,96 @@ export function BottomNav({ onProfileClick, onCreateClick }: BottomNavProps) {
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
         aria-label="Main navigation"
       >
-        <div className="flex items-center justify-around h-14 px-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.href
-            ? item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href)
-            : (pathname.startsWith("/profile") && item.label === "Profile") ||
-              (pathname.startsWith("/daily-claim") && item.label === "Claim");
-          const isClaim = item.isClaim === true;
+        <div className="flex items-center justify-around h-14 px-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isMainNavItemActive(item, path, activeOptions);
 
-          const content = (
-            <span className="flex flex-col items-center gap-0.5 py-1 min-w-[56px]">
-              {isClaim ? (
-                <img
-                  src="/gooddollar-logo.png"
-                  alt=""
-                  className={cn(
-                    "w-6 h-6 flex-shrink-0 object-contain",
-                    isActive && "opacity-100"
-                  )}
-                />
-              ) : (
+            const content = (
+              <span className="flex flex-col items-center gap-0.5 py-1 min-w-[52px] max-w-[72px]">
                 <Icon
                   className={cn(
                     "w-6 h-6 flex-shrink-0 transition-colors",
-                    isActive
-                      ? isClaim
-                        ? "text-[#01B1FF]"
-                        : "text-foreground"
-                      : "text-muted-foreground"
+                    isActive ? "text-foreground" : "text-muted-foreground",
                   )}
+                  strokeWidth={2}
                 />
-              )}
-              <span
-                className={cn(
-                  "text-[10px] font-medium leading-tight",
-                  isActive
-                    ? isClaim
-                      ? "text-[#01B1FF]"
-                      : "text-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                {item.label}
+                <span
+                  className={cn(
+                    "text-[10px] font-medium leading-tight truncate w-full text-center",
+                    isActive ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {item.label === "Claim G$" ? "Claim" : item.label}
+                </span>
               </span>
-            </span>
-          );
-
-          if (item.href) {
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onMouseEnter={() => router.prefetch(item.href!)}
-                onTouchStart={() => router.prefetch(item.href!)}
-                className={cn(
-                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
-                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
-                )}
-                style={isClaim && isActive ? { color: "#01B1FF" } : undefined}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
             );
-          }
 
-          if (authenticated && item.label === "Create") {
-            return (
-              <Link
-                key={item.label}
-                href="/board"
-                onMouseEnter={() => router.prefetch("/board")}
-                onTouchStart={() => router.prefetch("/board")}
-                className={cn(
-                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
-                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
-                )}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
+            const itemClass = cn(
+              "flex flex-1 items-center justify-center rounded-lg transition-colors touch-manipulation min-w-0",
+              isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted",
             );
-          }
 
-          if (authenticated && item.label === "Profile") {
-            return (
-              <Link
-                key={item.label}
-                href="/profile"
-                onMouseEnter={() => router.prefetch("/profile")}
-                onTouchStart={() => router.prefetch("/profile")}
-                className={cn(
-                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
-                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
-                )}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
-            );
-          }
+            if (item.href) {
+              return (
+                <Link
+                  key={item.action}
+                  href={item.href}
+                  onClick={() => {
+                    closePanels();
+                    if (item.action === "create" && onCreateClick) onCreateClick();
+                  }}
+                  onMouseEnter={() => {
+                    router.prefetch(item.href!);
+                    if (item.action === "create") prefetchCreate();
+                  }}
+                  onTouchStart={() => {
+                    router.prefetch(item.href!);
+                    if (item.action === "create") prefetchCreate();
+                  }}
+                  className={itemClass}
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={item.label}
+                >
+                  {content}
+                </Link>
+              );
+            }
 
-          if (authenticated && item.label === "Claim") {
-            return (
-              <Link
-                key={item.label}
-                href="/daily-claim"
-                onMouseEnter={() => router.prefetch("/daily-claim")}
-                onTouchStart={() => router.prefetch("/daily-claim")}
-                className={cn(
-                  "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
-                  isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
-                )}
-                aria-label={item.label}
-              >
-                {content}
-              </Link>
-            );
-          }
+            if (!authenticated) {
+              return (
+                <button
+                  key={item.action}
+                  type="button"
+                  onClick={() => router.push("/sign-in")}
+                  className={itemClass}
+                  aria-label={item.label}
+                >
+                  {content}
+                </button>
+              );
+            }
 
-          const handleClick = () => {
-            router.push("/sign-in");
-          };
+            if (item.action === "claim") {
+              return (
+                <button
+                  key={item.action}
+                  type="button"
+                  onClick={() => {
+                    closePanels();
+                    toggleClaim();
+                  }}
+                  className={itemClass}
+                  aria-label={item.label}
+                  aria-expanded={claimOpen}
+                >
+                  {content}
+                </button>
+              );
+            }
 
-          return (
-            <button
-              key={item.label}
-              type="button"
-              onClick={handleClick}
-              className={cn(
-                "flex items-center justify-center rounded-lg transition-colors touch-manipulation",
-                isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted"
-              )}
-              aria-label={item.label}
-            >
-              {content}
-            </button>
-          );
-        })}
+            return null;
+          })}
         </div>
       </nav>
     </>

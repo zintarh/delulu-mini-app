@@ -58,6 +58,25 @@ const IPFS_GATEWAYS = [
 
 // ─── Core Resolver ──────────────────────────────────────────────
 
+async function fetchFromUrl(url: string): Promise<DeluluIPFSMetadata | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data) return null;
+    const textSource =
+      (typeof data.text === "string" ? data.text : "") ||
+      (typeof data.content === "string" ? data.content : "");
+    if (!textSource || textSource.trim() === "") return null;
+    return { ...(data as object), text: textSource } as DeluluIPFSMetadata;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFromGateways(
   contentHash: string
 ): Promise<DeluluIPFSMetadata | null> {
@@ -155,7 +174,11 @@ function shouldRevalidate(entry: CacheEntry | undefined): boolean {
 
 function revalidateInBackground(contentHash: string): void {
   if (!contentHash || pendingRequests.has(contentHash)) return;
-  const promise = fetchFromGateways(contentHash)
+  const fetcher =
+    contentHash.startsWith("https://") || contentHash.startsWith("http://")
+      ? fetchFromUrl(contentHash)
+      : fetchFromGateways(contentHash);
+  const promise = fetcher
     .then((result) => {
       setCacheEntry(contentHash, result);
       return result;
@@ -174,6 +197,20 @@ export async function resolveIPFSContent(
   contentHash: string
 ): Promise<DeluluIPFSMetadata | null> {
   if (!contentHash) return null;
+
+  // Supabase / direct URL — fetch straight from the source
+  if (contentHash.startsWith("https://") || contentHash.startsWith("http://")) {
+    hydratePersistentCache();
+    const cachedEntry = metadataCache.get(contentHash);
+    if (cachedEntry) {
+      if (shouldRevalidate(cachedEntry)) revalidateInBackground(contentHash);
+      return cachedEntry.value ?? null;
+    }
+    const result = await fetchFromUrl(contentHash);
+    setCacheEntry(contentHash, result);
+    return result;
+  }
+
   hydratePersistentCache();
 
   // Return from cache

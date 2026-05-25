@@ -1,53 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/push/supabase";
 
-// Retry helper for Pinata uploads
-async function uploadWithRetry(
-  pinataJWT: string,
-  pinataContent: Record<string, unknown>,
-  maxRetries = 3
-): Promise<{ IpfsHash: string }> {
-  let lastError: Error | null = null;
+const DEFAULT_BUCKET = "delulu-content";
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+async function ensureBucket(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  bucket: string,
+) {
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) return listError;
 
-      const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${pinataJWT}`,
-        },
-        body: JSON.stringify({
-          pinataContent,
-          pinataMetadata: {
-            name: "delulu-content",
-          },
-        }),
-        signal: controller.signal,
-      });
+  const exists = (buckets ?? []).some((b) => b.name === bucket);
+  if (exists) return null;
 
-      clearTimeout(timeoutId);
+  const { error: createError } = await supabase.storage.createBucket(bucket, {
+    public: true,
+    fileSizeLimit: 1 * 1024 * 1024, // 1MB — JSON metadata is tiny
+  });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Pinata error: ${response.status} - ${errorData}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`[IPFS] Upload attempt ${attempt}/${maxRetries} failed:`, lastError.message);
-
-      if (attempt < maxRetries) {
-        // Wait before retry (exponential backoff)
-        await new Promise((r) => setTimeout(r, 1000 * attempt));
-      }
-    }
+  if (createError) {
+    const msg = String(createError.message || "").toLowerCase();
+    if (msg.includes("already")) return null;
+    return createError;
   }
-
-  throw lastError;
+  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -65,74 +41,76 @@ export async function POST(request: NextRequest) {
     if (!content || typeof content !== "string") {
       return NextResponse.json(
         { error: "Content is required and must be a string" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const pinataJWT = process.env.PINATA_JWT;
-
-    if (!pinataJWT) {
-      console.error("PINATA_JWT is not set in environment variables");
-      return NextResponse.json(
-        { error: "IPFS service not configured" },
-        { status: 500 }
-      );
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
     }
 
-    // Build pinataContent object
-    const pinataContent: Record<string, unknown> = {
-      text: content,
-    };
-
-    if (description && typeof description === "string") {
-      pinataContent.description = description;
-    }
-
-    if (username && typeof username === "string") {
-      pinataContent.username = username;
-    }
-
-    if (pfpUrl && typeof pfpUrl === "string") {
-      pinataContent.pfpUrl = pfpUrl;
-    }
-
-    if (createdAt && typeof createdAt === "string") {
-      pinataContent.createdAt = createdAt;
-    }
-
+    // Build metadata object (same shape IPFS used)
+    const metadata: Record<string, unknown> = { text: content };
+    if (description && typeof description === "string") metadata.description = description;
+    if (username && typeof username === "string") metadata.username = username;
+    if (pfpUrl && typeof pfpUrl === "string") metadata.pfpUrl = pfpUrl;
+    if (createdAt && typeof createdAt === "string") metadata.createdAt = createdAt;
     if (gatekeeper && typeof gatekeeper === "object" && gatekeeper.enabled) {
-      pinataContent.gatekeeper = {
+      metadata.gatekeeper = {
         enabled: gatekeeper.enabled,
         type: gatekeeper.type || "country",
         value: gatekeeper.value,
         label: gatekeeper.label,
       };
     }
+    if (bgImageUrl && typeof bgImageUrl === "string") metadata.bgImageUrl = bgImageUrl;
 
-    if (bgImageUrl && typeof bgImageUrl === "string") {
-      pinataContent.bgImageUrl = bgImageUrl;
-    }
+    const bucket = process.env.SUPABASE_DELULU_CONTENT_BUCKET || DEFAULT_BUCKET;
+    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
+    const body = Buffer.from(JSON.stringify(metadata));
 
-    // Upload with retry
-    const data = await uploadWithRetry(pinataJWT, pinataContent);
-    const ipfsHash = data.IpfsHash;
-
-    if (!ipfsHash) {
+    const bucketError = await ensureBucket(supabase, bucket);
+    if (bucketError) {
       return NextResponse.json(
-        { error: "No IPFS hash returned from Pinata" },
-        { status: 500 }
+        { error: bucketError.message || "Failed to initialize storage" },
+        { status: 500 },
       );
     }
 
-    return NextResponse.json({ hash: ipfsHash });
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, body, {
+        contentType: "application/json",
+        cacheControl: "31536000",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return NextResponse.json(
+        { error: uploadError.message || "Failed to upload metadata" },
+        { status: 500 },
+      );
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(filePath);
+
+    if (!publicUrl) {
+      return NextResponse.json({ error: "Failed to get metadata URL" }, { status: 500 });
+    }
+
+    // Return `hash` so existing callers (ipfs.ts → uploadToIPFS) need no changes
+    return NextResponse.json({ hash: publicUrl });
   } catch (error) {
-    console.error("IPFS upload error:", error);
+    console.error("[metadata-upload]", error);
     return NextResponse.json(
       {
         error: "Failed to upload to IPFS",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

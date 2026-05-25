@@ -143,7 +143,7 @@ export default function ReminderEmailTestPage() {
           </button>
 
           {result && (
-            <div className="flex items-start gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-start gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-700">
               <MailCheck className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{result}</span>
             </div>

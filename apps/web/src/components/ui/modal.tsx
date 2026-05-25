@@ -59,7 +59,7 @@ const ModalContent = React.forwardRef<
             "absolute right-4 top-4",
             "w-8 h-8 rounded-full",
             "flex items-center justify-center",
-            "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground",
+            "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground",
             "active:scale-95 transition-all"
           )}
         >
