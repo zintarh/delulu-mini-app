@@ -30,6 +30,7 @@ import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/mo
 import {
   MAX_DELULU_LENGTH,
   MIN_STAKE,
+  MIN_DURATION_DAYS,
   MAX_DURATION_DAYS,
   getDefaultDeadline,
   getMinDeadline,
@@ -811,31 +812,26 @@ export function CreateManifestStep({
             ) : (
               <div className="flex w-full items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 focus-within-delulu">
                 <input
-                  min={1}
+                  min={MIN_DURATION_DAYS}
+                  max={MAX_DURATION_DAYS}
                   step={1}
                   value={fastDurationValue}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (val === "") {
+                    // Allow free typing — only accept digits, no clamping mid-type
+                    if (val === "" || /^\d+$/.test(val)) {
                       setFastDurationValue(val);
-                      return;
-                    }
-                    const num = Number(val);
-                    if (!isNaN(num) && num > 0) {
-                      const capped = String(Math.min(MAX_DURATION_DAYS, Math.floor(num)));
-                      setFastDurationValue(capped);
-                      updateDeadlineFromFastMode(capped);
                     }
                   }}
                   onBlur={() => {
-                    if (
-                      fastDurationValue === "" ||
-                      isNaN(Number(fastDurationValue)) ||
-                      Number(fastDurationValue) < 1
-                    ) {
-                      setFastDurationValue("1");
-                      updateDeadlineFromFastMode("1");
-                    }
+                    const num = Number(fastDurationValue);
+                    const clamped = isNaN(num) || num < MIN_DURATION_DAYS
+                      ? MIN_DURATION_DAYS
+                      : num > MAX_DURATION_DAYS
+                        ? MAX_DURATION_DAYS
+                        : Math.floor(num);
+                    setFastDurationValue(String(clamped));
+                    updateDeadlineFromFastMode(String(clamped));
                   }}
                   className="flex-1 bg-transparent text-base font-medium placeholder:text-muted-foreground focus:outline-none"
                   placeholder="Number of days"

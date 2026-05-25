@@ -127,7 +127,7 @@ export function CreateDelusionContent({
   const [gatekeeper, setGatekeeper] = useState<GatekeeperConfig | null>(null);
   const [deadline, setDeadline] = useState<Date>(() => getDefaultDeadline());
   const [durationMode, setDurationMode] = useState<"fast" | "calendar">("calendar");
-  const [fastDurationValue, setFastDurationValue] = useState<string>("7");
+  const [fastDurationValue, setFastDurationValue] = useState<string>(String(MIN_DURATION_DAYS));
 
   const updateDeadlineFromFastMode = useCallback((value: string) => {
     if (!value || value === "" || isNaN(Number(value))) return;
@@ -170,7 +170,7 @@ export function CreateDelusionContent({
     setDescription("");
     setDeadline(getDefaultDeadline());
     setDurationMode("calendar");
-    setFastDurationValue("7");
+    setFastDurationValue(String(MIN_DURATION_DAYS));
     setGatekeeper(null);
     setSelectedTemplate(null);
     setCustomImage(null);

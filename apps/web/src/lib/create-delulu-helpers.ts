@@ -29,8 +29,8 @@ export interface ProgressStep {
 }
 
 // Date helpers
-export const MIN_DURATION_DAYS = 1;
-export const MAX_DURATION_DAYS = 7;
+export const MIN_DURATION_DAYS = 7;
+export const MAX_DURATION_DAYS = 30;
 
 export function getDefaultDeadline(): Date {
   const date = new Date();

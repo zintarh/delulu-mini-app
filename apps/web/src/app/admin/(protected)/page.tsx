@@ -110,7 +110,7 @@ export default function AdminOverviewPage() {
       {/* Alert if there are pending milestones */}
       {stats.pendingMilestones > 0 && (
         <Link
-          href="/admin/milestones"
+          href={"/admin/milestones"}
           className="mb-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
         >
           <div className="flex items-center gap-3">
@@ -127,26 +127,26 @@ export default function AdminOverviewPage() {
       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Quick access</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <QuickLink
-          href="/admin/milestones"
+          href={"/admin/milestones"}
           icon={ShieldCheck}
           label="Milestone Queue"
           description="Review and verify submitted milestone proofs"
           badge={stats.pendingMilestones}
         />
         <QuickLink
-          href="/admin/markets"
+          href={"/admin/markets"}
           icon={BarChart3}
           label="All Markets"
           description={`${stats.total} indexed delulus`}
         />
         <QuickLink
-          href="/admin/broadcasts"
+          href={"/admin/broadcasts"}
           icon={Megaphone}
           label="Broadcasts"
           description="Email creators who haven't set milestones yet"
         />
         <QuickLink
-          href="/admin/users"
+          href={"/admin/users"}
           icon={Users}
           label="Users"
           description="View and manage registered profiles"
