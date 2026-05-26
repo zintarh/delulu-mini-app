@@ -145,7 +145,17 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
           </div>
         ) : hasClaimed ? (
           <div className="rounded-xl bg-secondary px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-foreground mb-1">You&apos;re all set for today</p>
+            <p className="text-sm font-semibold text-foreground mb-1">
+              {nextClaimTime ? (() => {
+                const now = new Date();
+                const timeStr = nextClaimTime.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                const isToday = nextClaimTime.toDateString() === now.toDateString();
+                const isTomorrow = nextClaimTime.toDateString() === new Date(now.getTime() + 86_400_000).toDateString();
+                if (isToday) return `Come back at ${timeStr} today`;
+                if (isTomorrow) return `Come back at ${timeStr} tomorrow`;
+                return `Come back at ${timeStr}`;
+              })() : "Already claimed"}
+            </p>
             {nextClaimTime && (
               <p className="text-xs text-muted-foreground">
                 Next claim {nextClaimTime.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}

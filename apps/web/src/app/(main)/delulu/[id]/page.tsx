@@ -31,6 +31,10 @@ const ProofModal = dynamic(
   () => import("@/components/proof-modal").then((m) => m.ProofModal),
   { ssr: false },
 );
+const AiMilestonesModal = dynamic(
+  () => import("@/components/ai-milestones-modal").then((m) => m.AiMilestonesModal),
+  { ssr: false },
+);
 import {
   Modal,
   ModalContent,
@@ -492,6 +496,7 @@ export default function DeluluPage() {
     delulu?.creator &&
     address.toLowerCase() === delulu.creator.toLowerCase();
 
+  const [showAiMilestonesModal, setShowAiMilestonesModal] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [editSheetMode, setEditSheetMode] = useState<EditSheetMode>("update");
   const [showCreatorActions, setShowCreatorActions] = useState(false);
@@ -598,6 +603,20 @@ export default function DeluluPage() {
     refetchDelulu();
     refetchStakes();
     queryClient.invalidateQueries();
+    (async () => {
+      try {
+        const confettiModule = await import("canvas-confetti");
+        const confetti = (confettiModule as any).default || confettiModule;
+        if (typeof confetti === "function") {
+          confetti({
+            particleCount: 80,
+            spread: 65,
+            origin: { y: 0.55 },
+            colors: ["#f6c324", "#22C55E", "#3B82F6"],
+          });
+        }
+      } catch {}
+    })();
   }, [isTipMilestoneSuccess, refetchDelulu, refetchStakes, queryClient]);
 
   const handleSubmitTip = () => {
@@ -1379,20 +1398,6 @@ export default function DeluluPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {isCreator && canAddMilestones && deluluRemainingDaysTotal > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowMilestoneForm((open) => !open);
-                              setMilestoneMinError(false);
-                            }}
-                            className="w-fit inline-flex items-center justify-center px-3 py-2 text-xs md:text-sm font-semibold rounded-sm border border-border bg-secondary text-foreground hover:bg-secondary/80 transition-colors"
-                          >
-                            {showMilestoneForm ? "Close" : "Add"}
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
 
@@ -1784,6 +1789,16 @@ export default function DeluluPage() {
                       <p className="text-sm md:text-base font-black text-foreground">
                         {isCreator ? "No steps yet" : "None yet"}
                       </p>
+                      {isCreator && canAddMilestones && deluluRemainingDaysTotal > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAiMilestonesModal(true)}
+                          className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal text-sm font-black shadow-[2px_2px_0px_0px_#1a1a19] hover:scale-[0.98] transition-transform"
+                        >
+                          <Target className="w-4 h-4" />
+                          Add Milestones
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1801,6 +1816,22 @@ export default function DeluluPage() {
         open={showLoginSheet}
         onOpenChange={setShowLoginSheet}
       />
+
+      {isCreator && (
+        <AiMilestonesModal
+          open={showAiMilestonesModal}
+          onOpenChange={setShowAiMilestonesModal}
+          deluluId={deluluId}
+          dreamTitle={deluluTitle}
+          durationDays={deluluRemainingDaysTotal}
+          onDone={() => {
+            setShowAiMilestonesModal(false);
+            setIsWaitingForMilestones(true);
+            setTimeout(() => refetchDelulu(), 3000);
+            refetchDeluluData(apolloClient, deluluId);
+          }}
+        />
+      )}
 
       <Modal
         open={showTipModal}
@@ -1879,7 +1910,7 @@ export default function DeluluPage() {
 
             {/* Quick amounts */}
             <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 25, 50].map((v) => {
+              {(isGoodDollarMarket ? [100, 200, 500, 1000] : [5, 10, 25, 50]).map((v) => {
                 const isSelected = Number(tipAmountInput) === v;
                 const isAffordable = v <= walletBalanceNum;
                 return (

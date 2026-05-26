@@ -5,7 +5,9 @@ import { useEffect, useReducer } from "react";
 // ─── Module-level singleton ───────────────────────────────────────────────────
 // Persists across all component instances and re-renders.
 
-type CacheEntry = string | null; // null = confirmed no pfp, undefined = not fetched
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+type CacheEntry = { value: string | null; ts: number };
 const cache = new Map<string, CacheEntry>();
 const subscribers = new Set<() => void>();
 
@@ -24,8 +26,12 @@ async function flushBatch() {
   const batch = Array.from(pending);
   pending.clear();
 
-  // Only fetch addresses not already in cache
-  const toFetch = batch.filter((a) => !cache.has(a));
+  // Only fetch addresses not already fresh in cache
+  const now = Date.now();
+  const toFetch = batch.filter((a) => {
+    const entry = cache.get(a);
+    return !entry || now - entry.ts >= CACHE_TTL_MS;
+  });
   if (toFetch.length === 0) {
     console.log("[pfp] all addresses already cached, skipping fetch");
     notify();
@@ -44,19 +50,22 @@ async function flushBatch() {
       const data = await res.json();
       console.log("[pfp] raw API response:", JSON.stringify(data));
       const profiles: Record<string, string | null> = data?.profiles ?? {};
+      const now = Date.now();
       for (const addr of toFetch) {
         const val = profiles[addr] ?? null;
-        cache.set(addr, val);
+        cache.set(addr, { value: val, ts: now });
         console.log(`[pfp] cached ${addr} →`, val ?? "(null/no pfp)");
       }
     } else {
       const text = await res.text().catch(() => "");
       console.error("[pfp] API error", res.status, text);
-      for (const addr of toFetch) cache.set(addr, null);
+      const now = Date.now();
+      for (const addr of toFetch) cache.set(addr, { value: null, ts: now });
     }
   } catch (err) {
     console.error("[pfp] fetch threw:", err);
-    for (const addr of toFetch) cache.set(addr, null);
+    const now = Date.now();
+    for (const addr of toFetch) cache.set(addr, { value: null, ts: now });
   }
 
   notify();
@@ -64,7 +73,8 @@ async function flushBatch() {
 
 function schedule(address: string) {
   const normalized = address.toLowerCase();
-  if (cache.has(normalized)) return; // already cached, no need to schedule
+  const entry = cache.get(normalized);
+  if (entry && Date.now() - entry.ts < CACHE_TTL_MS) return; // still fresh
   pending.add(normalized);
   if (batchTimer === null) {
     // 30ms window to collect addresses from all components mounting in the same tick
@@ -72,8 +82,10 @@ function schedule(address: string) {
   }
 }
 
-function getPfp(address: string): CacheEntry | undefined {
-  return cache.get(address.toLowerCase());
+function getPfp(address: string): string | null | undefined {
+  const entry = cache.get(address.toLowerCase());
+  if (!entry) return undefined;
+  return entry.value;
 }
 
 /** Force-refreshes a single address in the cache (call after pfp upload) */

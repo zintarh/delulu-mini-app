@@ -29,7 +29,9 @@ export async function GET(
     userReacted = !!data;
   }
 
-  return NextResponse.json({ count: count ?? 0, userReacted });
+  return NextResponse.json({ count: count ?? 0, userReacted }, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function POST(

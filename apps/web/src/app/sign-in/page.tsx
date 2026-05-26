@@ -8,8 +8,8 @@ import { DELULU_ABI } from "@/lib/abi";
 import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@privy-io/react-auth";
-import { useWeb3AuthConnect } from "@web3auth/modal/react";
-import { WALLET_CONNECTORS } from "@web3auth/modal";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
+import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 
 type ProfileProvider = "privy" | "web3auth" | null;
@@ -28,8 +28,9 @@ const BG_IMAGES = ["/bg.jpg", "/bg1.jpg"];
 
 export default function SignInPage() {
   const router = useRouter();
-  const { authenticated, isReady, address, login } = useAuth();
+  const { authenticated, isReady, address } = useAuth();
   const { login: privyLogin } = useLogin();
+  const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
   const [email, setEmail] = useState("");
   const [isChecking, setIsChecking] = useState(false);
@@ -151,19 +152,20 @@ export default function SignInPage() {
           prefill: { type: "email", value: normalizedEmail },
         });
       } else {
-        // Single-click Web3Auth connect with loginHint.
+        if (!isInitialized) {
+          setRouteError("Sign-in is still loading. Wait a moment and try again.");
+          return;
+        }
         await connectTo(WALLET_CONNECTORS.AUTH, {
-          authConnection: "email_passwordless",
+          authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
           loginHint: normalizedEmail,
+          extraLoginOptions: {
+            login_hint: normalizedEmail,
+          },
         });
       }
     } catch {
-      // Keep graceful fallback for environments where AUTH connectTo may reject.
-      try {
-        login();
-      } catch {
-        setRouteError("Couldn’t start sign in. Try again.");
-      }
+      setRouteError("Couldn’t start sign in. Try again.");
     } finally {
       setIsChecking(false);
       setIsLaunchingEmailProvider(false);

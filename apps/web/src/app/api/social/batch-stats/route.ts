@@ -60,5 +60,5 @@ export async function GET(req: NextRequest) {
     };
   }
 
-  return NextResponse.json({ stats });
+  return NextResponse.json({ stats }, { headers: { "Cache-Control": "no-store" } });
 }

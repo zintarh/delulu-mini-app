@@ -28,7 +28,9 @@ export async function GET(
     createdAt: row.created_at as string,
   }));
 
-  return NextResponse.json({ comments });
+  return NextResponse.json({ comments }, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function POST(

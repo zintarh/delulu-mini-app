@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: "Check failed" }, { status: 500 });
+    // Column missing or query failed — treat as unknown (route to web3auth)
+    console.error("[check-email] supabase error:", error.message);
+    return NextResponse.json({ taken: false, auth_provider: null });
   }
 
   return NextResponse.json({

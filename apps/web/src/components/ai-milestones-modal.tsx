@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
-import { Loader2, X, Check } from "lucide-react";
+import { Loader2, X, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { getDeluluContractAddress } from "@/lib/constant";
@@ -14,33 +14,6 @@ interface AiMilestone {
   days: number;
 }
 
-function normalizeDurationsToTotal(values: number[], total: number): number[] {
-  if (values.length === 0) return [];
-  const safeTotal = Math.max(1, total);
-  const normalized = values.map((v) => Math.max(1, Math.round(v || 1)));
-  let sum = normalized.reduce((a, b) => a + b, 0);
-
-  if (sum < safeTotal) {
-    let i = 0;
-    while (sum < safeTotal) {
-      normalized[i % normalized.length] += 1;
-      sum += 1;
-      i += 1;
-    }
-  } else if (sum > safeTotal) {
-    let i = 0;
-    while (sum > safeTotal && i < normalized.length * safeTotal * 2) {
-      const idx = i % normalized.length;
-      if (normalized[idx] > 1) {
-        normalized[idx] -= 1;
-        sum -= 1;
-      }
-      i += 1;
-    }
-  }
-
-  return normalized;
-}
 
 interface AiMilestonesModalProps {
   open: boolean;
@@ -97,24 +70,19 @@ export function AiMilestonesModal({
       });
       const data = await res.json();
       if (data.milestones?.length) {
-        // Keep at most maxDays milestones and normalize total days to exactly maxDays.
-        const capped: AiMilestone[] = data.milestones.map((m: AiMilestone) => ({
-          title: m.title,
+        // API already returns correctly distributed durations — use them directly.
+        const milestones: AiMilestone[] = data.milestones.map((m: AiMilestone) => ({
+          title: String(m.title || "").trim(),
           days: Math.max(1, Number(m.days) || 1),
-        }));
-        const limited = capped.slice(0, Math.max(1, maxDays));
-        const normalizedDays = normalizeDurationsToTotal(
-          limited.map((m) => m.days),
-          maxDays
-        );
-        setMilestones(
-          limited.map((m, i) => ({ ...m, days: normalizedDays[i] ?? 1 }))
-        );
+        })).filter((m: AiMilestone) => m.title.length > 0);
+        setMilestones(milestones);
       } else {
         throw new Error("No milestones returned");
       }
     } catch {
-      setAiError("Could not generate milestones. You can add them on the dream page.");
+      setAiError("Could not generate milestones. You can add them manually below.");
+      // Seed one empty milestone so the user can start manually
+      setMilestones([{ title: "", days: maxDays }]);
     } finally {
       setIsLoadingAI(false);
     }
@@ -150,6 +118,41 @@ export function AiMilestonesModal({
       });
     });
 
+  const addMilestone = () => {
+    setMilestones((prev) => {
+      // Steal 1 day from the milestone with the most days
+      const maxIdx = prev.reduce(
+        (best, m, i) => (m.days > prev[best].days ? i : best),
+        0
+      );
+      if (prev.length > 0 && prev[maxIdx].days > 1) {
+        const updated = prev.map((m, i) =>
+          i === maxIdx ? { ...m, days: m.days - 1 } : m
+        );
+        return [...updated, { title: "", days: 1 }];
+      }
+      // All milestones are at 1 day — add anyway, user must adjust
+      return [...prev, { title: "", days: 1 }];
+    });
+  };
+
+  const removeMilestone = (idx: number) => {
+    setMilestones((prev) => {
+      if (prev.length <= 1) return prev;
+      const removed = prev[idx];
+      const newList = prev.filter((_, i) => i !== idx);
+      // Give removed days back to the last remaining milestone
+      if (newList.length > 0) {
+        const lastIdx = newList.length - 1;
+        newList[lastIdx] = {
+          ...newList[lastIdx],
+          days: newList[lastIdx].days + removed.days,
+        };
+      }
+      return newList;
+    });
+  };
+
   const handleSave = () => {
     if (!deluluId || milestones.length < 3) return;
     const mURIs = milestones.map((m) => m.title);
@@ -167,11 +170,16 @@ export function AiMilestonesModal({
   const isSaving = isPending || isConfirming;
   const totalMilestoneDays = milestones.reduce((sum, m) => sum + m.days, 0);
   const daysRemaining = maxDays - totalMilestoneDays;
+  const tooManyMilestones = milestones.length > maxDays;
+  const canAddMore = milestones.length < maxDays;
   const canSave =
     !isSaving &&
     milestones.length >= 3 &&
+    !tooManyMilestones &&
     totalMilestoneDays === maxDays &&
     milestones.every((m) => m.title.trim().length > 0);
+
+  const showList = !isLoadingAI && milestones.length > 0;
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -196,7 +204,7 @@ export function AiMilestonesModal({
             // Desktop — centered modal
             "lg:bottom-auto lg:left-1/2 lg:right-auto lg:top-1/2",
             "lg:-translate-x-1/2 lg:-translate-y-1/2",
-            "lg:w-[calc(100%-2rem)] lg:max-w-[420px]",
+            "lg:w-[calc(100%-2rem)] lg:max-w-[560px]",
             "lg:rounded-3xl lg:border lg:max-h-[85vh]",
             // Animation
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -232,14 +240,39 @@ export function AiMilestonesModal({
               </div>
 
               {/* Duration context */}
-              {!isLoadingAI && !aiError && milestones.length > 0 && (
-                <div className="flex items-center gap-2 bg-muted/60 rounded-xl px-3.5 py-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-delulu-yellow-reserved flex-shrink-0" />
+              {showList && (
+                <div className={cn(
+                  "flex items-center gap-2 rounded-xl px-3.5 py-2.5",
+                  daysRemaining === 0 ? "bg-emerald-500/10" : daysRemaining < 0 ? "bg-destructive/10" : "bg-muted/60"
+                )}>
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                    daysRemaining === 0 ? "bg-emerald-500" : daysRemaining < 0 ? "bg-destructive" : "bg-delulu-yellow-reserved"
+                  )} />
                   <p className="text-xs text-muted-foreground">
                     Milestones must add up to your{" "}
                     <span className="font-semibold text-foreground">{maxDays}-day</span>{" "}
-                    dream window ({totalMilestoneDays}/{maxDays})
+                    dream window{" "}
+                    <span className={cn(
+                      "font-semibold",
+                      daysRemaining === 0 ? "text-emerald-600" : daysRemaining < 0 ? "text-destructive" : "text-foreground"
+                    )}>
+                      ({totalMilestoneDays}/{maxDays})
+                    </span>
                   </p>
+                </div>
+              )}
+
+              {/* AI error banner (non-blocking) */}
+              {aiError && !isLoadingAI && (
+                <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2.5">
+                  <p className="text-xs text-amber-700 leading-relaxed flex-1">{aiError}</p>
+                  <button
+                    onClick={fetchMilestones}
+                    className="text-[10px] font-semibold text-amber-700 underline shrink-0 mt-px"
+                  >
+                    Retry
+                  </button>
                 </div>
               )}
 
@@ -256,33 +289,13 @@ export function AiMilestonesModal({
                 </div>
               )}
 
-              {/* AI Error */}
-              {aiError && !isLoadingAI && (
-                <div className="bg-muted rounded-2xl px-5 py-6 text-center space-y-3">
-                  <p className="text-sm text-muted-foreground leading-relaxed">{aiError}</p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={fetchMilestones}
-                      className="text-xs font-semibold text-foreground underline"
-                    >
-                      Try again
-                    </button>
-                    <button
-                      onClick={onDone}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Skip, add later
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Milestone cards */}
-              {!isLoadingAI && !aiError && milestones.length > 0 && (
+              {showList && (
                 <div className="space-y-2">
                   {milestones.map((m, idx) => {
                     const isFirst = idx === 0;
                     const isLast = idx === milestones.length - 1;
+                    const canRemove = milestones.length > 1;
                     return (
                       <div
                         key={idx}
@@ -352,9 +365,34 @@ export function AiMilestonesModal({
                             </div>
                           </div>
                         </div>
+
+                        {/* Remove button */}
+                        {canRemove && !isSuccess && (
+                          <button
+                            type="button"
+                            onClick={() => removeMilestone(idx)}
+                            className="w-5 h-5 flex items-center justify-center text-muted-foreground/50 hover:text-destructive transition-colors flex-shrink-0 mt-0.5"
+                            aria-label="Remove milestone"
+                          >
+                            <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
+
+                  {/* Add milestone button */}
+                  {!isSuccess && (
+                    <button
+                      type="button"
+                      onClick={addMilestone}
+                      disabled={!canAddMore}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-muted/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      {canAddMore ? "Add milestone" : `Max ${maxDays} milestones`}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -365,14 +403,26 @@ export function AiMilestonesModal({
                     "Transaction failed. Please try again."}
                 </p>
               )}
-              {!isLoadingAI && !aiError && milestones.length > 0 && totalMilestoneDays !== maxDays && (
+              {showList && daysRemaining !== 0 && (
                 <p className="text-xs text-destructive px-1">
-                  Milestone durations must total exactly {maxDays} days.
+                  {daysRemaining > 0
+                    ? `${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} still unassigned — add more milestones or increase day counts.`
+                    : `${Math.abs(daysRemaining)} day${Math.abs(daysRemaining) !== 1 ? "s" : ""} over budget — reduce day counts on some milestones.`}
+                </p>
+              )}
+              {showList && milestones.length < 3 && (
+                <p className="text-xs text-destructive px-1">
+                  Add at least 3 milestones to continue.
+                </p>
+              )}
+              {showList && tooManyMilestones && (
+                <p className="text-xs text-destructive px-1">
+                  Maximum {maxDays} milestones allowed. Remove {milestones.length - maxDays} to continue.
                 </p>
               )}
 
               {/* CTAs */}
-              {!isLoadingAI && !aiError && milestones.length > 0 && (
+              {showList && (
                 <div className="space-y-2 pt-1">
                   <button
                     onClick={handleSave}
@@ -404,6 +454,18 @@ export function AiMilestonesModal({
                       Skip, add later
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Error state with no milestones seeded */}
+              {!isLoadingAI && aiError && milestones.length === 0 && (
+                <div className="space-y-2 pt-1">
+                  <button
+                    onClick={onDone}
+                    className="w-full text-xs text-center text-muted-foreground py-2.5 hover:text-foreground transition-colors"
+                  >
+                    Skip, add later
+                  </button>
                 </div>
               )}
             </div>

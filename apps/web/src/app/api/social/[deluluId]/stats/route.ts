@@ -36,5 +36,5 @@ export async function GET(
     likes: likesRes.count ?? 0,
     comments: commentsRes.count ?? 0,
     userReacted: !!reactedRes.data,
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }

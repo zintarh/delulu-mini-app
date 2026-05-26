@@ -19,7 +19,7 @@ export async function GET(
 
     if (error) throw error;
 
-    return jsonResponse({ metadata: data });
+    return jsonResponse({ metadata: data }, { headers: { "Cache-Control": "no-store" } });
   } catch (err: any) {
     return errorResponse(err?.message || "Failed to fetch metadata", 500);
   }

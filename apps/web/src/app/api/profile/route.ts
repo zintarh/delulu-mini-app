@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ profiles }, {
       headers: {
-        // Cache for 60 s in the browser, 120 s in CDN/edge — pfps rarely change
-        "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {

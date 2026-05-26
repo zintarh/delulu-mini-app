@@ -196,6 +196,13 @@ export function DeluluDetailPinCard({
       onRequireAuth();
       return;
     }
+    // Optimistic update
+    const prevHearts = hearts;
+    const prevUserReacted = userReacted;
+    const willReact = !userReacted;
+    setHearts((h) => h + (willReact ? 1 : -1));
+    setUserReacted(willReact);
+
     try {
       const res = await fetch(`/api/social/${delulu.id}/likes`, {
         method: "POST",
@@ -207,9 +214,13 @@ export function DeluluDetailPinCard({
         setHearts(data.count ?? 0);
         setUserReacted(data.userReacted ?? false);
         notifyDeluluSocialUpdated(delulu.id);
+      } else {
+        setHearts(prevHearts);
+        setUserReacted(prevUserReacted);
       }
     } catch {
-      // keep
+      setHearts(prevHearts);
+      setUserReacted(prevUserReacted);
     }
   };
 
