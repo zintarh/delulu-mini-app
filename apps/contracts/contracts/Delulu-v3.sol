@@ -56,7 +56,7 @@ contract Delulu is
     error InsufficientFreeLiquidity();
 
     // --- CONSTANTS ---
-    uint256 public constant MAX_MILESTONES = 10;
+    // MAX_MILESTONES removed — milestone count is now limited dynamically to one per remaining day.
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant PROTOCOL_FEE_BPS = 100; // 1%
     uint256 public constant KEEPER_BOUNTY_BPS = 100; // 1% bounty on slashed stake
@@ -620,18 +620,14 @@ contract Delulu is
         Market storage d = delulus[deluluId];
         if (d.id == 0) revert DeluluNotFound();
         if (msg.sender != d.creator) revert Unauthorized();
-        if (mURIs.length == 0 || mURIs.length > MAX_MILESTONES)
-            revert TooManyMilestones();
+        if (mURIs.length == 0) revert TooManyMilestones();
         if (mURIs.length != mDurations.length) revert TooManyMilestones();
 
-        // Check total milestone count won't exceed MAX_MILESTONES
-        uint256 activeCount = 0;
-        for (uint256 i = 0; i < d.milestoneCount; i++) {
-            if (!milestoneIsDeleted[deluluId][i]) activeCount++;
-        }
-        if (activeCount + mURIs.length > MAX_MILESTONES) revert TooManyMilestones();
-
         uint256 runningTime = _getLastActiveMilestoneDeadline(deluluId);
+        uint256 maxAllowed = d.resolutionDeadline > runningTime
+            ? (d.resolutionDeadline - runningTime) / 1 days
+            : 0;
+        if (mURIs.length > maxAllowed) revert TooManyMilestones();
         uint256 startIndex = d.milestoneCount;
 
         for (uint256 i = 0; i < mURIs.length; i++) {
