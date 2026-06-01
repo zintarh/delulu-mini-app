@@ -286,8 +286,11 @@ export function RightSidebar() {
                   const handle = entry.creatorUsername
                     ? `@${entry.creatorUsername}`
                     : `${entry.creatorAddress.slice(0, 6)}…${entry.creatorAddress.slice(-4)}`;
-                  const raw = entry.title?.trim() || "Untitled delulu";
-                  const headline = raw.length > 32 ? raw.slice(0, 32) + "…" : raw;
+                  const raw = entry.titleLoading
+                    ? null
+                    : entry.title?.trim() || `Delulu #${entry.onChainId}`;
+                  const headline =
+                    raw == null ? null : raw.length > 32 ? `${raw.slice(0, 32)}…` : raw;
                   const pfpEntry = pfpMap[entry.creatorAddress.toLowerCase()];
 
                   return (
@@ -310,9 +313,19 @@ export function RightSidebar() {
                       />
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-foreground truncate leading-tight" style={{ fontFamily: "var(--font-manrope)" }}>
-                          {headline}
-                        </p>
+                        {entry.titleLoading ? (
+                          <span
+                            className="inline-block h-3 w-24 animate-pulse rounded bg-muted"
+                            aria-hidden
+                          />
+                        ) : (
+                          <p
+                            className="text-[11px] font-semibold text-foreground truncate leading-tight"
+                            style={{ fontFamily: "var(--font-manrope)" }}
+                          >
+                            {headline}
+                          </p>
+                        )}
                         {/* L3: creator handle */}
                         <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
                           {handle}

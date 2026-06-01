@@ -14,6 +14,8 @@ import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { web3AuthContextConfig } from "@/lib/web3auth-config";
 import { Web3AuthWagmiSync } from "@/components/web3auth-wagmi-sync";
 import { EmailCaptureGate } from "@/components/email-capture-gate";
+import { NoGasProvider } from "@/contexts/no-gas-context";
+import { NotificationCountProvider } from "@/contexts/notification-count-context";
 
 const ErudaProvider = dynamic(
   () => import("../components/Eruda").then((c) => c.ErudaProvider),
@@ -44,12 +46,16 @@ function AppWithPrivy({
       <Web3AuthWagmiSync />
       <ApolloProvider>
         <QueryProvider>
-          <MiniAppProvider addMiniAppOnLoad={true}>
-            <ServiceWorkerRegister />
-            <PullToRefresh />
-            <EmailCaptureGate />
-            {children}
-          </MiniAppProvider>
+          <NoGasProvider>
+            <NotificationCountProvider>
+            <MiniAppProvider addMiniAppOnLoad={true}>
+              <ServiceWorkerRegister />
+              <PullToRefresh />
+              <EmailCaptureGate />
+              {children}
+            </MiniAppProvider>
+            </NotificationCountProvider>
+          </NoGasProvider>
         </QueryProvider>
       </ApolloProvider>
     </FrameWalletProvider>

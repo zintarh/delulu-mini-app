@@ -7,6 +7,7 @@ import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel, useClaimPanel } from "@/contexts/right-panel-context";
+import { useNotificationCount } from "@/contexts/notification-count-context";
 import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
 import {
   getMainNavItems,
@@ -47,6 +48,7 @@ export function LeftSidebar() {
   } = useNotificationsPanel();
   const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
     useClaimPanel();
+  const { unreadCount } = useNotificationCount();
 
   useEffect(() => {
     ["/", "/board", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
@@ -121,6 +123,8 @@ export function LeftSidebar() {
             if (action === "claim") toggleClaim();
           };
 
+          const showBadge = action === "notifications" && unreadCount > 0;
+
           return (
             <div key={action} className="group relative">
               {href ? (
@@ -152,7 +156,14 @@ export function LeftSidebar() {
                         : undefined
                   }
                 >
-                  <NavIcon icon={icon} active={active} />
+                  <span className="relative">
+                    <NavIcon icon={icon} active={active} />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ) : (
                 <button

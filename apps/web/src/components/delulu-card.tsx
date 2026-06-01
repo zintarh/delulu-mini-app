@@ -11,6 +11,7 @@ import { Check, DollarSign, Loader2 } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAuth } from "@/hooks/use-auth";
+import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useChainId, useWaitForTransactionReceipt } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { DELULU_ABI } from "@/lib/abi";
@@ -105,6 +106,8 @@ export function DeluluCard({
     : isMilestonesLoading;
 
   const { address, authenticated } = useAuth();
+  const { ensureWhitelisted, isChecking: isCheckingWhitelist } =
+    useRequireGoodDollarWhitelist();
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
   const apolloClient = useApolloClient();
@@ -270,11 +273,11 @@ export function DeluluCard({
   const canQuickTip = showSupportButton && !tipDisabled;
   const showTipButton = isGoodDollar && !tipDisabled && authenticated;
 
-  const handleQuickTip = (e: React.MouseEvent) => {
+  const handleQuickTip = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (tipDisabled) return;
-    if (isQuickTipping) return;
+    if (isQuickTipping || isCheckingWhitelist) return;
     if (!authenticated) {
       router.push(
         `/sign-in?redirect=${encodeURIComponent(`/delulu/${delusion.id}`)}`,
@@ -289,6 +292,9 @@ export function DeluluCard({
       router.push(`/delulu/${delusion.id}?milestones=1`);
       return;
     }
+    const allowed = await ensureWhitelisted("tip");
+    if (!allowed) return;
+
     pendingTipAmountRef.current = tipAmount;
     if (needsApproval(tipAmount)) {
       setAutoTipAfterApproval(true);
@@ -339,7 +345,7 @@ export function DeluluCard({
           <button
             type="button"
             onClick={handleQuickTip}
-            disabled={isQuickTipping}
+            disabled={isQuickTipping || isCheckingWhitelist}
             className={cn(
               "inline-flex h-9 min-w-[4.5rem] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold text-white transition-all duration-150 active:scale-[0.97]",
               isForYouVariant

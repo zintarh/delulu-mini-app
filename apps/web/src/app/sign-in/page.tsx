@@ -398,7 +398,11 @@ export default function SignInPage() {
           </form>
 
           <p className="text-center text-xs text-white/40">
-            By continuing you agree to our terms of service.
+            By continuing you agree to our{" "}
+            <a href="/terms" className="underline underline-offset-2 hover:text-white/60 transition-colors">
+              terms of service
+            </a>
+            .
           </p>
         </div>
       </div>

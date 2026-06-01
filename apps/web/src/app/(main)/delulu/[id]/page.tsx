@@ -2,10 +2,11 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useWaitForTransactionReceipt } from "wagmi";
+import { useWaitForTransactionReceipt, useBalance } from "wagmi";
 import { parseUnits } from "viem";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
+import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
 import {
@@ -14,7 +15,6 @@ import {
   refetchAllActiveQueries,
 } from "@/lib/graph/refetch-utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
-import { TokenBadge } from "@/components/token-badge";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
@@ -31,10 +31,13 @@ const ProofModal = dynamic(
   () => import("@/components/proof-modal").then((m) => m.ProofModal),
   { ssr: false },
 );
+
 const AiMilestonesModal = dynamic(
   () => import("@/components/ai-milestones-modal").then((m) => m.AiMilestonesModal),
   { ssr: false },
 );
+
+
 import {
   Modal,
   ModalContent,
@@ -56,6 +59,7 @@ import { DeluluDetailCommentsSection } from "@/components/delulu-detail/delulu-d
 import { DeluluMilestonesViewerList } from "@/components/delulu-detail/delulu-milestones-viewer-list";
 import { RelatedDelulusSection } from "@/components/related-delulus-section";
 import { usePfps } from "@/hooks/use-profile-pfp";
+import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import {
   Loader2,
@@ -89,7 +93,7 @@ import {
   formatMilestoneCountdown,
   formatResolutionEndsLine,
 } from "@/lib/milestone-utils";
-import { getContractErrorDisplay } from "@/lib/contract-error";
+import { getContractErrorDisplay, isInsufficientGasError } from "@/lib/contract-error";
 import {
   buildDeluluLeaderboard,
   getDeluluRemainingDaysTotal,
@@ -226,6 +230,8 @@ export default function DeluluPage() {
   const deluluId = params.id as string;
 
   const { authenticated, isConnected, address } = useAuth();
+  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
+  const { username: currentUserUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
@@ -272,7 +278,6 @@ export default function DeluluPage() {
     };
   }, [delulu?.contentHash]);
 
-  /** Prefer transformer `id` (parses onChainId first); avoids subgraph string quirks vs contract uint256. */
   const deluluIdForState = useMemo(() => {
     if (!delulu) return parsedRouteDeluluId;
     if (typeof delulu.id === "number" && Number.isFinite(delulu.id) && delulu.id >= 0) {
@@ -289,7 +294,6 @@ export default function DeluluPage() {
   }, [delulu, parsedRouteDeluluId]);
 
   const marketToken = delulu?.tokenAddress;
-  /** Must allow on-chain id `0` — `0 && isConnected` was falsely disabling all contract reads. */
   const deluluIdForHooks =
     deluluIdForState !== null && Number.isFinite(deluluIdForState) && isConnected
       ? deluluIdForState
@@ -297,6 +301,12 @@ export default function DeluluPage() {
 
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
+
+  const { data: celoBalance } = useBalance({
+    address: address as `0x${string}` | undefined,
+    chainId: DELULU_CHAIN_ID,
+    query: { enabled: !!address },
+  });
   const { hasStaked, isClaimed } = useUserPosition(deluluIdForHooks);
 
   const { claimableAmount, isLoading: isLoadingClaimableAmount, creatorClaimHint, isWalletMarketCreator, onChainResolutionReached, canAttemptClaimOnChain } =
@@ -482,6 +492,8 @@ export default function DeluluPage() {
   const walletBalanceLabel = Number.isFinite(walletBalanceNum)
     ? walletBalanceNum.toFixed(2)
     : "0.00";
+  const celoBalanceNum = celoBalance ? Number(celoBalance.formatted) : null;
+  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.001;
 
   const toUsd = (amount: number | null | undefined): string | null => {
     if (!isGoodDollarMarket) return null;
@@ -591,6 +603,7 @@ export default function DeluluPage() {
 
   useEffect(() => {
     if (!tipMilestoneError) return;
+    if (isInsufficientGasError(tipMilestoneError)) return; // global NoGasModal handles it
     const { message } = getContractErrorDisplay(tipMilestoneError);
     setTipError(message);
   }, [tipMilestoneError]);
@@ -603,6 +616,21 @@ export default function DeluluPage() {
     refetchDelulu();
     refetchStakes();
     queryClient.invalidateQueries();
+
+    // Notify creator of the tip
+    if (address && delulu?.creator && deluluIdForState !== null) {
+      fetch("/api/notifications/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipperAddress: address,
+          creatorAddress: delulu.creator,
+          deluluId: deluluIdForState,
+          amount: tipAmountInput || null,
+          tokenSymbol,
+        }),
+      }).catch(() => {});
+    }
     (async () => {
       try {
         const confettiModule = await import("canvas-confetti");
@@ -619,8 +647,11 @@ export default function DeluluPage() {
     })();
   }, [isTipMilestoneSuccess, refetchDelulu, refetchStakes, queryClient]);
 
-  const handleSubmitTip = () => {
+  const handleSubmitTip = async () => {
     if (!delulu || !marketToken) return;
+    const allowed = await ensureWhitelisted("tip");
+    if (!allowed) return;
+
     const amountNum = Number(tipAmountInput);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       setTipError("Enter a valid tip amount greater than 0.");
@@ -658,7 +689,6 @@ export default function DeluluPage() {
   };
 
   const deluluRemainingDaysTotal = useMemo(() => {
-    // Use the sorted milestone view's last deadline (accounts for deletions in the middle)
     const sortedMilestones = milestones
       ? [...milestones].sort((a, b) => Number(a.milestoneId) - Number(b.milestoneId))
       : [];
@@ -671,6 +701,10 @@ export default function DeluluPage() {
     });
   }, [delulu?.resolutionDeadline, milestones, now]);
 
+
+
+
+
   const maxDaysPerRow = useMemo(() => {
     return getMaxDaysPerRow(newMilestones, deluluRemainingDaysTotal);
   }, [newMilestones, deluluRemainingDaysTotal]);
@@ -682,6 +716,9 @@ export default function DeluluPage() {
       return next;
     });
   };
+
+
+
   const handleRemoveMilestoneRow = (index: number) =>
     setNewMilestones((prev) => prev.filter((_, i) => i !== index));
   const handleNewMilestoneChange = (
@@ -1193,7 +1230,10 @@ export default function DeluluPage() {
                 }
                 showTip
                 tipDisabled={claimUiEnded || !!isCreator}
-                onTip={() => setShowTipModal(true)}
+                onTip={async () => {
+                  const allowed = await ensureWhitelisted("tip");
+                  if (allowed) setShowTipModal(true);
+                }}
                 onRequireAuth={() => setShowLoginSheet(true)}
                 userAddress={address}
                 username={safeDelulu.username}
@@ -1203,6 +1243,7 @@ export default function DeluluPage() {
                 deluluId={safeDelulu.id}
                 deluluCreator={safeDelulu.creator}
                 userAddress={address}
+                username={currentUserUsername ?? null}
                 onRequireAuth={() => setShowLoginSheet(true)}
               />
 
@@ -1936,6 +1977,17 @@ export default function DeluluPage() {
                 );
               })}
             </div>
+
+            {/* Gas warning */}
+            {hasNoGas && !tipError && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-700">
+                <span className="font-semibold">No CELO for gas.</span>{" "}
+                You need a small amount of CELO to pay transaction fees.{" "}
+                <a href="/settings" className="underline font-semibold hover:text-amber-900">
+                  Get CELO
+                </a>
+              </div>
+            )}
 
             {/* Error */}
             {tipError ? (

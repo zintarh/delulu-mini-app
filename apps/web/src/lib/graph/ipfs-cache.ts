@@ -172,6 +172,18 @@ function shouldRevalidate(entry: CacheEntry | undefined): boolean {
   return Date.now() - entry.cachedAt > REVALIDATE_AFTER_MS;
 }
 
+/** Retry failed reads sooner than successful cache entries. */
+const NULL_RETRY_MS = 5 * 60 * 1000;
+
+function needsResolve(contentHash: string): boolean {
+  if (!contentHash) return false;
+  hydratePersistentCache();
+  const entry = metadataCache.get(contentHash);
+  if (!entry) return true;
+  if (entry.value !== null) return shouldRevalidate(entry);
+  return Date.now() - entry.cachedAt > NULL_RETRY_MS;
+}
+
 function revalidateInBackground(contentHash: string): void {
   if (!contentHash || pendingRequests.has(contentHash)) return;
   const fetcher =
@@ -248,10 +260,7 @@ export async function batchResolveIPFS(
   contentHashes: string[]
 ): Promise<Map<string, DeluluIPFSMetadata | null>> {
   hydratePersistentCache();
-  // Filter to only unresolved hashes
-  const uniqueHashes = [...new Set(contentHashes)].filter(
-    (h) => h && !metadataCache.has(h)
-  );
+  const uniqueHashes = [...new Set(contentHashes)].filter(needsResolve);
 
   // Resolve all in parallel (max 6 concurrent to avoid flooding)
   const CONCURRENCY = 6;
@@ -284,4 +293,11 @@ export function getCachedContent(
 ): DeluluIPFSMetadata | null | undefined {
   hydratePersistentCache();
   return metadataCache.get(contentHash)?.value;
+}
+
+/** True once content has been fetched at least once (value may still be null). */
+export function hasContentResolved(contentHash: string): boolean {
+  if (!contentHash) return false;
+  hydratePersistentCache();
+  return metadataCache.has(contentHash);
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useClaimPanel, useNotificationsPanel } from "@/contexts/right-panel-context";
+import { useNotificationCount } from "@/contexts/notification-count-context";
 import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
 import {
   getMobileBottomNavItems,
@@ -25,9 +26,10 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
   const { authenticated } = useAuth();
-  const { isOpen: notificationsOpen } = useNotificationsPanel();
+  const { isOpen: notificationsOpen, toggle: toggleNotifications } = useNotificationsPanel();
   const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
     useClaimPanel();
+  const { unreadCount } = useNotificationCount();
 
   const navItems = getMobileBottomNavItems(authenticated);
   const path = normalizePathname(pathname ?? "");
@@ -69,15 +71,24 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
             const Icon = item.icon;
             const isActive = isMainNavItemActive(item, path, activeOptions);
 
+            const showBadge = item.action === "notifications" && unreadCount > 0;
+
             const content = (
               <span className="flex flex-col items-center gap-0.5 py-1 min-w-[52px] max-w-[72px]">
-                <Icon
-                  className={cn(
-                    "w-6 h-6 flex-shrink-0 transition-colors",
-                    isActive ? "text-foreground" : "text-muted-foreground",
+                <span className="relative">
+                  <Icon
+                    className={cn(
+                      "w-6 h-6 flex-shrink-0 transition-colors",
+                      isActive ? "text-foreground" : "text-muted-foreground",
+                    )}
+                    strokeWidth={2}
+                  />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
                   )}
-                  strokeWidth={2}
-                />
+                </span>
                 <span
                   className={cn(
                     "text-[10px] font-medium leading-tight truncate w-full text-center",
@@ -128,6 +139,21 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
                   onClick={() => router.push("/sign-in")}
                   className={itemClass}
                   aria-label={item.label}
+                >
+                  {content}
+                </button>
+              );
+            }
+
+            if (item.action === "notifications") {
+              return (
+                <button
+                  key={item.action}
+                  type="button"
+                  onClick={toggleNotifications}
+                  className={itemClass}
+                  aria-label={item.label}
+                  aria-expanded={notificationsOpen}
                 >
                   {content}
                 </button>

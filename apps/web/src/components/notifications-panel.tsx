@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
+import { useNotificationCount } from "@/contexts/notification-count-context";
 import { useAuth } from "@/hooks/use-auth";
 
 type NotificationRow = {
@@ -47,42 +47,46 @@ function renderMessage(message: string) {
   });
 }
 
-function NotificationRow({ item }: { item: NotificationRow }) {
+function NotificationItem({ item }: { item: NotificationRow }) {
+  const isUnread = !item.read_at;
+
   const inner = (
-    <li className="flex gap-4 py-2">
-      <div className="shrink-0">
+    <li
+      className={cn(
+        "flex gap-3.5 py-3 px-3 rounded-xl transition-colors",
+        isUnread ? "bg-secondary/60" : "hover:bg-muted/30",
+      )}
+    >
+      <div className="shrink-0 relative">
         {item.image_url ? (
-          <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-secondary">
-            <Image
-              src={item.image_url}
-              alt=""
-              width={48}
-              height={48}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <img
+            src={item.image_url}
+            alt=""
+            className="w-11 h-11 rounded-full object-cover bg-secondary"
+          />
         ) : (
-          <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center">
-            <Bell className="w-5 h-5 text-muted-foreground" strokeWidth={1.75} />
+          <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center">
+            <Bell className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
           </div>
         )}
+        {isUnread && (
+          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-blue-500 border-2 border-background" />
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[15px] leading-snug text-foreground/90 pr-1">
-            {renderMessage(item.message)}
-          </p>
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {formatTimeAgo(item.created_at)}
-          </span>
-        </div>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <p className={cn("text-[14px] leading-snug pr-1", isUnread ? "text-foreground" : "text-foreground/80")}>
+          {renderMessage(item.message)}
+        </p>
+        <span className="mt-1 block text-[11px] text-muted-foreground tabular-nums">
+          {formatTimeAgo(item.created_at)}
+        </span>
       </div>
     </li>
   );
 
   if (item.action_url) {
     return (
-      <Link href={item.action_url} className="block hover:bg-muted/30 rounded-xl -mx-2 px-2 transition-colors">
+      <Link href={item.action_url} className="block -mx-1">
         {inner}
       </Link>
     );
@@ -92,11 +96,11 @@ function NotificationRow({ item }: { item: NotificationRow }) {
 
 function SkeletonRow() {
   return (
-    <li className="flex gap-4 py-2 animate-pulse">
-      <div className="w-12 h-12 rounded-2xl bg-muted/40 shrink-0" />
+    <li className="flex gap-3.5 py-3 px-3 animate-pulse">
+      <div className="w-11 h-11 rounded-2xl bg-secondary shrink-0" />
       <div className="flex-1 space-y-2 pt-1">
-        <div className="h-3 bg-muted/40 rounded w-4/5" />
-        <div className="h-3 bg-muted/30 rounded w-3/5" />
+        <div className="h-3 bg-secondary rounded w-4/5" />
+        <div className="h-3 bg-secondary/70 rounded w-3/5" />
       </div>
     </li>
   );
@@ -104,12 +108,13 @@ function SkeletonRow() {
 
 function PanelContent({ onClose }: { onClose: () => void }) {
   const { address } = useAuth();
+  const { clearUnread } = useNotificationCount();
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const markedReadRef = useRef(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!address) return;
+    if (!address) { setLoading(false); return; }
     setLoading(true);
     try {
       const res = await fetch(`/api/notifications?address=${address}`);
@@ -117,7 +122,7 @@ function PanelContent({ onClose }: { onClose: () => void }) {
       const data = await res.json();
       setNotifications(data.notifications ?? []);
     } catch {
-      // silently degrade — show empty state
+      // silently degrade
     } finally {
       setLoading(false);
     }
@@ -131,38 +136,54 @@ function PanelContent({ onClose }: { onClose: () => void }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ address }),
     }).catch(() => {});
-  }, [address]);
+    // Optimistically mark all as read in local state
+    setNotifications((prev) =>
+      prev.map((n) => (n.read_at ? n : { ...n, read_at: new Date().toISOString() })),
+    );
+    clearUnread();
+  }, [address, clearUnread]);
 
   useEffect(() => {
     fetchNotifications();
     markAllRead();
   }, [fetchNotifications, markAllRead]);
 
+  const hasUnread = notifications.some((n) => !n.read_at);
+
   return (
     <>
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
         <h2
           className="text-[28px] font-bold text-foreground tracking-tight"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
           Updates
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
-          aria-label="Close updates"
-        >
-          <X className="w-6 h-6" strokeWidth={1.75} />
-        </button>
+        <div className="flex items-center gap-2">
+          {hasUnread && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
+            >
+              Mark all read
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
+            aria-label="Close updates"
+          >
+            <X className="w-6 h-6" strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8">
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-8">
         {loading ? (
-          <ul className="space-y-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <SkeletonRow key={i} />
-            ))}
+          <ul className="space-y-1">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
           </ul>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3 text-center px-4">
@@ -170,9 +191,9 @@ function PanelContent({ onClose }: { onClose: () => void }) {
             <p className="text-sm font-semibold text-foreground">No notifications yet</p>
           </div>
         ) : (
-          <ul className="space-y-6">
+          <ul className="space-y-0.5">
             {notifications.map((item) => (
-              <NotificationRow key={item.id} item={item} />
+              <NotificationItem key={item.id} item={item} />
             ))}
           </ul>
         )}
@@ -186,13 +207,13 @@ export function NotificationsPanel() {
 
   return (
     <>
-      {/* Desktop: panel left of main content */}
+      {/* Desktop */}
       <aside
         aria-hidden={!isOpen}
         className={cn(
           "hidden lg:flex flex-col h-full shrink-0 bg-background border-r border-border overflow-hidden",
           "transition-[width] duration-300 ease-out",
-          isOpen ? "w-[400px]" : "w-0 border-r-0"
+          isOpen ? "w-[400px]" : "w-0 border-r-0",
         )}
       >
         <div className="w-[400px] h-full flex flex-col min-h-0">
@@ -200,7 +221,7 @@ export function NotificationsPanel() {
         </div>
       </aside>
 
-      {/* Mobile: overlay drawer */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div className="lg:hidden fixed inset-0 z-[70] flex justify-start">
           <button

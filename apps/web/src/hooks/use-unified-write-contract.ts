@@ -5,6 +5,8 @@ import { createWalletClient, custom, type Abi } from "viem";
 import { celo } from "wagmi/chains";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { useState, useCallback } from "react";
+import { useNoGas } from "@/contexts/no-gas-context";
+import { isInsufficientGasError } from "@/lib/contract-error";
 
 type WriteContractParams = {
   address: `0x${string}`;
@@ -26,6 +28,8 @@ export function useUnifiedWriteContract() {
     isPending: wagmiIsPending,
     reset: wagmiReset,
   } = useWriteContract();
+
+  const { trigger: triggerNoGas } = useNoGas();
 
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
@@ -54,6 +58,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
+          if (isInsufficientGasError(e)) triggerNoGas();
           throw e;
         } finally {
           setIsPending(false);
@@ -70,6 +75,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
+          if (isInsufficientGasError(e)) triggerNoGas();
           throw e;
         } finally {
           setIsPending(false);

@@ -3,24 +3,29 @@
 import { useState, useEffect, useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
+import { getActiveCampaignWindow } from "@/lib/campaign-window";
 import { weiToNumber } from "@/lib/graph/transformers";
-import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
+import {
+  batchResolveIPFS,
+  getCachedContent,
+  hasContentResolved,
+} from "@/lib/graph/ipfs-cache";
 
 const DELULU_LEADERBOARD_QUERY = gql`
-  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $weekStart: BigInt = "0") {
+  query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $campaignStart: BigInt = "0", $campaignEnd: BigInt = "9999999999") {
     delulus(
       first: $first
       skip: $skip
-      orderBy: uniqueBuyerCount
+      orderBy: points
       orderDirection: desc
-      where: { isCancelled: false, createdAt_gte: $weekStart }
+      where: { isCancelled: false, createdAt_gte: $campaignStart, createdAt_lte: $campaignEnd }
     ) {
       id
       onChainId
       contentHash
       creatorStake
       totalSupportCollected
-      shareSupply
+      points
       tradeCount
       uniqueBuyerCount
       createdAt
@@ -41,6 +46,8 @@ export interface DeluluLeaderboardEntry {
   onChainId: string;
   contentHash: string;
   title: string | null;
+  /** True while manifest metadata for this row is still loading */
+  titleLoading: boolean;
   bgImageUrl: string | null;
   creatorAddress: string;
   creatorUsername: string | null;
@@ -48,35 +55,41 @@ export interface DeluluLeaderboardEntry {
   totalG: number;
   creatorStake: number;
   totalSupportCollected: number;
-  shareSupply: number;
+  /** Campaign points (subgraph `delulu.points`) */
+  points: number;
   tradeCount: number;
   uniqueBuyerCount: number;
 }
 
+function pickManifestTitle(
+  cached: ReturnType<typeof getCachedContent>,
+): string | null {
+  const text = cached?.text?.trim();
+  if (text) return text;
+  const legacy = cached?.content?.trim();
+  if (legacy) return legacy;
+  return null;
+}
+
 export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   const [ipfsResolved, setIpfsResolved] = useState(0);
+  const [titleOverrides, setTitleOverrides] = useState<Record<string, string | null>>(
+    {},
+  );
+  const [metadataLoaded, setMetadataLoaded] = useState(false);
 
-  // Weekly campaign: delulus created since the most recent Monday 00:00:00 UTC.
-  // Anchoring to Monday midnight means the board resets at a fixed calendar
-  // boundary each week, not a rolling 7-day window.
-  const weekStart = useMemo(() => {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay(); // 0 = Sunday … 6 = Saturday
-    const daysBackToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setUTCDate(monday.getUTCDate() - daysBackToMonday);
-    monday.setUTCHours(0, 0, 0, 0);
-    return String(Math.floor(monday.getTime() / 1000));
-  }, []);
+  const { campaignStart, campaignEnd, campaignEndDate } = useMemo(
+    () => getActiveCampaignWindow(),
+    [],
+  );
 
-  // Fetch a generous batch so client-side sort by totalG is accurate.
   const fetchSize = Math.max(50, (page + 1) * pageSize + pageSize);
 
   const { data, loading, error, refetch } = useQuery<
     { delulus: any[] },
-    { first: number; skip: number; weekStart: string }
+    { first: number; skip: number; campaignStart: string; campaignEnd: string }
   >(DELULU_LEADERBOARD_QUERY, {
-    variables: { first: fetchSize, skip: 0, weekStart },
+    variables: { first: fetchSize, skip: 0, campaignStart, campaignEnd },
     fetchPolicy: "cache-and-network",
     nextFetchPolicy: "cache-and-network",
   });
@@ -84,7 +97,44 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
   useEffect(() => {
     if (!data?.delulus?.length) return;
     const hashes = data.delulus.map((d) => d.contentHash).filter(Boolean);
-    batchResolveIPFS(hashes).then(() => setIpfsResolved((n) => n + 1));
+    let cancelled = false;
+    setMetadataLoaded(false);
+    void batchResolveIPFS(hashes).then(() => {
+      if (!cancelled) {
+        setIpfsResolved((n) => n + 1);
+        setMetadataLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.delulus]);
+
+  useEffect(() => {
+    if (!data?.delulus?.length) {
+      setTitleOverrides({});
+      return;
+    }
+    const onChainIds = [
+      ...new Set(data.delulus.map((d) => String(d.onChainId)).filter(Boolean)),
+    ];
+    if (onChainIds.length === 0) return;
+
+    let cancelled = false;
+    void fetch(
+      `/api/goals/metadata/batch?onChainIds=${encodeURIComponent(onChainIds.join(","))}`,
+    )
+      .then((res) => (res.ok ? res.json() : { titles: {} }))
+      .then((body: { titles?: Record<string, string | null> }) => {
+        if (!cancelled) setTitleOverrides(body.titles ?? {});
+      })
+      .catch(() => {
+        if (!cancelled) setTitleOverrides({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [data?.delulus]);
 
   const allEntries: DeluluLeaderboardEntry[] = useMemo(() => {
@@ -93,9 +143,17 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
     return data.delulus
       .map((d: any): DeluluLeaderboardEntry => {
         const cached = getCachedContent(d.contentHash);
+        const onChainId = String(d.onChainId);
+        const override = titleOverrides[onChainId]?.trim() || null;
+        const manifestTitle = pickManifestTitle(cached);
+        const resolved = hasContentResolved(d.contentHash);
+        const title = override || manifestTitle;
+        const titleLoading =
+          !title &&
+          ((!resolved && Boolean(d.contentHash)) || !metadataLoaded);
+
         const creatorStake = weiToNumber(d.creatorStake);
         const totalSupportCollected = weiToNumber(d.totalSupportCollected);
-        // Sum G$ from bonding curve: buys add, sells subtract
         const netShareG = ((d.shareTrades ?? []) as any[]).reduce((acc, t) => {
           const amt = weiToNumber(t.curveAmount ?? "0");
           return t.isBuy ? acc + amt : acc - amt;
@@ -103,29 +161,27 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
         const totalG = creatorStake + totalSupportCollected + Math.max(0, netShareG);
         return {
           id: d.id,
-          onChainId: d.onChainId,
+          onChainId,
           contentHash: d.contentHash,
-          title: cached?.text ?? null,
+          title,
+          titleLoading,
           bgImageUrl: cached?.bgImageUrl ?? null,
           creatorAddress: d.creator?.id ?? "",
           creatorUsername: d.creator?.username ?? null,
           totalG,
           creatorStake,
           totalSupportCollected,
-          shareSupply: Number(d.shareSupply ?? "0"),
+          points: Number(d.points ?? "0"),
           tradeCount: Number(d.tradeCount ?? "0"),
           uniqueBuyerCount: Number(d.uniqueBuyerCount ?? "0"),
         };
       })
       .sort((a, b) => {
-        // Primary: unique buyers descending
-        if (b.uniqueBuyerCount !== a.uniqueBuyerCount)
-          return b.uniqueBuyerCount - a.uniqueBuyerCount;
-        // Tiebreaker: total G$ descending
+        if (b.points !== a.points) return b.points - a.points;
         return b.totalG - a.totalG;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.delulus, ipfsResolved]);
+  }, [data?.delulus, ipfsResolved, titleOverrides, metadataLoaded]);
 
   const start = page * pageSize;
   const entries = allEntries.slice(start, start + pageSize);
@@ -138,5 +194,6 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
     isLoading: loading,
     error: error ?? null,
     refetch,
+    campaignEndDate,
   };
 }

@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
       query MilestonesForEmailReminders($from: BigInt!, $to: BigInt!) {
         milestones(
           first: 1000
-          where: { deadline_gte: $from, deadline_lte: $to, isSubmitted: false, isVerified: false }
+          where: { deadline_gte: $from, deadline_lte: $to, isSubmitted: false, isVerified: false, isDeleted: false }
           orderBy: deadline
           orderDirection: asc
         ) {
@@ -194,6 +194,8 @@ export async function GET(req: NextRequest) {
     let sent = 0;
     let skipped = 0;
     let sendErrors = 0;
+    let noEmail = 0;
+    let alreadySent = 0;
 
     for (const m of milestones) {
       const creatorAddress = (m.delulu?.creatorAddress || "").toLowerCase();
@@ -242,27 +244,11 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      // Stable reminder anchor (exact 1h-before point), prevents overlap spam.
-      const scheduledForSec = endSec - 60 * 60;
-      const eventKey = makeEventKey({
-        kind: "milestone_due_1h_email",
-        deluluId: m.delulu.id,
-        milestoneId: m.milestoneId,
-        address: creatorAddress,
-        scheduledForSec,
-      });
-
-      // Idempotency insert; skip if already sent
-      const { error: insertErr } = await supabase.from("push_events_sent").insert({
-        event_key: eventKey,
-        address: creatorAddress,
-      });
-      if (insertErr) {
-        skipped++;
-        continue;
-      }
-
-      // Look up user profile for personalization (email may be overridden by test mode)
+      // ── 1. Validate before claiming idempotency ──────────────────────────────
+      // Look up user profile first so we know the email is valid before we
+      // mark this event as "sent" in push_events_sent. If we claim idempotency
+      // before checking the email, a bad/missing email permanently prevents
+      // this milestone reminder from ever being retried.
       const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("email, username")
@@ -273,15 +259,52 @@ export async function GET(req: NextRequest) {
         skipped++;
         continue;
       }
-      if (!TEST_MODE_ENABLED && !profile?.email) {
+
+      const recipientEmail = TEST_MODE_ENABLED
+        ? TEST_RECIPIENT_EMAIL
+        : (profile?.email as string | null | undefined);
+
+      if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
+        // User has no valid email — skip but do NOT claim idempotency so we
+        // can retry if they add an email before the deadline.
+        noEmail++;
         skipped++;
         continue;
       }
 
-      const recipientEmail = TEST_MODE_ENABLED
-        ? TEST_RECIPIENT_EMAIL
-        : (profile?.email as string);
+      // ── 2. Claim idempotency (only after we know we can send) ─────────────
+      const scheduledForSec = endSec - 60 * 60;
+      const eventKey = makeEventKey({
+        kind: "milestone_due_1h_email",
+        deluluId: m.delulu.id,
+        milestoneId: m.milestoneId,
+        address: creatorAddress,
+        scheduledForSec,
+      });
 
+      const { error: insertErr } = await supabase.from("push_events_sent").insert({
+        event_key: eventKey,
+        address: creatorAddress,
+      });
+
+      if (insertErr) {
+        // code 23505 = unique_violation: already sent — this is expected
+        if (insertErr.code === "23505") {
+          alreadySent++;
+          skipped++;
+          continue;
+        }
+        // Any other DB error: log it but still attempt the send so the user
+        // gets their reminder. The worst case is a duplicate email on retry.
+        console.error("[email-reminders] push_events_sent insert error:", {
+          code: insertErr.code,
+          message: insertErr.message,
+          deluluId: m.delulu.id,
+          milestoneId: m.milestoneId,
+        });
+      }
+
+      // ── 3. Send ───────────────────────────────────────────────────────────
       const milestoneLabel = getMilestoneLabel(
         { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
         80,
@@ -290,15 +313,10 @@ export async function GET(req: NextRequest) {
         (await resolveDeluluTitle(m.delulu.contentHash)) ??
         "Your ongoing delulu";
 
-      if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
-        skipped++;
-        continue;
-      }
-
       const milestoneUrl = `${appUrl}/delulu/${m.delulu.id}?milestone=${m.milestoneId}`;
       try {
         await sendReminderEmail(
-          recipientEmail,
+          recipientEmail as string,
           {
             username: (profile as any)?.username ?? "Visionary",
             goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
@@ -346,8 +364,10 @@ export async function GET(req: NextRequest) {
       nowSec,
       windowStartSec,
       windowEndSec,
+      milestonesFound: milestones.length,
       sent,
       skipped,
+      skippedBreakdown: { noEmail, alreadySent, other: skipped - noEmail - alreadySent },
       sendErrors,
     });
   } catch (e: unknown) {

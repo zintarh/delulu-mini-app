@@ -230,13 +230,6 @@ export default function ExplorePage() {
           </div>
 
           <header className="mb-6">
-            <Link
-              href="/"
-              className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground lg:hidden"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Home
-            </Link>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               {pageTitle}
             </h1>

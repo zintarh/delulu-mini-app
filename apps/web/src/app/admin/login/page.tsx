@@ -55,7 +55,7 @@ export default function AdminLoginPage() {
 
         <h1 className="text-2xl font-bold tracking-tight">Admin Login</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sign in with ops credentials to access the dashboard.
+          Sign in with the email and password for your admin account.
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-3">

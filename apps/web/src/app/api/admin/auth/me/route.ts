@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { isOpsAuthConfigured, readAdminSession } from "@/lib/admin-session";
+import { isAdminAuthConfigured, readAdminSession } from "@/lib/admin-session";
 
 export async function GET() {
-  const configured = isOpsAuthConfigured();
+  const configured = isAdminAuthConfigured();
   if (!configured) {
     return NextResponse.json({ configured: false, authenticated: false, session: null });
   }
@@ -14,4 +14,3 @@ export async function GET() {
     session,
   });
 }
-

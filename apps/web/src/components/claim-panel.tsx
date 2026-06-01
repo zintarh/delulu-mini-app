@@ -22,19 +22,30 @@ export function ClaimPanel() {
         </div>
       </aside>
 
-      {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-[70] flex justify-start">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Close claim"
-            onClick={close}
-          />
-          <aside className="relative w-full max-w-[400px] h-full bg-background shadow-xl flex flex-col animate-in slide-in-from-left duration-300">
-            <ClaimPanelContent onClose={close} />
-          </aside>
-        </div>
-      )}
+      {/* Keep ClaimPanelContent mounted on mobile too so useGoodDollarClaim state matches desktop
+          (next claim time, hasClaimed, etc.). Only visibility/interaction toggle with open state. */}
+      <div
+        className={cn(
+          "lg:hidden fixed inset-0 z-[70] flex justify-start transition-[visibility] duration-0",
+          isOpen ? "visible" : "invisible pointer-events-none",
+        )}
+        aria-hidden={!isOpen}
+      >
+        <button
+          type="button"
+          className={cn("absolute inset-0 bg-black/40 transition-opacity", isOpen ? "opacity-100" : "opacity-0")}
+          aria-label="Close claim"
+          onClick={close}
+        />
+        <aside
+          className={cn(
+            "relative flex h-full w-full max-w-[400px] flex-col bg-background shadow-xl transition-transform duration-300 ease-out",
+            isOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
+          <ClaimPanelContent onClose={close} />
+        </aside>
+      </div>
     </>
   );
 }

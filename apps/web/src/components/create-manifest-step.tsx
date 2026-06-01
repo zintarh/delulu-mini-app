@@ -22,6 +22,7 @@ import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
+import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { cn } from "@/lib/utils";
 import { CELO_MAINNET_ID } from "@/lib/constant";
 import { useUserStore } from "@/stores/useUserStore";
@@ -126,6 +127,7 @@ export function CreateManifestStep({
   gatekeeper,
 }: CreateManifestStepProps) {
   const router = useRouter();
+  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
   const { user } = useUserStore();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const apolloClient = useApolloClient();
@@ -460,6 +462,9 @@ export function CreateManifestStep({
   const handleCreate = async () => {
     setSubmitAttempted(true);
     if (isProcessing) return;
+
+    const allowed = await ensureWhitelisted("create");
+    if (!allowed) return;
 
     const nativeBalance =
       celoBalance && Number(celoBalance.formatted) > 0

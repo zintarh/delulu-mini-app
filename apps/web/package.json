@@ -9,7 +9,8 @@
     "start": "next start",
     "type-check": "tsc --noEmit",
     "codegen": "graphql-codegen --config codegen.cjs",
-    "codegen:watch": "graphql-codegen --config codegen.cjs --watch"
+    "codegen:watch": "graphql-codegen --config codegen.cjs --watch",
+    "seed:admin": "tsx scripts/seed-admin-user.ts"
   },
   "dependencies": {
     "@apollo/client": "^4.1.4",
@@ -28,6 +29,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@selfxyz/core": "1.1.0-beta.7",
     "@selfxyz/qrcode": "^1.0.17",
+    "@supabase/ssr": "0.6.1",
     "@supabase/supabase-js": "^2.99.1",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.90.16",

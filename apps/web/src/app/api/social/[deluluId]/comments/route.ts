@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(
   _req: NextRequest,
@@ -47,6 +48,7 @@ export async function POST(
   const authorAddress = typeof body.authorAddress === "string" ? body.authorAddress.toLowerCase() : null;
   const displayName = typeof body.displayName === "string" ? body.displayName.trim() : null;
   const text = typeof body.text === "string" ? body.text.trim() : null;
+  const creatorAddress = typeof body.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
 
   if (!authorAddress || !displayName || !text) {
     return NextResponse.json({ error: "authorAddress, displayName, and text are required" }, { status: 400 });
@@ -62,6 +64,24 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify creator on new comment (skip if commenter is the creator)
+  if (creatorAddress && creatorAddress !== authorAddress) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("pfp_url")
+      .eq("address", authorAddress)
+      .maybeSingle();
+    const preview = text.length > 60 ? `${text.slice(0, 60)}…` : text;
+    await createNotification({
+      recipientAddress: creatorAddress,
+      type: "comment",
+      message: `**${displayName}** commented: "${preview}"`,
+      actorAddress: authorAddress,
+      imageUrl: profile?.pfp_url ?? null,
+      actionUrl: `/delulu/${deluluId}`,
+    });
+  }
 
   return NextResponse.json({
     comment: {

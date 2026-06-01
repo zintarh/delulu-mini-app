@@ -42,29 +42,9 @@ const DREAMERS_CLIMB_TIPS = [
   `Each tip on your delulu adds ${DREAMER_POINTS.perTipToCreator.toLocaleString()} pts to you as creator`,
 ] as const;
 
-function mondayWeekLabel(): string {
-  const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const daysBackToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const monday = new Date(now);
-  monday.setUTCDate(monday.getUTCDate() - daysBackToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setUTCDate(sunday.getUTCDate() + 6);
-
-  const daysToNextMonday = dayOfWeek === 1 ? 7 : (1 - dayOfWeek + 7) % 7;
-  const nextMonday = new Date(now);
-  nextMonday.setUTCDate(nextMonday.getUTCDate() + daysToNextMonday);
-  nextMonday.setUTCHours(0, 0, 0, 0);
-
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-  const fmtDay = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
-
-  return `${fmt(monday)} – ${fmt(sunday)} · resets ${fmtDay(nextMonday)}`;
+function formatCampaignEnd(endDate: Date | null): string {
+  if (!endDate) return "Loading campaign…";
+  return `Ends ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`;
 }
 
 function tileGradient(addr: string) {
@@ -84,8 +64,40 @@ function formatCampaignName(entry: DeluluLeaderboardEntry) {
 }
 
 function formatTitle(entry: DeluluLeaderboardEntry) {
-  const text = entry.title ?? `Delulu #${entry.onChainId}`;
-  return text.length > 48 ? text.slice(0, 48) + "…" : text;
+  if (entry.titleLoading) return null;
+  const text = entry.title?.trim() || `Delulu #${entry.onChainId}`;
+  return text.length > 48 ? `${text.slice(0, 48)}…` : text;
+}
+
+function TitleLine({
+  entry,
+  truncate = false,
+}: {
+  entry: DeluluLeaderboardEntry;
+  truncate?: boolean;
+}) {
+  const label = formatTitle(entry);
+  if (entry.titleLoading) {
+    return (
+      <span
+        className={cn(
+          "inline-block h-4 animate-pulse rounded-md bg-muted",
+          truncate ? "w-32 max-w-full" : "w-3/4 max-w-[200px]",
+        )}
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "text-sm font-bold text-foreground",
+        truncate ? "block truncate font-semibold" : "line-clamp-2 leading-snug",
+      )}
+    >
+      {label}
+    </span>
+  );
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -342,6 +354,7 @@ function LeaderboardStatsRow({
   authenticated,
   totalDreamers,
   weeklyCampaignCount,
+  campaignEndDate,
 }: {
   activeTab: Tab;
   formattedGAmount: string | null;
@@ -353,6 +366,7 @@ function LeaderboardStatsRow({
   authenticated: boolean;
   totalDreamers: number | string | null;
   weeklyCampaignCount: number;
+  campaignEndDate: Date | null;
 }) {
   return (
     <div className="mb-8 grid gap-3 sm:grid-cols-3">
@@ -425,7 +439,7 @@ function LeaderboardStatsRow({
       />
 
       <StatCard
-        label={activeTab === "campaign" ? "This week" : "Dreamers"}
+        label={activeTab === "campaign" ? "Campaign" : "Dreamers"}
         value={
           <p className="text-2xl font-black tabular-nums text-foreground lg:text-3xl">
             {activeTab === "campaign" ? weeklyCampaignCount : totalDreamers ?? "—"}
@@ -433,14 +447,14 @@ function LeaderboardStatsRow({
         }
         detail={
           activeTab === "campaign"
-            ? mondayWeekLabel()
+            ? formatCampaignEnd(campaignEndDate)
             : "Wallets ranked by total points"
         }
         footer={
           activeTab === "campaign" ? (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              Resets every Monday UTC
+              2-week campaign
             </span>
           ) : null
         }
@@ -541,7 +555,7 @@ function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
             <div className="mb-3 flex items-center justify-between">
               <RankBadge rank={rank} />
               <span className="text-xs font-bold tabular-nums text-delulu-yellow-reserved">
-                {entry.uniqueBuyerCount} UB
+                {entry.points.toLocaleString()} pts
               </span>
             </div>
             <div
@@ -562,9 +576,7 @@ function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
                 />
               )}
             </div>
-            <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
-              {formatTitle(entry)}
-            </p>
+            <TitleLine entry={entry} />
             <p className="mt-1 truncate text-xs text-muted-foreground">
               {formatCampaignName(entry)}
             </p>
@@ -671,8 +683,7 @@ function CampaignLeaderboard() {
           <HeadCell className="w-11 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Delulu</HeadCell>
           <HeadCell className="w-16 text-right">G$</HeadCell>
-          <HeadCell className="hidden w-14 text-right sm:block">Shares</HeadCell>
-          <HeadCell className="w-12 text-right">UB</HeadCell>
+          <HeadCell className="w-14 shrink-0 text-right">Pts</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -692,9 +703,7 @@ function CampaignLeaderboard() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {formatTitle(myEntry!)}
-                  </p>
+                  <TitleLine entry={myEntry!} truncate />
                   <YouBadge />
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
@@ -704,11 +713,8 @@ function CampaignLeaderboard() {
               <span className="w-16 shrink-0 text-right text-sm font-semibold tabular-nums">
                 {formatGAmountInt(myEntry!.totalG)}
               </span>
-              <span className="hidden w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:block">
-                {myEntry!.shareSupply}
-              </span>
-              <span className="w-12 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-yellow-reserved">
-                {myEntry!.uniqueBuyerCount}
+              <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">
+                {myEntry!.points.toLocaleString()}
               </span>
             </Link>
           )}
@@ -731,9 +737,7 @@ function CampaignLeaderboard() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {formatTitle(entry)}
-                  </p>
+                  <TitleLine entry={entry} truncate />
                   <p className="truncate text-xs text-muted-foreground">
                     {formatCampaignName(entry)}
                   </p>
@@ -741,11 +745,8 @@ function CampaignLeaderboard() {
                 <span className="w-16 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">
                   {formatGAmountInt(entry.totalG)}
                 </span>
-                <span className="hidden w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:block">
-                  {entry.shareSupply}
-                </span>
-                <span className="w-12 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-yellow-reserved">
-                  {entry.uniqueBuyerCount}
+                <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">
+                  {entry.points.toLocaleString()}
                 </span>
               </Link>
             );
@@ -942,11 +943,11 @@ export default function LeaderboardPage() {
     typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
 
   const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
-  const { allEntries: weeklyCampaigns } = useDeluluLeaderboard(PAGE_SIZE, 0);
+  const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
 
   const subtitle =
     activeTab === "campaign"
-      ? "Weekly delulus ranked by unique buyers"
+      ? "Campaign delulus ranked by points earned"
       : "Rank higher by verifying milestones on your delulus";
 
   return (
@@ -984,6 +985,7 @@ export default function LeaderboardPage() {
           authenticated={authenticated}
           totalDreamers={totalCount}
           weeklyCampaignCount={weeklyCampaigns.length}
+          campaignEndDate={campaignEndDate}
         />
 
         {activeTab === "campaign" ? (

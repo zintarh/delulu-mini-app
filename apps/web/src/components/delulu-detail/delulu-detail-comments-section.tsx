@@ -7,6 +7,7 @@ interface DeluluDetailCommentsSectionProps {
   deluluId: number;
   deluluCreator?: string | null;
   userAddress?: string | null;
+  username?: string | null;
   onRequireAuth: () => void;
   onCountChange?: (count: number) => void;
 }
@@ -15,6 +16,7 @@ export function DeluluDetailCommentsSection({
   deluluId,
   deluluCreator,
   userAddress,
+  username,
   onRequireAuth,
   onCountChange,
 }: DeluluDetailCommentsSectionProps) {
@@ -46,6 +48,7 @@ export function DeluluDetailCommentsSection({
         deluluId={deluluId}
         deluluCreator={deluluCreator}
         userAddress={userAddress}
+        username={username}
         onRequireAuth={onRequireAuth}
         onCountChange={handleCount}
       />

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Send, Trash2 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { usePfps } from "@/hooks/use-profile-pfp";
 import { cn, formatAddress } from "@/lib/utils";
 import {
   DELULU_SOCIAL_UPDATED_EVENT,
@@ -14,8 +15,15 @@ interface DeluluDetailCommentsProps {
   deluluId: number;
   deluluCreator?: string | null;
   userAddress?: string | null;
+  username?: string | null;
   onRequireAuth: () => void;
   onCountChange?: (count: number) => void;
+}
+
+function commentUsername(displayName: string): string | null {
+  const trimmed = displayName.trim();
+  if (trimmed.startsWith("@") && trimmed.length > 1) return trimmed.slice(1);
+  return null;
 }
 
 function formatRelativeTime(iso: string) {
@@ -33,6 +41,7 @@ export function DeluluDetailComments({
   deluluId,
   deluluCreator,
   userAddress,
+  username,
   onRequireAuth,
   onCountChange,
 }: DeluluDetailCommentsProps) {
@@ -82,7 +91,7 @@ export function DeluluDetailComments({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const displayName = formatAddress(userAddress);
+      const displayName = username ? `@${username}` : formatAddress(userAddress);
       const res = await fetch(`/api/social/${deluluId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,6 +99,7 @@ export function DeluluDetailComments({
           authorAddress: userAddress.toLowerCase(),
           displayName,
           text,
+          creatorAddress: deluluCreator ?? null,
         }),
       });
       if (res.ok) {
@@ -127,6 +137,12 @@ export function DeluluDetailComments({
       setDeletingId(null);
     }
   };
+
+  const commentAuthorAddresses = useMemo(
+    () => [...new Set(comments.map((c) => c.authorAddress.toLowerCase()))],
+    [comments],
+  );
+  const authorPfps = usePfps(commentAuthorAddresses);
 
   const normalizedUser = userAddress?.toLowerCase() ?? null;
   const normalizedCreator = deluluCreator?.toLowerCase() ?? null;
@@ -191,7 +207,12 @@ export function DeluluDetailComments({
         <ul className="mt-5 max-h-[min(50vh,420px)] space-y-4 overflow-y-auto overscroll-contain pr-1 scrollbar-hide">
           {comments.map((c) => (
             <li key={c.id} className="group flex gap-2.5">
-              <UserAvatar address={c.authorAddress} size={32} />
+              <UserAvatar
+                address={c.authorAddress}
+                username={commentUsername(c.displayName)}
+                pfpUrl={authorPfps[c.authorAddress.toLowerCase()]}
+                size={32}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="flex items-baseline gap-2 min-w-0">

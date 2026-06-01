@@ -4,6 +4,9 @@ export type NotificationType =
   | "milestone_due"
   | "delulu_ending"
   | "stake"
+  | "like"
+  | "comment"
+  | "tip"
   | "system";
 
 export interface CreateNotificationInput {

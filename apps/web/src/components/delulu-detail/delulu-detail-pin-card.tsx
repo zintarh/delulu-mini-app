@@ -207,7 +207,7 @@ export function DeluluDetailPinCard({
       const res = await fetch(`/api/social/${delulu.id}/likes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userAddress: userKey }),
+        body: JSON.stringify({ userAddress: userKey, creatorAddress: delulu.creator }),
       });
       if (res.ok) {
         const data = await res.json();

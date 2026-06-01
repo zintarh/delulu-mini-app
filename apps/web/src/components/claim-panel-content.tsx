@@ -10,6 +10,8 @@ import { cn, formatGAmount } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { useClaimPanel } from "@/contexts/right-panel-context";
+import { WHITELIST_CLAIM_MESSAGES } from "@/lib/gooddollar-whitelist";
 
 const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow"), {
   ssr: false,
@@ -22,6 +24,7 @@ interface ClaimPanelContentProps {
 export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
   const { address, authenticated, isReady } = useAuth();
   const router = useRouter();
+  const { whitelistIntent, clearWhitelistIntent } = useClaimPanel();
   const {
     isLoading: isClaimDataLoading,
     isClaiming,
@@ -92,6 +95,27 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8">
+        {whitelistIntent ? (
+          <div
+            className="mb-4 rounded-xl border border-delulu-yellow-reserved/40 bg-delulu-yellow-reserved/15 px-4 py-3"
+            role="status"
+          >
+            <p className="text-sm font-bold text-foreground">
+              {WHITELIST_CLAIM_MESSAGES[whitelistIntent].title}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              {WHITELIST_CLAIM_MESSAGES[whitelistIntent].body}
+            </p>
+            <button
+              type="button"
+              onClick={clearWhitelistIntent}
+              className="mt-2 text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
         <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-gradient-to-b from-delulu-yellow-reserved/25 via-background to-background px-5 py-8 text-center mb-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,195,36,0.35),transparent_55%)] pointer-events-none" />
           <div className="relative">
