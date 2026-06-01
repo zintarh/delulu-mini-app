@@ -33,17 +33,18 @@ function getMilestoneProgress(d: FormattedDelulu): [number, number] {
 }
 
 /**
- * Score for "on a roll": ratio first (6/7 beats 2/3), then absolute verified
+ * Score for "for you": ratio first (6/7 beats 2/3), then absolute verified
  * count (6/7 beats 5/6). Items with 0 verified milestones return -1 (excluded).
  */
-function onARollScore(d: FormattedDelulu): number {
+function forYouScore(d: FormattedDelulu): number {
   const [verified, total] = getMilestoneProgress(d);
   if (verified === 0 || total === 0) return -1;
   const ratio = verified / total;
   return ratio * 1000 + verified;
 }
 
-function forYouScore(d: FormattedDelulu, viewerAddress?: string): number {
+/** Newest delulus first for "on a roll"; slightly deprioritize viewer's own. */
+function latestScore(d: FormattedDelulu, viewerAddress?: string): number {
   const recency = d.createdAt?.getTime() ?? 0;
   const isOwn =
     viewerAddress &&
@@ -70,15 +71,15 @@ export function buildFeedCategories(
   };
 
   const onARoll = take(
-    [...pool]
-      .filter((d) => onARollScore(d) >= 0)
-      .sort((a, b) => onARollScore(b) - onARollScore(a)),
+    [...pool].sort(
+      (a, b) => latestScore(b, viewerAddress) - latestScore(a, viewerAddress),
+    ),
   );
 
   const forYou = take(
-    [...pool].sort(
-      (a, b) => forYouScore(b, viewerAddress) - forYouScore(a, viewerAddress),
-    ),
+    [...pool]
+      .filter((d) => forYouScore(d) >= 0)
+      .sort((a, b) => forYouScore(b) - forYouScore(a)),
   );
 
   const worthALook = take(

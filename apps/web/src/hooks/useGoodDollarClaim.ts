@@ -7,6 +7,12 @@ import {
   useClaimSDK,
 } from "@/hooks/use-claim-sdk";
 
+export interface RefreshStatusResult {
+  isWhitelisted: boolean;
+  entitlement: bigint | null;
+  hasClaimed: boolean;
+}
+
 export interface UseGoodDollarClaimReturn {
   isLoading: boolean;
   isClaiming: boolean;
@@ -16,6 +22,9 @@ export interface UseGoodDollarClaimReturn {
   hasClaimed: boolean;
   nextClaimTime: Date | null;
   claim: () => Promise<void>;
+  refreshStatus: () => Promise<RefreshStatusResult>;
+  startVerifying: () => void;
+  stopVerifying: () => void;
   error: Error | null;
   isInitialized: boolean;
 }
@@ -42,8 +51,11 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     return checkGoodDollarWhitelisted(claimSDKInstance);
   }, [claimSDKInstance]);
 
-  const checkClaimStatus = useCallback(async () => {
-    if (!claimSDKInstance) return;
+  const checkClaimStatus = useCallback(async (): Promise<{
+    entitlement: bigint | null;
+    hasClaimed: boolean;
+  } | null> => {
+    if (!claimSDKInstance) return null;
     try {
       const walletStatus = await claimSDKInstance.getWalletClaimStatus();
       let nextTime: Date;
@@ -66,9 +78,11 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
         }
       }
 
+      const claimed = walletStatus.status === "already_claimed";
       setEntitlement(walletStatus.entitlement);
-      setHasClaimed(walletStatus.status === "already_claimed");
+      setHasClaimed(claimed);
       setNextClaimTime(nextTime.getTime() === 0 ? null : nextTime);
+      return { entitlement: walletStatus.entitlement, hasClaimed: claimed };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (
@@ -77,12 +91,13 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
         errorMessage.includes("pokt.network") ||
         errorMessage.includes("network")
       ) {
-        return;
+        return null;
       }
       console.error("[useGoodDollarClaim] Failed to check claim status:", err);
       setError(
         err instanceof Error ? err : new Error("Failed to check claim status"),
       );
+      return null;
     }
   }, [claimSDKInstance]);
 
@@ -148,6 +163,35 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     };
   }, [isVerifying, claimSDKInstance, checkWhitelisted, checkClaimStatus]);
 
+  const refreshStatus = useCallback(async (): Promise<RefreshStatusResult> => {
+    if (!claimSDKInstance) {
+      return {
+        isWhitelisted: false,
+        entitlement: null,
+        hasClaimed: false,
+      };
+    }
+
+    const whitelisted = await checkWhitelisted();
+    setIsWhitelisted(whitelisted);
+    const claimSnapshot = await checkClaimStatus();
+    setIsInitialized(true);
+
+    return {
+      isWhitelisted: whitelisted,
+      entitlement: claimSnapshot?.entitlement ?? null,
+      hasClaimed: claimSnapshot?.hasClaimed ?? false,
+    };
+  }, [claimSDKInstance, checkWhitelisted, checkClaimStatus]);
+
+  const startVerifying = useCallback(() => {
+    setIsVerifying(true);
+  }, []);
+
+  const stopVerifying = useCallback(() => {
+    setIsVerifying(false);
+  }, []);
+
   const claim = async () => {
     if (!claimSDKInstance) return;
 
@@ -196,6 +240,9 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     hasClaimed,
     nextClaimTime,
     claim,
+    refreshStatus,
+    startVerifying,
+    stopVerifying,
     error,
     isInitialized,
   };

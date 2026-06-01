@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Gift, Loader2, X } from "lucide-react";
+import { Gift, Loader2, ShieldCheck, X } from "lucide-react";
 import { formatUnits } from "viem";
 import { cn, formatGAmount } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
@@ -16,6 +16,14 @@ import { WHITELIST_CLAIM_MESSAGES } from "@/lib/gooddollar-whitelist";
 const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow"), {
   ssr: false,
 });
+
+const primaryButtonClass = cn(
+  "w-full py-4 rounded-xl text-sm font-bold transition-all",
+  "bg-delulu-yellow-reserved text-primary",
+  "hover:brightness-95 active:scale-[0.99]",
+  "disabled:opacity-45 disabled:cursor-not-allowed",
+  "flex items-center justify-center gap-2",
+);
 
 interface ClaimPanelContentProps {
   onClose: () => void;
@@ -33,10 +41,14 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
     hasClaimed,
     nextClaimTime,
     claim,
+    refreshStatus,
+    startVerifying,
+    stopVerifying,
     isInitialized,
   } = useGoodDollarClaim();
 
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
+  const autoOpenedForIntentRef = useRef<string | null>(null);
 
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet
@@ -53,27 +65,70 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
     return Number.isFinite(n) ? n.toFixed(2) : "—";
   }, [formattedEntitlement]);
 
-  const handleClaim = async () => {
+  const needsWhitelist =
+    authenticated &&
+    isInitialized &&
+    !isWhitelisted &&
+    !isClaimDataLoading;
+
+  const canClaimUbi =
+    authenticated &&
+    isInitialized &&
+    isWhitelisted &&
+    !hasClaimed &&
+    entitlement !== null &&
+    entitlement > 0n;
+
+  const openIdentityFlow = useCallback(() => {
+    startVerifying();
+    setShowIdentityFlow(true);
+  }, [startVerifying]);
+
+  const closeIdentityFlow = useCallback(
+    (open: boolean) => {
+      setShowIdentityFlow(open);
+      if (!open) stopVerifying();
+    },
+    [stopVerifying],
+  );
+
+  const verifyButtonLabel = whitelistIntent
+    ? whitelistIntent === "tip"
+      ? "Verify & whitelist to tip"
+      : "Verify & whitelist to create"
+    : "Verify & whitelist";
+
+  useEffect(() => {
+    if (!isInitialized || !whitelistIntent || isWhitelisted) return;
+    const key = `${whitelistIntent}-${address ?? ""}`;
+    if (autoOpenedForIntentRef.current === key) return;
+    autoOpenedForIntentRef.current = key;
+    openIdentityFlow();
+  }, [isInitialized, whitelistIntent, isWhitelisted, address, openIdentityFlow]);
+
+  const handleClaimUbi = async () => {
     if (!authenticated) {
       router.push("/sign-in");
       return;
     }
-    if (!address) return;
-    if (!isWhitelisted) {
-      setShowIdentityFlow(true);
-      return;
-    }
+    if (!address || !canClaimUbi) return;
     await claim();
   };
 
-  const canClaim =
-    authenticated &&
-    address &&
-    !hasClaimed &&
-    !isClaimDataLoading &&
-    isInitialized &&
-    entitlement !== null &&
-    entitlement > 0n;
+  const handleVerified = async () => {
+    setShowIdentityFlow(false);
+    stopVerifying();
+
+    const status = await refreshStatus();
+    if (
+      status.isWhitelisted &&
+      !status.hasClaimed &&
+      status.entitlement !== null &&
+      status.entitlement > 0n
+    ) {
+      await claim();
+    }
+  };
 
   return (
     <>
@@ -131,6 +186,10 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
             </p>
             {isClaimDataLoading || !isReady || !isInitialized ? (
               <div className="h-12 w-32 mx-auto bg-secondary rounded-lg animate-pulse" />
+            ) : needsWhitelist ? (
+              <p className="text-lg font-bold text-muted-foreground max-w-[240px] mx-auto leading-snug">
+                Verify your identity to see today&apos;s UBI
+              </p>
             ) : (
               <p className="text-5xl font-black text-foreground tracking-tight tabular-nums">
                 {entitlementDisplay}
@@ -167,6 +226,15 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
             <Loader2 className="w-4 h-4 animate-spin" />
             Checking eligibility…
           </div>
+        ) : needsWhitelist ? (
+          <button
+            type="button"
+            onClick={openIdentityFlow}
+            className={primaryButtonClass}
+          >
+            <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+            {verifyButtonLabel}
+          </button>
         ) : hasClaimed ? (
           <div className="rounded-xl bg-secondary px-4 py-4 text-center">
             <p className="text-sm font-semibold text-foreground mb-1">
@@ -186,18 +254,12 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
               </p>
             )}
           </div>
-        ) : (
+        ) : canClaimUbi ? (
           <button
             type="button"
-            onClick={handleClaim}
-            disabled={isClaiming || !canClaim}
-            className={cn(
-              "w-full py-4 rounded-xl text-sm font-bold transition-all",
-              "bg-delulu-yellow-reserved text-primary",
-              "hover:brightness-95 active:scale-[0.99]",
-              "disabled:opacity-45 disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2"
-            )}
+            onClick={handleClaimUbi}
+            disabled={isClaiming}
+            className={primaryButtonClass}
           >
             {isClaiming ? (
               <>
@@ -207,21 +269,27 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
             ) : (
               <>
                 <Gift className="w-4 h-4" strokeWidth={2} />
-                {entitlement !== null && entitlement > 0n
-                  ? `Claim ${entitlementDisplay} G$`
-                  : "Claim G$"}
+                {`Claim ${entitlementDisplay} G$`}
               </>
             )}
           </button>
+        ) : (
+          <div className="rounded-xl bg-secondary px-4 py-4 text-center">
+            <p className="text-sm font-semibold text-foreground">
+              You&apos;re whitelisted
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              No daily UBI is available right now. You can still tip and create delulus with G$.
+            </p>
+          </div>
         )}
       </div>
 
       <IdentityFlow
         open={showIdentityFlow}
-        onOpenChange={setShowIdentityFlow}
+        onOpenChange={closeIdentityFlow}
         onVerified={() => {
-          setShowIdentityFlow(false);
-          void claim();
+          void handleVerified();
         }}
       />
     </>
