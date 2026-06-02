@@ -102,6 +102,7 @@ import { usePfps } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { cn } from "@/lib/utils";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import {
   DELULU_CHAIN_ID,
   getDeluluContractAddress,
@@ -1043,7 +1044,8 @@ export default function DeluluPage() {
 
   const safeDelulu = delulu!;
 
-  const bannerImage = safeDelulu.bgImageUrl || "/templates/t0.png";
+  const bannerImage =
+    normalizeDeluluImageSrc(safeDelulu.bgImageUrl) ?? "/templates/t0.png";
   const canAddMilestones =
     safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
   const isDeluluEnded =

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn, formatGAmount } from "@/lib/utils";
 import {
   getDefaultTipAmount,
@@ -265,6 +267,7 @@ export function DeluluCard({
   const resolutionMs = delusion.resolutionDeadline.getTime();
   const isEnded = resolutionMs > 0 && resolutionMs <= now;
   const timeRemaining = !isEnded ? formatTimeLeftDayHour(now, resolutionMs) : null;
+  const coverImageSrc = normalizeDeluluImageSrc(delusion.bgImageUrl);
 
   const showSupportButton =
     authenticated &&
@@ -401,11 +404,15 @@ export function DeluluCard({
       style={{ background: cardGradient }}
       aria-label={`${headline} by ${creatorLabel}`}
     >
-      {delusion.bgImageUrl ? (
-        <img
-          src={delusion.bgImageUrl}
+      {coverImageSrc ? (
+        <Image
+          src={coverImageSrc}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover"
+          loading="lazy"
+          unoptimized={coverImageSrc.startsWith("data:")}
         />
       ) : null}
 
@@ -499,11 +506,15 @@ export function DeluluCard({
         )}
         style={{ background: cardGradient }}
       >
-        {delusion.bgImageUrl ? (
-          <img
-            src={delusion.bgImageUrl}
+        {coverImageSrc ? (
+          <Image
+            src={coverImageSrc}
             alt=""
-            className="h-full w-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+            className="object-cover"
+            loading="lazy"
+            unoptimized={coverImageSrc.startsWith("data:")}
           />
         ) : null}
         {timeRemaining ? (

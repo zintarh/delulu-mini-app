@@ -3,6 +3,7 @@
 import type { FormattedDelulu, GatekeeperConfig } from "@/lib/types";
 import type { DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { weiToTokenAmount } from "@/lib/token-amounts";
 
 export function weiToNumber(
@@ -110,7 +111,7 @@ export function transformSubgraphDelulu(
     content: metadata?.text ?? undefined,
     username: metadata?.username ?? raw.creator?.username ?? undefined,
     pfpUrl: metadata?.pfpUrl ?? undefined,
-    bgImageUrl: metadata?.bgImageUrl ?? undefined,
+    bgImageUrl: normalizeDeluluImageSrc(metadata?.bgImageUrl) ?? undefined,
     gatekeeper: metadata?.gatekeeper
       ? ({
         enabled: metadata.gatekeeper.enabled,

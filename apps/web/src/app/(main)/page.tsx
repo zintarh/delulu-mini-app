@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { HomeFeedExplore } from "@/components/home-feed-explore";
@@ -44,6 +46,7 @@ function BoardTile({
   const displayName = delusion.username
     ? `@${delusion.username}`
     : `${delusion.creator.slice(0, 6)}…${delusion.creator.slice(-4)}`;
+  const coverImageSrc = normalizeDeluluImageSrc(delusion.bgImageUrl);
 
   return (
     <Link href={`/delulu/${delusion.id}`} className="block break-inside-avoid mb-2 lg:mb-3">
@@ -51,11 +54,14 @@ function BoardTile({
         className="relative rounded-2xl overflow-hidden flex flex-col justify-end hover:brightness-90 transition-all duration-200 cursor-pointer"
         style={{ background: gradient, minHeight: minH }}
       >
-        {delusion.bgImageUrl && (
-          <img
-            src={delusion.bgImageUrl}
+        {coverImageSrc && (
+          <Image
+            src={coverImageSrc}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover"
+            loading="lazy"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />

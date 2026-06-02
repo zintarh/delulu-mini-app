@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
@@ -378,7 +379,7 @@ async function buildIndex(): Promise<void> {
             content: meta.text,
             username: resolvedUsername,
             pfpUrl: meta.pfpUrl ?? null,
-            bgImageUrl: meta.bgImageUrl ?? null,
+            bgImageUrl: normalizeDeluluImageSrc(meta.bgImageUrl),
             totalSupportCollected: Number(row.totalSupportCollected ?? 0),
             totalSupporters: Number(row.totalSupporters ?? 0),
             creatorStake: Number(row.creatorStake ?? 0),

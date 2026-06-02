@@ -11,6 +11,7 @@ import {
   hasContentResolved,
 } from "@/lib/graph/ipfs-cache";
 import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 
 const DELULU_LEADERBOARD_QUERY = gql`
   query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $campaignStart: BigInt = "0", $campaignEnd: BigInt = "9999999999") {
@@ -160,7 +161,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           contentHash: d.contentHash,
           title,
           titleLoading,
-          bgImageUrl: cached?.bgImageUrl ?? null,
+          bgImageUrl: normalizeDeluluImageSrc(cached?.bgImageUrl),
           creatorAddress: d.creator?.id ?? "",
           creatorUsername: d.creator?.username ?? null,
           totalG,

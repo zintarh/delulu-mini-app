@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronRight } from "lucide-react";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn } from "@/lib/utils";
 import type { DeluluSearchResult } from "@/lib/search-types";
 
@@ -25,6 +27,7 @@ export function SearchResultRow({
   const handle = result.username
     ? `@${result.username}`
     : `${result.creator.slice(0, 6)}…${result.creator.slice(-4)}`;
+  const coverImageSrc = normalizeDeluluImageSrc(result.bgImageUrl);
 
   return (
     <button
@@ -42,14 +45,14 @@ export function SearchResultRow({
         )}
         style={{ background: tileGradient(result.creator) }}
       >
-        {result.bgImageUrl ? (
-          <img
-            src={result.bgImageUrl}
+        {coverImageSrc ? (
+          <Image
+            src={coverImageSrc}
             alt=""
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
+            fill
+            sizes="48px"
+            className="object-cover"
+            loading="lazy"
           />
         ) : null}
       </div>

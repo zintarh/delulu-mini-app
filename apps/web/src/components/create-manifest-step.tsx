@@ -20,7 +20,7 @@ import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS, isGoodDollarToken } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { formatUsdEquivalent, getTokenSymbol } from "@/lib/token-amounts";
+import { formatUsdEquivalent, getMinStakeWhole, getTokenSymbol } from "@/lib/token-amounts";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
@@ -34,7 +34,6 @@ import { type GatekeeperConfig } from "@/lib/ipfs";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import {
   MAX_DELULU_LENGTH,
-  MIN_STAKE,
   MIN_DURATION_DAYS,
   MAX_DURATION_DAYS,
   getDefaultDeadline,
@@ -229,6 +228,7 @@ export function CreateManifestStep({
 
   const selectedTokenSymbol = getTokenSymbol(selectedToken);
   const isGoodDollarSelected = isGoodDollarToken(selectedToken);
+  const MIN_STAKE = getMinStakeWhole(selectedToken);
   const approxUsdLabel = formatUsdEquivalent(
     stakeAmount,
     selectedToken,

@@ -9,8 +9,16 @@ import {
 } from "@/lib/constant";
 
 export const DEFAULT_TOKEN_DECIMALS = 18;
-/** Matches on-chain MIN_STAKE_WHOLE after the decimal-aware upgrade. */
+/** Minimum stake for G$ and other 18-decimal tokens. */
 export const MIN_STAKE_WHOLE = 100;
+/** Minimum stake for 6-decimal stablecoins (USDT, cUSD, etc.). */
+export const MIN_STAKE_STABLECOIN = 1;
+
+/** Returns the minimum stake in whole tokens for the given token address. */
+export function getMinStakeWhole(tokenAddress: string | undefined | null): number {
+  const dec = getTokenDecimals(tokenAddress);
+  return dec < 18 ? MIN_STAKE_STABLECOIN : MIN_STAKE_WHOLE;
+}
 
 /** Static decimals for known Celo tokens (avoids extra RPC on hot paths). */
 export const TOKEN_DECIMALS_BY_ADDRESS: Record<string, number> = {
@@ -60,7 +68,8 @@ export function minStakeWei(
   decimals?: number,
 ): bigint {
   const dec = getTokenDecimals(tokenAddress, decimals);
-  return BigInt(MIN_STAKE_WHOLE) * 10n ** BigInt(dec);
+  const minWhole = getMinStakeWhole(tokenAddress);
+  return BigInt(minWhole) * 10n ** BigInt(dec);
 }
 
 /** Stablecoins shown as ≈ $X without a price API. */

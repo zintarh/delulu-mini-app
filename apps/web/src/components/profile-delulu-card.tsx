@@ -19,6 +19,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { TokenBadge } from "@/components/token-badge";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { formatUsdEquivalent, getTokenSymbol } from "@/lib/token-amounts";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
@@ -27,45 +28,11 @@ function getCardBackground(delusion: FormattedDelulu): {
   text: string;
   isImage: boolean;
 } {
-  if (delusion.bgImageUrl) {
-    let imageUrl = delusion.bgImageUrl;
-    
-    if (imageUrl.startsWith("/")) {
-      if (typeof window !== "undefined") {
-        imageUrl = `${window.location.origin}${imageUrl}`;
-      } else {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
-        imageUrl = `${baseUrl}${imageUrl}`;
-      }
-    }
-    
-    if (typeof window !== "undefined") {
-      const currentOrigin = window.location.origin;
-      imageUrl = imageUrl.replace(/https?:\/\/localhost:\d+/g, currentOrigin);
-            if (window.location.protocol === "https:") {
-        imageUrl = imageUrl.replace(/^http:/, "https:");
-      }
-    }
-    
-    if (
-      imageUrl.startsWith("http://") ||
-      imageUrl.startsWith("https://")
-    ) {
-      return {
-        bg: imageUrl,
-        text: "text-white",
-        isImage: true,
-      };
-    }
-  }
+  const imageUrl =
+    normalizeDeluluImageSrc(delusion.bgImageUrl) ?? "/templates/t0.png";
 
-  // Default fallback
-  const baseUrl = typeof window !== "undefined" 
-    ? window.location.origin 
-    : process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
-  
   return {
-    bg: `${baseUrl}/templates/t0.png`,
+    bg: imageUrl,
     text: "text-white",
     isImage: true,
   };

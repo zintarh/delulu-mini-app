@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +9,7 @@ import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
+import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -565,14 +567,14 @@ function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
               )}
               style={{ background: tileGradient(entry.creatorAddress) }}
             >
-              {entry.bgImageUrl && (
-                <img
-                  src={entry.bgImageUrl}
+              {normalizeDeluluImageSrc(entry.bgImageUrl) && (
+                <Image
+                  src={normalizeDeluluImageSrc(entry.bgImageUrl)!}
                   alt=""
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  loading="lazy"
                 />
               )}
             </div>
@@ -697,8 +699,8 @@ function CampaignLeaderboard() {
                 className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
                 style={{ background: tileGradient(myEntry!.creatorAddress) }}
               >
-                {myEntry!.bgImageUrl && (
-                  <img src={myEntry!.bgImageUrl} alt="" className="h-full w-full object-cover" />
+                {normalizeDeluluImageSrc(myEntry!.bgImageUrl) && (
+                  <Image src={normalizeDeluluImageSrc(myEntry!.bgImageUrl)!} alt="" fill sizes="44px" className="object-cover" loading="lazy" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -732,8 +734,8 @@ function CampaignLeaderboard() {
                   className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
                   style={{ background: tileGradient(entry.creatorAddress) }}
                 >
-                  {entry.bgImageUrl && (
-                    <img src={entry.bgImageUrl} alt="" className="h-full w-full object-cover" />
+                  {normalizeDeluluImageSrc(entry.bgImageUrl) && (
+                    <Image src={normalizeDeluluImageSrc(entry.bgImageUrl)!} alt="" fill sizes="44px" className="object-cover" loading="lazy" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

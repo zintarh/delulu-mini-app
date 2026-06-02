@@ -1,13 +1,11 @@
 import {
-  MIN_STAKE_WHOLE,
+  getMinStakeWhole,
   parseTokenAmount,
   getTokenSymbol,
 } from "@/lib/token-amounts";
 
 // Constants
 export const MAX_DELULU_LENGTH = 140;
-// Minimum stake required to create a delulu (whole tokens; matches on-chain MIN_STAKE_WHOLE).
-export const MIN_STAKE = MIN_STAKE_WHOLE;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
 export const ALLOWANCE_CHECK_DELAY = 500; // milliseconds
@@ -80,17 +78,19 @@ export function validateDeluluInputs(
     errors.text = `Text must be ${MAX_DELULU_LENGTH} characters or less`;
   }
 
-  // Stake validation: exactly MIN_STAKE or more required.
+  const minStake = getMinStakeWhole(tokenAddress);
+
+  // Stake validation
   if (stakeAmount <= 0) {
-    errors.stake = `A stake of at least ${MIN_STAKE} ${tokenSymbol} is required to create a dream`;
-  } else if (stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE} ${tokenSymbol}`;
+    errors.stake = `A stake of at least ${minStake} ${tokenSymbol} is required to create a dream`;
+  } else if (stakeAmount < minStake) {
+    errors.stake = `Minimum stake is ${minStake} ${tokenSymbol}`;
   }
 
   // Balance validation
-  if (stakeAmount >= MIN_STAKE) {
-    if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
-      errors.balance = `You need at least ${MIN_STAKE} ${tokenSymbol} to stake. Claim your free G$ first.`;
+  if (stakeAmount >= minStake) {
+    if (!isFinite(maxStakeValue) || maxStakeValue < minStake) {
+      errors.balance = `You need at least ${minStake} ${tokenSymbol} to stake. Claim your free G$ first.`;
     } else if (stakeAmount > maxStakeValue) {
       const displayBalance = isFinite(maxStakeValue)
         ? maxStakeValue.toFixed(2)
@@ -107,7 +107,7 @@ export function validateDeluluInputs(
   const isValid =
     !errors.text && !errors.stake && !errors.balance && !errors.image;
   const stakeOk =
-    stakeAmount >= MIN_STAKE && stakeAmount <= maxStakeValue;
+    stakeAmount >= minStake && stakeAmount <= maxStakeValue;
   const canCreate =
     isValid &&
     delusionText.trim().length > 0 &&
@@ -118,10 +118,9 @@ export function validateDeluluInputs(
 }
 
 // Stake amount helpers
-export function clampStakeValue(val: number): number {
-  // Only clamp positive values; 0 remains a valid "no stake" amount.
+export function clampStakeValue(val: number, tokenAddress?: string | null): number {
   if (val <= 0) return 0;
-  return Math.max(val, MIN_STAKE);
+  return Math.max(val, getMinStakeWhole(tokenAddress));
 }
 
 export function calculateMaxStakeValue(
@@ -268,10 +267,7 @@ export function getProgressStep(
 }
 
 export function getDefaultImageUrl(): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/templates/t0.png`;
-  }
-  return "/templates/t0.png"; 
+  return "/templates/t0.png";
 }
 
 export function getOrigin(): string {
