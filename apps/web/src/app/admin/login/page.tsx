@@ -2,11 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next");
+  const destination =
+    nextPath && nextPath.startsWith("/admin") && nextPath !== "/admin/login"
+      ? nextPath
+      : "/admin";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +34,7 @@ export default function AdminLoginPage() {
         setError(json?.error ?? "Login failed.");
         return;
       }
-      router.replace("/admin");
+      router.replace(destination);
     } catch {
       setError("Unable to login right now. Try again.");
     } finally {
@@ -55,7 +61,9 @@ export default function AdminLoginPage() {
 
         <h1 className="text-2xl font-bold tracking-tight">Admin Login</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sign in with the email and password for your admin account.
+          Sign in with an email on the ops allowlist and the password set via{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-[11px]">pnpm seed:admin</code>
+          . This is separate from the main app Web3Auth login.
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-3">
@@ -83,7 +91,7 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive whitespace-pre-wrap leading-relaxed">
               {error}
             </p>
           )}

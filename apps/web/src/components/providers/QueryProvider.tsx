@@ -14,7 +14,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             staleTime: 30_000,
             gcTime: 5 * 60 * 1000,
             retry: 1,
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false,
           },
         },
       })
@@ -23,7 +23,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === "development" ? (
+        <ReactQueryDevtools initialIsOpen={false} />
+      ) : null}
     </QueryClientProvider>
   );
 }

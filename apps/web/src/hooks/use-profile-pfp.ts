@@ -33,39 +33,29 @@ async function flushBatch() {
     return !entry || now - entry.ts >= CACHE_TTL_MS;
   });
   if (toFetch.length === 0) {
-    console.log("[pfp] all addresses already cached, skipping fetch");
     notify();
     return;
   }
 
-  console.log("[pfp] fetching pfps for addresses:", toFetch);
-
   try {
     const url = `/api/profile?addresses=${encodeURIComponent(toFetch.join(","))}`;
-    console.log("[pfp] GET", url);
     const res = await fetch(url);
-    console.log("[pfp] response status:", res.status);
 
     if (res.ok) {
       const data = await res.json();
-      console.log("[pfp] raw API response:", JSON.stringify(data));
       const profiles: Record<string, string | null> = data?.profiles ?? {};
-      const now = Date.now();
+      const cachedAt = Date.now();
       for (const addr of toFetch) {
         const val = profiles[addr] ?? null;
-        cache.set(addr, { value: val, ts: now });
-        console.log(`[pfp] cached ${addr} →`, val ?? "(null/no pfp)");
+        cache.set(addr, { value: val, ts: cachedAt });
       }
     } else {
-      const text = await res.text().catch(() => "");
-      console.error("[pfp] API error", res.status, text);
-      const now = Date.now();
-      for (const addr of toFetch) cache.set(addr, { value: null, ts: now });
+      const cachedAt = Date.now();
+      for (const addr of toFetch) cache.set(addr, { value: null, ts: cachedAt });
     }
-  } catch (err) {
-    console.error("[pfp] fetch threw:", err);
-    const now = Date.now();
-    for (const addr of toFetch) cache.set(addr, { value: null, ts: now });
+  } catch {
+    const cachedAt = Date.now();
+    for (const addr of toFetch) cache.set(addr, { value: null, ts: cachedAt });
   }
 
   notify();
@@ -91,9 +81,7 @@ function getPfp(address: string): string | null | undefined {
 /** Force-refreshes a single address in the cache (call after pfp upload) */
 export function invalidatePfpCache(address: string) {
   const normalized = address.toLowerCase();
-  console.log("[pfp] invalidating cache for", normalized);
   cache.delete(normalized);
-  // Re-schedule so it gets picked up on next render
   schedule(normalized);
   notify();
 }
@@ -110,17 +98,15 @@ export function usePfp(address?: string | null): string | null | undefined {
 
   useEffect(() => {
     if (!address) return;
-    const normalized = address.toLowerCase();
-    console.log("[pfp] usePfp scheduling", normalized);
-    schedule(normalized);
+    schedule(address.toLowerCase());
     subscribers.add(forceUpdate);
-    return () => { subscribers.delete(forceUpdate); };
+    return () => {
+      subscribers.delete(forceUpdate);
+    };
   }, [address]);
 
   if (!address) return null;
-  const val = getPfp(address);
-  console.log(`[pfp] usePfp(${address.slice(0, 8)}…) →`, val === undefined ? "undefined(loading)" : val ?? "null(no pfp)");
-  return val;
+  return getPfp(address);
 }
 
 /**
@@ -138,16 +124,13 @@ export function usePfps(addresses: string[]): Record<string, string | null | und
 
   useEffect(() => {
     if (!key) return;
-    console.log("[pfp] usePfps scheduling", key.split(",").length, "addresses");
     key.split(",").forEach((a) => a && schedule(a));
     subscribers.add(forceUpdate);
-    return () => { subscribers.delete(forceUpdate); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      subscribers.delete(forceUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const result = Object.fromEntries(
-    addresses.map((a) => [a.toLowerCase(), getPfp(a)]),
-  );
-  console.log("[pfp] usePfps result:", Object.entries(result).map(([a, v]) => `${a.slice(0,8)}…→${v === undefined ? "loading" : v ?? "null"}`).join(", "));
-  return result;
+  return Object.fromEntries(addresses.map((a) => [a.toLowerCase(), getPfp(a)]));
 }

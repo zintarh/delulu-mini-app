@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Search } from "lucide-react";
-import { DeluluCard } from "@/components/delulu-card";
+import { LazyDeluluCard } from "@/components/lazy-delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { HomeSearch } from "@/components/home-search";
 import { buildFeedCategories, type FeedCategoryId } from "@/lib/feed-categories";
@@ -270,7 +270,7 @@ export default function ExplorePage() {
                 {displayDelulus.map((delusion, index) => {
                   const feedDelusion = delusion as FormattedDeluluFeed;
                   return (
-                    <DeluluCard
+                    <LazyDeluluCard
                       key={`explore-${delusion.onChainId || delusion.id}-${index}`}
                       delusion={delusion}
                       href={`/delulu/${delusion.id}`}

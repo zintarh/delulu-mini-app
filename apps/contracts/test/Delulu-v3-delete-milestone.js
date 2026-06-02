@@ -21,8 +21,8 @@ describe("Delulu-v3 deleteMilestone", function () {
   async function deployV3Fixture() {
     const [owner, creator, supporter1] = await hre.viem.getWalletClients();
 
-    const cuSD = await hre.viem.deployContract("MockERC20", ["cUSD", "cUSD"]);
-    const gDollar = await hre.viem.deployContract("MockERC20", ["GoodDollar", "G$"]);
+    const cuSD = await hre.viem.deployContract("MockERC20", ["cUSD", "cUSD", 18]);
+    const gDollar = await hre.viem.deployContract("MockERC20", ["GoodDollar", "G$", 18]);
 
     const implementation = await hre.viem.deployContract(
       "contracts/Delulu-v3.sol:Delulu",
@@ -75,7 +75,7 @@ describe("Delulu-v3 deleteMilestone", function () {
         "ipfs-hash",
         latest + ONE_DAY,
         latest + 30n * ONE_DAY,
-        parseEther("10"),
+        parseEther("100"),
       ],
       { account: creator.account }
     );

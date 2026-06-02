@@ -2,7 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useBalance, useReadContract } from "wagmi";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  consumeSignInRedirect,
+  persistSignInRedirect,
+  safeRedirectPath,
+} from "@/lib/auth-redirect";
 import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { DELULU_ABI } from "@/lib/abi";
 import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
@@ -28,6 +33,7 @@ const BG_IMAGES = ["/bg.jpg", "/bg1.jpg"];
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { authenticated, isReady, address } = useAuth();
   const { login: privyLogin } = useLogin();
   const { isInitialized } = useWeb3Auth();
@@ -48,6 +54,10 @@ export default function SignInPage() {
     const t = setInterval(() => setActiveImg((i) => (i + 1) % BG_IMAGES.length), 5000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    persistSignInRedirect(searchParams.get("redirect"));
+  }, [searchParams]);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const isEmailValid = useMemo(
@@ -81,8 +91,12 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (!isReady || !authenticated || !address || isFetching || isBalanceLoading) return;
+
+    const redirectTarget =
+      consumeSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect"));
+
     if (hasProfile) {
-      router.replace("/");
+      router.replace(redirectTarget ?? "/");
       return;
     }
     if (hasGas) {
@@ -97,6 +111,7 @@ export default function SignInPage() {
     hasProfile,
     hasGas,
     router,
+    searchParams,
   ]);
 
   const checkEmailRoute = async (

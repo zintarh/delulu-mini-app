@@ -1,4 +1,9 @@
 import { ImageResponse } from "next/og";
+import { formatUnits } from "viem";
+import {
+  getTokenDecimals,
+  getTokenSymbol,
+} from "@/lib/token-amounts";
 
 export const runtime = "edge";
 export const alt = "Delulu";
@@ -29,8 +34,7 @@ async function fetchDeluluBasic(id: string) {
             contentHash
             creatorStake
             totalSupportCollected
-            shareSupply
-            uniqueBuyerCount
+            token
             creator { id username }
           }
         }`,
@@ -61,10 +65,14 @@ async function fetchIPFSTitle(hash: string): Promise<string | null> {
   return null;
 }
 
-function weiToG(wei: string | null | undefined): number {
+function weiToAmount(
+  wei: string | null | undefined,
+  token?: string | null,
+): number {
   if (!wei) return 0;
   try {
-    return Number(BigInt(wei)) / 1e18;
+    const dec = getTokenDecimals(token);
+    return parseFloat(formatUnits(BigInt(wei), dec));
   } catch {
     return 0;
   }
@@ -102,9 +110,10 @@ export default async function Image({
       ? `${delulu.creator.id.slice(0, 6)}…${delulu.creator.id.slice(-4)}`
       : null;
 
-  const totalG = fmtG(weiToG(delulu?.totalSupportCollected));
-  const shares = Number(delulu?.shareSupply ?? 0);
-  const ub = Number(delulu?.uniqueBuyerCount ?? 0);
+  const tokenAddr = delulu?.token as string | undefined;
+  const tokenSymbol = getTokenSymbol(tokenAddr);
+  const supportAmount = fmtG(weiToAmount(delulu?.totalSupportCollected, tokenAddr));
+  const creatorStakeAmount = fmtG(weiToAmount(delulu?.creatorStake, tokenAddr));
 
   return new ImageResponse(
     (
@@ -225,7 +234,7 @@ export default async function Image({
             gap: 48,
           }}
         >
-          {/* G$ staked */}
+          {/* Creator stake */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span
               style={{
@@ -234,7 +243,7 @@ export default async function Image({
                 color: "rgba(255,255,255,0.9)",
               }}
             >
-              {totalG} G$
+              {creatorStakeAmount} {tokenSymbol}
             </span>
             <span
               style={{
@@ -245,7 +254,7 @@ export default async function Image({
                 letterSpacing: "0.1em",
               }}
             >
-              staked
+              creator stake
             </span>
           </div>
 
@@ -257,39 +266,7 @@ export default async function Image({
             }}
           />
 
-          {/* Shares */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.9)",
-              }}
-            >
-              {shares}
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.4)",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              shares
-            </span>
-          </div>
-
-          <div
-            style={{
-              width: 1,
-              height: 40,
-              background: "rgba(255,255,255,0.08)",
-            }}
-          />
-
-          {/* Unique buyers */}
+          {/* Community support */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span
               style={{
@@ -298,7 +275,7 @@ export default async function Image({
                 color: "#f6c324",
               }}
             >
-              {ub}
+              {supportAmount} {tokenSymbol}
             </span>
             <span
               style={{
@@ -309,11 +286,10 @@ export default async function Image({
                 letterSpacing: "0.1em",
               }}
             >
-              buyers
+              support
             </span>
           </div>
 
-          {/* Spacer + "buy a share" CTA */}
           <div
             style={{
               marginLeft: "auto",
@@ -333,7 +309,7 @@ export default async function Image({
                 letterSpacing: "-0.01em",
               }}
             >
-              Buy a share →
+              Support them →
             </span>
           </div>
         </div>

@@ -19,7 +19,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { TokenBadge } from "@/components/token-badge";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { formatUsdEquivalent, getTokenSymbol } from "@/lib/token-amounts";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 function getCardBackground(delusion: FormattedDelulu): {
@@ -109,23 +109,14 @@ export function ProfileDeluluCard({
   const fallbackReceived = (delusion.creatorStake ?? 0) + legacyStakeTotal;
   const tvlValue = totalReceived > 0 ? totalReceived : fallbackReceived;
   const { usd: gDollarUsdPrice } = useGoodDollarPrice();
-  const isGoodDollar =
-    delusion.tokenAddress?.toLowerCase() ===
-    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-  const approxUsdValue =
-    isGoodDollar && gDollarUsdPrice && tvlValue > 0
-      ? tvlValue * gDollarUsdPrice
-      : delusion.tokenAddress &&
-        delusion.tokenAddress.toLowerCase() !==
-        GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()
-        ? tvlValue // USDm or other stable-like token ~ 1:1
-        : null;
+  const tokenSymbol = getTokenSymbol(delusion.tokenAddress);
+  const approxUsdStr = formatUsdEquivalent(
+    tvlValue,
+    delusion.tokenAddress,
+    gDollarUsdPrice,
+  );
   const formattedGAmount = formatGAmount(tvlValue);
-  const formattedUsd = approxUsdValue && approxUsdValue > 0
-    ? approxUsdValue < 0.01
-      ? approxUsdValue.toFixed(4)
-      : approxUsdValue.toFixed(2)
-    : null;
+  const formattedUsd = approxUsdStr;
 
   const isHash = (str: string) => {
     return str.startsWith("Qm") || (str.length > 40 && /^[a-f0-9]+$/i.test(str));
@@ -280,7 +271,7 @@ export function ProfileDeluluCard({
               )}
               <span className={cn("font-semibold text-white", currentSize.support)}>
                 {formattedGAmount}
-                {isGoodDollar ? " G$" : ""}
+                {delusion.tokenAddress ? ` ${tokenSymbol}` : ""}
               </span>
               {formattedUsd && (
                 <span className={cn("text-white/70", currentSize.support)}>

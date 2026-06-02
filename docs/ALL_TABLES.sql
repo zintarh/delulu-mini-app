@@ -77,22 +77,6 @@ create index if not exists goal_series_habits_series_idx
   on public.goal_series_habits (goal_series_id);
 
 
--- ── faucet_claims ────────────────────────────────────────────
-create table if not exists public.faucet_claims (
-  id         uuid primary key default gen_random_uuid(),
-  address    text not null,
-  amount     numeric not null,
-  tx_hash    text not null unique,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists faucet_claims_address_idx
-  on public.faucet_claims (address);
-
-create index if not exists faucet_claims_created_at_idx
-  on public.faucet_claims (created_at desc);
-
-
 -- ── push_subscriptions ───────────────────────────────────────
 create table if not exists public.push_subscriptions (
   id          uuid primary key default gen_random_uuid(),

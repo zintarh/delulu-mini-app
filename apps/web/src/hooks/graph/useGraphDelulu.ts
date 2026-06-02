@@ -93,24 +93,6 @@ export const GET_DELULU_BY_ID = gql`
         txHash
         createdAt
       }
-      shareTrades(first: 100, orderBy: createdAt, orderDirection: asc) {
-        id
-        isBuy
-        amount
-        curveAmount
-        createdAt
-        user {
-          id
-        }
-      }
-      shareHoldings(first: 50) {
-        id
-        user {
-          id
-          username
-        }
-        balance
-      }
       milestones(first: 50, orderBy: milestoneId, orderDirection: asc, where: { isDeleted: false }) {
         id
         milestoneId
@@ -174,17 +156,19 @@ export function useGraphDelulu(deluluId: string | number | null) {
 
   const stakes: GraphStake[] = useMemo(() => {
     if (!data?.delulu?.stakes) return [];
+    const tokenAddr = data.delulu.token ?? undefined;
     return data.delulu.stakes.map((s) => ({
       id: s.id,
       userAddress: s.user.id,
-      amount: weiToNumber(s.amount),
+      amount: weiToNumber(s.amount, tokenAddr),
       txHash: s.txHash,
       createdAt: timestampToDate(s.createdAt),
     }));
-  }, [data?.delulu?.stakes]);
+  }, [data?.delulu?.stakes, data?.delulu?.token]);
 
   const milestones: GraphMilestone[] = useMemo(() => {
     if (!data?.delulu?.milestones) return [];
+    const tokenAddr = data.delulu.token ?? undefined;
     return data.delulu.milestones.map((m) => {
       const mm: any = m;
       return {
@@ -201,47 +185,20 @@ export function useGraphDelulu(deluluId: string | number | null) {
         isSubmitted: mm.isSubmitted,
         isVerified: mm.isVerified,
         isMissed: mm.isMissed,
-        totalSupport: weiToNumber(mm.totalSupport),
-        pointsEarned: weiToNumber(mm.pointsEarned),
+        totalSupport: weiToNumber(mm.totalSupport, tokenAddr),
+        pointsEarned: weiToNumber(mm.pointsEarned, tokenAddr),
         submittedAt: mm.submittedAt ? timestampToDate(mm.submittedAt) : null,
         verifiedAt: mm.verifiedAt ? timestampToDate(mm.verifiedAt) : null,
         rejectedAt: mm.rejectedAt ? timestampToDate(mm.rejectedAt) : null,
         rejectionReason: mm.rejectionReason ?? null,
       };
     });
-  }, [data?.delulu?.milestones]);
-
-  const shareTrades = useMemo(() => {
-    const raw = (data?.delulu as any)?.shareTrades;
-    if (!raw) return [];
-    return raw.map((t: any) => ({
-      id: t.id,
-      isBuy: t.isBuy as boolean,
-      amount: Number(t.amount),
-      curveAmount: weiToNumber(t.curveAmount),
-      createdAt: timestampToDate(t.createdAt),
-      userAddress: t.user?.id ?? "",
-    }));
-  }, [data?.delulu]);
-
-  const shareHoldings = useMemo(() => {
-    const raw = (data?.delulu as any)?.shareHoldings;
-    if (!raw) return [];
-    return raw
-      .map((h: any) => ({
-        userAddress: h.user?.id ?? "",
-        username: h.user?.username ?? null,
-        balance: Number(h.balance),
-      }))
-      .filter((h: any) => h.balance > 0);
-  }, [data?.delulu]);
+  }, [data?.delulu?.milestones, data?.delulu?.token]);
 
   return {
     delulu,
     stakes,
     milestones,
-    shareTrades,
-    shareHoldings,
     isLoading: loading || (!hasSettled && !error),
     error: error ?? null,
     refetch,

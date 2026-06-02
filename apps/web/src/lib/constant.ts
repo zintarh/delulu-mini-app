@@ -25,7 +25,7 @@ export function getDeluluContractAddress(chainId?: number): `0x${string}` {
 export const DELULU_CONTRACT_ADDRESS = DELULU_CONTRACT_ADDRESSES.mainnet as `0x${string}`;
 
 export const DELULU_IMPLEMENTATION_ADDRESS =
-  "0x181070E2D677637d9EDAF2b1576B9D798c028C6b" as const;
+  "0xb916bBAa5b5c13FD09A1a63dCFC151f8C2544C8e" as const;
 
 
 
@@ -37,19 +37,23 @@ export const GOODDOLLAR_ADDRESSES = {
   mainnet: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as const,
 } as const;
 
+export const USDT_ADDRESSES = {
+  mainnet: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e" as const,
+} as const;
+
 
 
 
 export const TOKEN_LOGOS: Record<string, string> = {
   [CUSD_ADDRESSES.mainnet.toLowerCase()]: "/cusd-logo.png",
   [GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()]: "/gooddollar-logo.png",
+  [USDT_ADDRESSES.mainnet.toLowerCase()]: "/cusd-logo.png",
 } as const;
-
-
 
 export const KNOWN_TOKEN_SYMBOLS: Record<string, string> = {
   [CUSD_ADDRESSES.mainnet.toLowerCase()]: "USDm",
   [GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()]: "G$",
+  [USDT_ADDRESSES.mainnet.toLowerCase()]: "USDT",
 } as const;
 
 
@@ -77,6 +81,11 @@ export function isGoodDollarToken(tokenAddress: string | undefined): boolean {
   return tokenAddress.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
 }
 
+export function isUsdtToken(tokenAddress: string | undefined): boolean {
+  if (!tokenAddress) return false;
+  return tokenAddress.toLowerCase() === USDT_ADDRESSES.mainnet.toLowerCase();
+}
+
 export function isGoodDollarSupported(_chainId?: number): boolean {
   return _chainId === CELO_MAINNET_ID;
 }
@@ -84,21 +93,21 @@ export function isGoodDollarSupported(_chainId?: number): boolean {
 export function getSupportedTokens(_chainId?: number) {
   return [
     {
-      address: CUSD_ADDRESSES.mainnet,
-      symbol: "USDm",
-      name: "Celo Dollar",
-    },
-    {
       address: GOODDOLLAR_ADDRESSES.mainnet,
       symbol: "G$",
       name: "GoodDollar",
+    },
+    {
+      address: USDT_ADDRESSES.mainnet,
+      symbol: "USDT",
+      name: "Tether USD",
     },
   ] as const;
 }
 
 export const SUPPORTED_TOKENS = [
-  { address: CUSD_ADDRESSES.mainnet, symbol: "USDm", name: "Celo Dollar" },
   { address: GOODDOLLAR_ADDRESSES.mainnet, symbol: "G$", name: "GoodDollar" },
+  { address: USDT_ADDRESSES.mainnet, symbol: "USDT", name: "Tether USD" },
 ] as const;
 
 // ─── Farcaster ───────────────────────────────────────────────────────

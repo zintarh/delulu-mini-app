@@ -32,6 +32,7 @@ import {
   createFlowGap,
 } from "@/components/create-flow-layout";
 import { CreateFlowStepProgress } from "@/components/create-flow-step-progress";
+import { prefetchCreateManifestStep } from "@/lib/prefetch-create-manifest";
 
 const UserSetupModal = dynamic(
   () => import("@/components/user-setup-modal").then((m) => m.UserSetupModal),
@@ -45,9 +46,7 @@ const CreateManifestStep = dynamic(
 );
 
 /** Preload wallet/manifest chunk while user is on dream or habits steps. */
-export function prefetchCreateManifestStep() {
-  void import("@/components/create-manifest-step");
-}
+export { prefetchCreateManifestStep } from "@/lib/prefetch-create-manifest";
 
 const GOAL_SUGGESTIONS = [
   "Read daily",

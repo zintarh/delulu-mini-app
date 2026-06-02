@@ -1,33 +1,8 @@
 import type { Metadata } from "next";
-import {
-  Inter,
-  Manrope,
-  Gloria_Hallelujah,
-  Bebas_Neue,
-  Oswald,
-  Playfair_Display,
-  Pacifico,
-  Montserrat,
-  Raleway,
-  Poppins,
-  Roboto_Condensed,
-  Lora,
-  Merriweather,
-  Dancing_Script,
-  Caveat,
-  Satisfy,
-  Kalam,
-  Permanent_Marker,
-  Indie_Flower,
-  Shadows_Into_Light,
-  Amatic_SC,
-} from "next/font/google";
+import { Inter, Manrope, Gloria_Hallelujah } from "next/font/google";
 import "./globals.css";
 
-import Providers from "@/components/providers";
-
-// Ensure layout runs per-request so server can read runtime env (e.g. PRIVY_APP_ID from .env.local)
-export const dynamic = "force-dynamic";
+import { ProvidersShell } from "@/components/providers/providers-shell";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,134 +20,6 @@ const gloriaHallelujah = Gloria_Hallelujah({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-gloria",
-  display: "swap",
-});
-
-const bebasNeue = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  display: "swap",
-});
-
-// Template fonts for vision board
-const oswald = Oswald({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-oswald",
-  display: "swap",
-});
-
-const playfairDisplay = Playfair_Display({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-});
-
-const pacifico = Pacifico({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-pacifico",
-  display: "swap",
-});
-
-const montserrat = Montserrat({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-montserrat",
-  display: "swap",
-});
-
-const raleway = Raleway({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-raleway",
-  display: "swap",
-});
-
-const poppins = Poppins({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-poppins",
-  display: "swap",
-});
-
-const robotoCondensed = Roboto_Condensed({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-roboto-condensed",
-  display: "swap",
-});
-
-const lora = Lora({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-lora",
-  display: "swap",
-});
-
-const merriweather = Merriweather({
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  variable: "--font-merriweather",
-  display: "swap",
-});
-
-// Dramatic/handwriting fonts for vision board
-const dancingScript = Dancing_Script({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-dancing",
-  display: "swap",
-});
-
-const caveat = Caveat({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-caveat",
-  display: "swap",
-});
-
-const satisfy = Satisfy({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-satisfy",
-  display: "swap",
-});
-
-const kalam = Kalam({
-  weight: ["300", "400", "700"],
-  subsets: ["latin"],
-  variable: "--font-kalam",
-  display: "swap",
-});
-
-const permanentMarker = Permanent_Marker({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-permanent-marker",
-  display: "swap",
-});
-
-const indieFlower = Indie_Flower({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-indie-flower",
-  display: "swap",
-});
-
-const shadowsIntoLight = Shadows_Into_Light({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-shadows",
-  display: "swap",
-});
-
-const amaticSC = Amatic_SC({
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  variable: "--font-amatic",
   display: "swap",
 });
 
@@ -233,24 +80,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Privy: server env is passed to client so Provider can mount. Support both PRIVY_APP_ID and NEXT_PUBLIC_.
-  const privyAppIdRaw =
-    process.env.PRIVY_APP_ID ?? process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
-  const privyAppId = typeof privyAppIdRaw === "string" && privyAppIdRaw.trim() ? privyAppIdRaw.trim() : undefined;
-  const signerKeyQuorumIdRaw =
-    process.env.PRIVY_SIGNER_KEY_QUORUM_ID ??
-    process.env.NEXT_PUBLIC_PRIVY_SIGNER_KEY_QUORUM_ID ??
-    "";
-  const signerKeyQuorumId = typeof signerKeyQuorumIdRaw === "string" && signerKeyQuorumIdRaw.trim() ? signerKeyQuorumIdRaw.trim() : undefined;
-
   return (
     <html lang="en">
       <body
-        className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} ${bebasNeue.variable} ${oswald.variable} ${playfairDisplay.variable} ${pacifico.variable} ${montserrat.variable} ${raleway.variable} ${poppins.variable} ${robotoCondensed.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${satisfy.variable} ${kalam.variable} ${permanentMarker.variable} ${indieFlower.variable} ${shadowsIntoLight.variable} ${amaticSC.variable} antialiased`}
+        className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >
-        <Providers privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
-          {children}
-        </Providers>
+        <ProvidersShell>{children}</ProvidersShell>
       </body>
     </html>
   );

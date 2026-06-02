@@ -256,25 +256,47 @@ export async function resolveIPFSContent(
  * Batch-resolve an array of contentHashes in parallel.
  * Returns a Map of contentHash → metadata.
  */
+/**
+ * Resolve content hashes with optional cap (for prioritizing above-the-fold feed items).
+ */
 export async function batchResolveIPFS(
-  contentHashes: string[]
+  contentHashes: string[],
+  options?: { maxHashes?: number },
 ): Promise<Map<string, DeluluIPFSMetadata | null>> {
   hydratePersistentCache();
-  const uniqueHashes = [...new Set(contentHashes)].filter(needsResolve);
+  const capped =
+    options?.maxHashes != null
+      ? contentHashes.slice(0, options.maxHashes)
+      : contentHashes;
+  const uniqueHashes = [...new Set(capped)].filter(needsResolve);
 
-  // Resolve all in parallel (max 6 concurrent to avoid flooding)
   const CONCURRENCY = 6;
   for (let i = 0; i < uniqueHashes.length; i += CONCURRENCY) {
     const batch = uniqueHashes.slice(i, i + CONCURRENCY);
     await Promise.all(batch.map(resolveIPFSContent));
   }
 
-  // Build result map from cache
   const results = new Map<string, DeluluIPFSMetadata | null>();
   for (const hash of contentHashes) {
     results.set(hash, metadataCache.get(hash)?.value ?? null);
   }
   return results;
+}
+
+/** Fire-and-forget IPFS resolution for hashes not needed on first paint. */
+export function scheduleBatchResolveIPFS(
+  contentHashes: string[],
+  onSettled?: () => void,
+): void {
+  if (contentHashes.length === 0) return;
+  const run = () => {
+    void batchResolveIPFS(contentHashes).finally(() => onSettled?.());
+  };
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(run, { timeout: 4000 });
+  } else {
+    window.setTimeout(run, 200);
+  }
 }
 
 /**

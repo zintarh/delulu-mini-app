@@ -8,6 +8,7 @@ import { celo } from "wagmi/chains";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { useState, useMemo } from "react";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
+import { getTokenSymbol, minStakeWei, parseTokenAmount } from "@/lib/token-amounts";
 import { DELULU_ABI } from "@/lib/abi";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
 import {
@@ -115,15 +116,17 @@ export function useCreateDelulu() {
 
       let initialSupportWei = 0n;
       if (amount > 0) {
-        let parsed;
+        let parsed: bigint;
         try {
-          parsed = parseUnits(amount.toString(), 18);
+          parsed = parseTokenAmount(amount, tokenAddress);
         } catch {
           throw new Error("Invalid stake amount format");
         }
-        const MIN_STAKE_WEI = 100n * (10n ** 18n);
-        if (parsed < MIN_STAKE_WEI) {
-          throw new Error("Minimum stake is 100 G$");
+        const minWei = minStakeWei(tokenAddress);
+        if (parsed < minWei) {
+          throw new Error(
+            `Minimum stake is 100 ${getTokenSymbol(tokenAddress)}`,
+          );
         }
         initialSupportWei = parsed;
       }

@@ -173,9 +173,9 @@ export interface MilestoneForBuyButton {
 }
 
 /**
- * Whether to show the Buy/Support button.
- * Hidden when the creator has no milestones set yet — shares can only be
- * bought on delulus that have a milestone plan to back.
+ * Whether to show the Support button.
+ * Hidden when the creator has no milestones set yet — support is only
+ * available on delulus that have a milestone plan to back.
  * Also hidden if the creator missed a milestone (past deadline, not submitted)
  * and has not yet submitted a later milestone.
  */

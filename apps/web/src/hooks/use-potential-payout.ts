@@ -8,7 +8,7 @@ export function usePotentialPayout(
   void isBeliever;
 
   return {
-    // Legacy stake-market preview no longer exists in the shares-only contract.
+    // Legacy stake-market preview is not available on the current contract.
     potentialPayout: null as number | null,
     isLoading: false,
     error: null as Error | null,

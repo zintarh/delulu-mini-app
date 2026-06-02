@@ -76,8 +76,8 @@ export async function generateMetadata({
 
   const title = meta?.title ?? "Delulu";
   const description = meta?.creator
-    ? `${meta.creator} just staked onchain on this goal. Buy a share and back their journey on Delulu.`
-    : "A wild goal staked onchain. Buy a share and back their journey on Delulu.";
+    ? `${meta.creator} just staked onchain on this goal. Support their journey on Delulu.`
+    : "A wild goal staked onchain. Support their journey on Delulu.";
 
   return {
     title,

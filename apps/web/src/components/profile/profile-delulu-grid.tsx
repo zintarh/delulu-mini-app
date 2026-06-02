@@ -1,6 +1,6 @@
 "use client";
 
-import { DeluluCard } from "@/components/delulu-card";
+import { LazyDeluluCard } from "@/components/lazy-delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import type { FormattedDelulu } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,7 @@ export function ProfileDeluluGrid({
     <div className={cn("space-y-4", className)}>
       <div className={GRID_CLASS}>
         {delulus.map((delusion, index) => (
-          <DeluluCard
+          <LazyDeluluCard
             key={`profile-delulu-${delusion.onChainId || delusion.id}-${index}`}
             delusion={delusion}
             href={`/delulu/${delusion.id}`}

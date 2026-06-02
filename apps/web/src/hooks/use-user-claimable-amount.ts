@@ -9,6 +9,7 @@ import { DELULU_ABI } from "@/lib/abi";
 import { useAuth } from "@/hooks/use-auth";
 import { formatAddress } from "@/lib/utils";
 import { normalizeDeluluMarketRead } from "@/lib/delulu-market-read";
+import { getTokenDecimals } from "@/lib/token-amounts";
 
 export function useUserClaimableAmount(deluluId: number | null) {
   const { address } = useAuth();
@@ -79,6 +80,8 @@ export function useUserClaimableAmount(deluluId: number | null) {
     marketStructId === 0n ||
     !creatorRaw ||
     creatorRaw.toLowerCase() === zeroAddress;
+  const marketToken = (marketAny?.token as string | undefined) ?? undefined;
+  const tokenDecimals = getTokenDecimals(marketToken);
   const resolutionDeadline = (marketAny?.resolutionDeadline as bigint | undefined) ?? 0n;
   const nowSec = BigInt(Math.floor(Date.now() / 1000));
   // Match Delulu-v3.claimPersonalMarketSupport: reverts only when block.timestamp < resolutionDeadline.
@@ -107,7 +110,7 @@ export function useUserClaimableAmount(deluluId: number | null) {
   if (payoutPrerequisites) {
     const fee = (totalSupportCollected * feeBps) / bpsDenominator;
     payoutWei = totalSupportCollected - fee + stakedAmount;
-    claimableAmount = parseFloat(formatUnits(payoutWei, 18));
+    claimableAmount = parseFloat(formatUnits(payoutWei, tokenDecimals));
   }
 
   /** True when the connected wallet may call claimPersonalMarketSupport and expect a non-zero payout (RPC-only, no subgraph). */

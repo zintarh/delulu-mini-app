@@ -2,15 +2,14 @@
 
 import type { FormattedDelulu, GatekeeperConfig } from "@/lib/types";
 import type { DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
-import { CUSD_ADDRESSES } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { weiToTokenAmount } from "@/lib/token-amounts";
 
-
-export function weiToNumber(weiStr: string | undefined | null): number {
-  if (!weiStr || weiStr === "0") return 0;
-  const str = weiStr.padStart(19, "0"); // ensure at least 19 chars
-  const integerPart = str.slice(0, str.length - 18) || "0";
-  const decimalPart = str.slice(str.length - 18);
-  return parseFloat(`${integerPart}.${decimalPart}`);
+export function weiToNumber(
+  weiStr: string | undefined | null,
+  tokenAddress?: string | null,
+): number {
+  return weiToTokenAmount(weiStr, tokenAddress);
 }
 
 /** Convert a BigInt string (Unix seconds) to a JS Date */
@@ -73,16 +72,20 @@ export function transformSubgraphDelulu(
   raw: SubgraphDeluluRaw,
   metadata?: DeluluIPFSMetadata | null
 ): FormattedDelulu {
+  const tokenAddr =
+    raw.token && raw.token.length > 0 ? raw.token : GOODDOLLAR_ADDRESSES.mainnet;
   const believerStake = raw.totalBelieverStake
-    ? weiToNumber(raw.totalBelieverStake)
+    ? weiToNumber(raw.totalBelieverStake, tokenAddr)
     : 0;
   const doubterStake = raw.totalDoubterStake
-    ? weiToNumber(raw.totalDoubterStake)
+    ? weiToNumber(raw.totalDoubterStake, tokenAddr)
     : 0;
   const supportCollected = raw.totalSupportCollected
-    ? weiToNumber(raw.totalSupportCollected)
+    ? weiToNumber(raw.totalSupportCollected, tokenAddr)
     : 0;
-  const creatorStake = raw.creatorStake ? weiToNumber(raw.creatorStake) : 0;
+  const creatorStake = raw.creatorStake
+    ? weiToNumber(raw.creatorStake, tokenAddr)
+    : 0;
 
   let parsedId = 0;
   if (raw.onChainId) {
@@ -102,7 +105,7 @@ export function transformSubgraphDelulu(
     id: parsedId,
     onChainId: raw.onChainId || raw.id,
     creator: raw.creatorAddress,
-    tokenAddress: raw.token && raw.token.length > 0 ? raw.token : CUSD_ADDRESSES.mainnet,
+    tokenAddress: tokenAddr,
     contentHash: raw.contentHash,
     content: metadata?.text ?? undefined,
     username: metadata?.username ?? raw.creator?.username ?? undefined,

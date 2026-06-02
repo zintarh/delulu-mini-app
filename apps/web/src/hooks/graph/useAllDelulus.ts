@@ -11,6 +11,7 @@ import {
 import {
   batchResolveIPFS,
   getCachedContent,
+  scheduleBatchResolveIPFS,
 } from "@/lib/graph/ipfs-cache";
 import type { FormattedDelulu } from "@/lib/types";
 
@@ -44,7 +45,7 @@ const GET_DELULUS_FEED = gql`
       isResolved
       isCancelled
       milestoneCount
-      milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+      milestones(first: 15, orderBy: milestoneId, orderDirection: asc) {
         milestoneId
         milestoneURI
         deadline
@@ -140,7 +141,8 @@ export function useAllDelulus() {
     GET_DELULUS_FEED,
     {
       variables: { first: PAGE_SIZE, skip: 0 },
-      fetchPolicy: "cache-and-network",
+      fetchPolicy: "cache-first",
+      nextFetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
     }
   );
@@ -208,15 +210,24 @@ export function useAllDelulus() {
   useEffect(() => {
     if (!data?.delulus || data.delulus.length === 0) return;
 
-    setIsIpfsLoading(true);
     const hashes = data.delulus.map((d) => d.contentHash);
-    batchResolveIPFS(hashes)
+    const priorityHashes = hashes.slice(0, PAGE_SIZE);
+    const deferredHashes = hashes.slice(PAGE_SIZE);
+
+    setIsIpfsLoading(true);
+    batchResolveIPFS(priorityHashes, { maxHashes: PAGE_SIZE })
       .then(() => {
         setIpfsResolved((prev) => prev + 1);
       })
       .finally(() => {
         setIsIpfsLoading(false);
       });
+
+    if (deferredHashes.length > 0) {
+      scheduleBatchResolveIPFS(deferredHashes, () => {
+        setIpfsResolved((prev) => prev + 1);
+      });
+    }
   }, [data?.delulus]);
 
   const fetchNextPage = useCallback(() => {

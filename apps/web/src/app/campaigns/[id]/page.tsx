@@ -8,7 +8,8 @@ import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChallengesHeader } from "@/components/challenges-header";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
+import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useReadContract, useChainId } from "wagmi";
@@ -26,19 +27,20 @@ import type { Challenge } from "@/hooks/use-challenges";
 export default function ChallengeDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
+  const { authenticated } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { challenges, isLoading: isLoadingChallenges } = useChallenges();
   const chainId = useChainId();
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [editingPoints, setEditingPoints] = useState<number | null>(null);
+  const { redirectToSignIn } = useRedirectToSignIn();
 
   const handleProfileClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) redirectToSignIn();
     else router.push("/profile");
   };
   const handleCreateClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) redirectToSignIn();
     else router.push("/board");
   };
   const [pointsInput, setPointsInput] = useState<string>("");
@@ -151,7 +153,7 @@ export default function ChallengeDetailPage() {
               onProfileClick={handleProfileClick}
               onCreateClick={handleCreateClick}
               onSearchClick={() => {
-                if (!isConnected) setShowLoginSheet(true);
+                if (!authenticated) redirectToSignIn();
                 else router.push("/search");
               }}
             />
@@ -344,11 +346,6 @@ export default function ChallengeDetailPage() {
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
-      />
-
-      <ConnectorSelectionSheet
-        open={showLoginSheet}
-        onOpenChange={setShowLoginSheet}
       />
 
       {/* Allocate points modal */}

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import dynamic from "next/dynamic";
 import { Gift, Loader2, ShieldCheck, X } from "lucide-react";
 import { formatUnits } from "viem";
@@ -30,8 +31,8 @@ interface ClaimPanelContentProps {
 }
 
 export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
-  const { address, authenticated, isReady } = useAuth();
-  const router = useRouter();
+  const { address, isReady } = useAuth();
+  const { redirectToSignIn, authenticated } = useRedirectToSignIn();
   const { whitelistIntent, clearWhitelistIntent } = useClaimPanel();
   const {
     isLoading: isClaimDataLoading,
@@ -108,7 +109,7 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
 
   const handleClaimUbi = async () => {
     if (!authenticated) {
-      router.push("/sign-in");
+      redirectToSignIn();
       return;
     }
     if (!address || !canClaimUbi) return;
@@ -216,10 +217,10 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
         {!authenticated ? (
           <button
             type="button"
-            onClick={() => router.push("/sign-in")}
+            onClick={() => redirectToSignIn()}
             className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
           >
-            Sign in to claim
+            {SIGN_IN_BUTTON_LABEL}
           </button>
         ) : isClaimDataLoading || !isInitialized ? (
           <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">

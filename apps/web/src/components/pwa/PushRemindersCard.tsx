@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount } from "wagmi";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import {
   getPushSupportState,
   subscribeToWebPush,
@@ -18,7 +20,8 @@ export function PushRemindersCard({
   compact?: boolean;
   className?: string;
 }) {
-  const { address, isConnected } = useAccount();
+  const { address, authenticated } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
   const [support, setSupport] = useState<PushSupportState | null>(null);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,14 +46,18 @@ export function PushRemindersCard({
 
   const label = useMemo(() => {
     if (!isSupported) return "Reminders not supported";
-    if (!isConnected) return "Sign in to enable reminders";
+    if (!authenticated) return `${SIGN_IN_BUTTON_LABEL} to enable reminders`;
     if (subscribed) return "Reminders enabled";
     return "Enable reminders";
-  }, [isSupported, isConnected, subscribed]);
+  }, [isSupported, authenticated, subscribed]);
 
   const onToggle = async () => {
     if (!isSupported) return;
-    if (!isConnected || !address) return;
+    if (!authenticated) {
+      redirectToSignIn();
+      return;
+    }
+    if (!address) return;
 
     setIsWorking(true);
     setError(null);
@@ -68,6 +75,12 @@ export function PushRemindersCard({
       setIsWorking(false);
     }
   };
+
+  const buttonLabel = !authenticated
+    ? SIGN_IN_BUTTON_LABEL
+    : subscribed
+      ? "Disable"
+      : "Enable";
 
   const icon = subscribed ? Bell : BellOff;
   const Icon = icon;
@@ -116,18 +129,19 @@ export function PushRemindersCard({
         <button
           type="button"
           onClick={onToggle}
-          disabled={!isSupported || !isConnected || isWorking}
+          disabled={(!isSupported || isWorking) && authenticated}
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold transition-colors",
             subscribed
               ? "bg-secondary hover:bg-secondary/80"
               : "bg-delulu-yellow-reserved text-delulu-charcoal hover:bg-delulu-yellow-reserved/90",
-            (!isSupported || !isConnected || isWorking) &&
+            !authenticated && "hover:bg-delulu-yellow-reserved/90",
+            ((!isSupported && authenticated) || isWorking) &&
               "opacity-60 cursor-not-allowed",
           )}
         >
           {isWorking && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          <span>{subscribed ? "Disable" : "Enable"}</span>
+          <span>{buttonLabel}</span>
         </button>
       </div>
 
@@ -141,4 +155,3 @@ export function PushRemindersCard({
     </div>
   );
 }
-

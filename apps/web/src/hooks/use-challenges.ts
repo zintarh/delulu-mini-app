@@ -55,10 +55,12 @@ export interface Challenge {
   description?: string;
 }
 
-export function useChallenges() {
+export function useChallenges(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
   const { data, loading, error, refetch } = useQuery(GET_CHALLENGES, {
+    skip: !enabled,
     variables: {
       first: 50,
       skip: 0,

@@ -16,7 +16,7 @@ const ERC20_BALANCE_OF_ABI = [
 
 const ERC20_DECIMALS = 18;
 
-/** Total G$ held by the Delulu contract (all staked + bonding curve reserves). */
+/** Total G$ held by the Delulu contract (stakes and reserves). */
 export function useGoodDollarTotalSupply() {
   const chainId = useChainId();
   const isMainnet = chainId === CELO_MAINNET_ID;

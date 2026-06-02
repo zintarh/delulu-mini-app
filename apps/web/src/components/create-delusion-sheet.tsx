@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, ChevronDown } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useAccount } from "wagmi";
+import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import { useApolloClient } from "@apollo/client/react";
 import { refetchAllActiveQueries } from "@/lib/graph/refetch-utils";
 import { FeedbackModal } from "@/components/feedback-modal";
@@ -41,7 +44,7 @@ const HYPE_TEXT = [
   },
   {
     title: "Put Your Money Where Your Mouth Is",
-    subtitle: "Your stake buys your first shares — stake big, start strong",
+    subtitle: "Stake G$ behind your goal — the more you commit, the stronger your position",
   },
   {
     title: "Restrict Access?",
@@ -53,26 +56,6 @@ const HYPE_TEXT = [
   },
 ];
 
-/**
- * Estimate how many initial shares a G$ stake buys on the bonding curve.
- * Mirrors the contract's _sharesForBudget: sum(i² for i=1..N) / 16000 * 1.01 ≤ budgetG
- */
-function estimateInitialShares(budgetG: number): number {
-  if (budgetG <= 0) return 0;
-  const FEE_FACTOR = 1.01;
-  let shares = 0;
-  for (let n = 1; n <= 2000; n++) {
-    const sumSq = (n * (n + 1) * (2 * n + 1)) / 6;
-    const total = (sumSq / 16000) * FEE_FACTOR;
-    if (total <= budgetG) {
-      shares = n;
-    } else {
-      break;
-    }
-  }
-  return shares;
-}
-
 interface CreateDelusionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,6 +66,8 @@ export function CreateDelusionSheet({
   onOpenChange,
 }: CreateDelusionSheetProps) {
   const { isConnected, address } = useAccount();
+  const { authenticated } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
   const { user } = useUserStore();
   const apolloClient = useApolloClient();
   const [currentStep, setCurrentStep] = useState(0);
@@ -172,39 +157,39 @@ export function CreateDelusionSheet({
   } = useTokenApproval(selectedToken);
 
   // Simple per-token balances using useTokenBalance
-  const cusdToken = supportedTokens.find((t) => t.symbol === "USDm");
+  const usdtToken = supportedTokens.find((t) => t.symbol === "USDT");
   const gToken = supportedTokens.find((t) => t.symbol === "G$");
 
-  const cusd = useTokenBalance(cusdToken?.address);
+  const usdt = useTokenBalance(usdtToken?.address);
   const good = useTokenBalance(gToken?.address);
 
   // Debug logging for balances
   useEffect(() => {
     console.log('[CreateDelusionSheet] Token balances:', {
       supportedTokens: supportedTokens.map(t => ({ symbol: t.symbol, address: t.address })),
-      cusdToken: cusdToken?.address,
+      usdtToken: usdtToken?.address,
       gToken: gToken?.address,
-      cusdBalance: cusd.balance?.value?.toString(),
-      cusdFormatted: cusd.formatted,
-      cusdLoading: cusd.isLoading,
-      cusdError: cusd.error?.message,
+      usdtBalance: usdt.balance?.value?.toString(),
+      usdtFormatted: usdt.formatted,
+      usdtLoading: usdt.isLoading,
+      usdtError: usdt.error?.message,
       goodBalance: good.balance?.value?.toString(),
       goodFormatted: good.formatted,
       goodLoading: good.isLoading,
       goodError: good.error?.message,
       goodBalanceData: good.balance,
     });
-  }, [supportedTokens, cusdToken, gToken, cusd, good]);
+  }, [supportedTokens, usdtToken, gToken, usdt, good]);
 
   const tokenBalances = [
-    ...(cusdToken
+    ...(usdtToken
       ? [
           {
-            token: cusdToken,
-            balance: cusd.balance,
-            formatted: cusd.formatted,
-            isLoading: cusd.isLoading,
-            error: cusd.error,
+            token: usdtToken,
+            balance: usdt.balance,
+            formatted: usdt.formatted,
+            isLoading: usdt.isLoading,
+            error: usdt.error,
           },
         ]
       : []),
@@ -688,21 +673,6 @@ export function CreateDelusionSheet({
                         </div>
                       </div>
 
-                      {/* Share estimate banner */}
-                      {currentStakeAmount >= 1 && (
-                        <div className="rounded-2xl bg-secondary/50 border border-border px-5 py-4 text-center">
-                          <p className="text-xs text-delulu-dark/50 uppercase tracking-widest mb-1 font-bold">
-                            You start with
-                          </p>
-                          <p className="text-3xl font-black text-delulu-dark">
-                            {estimateInitialShares(currentStakeAmount).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-delulu-dark/60 mt-0.5">
-                            initial shares · the more you stake, the stronger your position
-                          </p>
-                        </div>
-                      )}
-
                       <div className="text-center">
                         <p className="text-sm text-delulu-dark/60">
                           {!isConnected ? (
@@ -782,13 +752,10 @@ export function CreateDelusionSheet({
                           <div className="w-px h-12 bg-border" />
                           <div>
                             <p className="text-xs text-delulu-dark/50 uppercase tracking-wide mb-1">
-                              Initial Shares
+                              Stake
                             </p>
                             <p className="text-lg font-bold text-delulu-dark inline-flex items-center gap-2">
-                              {estimateInitialShares(currentStakeAmount).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-delulu-dark/40 mt-0.5">
-                              {currentStakeAmount > 0 ? `${currentStakeAmount} ` : ""}
+                              {currentStakeAmount > 0 ? currentStakeAmount.toLocaleString() : "—"}
                               <TokenBadge tokenAddress={selectedToken} size="sm" />
                             </p>
                           </div>
@@ -884,6 +851,10 @@ export function CreateDelusionSheet({
                     ) : (
                       <button
                         onClick={async () => {
+                          if (!authenticated) {
+                            redirectToSignIn("/board");
+                            return;
+                          }
                           if (isCreating || isConfirming) {
                             return;
                           }
@@ -941,6 +912,8 @@ export function CreateDelusionSheet({
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <span>Creating...</span>
                           </>
+                        ) : !authenticated ? (
+                          <span>{SIGN_IN_BUTTON_LABEL}</span>
                         ) : (
                           <span>Manifest</span>
                         )}

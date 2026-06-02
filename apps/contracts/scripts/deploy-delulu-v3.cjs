@@ -45,11 +45,11 @@ async function main() {
     // Deploy mock tokens for local / in-process Hardhat network
     console.log("\nDeploying MockERC20 tokens...");
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    const cusd = await MockERC20.deploy("cUSD", "cUSD");
+    const cusd = await MockERC20.deploy("cUSD", "cUSD", 18);
     await cusd.waitForDeployment();
     cUSDAddress = await cusd.getAddress();
 
-    const gdollar = await MockERC20.deploy("GoodDollar", "G$");
+    const gdollar = await MockERC20.deploy("GoodDollar", "G$", 18);
     await gdollar.waitForDeployment();
     gDollarAddress = await gdollar.getAddress();
     console.log("MockERC20 cUSD:", cUSDAddress);

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminUser } from "@/lib/admin-auth";
+import { getAdminLoginFailureMessage } from "@/lib/admin-auth-users";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminAuthClient } from "@/lib/supabase/middleware-admin";
 
 export async function POST(request: NextRequest) {
   if (!isSupabaseAuthConfigured()) {
@@ -16,8 +17,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authClient = createSupabaseAdminAuthClient(request);
+  if (!authClient) {
+    return NextResponse.json(
+      { error: "Sign-in is temporarily unavailable. Please try again later." },
+      { status: 503 },
+    );
+  }
+
   const body = await request.json().catch(() => null);
-  const email = String(body?.email ?? "").trim();
+  const email = String(body?.email ?? "")
+    .trim()
+    .toLowerCase();
   const password = String(body?.password ?? "");
 
   if (!email || !password) {
@@ -27,34 +38,41 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createSupabaseServerClient();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await authClient.supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    const message =
-      error.message === "Invalid login credentials"
-        ? "Invalid email or password."
-        : error.message;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[admin/login] signInWithPassword:", error.message);
+    }
+
+    const isInvalidCredentials =
+      error.message === "Invalid login credentials" ||
+      error.message.toLowerCase().includes("invalid login");
+
+    const message = isInvalidCredentials
+      ? await getAdminLoginFailureMessage(email)
+      : error.message;
+
     return NextResponse.json({ error: message }, { status: 401 });
   }
 
   if (!data.user || !isAdminUser(data.user)) {
-    await supabase.auth.signOut();
+    await authClient.supabase.auth.signOut();
     return NextResponse.json(
       {
-        error:
-          "This account is not authorized for admin access.",
+        error: "This account is not authorized for admin access.",
       },
       { status: 403 },
     );
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     ok: true,
     session: { email: data.user.email, userId: data.user.id },
   });
+
+  return authClient.applyCookiesTo(response);
 }

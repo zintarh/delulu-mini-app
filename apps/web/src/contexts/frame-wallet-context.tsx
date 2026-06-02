@@ -1,7 +1,6 @@
 "use client";
 
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
 import { http, fallback } from "wagmi";
@@ -10,8 +9,6 @@ import { injected } from "wagmi/connectors";
 import { web3AuthConnector } from "@/lib/web3auth-bridge";
 
 const chains = [celo, fuse] as const;
-
-const queryClient = new QueryClient();
 
 export default function FrameWalletProvider({
   children,
@@ -43,11 +40,16 @@ export default function FrameWalletProvider({
     return createConfig(configOptions);
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-foreground"
+          aria-label="Loading wallet"
+        />
+      </div>
+    );
+  }
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={privyWagmiConfig}>{children}</WagmiProvider>
-    </QueryClientProvider>
-  );
+  return <WagmiProvider config={privyWagmiConfig}>{children}</WagmiProvider>;
 }

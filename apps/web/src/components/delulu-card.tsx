@@ -5,18 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
 import { cn, formatGAmount } from "@/lib/utils";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import {
+  getDefaultTipAmount,
+  getTokenSymbol,
+  parseTokenAmount,
+} from "@/lib/token-amounts";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { Check, DollarSign, Loader2 } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
 import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useChainId, useWaitForTransactionReceipt } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { DELULU_ABI } from "@/lib/abi";
 import { getDeluluContractAddress } from "@/lib/constant";
-import { parseUnits } from "viem";
 import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -106,6 +111,7 @@ export function DeluluCard({
     : isMilestonesLoading;
 
   const { address, authenticated } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
   const { ensureWhitelisted, isChecking: isCheckingWhitelist } =
     useRequireGoodDollarWhitelist();
   const isCreator = isDeluluCreator(address, delusion);
@@ -132,18 +138,22 @@ export function DeluluCard({
   const isDoingApproval = isApproving || isApprovalConfirming;
   const isQuickTipping = isQuickTipPending || isConfirmingQuickTip || isDoingApproval;
 
+  const tokenSymbol = getTokenSymbol(delusion.tokenAddress);
+  const defaultTipAmount = getDefaultTipAmount(delusion.tokenAddress);
+
   const [autoTipAfterApproval, setAutoTipAfterApproval] = useState(false);
-  const pendingTipAmountRef = useRef<number>(100);
+  const pendingTipAmountRef = useRef<number>(defaultTipAmount);
+  const [tipAmount, setTipAmount] = useState(defaultTipAmount);
 
   const [showTipSuccess, setShowTipSuccess] = useState(false);
   useEffect(() => {
     if (!isQuickTipSuccess) return;
     refetchDeluluData(apolloClient, delusion.onChainId ?? delusion.id);
     setShowTipSuccess(true);
-    setTipAmount(100);
+    setTipAmount(defaultTipAmount);
     const t = setTimeout(() => setShowTipSuccess(false), 2500);
     return () => clearTimeout(t);
-  }, [isQuickTipSuccess, apolloClient, delusion.onChainId, delusion.id]);
+  }, [isQuickTipSuccess, apolloClient, delusion.onChainId, delusion.id, defaultTipAmount]);
 
   // Refetch allowance once the approval tx is confirmed on-chain
   useEffect(() => {
@@ -157,7 +167,7 @@ export function DeluluCard({
     if (needsApproval(amount)) return;
     setAutoTipAfterApproval(false);
     try {
-      const amountWei = parseUnits(String(amount), 18);
+      const amountWei = parseTokenAmount(amount, delusion.tokenAddress);
       writeQuickTip({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
@@ -167,11 +177,11 @@ export function DeluluCard({
     } catch {
       // silent — tip flow stays quiet on errors
     }
-  }, [autoTipAfterApproval, isDoingApproval, needsApproval, writeQuickTip, chainId, delusion.onChainId, delusion.id]);
+  }, [autoTipAfterApproval, isDoingApproval, needsApproval, writeQuickTip, chainId, delusion.onChainId, delusion.id, delusion.tokenAddress]);
 
-  const TIP_STEP_G = 50;
-  const MIN_TIP_G = 50;
-  const [tipAmount, setTipAmount] = useState(100);
+  useEffect(() => {
+    setTipAmount(getDefaultTipAmount(delusion.tokenAddress));
+  }, [delusion.tokenAddress]);
 
   const { formatted: gBalanceFormatted, isLoading: isLoadingGBalance } =
     useTokenBalance(delusion.tokenAddress);
@@ -195,10 +205,6 @@ export function DeluluCard({
     };
   }, [nowMs]);
   const now = typeof nowMs === "number" ? nowMs : localNow;
-
-  const isGoodDollar =
-    delusion.tokenAddress?.toLowerCase() ===
-    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
 
   const isHash = (str: string) => {
     return (
@@ -271,7 +277,7 @@ export function DeluluCard({
 
   const tipDisabled = isEnded || isCreator;
   const canQuickTip = showSupportButton && !tipDisabled;
-  const showTipButton = isGoodDollar && !tipDisabled && authenticated;
+  const showTipCta = !!delusion.tokenAddress && !tipDisabled && !isCreator;
 
   const handleQuickTip = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -279,9 +285,7 @@ export function DeluluCard({
     if (tipDisabled) return;
     if (isQuickTipping || isCheckingWhitelist) return;
     if (!authenticated) {
-      router.push(
-        `/sign-in?redirect=${encodeURIComponent(`/delulu/${delusion.id}`)}`,
-      );
+      redirectToSignIn(`/delulu/${delusion.id}`);
       return;
     }
     if (!showSupportButton) {
@@ -292,7 +296,7 @@ export function DeluluCard({
       router.push(`/delulu/${delusion.id}?milestones=1`);
       return;
     }
-    const allowed = await ensureWhitelisted("tip");
+    const allowed = await ensureWhitelisted("tip", delusion.tokenAddress);
     if (!allowed) return;
 
     pendingTipAmountRef.current = tipAmount;
@@ -302,7 +306,7 @@ export function DeluluCard({
       return;
     }
     try {
-      const amountWei = parseUnits(String(tipAmount), 18);
+      const amountWei = parseTokenAmount(tipAmount, delusion.tokenAddress);
       writeQuickTip({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
@@ -327,7 +331,7 @@ export function DeluluCard({
   const isForYouVariant = variant === "feed-for-you";
 
   const tipButtonEl =
-    showTipButton || isQuickTipping || showTipSuccess ? (
+    showTipCta || isQuickTipping || showTipSuccess ? (
       <div className={cn(isForYouVariant ? "shrink-0" : "absolute bottom-3 right-3 z-10")}>
         {showTipSuccess ? (
           <span
@@ -365,10 +369,12 @@ export function DeluluCard({
                   {isDoingApproval ? "Approving" : "Tipping"}
                 </span>
               </>
+            ) : !authenticated ? (
+              SIGN_IN_BUTTON_LABEL
             ) : canQuickTip && hasEnoughForTip ? (
               <>
                 <DollarSign className="h-3.5 w-3.5" strokeWidth={2.5} />
-                {`Tip ${tipAmount} G$`}
+                {`Tip ${tipAmount} ${tokenSymbol}`}
               </>
             ) : (
               <>
@@ -554,9 +560,9 @@ export function DeluluCard({
           </span>
           <span className="text-right text-base font-black tabular-nums text-foreground">
             {formattedGAmount}
-            {isGoodDollar ? (
+            {delusion.tokenAddress ? (
               <span className="ml-1 text-sm font-semibold text-muted-foreground">
-                G$
+                {tokenSymbol}
               </span>
             ) : null}
           </span>

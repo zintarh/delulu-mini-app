@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { DeluluCard } from "@/components/delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
+import { LazyDeluluCard } from "@/components/lazy-delulu-card";
 import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import type { FeedCategory } from "@/lib/feed-categories";
 import type { FormattedDelulu } from "@/lib/types";
@@ -154,7 +154,7 @@ function FeedCategoryCard({
 
   return (
     <div className={FEED_CARD_SLOT_CLASS}>
-      <DeluluCard
+      <LazyDeluluCard
         delusion={delusion}
         href={`/delulu/${delusion.id}`}
         variant={isForYou ? "feed-for-you" : "feed"}

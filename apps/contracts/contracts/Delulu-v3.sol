@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
@@ -61,7 +62,8 @@ contract Delulu is
     uint256 public constant PROTOCOL_FEE_BPS = 100; // 1%
     uint256 public constant KEEPER_BOUNTY_BPS = 100; // 1% bounty on slashed stake
     uint256 public constant SCOUT_FEE_BPS = 200; // 2% of eligible tips go to scouts
-    uint256 public constant MIN_STAKE = 1e18;
+    /// @dev Minimum creator stake in whole token units (100 G$, 100 USDT, etc.).
+    uint256 public constant MIN_STAKE_WHOLE = 100;
     // Scaled up for stronger progression feedback (minimum award is now 100).
     uint256 public constant POINTS_PER_MILESTONE = 1000;
     uint256 public constant POINTS_EARLY_COMPLETION = 500;
@@ -514,6 +516,16 @@ contract Delulu is
         }
     }
 
+    function _minStakeForToken(address token) internal view returns (uint256) {
+        uint8 tokenDecimals = IERC20Metadata(token).decimals();
+        return MIN_STAKE_WHOLE * (10 ** uint256(tokenDecimals));
+    }
+
+    /// @notice Minimum creator stake (in token base units) for a supported ERC-20.
+    function minStakeForToken(address token) external view returns (uint256) {
+        return _minStakeForToken(token);
+    }
+
     function createDelulu(
         address token,
         string calldata contentHash,
@@ -524,7 +536,7 @@ contract Delulu is
         if (bytes(addressToUsername[msg.sender]).length == 0)
             revert ProfileRequired();
         if (!isSupportedToken[token]) revert Unauthorized();
-        if (initialSupport < MIN_STAKE) revert StakeTooSmall();
+        if (initialSupport < _minStakeForToken(token)) revert StakeTooSmall();
 
         uint256 deluluId = nextDeluluId++;
         Market storage d = delulus[deluluId];

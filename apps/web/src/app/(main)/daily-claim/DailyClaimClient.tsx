@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
@@ -13,15 +14,12 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { Pill } from "@/components/ui/pill";
 
-const FaucetModal = dynamic(
-  () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
-  { ssr: false },
-);
 const IdentityFlow = dynamic(() => import("./IdentityFlow"), { ssr: false });
 
 export default function DailyClaimClient() {
   const { address, authenticated, isReady } = useAuth();
   const router = useRouter();
+  const { redirectToSignIn } = useRedirectToSignIn();
   const {
     isLoading: isClaimDataLoading,
     isClaiming,
@@ -33,7 +31,6 @@ export default function DailyClaimClient() {
     isInitialized,
   } = useGoodDollarClaim();
 
-  const [showFaucet, setShowFaucet] = useState(false);
   const [showIdentityFlow, setShowIdentityFlow] = useState(false);
 
   useEffect(() => {
@@ -54,12 +51,12 @@ export default function DailyClaimClient() {
   });
 
   const handleConnectClick = () => {
-    router.push("/sign-in");
+    redirectToSignIn("/daily-claim");
   };
 
   const handleClaim = async () => {
     if (!authenticated) {
-      router.push("/sign-in");
+      redirectToSignIn("/daily-claim");
       return;
     }
     if (!address) return;
@@ -161,7 +158,7 @@ export default function DailyClaimClient() {
                       "hover:bg-delulu-yellow-reserved/90 active:scale-[0.98] transition-all",
                     )}
                   >
-                    Connect wallet to claim
+                    Sign in
                   </button>
                 ) : (
                   <div className="space-y-4">
@@ -255,7 +252,6 @@ export default function DailyClaimClient() {
         }}
       />
 
-      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
     </>
   );
 }

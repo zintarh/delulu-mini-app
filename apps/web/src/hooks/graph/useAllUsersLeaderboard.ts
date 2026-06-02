@@ -24,7 +24,6 @@ const ALL_USERS_QUERY = gql`
       totalStaked
       delulus(first: 100) {
         id
-        uniqueBuyerCount
       }
     }
   }
@@ -46,7 +45,6 @@ export interface UserLeaderboardEntry {
   username: string | null;
   points: number;
   totalStaked: number;
-  totalUniqueBuyers: number;
   deluluCount: number;
 }
 
@@ -76,17 +74,12 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     if (!data?.users) return [];
     return data.users.map((u: any, i: number): UserLeaderboardEntry => {
       const delulus: any[] = u.delulus ?? [];
-      const totalUniqueBuyers = delulus.reduce(
-        (sum: number, d: any) => sum + Number(d.uniqueBuyerCount ?? 0),
-        0
-      );
       return {
         rank: page * PAGE_SIZE + i + 1,
         address: u.id,
         username: u.username ?? null,
         points: Number(u.deluluPoints ?? "0"),
         totalStaked: weiToNumber(u.totalStaked),
-        totalUniqueBuyers,
         deluluCount: delulus.length,
       };
     });

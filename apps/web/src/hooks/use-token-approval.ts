@@ -1,11 +1,12 @@
 "use client";
 
 import { useWaitForTransactionReceipt, useReadContract, useChainId } from "wagmi";
-import { parseUnits } from "viem";
 import { useState } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
+import { useTokenMetadata } from "@/hooks/use-token-metadata";
+import { parseTokenAmount } from "@/lib/token-amounts";
 
 const ERC20_ABI = [
   {
@@ -35,6 +36,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
   const { address } = useAuth();
   const chainId = useChainId();
   const token = tokenAddress as `0x${string}` | undefined;
+  const { decimals } = useTokenMetadata(tokenAddress);
   const { writeContractAsync } = useUnifiedWriteContract();
 
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
@@ -56,7 +58,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
     if (!token) throw new Error("Token address not available");
     if (!isFinite(amount) || isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
 
-    const amountWei = parseUnits((amount * 1.1).toString(), 18);
+    const amountWei = parseTokenAmount(amount * 1.1, token, decimals);
 
     setIsPending(true);
     try {
@@ -76,7 +78,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
     if (!amount || isNaN(amount) || amount <= 0) return false;
     if (!allowance || !token) return true;
     try {
-      return allowance < parseUnits(amount.toString(), 18);
+      return allowance < parseTokenAmount(amount, token, decimals);
     } catch {
       return true;
     }

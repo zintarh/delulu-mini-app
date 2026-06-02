@@ -1,16 +1,41 @@
 "use client";
 
-import { LeftSidebar } from "@/components/left-sidebar";
-import { BottomNav } from "@/components/bottom-nav";
-import { NotificationsPanel } from "@/components/notifications-panel";
-import { ClaimPanel } from "@/components/claim-panel";
-import { WhitelistRedirectToast } from "@/components/whitelist-redirect-toast";
+import dynamic from "next/dynamic";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
-import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
+import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import { useAuth } from "@/hooks/use-auth";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useRouter } from "next/navigation";
+import { preloadAuthProviders } from "@/lib/auth-session-hint";
+
+const LeftSidebar = dynamic(
+  () => import("@/components/left-sidebar").then((m) => m.LeftSidebar),
+  { ssr: false, loading: () => <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24" /> },
+);
+const BottomNav = dynamic(
+  () => import("@/components/bottom-nav").then((m) => m.BottomNav),
+  { ssr: false },
+);
+const ClaimPanel = dynamic(
+  () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
+  { ssr: false },
+);
+const WhitelistRedirectToast = dynamic(
+  () =>
+    import("@/components/whitelist-redirect-toast").then(
+      (m) => m.WhitelistRedirectToast,
+    ),
+  { ssr: false },
+);
+
+const NotificationsPanel = dynamic(
+  () =>
+    import("@/components/notifications-panel").then(
+      (m) => m.NotificationsPanel,
+    ),
+  { ssr: false },
+);
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -26,18 +51,22 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const handleProfileClick = () => {
-    if (!authenticated) router.push("/sign-in");
+    if (!authenticated) {
+      preloadAuthProviders();
+      router.push("/sign-in");
+    }
     else router.push("/profile");
   };
 
   const handleCreateClick = async () => {
     if (!authenticated) {
+      preloadAuthProviders();
       router.push("/sign-in?redirect=%2Fboard");
       return;
     }
     const allowed = await ensureWhitelisted("create");
     if (!allowed) return;
-    void import("@/components/create-delusion-content");
+    prefetchCreateDelusionContent();
     prefetchCreateManifestStep();
     router.push("/board");
   };
@@ -50,7 +79,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex h-screen lg:pl-24">
-          <NotificationsPanel />
+          {authenticated ? <NotificationsPanel /> : null}
           <ClaimPanel />
           <WhitelistRedirectToast />
 

@@ -85,14 +85,11 @@ export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   delulu.resolutionDeadline = event.params.resolutionDeadline
   delulu.createdAt = event.block.timestamp
 
-  // Financial data from event
   delulu.creatorStake = event.params.initialSupport
   delulu.totalSupportCollected = event.params.totalSupportCollected
-  // totalG = creatorStake + supporter stakes; used for leaderboard ordering
   delulu.totalG = event.params.initialSupport.plus(event.params.totalSupportCollected)
   delulu.totalSupporters = event.params.totalSupporters
 
-  // v3: best-effort read of live creator stake state (mapping-based)
   let contract = DeluluMarketContract.bind(event.address)
   let marketIsStakedResult = contract.try_marketIsStaked(event.params.deluluId)
   if (!marketIsStakedResult.reverted) {
@@ -143,8 +140,6 @@ export function handleSharesBought(event: SharesBoughtEvent): void {
   delulu.tradeCount = delulu.tradeCount.plus(BigInt.fromI32(1))
 
   const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
-
-  // Increment uniqueBuyerCount only on the buyer's first-ever purchase.
   if (!holding.hasEverBought) {
     holding.hasEverBought = true
     delulu.uniqueBuyerCount = delulu.uniqueBuyerCount.plus(BigInt.fromI32(1))
@@ -249,7 +244,6 @@ export function handleSupportClaimed(event: SupportClaimedEvent): void {
   let delulu = Delulu.load(deluluId)
   if (delulu != null) {
     delulu.rewardClaimed = true
-     // v3: after claim, creator live stake should be zero; refresh mapping (best-effort)
      let contract = DeluluMarketContract.bind(event.address)
      let stakeRes = contract.try_marketStakedAmount(event.params.deluluId)
      if (!stakeRes.reverted) {
@@ -307,8 +301,7 @@ export function handleProfileUpdated(event: ProfileUpdatedEvent): void {
   user.username = event.params.username
   user.save()
 
-  // Ensure CreatorStats exists so this user appears in the global leaderboard
-  // even with 0 goals/milestones (as long as they set their profile)
+
   let _ = getOrCreateCreatorStats(userId, event.block.timestamp)
 }
 
@@ -317,11 +310,9 @@ export function handleMilestonesAdded(event: MilestonesAddedEvent): void {
   let delulu = Delulu.load(deluluId)
 
   if (delulu != null) {
-    // Previous count before this event
     let previousCount = delulu.milestoneCount
     let newCount = event.params.count
 
-    // Creator stats: track total milestones created
     let addedCount = newCount.minus(previousCount)
     let creatorStats = getOrCreateCreatorStats(
       delulu.creator as Bytes,
@@ -335,7 +326,6 @@ export function handleMilestonesAdded(event: MilestonesAddedEvent): void {
   }
 }
 
-// New: purely event-driven milestone creation with full static config
 export function handleMilestoneCreatedDetailed(
   event: MilestoneCreatedDetailedEvent
 ): void {
@@ -358,7 +348,6 @@ export function handleMilestoneCreatedDetailed(
   milestone.startTime = event.params.startTime
   milestone.deadline = event.params.deadline
 
-  // Initial defaults – dynamic fields will be updated by later events
   milestone.tippingWindowStart = null
   milestone.tippingWindowEnd = null
   milestone.isMissed = false
@@ -409,8 +398,8 @@ export function handleMilestoneSubmitted(event: MilestoneSubmittedEvent): void {
     milestone.delulu = deluluId
     milestone.milestoneId = event.params.milestoneId
     milestone.creator = delulu.creator
-    milestone.descriptionHash = Bytes.fromI32(0) // Will be updated from on-chain data
-    milestone.deadline = BigInt.fromI32(0) // Will be updated from on-chain data
+    milestone.descriptionHash = Bytes.fromI32(0) 
+    milestone.deadline = BigInt.fromI32(0) 
     milestone.proofLink = null
     milestone.pointsEarned = BigInt.fromI32(0)
     milestone.isVerified = false
@@ -438,13 +427,11 @@ export function handleTipExecuted(event: TipExecutedEvent): void {
 
   let tipper = getOrCreateUser(event.params.data.tipper, event.block.timestamp)
 
-  // Update delulu support totals
   delulu.totalSupportCollected = delulu.totalSupportCollected.plus(event.params.data.amount)
   delulu.totalG = delulu.totalG.plus(event.params.data.amount)
   delulu.totalSupporters = delulu.totalSupporters.plus(BigInt.fromI32(1))
   delulu.save()
 
-  // Update milestone tip aggregates
   let milestoneEntityId = deluluId + "-" + event.params.data.milestoneId.toString()
   let milestone = Milestone.load(milestoneEntityId)
   if (milestone != null) {
@@ -453,12 +440,10 @@ export function handleTipExecuted(event: TipExecutedEvent): void {
     milestone.save()
   }
 
-  // Creator stats
   let stats = getOrCreateCreatorStats(delulu.creator as Bytes, event.block.timestamp)
   stats.totalSupportCollected = stats.totalSupportCollected.plus(event.params.data.amount)
   stats.save()
 
-  // Record the tip
   let tipId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   let tip = new Tip(tipId)
   tip.delulu = deluluId
@@ -505,7 +490,6 @@ export function handleMilestoneVerified(event: MilestoneVerifiedEvent): void {
   milestone.pointsEarned = event.params.pointsEarned
   milestone.verifiedAt = event.block.timestamp
 
-  // v3: refresh tipping window / missed from mappings (best-effort)
   let contract = DeluluMarketContract.bind(event.address)
   let startRes = contract.try_milestoneStartTime(delulu.onChainId, event.params.milestoneId)
   if (!startRes.reverted) {
@@ -524,14 +508,12 @@ export function handleMilestoneVerified(event: MilestoneVerifiedEvent): void {
     milestone.isMissed = missedRes.value
   }
 
-  // Update user points
   let user = User.load(delulu.creator)
   if (user != null) {
     user.deluluPoints = user.deluluPoints.plus(event.params.pointsEarned)
     user.save()
   }
 
-  // Creator stats: count verified milestones
   let stats = getOrCreateCreatorStats(
     delulu.creator as Bytes,
     event.block.timestamp
@@ -554,7 +536,7 @@ export function handleChallengeCreated(event: ChallengeCreatedEvent): void {
   challenge.poolAmount = event.params.poolAmount
   challenge.startTime = event.params.startTime
   challenge.duration = event.params.duration
-  challenge.totalPoints = BigInt.fromI32(0) // Will be updated when points are allocated
+  challenge.totalPoints = BigInt.fromI32(0) 
   challenge.active = true
   challenge.createdAt = event.block.timestamp
 

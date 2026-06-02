@@ -23,7 +23,10 @@ export interface GraphStakeEntry {
   };
 }
 
-export function useGraphDeluluStakes(deluluId: string | null) {
+export function useGraphDeluluStakes(
+  deluluId: string | null,
+  tokenAddress?: string | null,
+) {
   const { data, loading, error, refetch } = useQuery<GetStakesByDeluluQuery, GetStakesByDeluluQueryVariables>(
     GetStakesByDeluluDocument,
     {
@@ -38,14 +41,14 @@ export function useGraphDeluluStakes(deluluId: string | null) {
     return data.stakes.map((s) => ({
       id: s.id,
       userId: s.user.id,
-      amount: weiToNumber(s.amount),
+      amount: weiToNumber(s.amount, tokenAddress ?? undefined),
       txHash: s.txHash,
       createdAt: new Date(Number(s.createdAt) * 1000).toISOString(),
       user: {
         address: s.user.id,
       },
     }));
-  }, [data?.stakes]);
+  }, [data?.stakes, tokenAddress]);
 
   return {
     data: stakes,

@@ -2,6 +2,7 @@
 
 import { MoreHorizontal } from "lucide-react";
 import { formatAddress, formatGAmount } from "@/lib/utils";
+import { getTokenSymbol } from "@/lib/token-amounts";
 import { TokenBadge } from "@/components/token-badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { FormattedDelulu } from "@/lib/types";
@@ -55,6 +56,7 @@ export function DeluluDetailHero({
   const displayName = delulu.username
     ? `@${delulu.username}`
     : formatAddress(delulu.creator);
+  const tokenSymbol = getTokenSymbol(marketToken);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -145,7 +147,7 @@ export function DeluluDetailHero({
             <span className="font-black text-foreground">
               {formatGAmount(supportAmount)}
             </span>{" "}
-            staked
+            {tokenSymbol} staked
             {totalSupportUsd && totalSupportUsd > 0 && (
               <span className="text-muted-foreground">
                 {" "}

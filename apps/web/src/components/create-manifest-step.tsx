@@ -18,11 +18,15 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
-import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS, isGoodDollarToken } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
+import { formatUsdEquivalent, getTokenSymbol } from "@/lib/token-amounts";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
+import { useNoGas } from "@/contexts/no-gas-context";
 import { cn } from "@/lib/utils";
 import { CELO_MAINNET_ID } from "@/lib/constant";
 import { useUserStore } from "@/stores/useUserStore";
@@ -56,10 +60,6 @@ import {
 
 const FeedbackModal = dynamic(
   () => import("@/components/feedback-modal").then((m) => m.FeedbackModal),
-  { ssr: false }
-);
-const FaucetModal = dynamic(
-  () => import("@/components/faucet-modal").then((m) => m.FaucetModal),
   { ssr: false }
 );
 const AiMilestonesModal = dynamic(
@@ -128,10 +128,12 @@ export function CreateManifestStep({
 }: CreateManifestStepProps) {
   const router = useRouter();
   const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
+  const { trigger: triggerNoGas } = useNoGas();
   const { user } = useUserStore();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const apolloClient = useApolloClient();
-  const { address, isConnected } = useAuth();
+  const { address, authenticated } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
 
   const supportedTokens = useSupportedTokens();
   const defaultToken =
@@ -166,7 +168,6 @@ export function CreateManifestStep({
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const [manifestedDurationDays, setManifestedDurationDays] = useState(7);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showFaucet, setShowFaucet] = useState(false);
   const [showNewUserGdModal, setShowNewUserGdModal] = useState(false);
   const [isNewUserSession, setIsNewUserSession] = useState(false);
 
@@ -195,24 +196,13 @@ export function CreateManifestStep({
     refetchAllowance,
   } = useTokenApproval(selectedToken);
 
-  const cusdToken = supportedTokens.find((t) => t.symbol === "USDm");
   const gToken = supportedTokens.find((t) => t.symbol === "G$");
-  const cusd = useTokenBalance(cusdToken?.address);
+  const usdtToken = supportedTokens.find((t) => t.symbol === "USDT");
   const good = useTokenBalance(gToken?.address);
+  const usdt = useTokenBalance(usdtToken?.address);
   const gdBalance = Number(good.formatted || "0");
 
   const tokenBalances = [
-    ...(cusdToken
-      ? [
-          {
-            token: cusdToken,
-            balance: cusd.balance,
-            formatted: cusd.formatted,
-            isLoading: cusd.isLoading,
-            error: cusd.error,
-          },
-        ]
-      : []),
     ...(gToken
       ? [
           {
@@ -224,16 +214,26 @@ export function CreateManifestStep({
           },
         ]
       : []),
+    ...(usdtToken
+      ? [
+          {
+            token: usdtToken,
+            balance: usdt.balance,
+            formatted: usdt.formatted,
+            isLoading: usdt.isLoading,
+            error: usdt.error,
+          },
+        ]
+      : []),
   ];
 
-  const isGoodDollarSelected =
-    selectedToken.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-  const approxUsdValue =
-    isGoodDollarSelected && gDollarUsdPrice && stakeAmount > 0
-      ? stakeAmount * gDollarUsdPrice
-      : !isGoodDollarSelected && stakeAmount > 0
-        ? stakeAmount
-        : null;
+  const selectedTokenSymbol = getTokenSymbol(selectedToken);
+  const isGoodDollarSelected = isGoodDollarToken(selectedToken);
+  const approxUsdLabel = formatUsdEquivalent(
+    stakeAmount,
+    selectedToken,
+    gDollarUsdPrice,
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -260,7 +260,7 @@ export function CreateManifestStep({
   }, []);
 
   useEffect(() => {
-    if (!isConnected || !isNewUserSession) return;
+    if (!authenticated || !isNewUserSession) return;
     if (good.isLoading) return;
     if (gdBalance <= 0) {
       setShowNewUserGdModal(true);
@@ -273,7 +273,7 @@ export function CreateManifestStep({
     }
     setIsNewUserSession(false);
     setShowNewUserGdModal(false);
-  }, [isConnected, isNewUserSession, good.isLoading, gdBalance]);
+  }, [authenticated, isNewUserSession, good.isLoading, gdBalance]);
 
   const selectedTokenBalance = tokenBalances.find(
     (tb) => tb.token.address === selectedToken
@@ -361,7 +361,7 @@ export function CreateManifestStep({
     } = pendingCreation;
     setIsWaitingForApproval(false);
     setIsUploadingImage(true);
-    checkAllowanceWithRetry(refetchAllowance, amount)
+    checkAllowanceWithRetry(refetchAllowance, amount, token)
       .then((hasAllowance) => {
         if (!hasAllowance) {
           throw new Error("Token allowance not updated. Please try again.");
@@ -437,7 +437,8 @@ export function CreateManifestStep({
     delusionText,
     stakeAmount,
     maxStakeValue,
-    selectedImage
+    selectedImage,
+    selectedToken,
   );
   const canCreate = validation.canCreate && !isUploadingImage;
   const exceedsBalance = stakeAmount > maxStakeValue;
@@ -461,9 +462,13 @@ export function CreateManifestStep({
 
   const handleCreate = async () => {
     setSubmitAttempted(true);
+    if (!authenticated) {
+      redirectToSignIn("/board");
+      return;
+    }
     if (isProcessing) return;
 
-    const allowed = await ensureWhitelisted("create");
+    const allowed = await ensureWhitelisted("create", selectedToken);
     if (!allowed) return;
 
     const nativeBalance =
@@ -471,7 +476,7 @@ export function CreateManifestStep({
         ? Number(celoBalance.formatted)
         : 0;
     if (nativeBalance < 0.005) {
-      setShowFaucet(true);
+      triggerNoGas();
       return;
     }
 
@@ -479,7 +484,13 @@ export function CreateManifestStep({
 
     try {
       const maxVal = calculateMaxStakeValue(tokenBalance);
-      const v = validateDeluluInputs(delusionText, stakeAmount, maxVal, selectedImage);
+      const v = validateDeluluInputs(
+        delusionText,
+        stakeAmount,
+        maxVal,
+        selectedImage,
+        selectedToken,
+      );
       if (!v.isValid) {
         const firstError =
           v.errors.text || v.errors.stake || v.errors.balance || v.errors.image;
@@ -883,7 +894,7 @@ export function CreateManifestStep({
                       setInputText(currentValue.toFixed(0));
                     }
                   }}
-                  placeholder={`Min ${MIN_STAKE} G$`}
+                  placeholder={`Min ${MIN_STAKE} ${selectedTokenSymbol}`}
                   className="min-w-0 flex-1 bg-transparent text-2xl font-bold placeholder:text-muted-foreground/40 focus:outline-none"
                 />
 
@@ -961,7 +972,7 @@ export function CreateManifestStep({
                             )}
                             <div className="flex flex-1 items-center justify-between gap-2">
                               <span className="text-sm font-bold">{t.symbol}</span>
-                              {isConnected && (
+                              {authenticated && (
                                 <span className="text-xs text-muted-foreground">
                                   {isLoadingBal ? "..." : balance.toFixed(2)}
                                 </span>
@@ -980,32 +991,32 @@ export function CreateManifestStep({
 
               <div className="flex items-center justify-between pt-0.5">
                 <span className="text-xs text-muted-foreground">
-                  {approxUsdValue && approxUsdValue > 0
-                    ? `≈ $${approxUsdValue.toFixed(2)} USD`
-                    : `Enter at least ${MIN_STAKE} G$`}
+                  {approxUsdLabel && stakeAmount > 0
+                    ? `≈ $${approxUsdLabel} USD`
+                    : `Enter at least ${MIN_STAKE} ${selectedTokenSymbol}`}
                 </span>
-                {isConnected && selectedTokenBalance ? (
+                {authenticated && selectedTokenBalance ? (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
                     <TokenBadge tokenAddress={selectedToken} size="sm" showText={false} />
                     {parseFloat(selectedTokenBalance.formatted).toFixed(2)}{" "}
                     <span className="font-normal text-muted-foreground">available</span>
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Connect wallet</span>
+                  <span className="text-xs text-muted-foreground">{SIGN_IN_BUTTON_LABEL}</span>
                 )}
               </div>
             </div>
 
-            {isConnected && (stakeInputTouched || submitAttempted) && (
+            {authenticated && (stakeInputTouched || submitAttempted) && (
               <>
                 {stakeAmount <= 0 && (
                   <p className="mt-1.5 text-xs text-destructive">
-                    A stake of at least {MIN_STAKE} G$ is required
+                    A stake of at least {MIN_STAKE} {selectedTokenSymbol} is required
                   </p>
                 )}
                 {stakeAmount > 0 && stakeAmount < MIN_STAKE && (
                   <p className="mt-1.5 text-xs text-destructive">
-                    Minimum stake is {MIN_STAKE} G$
+                    Minimum stake is {MIN_STAKE} {selectedTokenSymbol}
                   </p>
                 )}
                 {stakeAmount >= MIN_STAKE &&
@@ -1023,14 +1034,22 @@ export function CreateManifestStep({
               <div>
                 <button
                   type="button"
-                  onClick={handleCreate}
-              disabled={!canCreate || isProcessing}
+                  onClick={() => {
+                    if (!authenticated) {
+                      redirectToSignIn("/board");
+                      return;
+                    }
+                    void handleCreate();
+                  }}
+              disabled={authenticated && (!canCreate || isProcessing)}
               className={cn(
                 "w-full rounded-full py-4 text-base font-bold transition-all bg-foreground text-background active:scale-[0.98]",
-                (!canCreate || isProcessing) && "cursor-not-allowed opacity-40"
+                authenticated && (!canCreate || isProcessing) && "cursor-not-allowed opacity-40"
               )}
             >
-              {!isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
+              {!authenticated ? (
+                SIGN_IN_BUTTON_LABEL
+              ) : !isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Approving...
@@ -1096,8 +1115,6 @@ export function CreateManifestStep({
         onClose={() => setShowErrorModal(false)}
         actionText="Try Again"
       />
-
-      <FaucetModal open={showFaucet} onOpenChange={setShowFaucet} />
 
       <AiMilestonesModal
         open={showMilestonesModal}

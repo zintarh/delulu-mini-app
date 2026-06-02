@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useClaimPanel, useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
-import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
+import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
   getMobileBottomNavItems,
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
 import { MOBILE_BOTTOM_NAV_HEIGHT } from "@/lib/mobile-bottom-nav";
+import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
 interface BottomNavProps {
   /** @deprecated Profile is not in main nav; kept for existing callers */
@@ -37,13 +38,21 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
 
   useEffect(() => {
     ["/", "/board", "/explore", "/profile"].forEach((href) => router.prefetch(href));
-    void import("@/components/create-delusion-content");
-    prefetchCreateManifestStep();
+    const schedule = () => {
+      prefetchCreateDelusionContent();
+      prefetchCreateManifestStep();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(schedule, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(schedule, 1500);
+    return () => window.clearTimeout(timer);
   }, [router]);
 
   const prefetchCreate = () => {
     router.prefetch("/board");
-    void import("@/components/create-delusion-content");
+    prefetchCreateDelusionContent();
     prefetchCreateManifestStep();
   };
 
@@ -136,7 +145,10 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
                 <button
                   key={item.action}
                   type="button"
-                  onClick={() => router.push("/sign-in")}
+                  onClick={() => {
+                    preloadAuthProviders();
+                    router.push("/sign-in");
+                  }}
                   className={itemClass}
                   aria-label={item.label}
                 >

@@ -11,6 +11,7 @@ import { Loader2, ArrowRight, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { consumeSignInRedirect } from "@/lib/auth-redirect";
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function WelcomePage() {
   const [touched, setTouched] = useState({ username: false, pfp: false });
 
   const savedRef = useRef(false);
-  const faucetFiredRef = useRef(false);
 
   const { setProfile, isPending, isSuccess, error: contractError } = useSetProfile();
   const { upload, isUploading, inputRef, openPicker } = usePfpUpload();
@@ -55,21 +55,10 @@ export default function WelcomePage() {
     typeof existingUsername === "string" &&
     existingUsername.trim().length > 0;
 
-  // Already has a profile — send home
+  // Already has a profile — return to intended page or home
   useEffect(() => {
-    if (alreadyOnboarded) router.replace("/");
+    if (alreadyOnboarded) router.replace(consumeSignInRedirect() ?? "/");
   }, [alreadyOnboarded, router]);
-
-  // New user confirmed — fire faucet once
-  useEffect(() => {
-    if (!address || isCheckingProfile || alreadyOnboarded || faucetFiredRef.current) return;
-    faucetFiredRef.current = true;
-    fetch("/api/faucet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address }),
-    }).catch(() => {});
-  }, [address, isCheckingProfile, alreadyOnboarded]);
 
   // After on-chain setProfile confirms, save to Supabase then redirect
   useEffect(() => {
@@ -102,7 +91,7 @@ export default function WelcomePage() {
       updateProfile({ email: normalizedEmail, pfpUrl: pfpUrl ?? undefined });
 
       try { window.sessionStorage.setItem("delulu:new-user", "1"); } catch {}
-      router.replace("/");
+      router.replace(consumeSignInRedirect() ?? "/");
     })();
   }, [isSuccess, address]); // eslint-disable-line react-hooks/exhaustive-deps
 

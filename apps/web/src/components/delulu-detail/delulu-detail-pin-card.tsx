@@ -9,6 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { cn, formatAddress, formatGAmount } from "@/lib/utils";
+import { getTokenSymbol } from "@/lib/token-amounts";
 import { TokenBadge } from "@/components/token-badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -16,7 +17,6 @@ import {
   notifyDeluluSocialUpdated,
 } from "@/lib/delulu-social-storage";
 import type { FormattedDelulu } from "@/lib/types";
-import { KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
 
 function creatorGradient(creator: string) {
   const hex = creator.replace("0x", "").toLowerCase();
@@ -34,9 +34,7 @@ function DeluluTippedSummary({
   totalSupportUsd?: number | null;
   marketToken?: string;
 }) {
-  const tokenLabel = marketToken
-    ? (KNOWN_TOKEN_SYMBOLS[marketToken.toLowerCase()] ?? "G$")
-    : "G$";
+  const tokenLabel = getTokenSymbol(marketToken);
 
   return (
     <div className="mt-4 flex items-baseline justify-between gap-2">
@@ -322,7 +320,7 @@ export function DeluluDetailPinCard({
                     )}
                   >
                     <DollarSign className="h-3.5 w-3.5" strokeWidth={2.5} />
-                    Tip
+                    {userAddress ? "Tip" : "Sign in"}
                   </button>
                 ) : null}
                 {isCreator && (

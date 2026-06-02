@@ -26,14 +26,9 @@ const DELULU_LEADERBOARD_QUERY = gql`
       contentHash
       creatorStake
       totalSupportCollected
+      token
       points
-      tradeCount
-      uniqueBuyerCount
       createdAt
-      shareTrades(first: 500, orderBy: createdAt, orderDirection: asc) {
-        isBuy
-        curveAmount
-      }
       milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
         isVerified
         pointsEarned
@@ -56,14 +51,12 @@ export interface DeluluLeaderboardEntry {
   bgImageUrl: string | null;
   creatorAddress: string;
   creatorUsername: string | null;
-  /** creatorStake + support + net G$ from bonding curve share trades */
+  /** creatorStake + milestone support */
   totalG: number;
   creatorStake: number;
   totalSupportCollected: number;
   /** Points earned on this delulu (sum of verified milestone awards). */
   points: number;
-  tradeCount: number;
-  uniqueBuyerCount: number;
 }
 
 function pickManifestTitle(
@@ -157,13 +150,10 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           !title &&
           ((!resolved && Boolean(d.contentHash)) || !metadataLoaded);
 
-        const creatorStake = weiToNumber(d.creatorStake);
-        const totalSupportCollected = weiToNumber(d.totalSupportCollected);
-        const netShareG = ((d.shareTrades ?? []) as any[]).reduce((acc, t) => {
-          const amt = weiToNumber(t.curveAmount ?? "0");
-          return t.isBuy ? acc + amt : acc - amt;
-        }, 0);
-        const totalG = creatorStake + totalSupportCollected + Math.max(0, netShareG);
+        const tokenAddr = d.token ?? undefined;
+        const creatorStake = weiToNumber(d.creatorStake, tokenAddr);
+        const totalSupportCollected = weiToNumber(d.totalSupportCollected, tokenAddr);
+        const totalG = creatorStake + totalSupportCollected;
         return {
           id: d.id,
           onChainId,
@@ -177,8 +167,6 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           creatorStake,
           totalSupportCollected,
           points: sumDeluluEarnedPoints(d.milestones),
-          tradeCount: Number(d.tradeCount ?? "0"),
-          uniqueBuyerCount: Number(d.uniqueBuyerCount ?? "0"),
         };
       })
       .sort((a, b) => {

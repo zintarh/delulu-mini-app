@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 
 interface OnboardingSheetProps {
   open: boolean;
@@ -19,11 +19,10 @@ const STEPS = [
         <p className="text-sm text-muted-foreground mb-3">
           <span className="font-semibold">Delulu</span> is a platform where you create{" "}
           <span className="font-semibold">goals (delulus)</span>, set milestones, and let others{" "}
-          <span className="font-semibold">support / buy shares</span> to earn as you achieve them.
+          <span className="font-semibold">support</span> from others as you achieve them.
         </p>
         <p className="text-sm text-muted-foreground">
-          To keep your <span className="font-semibold">Support button</span> and{" "}
-          <span className="font-semibold">shares</span> open, you need to{" "}
+          To keep your <span className="font-semibold">Support button</span> open, you need to{" "}
           <span className="font-semibold">complete milestones</span>. Missing one pauses new support.
         </p>
       </>
@@ -67,7 +66,7 @@ const STEPS = [
         <p className="text-sm text-muted-foreground">
           Add clear <span className="font-semibold">milestones</span>, submit{" "}
           <span className="font-semibold">proof</span>, and let others{" "}
-          <span className="font-semibold">support or buy shares</span> in your journey.
+          <span className="font-semibold">support</span> your journey.
         </p>
       </>
     ),
@@ -78,11 +77,10 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
-  const { login } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
 
   const handleNext = () => {
     if (isLast) {
-      // On the final step, "Get Started" is handled by a separate button.
       return;
     }
     setStepIndex((prev) => Math.min(prev + 1, STEPS.length - 1));
@@ -94,7 +92,6 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
 
   const handleChange = (openValue: boolean) => {
     if (!openValue) {
-      // When closed from outside controls, reset to first step for next time.
       setStepIndex(0);
     }
     onOpenChange(openValue);
@@ -122,9 +119,7 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
             </div>
             <div className="hidden sm:flex items-center gap-1 rounded-full border border-delulu-yellow-reserved/40 bg-delulu-yellow-reserved/10 px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-delulu-yellow-reserved shadow-[0_0_0_3px_rgba(250,204,21,0.35)]" />
-              {/* <span className="text-[11px] font-semibold text-foreground/80">
-                New here? Start here
-              </span> */}
+             
             </div>
           </div>
         </div>
@@ -171,8 +166,8 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
               <button
                 type="button"
                 onClick={() => {
-                  login();
                   onOpenChange(false);
+                  redirectToSignIn();
                 }}
                 className={cn(
                   "px-5 py-2.5 rounded-full text-sm font-black",
@@ -180,7 +175,7 @@ export function OnboardingSheet({ open, onOpenChange }: OnboardingSheetProps) {
                   "shadow-[2px_2px_0px_0px_#1a1a19] hover:brightness-105 active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_#1a1a19]",
                 )}
               >
-                Get Started
+                Sign in
               </button>
             )}
           </div>

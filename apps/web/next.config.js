@@ -34,30 +34,37 @@ const nextConfig = {
   async redirects() {
     return [{ source: "/market", destination: "/admin", permanent: false }];
   },
-  transpilePackages: ["@repo/ui"], // Keep this if you are in a monorepo
+  transpilePackages: ["@repo/ui"],
   experimental: {
-    // Reduce shared "first navigation" JS by turning common
-    // deep-import patterns into smaller per-icon/per-module chunks.
-    // (Safe no-op for packages that don't support it.)
     optimizePackageImports: [
       "lucide-react",
       "wagmi",
       "viem",
+      "date-fns",
+      "@apollo/client",
+      "@tanstack/react-query",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-select",
+      "@radix-ui/react-slider",
       "@privy-io/react-auth",
       "@privy-io/wagmi",
+      "react-textarea-autosize",
     ],
   },
   webpack: (config) => {
-    config.externals.push('pino-pretty', 'lokijs', 'encoding');
-    
-    // Ignore React Native modules that MetaMask SDK tries to import in web builds
+    config.externals.push("pino-pretty", "lokijs", "encoding");
+
     config.resolve.fallback = {
       ...config.resolve.fallback,
-      '@react-native-async-storage/async-storage': false,
+      "@react-native-async-storage/async-storage": false,
     };
-    
+
     return config;
   },
 };
 
-module.exports = nextConfig;
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
+});
+
+module.exports = withBundleAnalyzer(nextConfig);

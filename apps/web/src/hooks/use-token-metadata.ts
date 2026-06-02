@@ -2,6 +2,7 @@
 
 import { useReadContract } from "wagmi";
 import { KNOWN_TOKEN_SYMBOLS } from "@/lib/constant";
+import { getTokenDecimals } from "@/lib/token-amounts";
 
 const ERC20_ABI = [
   {
@@ -38,7 +39,7 @@ export function useTokenMetadata(tokenAddress: string | undefined) {
   });
 
   const resolvedSymbol = symbol || (addr ? KNOWN_TOKEN_SYMBOLS[addr] : null) || "?";
-  const resolvedDecimals = decimals ?? 18;
+  const resolvedDecimals = decimals ?? getTokenDecimals(addr);
 
   return { symbol: resolvedSymbol, decimals: resolvedDecimals };
 }

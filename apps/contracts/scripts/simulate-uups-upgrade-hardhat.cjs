@@ -17,9 +17,9 @@ async function main() {
 
   console.log("=== 1) Deploy mocks + v1 impl + proxy ===\n");
   const MockERC20 = await ethers.getContractFactory("MockERC20");
-  const cusd = await MockERC20.deploy("cUSD", "cUSD");
+  const cusd = await MockERC20.deploy("cUSD", "cUSD", 18);
   await cusd.waitForDeployment();
-  const gdollar = await MockERC20.deploy("GoodDollar", "G$");
+  const gdollar = await MockERC20.deploy("GoodDollar", "G$", 18);
   await gdollar.waitForDeployment();
   const cUSDAddress = await cusd.getAddress();
   const gDollarAddress = await gdollar.getAddress();

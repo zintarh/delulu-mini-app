@@ -8,13 +8,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel, useClaimPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
-import { prefetchCreateManifestStep } from "@/components/create-delusion-content";
+import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
   getMainNavItems,
   getProfileNavItem,
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
+import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
 function Tooltip({ label }: { label: string }) {
   return (
@@ -52,13 +53,21 @@ export function LeftSidebar() {
 
   useEffect(() => {
     ["/", "/board", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
-    void import("@/components/create-delusion-content");
-    prefetchCreateManifestStep();
+    const schedule = () => {
+      prefetchCreateDelusionContent();
+      prefetchCreateManifestStep();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(schedule, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(schedule, 1500);
+    return () => window.clearTimeout(timer);
   }, [router]);
 
   const prefetchCreate = () => {
     router.prefetch("/board");
-    void import("@/components/create-delusion-content");
+    prefetchCreateDelusionContent();
     prefetchCreateManifestStep();
   };
 
@@ -168,7 +177,10 @@ export function LeftSidebar() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => router.push("/sign-in")}
+                  onClick={() => {
+                    preloadAuthProviders();
+                    router.push("/sign-in");
+                  }}
                   className={itemCls(active)}
                   aria-label={label}
                 >
@@ -196,7 +208,10 @@ export function LeftSidebar() {
         ) : (
           <button
             type="button"
-            onClick={() => router.push("/sign-in")}
+            onClick={() => {
+              preloadAuthProviders();
+              router.push("/sign-in");
+            }}
             className={itemCls(profileActive)}
             aria-label={profileItem.label}
           >

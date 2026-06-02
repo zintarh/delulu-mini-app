@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { DeluluCard } from "@/components/delulu-card";
+import { LazyDeluluCard } from "@/components/lazy-delulu-card";
 import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
 import { FEED_CARD_SLOT_CLASS } from "@/components/feed-card-layout";
 import { useAllDelulus } from "@/hooks/graph";
@@ -84,7 +84,7 @@ export function RelatedDelulusSection({
                     key={`explore-more-${delusion.onChainId || delusion.id}-${index}`}
                     className={FEED_CARD_SLOT_CLASS}
                   >
-                    <DeluluCard
+                    <LazyDeluluCard
                       delusion={delusion}
                       href={`/delulu/${delusion.id}`}
                       variant="feed"

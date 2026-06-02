@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
-import { HowItWorksSheet } from "@/components/how-it-works-sheet";
 import { HomeFeedExplore } from "@/components/home-feed-explore";
 import { buildFeedCategories } from "@/lib/feed-categories";
-import { ClaimRewardsSheet } from "@/components/claim-rewards-sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAllDelulus } from "@/hooks/graph";
@@ -14,10 +13,19 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import type { FormattedDelulu } from "@/lib/types";
 import Link from "next/link";
 import { HomeSearch } from "@/components/home-search";
-import { UserSetupModal } from "@/components/user-setup-modal";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
+
+const ClaimRewardsSheet = dynamic(
+  () =>
+    import("@/components/claim-rewards-sheet").then((m) => m.ClaimRewardsSheet),
+  { ssr: false },
+);
+const UserSetupModal = dynamic(
+  () => import("@/components/user-setup-modal").then((m) => m.UserSetupModal),
+  { ssr: false },
+);
 
 function BoardTile({
   delusion,
@@ -101,8 +109,6 @@ export default function HomePage() {
     }
   }, [address, onChainUsername, user?.username, user?.email, user?.address, updateUsername, updateAddress]);
 
-  const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
-  const [howItWorksType, setHowItWorksType] = useState<"concept" | "market" | "conviction">("concept");
   const [claimRewardsSheetOpen, setClaimRewardsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"board" | "fyp">(() => {
     try {
@@ -301,12 +307,6 @@ export default function HomePage() {
             )}
           </div>
       </main>
-
-      <HowItWorksSheet
-        open={howItWorksSheetOpen}
-        onOpenChange={setHowItWorksSheetOpen}
-        type={howItWorksType}
-      />
 
       <ClaimRewardsSheet
         open={claimRewardsSheetOpen}

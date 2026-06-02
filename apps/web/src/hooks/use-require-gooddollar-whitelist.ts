@@ -9,6 +9,7 @@ import {
   useClaimSDK,
 } from "@/hooks/use-claim-sdk";
 import type { GoodDollarWhitelistAction } from "@/lib/gooddollar-whitelist";
+import { isGoodDollarToken } from "@/lib/constant";
 
 /**
  * Before tipping or creating a delulu, ensure the wallet is GoodDollar-whitelisted.
@@ -23,7 +24,13 @@ export function useRequireGoodDollarWhitelist() {
   const [isChecking, setIsChecking] = useState(false);
 
   const ensureWhitelisted = useCallback(
-    async (action: GoodDollarWhitelistAction): Promise<boolean> => {
+    async (
+      action: GoodDollarWhitelistAction,
+      tokenAddress?: string,
+    ): Promise<boolean> => {
+      if (tokenAddress && !isGoodDollarToken(tokenAddress)) {
+        return true;
+      }
       if (!authenticated) {
         const redirect =
           action === "create" ? "/board" : pathname || "/";

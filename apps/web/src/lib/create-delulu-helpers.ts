@@ -1,9 +1,13 @@
-import { parseUnits } from "viem";
+import {
+  MIN_STAKE_WHOLE,
+  parseTokenAmount,
+  getTokenSymbol,
+} from "@/lib/token-amounts";
 
 // Constants
 export const MAX_DELULU_LENGTH = 140;
-// Minimum stake required to create a delulu (G$ tokens, whole number).
-export const MIN_STAKE = 100;
+// Minimum stake required to create a delulu (whole tokens; matches on-chain MIN_STAKE_WHOLE).
+export const MIN_STAKE = MIN_STAKE_WHOLE;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
 export const ALLOWANCE_CHECK_RETRIES = 3;
 export const ALLOWANCE_CHECK_DELAY = 500; // milliseconds
@@ -58,8 +62,10 @@ export function validateDeluluInputs(
   delusionText: string,
   stakeAmount: number,
   maxStakeValue: number,
-  selectedImage: string | null
+  selectedImage: string | null,
+  tokenAddress?: string,
 ): ValidationResult {
+  const tokenSymbol = getTokenSymbol(tokenAddress);
   const errors: ValidationErrors = {
     text: null,
     stake: null,
@@ -76,15 +82,15 @@ export function validateDeluluInputs(
 
   // Stake validation: exactly MIN_STAKE or more required.
   if (stakeAmount <= 0) {
-    errors.stake = `A stake of at least ${MIN_STAKE} G$ is required to create a dream`;
+    errors.stake = `A stake of at least ${MIN_STAKE} ${tokenSymbol} is required to create a dream`;
   } else if (stakeAmount < MIN_STAKE) {
-    errors.stake = `Minimum stake is ${MIN_STAKE} G$`;
+    errors.stake = `Minimum stake is ${MIN_STAKE} ${tokenSymbol}`;
   }
 
   // Balance validation
   if (stakeAmount >= MIN_STAKE) {
     if (!isFinite(maxStakeValue) || maxStakeValue < MIN_STAKE) {
-      errors.balance = `You need at least ${MIN_STAKE} G$ to stake. Claim your free G$ first.`;
+      errors.balance = `You need at least ${MIN_STAKE} ${tokenSymbol} to stake. Claim your free G$ first.`;
     } else if (stakeAmount > maxStakeValue) {
       const displayBalance = isFinite(maxStakeValue)
         ? maxStakeValue.toFixed(2)
@@ -201,6 +207,7 @@ export function withTimeout<T>(
 export async function checkAllowanceWithRetry(
   refetchAllowance: () => Promise<{ data: bigint | undefined }>,
   stakeAmount: number,
+  tokenAddress?: string,
   maxRetries: number = ALLOWANCE_CHECK_RETRIES,
   initialDelay: number = ALLOWANCE_CHECK_DELAY
 ): Promise<boolean> {
@@ -208,10 +215,10 @@ export async function checkAllowanceWithRetry(
     throw new Error("Invalid stake amount for allowance check");
   }
 
-  let amountWei;
+  let amountWei: bigint;
   try {
-    amountWei = parseUnits(stakeAmount.toString(), 18);
-  } catch (error) {
+    amountWei = parseTokenAmount(stakeAmount, tokenAddress);
+  } catch {
     throw new Error("Failed to parse stake amount");
   }
 

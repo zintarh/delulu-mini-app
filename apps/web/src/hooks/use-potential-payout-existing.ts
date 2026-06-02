@@ -7,7 +7,7 @@ export function usePotentialPayoutForExistingStake(deluluId: number | null) {
   void deluluId;
 
   return {
-    // Legacy stake-market preview no longer exists in the shares-only contract.
+    // Legacy stake-market preview is not available on the current contract.
     potentialPayout: null as number | null,
     isLoading: false,
     error: null as Error | null,

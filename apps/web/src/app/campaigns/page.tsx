@@ -8,7 +8,8 @@ import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChallengesHeader } from "@/components/challenges-header";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
+import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useChallenges } from "@/hooks/use-challenges";
@@ -28,19 +29,20 @@ import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 export default function ChallengesPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
+  const { authenticated } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { challenges, isLoading, error, refetch } = useChallenges();
   const chainId = useChainId();
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
   const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
+  const { redirectToSignIn } = useRedirectToSignIn();
 
   const handleProfileClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) redirectToSignIn();
     else router.push("/profile");
   };
   const handleCreateClick = () => {
-    if (!isConnected) setShowLoginSheet(true);
+    if (!authenticated) redirectToSignIn();
     else router.push("/board");
   };
 
@@ -82,7 +84,7 @@ export default function ChallengesPage() {
               onProfileClick={handleProfileClick}
               onCreateClick={handleCreateClick}
               onSearchClick={() => {
-                if (!isConnected) setShowLoginSheet(true);
+                if (!authenticated) redirectToSignIn();
                 else router.push("/search");
               }}
             />
@@ -232,11 +234,6 @@ export default function ChallengesPage() {
       <BottomNav
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
-      />
-
-      <ConnectorSelectionSheet
-        open={showLoginSheet}
-        onOpenChange={setShowLoginSheet}
       />
 
       <CreateChallengeSheet
