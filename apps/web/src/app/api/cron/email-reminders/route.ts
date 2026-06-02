@@ -33,7 +33,19 @@ type SubgraphDeluluRow = {
     milestoneURI: string | null;
     isSubmitted: boolean;
     isVerified: boolean;
+    isMissed?: boolean;
   }[];
+};
+
+type ProfileRow = { email: string | null; username: string | null };
+
+type ReminderCandidate = {
+  deluluId: string;
+  contentHash: string;
+  creatorAddress: string;
+  milestoneId: string;
+  milestoneURI: string | null;
+  endSec: number;
 };
 
 async function fetchJson(url: string, body: unknown) {
@@ -118,6 +130,102 @@ function isValidEmail(email: string | null | undefined): email is string {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeAddress(raw: string): string | null {
+  const address = raw.toLowerCase();
+  if (!address.startsWith("0x") || address.length !== 42) return null;
+  return address;
+}
+
+/** Load profiles for many wallet addresses (stored lowercase in Supabase). */
+async function fetchProfilesByAddress(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  addresses: string[],
+): Promise<Map<string, ProfileRow>> {
+  const map = new Map<string, ProfileRow>();
+  if (addresses.length === 0) return map;
+
+  const unique = [...new Set(addresses.map((a) => a.toLowerCase()))];
+  const chunkSize = 100;
+
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("address, email, username")
+      .in("address", chunk);
+
+    if (error) {
+      console.error("[email-reminders] profiles batch error:", error.message);
+      continue;
+    }
+
+    for (const row of data ?? []) {
+      const key = String((row as { address: string }).address).toLowerCase();
+      map.set(key, {
+        email: (row as { email?: string | null }).email ?? null,
+        username: (row as { username?: string | null }).username ?? null,
+      });
+    }
+  }
+
+  return map;
+}
+
+function collectReminderCandidates(
+  delulus: SubgraphDeluluRow[],
+  nowMs: number,
+  windowStartSec: number,
+  windowEndSec: number,
+): ReminderCandidate[] {
+  const candidates: ReminderCandidate[] = [];
+
+  for (const d of delulus) {
+    const creatorAddress = normalizeAddress(d.creatorAddress || "");
+    if (!creatorAddress) continue;
+
+    const createdAtMs = getDeluluCreatedAtMs(
+      {
+        createdAt: toDateSeconds(d.createdAt) ?? undefined,
+        stakingDeadline: toDateSeconds(d.stakingDeadline) ?? undefined,
+      },
+      nowMs,
+    );
+
+    let prevEndMs: number | null = null;
+    const sortedMilestones = [...(d.milestones ?? [])].sort(
+      (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
+    );
+
+    for (const m of sortedMilestones) {
+      if (m.isMissed) continue;
+
+      const endMs = getMilestoneEndTimeMs(
+        {
+          startTime: toDateSeconds(m.startTime),
+          deadline: toDateSeconds(m.deadline) ?? new Date(0),
+        },
+        prevEndMs,
+        createdAtMs,
+      );
+      prevEndMs = endMs;
+      const endSec = Math.floor(endMs / 1000);
+
+      if (endSec <= windowStartSec || endSec > windowEndSec) continue;
+
+      candidates.push({
+        deluluId: d.id,
+        contentHash: d.contentHash,
+        creatorAddress,
+        milestoneId: m.milestoneId,
+        milestoneURI: m.milestoneURI,
+        endSec,
+      });
+    }
+  }
+
+  return candidates;
+}
+
 export async function GET(req: NextRequest) {
   try {
     if (!isCronAuthorized(req)) {
@@ -146,7 +254,7 @@ export async function GET(req: NextRequest) {
 
     const nowMs = Date.now();
     const nowSec = Math.floor(nowMs / 1000);
-    // 30-minute cadence: remind milestones ending within the next hour (same window as UI).
+    // 30-minute cadence: remind milestones ending within the next hour.
     const windowStartSec = nowSec;
     const windowEndSec = nowSec + 60 * 60;
 
@@ -170,7 +278,12 @@ export async function GET(req: NextRequest) {
             first: 30
             orderBy: milestoneId
             orderDirection: asc
-            where: { isSubmitted: false, isVerified: false, isDeleted: false }
+            where: {
+              isSubmitted: false
+              isVerified: false
+              isDeleted: false
+              isMissed: false
+            }
           ) {
             milestoneId
             deadline
@@ -178,6 +291,7 @@ export async function GET(req: NextRequest) {
             milestoneURI
             isSubmitted
             isVerified
+            isMissed
           }
         }
       }
@@ -189,152 +303,121 @@ export async function GET(req: NextRequest) {
     });
 
     const delulus: SubgraphDeluluRow[] = deluluResp?.data?.delulus ?? [];
+    const candidates = collectReminderCandidates(
+      delulus,
+      nowMs,
+      windowStartSec,
+      windowEndSec,
+    );
+
+    const profilesByAddress = await fetchProfilesByAddress(
+      supabase,
+      candidates.map((c) => c.creatorAddress),
+    );
+
+    const titleByDeluluId = new Map<string, string>();
 
     let sent = 0;
     let skipped = 0;
     let sendErrors = 0;
     let noEmail = 0;
     let alreadySent = 0;
-    let milestonesInWindow = 0;
+    let idempotencyErrors = 0;
 
-    for (const d of delulus) {
-      const creatorAddress = (d.creatorAddress || "").toLowerCase();
-      if (!creatorAddress.startsWith("0x") || creatorAddress.length !== 42) {
+    for (const c of candidates) {
+      const profile = profilesByAddress.get(c.creatorAddress);
+      const recipientEmail = TEST_MODE_ENABLED
+        ? TEST_RECIPIENT_EMAIL
+        : profile?.email;
+
+      if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
+        noEmail++;
         skipped++;
         continue;
       }
 
-      const createdAtMs = getDeluluCreatedAtMs(
-        {
-          createdAt: toDateSeconds(d.createdAt) ?? undefined,
-          stakingDeadline: toDateSeconds(d.stakingDeadline) ?? undefined,
-        },
-        nowMs,
+      const scheduledForSec = c.endSec - 60 * 60;
+      const eventKey = makeEventKey({
+        kind: "milestone_due_1h_email",
+        deluluId: c.deluluId,
+        milestoneId: c.milestoneId,
+        address: c.creatorAddress,
+        scheduledForSec,
+      });
+
+      const { error: insertErr } = await supabase.from("push_events_sent").insert({
+        event_key: eventKey,
+        address: c.creatorAddress,
+      });
+
+      if (insertErr) {
+        if (insertErr.code === "23505") {
+          alreadySent++;
+          skipped++;
+          continue;
+        }
+        idempotencyErrors++;
+        skipped++;
+        console.error("[email-reminders] push_events_sent insert error:", {
+          code: insertErr.code,
+          message: insertErr.message,
+          deluluId: c.deluluId,
+          milestoneId: c.milestoneId,
+        });
+        continue;
+      }
+
+      let deluluTitle = titleByDeluluId.get(c.deluluId);
+      if (deluluTitle === undefined) {
+        deluluTitle =
+          (await resolveDeluluTitle(c.contentHash)) ?? "Your ongoing delulu";
+        titleByDeluluId.set(c.deluluId, deluluTitle);
+      }
+
+      const milestoneLabel = getMilestoneLabel(
+        { milestoneId: c.milestoneId, milestoneURI: c.milestoneURI },
+        80,
       );
+      const milestoneUrl = `${appUrl}/delulu/${c.deluluId}?milestone=${c.milestoneId}`;
 
-      let prevEndMs: number | null = null;
-      const sortedMilestones = [...(d.milestones ?? [])].sort(
-        (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
-      );
-
-      const deluluTitle =
-        (await resolveDeluluTitle(d.contentHash)) ?? "Your ongoing delulu";
-
-      for (const m of sortedMilestones) {
-        const endMs = getMilestoneEndTimeMs(
+      try {
+        await sendReminderEmail(
+          recipientEmail as string,
           {
-            startTime: toDateSeconds(m.startTime),
-            deadline: toDateSeconds(m.deadline) ?? new Date(0),
+            username: profile?.username ?? "Visionary",
+            goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
+            pendingHabits: [
+              {
+                emoji: "",
+                title: deluluTitle,
+                milestoneTitle: milestoneLabel,
+                timeLeftText: formatRemainingTime(nowSec, c.endSec),
+                ctaUrl: milestoneUrl,
+                ctaLabel: "Submit proof",
+              },
+            ],
+            appUrl,
+            ctaUrl: milestoneUrl,
+            ctaLabel: "Submit proof",
+            manageUrl: `${appUrl}/profile`,
           },
-          prevEndMs,
-          createdAtMs,
+          {
+            subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
+          },
         );
-        prevEndMs = endMs;
-        const endSec = Math.floor(endMs / 1000);
-
-        if (endSec < windowStartSec || endSec > windowEndSec || endSec <= nowSec) {
-          continue;
-        }
-
-        milestonesInWindow++;
-
-        const { data: profile, error: profileErr } = await supabase
-          .from("profiles")
-          .select("email, username")
-          .eq("address", creatorAddress)
-          .maybeSingle();
-
-        if (profileErr) {
-          skipped++;
-          continue;
-        }
-
-        const recipientEmail = TEST_MODE_ENABLED
-          ? TEST_RECIPIENT_EMAIL
-          : (profile?.email as string | null | undefined);
-
-        if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
-          noEmail++;
-          skipped++;
-          continue;
-        }
-
-        const scheduledForSec = endSec - 60 * 60;
-        const eventKey = makeEventKey({
-          kind: "milestone_due_1h_email",
-          deluluId: d.id,
-          milestoneId: m.milestoneId,
-          address: creatorAddress,
-          scheduledForSec,
+        sent++;
+      } catch (sendErr: unknown) {
+        sendErrors++;
+        skipped++;
+        await supabase.from("push_events_sent").delete().eq("event_key", eventKey);
+        console.error("[email-reminders] send failed:", {
+          address: c.creatorAddress,
+          recipientEmail,
+          deluluId: c.deluluId,
+          milestoneId: c.milestoneId,
+          message: sendErr instanceof Error ? sendErr.message : String(sendErr),
         });
-
-        const { error: insertErr } = await supabase.from("push_events_sent").insert({
-          event_key: eventKey,
-          address: creatorAddress,
-        });
-
-        if (insertErr) {
-          if (insertErr.code === "23505") {
-            alreadySent++;
-            skipped++;
-            continue;
-          }
-          console.error("[email-reminders] push_events_sent insert error:", {
-            code: insertErr.code,
-            message: insertErr.message,
-            deluluId: d.id,
-            milestoneId: m.milestoneId,
-          });
-        }
-
-        const milestoneLabel = getMilestoneLabel(
-          { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
-          80,
-        );
-        const milestoneUrl = `${appUrl}/delulu/${d.id}?milestone=${m.milestoneId}`;
-
-        try {
-          await sendReminderEmail(
-            recipientEmail as string,
-            {
-              username: (profile as { username?: string })?.username ?? "Visionary",
-              goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
-              pendingHabits: [
-                {
-                  emoji: "",
-                  title: deluluTitle,
-                  milestoneTitle: milestoneLabel,
-                  timeLeftText: formatRemainingTime(nowSec, endSec),
-                  ctaUrl: milestoneUrl,
-                  ctaLabel: "Submit proof",
-                },
-              ],
-              appUrl,
-              ctaUrl: milestoneUrl,
-              ctaLabel: "Submit proof",
-              manageUrl: `${appUrl}/profile`,
-            },
-            {
-              subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
-            },
-          );
-          sent++;
-        } catch (sendErr: unknown) {
-          sendErrors++;
-          skipped++;
-          console.error("[email-reminders] send failed:", {
-            address: creatorAddress,
-            recipientEmail,
-            deluluId: d.id,
-            milestoneId: m.milestoneId,
-            message: sendErr instanceof Error ? sendErr.message : String(sendErr),
-          });
-          continue;
-        }
-
-        if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
-          break;
-        }
+        continue;
       }
 
       if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
@@ -348,10 +431,15 @@ export async function GET(req: NextRequest) {
       windowStartSec,
       windowEndSec,
       activeDelulus: delulus.length,
-      milestonesInWindow,
+      milestonesInWindow: candidates.length,
       sent,
       skipped,
-      skippedBreakdown: { noEmail, alreadySent, other: skipped - noEmail - alreadySent },
+      skippedBreakdown: {
+        noEmail,
+        alreadySent,
+        idempotencyErrors,
+        other: Math.max(0, skipped - noEmail - alreadySent - idempotencyErrors),
+      },
       sendErrors,
     });
   } catch (e: unknown) {
