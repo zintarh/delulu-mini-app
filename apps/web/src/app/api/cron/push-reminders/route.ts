@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import webpush from "web-push";
 import { errorResponse, jsonResponse } from "@/lib/api";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { createNotification } from "@/lib/notifications";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
@@ -25,13 +26,7 @@ type SubgraphMilestoneRow = {
   };
 };
 
-function requireCronAuth(req: NextRequest) {
-  const secret = process.env.PUSH_CRON_SECRET;
-  if (!secret) return true; // allow if not configured (dev)
-  const header = req.headers.get("x-cron-secret");
-  const qp = req.nextUrl.searchParams.get("secret");
-  return header === secret || qp === secret;
-}
+export const maxDuration = 300;
 
 function configureVapid() {
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@staydelulu.xyz";
@@ -81,7 +76,7 @@ function makeEventKey({
 
 export async function GET(req: NextRequest) {
   try {
-    if (!requireCronAuth(req)) {
+    if (!isCronAuthorized(req)) {
       return errorResponse("Unauthorized", 401);
     }
 

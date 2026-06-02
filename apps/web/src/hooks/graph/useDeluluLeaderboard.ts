@@ -10,6 +10,7 @@ import {
   getCachedContent,
   hasContentResolved,
 } from "@/lib/graph/ipfs-cache";
+import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
 
 const DELULU_LEADERBOARD_QUERY = gql`
   query DeluluLeaderboard($first: Int = 50, $skip: Int = 0, $campaignStart: BigInt = "0", $campaignEnd: BigInt = "9999999999") {
@@ -33,6 +34,10 @@ const DELULU_LEADERBOARD_QUERY = gql`
         isBuy
         curveAmount
       }
+      milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+        isVerified
+        pointsEarned
+      }
       creator {
         id
         username
@@ -55,7 +60,7 @@ export interface DeluluLeaderboardEntry {
   totalG: number;
   creatorStake: number;
   totalSupportCollected: number;
-  /** Campaign points (subgraph `delulu.points`) */
+  /** Points earned on this delulu (sum of verified milestone awards). */
   points: number;
   tradeCount: number;
   uniqueBuyerCount: number;
@@ -171,7 +176,7 @@ export function useDeluluLeaderboard(pageSize: number = 10, page: number = 0) {
           totalG,
           creatorStake,
           totalSupportCollected,
-          points: Number(d.points ?? "0"),
+          points: sumDeluluEarnedPoints(d.milestones),
           tradeCount: Number(d.tradeCount ?? "0"),
           uniqueBuyerCount: Number(d.uniqueBuyerCount ?? "0"),
         };

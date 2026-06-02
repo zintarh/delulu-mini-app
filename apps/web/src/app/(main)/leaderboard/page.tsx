@@ -266,7 +266,7 @@ function CampaignEmptyState() {
   return (
     <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 py-16 pb-20 text-center">
       <Trophy className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
-      <p className="text-sm text-muted-foreground">No entries on the board this week yet.</p>
+      <p className="text-sm text-muted-foreground">No entries on the board this campaign yet.</p>
       <Link
         href="/campaigns"
         className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"

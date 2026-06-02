@@ -5,11 +5,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   if (!isSupabaseAuthConfigured()) {
+    if (process.env.NODE_ENV === "development") {
+      console.error(
+        "[admin/login] Supabase Auth not configured: set SUPABASE_URL and SUPABASE_ANON_KEY (or NEXT_PUBLIC_* equivalents).",
+      );
+    }
     return NextResponse.json(
-      {
-        error:
-          "Admin auth is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then run pnpm seed:admin.",
-      },
+      { error: "Sign-in is temporarily unavailable. Please try again later." },
       { status: 503 },
     );
   }

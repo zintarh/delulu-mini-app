@@ -94,6 +94,7 @@ import {
   formatResolutionEndsLine,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay, isInsufficientGasError } from "@/lib/contract-error";
+import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
 import {
   buildDeluluLeaderboard,
   getDeluluRemainingDaysTotal,
@@ -425,6 +426,11 @@ export default function DeluluPage() {
       null
     );
   }, [delulu?.challengeId, challenges]);
+
+  const deluluEarnedPoints = useMemo(
+    () => sumDeluluEarnedPoints(milestones),
+    [milestones],
+  );
 
   const supportAmount = delulu?.totalSupportCollected || 0;
 
@@ -1405,6 +1411,17 @@ export default function DeluluPage() {
                           `Campaign #${Number(safeDelulu.challengeId)}`}
                       </span>
                     </div>
+                    <p className="text-sm text-foreground">
+                      <span className="font-semibold tabular-nums">
+                        {deluluEarnedPoints.toLocaleString()}
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        points earned on this delulu
+                        {deluluEarnedPoints > 0
+                          ? " (verified milestones)"
+                          : " — verify milestones to earn points"}
+                      </span>
+                    </p>
                   </div>
                 )}
             </div>

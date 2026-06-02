@@ -86,8 +86,8 @@ async function main() {
 
   console.log("\nEnsure apps/web/.env.local includes:");
   console.log(`  ADMIN_OPS_ALLOWED_EMAILS=${email}`);
-  console.log(`  NEXT_PUBLIC_SUPABASE_URL=${url}`);
-  console.log("  NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>");
+  console.log(`  SUPABASE_URL=${url}`);
+  console.log("  SUPABASE_ANON_KEY=<your anon key from Project Settings → API>");
   console.log("\nThen sign in at /admin/login");
 }
 

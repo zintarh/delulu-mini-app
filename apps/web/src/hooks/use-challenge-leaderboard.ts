@@ -1,18 +1,45 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import {
-  GetDelulusDocument,
-  type GetDelulusQuery,
-  type GetDelulusQueryVariables,
-} from "@/generated/graphql";
 import {
   transformSubgraphDelulu,
   type SubgraphDeluluRaw,
 } from "@/lib/graph/transformers";
 import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
+import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
 import type { FormattedDelulu } from "@/lib/types";
+
+const CHALLENGE_LEADERBOARD_QUERY = gql`
+  query ChallengeLeaderboard(
+    $first: Int = 200
+    $skip: Int = 0
+    $where: Delulu_filter
+  ) {
+    delulus(
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: desc
+      where: $where
+    ) {
+      id
+      onChainId
+      contentHash
+      creatorAddress
+      challengeId
+      points
+      creator {
+        username
+      }
+      milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+        isVerified
+        pointsEarned
+      }
+    }
+  }
+`;
 
 export interface LeaderboardEntry {
   deluluId: number;
@@ -27,17 +54,19 @@ export function useChallengeLeaderboard(challengeId: number | null) {
 
   // Fetch all delulus for this challenge from subgraph
   const { data, loading, error, refetch } = useQuery<
-    GetDelulusQuery,
-    GetDelulusQueryVariables
-  >(GetDelulusDocument, {
+    { delulus: any[] },
+    {
+      first: number;
+      skip: number;
+      where: { challengeId?: string };
+    }
+  >(CHALLENGE_LEADERBOARD_QUERY, {
     variables: {
       first: 200,
       skip: 0,
       where: {
         challengeId: challengeId !== null ? challengeId.toString() : undefined,
       },
-      orderBy: "points",
-      orderDirection: "desc",
     },
     skip: !challengeId,
     fetchPolicy: "cache-and-network",
@@ -79,13 +108,18 @@ export function useChallengeLeaderboard(challengeId: number | null) {
       })
       .filter((d): d is FormattedDelulu => d !== null);
 
-    const entries: LeaderboardEntry[] = transformed.map((delulu) => ({
-      deluluId: Number(delulu.onChainId ?? delulu.id),
-      creator: delulu.creator,
-      username: delulu.username,
-      points: Number((data.delulus.find((raw) => raw.id === delulu.onChainId || raw.id === String(delulu.id)) as any)?.points ?? "0"),
-      delulu,
-    }));
+    const entries: LeaderboardEntry[] = transformed.map((delulu) => {
+      const raw = data.delulus.find(
+        (r) => r.id === delulu.onChainId || r.id === String(delulu.id),
+      );
+      return {
+        deluluId: Number(delulu.onChainId ?? delulu.id),
+        creator: delulu.creator,
+        username: delulu.username,
+        points: sumDeluluEarnedPoints(raw?.milestones),
+        delulu,
+      };
+    });
 
     // Sort by points descending
     return entries.sort((a, b) => b.points - a.points);

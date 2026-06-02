@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse, jsonResponse } from "@/lib/api";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
 import {
@@ -9,40 +10,31 @@ import {
 } from "@/lib/milestone-utils";
 import { sendReminderEmail } from "@/lib/email/send-reminder";
 
+export const maxDuration = 300;
+
 // Temporary safety mode for production testing.
-// While enabled, cron only sends to this inbox (not real users).
 const TEST_RECIPIENT_EMAIL = "zintarh2024@gmail.com";
 const TEST_MODE_ENABLED = false;
 const MAX_TEST_EMAILS_PER_RUN = 1;
 
-type SubgraphMilestoneRow = {
+type SubgraphDeluluRow = {
   id: string;
-  milestoneId: string;
-  deadline: string;
-  startTime: string | null;
-  milestoneURI: string | null;
-  isSubmitted: boolean;
-  isVerified: boolean;
-  delulu: {
-    id: string;
-    creatorAddress: string;
-    contentHash: string;
-    createdAt: string;
-    stakingDeadline: string;
-    resolutionDeadline: string;
-    isResolved: boolean;
-    isCancelled: boolean;
-  };
+  contentHash: string;
+  createdAt: string;
+  stakingDeadline: string;
+  resolutionDeadline: string;
+  isResolved: boolean;
+  isCancelled: boolean;
+  creatorAddress: string;
+  milestones: {
+    milestoneId: string;
+    deadline: string;
+    startTime: string | null;
+    milestoneURI: string | null;
+    isSubmitted: boolean;
+    isVerified: boolean;
+  }[];
 };
-
-function requireCronAuth(req: NextRequest) {
-  const secret = process.env.PUSH_CRON_SECRET || process.env.CRON_SECRET;
-  if (!secret) return true;
-  const header = req.headers.get("x-cron-secret");
-  const authHeader = req.headers.get("authorization");
-  const qp = req.nextUrl.searchParams.get("secret");
-  return header === secret || qp === secret || authHeader === `Bearer ${secret}`;
-}
 
 async function fetchJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -52,7 +44,11 @@ async function fetchJson(url: string, body: unknown) {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Subgraph request failed: ${res.status}`);
-  return res.json();
+  const json = await res.json();
+  if (json?.errors?.length) {
+    throw new Error(json.errors[0]?.message ?? "Subgraph query error");
+  }
+  return json;
 }
 
 const IPFS_GATEWAYS = [
@@ -109,11 +105,11 @@ function makeEventKey({
 }: {
   kind: string;
   deluluId: string;
-  milestoneId?: string;
+  milestoneId: string;
   address: string;
   scheduledForSec: number;
 }) {
-  return [kind, deluluId, milestoneId ?? "-", address.toLowerCase(), String(scheduledForSec)].join(":");
+  return [kind, deluluId, milestoneId, address.toLowerCase(), String(scheduledForSec)].join(":");
 }
 
 function isValidEmail(email: string | null | undefined): email is string {
@@ -124,12 +120,14 @@ function isValidEmail(email: string | null | undefined): email is string {
 
 export async function GET(req: NextRequest) {
   try {
-    if (!requireCronAuth(req)) {
+    if (!isCronAuthorized(req)) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[email-reminders] Unauthorized — check CRON_SECRET matches Vercel.");
+      }
       return errorResponse("Unauthorized", 401);
     }
 
-    const resendKey = process.env.RESEND_API_KEY;
-    if (!resendKey) {
+    if (!process.env.RESEND_API_KEY) {
       return errorResponse("Missing RESEND_API_KEY.", 500);
     }
 
@@ -148,212 +146,197 @@ export async function GET(req: NextRequest) {
 
     const nowMs = Date.now();
     const nowSec = Math.floor(nowMs / 1000);
-    // 30-minute cadence: remind milestones ending within next 1 hour.
+    // 30-minute cadence: remind milestones ending within the next hour (same window as UI).
     const windowStartSec = nowSec;
     const windowEndSec = nowSec + 60 * 60;
 
-    const milestoneQuery = `
-      query MilestonesForEmailReminders($from: BigInt!, $to: BigInt!) {
-        milestones(
-          first: 1000
-          where: { deadline_gte: $from, deadline_lte: $to, isSubmitted: false, isVerified: false, isDeleted: false }
-          orderBy: deadline
-          orderDirection: asc
+    const deluluQuery = `
+      query DelulusForEmailReminders($now: BigInt!) {
+        delulus(
+          first: 300
+          orderBy: createdAt
+          orderDirection: desc
+          where: { isResolved: false, isCancelled: false, resolutionDeadline_gt: $now }
         ) {
           id
-          milestoneId
-          deadline
-          startTime
-          milestoneURI
-          isSubmitted
-          isVerified
-          delulu {
-            id
-            creatorAddress
-            contentHash
-            createdAt
-            stakingDeadline
-            resolutionDeadline
-            isResolved
-            isCancelled
+          contentHash
+          createdAt
+          stakingDeadline
+          resolutionDeadline
+          isResolved
+          isCancelled
+          creatorAddress
+          milestones(
+            first: 30
+            orderBy: milestoneId
+            orderDirection: asc
+            where: { isSubmitted: false, isVerified: false, isDeleted: false }
+          ) {
+            milestoneId
+            deadline
+            startTime
+            milestoneURI
+            isSubmitted
+            isVerified
           }
         }
       }
     `;
 
-    // Broad server-side filter to catch chained milestone deadlines
-    const from = String(nowSec - 60 * 60);
-    const to = String(windowEndSec + 60 * 60);
-    const milestoneResp = await fetchJson(subgraphUrl, {
-      query: milestoneQuery,
-      variables: { from, to },
+    const deluluResp = await fetchJson(subgraphUrl, {
+      query: deluluQuery,
+      variables: { now: String(nowSec) },
     });
 
-    const milestones: SubgraphMilestoneRow[] = milestoneResp?.data?.milestones ?? [];
+    const delulus: SubgraphDeluluRow[] = deluluResp?.data?.delulus ?? [];
 
     let sent = 0;
     let skipped = 0;
     let sendErrors = 0;
     let noEmail = 0;
     let alreadySent = 0;
+    let milestonesInWindow = 0;
 
-    for (const m of milestones) {
-      const creatorAddress = (m.delulu?.creatorAddress || "").toLowerCase();
+    for (const d of delulus) {
+      const creatorAddress = (d.creatorAddress || "").toLowerCase();
       if (!creatorAddress.startsWith("0x") || creatorAddress.length !== 42) {
         skipped++;
         continue;
       }
 
-      const resolutionDeadlineSec = Number(m.delulu.resolutionDeadline || "0");
-      const isDeluluOngoing =
-        !m.delulu.isResolved &&
-        !m.delulu.isCancelled &&
-        Number.isFinite(resolutionDeadlineSec) &&
-        resolutionDeadlineSec > nowSec;
-      if (!isDeluluOngoing) {
-        skipped++;
-        continue;
-      }
-
-      const deluluCreatedAt =
-        toDateSeconds(m.delulu.createdAt) ?? toDateSeconds(m.delulu.stakingDeadline);
       const createdAtMs = getDeluluCreatedAtMs(
         {
-          createdAt: deluluCreatedAt ?? undefined,
-          stakingDeadline: toDateSeconds(m.delulu.stakingDeadline) ?? undefined,
+          createdAt: toDateSeconds(d.createdAt) ?? undefined,
+          stakingDeadline: toDateSeconds(d.stakingDeadline) ?? undefined,
         },
         nowMs,
       );
 
-      const endMs = getMilestoneEndTimeMs(
-        {
-          startTime: toDateSeconds(m.startTime),
-          deadline: toDateSeconds(m.deadline) ?? new Date(0),
-        },
-        null,
-        createdAtMs,
+      let prevEndMs: number | null = null;
+      const sortedMilestones = [...(d.milestones ?? [])].sort(
+        (a, b) => Number(a.milestoneId) - Number(b.milestoneId),
       );
-      const endSec = Math.floor(endMs / 1000);
 
-      if (endSec < windowStartSec || endSec > windowEndSec) {
-        skipped++;
-        continue;
-      }
-      if (endSec <= nowSec) {
-        skipped++;
-        continue;
-      }
+      const deluluTitle =
+        (await resolveDeluluTitle(d.contentHash)) ?? "Your ongoing delulu";
 
-      // ── 1. Validate before claiming idempotency ──────────────────────────────
-      // Look up user profile first so we know the email is valid before we
-      // mark this event as "sent" in push_events_sent. If we claim idempotency
-      // before checking the email, a bad/missing email permanently prevents
-      // this milestone reminder from ever being retried.
-      const { data: profile, error: profileErr } = await supabase
-        .from("profiles")
-        .select("email, username")
-        .eq("address", creatorAddress)
-        .maybeSingle();
+      for (const m of sortedMilestones) {
+        const endMs = getMilestoneEndTimeMs(
+          {
+            startTime: toDateSeconds(m.startTime),
+            deadline: toDateSeconds(m.deadline) ?? new Date(0),
+          },
+          prevEndMs,
+          createdAtMs,
+        );
+        prevEndMs = endMs;
+        const endSec = Math.floor(endMs / 1000);
 
-      if (profileErr) {
-        skipped++;
-        continue;
-      }
+        if (endSec < windowStartSec || endSec > windowEndSec || endSec <= nowSec) {
+          continue;
+        }
 
-      const recipientEmail = TEST_MODE_ENABLED
-        ? TEST_RECIPIENT_EMAIL
-        : (profile?.email as string | null | undefined);
+        milestonesInWindow++;
 
-      if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
-        // User has no valid email — skip but do NOT claim idempotency so we
-        // can retry if they add an email before the deadline.
-        noEmail++;
-        skipped++;
-        continue;
-      }
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("email, username")
+          .eq("address", creatorAddress)
+          .maybeSingle();
 
-      // ── 2. Claim idempotency (only after we know we can send) ─────────────
-      const scheduledForSec = endSec - 60 * 60;
-      const eventKey = makeEventKey({
-        kind: "milestone_due_1h_email",
-        deluluId: m.delulu.id,
-        milestoneId: m.milestoneId,
-        address: creatorAddress,
-        scheduledForSec,
-      });
-
-      const { error: insertErr } = await supabase.from("push_events_sent").insert({
-        event_key: eventKey,
-        address: creatorAddress,
-      });
-
-      if (insertErr) {
-        // code 23505 = unique_violation: already sent — this is expected
-        if (insertErr.code === "23505") {
-          alreadySent++;
+        if (profileErr) {
           skipped++;
           continue;
         }
-        // Any other DB error: log it but still attempt the send so the user
-        // gets their reminder. The worst case is a duplicate email on retry.
-        console.error("[email-reminders] push_events_sent insert error:", {
-          code: insertErr.code,
-          message: insertErr.message,
-          deluluId: m.delulu.id,
+
+        const recipientEmail = TEST_MODE_ENABLED
+          ? TEST_RECIPIENT_EMAIL
+          : (profile?.email as string | null | undefined);
+
+        if (!TEST_MODE_ENABLED && !isValidEmail(recipientEmail)) {
+          noEmail++;
+          skipped++;
+          continue;
+        }
+
+        const scheduledForSec = endSec - 60 * 60;
+        const eventKey = makeEventKey({
+          kind: "milestone_due_1h_email",
+          deluluId: d.id,
           milestoneId: m.milestoneId,
-        });
-      }
-
-      // ── 3. Send ───────────────────────────────────────────────────────────
-      const milestoneLabel = getMilestoneLabel(
-        { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
-        80,
-      );
-      const deluluTitle =
-        (await resolveDeluluTitle(m.delulu.contentHash)) ??
-        "Your ongoing delulu";
-
-      const milestoneUrl = `${appUrl}/delulu/${m.delulu.id}?milestone=${m.milestoneId}`;
-      try {
-        await sendReminderEmail(
-          recipientEmail as string,
-          {
-            username: (profile as any)?.username ?? "Visionary",
-            goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
-            pendingHabits: [
-              {
-                emoji: "",
-                title: deluluTitle,
-                milestoneTitle: milestoneLabel,
-                timeLeftText: formatRemainingTime(nowSec, endSec),
-                ctaUrl: milestoneUrl,
-                ctaLabel: "Submit proof",
-              },
-            ],
-            appUrl,
-            ctaUrl: milestoneUrl,
-            ctaLabel: "Submit proof",
-            manageUrl: `${appUrl}/profile`,
-          },
-          {
-            subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
-          },
-        );
-        sent++;
-      } catch (sendErr: any) {
-        sendErrors++;
-        skipped++;
-        console.error("[email-reminders] send failed:", {
           address: creatorAddress,
-          recipientEmail,
-          deluluId: m.delulu.id,
-          milestoneId: m.milestoneId,
-          message: String(sendErr?.message || sendErr),
+          scheduledForSec,
         });
-        continue;
+
+        const { error: insertErr } = await supabase.from("push_events_sent").insert({
+          event_key: eventKey,
+          address: creatorAddress,
+        });
+
+        if (insertErr) {
+          if (insertErr.code === "23505") {
+            alreadySent++;
+            skipped++;
+            continue;
+          }
+          console.error("[email-reminders] push_events_sent insert error:", {
+            code: insertErr.code,
+            message: insertErr.message,
+            deluluId: d.id,
+            milestoneId: m.milestoneId,
+          });
+        }
+
+        const milestoneLabel = getMilestoneLabel(
+          { milestoneId: m.milestoneId, milestoneURI: m.milestoneURI },
+          80,
+        );
+        const milestoneUrl = `${appUrl}/delulu/${d.id}?milestone=${m.milestoneId}`;
+
+        try {
+          await sendReminderEmail(
+            recipientEmail as string,
+            {
+              username: (profile as { username?: string })?.username ?? "Visionary",
+              goalTitle: "A milestone on your ongoing delulu is due in about 1 hour",
+              pendingHabits: [
+                {
+                  emoji: "",
+                  title: deluluTitle,
+                  milestoneTitle: milestoneLabel,
+                  timeLeftText: formatRemainingTime(nowSec, endSec),
+                  ctaUrl: milestoneUrl,
+                  ctaLabel: "Submit proof",
+                },
+              ],
+              appUrl,
+              ctaUrl: milestoneUrl,
+              ctaLabel: "Submit proof",
+              manageUrl: `${appUrl}/profile`,
+            },
+            {
+              subject: `Zinta from Delulu: ${milestoneLabel} is due soon on "${deluluTitle}"`,
+            },
+          );
+          sent++;
+        } catch (sendErr: unknown) {
+          sendErrors++;
+          skipped++;
+          console.error("[email-reminders] send failed:", {
+            address: creatorAddress,
+            recipientEmail,
+            deluluId: d.id,
+            milestoneId: m.milestoneId,
+            message: sendErr instanceof Error ? sendErr.message : String(sendErr),
+          });
+          continue;
+        }
+
+        if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
+          break;
+        }
       }
 
-      // In test mode, send at most one email per run.
       if (TEST_MODE_ENABLED && sent >= MAX_TEST_EMAILS_PER_RUN) {
         break;
       }
@@ -364,7 +347,8 @@ export async function GET(req: NextRequest) {
       nowSec,
       windowStartSec,
       windowEndSec,
-      milestonesFound: milestones.length,
+      activeDelulus: delulus.length,
+      milestonesInWindow,
       sent,
       skipped,
       skippedBreakdown: { noEmail, alreadySent, other: skipped - noEmail - alreadySent },
@@ -372,6 +356,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Cron failed";
+    console.error("[email-reminders] fatal:", msg);
     return errorResponse(msg, 500);
   }
 }

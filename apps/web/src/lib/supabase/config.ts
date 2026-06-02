@@ -5,7 +5,9 @@ export function getSupabaseUrl(): string | undefined {
 
 /** Anon key for Supabase Auth (required for admin login). */
 export function getSupabaseAnonKey(): string | undefined {
-  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+  );
 }
 
 export function isSupabaseAuthConfigured(): boolean {

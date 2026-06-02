@@ -342,7 +342,7 @@ export function RightSidebar() {
                 })
               ) : (
                 <p className="py-6 text-center text-[11px] text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>
-                  No entries this week yet.
+                  No entries this campaign yet.
                 </p>
               )}
             </div>
