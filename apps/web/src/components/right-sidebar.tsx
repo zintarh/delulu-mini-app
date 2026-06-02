@@ -163,7 +163,7 @@ export function RightSidebar() {
           </div>
 
           {hasSearched && results.length === 0 && !isSearching ? (
-            isIndexBuilding ? (
+            isIndexBuilding && totalCount > 0 && indexedCount < totalCount ? (
               <p className="text-xs text-muted-foreground/60 text-center py-6">
                 Still indexing… results will appear automatically
               </p>

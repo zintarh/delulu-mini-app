@@ -17,6 +17,8 @@ export function useDeluluSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [isIndexBuilding, setIsIndexBuilding] = useState(false);
+  const [indexedCount, setIndexedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +54,8 @@ export function useDeluluSearch() {
       setResults(data.results ?? []);
       setHasSearched(true);
       setIsIndexBuilding(data.isBuilding ?? false);
+      setIndexedCount(data.indexedCount ?? 0);
+      setTotalCount(data.totalCount ?? 0);
 
       if (data.isBuilding) {
         if (pollRef.current) clearTimeout(pollRef.current);
@@ -76,6 +80,8 @@ export function useDeluluSearch() {
       setBootstrap(data);
       bootstrapLoadedRef.current = true;
       setIsIndexBuilding(data.isBuilding ?? false);
+      setIndexedCount(data.indexedCount ?? 0);
+      setTotalCount(data.totalCount ?? 0);
     } catch {
       setBootstrap({
         trending: [],
@@ -84,6 +90,9 @@ export function useDeluluSearch() {
         indexedCount: 0,
         totalCount: 0,
       });
+      setIndexedCount(0);
+      setTotalCount(0);
+      setIsIndexBuilding(false);
     } finally {
       setIsBootstrapLoading(false);
     }
@@ -123,6 +132,8 @@ export function useDeluluSearch() {
 
   const hasQuery = query.trim().length >= 2;
   const showEmptyState = !hasQuery;
+  const isIndexIncomplete =
+    isIndexBuilding && totalCount > 0 && indexedCount < totalCount;
 
   return {
     query,
@@ -135,6 +146,9 @@ export function useDeluluSearch() {
     hasSearched,
     searchError,
     isIndexBuilding,
+    isIndexIncomplete,
+    indexedCount,
+    totalCount,
     hasQuery,
     showEmptyState,
     loadBootstrap,

@@ -39,7 +39,7 @@ export function HomeSearch({
     isBootstrapLoading,
     hasSearched,
     searchError,
-    isIndexBuilding,
+    isIndexIncomplete,
     hasQuery,
     loadBootstrap,
     runSearch,
@@ -188,8 +188,8 @@ export function HomeSearch({
 
               {!searchError && hasSearched && results.length === 0 && !isSearching ? (
                 <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                  {isIndexBuilding
-                    ? "Still indexing — try again in a moment"
+                  {isIndexIncomplete
+                    ? "Still indexing… results will appear automatically"
                     : `No results for “${query.trim()}”`}
                 </p>
               ) : null}
