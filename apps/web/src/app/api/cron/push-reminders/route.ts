@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import webpush from "web-push";
 import { errorResponse, jsonResponse } from "@/lib/api";

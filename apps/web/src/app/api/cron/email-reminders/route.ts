@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { isCronAuthorized } from "@/lib/cron-auth";
