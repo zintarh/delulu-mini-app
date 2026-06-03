@@ -20,7 +20,7 @@ const DELULU_LEADERBOARD_QUERY = gql`
       skip: $skip
       orderBy: points
       orderDirection: desc
-      where: { isCancelled: false, createdAt_gte: $campaignStart, createdAt_lte: $campaignEnd }
+      where: { createdAt_gte: $campaignStart, createdAt_lte: $campaignEnd }
     ) {
       id
       onChainId

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { ProfileLoader } from "@/components/profile-loader";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
@@ -79,6 +80,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex h-screen lg:pl-24">
+          <ProfileLoader />
           {authenticated ? <NotificationsPanel /> : null}
           <ClaimPanel />
           <WhitelistRedirectToast />

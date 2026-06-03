@@ -35,19 +35,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ profiles: {} });
     }
 
-    console.log("[profile-api] querying", addresses.length, "addresses:", addresses);
-
     const { data, error } = await supabase
       .from("profiles")
       .select("address, pfp_url")
       .in("address", addresses);
 
-    if (error) {
-      console.error("[profile-api] supabase error:", error);
-      throw error;
-    }
-
-    console.log("[profile-api] supabase returned", data?.length ?? 0, "rows:", JSON.stringify(data));
+    if (error) throw error;
 
     const profiles: Record<string, string | null> = {};
     for (const row of data ?? []) {
@@ -55,11 +48,11 @@ export async function GET(request: NextRequest) {
         typeof (row as any).pfp_url === "string" ? (row as any).pfp_url : null;
     }
 
-    console.log("[profile-api] returning profiles:", JSON.stringify(profiles));
-
     return NextResponse.json({ profiles }, {
       headers: {
-        "Cache-Control": "no-store",
+        // Profile images rarely change — 60s CDN cache, 30s stale-while-revalidate.
+        // The client-side 3-min TTL in use-profile-pfp.ts prevents over-fetching.
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
       },
     });
   } catch (error) {

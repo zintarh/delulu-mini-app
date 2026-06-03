@@ -13,6 +13,8 @@ const subscribers = new Set<() => void>();
 
 // Addresses queued for the next batch fetch
 const pending = new Set<string>();
+// Addresses currently being fetched — prevents duplicate in-flight requests
+const fetching = new Set<string>();
 let batchTimer: ReturnType<typeof setTimeout> | null = null;
 
 function notify() {
@@ -26,9 +28,10 @@ async function flushBatch() {
   const batch = Array.from(pending);
   pending.clear();
 
-  // Only fetch addresses not already fresh in cache
+  // Only fetch addresses not already fresh in cache and not already in-flight
   const now = Date.now();
   const toFetch = batch.filter((a) => {
+    if (fetching.has(a)) return false;
     const entry = cache.get(a);
     return !entry || now - entry.ts >= CACHE_TTL_MS;
   });
@@ -36,6 +39,8 @@ async function flushBatch() {
     notify();
     return;
   }
+
+  toFetch.forEach((a) => fetching.add(a));
 
   try {
     const url = `/api/profile?addresses=${encodeURIComponent(toFetch.join(","))}`;
@@ -56,6 +61,8 @@ async function flushBatch() {
   } catch {
     const cachedAt = Date.now();
     for (const addr of toFetch) cache.set(addr, { value: null, ts: cachedAt });
+  } finally {
+    toFetch.forEach((a) => fetching.delete(a));
   }
 
   notify();

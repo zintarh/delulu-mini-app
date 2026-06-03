@@ -562,7 +562,7 @@ function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
             </div>
             <div
               className={cn(
-                "mb-3 w-full overflow-hidden rounded-xl",
+                "relative mb-3 w-full overflow-hidden rounded-xl",
                 isFirst ? "aspect-[4/3]" : "aspect-[5/4]",
               )}
               style={{ background: tileGradient(entry.creatorAddress) }}
@@ -696,7 +696,7 @@ function CampaignLeaderboard() {
             >
               <RankBadge rank={myRank!} />
               <div
-                className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
+                className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl"
                 style={{ background: tileGradient(myEntry!.creatorAddress) }}
               >
                 {normalizeDeluluImageSrc(myEntry!.bgImageUrl) && (
@@ -731,7 +731,7 @@ function CampaignLeaderboard() {
               >
                 <RankBadge rank={rank} />
                 <div
-                  className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
+                  className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl"
                   style={{ background: tileGradient(entry.creatorAddress) }}
                 >
                   {normalizeDeluluImageSrc(entry.bgImageUrl) && (

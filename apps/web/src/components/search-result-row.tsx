@@ -40,7 +40,7 @@ export function SearchResultRow({
     >
       <div
         className={cn(
-          "shrink-0 overflow-hidden rounded-xl",
+          "relative shrink-0 overflow-hidden rounded-xl",
           compact ? "h-10 w-10" : "h-12 w-12",
         )}
         style={{ background: tileGradient(result.creator) }}

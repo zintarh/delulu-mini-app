@@ -21,6 +21,7 @@ const gloriaHallelujah = Gloria_Hallelujah({
   subsets: ["latin"],
   variable: "--font-gloria",
   display: "swap",
+  preload: false,
 });
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
@@ -82,6 +83,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"
+        />
+      </head>
       <body
         className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >

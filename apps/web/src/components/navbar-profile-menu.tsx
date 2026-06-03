@@ -11,6 +11,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useLogoutSheetOptional } from "@/contexts/logout-sheet-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { usePfp } from "@/hooks/use-profile-pfp";
 
 const DEFAULT_AVATAR = "/user-avatar.jpg";
 
@@ -109,7 +110,10 @@ export function NavbarProfileMenu({
     };
   }, []);
 
-  const avatarSrc = user?.pfpUrl?.trim() ? user.pfpUrl : DEFAULT_AVATAR;
+  const pfpFromCache = usePfp(address ?? undefined);
+  // Use live Supabase pfp (via batch cache) → fall back to store → default
+  const resolvedPfp = pfpFromCache || user?.pfpUrl || null;
+  const avatarSrc = resolvedPfp ?? DEFAULT_AVATAR;
   const displayName =
     user?.displayName?.trim() ||
     (user?.username ? user.username : null) ||
@@ -172,7 +176,7 @@ export function NavbarProfileMenu({
                     <UserAvatar
                       address={walletAddress}
                       username={user?.username}
-                      pfpUrl={user?.pfpUrl ?? null}
+                      pfpUrl={resolvedPfp}
                       size={48}
                       className="shrink-0"
                     />

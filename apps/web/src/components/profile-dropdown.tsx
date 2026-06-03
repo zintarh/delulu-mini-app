@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useUserStore } from "@/stores/useUserStore";
+import { useAuth } from "@/hooks/use-auth";
+import { usePfp } from "@/hooks/use-profile-pfp";
 import { LogOut, User } from "lucide-react";
 
 const DEFAULT_AVATAR_BASE =
@@ -19,9 +21,11 @@ export function ProfileDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useUserStore();
+  const { address } = useAuth();
+  const pfpFromCache = usePfp(address ?? undefined);
   const fallbackSeed = user?.displayName || user?.username || "delulu-user";
   const fallbackAvatarUrl = `${DEFAULT_AVATAR_BASE}${encodeURIComponent(fallbackSeed)}`;
-  const avatarUrl = user?.pfpUrl || fallbackAvatarUrl;
+  const avatarUrl = pfpFromCache || user?.pfpUrl || fallbackAvatarUrl;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

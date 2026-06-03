@@ -42,7 +42,11 @@ export default function ProfilePage() {
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || null;
   const pfpFromSupabase = usePfp(address);
-  const avatarUrl = (pfpFromSupabase !== undefined ? pfpFromSupabase : user?.pfpUrl) || null;
+  // Supabase is the source of truth when it returns a URL; fall back to the
+  // local store when Supabase hasn't loaded yet (undefined) OR returned null
+  // (address not in DB / pfp_url column is null). This prevents the flash
+  // where the store image briefly shows then disappears after the fetch.
+  const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
 
   const email = user?.email ?? null;
 

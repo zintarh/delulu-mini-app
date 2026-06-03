@@ -40,6 +40,7 @@ const nextConfig = {
       "@privy-io/react-auth",
       "@privy-io/wagmi",
       "react-textarea-autosize",
+      "@web3auth/modal",
     ],
   },
   webpack: (config) => {

@@ -46,7 +46,6 @@ export function UserAvatar({
   const hue = useMemo(() => hueFromString(seed), [seed]);
   const letters = useMemo(() => initials(address, username), [address, username]);
 
-  console.log(`[avatar] ${address.slice(0,8)}… pfpUrl=`, pfpUrl === undefined ? "undefined(skeleton)" : pfpUrl ?? "null(initials)");
 
   const sizeClass = `shrink-0 rounded-full overflow-hidden`;
   const style = { width: size, height: size, minWidth: size };
