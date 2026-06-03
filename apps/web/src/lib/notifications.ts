@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
+// Notification types used across the app
 export type NotificationType =
   | "milestone_due"
   | "delulu_ending"
