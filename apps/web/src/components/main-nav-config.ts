@@ -1,6 +1,7 @@
 import {
   Bell,
   Compass,
+  Flame,
   Gift,
   Home,
   Plus,
@@ -20,6 +21,7 @@ export type MainNavItem = {
     | "claim"
     | "explore"
     | "leaderboard"
+    | "streaks"
     | "profile";
 };
 
@@ -58,6 +60,12 @@ export function getMainNavItems(authenticated: boolean): MainNavItem[] {
       label: "Leaderboard",
       href: "/leaderboard",
       action: "leaderboard",
+    },
+    {
+      icon: Flame,
+      label: "Streaks",
+      href: "/streaks",
+      action: "streaks",
     },
   ];
 }
@@ -113,6 +121,11 @@ export function isMainNavItemActive(
       return (
         options.layoutSegment === "leaderboard" ||
         isNavHrefActive(path, "/leaderboard")
+      );
+    case "streaks":
+      return (
+        options.layoutSegment === "streaks" ||
+        isNavHrefActive(path, "/streaks")
       );
     case "profile":
       return (

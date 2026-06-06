@@ -9,11 +9,13 @@ import {
   useClaimSDK,
 } from "@/hooks/use-claim-sdk";
 import type { GoodDollarWhitelistAction } from "@/lib/gooddollar-whitelist";
-import { isGoodDollarToken } from "@/lib/constant";
+import { isGoodDollarToken, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { useTokenBalance } from "@/hooks/use-token-balance";
 
 /**
  * Before tipping or creating a delulu, ensure the wallet is GoodDollar-whitelisted.
- * If not, opens the claim panel with context and returns false.
+ * If the user already holds G$ (sent from another account), skip the whitelist check —
+ * the whitelist only gates zero-balance wallets that need to claim UBI first.
  */
 export function useRequireGoodDollarWhitelist() {
   const { authenticated } = useAuth();
@@ -23,11 +25,16 @@ export function useRequireGoodDollarWhitelist() {
   const { openForWhitelist } = useClaimPanel();
   const [isChecking, setIsChecking] = useState(false);
 
+  const { balance: gdBalance } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const gdBalanceNum = Number(gdBalance?.formatted ?? "0");
+  const hasGdBalance = Number.isFinite(gdBalanceNum) && gdBalanceNum > 0;
+
   const ensureWhitelisted = useCallback(
     async (
       action: GoodDollarWhitelistAction,
       tokenAddress?: string,
     ): Promise<boolean> => {
+      // Non-G$ tokens never need whitelist
       if (tokenAddress && !isGoodDollarToken(tokenAddress)) {
         return true;
       }
@@ -37,6 +44,9 @@ export function useRequireGoodDollarWhitelist() {
         router.push(`/sign-in?redirect=${encodeURIComponent(redirect)}`);
         return false;
       }
+
+      // User already holds G$ — whitelist is only required to claim UBI (zero-balance)
+      if (hasGdBalance) return true;
 
       if (!isReady || !claimSDK) {
         openForWhitelist(action);
@@ -53,7 +63,7 @@ export function useRequireGoodDollarWhitelist() {
         setIsChecking(false);
       }
     },
-    [authenticated, claimSDK, isReady, openForWhitelist, pathname, router],
+    [authenticated, claimSDK, hasGdBalance, isReady, openForWhitelist, pathname, router],
   );
 
   return { ensureWhitelisted, isChecking };

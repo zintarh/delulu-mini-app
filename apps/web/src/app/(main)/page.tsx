@@ -130,24 +130,24 @@ export default function HomePage() {
   };
 
   const [showUserSetupModal, setShowUserSetupModal] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
   const scrollContainerRef = useRef<HTMLElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
+  // IntersectionObserver for infinite scroll — no per-frame scroll handler needed
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      if (scrollHeight - scrollTop - clientHeight < 400 && hasNextPage && !isFetchingNextPage && !isLoading) {
-        fetchNextPage();
-      }
-    };
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    };
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage && !isLoading) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   useEffect(() => {
@@ -199,6 +199,7 @@ export default function HomePage() {
       <main
           ref={scrollContainerRef}
           className="h-screen overflow-y-auto scrollbar-hide bg-background"
+          style={{ touchAction: "pan-y" }}
         >
           {/* Indeterminate progress bar */}
           <div className="sticky top-0 z-50 h-[2px] w-full overflow-hidden pointer-events-none">
@@ -312,6 +313,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
+          {/* Sentinel for IntersectionObserver-based infinite scroll */}
+          <div ref={loadMoreSentinelRef} className="h-1 w-full" aria-hidden />
       </main>
 
       <ClaimRewardsSheet

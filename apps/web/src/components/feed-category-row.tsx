@@ -87,6 +87,7 @@ export function FeedCategoryRow({
             "-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1",
             "scrollbar-hide overscroll-x-contain",
           )}
+          style={{ touchAction: "pan-x" }}
           role="region"
           aria-label={`${category.title} — scroll sideways for more`}
         >

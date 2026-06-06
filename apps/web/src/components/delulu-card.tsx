@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useIsMiniPay } from "@/hooks/use-is-minipay";
+import { USDT_ADDRESSES } from "@/lib/constant";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
@@ -120,6 +122,9 @@ export function DeluluCard({
   const router = useRouter();
   const apolloClient = useApolloClient();
   const chainId = useChainId();
+  const inMiniPay = useIsMiniPay();
+  // In MiniPay, always tip with USDT regardless of the goal's token
+  const effectiveTokenAddress = inMiniPay ? USDT_ADDRESSES.mainnet : delusion.tokenAddress;
 
   const {
     writeContract: writeQuickTip,
@@ -135,13 +140,12 @@ export function DeluluCard({
     isConfirming: isApprovalConfirming,
     isSuccess: isApprovalSuccess,
     refetchAllowance,
-  } = useTokenApproval(delusion.tokenAddress);
+  } = useTokenApproval(effectiveTokenAddress);
 
   const isDoingApproval = isApproving || isApprovalConfirming;
   const isQuickTipping = isQuickTipPending || isConfirmingQuickTip || isDoingApproval;
-
-  const tokenSymbol = getTokenSymbol(delusion.tokenAddress);
-  const defaultTipAmount = getDefaultTipAmount(delusion.tokenAddress);
+  const tokenSymbol = getTokenSymbol(effectiveTokenAddress);
+  const defaultTipAmount = getDefaultTipAmount(effectiveTokenAddress);
 
   const [autoTipAfterApproval, setAutoTipAfterApproval] = useState(false);
   const pendingTipAmountRef = useRef<number>(defaultTipAmount);
@@ -169,7 +173,7 @@ export function DeluluCard({
     if (needsApproval(amount)) return;
     setAutoTipAfterApproval(false);
     try {
-      const amountWei = parseTokenAmount(amount, delusion.tokenAddress);
+      const amountWei = parseTokenAmount(amount, effectiveTokenAddress);
       writeQuickTip({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
@@ -182,11 +186,11 @@ export function DeluluCard({
   }, [autoTipAfterApproval, isDoingApproval, needsApproval, writeQuickTip, chainId, delusion.onChainId, delusion.id, delusion.tokenAddress]);
 
   useEffect(() => {
-    setTipAmount(getDefaultTipAmount(delusion.tokenAddress));
-  }, [delusion.tokenAddress]);
+    setTipAmount(getDefaultTipAmount(effectiveTokenAddress));
+  }, [effectiveTokenAddress]);
 
   const { formatted: gBalanceFormatted, isLoading: isLoadingGBalance } =
-    useTokenBalance(delusion.tokenAddress);
+    useTokenBalance(effectiveTokenAddress);
   const gBalanceNum = Number(gBalanceFormatted ?? "0");
   const hasEnoughForTip =
     isLoadingGBalance ||
@@ -299,7 +303,7 @@ export function DeluluCard({
       router.push(`/delulu/${delusion.id}?milestones=1`);
       return;
     }
-    const allowed = await ensureWhitelisted("tip", delusion.tokenAddress);
+    const allowed = await ensureWhitelisted("tip", effectiveTokenAddress);
     if (!allowed) return;
 
     pendingTipAmountRef.current = tipAmount;
@@ -309,7 +313,7 @@ export function DeluluCard({
       return;
     }
     try {
-      const amountWei = parseTokenAmount(tipAmount, delusion.tokenAddress);
+      const amountWei = parseTokenAmount(tipAmount, effectiveTokenAddress);
       writeQuickTip({
         address: getDeluluContractAddress(chainId),
         abi: DELULU_ABI,
@@ -395,7 +399,7 @@ export function DeluluCard({
       onClick={href ? undefined : handleCardClick}
       onMouseEnter={handleMouseEnter}
       className={cn(
-        "relative aspect-[5/4] w-full overflow-hidden transition-all duration-200",
+        "relative aspect-[5/4] w-full overflow-hidden transition-[transform,box-shadow] duration-200",
         "rounded-3xl border-0",
         "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_20px_rgba(0,0,0,0.07)]",
         "hover:-translate-y-1 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.1)]",
@@ -478,7 +482,7 @@ export function DeluluCard({
       onClick={href ? undefined : handleCardClick}
       onMouseEnter={handleMouseEnter}
       className={cn(
-        "flex flex-col overflow-hidden bg-card transition-all duration-200",
+        "flex flex-col overflow-hidden bg-card transition-[transform,box-shadow] duration-200",
         variant === "grid"
           ? "min-h-0 rounded-2xl border border-border/60 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
           : variant === "feed"

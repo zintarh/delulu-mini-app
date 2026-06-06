@@ -3,12 +3,14 @@
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
-import { http, fallback } from "wagmi";
-import { celo, fuse } from "wagmi/chains";
+import { http, fallback, custom } from "wagmi";
+import { celo } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 import { web3AuthConnector } from "@/lib/web3auth-bridge";
+import { isMiniPayEnv } from "@/hooks/use-is-minipay";
 
-const chains = [celo, fuse] as const;
+// MiniPay requires Celo only — no Fuse.
+const chains = [celo] as const;
 
 export default function FrameWalletProvider({
   children,
@@ -25,19 +27,22 @@ export default function FrameWalletProvider({
       web3AuthConnector,
     ];
 
-    const configOptions = {
+    // Per MiniPay docs: use custom(window.ethereum) transport inside MiniPay
+    // so wallet operations go through the injected provider, not an HTTP RPC.
+    const celoTransport = isMiniPayEnv()
+      ? custom((window as any).ethereum)
+      : fallback([
+          http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL),
+          http("https://forno.celo.org"),
+        ]);
+
+    return createConfig({
       chains,
       connectors: baseConnectors,
       transports: {
-        [celo.id]: fallback([
-          http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL),
-          http("https://forno.celo.org"),
-        ]),
-        [fuse.id]: http(process.env.NEXT_PUBLIC_FUSE_RPC_URL),
+        [celo.id]: celoTransport,
       },
-    };
-
-    return createConfig(configOptions);
+    });
   }, []);
 
   if (!mounted) {

@@ -22,6 +22,17 @@ const nextConfig = {
       { protocol: "https", hostname: "**" },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Allow MiniPay webview (loaded via ngrok) to access all routes
+        source: "/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [{ source: "/market", destination: "/admin", permanent: false }];
   },

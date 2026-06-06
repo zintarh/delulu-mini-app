@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useBalance, useReadContract } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useIsMiniPay } from "@/hooks/use-is-minipay";
 import {
   consumeSignInRedirect,
   persistSignInRedirect,
@@ -35,6 +36,7 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authenticated, isReady, address } = useAuth();
+  const inMiniPay = useIsMiniPay();
   const { login: privyLogin } = useLogin();
   const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
@@ -89,8 +91,18 @@ export default function SignInPage() {
   const hasGas = (celoBalance?.value ?? 0n) > 0n;
   const safeAddress = address ?? "";
 
+  // MiniPay: wallet is always connected, skip sign-in entirely
+  useEffect(() => {
+    if (inMiniPay && authenticated && address) {
+      const redirectTarget =
+        consumeSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect"));
+      router.replace(redirectTarget ?? "/");
+    }
+  }, [inMiniPay, authenticated, address, router, searchParams]);
+
   useEffect(() => {
     if (!isReady || !authenticated || !address || isFetching || isBalanceLoading) return;
+    if (inMiniPay) return; // handled above
 
     const redirectTarget =
       consumeSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect"));
@@ -110,6 +122,7 @@ export default function SignInPage() {
     isBalanceLoading,
     hasProfile,
     hasGas,
+    inMiniPay,
     router,
     searchParams,
   ]);
@@ -199,6 +212,15 @@ export default function SignInPage() {
         setIsLaunchingWalletProvider(false);
       });
   };
+
+  // Inside MiniPay, wallet is always ready — show a loading state while auto-connecting
+  if (inMiniPay) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isReady) {
     return (

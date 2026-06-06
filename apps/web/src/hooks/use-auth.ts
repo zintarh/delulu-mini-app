@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { isMiniPayEnv } from "@/hooks/use-is-minipay";
 import {
   useWeb3Auth,
   useWeb3AuthConnect,
@@ -93,7 +94,9 @@ export function useAuth(): UseAuthReturn {
     (a: any) => a.type === "wallet" && a.walletClientType === "privy",
   )?.address as `0x${string}` | undefined;
 
-  const authenticated = privyAuthenticated || web3authConnected;
+  // In MiniPay the injected wallet is always present — treat wagmi connection as authenticated
+  const inMiniPay = isMiniPayEnv();
+  const authenticated = privyAuthenticated || web3authConnected || (inMiniPay && account.isConnected);
 
   const provider: AuthProvider = privyAuthenticated
     ? "privy"
@@ -108,11 +111,13 @@ export function useAuth(): UseAuthReturn {
     account.address ?? web3authAddress ?? privyAddress;
 
   const address: `0x${string}` | undefined =
-    provider === "web3auth"
-      ? (web3authAddress ?? account.address)
-      : provider === "privy"
-        ? (privyAddress ?? account.address ?? web3authAddress)
-        : fallbackAddress;
+    inMiniPay
+      ? account.address // MiniPay: always use the injected wagmi account
+      : provider === "web3auth"
+        ? (web3authAddress ?? account.address)
+        : provider === "privy"
+          ? (privyAddress ?? account.address ?? web3authAddress)
+          : fallbackAddress;
 
   const isReady = ready;
 
