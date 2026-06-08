@@ -992,8 +992,7 @@ export function CreateManifestStep({
               {/* Mobile-only compact cover image — shown after stake, before submit */}
               <div className="lg:hidden space-y-2">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                  Cover image{" "}
-                  <span className="font-normal normal-case tracking-normal">(optional)</span>
+                  Cover image
                 </label>
                 {showTemplatePicker ? (
                   <div className="space-y-3">
