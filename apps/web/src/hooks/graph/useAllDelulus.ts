@@ -19,13 +19,13 @@ import type { FormattedDelulu } from "@/lib/types";
 const PAGE_SIZE = 30;
 
 const GET_DELULUS_FEED = gql`
-  query GetDelulusFeed($first: Int = 30, $skip: Int = 0) {
+  query GetDelulusFeed($first: Int = 30, $skip: Int = 0, $usdtToken: Bytes!) {
     delulus(
       first: $first
       skip: $skip
       orderBy: createdAt
       orderDirection: desc
-      where: { isCancelled: false, milestoneCount_gt: 0, token: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e" }
+      where: { isCancelled: false, token: $usdtToken }
     ) {
       id
       onChainId
@@ -78,7 +78,7 @@ export interface FeedMilestone {
 
 export type FormattedDeluluFeed = FormattedDelulu & {
   feedMilestones?: FeedMilestone[];
-  /** Real total milestone count from the subgraph — not capped by the feed query's first:3 */
+  /** Real total milestone count from the subgraph — not capped by the feed query's first:15 */
   totalMilestoneCount?: number;
 };
 
@@ -112,6 +112,7 @@ interface GetDelulusFeedQuery {
 interface GetDelulusFeedQueryVariables {
   first?: number;
   skip?: number;
+  usdtToken: string;
 }
 
 export function useAllDelulus() {
@@ -119,16 +120,12 @@ export function useAllDelulus() {
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const [isIpfsLoading, setIsIpfsLoading] = useState(false);
 
-  // Track pagination end using real per-page item counts, not heuristics.
-  // hasMore starts true (optimistic) and is set to false when a page returns
-  // fewer than PAGE_SIZE items — meaning the subgraph has no more data.
   const [hasMore, setHasMore] = useState(true);
 
-  // Accumulated item count before the most recent fetchMore, used to compute
-  // how many items the last page returned (newTotal - prevTotal).
   const prevAccumulatedRef = useRef(0);
-  // Guards against double-triggering the post-fetch effect.
   const isFetchingMoreRef = useRef(false);
+
+  const usdtToken = USDT_ADDRESSES.mainnet.toLowerCase();
 
   const {
     data,
@@ -141,7 +138,7 @@ export function useAllDelulus() {
   } = useQuery<GetDelulusFeedQuery, GetDelulusFeedQueryVariables>(
     GET_DELULUS_FEED,
     {
-      variables: { first: PAGE_SIZE, skip: 0 },
+      variables: { first: PAGE_SIZE, skip: 0, usdtToken },
       fetchPolicy: "cache-first",
       nextFetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
@@ -186,7 +183,6 @@ export function useAllDelulus() {
       .filter((d): d is FormattedDeluluFeed => d !== null && !d.isCancelled);
   }, [displayData, ipfsResolved]);
 
-  // After the initial page loads, set hasMore based on whether we got a full page.
   useEffect(() => {
     if (page !== 0 || loading || data?.delulus === undefined) return;
     const count = data.delulus.length;
@@ -194,9 +190,6 @@ export function useAllDelulus() {
     setHasMore(count >= PAGE_SIZE);
   }, [page, loading, data?.delulus]);
 
-  // After a fetchMore completes (loading flips to false while isFetchingMoreRef
-  // is set), check how many new items arrived from the subgraph.
-  // If fewer than PAGE_SIZE, the subgraph has no more pages.
   useEffect(() => {
     if (!isFetchingMoreRef.current || loading) return;
 
@@ -234,7 +227,6 @@ export function useAllDelulus() {
   const fetchNextPage = useCallback(() => {
     if (isFetchingMoreRef.current) return;
     const nextPage = page + 1;
-    // Snapshot current accumulated count before the fetch.
     prevAccumulatedRef.current = data?.delulus.length ?? 0;
     isFetchingMoreRef.current = true;
     setPage(nextPage);
@@ -242,17 +234,18 @@ export function useAllDelulus() {
       variables: {
         first: PAGE_SIZE,
         skip: nextPage * PAGE_SIZE,
+        usdtToken,
       },
     });
-  }, [page, fetchMore, data?.delulus.length]);
+  }, [page, fetchMore, data?.delulus.length, usdtToken]);
 
   const refetch = useCallback(async () => {
     setPage(0);
     setHasMore(true);
     prevAccumulatedRef.current = 0;
     isFetchingMoreRef.current = false;
-    await apolloRefetch({ first: PAGE_SIZE, skip: 0 });
-  }, [apolloRefetch]);
+    await apolloRefetch({ first: PAGE_SIZE, skip: 0, usdtToken });
+  }, [apolloRefetch, usdtToken]);
 
   return {
     delulus,

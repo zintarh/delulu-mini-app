@@ -8,17 +8,10 @@ import { FEED_CARD_SLOT_CLASS } from "@/components/feed-card-layout";
 import { useAllDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
 import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
+import { isDeluluFeedReady } from "@/lib/delulu-feed-utils";
 import { usePfps } from "@/hooks/use-profile-pfp";
 
 const EXPLORE_LIMIT = 3;
-
-function isContentLoaded(d: FormattedDelulu): boolean {
-  if (!d.content) return false;
-  const isHash =
-    d.content.startsWith("Qm") ||
-    (d.content.length > 40 && /^[a-f0-9]+$/i.test(d.content));
-  return !isHash;
-}
 
 interface RelatedDelulusSectionProps {
   excludeId: number;
@@ -33,7 +26,7 @@ export function RelatedDelulusSection({
 
   const related = useMemo(() => {
     const pool = delulus.filter(
-      (d) => d.id !== excludeId && isContentLoaded(d),
+      (d) => d.id !== excludeId && isDeluluFeedReady(d),
     );
     const creator = creatorAddress?.toLowerCase();
     const byCreator = creator

@@ -15,6 +15,7 @@ import { useAllDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useAuth } from "@/hooks/use-auth";
+import { isDeluluFeedReady } from "@/lib/delulu-feed-utils";
 
 const BROWSE_PAGE_SIZE = 20;
 
@@ -23,14 +24,6 @@ const CATEGORY_TITLES: Record<FeedCategoryId, string> = {
   "for-you": "For you",
   "worth-a-look": "Worth a look",
 };
-
-function isContentLoaded(d: FormattedDelulu) {
-  if (!d.content) return false;
-  const isHash =
-    d.content.startsWith("Qm") ||
-    (d.content.length > 40 && /^[a-f0-9]+$/i.test(d.content));
-  return !isHash;
-}
 
 function searchResultToCardProps(r: DeluluSearchResult): FormattedDelulu {
   return {
@@ -84,7 +77,7 @@ export default function ExplorePage() {
   } = useAllDelulus();
 
   const filteredFeed = useMemo(
-    () => delulus.filter(isContentLoaded),
+    () => delulus.filter(isDeluluFeedReady),
     [delulus],
   );
 

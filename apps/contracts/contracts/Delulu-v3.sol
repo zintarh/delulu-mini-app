@@ -62,8 +62,10 @@ contract Delulu is
     uint256 public constant PROTOCOL_FEE_BPS = 100; // 1%
     uint256 public constant KEEPER_BOUNTY_BPS = 100; // 1% bounty on slashed stake
     uint256 public constant SCOUT_FEE_BPS = 200; // 2% of eligible tips go to scouts
-    /// @dev Minimum creator stake in whole token units (100 G$, 100 USDT, etc.).
+    /// @dev Minimum creator stake in whole token units for 18-decimal tokens (100 G$, 100 cUSD, etc.).
     uint256 public constant MIN_STAKE_WHOLE = 100;
+    /// @dev Minimum creator stake in whole token units for sub-18-decimal tokens (1 USDT, etc.).
+    uint256 public constant MIN_STAKE_STABLECOIN_WHOLE = 1;
     // Scaled up for stronger progression feedback (minimum award is now 100).
     uint256 public constant POINTS_PER_MILESTONE = 1000;
     uint256 public constant POINTS_EARLY_COMPLETION = 500;
@@ -518,7 +520,10 @@ contract Delulu is
 
     function _minStakeForToken(address token) internal view returns (uint256) {
         uint8 tokenDecimals = IERC20Metadata(token).decimals();
-        return MIN_STAKE_WHOLE * (10 ** uint256(tokenDecimals));
+        uint256 minWhole = tokenDecimals < 18
+            ? MIN_STAKE_STABLECOIN_WHOLE
+            : MIN_STAKE_WHOLE;
+        return minWhole * (10 ** uint256(tokenDecimals));
     }
 
     /// @notice Minimum creator stake (in token base units) for a supported ERC-20.

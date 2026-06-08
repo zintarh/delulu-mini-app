@@ -6,7 +6,7 @@ import { useChainId } from "wagmi";
 import { parseUnits, parseEventLogs } from "viem";
 import { useState, useMemo } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
-import { getTokenSymbol, minStakeWei, parseTokenAmount } from "@/lib/token-amounts";
+import { getTokenSymbol, minStakeWei, parseTokenAmount, getMinStakeWhole } from "@/lib/token-amounts";
 import { DELULU_ABI } from "@/lib/abi";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
 import {
@@ -121,7 +121,7 @@ export function useCreateDelulu() {
         const minWei = minStakeWei(tokenAddress);
         if (parsed < minWei) {
           throw new Error(
-            `Minimum stake is 100 ${getTokenSymbol(tokenAddress)}`,
+            `Minimum stake is ${getMinStakeWhole(tokenAddress)} ${getTokenSymbol(tokenAddress)}`,
           );
         }
         initialSupportWei = parsed;

@@ -2,6 +2,12 @@ require("@nomicfoundation/hardhat-toolbox-viem");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
 
+try {
+  require("dotenv").config();
+} catch {
+  // dotenv optional — use `source .env` or export PRIVATE_KEY when absent
+}
+
 /** Prefer PRIVATE_KEY; apps/web/.env.local often uses CELO_FAUCET_PRIVATE_KEY for scripts. */
 function celoDeployerAccounts() {
   const key =

@@ -9,6 +9,7 @@ const { parseEther, parseUnits, encodeFunctionData } = require("viem");
 
 const ONE_DAY = 24n * 60n * 60n;
 const MIN_STAKE_WHOLE = 100n;
+const MIN_STAKE_STABLECOIN_WHOLE = 1n;
 
 function assertRevert(promise, pattern) {
   return promise.then(
@@ -112,7 +113,7 @@ describe("Delulu-v3 min stake decimals", function () {
     );
   });
 
-  it("accepts 100 whole tokens for 6-decimal USDT", async function () {
+  it("accepts 1 whole token for 6-decimal USDT", async function () {
     const { delulu, usdt, creator } = await loadFixture(deployV3Fixture);
     const latest = BigInt(await time.latest());
 
@@ -122,7 +123,7 @@ describe("Delulu-v3 min stake decimals", function () {
         "ipfs-usdt",
         latest + ONE_DAY,
         await resolutionDeadline(),
-        parseUnits(String(MIN_STAKE_WHOLE), 6),
+        parseUnits(String(MIN_STAKE_STABLECOIN_WHOLE), 6),
       ],
       { account: creator.account }
     );
@@ -130,7 +131,7 @@ describe("Delulu-v3 min stake decimals", function () {
     expect(await delulu.read.nextDeluluId()).to.equal(2n);
   });
 
-  it("reverts below 100 whole tokens for 6-decimal USDT", async function () {
+  it("reverts below 1 whole token for 6-decimal USDT", async function () {
     const { delulu, usdt, creator } = await loadFixture(deployV3Fixture);
     const latest = BigInt(await time.latest());
 
@@ -141,11 +142,22 @@ describe("Delulu-v3 min stake decimals", function () {
           "ipfs-too-small-usdt",
           latest + ONE_DAY,
           await resolutionDeadline(),
-          parseUnits("99", 6),
+          parseUnits("0.5", 6),
         ],
         { account: creator.account }
       ),
       /StakeTooSmall/
+    );
+  });
+
+  it("minStakeForToken view matches decimals", async function () {
+    const { delulu, gDollar, usdt } = await loadFixture(deployV3Fixture);
+
+    expect(await delulu.read.minStakeForToken([gDollar.address])).to.equal(
+      parseEther(String(MIN_STAKE_WHOLE))
+    );
+    expect(await delulu.read.minStakeForToken([usdt.address])).to.equal(
+      parseUnits(String(MIN_STAKE_STABLECOIN_WHOLE), 6)
     );
   });
 });

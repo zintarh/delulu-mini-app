@@ -17,7 +17,7 @@ import Link from "next/link";
 import { HomeSearch } from "@/components/home-search";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
+import { isDeluluFeedReady, getDeluluHeadline } from "@/lib/delulu-feed-utils";
 
 const ClaimRewardsSheet = dynamic(
   () =>
@@ -37,7 +37,7 @@ function BoardTile({
   const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
   const h2 = (h1 + 55) % 360;
   const gradient = `linear-gradient(140deg, hsl(${h1},50%,22%) 0%, hsl(${h2},55%,13%) 100%)`;
-  const headline = delusion.content?.trim() || "YOUR DELULU HEADLINE";
+  const headline = getDeluluHeadline(delusion, "YOUR DELULU HEADLINE");
   const minH = headline.length > 80 ? 380 : headline.length > 40 ? 320 : 260;
 
   const displayName = delusion.username
@@ -161,14 +161,10 @@ export default function HomePage() {
     return () => { if (typeof window !== "undefined") window.removeEventListener("delulu:created", onCreated); };
   }, [refetchFeed]);
 
-  const isContentLoaded = (delulu: FormattedDelulu): boolean => {
-    if (!delulu.content) return false;
-    const isHash = delulu.content.startsWith("Qm") ||
-      (delulu.content.length > 40 && /^[a-f0-9]+$/i.test(delulu.content));
-    return !isHash;
-  };
-
-  const filteredDelulus = useMemo(() => delulus.filter(isContentLoaded), [delulus]);
+  const filteredDelulus = useMemo(
+    () => delulus.filter(isDeluluFeedReady),
+    [delulus],
+  );
 
   const feedCategories = useMemo(
     () => buildFeedCategories(filteredDelulus, address),

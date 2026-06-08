@@ -41,12 +41,12 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
         creatorAddress_in: creatorAddressVariants,
         isResolved: false,
         isCancelled: false,
-        token: USDT_ADDRESSES.mainnet,
+        token: USDT_ADDRESSES.mainnet.toLowerCase(),
       } as Record<string, unknown>;
     }
     return {
       creatorAddress_in: creatorAddressVariants,
-      token: USDT_ADDRESSES.mainnet,
+      token: USDT_ADDRESSES.mainnet.toLowerCase(),
     } as Record<string, unknown>;
   }, [creatorAddressVariants, status]);
 
