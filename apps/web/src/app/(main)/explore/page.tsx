@@ -241,7 +241,7 @@ export default function ExplorePage() {
               </button>
             </div>
           ) : isLoading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <DeluluCardSkeleton key={i} className="mb-0" />
               ))}
@@ -259,7 +259,7 @@ export default function ExplorePage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                 {displayDelulus.map((delusion, index) => {
                   const feedDelusion = delusion as FormattedDeluluFeed;
                   return (

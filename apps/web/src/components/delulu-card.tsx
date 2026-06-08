@@ -350,15 +350,15 @@ export function DeluluCard({
 
   const tipButtonEl =
     showTipCta || isQuickTipping || showTipSuccess || tipError ? (
-      <div className={cn(isForYouVariant ? "shrink-0" : "absolute bottom-3 right-3 z-10")}>
+      <div className={cn(isForYouVariant ? "shrink-0" : "absolute bottom-2 right-2 z-10 sm:bottom-3 sm:right-3")}>
         {tipError ? (
-          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-500 px-4 text-sm font-bold text-white shadow-sm">
+          <span className="inline-flex h-8 items-center gap-1 rounded-full bg-red-500 px-3 text-xs font-bold text-white shadow-sm sm:h-9 sm:gap-1.5 sm:px-4 sm:text-sm">
             {tipError}
           </span>
         ) : showTipSuccess ? (
           <span
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-white",
+              "inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-bold text-white sm:h-9 sm:gap-1.5 sm:px-4 sm:text-sm",
               isForYouVariant
                 ? "bg-delulu-blue shadow-sm"
                 : "bg-black shadow-[0_4px_14px_rgba(0,0,0,0.45)]",
@@ -373,7 +373,7 @@ export function DeluluCard({
             onClick={handleQuickTip}
             disabled={isQuickTipping || isCheckingWhitelist}
             className={cn(
-              "inline-flex h-9 min-w-[4.5rem] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold text-white transition-all duration-150 active:scale-[0.97]",
+              "inline-flex h-8 min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-3 text-xs font-bold text-white transition-all duration-150 active:scale-[0.97] sm:h-9 sm:min-w-[4.5rem] sm:gap-1.5 sm:px-4 sm:text-sm",
               isForYouVariant
                 ? "bg-delulu-blue shadow-sm hover:bg-delulu-blue/90"
                 : [
@@ -414,8 +414,8 @@ export function DeluluCard({
       onClick={href ? undefined : handleCardClick}
       onMouseEnter={handleMouseEnter}
       className={cn(
-        "relative aspect-[5/4] w-full overflow-hidden transition-[transform,box-shadow] duration-200",
-        "rounded-3xl border-0",
+        "relative aspect-[3/2] w-full overflow-hidden transition-[transform,box-shadow] duration-200 sm:aspect-[5/4]",
+        "rounded-2xl border-0 sm:rounded-3xl",
         "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_20px_rgba(0,0,0,0.07)]",
         "hover:-translate-y-1 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.1)]",
         href && "cursor-pointer active:scale-[0.99]",
@@ -469,20 +469,20 @@ export function DeluluCard({
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 px-3 pb-3 pt-10">
-        <h3 className="line-clamp-2 text-sm font-black leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
+      <div className="absolute inset-x-0 bottom-0 z-10 space-y-1.5 px-2.5 pb-2.5 pt-8 sm:space-y-2 sm:px-3 sm:pb-3 sm:pt-10">
+        <h3 className="line-clamp-2 text-[13px] font-black leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
           {headline}
         </h3>
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 ring-white/50">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full ring-2 ring-white/50 sm:h-8 sm:w-8">
             <UserAvatar
               address={delusion.creator}
               username={displayUsername}
               pfpUrl={resolvedPfpUrl}
-              size={32}
+              size={28}
             />
           </div>
-          <p className="min-w-0 truncate text-xs font-semibold text-white/95 drop-shadow-sm">
+          <p className="min-w-0 truncate text-[11px] font-semibold text-white/95 drop-shadow-sm sm:text-xs">
             {creatorLabel}
           </p>
         </div>
@@ -502,13 +502,13 @@ export function DeluluCard({
           ? "min-h-0 rounded-2xl border border-border/60 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
           : variant === "feed"
             ? [
-                "min-h-[380px] rounded-3xl border-0",
+                "min-h-0 rounded-2xl border-0 sm:min-h-[340px] sm:rounded-3xl",
                 "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_20px_rgba(0,0,0,0.07)]",
                 "hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.1)]",
                 "hover:-translate-y-1",
               ]
             : [
-                "min-h-[380px] rounded-2xl border border-border shadow-sm",
+                "min-h-0 rounded-2xl border border-border shadow-sm sm:min-h-[340px]",
                 "hover:shadow-md hover:-translate-y-0.5",
               ],
         href && "cursor-pointer active:scale-[0.99]",
@@ -519,9 +519,8 @@ export function DeluluCard({
         className={cn(
           "relative w-full shrink-0 overflow-hidden",
           variant === "grid"
-            ? "aspect-[4/3]"
-            : "aspect-[5/4] sm:min-h-[200px]",
-          variant === "feed" && "sm:min-h-[220px]",
+            ? "aspect-[16/9] sm:aspect-[4/3]"
+            : "aspect-[16/9] sm:aspect-[5/4] sm:min-h-[180px]",
         )}
         style={{ background: cardGradient }}
       >
@@ -537,7 +536,7 @@ export function DeluluCard({
           />
         ) : null}
         {timeRemaining ? (
-          <span className="absolute right-3 top-3 z-10 rounded-full border border-white/25 bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+          <span className="absolute right-2 top-2 z-10 rounded-full border border-white/25 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
             {timeRemaining}
           </span>
         ) : null}
@@ -546,14 +545,14 @@ export function DeluluCard({
       </div>
 
       {/* 2–4. Title, milestone progress, tipped */}
-      <div className="flex flex-1 flex-col gap-4 p-5">
-        <h3 className="line-clamp-3 text-lg font-black leading-snug tracking-tight text-foreground sm:text-xl">
+      <div className="flex flex-1 flex-col gap-2.5 p-3 sm:gap-4 sm:p-5">
+        <h3 className="line-clamp-2 text-base font-black leading-snug tracking-tight text-foreground sm:line-clamp-3 sm:text-lg lg:text-xl">
           {headline}
         </h3>
 
         {totalCount > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between gap-2 text-[11px] sm:text-xs">
               <span className="font-semibold text-muted-foreground">
                 Milestones
               </span>
@@ -562,7 +561,7 @@ export function DeluluCard({
               </span>
             </div>
             <div
-              className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
+              className="h-2 w-full overflow-hidden rounded-full bg-muted sm:h-2.5"
               role="progressbar"
               aria-valuenow={milestoneProgressPct}
               aria-valuemin={0}
@@ -584,11 +583,11 @@ export function DeluluCard({
           </div>
         ) : null}
 
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-sm font-semibold text-muted-foreground">
+        <div className="flex items-baseline justify-between gap-2 sm:gap-3">
+          <span className="text-xs font-semibold text-muted-foreground sm:text-sm">
             Tipped so far
           </span>
-          <span className="text-right text-base font-black tabular-nums text-foreground">
+          <span className="text-right text-sm font-black tabular-nums text-foreground sm:text-base">
             {formattedGAmount}
             {delusion.tokenAddress ? (
               <span className="ml-1 text-sm font-semibold text-muted-foreground">
@@ -598,21 +597,21 @@ export function DeluluCard({
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5 border-t border-border/50 pt-4">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-border">
+        <div className="flex items-center gap-2 border-t border-border/50 pt-2.5 sm:gap-2.5 sm:pt-4">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border-2 border-border sm:h-10 sm:w-10">
             <UserAvatar
               address={delusion.creator}
               username={displayUsername}
               pfpUrl={resolvedPfpUrl}
-              size={36}
+              size={32}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-foreground">
+            <p className="truncate text-xs font-bold text-foreground sm:text-sm">
               {creatorLabel}
             </p>
             {supportersCount > 0 ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">
                 {supportersCount}{" "}
                 {supportersCount === 1 ? "supporter" : "supporters"}
               </p>
@@ -627,7 +626,7 @@ export function DeluluCard({
     return (
       <Link
         href={href}
-        className={cn(className, "block h-auto mb-4")}
+        className={cn(className, "mb-3 block h-auto sm:mb-4")}
         onMouseEnter={handleMouseEnter}
         onTouchStart={handleMouseEnter}
         prefetch={true}
@@ -640,7 +639,7 @@ export function DeluluCard({
 
   return (
     <div
-      className={cn(className, "block h-auto mb-4")}
+      className={cn(className, "mb-3 block h-auto sm:mb-4")}
       onClick={onClick || undefined}
     >
       {cardContent}
