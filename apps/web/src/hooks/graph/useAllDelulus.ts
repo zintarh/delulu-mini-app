@@ -25,7 +25,7 @@ const GET_DELULUS_FEED = gql`
       skip: $skip
       orderBy: createdAt
       orderDirection: desc
-      where: { isCancelled: false, milestoneCount_gt: 0, token: USDT_ADDRESSES.mainnet }
+      where: { isCancelled: false, milestoneCount_gt: 0, token: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e" }
     ) {
       id
       onChainId

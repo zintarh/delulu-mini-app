@@ -939,6 +939,7 @@ export default function LeaderboardPage() {
   const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
   const formattedGAmount: string | null = null;
+  const isLoadingGSupply = false;
 
   const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
   const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
