@@ -1,4 +1,5 @@
 "use client";
+// minipay build
 
 import dynamic from "next/dynamic";
 import { ProfileLoader } from "@/components/profile-loader";
