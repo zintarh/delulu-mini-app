@@ -107,7 +107,7 @@ export function useCreateDelulu() {
         throw new Error("Resolution deadline must be at least 24 hours from now");
       }
 
-      const stakingDeadline = 0n;
+      const stakingDeadline = resolutionDeadline;
 
       let initialSupportWei = 0n;
       if (amount > 0) {
