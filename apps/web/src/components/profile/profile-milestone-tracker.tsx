@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock,
   Hourglass,
+  Loader2,
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -414,7 +415,21 @@ export function DeluluJourneyCard({
 
 export function MilestoneTrackerSkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-xl space-y-5 px-4 py-6 pb-10">
+      <div
+        className="flex flex-col items-center justify-center gap-3 py-8"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading milestones"
+      >
+        <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
+        <p
+          className="text-sm font-semibold text-muted-foreground"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Loading milestones…
+        </p>
+      </div>
       <div className="h-36 animate-pulse rounded-3xl bg-muted/80" />
       {[1, 2].map((i) => (
         <div key={i} className="h-56 animate-pulse rounded-3xl bg-muted/60" />

@@ -147,7 +147,7 @@ export function useUserOngoingMilestones() {
   }, [address]);
   const [ipfsResolved, setIpfsResolved] = useState(0);
 
-  const { data, loading, error, refetch } = useQuery<
+  const { data, loading, networkStatus, error, refetch } = useQuery<
     GetUserOngoingDelulusWithMilestonesData,
     GetUserOngoingDelulusWithMilestonesVars
   >(
@@ -157,8 +157,14 @@ export function useUserOngoingMilestones() {
       skip: !address,
       fetchPolicy: "cache-and-network",
       nextFetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
     },
   );
+
+  // With cache-and-network, Apollo can briefly set loading=false before the
+  // network response when cache is empty — keep skeleton until first settle.
+  const hasSettled =
+    networkStatus === 7 || networkStatus === 8 || !!error;
 
   useEffect(() => {
     if (!data?.delulus?.length) return;
@@ -364,7 +370,7 @@ export function useUserOngoingMilestones() {
     milestones,
     trackers,
     summary,
-    isLoading: loading,
+    isLoading: !address || loading || (!hasSettled && !error),
     error: error ?? null,
     refetch,
   };
