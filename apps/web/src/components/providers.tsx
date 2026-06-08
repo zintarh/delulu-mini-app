@@ -10,21 +10,12 @@ const ErudaProvider = dynamic(
 
 export default function Providers({
   children,
-  privyAppId,
-  signerKeyQuorumId,
 }: {
   children: React.ReactNode;
-  privyAppId?: string;
-  signerKeyQuorumId?: string;
 }) {
   return (
     <ErudaProvider>
-      <AuthLoadOrchestrator
-        privyAppId={privyAppId}
-        signerKeyQuorumId={signerKeyQuorumId}
-      >
-        {children}
-      </AuthLoadOrchestrator>
+      <AuthLoadOrchestrator>{children}</AuthLoadOrchestrator>
     </ErudaProvider>
   );
 }

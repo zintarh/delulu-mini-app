@@ -3,9 +3,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { useChainId } from "wagmi";
-import { parseUnits, parseEventLogs, createWalletClient, custom } from "viem";
-import { celo } from "wagmi/chains";
-import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
+import { parseUnits, parseEventLogs } from "viem";
 import { useState, useMemo } from "react";
 import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
 import { getTokenSymbol, minStakeWei, parseTokenAmount } from "@/lib/token-amounts";
@@ -136,43 +134,18 @@ export function useCreateDelulu() {
       setIsPending(true);
       setWriteError(null);
 
-      const w3aProvider = getWeb3AuthProvider();
-      let txHash: `0x${string}`;
-
-      if (w3aProvider) {
-        const walletClient = createWalletClient({
-          chain: celo,
-          transport: custom(w3aProvider),
-        });
-        const [account] = await walletClient.getAddresses();
-        txHash = await walletClient.writeContract({
-          address: contractAddress,
-          abi: DELULU_ABI,
-          functionName: "createDelulu",
-          args: [
-            tokenAddress as `0x${string}`,
-            contentHash,
-            stakingDeadline,
-            resolutionDeadline,
-            initialSupportWei,
-          ],
-          account,
-          chain: celo,
-        });
-      } else {
-        txHash = await writeContractAsync({
-          address: contractAddress,
-          abi: DELULU_ABI,
-          functionName: "createDelulu",
-          args: [
-            tokenAddress as `0x${string}`,
-            contentHash,
-            stakingDeadline,
-            resolutionDeadline,
-            initialSupportWei,
-          ],
-        });
-      }
+      const txHash = await writeContractAsync({
+        address: contractAddress,
+        abi: DELULU_ABI,
+        functionName: "createDelulu",
+        args: [
+          tokenAddress as `0x${string}`,
+          contentHash,
+          stakingDeadline,
+          resolutionDeadline,
+          initialSupportWei,
+        ],
+      });
 
       setHash(txHash);
     } catch (error) {
