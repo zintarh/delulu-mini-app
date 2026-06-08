@@ -12,7 +12,6 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { type GatekeeperConfig } from "@/lib/ipfs";
-import { useUserSetupCheck } from "@/hooks/use-user-setup-check";
 import {
   MIN_DURATION_DAYS,
   MAX_DURATION_DAYS,
@@ -33,11 +32,6 @@ import {
 } from "@/components/create-flow-layout";
 import { CreateFlowStepProgress } from "@/components/create-flow-step-progress";
 import { prefetchCreateManifestStep } from "@/lib/prefetch-create-manifest";
-
-const UserSetupModal = dynamic(
-  () => import("@/components/user-setup-modal").then((m) => m.UserSetupModal),
-  { ssr: false }
-);
 
 const CreateManifestStep = dynamic(
   () =>
@@ -82,15 +76,6 @@ export function CreateDelusionContent({
 
   // ── Step management ─────────────────────────────────────────────────────────
   const [step, setStep] = useState<Step>("dream");
-  const setupCheckEnabled = step === "manifest";
-  const { needsSetup, isChecking } = useUserSetupCheck(setupCheckEnabled);
-  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
-
-  useEffect(() => {
-    if (!setupCheckEnabled || isChecking) return;
-    setShowUserSetupModal(needsSetup);
-  }, [needsSetup, isChecking, setupCheckEnabled]);
-
   useEffect(() => {
     if (step === "dream" || step === "habits") {
       prefetchCreateManifestStep();
@@ -549,16 +534,6 @@ export function CreateDelusionContent({
         )}
       </div>
 
-      <UserSetupModal
-        open={showUserSetupModal && needsSetup}
-        onOpenChange={(open) => {
-          setShowUserSetupModal(open);
-          if (!open && needsSetup) onClose();
-        }}
-        onComplete={() => {
-          setShowUserSetupModal(false);
-        }}
-      />
     </>
   );
 }

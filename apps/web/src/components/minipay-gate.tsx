@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MinipayProfileGate } from "@/components/minipay-profile-gate";
 
 export function MiniPayGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"checking" | "ok" | "blocked">("checking");
@@ -40,5 +41,5 @@ export function MiniPayGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return <MinipayProfileGate>{children}</MinipayProfileGate>;
 }

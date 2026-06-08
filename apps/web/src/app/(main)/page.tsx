@@ -24,10 +24,7 @@ const ClaimRewardsSheet = dynamic(
     import("@/components/claim-rewards-sheet").then((m) => m.ClaimRewardsSheet),
   { ssr: false },
 );
-const UserSetupModal = dynamic(
-  () => import("@/components/user-setup-modal").then((m) => m.UserSetupModal),
-  { ssr: false },
-);
+
 
 function BoardTile({
   delusion,
@@ -129,7 +126,6 @@ export default function HomePage() {
     try { localStorage.setItem("delulu_feed_tab", tab); } catch {}
   };
 
-  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
   const scrollContainerRef = useRef<HTMLElement>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
@@ -158,15 +154,6 @@ export default function HomePage() {
     document.addEventListener("visibilitychange", onVisible);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
-
-  useEffect(() => {
-    if (!authenticated || !isProfileLoaded) return;
-    if (user?.username) { setShowUserSetupModal(false); return; }
-    try {
-      if (window.localStorage.getItem("delulu_profile_setup_suppressed_v1") === "1") return;
-    } catch {}
-    setShowUserSetupModal(true);
-  }, [authenticated, isProfileLoaded, user?.username]);
 
   useEffect(() => {
     const onCreated = () => refetchFeed();
@@ -322,22 +309,6 @@ export default function HomePage() {
         onOpenChange={setClaimRewardsSheetOpen}
       />
 
-      <UserSetupModal
-        open={showUserSetupModal && !user?.username}
-        onOpenChange={(open) => {
-          setShowUserSetupModal(open);
-          if (!open && typeof window !== "undefined") {
-            try { window.localStorage.setItem("delulu_profile_setup_suppressed_v1", "1"); } catch {}
-          }
-        }}
-        onComplete={(username, email) => {
-          updateUsername(username, email);
-          setShowUserSetupModal(false);
-          if (typeof window !== "undefined") {
-            try { window.localStorage.setItem("delulu_profile_setup_suppressed_v1", "1"); } catch {}
-          }
-        }}
-      />
     </>
   );
 }
