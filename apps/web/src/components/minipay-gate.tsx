@@ -29,7 +29,7 @@ export function MiniPayGate({ children }: { children: React.ReactNode }) {
           This app is designed exclusively for MiniPay. Open it inside the MiniPay wallet to continue.
         </p>
         <a
-          href="https://minipay.opera.com"
+          href="https://minipay.to/"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-8 inline-block rounded-full bg-[#1a1a19] px-6 py-3 text-sm font-bold text-white"

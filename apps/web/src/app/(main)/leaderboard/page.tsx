@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { getDeluluContractAddress } from "@/lib/constant";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
-import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
+import { cn, formatGAmountInt } from "@/lib/utils";
 import {
   ArrowLeft,
   ArrowRight,
@@ -346,9 +344,6 @@ function StatCard({
 
 function LeaderboardStatsRow({
   activeTab,
-  formattedGAmount,
-  isLoadingGSupply,
-  celoscanContractUrl,
   myRank,
   myPoints,
   isRankLoading,
@@ -358,9 +353,6 @@ function LeaderboardStatsRow({
   campaignEndDate,
 }: {
   activeTab: Tab;
-  formattedGAmount: string | null;
-  isLoadingGSupply: boolean;
-  celoscanContractUrl: string;
   myRank: number | null;
   myPoints: number | null;
   isRankLoading: boolean;
@@ -372,37 +364,29 @@ function LeaderboardStatsRow({
   return (
     <div className="mb-8 grid gap-3 sm:grid-cols-3">
       <StatCard
-        label="Good Dollar"
+        label="Token"
         accent
         value={
-          isLoadingGSupply ? (
-            <div className="h-9 w-28 animate-pulse rounded-lg bg-secondary" />
-          ) : formattedGAmount ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background">
-                <img src="/gooddollar-logo.png" alt="" className="h-7 w-7 object-contain" />
-              </div>
-              <p className="text-2xl font-black tabular-nums tracking-tight text-foreground lg:text-3xl">
-                {formattedGAmount}
-              </p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background">
+              <img src="/cusd-logo.png" alt="" className="h-7 w-7 object-contain" />
             </div>
-          ) : (
-            <p className="text-2xl font-black text-muted-foreground">—</p>
-          )
+            <p className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
+              USDT
+            </p>
+          </div>
         }
-        detail="Total G$ supply on Celo"
+        detail="Tether USD on Celo"
         footer={
-          formattedGAmount ? (
-            <Link
-              href={celoscanContractUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline"
-            >
-              View on Celoscan
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-          ) : null
+          <Link
+            href="https://celoscan.io/token/0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline"
+          >
+            View on Celoscan
+            <ExternalLink className="h-3 w-3" />
+          </Link>
         }
       />
 
@@ -582,7 +566,7 @@ function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
               {formatCampaignName(entry)}
             </p>
             <p className="mt-3 pb-1 text-sm font-semibold tabular-nums text-foreground">
-              {formatGAmountInt(entry.totalG)} G$
+              {formatGAmountInt(entry.totalG)} USDT
             </p>
           </Link>
         );
@@ -683,7 +667,7 @@ function CampaignLeaderboard() {
           <HeadCell className="w-8 shrink-0">#</HeadCell>
           <HeadCell className="w-11 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Delulu</HeadCell>
-          <HeadCell className="w-16 text-right">G$</HeadCell>
+          <HeadCell className="w-16 text-right">USDT</HeadCell>
           <HeadCell className="w-14 shrink-0 text-right">Pts</HeadCell>
         </TableHead>
 
@@ -934,13 +918,6 @@ export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dreamers");
   const { address, authenticated } = useAuth();
 
-  const chainId = useChainId();
-  const deluluContractAddress = getDeluluContractAddress(chainId);
-  const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
-
-  const formattedGAmount: string | null = null;
-  const isLoadingGSupply = false;
-
   const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
   const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
 
@@ -975,9 +952,6 @@ export default function LeaderboardPage() {
       <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
         <LeaderboardStatsRow
           activeTab={activeTab}
-          formattedGAmount={formattedGAmount}
-          isLoadingGSupply={isLoadingGSupply}
-          celoscanContractUrl={celoscanContractUrl}
           myRank={myRankEntry?.rank ?? null}
           myPoints={myRankEntry?.points ?? null}
           isRankLoading={isRankLoading}

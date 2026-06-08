@@ -531,7 +531,7 @@ export function CreateManifestStep({
       <div className="flex flex-1 min-h-0 flex-col overflow-y-auto scrollbar-hide pb-24 lg:pb-8">
         <div className={cn(createFlowPx, createFlowPy)}>
           <div className={cn("flex flex-col lg:flex-row lg:items-start", createFlowGap, "lg:gap-10")}>
-            <div className="w-full shrink-0 space-y-4 lg:sticky lg:top-4 lg:w-[300px]">
+            <div className="hidden shrink-0 space-y-4 lg:sticky lg:block lg:top-4 lg:w-[300px]">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Cover image
               </p>
@@ -988,6 +988,149 @@ export function CreateManifestStep({
               </>
             )}
           </div>
+
+              {/* Mobile-only compact cover image — shown after stake, before submit */}
+              <div className="lg:hidden space-y-2">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                  Cover image{" "}
+                  <span className="font-normal normal-case tracking-normal">(optional)</span>
+                </label>
+                {showTemplatePicker ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Pick a template
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowTemplatePicker(false)}
+                        className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        Hide
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {TEMPLATES.map((template) => {
+                        const isSelected = selectedTemplate?.id === template.id;
+                        return (
+                          <button
+                            key={template.id}
+                            type="button"
+                            onClick={() => {
+                              handleTemplateSelect(template);
+                              setShowTemplatePicker(false);
+                            }}
+                            className={cn(
+                              "group overflow-hidden rounded-xl border text-left transition-all",
+                              isSelected
+                                ? "border-foreground bg-secondary ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                                : "border-border/80 bg-secondary/50 hover:border-foreground/25 hover:bg-secondary"
+                            )}
+                          >
+                            <div className="relative aspect-[5/4] overflow-hidden bg-muted">
+                              <img
+                                src={template.image}
+                                alt={template.name}
+                                className="h-full w-full object-cover"
+                              />
+                              {isSelected && (
+                                <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background shadow-sm">
+                                  <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                                </div>
+                              )}
+                            </div>
+                            <p
+                              className={cn(
+                                "truncate px-2 py-1.5 text-[10px] font-semibold leading-tight",
+                                isSelected ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              {template.name}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <label className="group block cursor-pointer">
+                      <div
+                        className={cn(
+                          "relative overflow-hidden rounded-2xl bg-muted transition-all",
+                          selectedImage
+                            ? "aspect-[16/9]"
+                            : "aspect-[16/9] border-2 border-dashed border-border hover:border-foreground/25"
+                        )}
+                      >
+                        {selectedImage ? (
+                          <>
+                            <img
+                              src={selectedImage}
+                              alt="Vision"
+                              className="absolute inset-0 h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                            {delusionText && (
+                              <div className="absolute bottom-0 left-0 right-0 p-3">
+                                <p className="line-clamp-2 text-sm font-bold leading-snug text-white drop-shadow-md">
+                                  {delusionText}
+                                </p>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35">
+                              <span className="rounded-full bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                                Change
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
+                            <Upload className="h-5 w-5" />
+                            <p className="text-xs font-medium">Tap to upload</p>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          handleCustomUpload(e);
+                          e.target.value = "";
+                        }}
+                        className="sr-only"
+                      />
+                    </label>
+                    {selectedTemplate && !customImage ? (
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2">
+                        <p className="min-w-0 truncate text-xs text-muted-foreground">
+                          <span className="font-semibold text-foreground">Template:</span>{" "}
+                          {selectedTemplate.name}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker(true)}
+                          className="shrink-0 text-xs font-semibold text-foreground hover:underline"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : !customImage ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowTemplatePicker(true)}
+                        className="flex w-full items-center gap-2 rounded-xl px-1 py-1 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                        <span>Or browse vision board templates</span>
+                      </button>
+                    ) : null}
+                    {validation.errors.image && submitAttempted && (
+                      <p className="text-xs text-destructive">{validation.errors.image}</p>
+                    )}
+                  </>
+                )}
+              </div>
 
               <div>
                 <button
