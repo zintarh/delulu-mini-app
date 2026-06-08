@@ -35,7 +35,8 @@ export function useCreateChallenge() {
 
       let amountWei;
       try {
-        amountWei = parseUnits(poolAmount.toString(), 18);
+        // USDT uses 6 decimals on Celo
+        amountWei = parseUnits(poolAmount.toString(), 6);
       } catch {
         throw new Error("Invalid pool amount format");
       }

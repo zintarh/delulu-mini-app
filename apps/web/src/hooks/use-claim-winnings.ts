@@ -35,12 +35,43 @@ export function useClaimWinnings() {
     }
   };
 
+  const rawError = writeError || receiptError;
+  const errorMessage = rawError ? formatClaimError(rawError) : null;
+
   return {
     claim,
     hash,
     isPending,
     isConfirming,
     isSuccess,
-    error: writeError || receiptError,
+    error: rawError,
+    errorMessage,
   };
+}
+
+function formatClaimError(error: unknown): string {
+  const err = error as { message?: string; shortMessage?: string; code?: number };
+  const msg = (err?.message ?? "").toLowerCase();
+  const short = (err?.shortMessage ?? "").toLowerCase();
+  const combined = `${msg} ${short}`;
+
+  if (combined.includes("user rejected") || combined.includes("user denied") || err?.code === 4001) {
+    return "Transaction cancelled";
+  }
+  if (combined.includes("already claimed") || combined.includes("alreadyclaimed")) {
+    return "Winnings already claimed";
+  }
+  if (combined.includes("not found") || combined.includes("delulunotfound")) {
+    return "Delulu not found";
+  }
+  if (combined.includes("not resolved") || combined.includes("not settled")) {
+    return "This delulu hasn't been resolved yet";
+  }
+  if (combined.includes("insufficient") || combined.includes("no winnings")) {
+    return "No winnings to claim";
+  }
+  if (combined.includes("network") || combined.includes("out of range")) {
+    return "Network error. Please try again";
+  }
+  return err?.shortMessage || err?.message || "Failed to claim winnings";
 }

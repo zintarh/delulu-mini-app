@@ -150,6 +150,7 @@ export function DeluluCard({
   const [tipAmount, setTipAmount] = useState(defaultTipAmount);
 
   const [showTipSuccess, setShowTipSuccess] = useState(false);
+  const [tipError, setTipError] = useState<string | null>(null);
   useEffect(() => {
     if (!isQuickTipSuccess) return;
     refetchDeluluData(apolloClient, delusion.onChainId ?? delusion.id);
@@ -178,8 +179,12 @@ export function DeluluCard({
         functionName: "tipMilestone",
         args: [BigInt(delusion.onChainId ?? delusion.id), 0n, amountWei],
       });
-    } catch {
-      // silent — tip flow stays quiet on errors
+    } catch (err: any) {
+      const msg = err?.shortMessage ?? err?.message ?? "";
+      if (!msg.toLowerCase().includes("user rejected") && !msg.toLowerCase().includes("user denied")) {
+        setTipError("Tip failed. Please try again.");
+        setTimeout(() => setTipError(null), 3000);
+      }
     }
   }, [autoTipAfterApproval, isDoingApproval, needsApproval, writeQuickTip, chainId, delusion.onChainId, delusion.id, delusion.tokenAddress]);
 
@@ -304,7 +309,14 @@ export function DeluluCard({
     pendingTipAmountRef.current = tipAmount;
     if (needsApproval(tipAmount)) {
       setAutoTipAfterApproval(true);
-      approveToken(tipAmount).catch(() => setAutoTipAfterApproval(false));
+      approveToken(tipAmount).catch((err) => {
+        setAutoTipAfterApproval(false);
+        const msg = err?.shortMessage ?? err?.message ?? "";
+        if (!msg.toLowerCase().includes("user rejected") && !msg.toLowerCase().includes("user denied")) {
+          setTipError("Approval failed. Please try again.");
+          setTimeout(() => setTipError(null), 3000);
+        }
+      });
       return;
     }
     try {
@@ -315,8 +327,12 @@ export function DeluluCard({
         functionName: "tipMilestone",
         args: [BigInt(delusion.onChainId ?? delusion.id), 0n, amountWei],
       });
-    } catch {
-      // silent — quick action stays quiet on bad input
+    } catch (err: any) {
+      const msg = err?.shortMessage ?? err?.message ?? "";
+      if (!msg.toLowerCase().includes("user rejected") && !msg.toLowerCase().includes("user denied")) {
+        setTipError("Tip failed. Please try again.");
+        setTimeout(() => setTipError(null), 3000);
+      }
     }
   };
 
@@ -333,9 +349,13 @@ export function DeluluCard({
   const isForYouVariant = variant === "feed-for-you";
 
   const tipButtonEl =
-    showTipCta || isQuickTipping || showTipSuccess ? (
+    showTipCta || isQuickTipping || showTipSuccess || tipError ? (
       <div className={cn(isForYouVariant ? "shrink-0" : "absolute bottom-3 right-3 z-10")}>
-        {showTipSuccess ? (
+        {tipError ? (
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-500 px-4 text-sm font-bold text-white shadow-sm">
+            {tipError}
+          </span>
+        ) : showTipSuccess ? (
           <span
             className={cn(
               "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-white",
