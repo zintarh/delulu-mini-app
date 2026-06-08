@@ -22,13 +22,10 @@ import { TOKEN_LOGOS } from "@/lib/constant";
 import { formatUsdEquivalent, getMinStakeWhole, getTokenSymbol } from "@/lib/token-amounts";
 import { useIsMiniPay } from "@/hooks/use-is-minipay";
 import { useDefaultToken } from "@/hooks/use-supported-tokens";
-import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
-import { useNoGas } from "@/contexts/no-gas-context";
 import { cn } from "@/lib/utils";
-import { CELO_MAINNET_ID } from "@/lib/constant";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
@@ -126,7 +123,6 @@ export function CreateManifestStep({
   gatekeeper,
 }: CreateManifestStepProps) {
   const router = useRouter();
-  const { trigger: triggerNoGas } = useNoGas();
   const { user } = useUserStore();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const apolloClient = useApolloClient();
@@ -168,12 +164,6 @@ export function CreateManifestStep({
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const [manifestedDurationDays, setManifestedDurationDays] = useState(7);
   const [errorMessage, setErrorMessage] = useState("");
-  const { data: celoBalance } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!address },
-  });
-
   const {
     createDelulu,
     isPending: isCreating,
@@ -425,15 +415,6 @@ export function CreateManifestStep({
       return;
     }
     if (isProcessing) return;
-
-    const nativeBalance =
-      celoBalance && Number(celoBalance.formatted) > 0
-        ? Number(celoBalance.formatted)
-        : 0;
-    if (nativeBalance < 0.005) {
-      triggerNoGas();
-      return;
-    }
 
     setIsUploadingImage(true);
 

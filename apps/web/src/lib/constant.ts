@@ -78,3 +78,5 @@ export const FARCASTER_KEY_REGISTRY_ADDRESS =
 export const FARCASTER_MINIAPP_BASE_URL =
   process.env.NEXT_PUBLIC_FARCASTER_MINIAPP_URL ||
   "https://farcaster.xyz/miniapps/6TpUBtkLM1a3/delulu";
+
+export const TG_GROUP_URL = "https://t.me/+96pLkvSh0I4wZThk";

@@ -18,7 +18,6 @@ export function DeluluTipModal({
   isLoadingBalance,
   toUsd,
   marketToken,
-  hasNoGas,
   tipError,
   isTipping,
   isConfirming,
@@ -36,7 +35,6 @@ export function DeluluTipModal({
   isLoadingBalance: boolean;
   toUsd: (amount: number | null | undefined) => string | null;
   marketToken?: string;
-  hasNoGas: boolean;
   tipError: string | null;
   isTipping: boolean;
   isConfirming: boolean;
@@ -151,19 +149,6 @@ export function DeluluTipModal({
               },
             )}
           </div>
-
-          {hasNoGas && !tipError ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-700">
-              <span className="font-semibold">No CELO for gas.</span> You need a
-              small amount of CELO to pay transaction fees.{" "}
-              <a
-                href="/settings"
-                className="underline font-semibold hover:text-amber-900"
-              >
-                Get CELO
-              </a>
-            </div>
-          ) : null}
 
           {tipError ? (
             <div

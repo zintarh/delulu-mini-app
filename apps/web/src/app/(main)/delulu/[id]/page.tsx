@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useWaitForTransactionReceipt, useBalance } from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
@@ -124,7 +124,7 @@ import {
   formatMilestoneCountdown,
   formatResolutionEndsLine,
 } from "@/lib/milestone-utils";
-import { getContractErrorDisplay, isInsufficientGasError } from "@/lib/contract-error";
+import { getContractErrorDisplay } from "@/lib/contract-error";
 import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
 import {
   buildDeluluLeaderboard,
@@ -211,11 +211,6 @@ export default function DeluluPage() {
   const { balance: tokenBalance, isLoading: isLoadingBalance } =
     useTokenBalance(marketToken);
 
-  const { data: celoBalance } = useBalance({
-    address: address as `0x${string}` | undefined,
-    chainId: DELULU_CHAIN_ID,
-    query: { enabled: !!address },
-  });
   const { isClaimed } = useUserPosition(deluluIdForHooks);
 
   const { claimableAmount, isLoading: isLoadingClaimableAmount, creatorClaimHint, isWalletMarketCreator, onChainResolutionReached, canAttemptClaimOnChain } =
@@ -310,8 +305,6 @@ export default function DeluluPage() {
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
-    // When the PWA resumes from background, timers were suspended so `now`
-    // can lag by minutes/hours. Snap it back to real time immediately.
     const onVisible = () => {
       if (document.visibilityState === "visible") setNow(Date.now());
     };
@@ -417,8 +410,6 @@ export default function DeluluPage() {
   const walletBalanceLabel = Number.isFinite(walletBalanceNum)
     ? walletBalanceNum.toFixed(2)
     : "0.00";
-  const celoBalanceNum = celoBalance ? Number(celoBalance.formatted) : null;
-  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.001;
 
   const toUsd = (amount: number | null | undefined): string | null => {
     if (!amount || !Number.isFinite(amount) || amount <= 0) return null;
@@ -526,7 +517,6 @@ export default function DeluluPage() {
 
   useEffect(() => {
     if (!tipMilestoneError) return;
-    if (isInsufficientGasError(tipMilestoneError)) return; // global NoGasModal handles it
     const { message } = getContractErrorDisplay(tipMilestoneError);
     setTipError(message);
   }, [tipMilestoneError]);
@@ -1248,7 +1238,6 @@ export default function DeluluPage() {
           isLoadingBalance,
           toUsd,
           marketToken,
-          hasNoGas,
           tipError,
           isTipping: isTippingMilestone,
           isConfirming: isConfirmingTipMilestone,

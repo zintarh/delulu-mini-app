@@ -88,7 +88,6 @@ export function DeluluDetailOverlays({
     isLoadingBalance: boolean;
     toUsd: (amount: number | null | undefined) => string | null;
     marketToken?: string;
-    hasNoGas: boolean;
     tipError: string | null;
     isTipping: boolean;
     isConfirming: boolean;

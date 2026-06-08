@@ -1,11 +1,10 @@
 "use client";
 
-import { useWriteContract } from "wagmi";
+import { useWriteContract, useChainId } from "wagmi";
 import { type Abi } from "viem";
 import { celo } from "wagmi/chains";
 import { useState, useCallback } from "react";
-import { useNoGas } from "@/contexts/no-gas-context";
-import { isInsufficientGasError } from "@/lib/contract-error";
+import { withUsdtFeeCurrency } from "@/lib/fee-currency";
 
 type WriteContractParams = {
   address: `0x${string}`;
@@ -15,13 +14,12 @@ type WriteContractParams = {
 };
 
 export function useUnifiedWriteContract() {
+  const chainId = useChainId();
   const {
     writeContractAsync: wagmiWriteAsync,
     isPending: wagmiIsPending,
     reset: wagmiReset,
   } = useWriteContract();
-
-  const { trigger: triggerNoGas } = useNoGas();
 
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
@@ -32,22 +30,26 @@ export function useUnifiedWriteContract() {
       setError(null);
       setIsPending(true);
       try {
-        const txHash = await wagmiWriteAsync({
-          ...(params as Parameters<typeof wagmiWriteAsync>[0]),
-          chainId: celo.id,
-        });
+        const txHash = await wagmiWriteAsync(
+          withUsdtFeeCurrency(
+            {
+              ...(params as Parameters<typeof wagmiWriteAsync>[0]),
+              chainId: celo.id,
+            },
+            chainId,
+          ) as Parameters<typeof wagmiWriteAsync>[0],
+        );
         setHash(txHash);
         return txHash;
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
         setError(e);
-        if (isInsufficientGasError(e)) triggerNoGas();
         throw e;
       } finally {
         setIsPending(false);
       }
     },
-    [wagmiWriteAsync, triggerNoGas],
+    [wagmiWriteAsync, chainId],
   );
 
   const writeContract = useCallback(

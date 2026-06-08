@@ -11,6 +11,7 @@ import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useAuth } from "@/hooks/use-auth";
 import { CELO_MAINNET_ID, USDT_ADDRESSES } from "@/lib/constant";
+import { getUsdtFeeCurrency } from "@/lib/fee-currency";
 import { cn } from "@/lib/utils";
 
 const ERC20_TRANSFER_ABI = [
@@ -89,11 +90,12 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
       let hash: `0x${string}`;
 
       if (token === "celo") {
-        hash = await (walletClient as any).sendTransaction({
+        const feeCurrency = getUsdtFeeCurrency(CELO_MAINNET_ID);
+        hash = await walletClient.sendTransaction({
           account: address,
           to: recipient as `0x${string}`,
           value: parseEther(amount),
-          chain: undefined,
+          ...(feeCurrency ? { feeCurrency } : {}),
         });
       } else {
         const decimals = usdtBalance?.decimals ?? 6;

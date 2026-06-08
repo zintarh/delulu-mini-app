@@ -1,13 +1,13 @@
 import {
   useWaitForTransactionReceipt,
-  useWriteContract,
 } from "wagmi";
 import { useChainId } from "wagmi";
-import { parseUnits, parseEventLogs } from "viem";
+import { parseEventLogs } from "viem";
 import { useState, useMemo } from "react";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { getTokenSymbol, minStakeWei, parseTokenAmount, getMinStakeWhole } from "@/lib/token-amounts";
 import { DELULU_ABI } from "@/lib/abi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
 import {
   withTimeout,
@@ -18,7 +18,7 @@ import {
 
 export function useCreateDelulu() {
   const chainId = useChainId();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useUnifiedWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [writeError, setWriteError] = useState<Error | null>(null);

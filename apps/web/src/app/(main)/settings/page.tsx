@@ -27,7 +27,7 @@ import { useLogoutSheet } from "@/contexts/logout-sheet-context";
 import { TokenBadge } from "@/components/token-badge";
 
 import { CELO_MAINNET_ID, USDT_ADDRESSES } from "@/lib/constant";
-import { TG_GROUP_URL } from "@/components/get-gas-modal";
+import { TG_GROUP_URL } from "@/lib/constant";
 import { cn, formatAddress } from "@/lib/utils";
 
 export default function SettingsPage() {

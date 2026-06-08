@@ -88,8 +88,7 @@ function parseErrorNameFromMessage(error: unknown): string | null {
 }
 
 /**
- * Returns true if the error is a gas/fee error (user has no CELO).
- * Use this to show GetGasModal instead of the generic error modal.
+ * Returns true if the error looks like a fee / balance issue for gas payment.
  */
 export function isInsufficientGasError(error: unknown): boolean {
   if (!error) return false;

@@ -1,16 +1,16 @@
 import {
   useWaitForTransactionReceipt,
   useChainId,
-  useWriteContract,
 } from "wagmi";
 import { useState } from "react";
 import { decodeErrorResult } from "viem";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useSetProfile() {
   const chainId = useChainId();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useUnifiedWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [writeError, setWriteError] = useState<Error | null>(null);
@@ -94,7 +94,7 @@ function formatErrorForDisplay(error: unknown): Error {
       message.includes("fee payer balance too low") ||
       message.includes("gas * price + value")
     ) {
-      return new Error("Your wallet doesn't have enough CELO for gas. Please top up and try again.");
+      return new Error("Your wallet doesn't have enough USDT to cover transaction fees.");
     }
     if (
       message.includes("user rejected") ||
