@@ -13,6 +13,12 @@ import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { consumeSignInRedirect } from "@/lib/auth-redirect";
 
+function isValidEmail(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 export default function WelcomePage() {
   const router = useRouter();
   const { address, isReady, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
@@ -24,7 +30,8 @@ export default function WelcomePage() {
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
   const [pfpError, setPfpError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [touched, setTouched] = useState({ username: false, pfp: false });
+  const [touched, setTouched] = useState({ username: false, pfp: false, email: false });
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const savedRef = useRef(false);
 
@@ -65,7 +72,8 @@ export default function WelcomePage() {
     if (!isSuccess || !address || savedRef.current) return;
     savedRef.current = true;
 
-    const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) return;
 
     (async () => {
       setIsSavingProfile(true);
@@ -112,10 +120,25 @@ export default function WelcomePage() {
     }
   };
 
+  const validateEmailField = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setEmailError("Email is required");
+      return false;
+    }
+    if (!isValidEmail(trimmed)) {
+      setEmailError("Please enter a valid email address");
+      return false;
+    }
+    setEmailError(null);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ username: true, pfp: true });
+    setTouched({ username: true, pfp: true, email: true });
     if (!username.trim() || !pfpUrl || !address) return;
+    if (!validateEmailField(email)) return;
     try { await setProfile(username.trim()); } catch {}
   };
 
@@ -135,9 +158,12 @@ export default function WelcomePage() {
   }
 
   const isSubmitting = isPending || isSavingProfile || isSuccess;
-  const canSubmit = !!username.trim() && !!pfpUrl && !isSubmitting && !isUploading;
+  const emailValid = isValidEmail(email);
+  const canSubmit =
+    !!username.trim() && !!pfpUrl && emailValid && !isSubmitting && !isUploading;
   const missingPfp = touched.pfp && !pfpUrl && !isUploading;
   const missingUsername = touched.username && !username.trim();
+  const showEmailError = touched.email && !!emailError;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -222,17 +248,33 @@ export default function WelcomePage() {
 
           {/* Email */}
           <div className="mb-8">
-            <div className="flex items-center gap-2 rounded-2xl border border-border px-4 py-3.5 bg-muted/40 transition-all focus-within:bg-background focus-within:border-foreground/40">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-2xl border px-4 py-3.5 bg-muted/40 transition-all focus-within:bg-background focus-within:border-foreground/40",
+                showEmailError ? "border-rose-500" : "border-border",
+              )}
+            >
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) validateEmailField(e.target.value);
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, email: true }));
+                  validateEmailField(email);
+                }}
+                placeholder="Your email"
                 autoComplete="email"
+                required
                 disabled={isSubmitting}
                 className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
               />
             </div>
+            {showEmailError && (
+              <p className="mt-1.5 text-xs text-rose-500 px-1">{emailError}</p>
+            )}
           </div>
 
           {contractError && (

@@ -78,8 +78,8 @@ export function getTipQuickAmounts(_tokenAddress: string | undefined | null): nu
   return [10, 25, 50, 100];
 }
 
-export function getDefaultTipAmount(_tokenAddress: string | undefined | null): number {
-  return 25;
+export function getDefaultTipAmount(tokenAddress: string | undefined | null): number {
+  return isUsdPeggedToken(tokenAddress) ? 1 : 25;
 }
 
 export function formatUsdEquivalent(

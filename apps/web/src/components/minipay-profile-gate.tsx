@@ -9,6 +9,12 @@ import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function isValidEmail(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 export function MinipayProfileGate({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
   const { needsSetup, isChecking } = useUserSetupCheck(isConnected && !!address);
@@ -54,7 +60,8 @@ function ProfileSetupScreen({
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
   const [pfpUploadError, setPfpUploadError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [touched, setTouched] = useState(false);
+  const [touched, setTouched] = useState({ username: false, email: false });
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const savedRef = useRef(false);
 
@@ -72,7 +79,8 @@ function ProfileSetupScreen({
     if (!isSuccess || !address || savedRef.current) return;
     savedRef.current = true;
 
-    const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) return;
 
     (async () => {
       setIsSavingProfile(true);
@@ -116,9 +124,24 @@ function ProfileSetupScreen({
     }
   };
 
+  const validateEmailField = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setEmailError("Email is required");
+      return false;
+    }
+    if (!isValidEmail(trimmed)) {
+      setEmailError("Please enter a valid email address");
+      return false;
+    }
+    setEmailError(null);
+    return true;
+  };
+
   const handleSubmit = async () => {
-    setTouched(true);
+    setTouched({ username: true, email: true });
     if (!username.trim()) return;
+    if (!validateEmailField(email)) return;
     setSubmitError(null);
     try {
       await setProfile(username.trim());
@@ -128,8 +151,11 @@ function ProfileSetupScreen({
   };
 
   const isSubmitting = isPending || isConfirming || isSavingProfile || isSuccess;
-  const canSubmit = !!username.trim() && !isSubmitting && !isUploading;
-  const missingUsername = touched && !username.trim();
+  const emailValid = isValidEmail(email);
+  const canSubmit =
+    !!username.trim() && emailValid && !isSubmitting && !isUploading;
+  const missingUsername = touched.username && !username.trim();
+  const showEmailError = touched.email && !!emailError;
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -212,7 +238,7 @@ function ProfileSetupScreen({
                 onChange={(e) =>
                   setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))
                 }
-                onBlur={() => setTouched(true)}
+                onBlur={() => setTouched((t) => ({ ...t, username: true }))}
                 placeholder="yourname"
                 autoFocus
                 autoComplete="off"
@@ -227,17 +253,33 @@ function ProfileSetupScreen({
 
           {/* Email */}
           <div className="mb-8">
-            <div className="flex items-center gap-2 rounded-2xl border border-gray-200 px-4 py-3.5 bg-gray-50 transition-all focus-within:bg-white focus-within:border-[#1a1a19]/40">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-2xl border px-4 py-3.5 bg-gray-50 transition-all focus-within:bg-white focus-within:border-[#1a1a19]/40",
+                showEmailError ? "border-rose-500" : "border-gray-200",
+              )}
+            >
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com (optional)"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) validateEmailField(e.target.value);
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, email: true }));
+                  validateEmailField(email);
+                }}
+                placeholder="Your email"
                 autoComplete="email"
+                required
                 disabled={isSubmitting}
                 className="flex-1 bg-transparent text-sm text-[#1a1a19] outline-none placeholder:text-gray-400"
               />
             </div>
+            {showEmailError && (
+              <p className="mt-1.5 text-xs text-rose-500 px-1">{emailError}</p>
+            )}
           </div>
 
           {(submitError || contractError) && (
@@ -276,7 +318,7 @@ function ProfileSetupScreen({
 
           {!canSubmit && !isSubmitting && (
             <p className="mt-4 text-center text-xs text-gray-400">
-              Choose a username to continue
+              Choose a username and email to continue
             </p>
           )}
         </div>

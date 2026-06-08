@@ -351,7 +351,7 @@ export function UserSetupModal({
                   }
                 }}
                 onBlur={() => validateEmail(email)}
-                placeholder="you@example.com"
+                placeholder="Your email"
                 className={cn(
                   "w-full px-4 py-3 rounded-lg border font-medium",
                   "bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
