@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
+import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { HomeFeedExplore } from "@/components/home-feed-explore";
 import { buildFeedCategories } from "@/lib/feed-categories";
 import { useAuth } from "@/hooks/use-auth";
