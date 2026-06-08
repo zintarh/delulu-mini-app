@@ -3,6 +3,7 @@ import { Inter, Manrope, Gloria_Hallelujah } from "next/font/google";
 import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
+import { MiniPayGate } from "@/components/minipay-gate";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -93,7 +94,9 @@ export default function RootLayout({
       <body
         className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >
-        <ProvidersShell>{children}</ProvidersShell>
+        <ProvidersShell>
+          <MiniPayGate>{children}</MiniPayGate>
+        </ProvidersShell>
       </body>
     </html>
   );
