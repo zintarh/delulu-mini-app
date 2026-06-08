@@ -18,8 +18,7 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
-import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS, isGoodDollarToken } from "@/lib/constant";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
+import { TOKEN_LOGOS } from "@/lib/constant";
 import { formatUsdEquivalent, getMinStakeWhole, getTokenSymbol } from "@/lib/token-amounts";
 import { useIsMiniPay } from "@/hooks/use-is-minipay";
 import { useDefaultToken } from "@/hooks/use-supported-tokens";
@@ -27,7 +26,6 @@ import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
-import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useNoGas } from "@/contexts/no-gas-context";
 import { cn } from "@/lib/utils";
 import { CELO_MAINNET_ID } from "@/lib/constant";
@@ -128,7 +126,6 @@ export function CreateManifestStep({
   gatekeeper,
 }: CreateManifestStepProps) {
   const router = useRouter();
-  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
   const { trigger: triggerNoGas } = useNoGas();
   const { user } = useUserStore();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -139,11 +136,7 @@ export function CreateManifestStep({
   const supportedTokens = useSupportedTokens();
   const inMiniPay = useIsMiniPay();
   const miniPayDefault = useDefaultToken();
-  const defaultToken = inMiniPay
-    ? miniPayDefault
-    : (supportedTokens.find((t) => t.symbol === "G$")?.address ??
-       supportedTokens[0]?.address ??
-       GOODDOLLAR_ADDRESSES.mainnet);
+  const defaultToken = inMiniPay ? miniPayDefault : (supportedTokens[0]?.address ?? "");
   const [selectedToken, setSelectedToken] = useState(defaultToken);
 
   // Keep selectedToken in sync when MiniPay is detected after mount
@@ -156,8 +149,6 @@ export function CreateManifestStep({
   const [inputText, setInputText] = useState("");
   const [stakeInputTouched, setStakeInputTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
-
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [pendingCreation, setPendingCreation] = useState<{
     deadline: Date;
@@ -177,9 +168,6 @@ export function CreateManifestStep({
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const [manifestedDurationDays, setManifestedDurationDays] = useState(7);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showNewUserGdModal, setShowNewUserGdModal] = useState(false);
-  const [isNewUserSession, setIsNewUserSession] = useState(false);
-
   const { data: celoBalance } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
@@ -205,24 +193,10 @@ export function CreateManifestStep({
     refetchAllowance,
   } = useTokenApproval(selectedToken);
 
-  const gToken = supportedTokens.find((t) => t.symbol === "G$");
   const usdtToken = supportedTokens.find((t) => t.symbol === "USDT");
-  const good = useTokenBalance(gToken?.address);
   const usdt = useTokenBalance(usdtToken?.address);
-  const gdBalance = Number(good.formatted || "0");
 
   const tokenBalances = [
-    ...(gToken
-      ? [
-          {
-            token: gToken,
-            balance: good.balance,
-            formatted: good.formatted,
-            isLoading: good.isLoading,
-            error: good.error,
-          },
-        ]
-      : []),
     ...(usdtToken
       ? [
           {
@@ -237,12 +211,11 @@ export function CreateManifestStep({
   ];
 
   const selectedTokenSymbol = getTokenSymbol(selectedToken);
-  const isGoodDollarSelected = isGoodDollarToken(selectedToken);
   const MIN_STAKE = getMinStakeWhole(selectedToken);
   const approxUsdLabel = formatUsdEquivalent(
     stakeAmount,
     selectedToken,
-    gDollarUsdPrice,
+    null,
   );
 
   useEffect(() => {
@@ -259,31 +232,6 @@ export function CreateManifestStep({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isTokenDropdownOpen]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      setIsNewUserSession(window.sessionStorage.getItem("delulu:new-user") === "1");
-    } catch {
-      setIsNewUserSession(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authenticated || !isNewUserSession) return;
-    if (good.isLoading) return;
-    if (gdBalance <= 0) {
-      setShowNewUserGdModal(true);
-      return;
-    }
-    try {
-      window.sessionStorage.removeItem("delulu:new-user");
-    } catch {
-      /* ignore */
-    }
-    setIsNewUserSession(false);
-    setShowNewUserGdModal(false);
-  }, [authenticated, isNewUserSession, good.isLoading, gdBalance]);
 
   const selectedTokenBalance = tokenBalances.find(
     (tb) => tb.token.address === selectedToken
@@ -477,9 +425,6 @@ export function CreateManifestStep({
       return;
     }
     if (isProcessing) return;
-
-    const allowed = await ensureWhitelisted("create", selectedToken);
-    if (!allowed) return;
 
     const nativeBalance =
       celoBalance && Number(celoBalance.formatted) > 0
@@ -1036,7 +981,7 @@ export function CreateManifestStep({
                   (hasInsufficientBalanceForStake || exceedsBalance) && (
                     <p className="mt-1.5 text-xs text-destructive">
                       {hasInsufficientBalanceForStake
-                        ? `You need at least ${MIN_STAKE} G$. Claim your free G$ first.`
+                        ? `You need at least ${MIN_STAKE} ${selectedTokenSymbol}.`
                         : "Amount exceeds your balance"}
                     </p>
                   )}
@@ -1062,7 +1007,7 @@ export function CreateManifestStep({
             >
               {!authenticated ? (
                 SIGN_IN_BUTTON_LABEL
-              ) : !isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
+              ) : (isApproving || isApprovingConfirming) ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Approving...
@@ -1141,29 +1086,6 @@ export function CreateManifestStep({
         }}
       />
 
-      <Modal open={showNewUserGdModal} onOpenChange={setShowNewUserGdModal}>
-        <ModalContent className="max-w-md">
-          <ModalHeader>
-            <ModalTitle>Claim free G$ first</ModalTitle>
-          </ModalHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You need G$ to stake your dream. G$ is free on mainnet.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewUserGdModal(false);
-                onClose();
-                window.location.href = "/daily-claim/verify?returnTo=%2Fboard";
-              }}
-              className="w-full rounded-xl border border-border bg-delulu-yellow py-3 text-sm font-black text-delulu-charcoal"
-            >
-              Verify & Claim G$
-            </button>
-          </div>
-        </ModalContent>
-      </Modal>
     </>
   );
 }

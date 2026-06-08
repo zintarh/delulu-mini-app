@@ -2,7 +2,7 @@
 
 import type { FormattedDelulu, GatekeeperConfig } from "@/lib/types";
 import type { DeluluIPFSMetadata } from "@/lib/graph/ipfs-cache";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { USDT_ADDRESSES } from "@/lib/constant";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { weiToTokenAmount } from "@/lib/token-amounts";
 
@@ -74,7 +74,7 @@ export function transformSubgraphDelulu(
   metadata?: DeluluIPFSMetadata | null
 ): FormattedDelulu {
   const tokenAddr =
-    raw.token && raw.token.length > 0 ? raw.token : GOODDOLLAR_ADDRESSES.mainnet;
+    raw.token && raw.token.length > 0 ? raw.token : USDT_ADDRESSES.mainnet;
   const believerStake = raw.totalBelieverStake
     ? weiToNumber(raw.totalBelieverStake, tokenAddr)
     : 0;

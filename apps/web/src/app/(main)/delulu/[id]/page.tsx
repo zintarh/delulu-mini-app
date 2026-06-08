@@ -6,7 +6,6 @@ import { useWaitForTransactionReceipt, useBalance } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
-import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApolloClient } from "@apollo/client/react";
 import {
@@ -100,7 +99,6 @@ const RelatedDelulusSection = dynamic(
 
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { cn } from "@/lib/utils";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import {
@@ -142,7 +140,6 @@ export default function DeluluPage() {
 
   const { authenticated, isConnected, address } = useAuth();
   const { redirectToSignIn } = useRedirectToSignIn();
-  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
   const { username: currentUserUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
@@ -402,7 +399,7 @@ export default function DeluluPage() {
     return { sorted, endTimesMs, currentIndex, passedCount };
   }, [milestones, delulu, now]);
 
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const gDollarUsdPrice = null;
   const totalSupportUsdStr = formatUsdEquivalent(
     supportAmount,
     delulu?.tokenAddress,
@@ -575,9 +572,6 @@ export default function DeluluPage() {
 
   const handleSubmitTip = async () => {
     if (!delulu || !marketToken) return;
-    const allowed = await ensureWhitelisted("tip", marketToken);
-    if (!allowed) return;
-
     const amountNum = Number(tipAmountInput);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       setTipError("Enter a valid tip amount greater than 0.");
@@ -1134,11 +1128,8 @@ export default function DeluluPage() {
                 showTip
                 tipDisabled={claimUiEnded || !!isCreator}
                 onTip={async () => {
-                  const allowed = await ensureWhitelisted("tip", marketToken);
-                  if (allowed) {
-                    setTipAmountInput(String(getDefaultTipAmount(marketToken)));
-                    setShowTipModal(true);
-                  }
+                  setTipAmountInput(String(getDefaultTipAmount(marketToken)));
+                  setShowTipModal(true);
                 }}
                 onRequireAuth={() => redirectToSignIn()}
                 userAddress={address}

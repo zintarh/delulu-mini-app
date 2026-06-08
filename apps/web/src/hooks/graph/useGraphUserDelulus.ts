@@ -16,6 +16,7 @@ import {
 } from "@/lib/graph/transformers";
 import { batchResolveIPFS, getCachedContent } from "@/lib/graph/ipfs-cache";
 import type { FormattedDelulu } from "@/lib/types";
+import { USDT_ADDRESSES } from "@/lib/constant";
 
 type DeluluStatus = "ongoing" | "past";
 const PAGE_SIZE = 20;
@@ -40,9 +41,13 @@ export function useGraphUserDelulus(status: DeluluStatus = "ongoing") {
         creatorAddress_in: creatorAddressVariants,
         isResolved: false,
         isCancelled: false,
+        token: USDT_ADDRESSES.mainnet,
       } as Record<string, unknown>;
     }
-    return { creatorAddress_in: creatorAddressVariants } as Record<string, unknown>;
+    return {
+      creatorAddress_in: creatorAddressVariants,
+      token: USDT_ADDRESSES.mainnet,
+    } as Record<string, unknown>;
   }, [creatorAddressVariants, status]);
 
   const fetchSize = status === "past" ? PAST_FETCH_SIZE : PAGE_SIZE;

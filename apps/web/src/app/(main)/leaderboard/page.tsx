@@ -7,7 +7,6 @@ import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
@@ -939,10 +938,7 @@ export default function LeaderboardPage() {
   const deluluContractAddress = getDeluluContractAddress(chainId);
   const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
-  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
-    useGoodDollarTotalSupply();
-  const formattedGAmount =
-    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
+  const formattedGAmount: string | null = null;
 
   const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
   const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);

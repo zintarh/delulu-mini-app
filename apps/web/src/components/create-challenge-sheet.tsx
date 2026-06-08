@@ -12,7 +12,7 @@ import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { TokenBadge } from "@/components/token-badge";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
-import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS } from "@/lib/constant";
+import { TOKEN_LOGOS } from "@/lib/constant";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 import { uploadToIPFS } from "@/lib/ipfs";
@@ -41,7 +41,7 @@ export function CreateChallengeSheet({
   const [poolAmount, setPoolAmount] = useState([100]);
   const [selectedDuration, setSelectedDuration] = useState(DURATION_OPTIONS[0].value);
   const supportedTokens = useSupportedTokens();
-  const initialToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
+  const initialToken = supportedTokens[0]?.address ?? "";
   const [selectedToken, setSelectedToken] = useState<string>(initialToken);
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
@@ -137,9 +137,6 @@ export function CreateChallengeSheet({
   const currentPoolAmount =
     poolAmount[0] != null && isFinite(poolAmount[0]) ? poolAmount[0] : 100;
 
-  const isGoodDollarSelected =
-    selectedToken.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-
   const hasInsufficientBalance = selectedTokenBalance?.balance
     ? parseFloat(selectedTokenBalance.formatted) < currentPoolAmount
     : false;
@@ -160,7 +157,7 @@ export function CreateChallengeSheet({
     setPoolAmount([100]);
     setChallengeTitle("");
     setChallengeDescription("");
-    const preferredToken = supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "";
+    const preferredToken = supportedTokens[0]?.address ?? "";
     setSelectedToken(preferredToken);
     setIsTokenDropdownOpen(false);
     setSelectedDuration(DURATION_OPTIONS[0].value);
@@ -521,7 +518,7 @@ export function CreateChallengeSheet({
                 isCreating ||
                 isConfirming ||
                 isUploading ||
-                (!isGoodDollarSelected && (isApproving || isApprovingConfirming)) ||
+                (isApproving || isApprovingConfirming) ||
                 !canGoNext()
               }
               className={cn(
@@ -539,7 +536,7 @@ export function CreateChallengeSheet({
                 "opacity-50 cursor-not-allowed"
               )}
             >
-              {!isGoodDollarSelected && (isApproving || isApprovingConfirming) ? (
+              {(isApproving || isApprovingConfirming) ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Approving...</span>

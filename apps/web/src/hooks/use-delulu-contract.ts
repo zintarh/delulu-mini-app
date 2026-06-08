@@ -5,7 +5,7 @@ import {
 import { useChainId } from "wagmi";
 import { parseUnits, parseEventLogs } from "viem";
 import { useState, useMemo } from "react";
-import { getDeluluContractAddress, isGoodDollarToken, isGoodDollarSupported } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { getTokenSymbol, minStakeWei, parseTokenAmount } from "@/lib/token-amounts";
 import { DELULU_ABI } from "@/lib/abi";
 import { uploadToIPFS, type GatekeeperConfig } from "@/lib/ipfs";
@@ -64,9 +64,6 @@ export function useCreateDelulu() {
         throw new Error("Invalid token address");
       }
 
-      if (isGoodDollarToken(tokenAddress) && !isGoodDollarSupported(chainId)) {
-        throw new Error("G$ (GoodDollar) is only available on Celo Mainnet. Please switch to mainnet to create markets with G$.");
-      }
       if (!content || typeof content !== "string" || content.trim().length === 0) {
         throw new Error("Content cannot be empty");
       }

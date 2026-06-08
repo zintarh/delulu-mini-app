@@ -29,22 +29,14 @@ const STEPS = [
     ),
   },
   {
-    title: "Claim your G$",
+    title: "Get USDT to create",
     body: (
       <>
         <p className="text-sm text-muted-foreground mb-3">
-          You need <span className="font-semibold">at least 100 G$</span> to create a delulu.
+          You need <span className="font-semibold">at least 1 USDT</span> to create a delulu.
         </p>
         <p className="text-sm text-muted-foreground">
-          On the{" "}
-          <Link
-            href="/daily-claim"
-            className="font-semibold text-delulu-yellow-reserved underline-offset-2 hover:underline"
-          >
-            Claim
-          </Link>{" "}
-          page: first <span className="font-semibold">claim gas</span>, then{" "}
-          <span className="font-semibold">claim your daily G$ UBI</span>.
+          Send USDT to your MiniPay wallet address to get started.
         </p>
       </>
     ),

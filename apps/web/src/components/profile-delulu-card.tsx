@@ -21,7 +21,6 @@ import {
 import { TokenBadge } from "@/components/token-badge";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { formatUsdEquivalent, getTokenSymbol } from "@/lib/token-amounts";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 function getCardBackground(delusion: FormattedDelulu): {
   bg: string;
@@ -75,7 +74,7 @@ export function ProfileDeluluCard({
   const totalReceived = delusion.totalSupportCollected ?? 0;
   const fallbackReceived = (delusion.creatorStake ?? 0) + legacyStakeTotal;
   const tvlValue = totalReceived > 0 ? totalReceived : fallbackReceived;
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const gDollarUsdPrice = null;
   const tokenSymbol = getTokenSymbol(delusion.tokenAddress);
   const approxUsdStr = formatUsdEquivalent(
     tvlValue,

@@ -14,7 +14,7 @@ import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useReadContract, useChainId } from "wagmi";
-import { getDeluluContractAddress, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { Trophy, Clock, DollarSign } from "lucide-react";
 import { cn, formatGAmount } from "@/lib/utils";
@@ -22,7 +22,6 @@ import { TokenBadge } from "@/components/token-badge";
 import { format } from "date-fns";
 import { ChallengeSkeleton } from "@/components/challenge-skeleton";
 import type { Challenge } from "@/hooks/use-challenges";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 
 
@@ -59,7 +58,7 @@ export default function ChallengesPage() {
       ? (currencyAddress as `0x${string}`)
       : undefined;
 
-  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
+  const gDollarUsdPrice = null;
 
   const handleChallengeCreated = () => {
     setShowCreateChallengeSheet(false);
@@ -167,15 +166,6 @@ export default function ChallengesPage() {
                                 {currencyTokenAddress ? (
                                   <TokenBadge tokenAddress={currencyTokenAddress} size="sm" />
                                 ) : null}
-                                {currencyTokenAddress &&
-                                  currencyTokenAddress.toLowerCase() ===
-                                    GOODDOLLAR_ADDRESSES.mainnet.toLowerCase() &&
-                                  gDollarUsdPrice != null &&
-                                  challenge.poolAmount > 0 && (
-                                    <span className="text-muted-foreground font-medium text-xs sm:text-sm">
-                                      ({(challenge.poolAmount * gDollarUsdPrice).toFixed(2)} USD)
-                                    </span>
-                                  )}
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2">
                                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />

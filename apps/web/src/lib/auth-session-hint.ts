@@ -5,7 +5,6 @@ export function isAuthEagerRoute(pathname: string): boolean {
   if (pathname.startsWith("/sign-in")) return true;
   if (pathname.startsWith("/welcome")) return true;
   if (pathname === "/board" || pathname.startsWith("/board/")) return true;
-  if (pathname.startsWith("/daily-claim")) return true;
   if (pathname.startsWith("/wrap")) return true;
   return false;
 }

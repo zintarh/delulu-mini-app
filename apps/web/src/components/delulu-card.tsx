@@ -21,7 +21,6 @@ import { GET_DELULU_BY_ID, useGraphDelulu } from "@/hooks/graph/useGraphDelulu";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
-import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useChainId, useWaitForTransactionReceipt } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { DELULU_ABI } from "@/lib/abi";
@@ -116,8 +115,7 @@ export function DeluluCard({
 
   const { address, authenticated } = useAuth();
   const { redirectToSignIn } = useRedirectToSignIn();
-  const { ensureWhitelisted, isChecking: isCheckingWhitelist } =
-    useRequireGoodDollarWhitelist();
+  const isCheckingWhitelist = false;
   const isCreator = isDeluluCreator(address, delusion);
   const router = useRouter();
   const apolloClient = useApolloClient();
@@ -303,9 +301,6 @@ export function DeluluCard({
       router.push(`/delulu/${delusion.id}?milestones=1`);
       return;
     }
-    const allowed = await ensureWhitelisted("tip", effectiveTokenAddress);
-    if (!allowed) return;
-
     pendingTipAmountRef.current = tipAmount;
     if (needsApproval(tipAmount)) {
       setAutoTipAfterApproval(true);

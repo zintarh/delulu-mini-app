@@ -10,7 +10,7 @@ import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useAuth } from "@/hooks/use-auth";
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { CELO_MAINNET_ID, USDT_ADDRESSES } from "@/lib/constant";
 import { cn } from "@/lib/utils";
 
 const ERC20_TRANSFER_ABI = [
@@ -26,7 +26,7 @@ const ERC20_TRANSFER_ABI = [
   },
 ] as const;
 
-type Token = "celo" | "gdollar";
+type Token = "celo" | "usdt";
 
 interface TransferSheetProps {
   open: boolean;
@@ -44,10 +44,10 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
     query: { enabled: !!address },
   });
 
-  const { balance: gDollarBalance, isLoading: isGDollarLoading } =
-    useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const { balance: usdtBalance, isLoading: isUsdtLoading } =
+    useTokenBalance(USDT_ADDRESSES.mainnet);
 
-  const [token, setToken] = useState<Token>("gdollar");
+  const [token, setToken] = useState<Token>("usdt");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
@@ -61,12 +61,8 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
 
   const maxBalance =
     token === "celo"
-      ? celoBalance
-        ? parseFloat(celoBalance.formatted).toFixed(4)
-        : "0"
-      : gDollarBalance
-      ? parseFloat(gDollarBalance.formatted).toFixed(4)
-      : "0";
+      ? celoBalance ? parseFloat(celoBalance.formatted).toFixed(4) : "0"
+      : usdtBalance ? parseFloat(usdtBalance.formatted).toFixed(4) : "0";
 
   const recipientValid = recipient.length === 0 || isAddress(recipient);
   const amountNum = parseFloat(amount);
@@ -100,9 +96,9 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           chain: undefined,
         });
       } else {
-        const decimals = gDollarBalance?.decimals ?? 18;
+        const decimals = usdtBalance?.decimals ?? 6;
         hash = await writeContractAsync({
-          address: GOODDOLLAR_ADDRESSES.mainnet,
+          address: USDT_ADDRESSES.mainnet,
           abi: ERC20_TRANSFER_ABI,
           functionName: "transfer",
           args: [recipient as `0x${string}`, parseUnits(amount, decimals)],
@@ -111,19 +107,18 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
 
       setTxHash(hash);
     } catch (err: any) {
-      const msg =
-        err?.shortMessage ?? err?.message ?? "Transaction failed";
+      const msg = err?.shortMessage ?? err?.message ?? "Transaction failed";
       setTxError(msg);
     } finally {
       setIsPending(false);
     }
-  }, [canSubmit, address, token, recipient, amount, walletClient, gDollarBalance, writeContractAsync]);
+  }, [canSubmit, address, token, recipient, amount, walletClient, usdtBalance, writeContractAsync]);
 
   const handleClose = () => {
     if (isPending || isConfirming) return;
     onOpenChange(false);
     setTimeout(() => {
-      setToken("gdollar");
+      setToken("usdt");
       setRecipient("");
       setAmount("");
       setTxHash(undefined);
@@ -147,7 +142,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             Token
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {(["gdollar", "celo"] as Token[]).map((t) => (
+            {(["usdt", "celo"] as Token[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -162,16 +157,16 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
                 {t === "celo" ? (
                   <img src="/celo.png" alt="" className="w-6 h-6 rounded-full shrink-0" />
                 ) : (
-                  <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="lg" showText={false} />
+                  <TokenBadge tokenAddress={USDT_ADDRESSES.mainnet} size="lg" showText={false} />
                 )}
                 <div className="min-w-0">
                   <p className="text-xs font-semibold">
-                    {t === "celo" ? "CELO" : "G$"}
+                    {t === "celo" ? "CELO" : "USDT"}
                   </p>
                   <p className="text-sm font-bold tabular-nums text-foreground truncate">
                     {t === "celo"
                       ? isCeloLoading ? "—" : celoBalance ? parseFloat(celoBalance.formatted).toFixed(3) : "0"
-                      : isGDollarLoading ? "—" : gDollarBalance ? parseFloat(gDollarBalance.formatted).toFixed(2) : "0"
+                      : isUsdtLoading ? "—" : usdtBalance ? parseFloat(usdtBalance.formatted).toFixed(2) : "0"
                     }
                   </p>
                 </div>
@@ -283,7 +278,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             </>
           ) : (
             <>
-              Transfer {token === "celo" ? "CELO" : "G$"}
+              Transfer {token === "celo" ? "CELO" : "USDT"}
               <ArrowRight className="w-4 h-4" />
             </>
           )}

@@ -8,6 +8,7 @@ import {
   timestampToDate,
   type SubgraphDeluluRaw,
 } from "@/lib/graph/transformers";
+import { USDT_ADDRESSES } from "@/lib/constant";
 import {
   batchResolveIPFS,
   getCachedContent,
@@ -24,7 +25,7 @@ const GET_DELULUS_FEED = gql`
       skip: $skip
       orderBy: createdAt
       orderDirection: desc
-      where: { isCancelled: false, milestoneCount_gt: 0 }
+      where: { isCancelled: false, milestoneCount_gt: 0, token: USDT_ADDRESSES.mainnet }
     ) {
       id
       onChainId

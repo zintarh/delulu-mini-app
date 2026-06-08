@@ -26,7 +26,7 @@ import { AddEmailSheet } from "@/components/add-email-sheet";
 import { useLogoutSheet } from "@/contexts/logout-sheet-context";
 import { TokenBadge } from "@/components/token-badge";
 
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { CELO_MAINNET_ID, USDT_ADDRESSES } from "@/lib/constant";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn, formatAddress } from "@/lib/utils";
 
@@ -50,8 +50,8 @@ export default function SettingsPage() {
     isLoading: isLoadingStats,
   } = useGraphUserStats();
 
-  const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
-    useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const { formatted: usdtBalance, isLoading: isBalanceLoading } =
+    useTokenBalance(USDT_ADDRESSES.mainnet);
   const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
@@ -176,17 +176,13 @@ export default function SettingsPage() {
                   />
                   <StatCard
                     label="Total staked"
-                    value={
-                      isLoadingStats ? "—" : totalStaked.toFixed(2)
-                    }
-                    suffix="G$"
+                    value={isLoadingStats ? "—" : totalStaked.toFixed(2)}
+                    suffix="USDT"
                   />
                   <StatCard
                     label="Total claimed"
-                    value={
-                      isLoadingStats ? "—" : totalClaimed.toFixed(2)
-                    }
-                    suffix="G$"
+                    value={isLoadingStats ? "—" : totalClaimed.toFixed(2)}
+                    suffix="USDT"
                   />
                 </div>
               </section>
@@ -217,7 +213,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
                     <TokenBadge
-                      tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
+                      tokenAddress={USDT_ADDRESSES.mainnet}
                       size="sm"
                       showText={false}
                     />
@@ -226,11 +222,11 @@ export default function SettingsPage() {
                         className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
                         style={{ fontFamily: "var(--font-manrope)" }}
                       >
-                        G$
+                        USDT
                       </p>
                       <p className="text-sm font-bold tabular-nums truncate text-foreground">
                         {!isBalanceLoading
-                          ? parseFloat(gDollarBalance).toFixed(2)
+                          ? parseFloat(usdtBalance).toFixed(2)
                           : "—"}
                       </p>
                     </div>
@@ -242,18 +238,6 @@ export default function SettingsPage() {
               <section>
                 <SectionLabel>More</SectionLabel>
                 <div className="mt-2 rounded-2xl bg-muted/20 divide-y divide-border/40 overflow-hidden">
-                  <LinkRow
-                    icon={
-                      <img
-                        src="/gooddollar-logo.png"
-                        alt=""
-                        className="w-4 h-4 object-contain"
-                      />
-                    }
-                    title="Claim G$ UBI"
-                    description="Get your free daily G$"
-                    href="/daily-claim"
-                  />
                   <LinkRow
                     icon={<Trophy className="w-4 h-4" />}
                     title="Leaderboard"
