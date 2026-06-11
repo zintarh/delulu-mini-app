@@ -26,6 +26,8 @@ const USER_VERIFIED_MILESTONES_QUERY = gql`
 export interface UserStreakResult {
   currentStreak: number;
   last7Days: boolean[];
+  /** Unique days with a verified milestone in the current calendar month (UTC) */
+  activeDaysThisMonth: number;
   totalVerified: number;
   isLoading: boolean;
 }
@@ -43,7 +45,8 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
     {
       variables: { address: address?.toLowerCase() ?? "", nowSec },
       skip: !address,
-      fetchPolicy: "cache-and-network",
+      fetchPolicy: "cache-first",
+      nextFetchPolicy: "cache-first",
     },
   );
 
@@ -83,11 +86,22 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
       }
     }
 
+    const monthStartUtc = Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      1,
+    );
+    let activeDaysThisMonth = 0;
+    for (const dayMs of activeDays) {
+      if (dayMs >= monthStartUtc && dayMs <= todayUtc) activeDaysThisMonth++;
+    }
+
     return {
       currentStreak,
       last7Days,
+      activeDaysThisMonth,
       totalVerified: milestones.length,
-      isLoading: loading,
+      isLoading: loading && !data,
     };
-  }, [data?.milestones, loading]);
+  }, [data?.milestones, loading, data]);
 }

@@ -26,7 +26,8 @@ export function useGraphUserClaims(address: string | undefined) {
   const { data, loading, error } = useQuery<GetClaimsByUserQuery, GetClaimsByUserQueryVariables>(GetClaimsByUserDocument, {
     variables: { userId },
     skip: !userId,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-first",
   });
 
   const claims: GraphClaim[] = useMemo(() => {
@@ -49,7 +50,7 @@ export function useGraphUserClaims(address: string | undefined) {
   return {
     claims,
     totalClaimed,
-    isLoading: loading,
+    isLoading: loading && !data,
     error: error ?? null,
   };
 }

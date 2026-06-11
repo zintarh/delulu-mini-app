@@ -1,5 +1,33 @@
 import { cn } from "@/lib/utils";
 
+export function SocialFeedCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse overflow-hidden rounded-2xl border border-border/40 bg-card",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3.5 w-24 rounded bg-muted" />
+          <div className="h-2.5 w-16 rounded bg-muted" />
+        </div>
+      </div>
+      <div className="aspect-[16/9] max-h-[180px] w-full bg-muted" />
+      <div className="flex gap-3 px-3 py-2.5">
+        <div className="h-8 w-8 rounded-full bg-muted" />
+        <div className="h-4 w-8 rounded bg-muted" />
+      </div>
+      <div className="space-y-2 px-3 pb-3">
+        <div className="h-3.5 w-full rounded bg-muted" />
+        <div className="h-3 w-2/3 rounded bg-muted" />
+      </div>
+    </div>
+  );
+}
+
 export function HotDeluluSkeleton() {
   return (
     <div className="relative h-[200px] w-full shrink-0 overflow-hidden rounded-3xl bg-muted p-5">

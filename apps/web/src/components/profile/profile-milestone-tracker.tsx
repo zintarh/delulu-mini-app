@@ -10,7 +10,10 @@ import {
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatMilestoneCountdown } from "@/lib/milestone-utils";
+import {
+  formatMilestoneCountdown,
+  formatResolutionEndsLine,
+} from "@/lib/milestone-utils";
 import type {
   DeluluMilestoneTracker,
   MilestoneTrackerStep,
@@ -61,14 +64,16 @@ function MilestoneSegmentBar({
   completed,
   total,
   hasDue,
+  compact = false,
 }: {
   completed: number;
   total: number;
   hasDue: boolean;
+  compact?: boolean;
 }) {
   if (total <= 0) return null;
   return (
-    <div className="flex gap-1" aria-hidden>
+    <div className="flex gap-0.5" aria-hidden>
       {Array.from({ length: total }).map((_, i) => {
         const done = i < completed;
         const isNext = i === completed && hasDue;
@@ -76,7 +81,8 @@ function MilestoneSegmentBar({
           <div
             key={i}
             className={cn(
-              "h-1.5 flex-1 rounded-full transition-colors",
+              "flex-1 rounded-full transition-colors",
+              compact ? "h-1" : "h-1.5",
               done
                 ? "bg-delulu-blue"
                 : isNext
@@ -86,6 +92,49 @@ function MilestoneSegmentBar({
           />
         );
       })}
+    </div>
+  );
+}
+
+/** Slim one-line summary for the home dashboard */
+export function MilestoneTrackerSummaryBar({
+  summary,
+}: {
+  summary: MilestoneTrackerSummary;
+}) {
+  const pct = progressPct(summary.completedMilestones, summary.totalMilestones);
+  const hasDue = summary.dueNow > 0;
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <p
+          className="text-xs font-semibold text-foreground"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          {hasDue
+            ? `${summary.dueNow} ${summary.dueNow === 1 ? "milestone needs" : "milestones need"} proof`
+            : "You're caught up"}
+        </p>
+        <p
+          className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          {summary.completedMilestones}/{summary.totalMilestones} · {pct}%
+        </p>
+      </div>
+      <div
+        className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div
+          className="h-full rounded-full bg-delulu-blue transition-all duration-500"
+          style={{ width: `${pct > 0 ? Math.max(pct, 4) : 0}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -214,11 +263,20 @@ export function MilestoneTrackerHero({
   );
 }
 
-function TimelineNode({ status, index }: { status: MilestoneStepStatus; index: number }) {
+function TimelineNode({
+  status,
+  index,
+  compact = false,
+}: {
+  status: MilestoneStepStatus;
+  index: number;
+  compact?: boolean;
+}) {
   return (
     <div
       className={cn(
-        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+        "flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+        compact ? "h-8 w-8" : "h-9 w-9",
         status === "completed"
           ? "border-delulu-blue bg-delulu-blue text-white"
           : status === "due"
@@ -229,12 +287,12 @@ function TimelineNode({ status, index }: { status: MilestoneStepStatus; index: n
       )}
     >
       {status === "completed" ? (
-        <Check className="h-4 w-4 stroke-[3]" />
+        <Check className={cn(compact ? "h-3 w-3" : "h-4 w-4", "stroke-[3]")} />
       ) : status === "review" ? (
-        <Hourglass className="h-4 w-4" />
+        <Hourglass className={compact ? "h-3 w-3" : "h-4 w-4"} />
       ) : (
         <span
-          className="text-xs font-black tabular-nums"
+          className={cn("font-black tabular-nums", compact ? "text-[10px]" : "text-xs")}
           style={{ fontFamily: '"Clash Display", sans-serif' }}
         >
           {index}
@@ -249,11 +307,13 @@ function TimelineStepRow({
   now,
   isLast,
   onSubmitDue,
+  compact = false,
 }: {
   step: MilestoneTrackerStep;
   now: number;
   isLast: boolean;
   onSubmitDue?: () => void;
+  compact?: boolean;
 }) {
   const countdown =
     step.status === "due" || step.status === "review"
@@ -265,13 +325,14 @@ function TimelineStepRow({
     step.endTimeMs - now < 24 * 60 * 60 * 1000;
 
   return (
-    <div className="flex gap-3">
+    <div className={cn("flex", compact ? "gap-2" : "gap-3")}>
       <div className="flex flex-col items-center">
-        <TimelineNode status={step.status} index={step.index} />
+        <TimelineNode status={step.status} index={step.index} compact={compact} />
         {!isLast ? (
           <div
             className={cn(
-              "my-1 min-h-[1.5rem] w-0.5 flex-1 rounded-full",
+              "my-0.5 w-0.5 flex-1 rounded-full",
+              compact ? "min-h-[1rem]" : "min-h-[1.5rem]",
               step.status === "completed" ? "bg-delulu-blue" : "bg-border",
             )}
           />
@@ -280,7 +341,8 @@ function TimelineStepRow({
 
       <div
         className={cn(
-          "mb-3 min-w-0 flex-1 rounded-2xl border p-3.5 transition-colors",
+          "min-w-0 flex-1 rounded-xl border transition-colors",
+          compact ? "mb-2.5 p-3" : "mb-3 rounded-2xl p-3.5",
           step.status === "due"
             ? "border-delulu-blue-border bg-delulu-blue-light/60 shadow-sm"
             : step.status === "completed"
@@ -291,7 +353,8 @@ function TimelineStepRow({
         <div className="flex items-start justify-between gap-2">
           <p
             className={cn(
-              "text-sm font-semibold leading-snug",
+              "font-semibold leading-snug",
+              compact ? "text-[13px]" : "text-sm",
               step.status === "upcoming" ? "text-muted-foreground" : "text-foreground",
             )}
             style={{ fontFamily: "var(--font-manrope)" }}
@@ -300,7 +363,8 @@ function TimelineStepRow({
           </p>
           <span
             className={cn(
-              "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold",
+              "shrink-0 rounded-full border font-bold",
+              compact ? "px-1.5 py-px text-[9px]" : "px-2 py-0.5 text-[10px]",
               stepStatusClasses(step.status),
             )}
             style={{ fontFamily: "var(--font-manrope)" }}
@@ -325,10 +389,13 @@ function TimelineStepRow({
           <button
             type="button"
             onClick={onSubmitDue}
-            className="mt-3 w-full rounded-full bg-delulu-blue py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-delulu-blue/90 active:scale-[0.98]"
+            className={cn(
+              "mt-2 w-full rounded-full bg-delulu-blue font-bold text-white shadow-sm transition-colors hover:bg-delulu-blue/90 active:scale-[0.98]",
+              compact ? "py-2.5 text-xs" : "mt-3 py-2.5 text-sm",
+            )}
             style={{ fontFamily: "var(--font-manrope)" }}
           >
-            Submit evidence
+            Submit proof
           </button>
         ) : null}
       </div>
@@ -348,6 +415,7 @@ export function DeluluJourneyCard({
   compact?: boolean;
 }) {
   const pct = progressPct(tracker.completed, tracker.total);
+  const endsLine = formatResolutionEndsLine(now, tracker.resolutionDeadline);
 
   const visibleSteps = compact
     ? (() => {
@@ -365,60 +433,88 @@ export function DeluluJourneyCard({
     : tracker.steps;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_2px_16px_rgba(0,0,0,0.05)] sm:rounded-3xl">
+    <article
+      className={cn(
+        "overflow-hidden border border-border/40 bg-card",
+        compact
+          ? "rounded-xl shadow-sm"
+          : "rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.05)] sm:rounded-3xl",
+      )}
+    >
       <div
         className={cn(
           "border-b border-border/40 bg-gradient-to-br from-delulu-blue-light/80 via-card to-card",
-          compact ? "px-3.5 py-3 sm:px-4" : "px-4 py-4 sm:px-5",
+          compact ? "px-3.5 py-3" : "px-4 py-4 sm:px-5",
         )}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5">
           <div className="min-w-0 flex-1">
             <Link
               href={tracker.deluluHref}
-              className="group inline-flex max-w-full items-start gap-1.5"
+              className="group inline-flex max-w-full items-start gap-1"
             >
               <h3
                 className={cn(
                   "font-black leading-snug text-foreground line-clamp-2 group-hover:text-delulu-blue transition-colors",
-                  compact ? "text-sm sm:text-base" : "text-base sm:text-lg",
+                  compact ? "text-sm" : "text-base sm:text-lg",
                 )}
                 style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 {tracker.title}
               </h3>
-              <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight
+                className={cn(
+                  "shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5",
+                  compact ? "mt-0.5 h-4 w-4" : "mt-1 h-4 w-4",
+                )}
+              />
             </Link>
             <p
-              className="mt-1 text-xs font-medium text-muted-foreground"
+              className={cn(
+                "font-medium text-muted-foreground",
+                compact ? "mt-1 text-[11px]" : "mt-1 text-xs",
+              )}
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              {tracker.completed} of {tracker.total} complete · {pct}%
+              {tracker.completed} of {tracker.total} · {pct}%
+              {compact ? (
+                <>
+                  {" · "}
+                  <span className="text-foreground/80">
+                    {endsLine.prefix} {endsLine.value}
+                  </span>
+                </>
+              ) : null}
             </p>
           </div>
-          <div
-            className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-white/80 shadow-sm"
-            aria-label={`${tracker.completed} of ${tracker.total} milestones`}
-          >
-            <span
-              className="text-sm font-black tabular-nums leading-none text-foreground"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
+          {!compact ? (
+            <div
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-white/80 shadow-sm"
+              aria-label={`${tracker.completed} of ${tracker.total} milestones`}
             >
-              {tracker.completed}
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground">
-              /{tracker.total}
-            </span>
-          </div>
+              <span
+                className="text-sm font-black tabular-nums leading-none text-foreground"
+                style={{ fontFamily: '"Clash Display", sans-serif' }}
+              >
+                {tracker.completed}
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground">
+                /{tracker.total}
+              </span>
+            </div>
+          ) : null}
         </div>
-        <MilestoneSegmentBar
-          completed={tracker.completed}
-          total={tracker.total}
-          hasDue={tracker.due.length > 0}
-        />
+        <div className={compact ? "mt-2" : "mt-0"}>
+          <MilestoneSegmentBar
+            completed={tracker.completed}
+            total={tracker.total}
+            hasDue={tracker.due.length > 0}
+            compact={compact}
+          />
+        </div>
       </div>
 
-      <div className={cn(compact ? "px-3.5 py-3 sm:px-4" : "px-4 py-4 sm:px-5")}>
+      <div className={cn(compact ? "px-3.5 py-3" : "px-4 py-4 sm:px-5")}>
         {visibleSteps.length > 0 ? (
           <div className="pt-0.5">
             {visibleSteps.map((step, i) => (
@@ -427,6 +523,7 @@ export function DeluluJourneyCard({
                 step={step}
                 now={now}
                 isLast={i === visibleSteps.length - 1}
+                compact={compact}
                 onSubmitDue={
                   step.status === "due" && step.due
                     ? () => onSubmitDue(step.key)
@@ -465,23 +562,36 @@ export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolea
         compact ? "px-4 pb-4" : "max-w-xl space-y-5 px-4 py-6",
       )}
     >
-      <div
-        className="flex flex-col items-center justify-center gap-3 py-8"
-        role="status"
-        aria-live="polite"
-        aria-label="Loading milestones"
-      >
-        <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
-        <p
-          className="text-sm font-semibold text-muted-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
+      {compact ? null : (
+        <div
+          className="flex flex-col items-center justify-center gap-3 py-8"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading milestones"
         >
-          Loading milestones…
-        </p>
-      </div>
-      <div className="h-36 animate-pulse rounded-3xl bg-muted/80" />
+          <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
+          <p
+            className="text-sm font-semibold text-muted-foreground"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            Loading milestones…
+          </p>
+        </div>
+      )}
+      <div
+        className={cn(
+          "animate-pulse rounded-xl bg-muted/80",
+          compact ? "h-10" : "h-36 rounded-3xl",
+        )}
+      />
       {[1, 2].map((i) => (
-        <div key={i} className="h-56 animate-pulse rounded-3xl bg-muted/60" />
+        <div
+          key={i}
+          className={cn(
+            "animate-pulse rounded-xl bg-muted/60",
+            compact ? "h-32" : "h-56 rounded-3xl",
+          )}
+        />
       ))}
     </div>
   );

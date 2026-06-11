@@ -89,9 +89,7 @@ export function getTipQuickAmounts(tokenAddress: string | undefined | null): num
 }
 
 export function getDefaultTipAmount(tokenAddress: string | undefined | null): number {
-  if (isGoodDollarToken(tokenAddress ?? undefined)) return 100;
-  if (isUsdtToken(tokenAddress ?? undefined)) return 25;
-  return 25;
+  return getMinStakeWhole(tokenAddress);
 }
 
 export function formatUsdEquivalent(

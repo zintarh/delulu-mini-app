@@ -4,14 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
-import { LazyDeluluCard } from "@/components/lazy-delulu-card";
-import { DeluluCardSkeleton } from "@/components/delulu-skeleton";
+import { SocialFeedCardSkeleton } from "@/components/delulu-skeleton";
 import { HomeSearch } from "@/components/home-search";
-import { HomeFeedExplore } from "@/components/home-feed-explore";
+import { ExploreSocialFeed } from "@/components/explore-social-feed";
 import { buildFeedCategories, type FeedCategoryId } from "@/lib/feed-categories";
 import { recordSearchKeyword } from "@/lib/search-keywords";
 import type { DeluluSearchResult } from "@/lib/search-types";
-import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import { useAllDelulus } from "@/hooks/graph";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
@@ -85,11 +83,6 @@ export default function ExplorePage() {
   const filteredFeed = useMemo(
     () => delulus.filter(isContentLoaded),
     [delulus],
-  );
-
-  const feedCategories = useMemo(
-    () => buildFeedCategories(filteredFeed, address),
-    [filteredFeed, address],
   );
 
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
@@ -248,26 +241,26 @@ export default function ExplorePage() {
 
         <div
           className={cn(
-            "mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-10",
-            isDiscoverMode ? "pb-20 pt-4 lg:pb-12 lg:pt-6" : "py-6 lg:py-8",
+            "mx-auto w-full px-4 sm:px-6",
+            isDiscoverMode
+              ? "max-w-lg pb-20 pt-3 lg:pb-12 lg:pt-4"
+              : "max-w-lg py-6 lg:py-8",
           )}
         >
-          <div className="mb-6 hidden lg:block">
-            <HomeSearch variant="hero" />
-          </div>
-
           {isDiscoverMode ? (
             isDiscoverLoading ? (
-              <HomeFeedExplore
-                categories={feedCategories}
+              <ExploreSocialFeed
+                delulus={[]}
                 isLoading
                 creatorPfps={{}}
+                address={address}
               />
             ) : filteredFeed.length > 0 ? (
-              <HomeFeedExplore
-                categories={feedCategories}
+              <ExploreSocialFeed
+                delulus={filteredFeed}
                 nowMs={feedNowMs}
                 creatorPfps={creatorPfps}
+                address={address}
               />
             ) : (
               <div className="flex flex-col items-center gap-2 py-16 text-center">
@@ -283,8 +276,11 @@ export default function ExplorePage() {
             )
           ) : (
             <>
-              <header className="mb-6">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              <header className="mb-4">
+                <h1
+                  className="text-lg font-black tracking-tight text-foreground"
+                  style={{ fontFamily: '"Clash Display", sans-serif' }}
+                >
                   {pageTitle}
                 </h1>
               </header>
@@ -302,9 +298,9 @@ export default function ExplorePage() {
                   </button>
                 </div>
               ) : isFilteredLoading ? (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <DeluluCardSkeleton key={i} className="mb-0" />
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <SocialFeedCardSkeleton key={i} />
                   ))}
                 </div>
               ) : displayDelulus.length === 0 ? (
@@ -319,25 +315,12 @@ export default function ExplorePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-                  {displayDelulus.map((delusion, index) => {
-                    const feedDelusion = delusion as FormattedDeluluFeed;
-                    return (
-                      <LazyDeluluCard
-                        key={`explore-${delusion.onChainId || delusion.id}-${index}`}
-                        delusion={delusion}
-                        href={`/delulu/${delusion.id}`}
-                        variant="feed"
-                        className="mb-0"
-                        disableMilestoneQuery
-                        disableUsernameLookup
-                        feedMilestones={feedDelusion.feedMilestones}
-                        totalMilestoneCount={feedDelusion.totalMilestoneCount}
-                        creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()]}
-                      />
-                    );
-                  })}
-                </div>
+                <ExploreSocialFeed
+                  delulus={displayDelulus}
+                  nowMs={feedNowMs}
+                  creatorPfps={creatorPfps}
+                  address={address}
+                />
               )}
             </>
           )}

@@ -56,6 +56,7 @@ export interface DeluluMilestoneTracker {
   deluluNumericId: number;
   deluluHref: string;
   title: string;
+  resolutionDeadline: Date;
   total: number;
   completed: number;
   underReview: number;
@@ -155,8 +156,8 @@ export function useUserOngoingMilestones() {
     {
       variables: { creatorAddresses, first: 50 },
       skip: !address,
-      fetchPolicy: "cache-and-network",
-      nextFetchPolicy: "cache-and-network",
+      fetchPolicy: "cache-first",
+      nextFetchPolicy: "cache-first",
     },
   );
 
@@ -329,6 +330,7 @@ export function useUserOngoingMilestones() {
         deluluNumericId: delulu.id,
         deluluHref,
         title,
+        resolutionDeadline: delulu.resolutionDeadline,
         total: activeMilestones.length,
         completed,
         underReview: review,
@@ -364,7 +366,7 @@ export function useUserOngoingMilestones() {
     milestones,
     trackers,
     summary,
-    isLoading: loading,
+    isLoading: loading && !data,
     error: error ?? null,
     refetch,
   };
