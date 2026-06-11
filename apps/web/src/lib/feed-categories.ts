@@ -95,19 +95,19 @@ export function buildFeedCategories(
     {
       id: "on-a-roll",
       title: "On a roll 🔥",
-      seeMoreHref: "/search",
+      seeMoreHref: "/explore?category=on-a-roll",
       items: onARoll,
     },
     {
       id: "for-you",
       title: "For you",
-      seeMoreHref: "/search",
+      seeMoreHref: "/explore?category=for-you",
       items: forYou,
     },
     {
       id: "worth-a-look",
       title: "Worth a look",
-      seeMoreHref: "/search",
+      seeMoreHref: "/explore?category=worth-a-look",
       items: worthALook,
     },
   ];

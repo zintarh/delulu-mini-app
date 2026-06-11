@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock,
   Hourglass,
+  Loader2,
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -91,14 +92,21 @@ function MilestoneSegmentBar({
 
 export function MilestoneTrackerHero({
   summary,
+  compact = false,
 }: {
   summary: MilestoneTrackerSummary;
+  compact?: boolean;
 }) {
   const pct = progressPct(summary.completedMilestones, summary.totalMilestones);
   const hasDue = summary.dueNow > 0;
 
   return (
-    <header className="relative overflow-hidden rounded-3xl border border-border/50 bg-card px-5 py-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+    <header
+      className={cn(
+        "relative overflow-hidden rounded-3xl border border-border/50 bg-card shadow-[0_4px_24px_rgba(0,0,0,0.06)]",
+        compact ? "px-4 py-4" : "px-5 py-6",
+      )}
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.18)_0%,transparent_70%)]"
@@ -119,7 +127,10 @@ export function MilestoneTrackerHero({
           {hasDue ? (
             <>
               <p
-                className="mt-2 text-5xl font-black leading-none tabular-nums text-foreground sm:text-6xl"
+                className={cn(
+                  "mt-2 font-black leading-none tabular-nums text-foreground",
+                  compact ? "text-4xl" : "text-5xl sm:text-6xl",
+                )}
                 style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 {summary.dueNow}
@@ -329,16 +340,38 @@ export function DeluluJourneyCard({
   tracker,
   now,
   onSubmitDue,
+  compact = false,
 }: {
   tracker: DeluluMilestoneTracker;
   now: number;
   onSubmitDue: (key: string) => void;
+  compact?: boolean;
 }) {
   const pct = progressPct(tracker.completed, tracker.total);
 
+  const visibleSteps = compact
+    ? (() => {
+        const actionSteps = tracker.steps.filter(
+          (s) => s.status === "due" || s.status === "review",
+        );
+        if (actionSteps.length > 0) return actionSteps;
+        const nextUp = tracker.steps.find((s) => s.status === "upcoming");
+        if (nextUp) return [nextUp];
+        const lastDone = [...tracker.steps]
+          .reverse()
+          .find((s) => s.status === "completed");
+        return lastDone ? [lastDone] : tracker.steps.slice(0, 1);
+      })()
+    : tracker.steps;
+
   return (
-    <article className="overflow-hidden rounded-3xl border border-border/40 bg-card shadow-[0_2px_16px_rgba(0,0,0,0.05)]">
-      <div className="border-b border-border/40 bg-gradient-to-br from-delulu-blue-light/80 via-card to-card px-4 py-4 sm:px-5">
+    <article className="overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[0_2px_16px_rgba(0,0,0,0.05)] sm:rounded-3xl">
+      <div
+        className={cn(
+          "border-b border-border/40 bg-gradient-to-br from-delulu-blue-light/80 via-card to-card",
+          compact ? "px-3.5 py-3 sm:px-4" : "px-4 py-4 sm:px-5",
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <Link
@@ -346,7 +379,10 @@ export function DeluluJourneyCard({
               className="group inline-flex max-w-full items-start gap-1.5"
             >
               <h3
-                className="text-base font-black leading-snug text-foreground line-clamp-2 group-hover:text-delulu-blue transition-colors sm:text-lg"
+                className={cn(
+                  "font-black leading-snug text-foreground line-clamp-2 group-hover:text-delulu-blue transition-colors",
+                  compact ? "text-sm sm:text-base" : "text-base sm:text-lg",
+                )}
                 style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 {tracker.title}
@@ -382,15 +418,15 @@ export function DeluluJourneyCard({
         />
       </div>
 
-      <div className="px-4 py-4 sm:px-5">
-        {tracker.steps.length > 0 ? (
+      <div className={cn(compact ? "px-3.5 py-3 sm:px-4" : "px-4 py-4 sm:px-5")}>
+        {visibleSteps.length > 0 ? (
           <div className="pt-0.5">
-            {tracker.steps.map((step, i) => (
+            {visibleSteps.map((step, i) => (
               <TimelineStepRow
                 key={step.key}
                 step={step}
                 now={now}
-                isLast={i === tracker.steps.length - 1}
+                isLast={i === visibleSteps.length - 1}
                 onSubmitDue={
                   step.status === "due" && step.due
                     ? () => onSubmitDue(step.key)
@@ -398,6 +434,15 @@ export function DeluluJourneyCard({
                 }
               />
             ))}
+            {compact && tracker.steps.length > visibleSteps.length ? (
+              <Link
+                href={tracker.deluluHref}
+                className="mt-1 block text-center text-xs font-semibold text-delulu-blue hover:underline"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                View all {tracker.total} milestones
+              </Link>
+            ) : null}
           </div>
         ) : (
           <p
@@ -412,9 +457,28 @@ export function DeluluJourneyCard({
   );
 }
 
-export function MilestoneTrackerSkeleton() {
+export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="mx-auto max-w-xl space-y-5 px-4 py-6">
+    <div
+      className={cn(
+        "mx-auto max-w-lg space-y-4",
+        compact ? "px-4 pb-4" : "max-w-xl space-y-5 px-4 py-6",
+      )}
+    >
+      <div
+        className="flex flex-col items-center justify-center gap-3 py-8"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading milestones"
+      >
+        <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
+        <p
+          className="text-sm font-semibold text-muted-foreground"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Loading milestones…
+        </p>
+      </div>
       <div className="h-36 animate-pulse rounded-3xl bg-muted/80" />
       {[1, 2].map((i) => (
         <div key={i} className="h-56 animate-pulse rounded-3xl bg-muted/60" />
@@ -425,11 +489,18 @@ export function MilestoneTrackerSkeleton() {
 
 export function MilestoneTrackerEmpty({
   onCreateClick,
+  compact = false,
 }: {
   onCreateClick?: () => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
+    <div
+      className={cn(
+        "mx-auto flex max-w-md flex-col items-center px-4 text-center",
+        compact ? "py-8" : "py-16",
+      )}
+    >
       <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-border/60 bg-delulu-blue-light shadow-sm">
         <Target className="h-9 w-9 text-delulu-blue" strokeWidth={2} />
       </div>

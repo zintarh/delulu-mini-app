@@ -40,9 +40,14 @@ function useNow() {
 
 interface OngoingMilestonesSectionProps {
   onCreateClick?: () => void;
+  /** Tighter layout for the home dashboard */
+  variant?: "default" | "home";
 }
 
-export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSectionProps) {
+export function OngoingMilestonesSection({
+  onCreateClick,
+  variant = "default",
+}: OngoingMilestonesSectionProps) {
   const chainId = useChainId();
   const apolloClient = useApolloClient();
   const now = useNow();
@@ -127,19 +132,30 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
   };
 
   if (isLoading) {
-    return <MilestoneTrackerSkeleton />;
+    return <MilestoneTrackerSkeleton compact={variant === "home"} />;
   }
 
   if (trackers.length === 0) {
-    return <MilestoneTrackerEmpty onCreateClick={onCreateClick} />;
+    return (
+      <MilestoneTrackerEmpty
+        onCreateClick={onCreateClick}
+        compact={variant === "home"}
+      />
+    );
   }
 
   const activeMilestone = milestones.find((m) => m.key === activeMilestoneKey) ?? null;
 
   return (
     <>
-      <div className="mx-auto max-w-xl space-y-5 px-4 py-6 pb-10">
-        <MilestoneTrackerHero summary={summary} />
+      <div
+        className={
+          variant === "home"
+            ? "mx-auto max-w-lg space-y-4 px-4 pb-4"
+            : "mx-auto max-w-xl space-y-5 px-4 py-6 pb-10"
+        }
+      >
+        <MilestoneTrackerHero summary={summary} compact={variant === "home"} />
 
         {trackers.map((tracker) => (
           <DeluluJourneyCard
@@ -147,6 +163,7 @@ export function OngoingMilestonesSection({ onCreateClick }: OngoingMilestonesSec
             tracker={tracker}
             now={now}
             onSubmitDue={openProofModal}
+            compact={variant === "home"}
           />
         ))}
       </div>
