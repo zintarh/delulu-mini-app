@@ -19,14 +19,16 @@ export function PullToRefresh() {
   const pathname = usePathname();
   const startYRef = useRef<number | null>(null);
   const pullingRef = useRef(false);
+  const pullPxRef = useRef(0);
   const scrollerRef = useRef<HTMLElement | Window | null>(null);
   const [pullPx, setPullPx] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Keep it PWA-only so web doesn’t feel “weird”.
-    if (!isStandalonePwa()) return;
+    const onExplore = pathname === "/explore";
+    // PWA everywhere; also enable on explore in the mobile browser (nested scroll).
+    if (!isStandalonePwa() && !onExplore) return;
     // Disable pull-to-refresh on single delulu pages.
     if (pathname?.startsWith("/delulu/")) return;
     if (pathname?.startsWith("/admin")) return;
@@ -57,6 +59,7 @@ export function PullToRefresh() {
       if (!isAtTop(scrollerRef.current)) return;
       startYRef.current = e.touches[0]?.clientY ?? null;
       pullingRef.current = false;
+      pullPxRef.current = 0;
       setPullPx(0);
     };
 
@@ -74,15 +77,17 @@ export function PullToRefresh() {
       e.preventDefault();
 
       const eased = Math.min(maxPull, delta * 0.6);
+      pullPxRef.current = eased;
       setPullPx(eased);
     };
 
     const onTouchEnd = async () => {
-      const px = pullPx;
+      const px = pullPxRef.current;
       startYRef.current = null;
       scrollerRef.current = null;
 
       if (!pullingRef.current) {
+        pullPxRef.current = 0;
         setPullPx(0);
         return;
       }
@@ -91,8 +96,13 @@ export function PullToRefresh() {
 
       if (px >= threshold) {
         setIsRefreshing(true);
+        pullPxRef.current = threshold;
         setPullPx(threshold);
-        // Next/App Router refresh (soft), falls back to reload if needed.
+        window.dispatchEvent(
+          new CustomEvent("delulu:pull-refresh", {
+            detail: { pathname: pathname ?? "/" },
+          }),
+        );
         try {
           router.refresh();
         } catch {
@@ -102,6 +112,7 @@ export function PullToRefresh() {
 
       // snap back
       setTimeout(() => {
+        pullPxRef.current = 0;
         setPullPx(0);
         setIsRefreshing(false);
       }, 550);
@@ -115,8 +126,7 @@ export function PullToRefresh() {
       window.removeEventListener("touchmove", onTouchMove as any);
       window.removeEventListener("touchend", onTouchEnd);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, pullPx, pathname]);
+  }, [router, pathname]);
 
   if (pullPx <= 0 && !isRefreshing) return null;
 

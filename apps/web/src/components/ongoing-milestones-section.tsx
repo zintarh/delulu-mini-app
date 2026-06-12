@@ -151,7 +151,7 @@ export function OngoingMilestonesSection({
       <div
         className={
           variant === "home"
-            ? "mx-auto max-w-lg space-y-3 px-4 pb-4"
+            ? "mx-auto max-w-2xl space-y-3 px-4 pb-4 xl:max-w-3xl"
             : "mx-auto max-w-xl space-y-5 px-4 py-6 pb-10"
         }
       >

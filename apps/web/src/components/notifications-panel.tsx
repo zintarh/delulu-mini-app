@@ -113,6 +113,10 @@ function PanelContent({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const markedReadRef = useRef(false);
 
+  useEffect(() => {
+    markedReadRef.current = false;
+  }, [address]);
+
   const fetchNotifications = useCallback(async () => {
     if (!address) { setLoading(false); return; }
     setLoading(true);

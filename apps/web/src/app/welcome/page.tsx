@@ -119,7 +119,7 @@ export default function WelcomePage() {
     try { await setProfile(username.trim()); } catch {}
   };
 
-  // Loading: Privy not ready, or authenticated but still waiting for address/contract check
+  // Loading: auth not ready, or authenticated but still waiting for address/contract check
   const isCheckingOnboarding = !isReady || (authenticated && (!address || isCheckingProfile));
 
   if (isCheckingOnboarding) {

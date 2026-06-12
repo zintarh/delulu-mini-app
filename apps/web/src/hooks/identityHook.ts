@@ -72,7 +72,6 @@ export function useIdentity() {
 
     try {
       setIsGeneratingLink(true);
-      console.log("🔗 Generating FV link (Chain 42220) using identitySDK...");
 
       const idSDK = new (IdentitySDK as any)(
         publicClient,

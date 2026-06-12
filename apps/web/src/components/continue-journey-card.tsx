@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, ChevronRight, SkipForward, RefreshCw, Target, Briefcase, DollarSign, Heart, BookOpen, Users, Brain } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -15,6 +14,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   other:     Target,
 };
 import { useAuth } from "@/hooks/use-auth";
+import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { cn } from "@/lib/utils";
 import {
   useGoalSeries,
@@ -56,7 +56,7 @@ interface ContinueJourneyCardProps {
 
 export function ContinueJourneyCard({ className }: ContinueJourneyCardProps) {
   const { address } = useAuth();
-  const router = useRouter();
+  const { navigateToCreate } = useNavigateToCreate();
   const { data: series, isLoading } = useGoalSeries(address);
   const [showAbandonModal, setShowAbandonModal] = useState(false);
 
@@ -108,10 +108,7 @@ export function ContinueJourneyCard({ className }: ContinueJourneyCardProps) {
             habit={nextHabit}
             address={address!}
             onStartOver={() => setShowAbandonModal(true)}
-            onStartGoal={() => {
-              // Navigate to board (create flow) — it will show the active series
-              router.push("/board");
-            }}
+            onStartGoal={() => void navigateToCreate()}
           />
         ) : (
           <div className="px-4 pb-4">

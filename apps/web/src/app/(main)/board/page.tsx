@@ -1,10 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CreateFlowSkeleton } from "@/components/create-flow-skeleton";
 import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
+import { useAuth } from "@/hooks/use-auth";
+import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
+import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
 const CreateDelusionContent = dynamic(
   () =>
@@ -14,6 +18,26 @@ const CreateDelusionContent = dynamic(
 
 export default function BoardPage() {
   const router = useRouter();
+  const { authenticated, isReady } = useAuth();
+  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!authenticated) {
+      preloadAuthProviders();
+      router.replace("/sign-in?redirect=%2Fboard");
+      return;
+    }
+    void ensureWhitelisted("create");
+  }, [isReady, authenticated, router, ensureWhitelisted]);
+
+  if (!isReady || !authenticated) {
+    return (
+      <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <CreateFlowSkeleton />
+      </main>
+    );
+  }
 
   return (
     <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background">

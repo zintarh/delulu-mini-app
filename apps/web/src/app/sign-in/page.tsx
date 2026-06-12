@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useBalance, useReadContract } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useIsMiniPay } from "@/hooks/use-is-minipay";
 import {
   consumeSignInRedirect,
   persistSignInRedirect,
@@ -13,22 +12,9 @@ import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { DELULU_ABI } from "@/lib/abi";
 import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@privy-io/react-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
-
-type ProfileProvider = "privy" | "web3auth" | null;
-type EmailCheckResponse = {
-  taken: boolean;
-  auth_provider: ProfileProvider;
-};
-
-function pickProvider(input: EmailCheckResponse): "privy" | "web3auth" {
-  if (input.taken && input.auth_provider === "privy") return "privy";
-  if (input.taken && input.auth_provider === "web3auth") return "web3auth";
-  return "web3auth";
-}
 
 const BG_IMAGES = ["/bg.jpg", "/bg1.jpg"];
 
@@ -36,18 +22,13 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authenticated, isReady, address } = useAuth();
-  const inMiniPay = useIsMiniPay();
-  const { login: privyLogin } = useLogin();
   const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
   const [email, setEmail] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] =
     useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] =
     useState(false);
-  const [resolvedProvider, setResolvedProvider] = useState<ProfileProvider>(null);
-  const [resolvedEmail, setResolvedEmail] = useState<string>("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
@@ -66,11 +47,9 @@ export default function SignInPage() {
     () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail),
     [normalizedEmail],
   );
-  const isEmailPending = isChecking || isLaunchingEmailProvider;
+  const isEmailPending = isLaunchingEmailProvider;
   const isWalletPending = isLaunchingWalletProvider;
   const isAnyPending = isEmailPending || isWalletPending;
-  const isEmailRouterEnabled =
-    process.env.NEXT_PUBLIC_SIGNIN_EMAIL_ROUTER_V1 !== "false";
 
   const { data: username, isFetching } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
@@ -91,18 +70,8 @@ export default function SignInPage() {
   const hasGas = (celoBalance?.value ?? 0n) > 0n;
   const safeAddress = address ?? "";
 
-  // MiniPay: wallet is always connected, skip sign-in entirely
-  useEffect(() => {
-    if (inMiniPay && authenticated && address) {
-      const redirectTarget =
-        consumeSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect"));
-      router.replace(redirectTarget ?? "/");
-    }
-  }, [inMiniPay, authenticated, address, router, searchParams]);
-
   useEffect(() => {
     if (!isReady || !authenticated || !address || isFetching || isBalanceLoading) return;
-    if (inMiniPay) return; // handled above
 
     const redirectTarget =
       consumeSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect"));
@@ -122,105 +91,58 @@ export default function SignInPage() {
     isBalanceLoading,
     hasProfile,
     hasGas,
-    inMiniPay,
     router,
     searchParams,
   ]);
 
-  const checkEmailRoute = async (
-    value: string,
-  ): Promise<EmailCheckResponse> => {
-    const response = await fetch(
-      `/api/profile/check-email?email=${encodeURIComponent(value)}`,
-    );
-    if (!response.ok) {
-      throw new Error("Couldn’t start sign in. Try again.");
-    }
-    return (await response.json()) as EmailCheckResponse;
-  };
-
-  // Pre-resolve provider while user types, so submit remains a single-click flow.
-  useEffect(() => {
-    setResolvedProvider(null);
-    setResolvedEmail("");
-    if (!isEmailRouterEnabled || !isEmailValid) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        const result = await checkEmailRoute(normalizedEmail);
-        setResolvedProvider(pickProvider(result));
-        setResolvedEmail(normalizedEmail);
-      } catch {
-        // Silent: submit path will still handle errors.
-      }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [isEmailRouterEnabled, isEmailValid, normalizedEmail]);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const openEmailWeb3Auth = async () => {
     setRouteError(null);
-    if (!isEmailValid || isAnyPending) return;
+    if (isAnyPending) return;
 
     setIsLaunchingEmailProvider(true);
     try {
-      const provider =
-        isEmailRouterEnabled &&
-        resolvedProvider &&
-        resolvedEmail === normalizedEmail
-          ? resolvedProvider
-          : isEmailRouterEnabled
-            ? pickProvider(await checkEmailRoute(normalizedEmail))
-            : "web3auth";
-
-      if (provider === "privy") {
-        await privyLogin({
-          disableSignup: true,
-          prefill: { type: "email", value: normalizedEmail },
-        });
-      } else {
-        if (!isInitialized) {
-          setRouteError("Sign-in is still loading. Wait a moment and try again.");
-          return;
-        }
-        await connectTo(WALLET_CONNECTORS.AUTH, {
-          authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
-          loginHint: normalizedEmail,
-          extraLoginOptions: {
-            login_hint: normalizedEmail,
-          },
-        });
+      if (!isInitialized) {
+        setRouteError("Sign-in is still loading. Wait a moment and try again.");
+        return;
       }
+      await connectTo(WALLET_CONNECTORS.AUTH, {
+        authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
+        ...(isEmailValid
+          ? {
+              loginHint: normalizedEmail,
+              extraLoginOptions: { login_hint: normalizedEmail },
+            }
+          : {}),
+      });
     } catch {
-      setRouteError("Couldn’t start sign in. Try again.");
+      setRouteError("Couldn’t open email sign in. Try again.");
     } finally {
-      setIsChecking(false);
       setIsLaunchingEmailProvider(false);
     }
   };
 
-  const handleWalletContinue = () => {
+  const openWalletWeb3Auth = async () => {
     setRouteError(null);
     if (isAnyPending) return;
+
     setIsLaunchingWalletProvider(true);
-    connect()
-      .catch(() => {
-        setRouteError("Couldn’t open wallet connection. Try again.");
-      })
-      .finally(() => {
-        setIsLaunchingWalletProvider(false);
-      });
+    try {
+      if (!isInitialized) {
+        setRouteError("Sign-in is still loading. Wait a moment and try again.");
+        return;
+      }
+      await connect();
+    } catch {
+      setRouteError("Couldn’t open wallet connection. Try again.");
+    } finally {
+      setIsLaunchingWalletProvider(false);
+    }
   };
 
-  // Inside MiniPay, wallet is always ready — show a loading state while auto-connecting
-  if (inMiniPay) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void openEmailWeb3Auth();
+  };
 
   if (!isReady) {
     return (
@@ -379,7 +301,7 @@ export default function SignInPage() {
 
             <button
               type="submit"
-              disabled={!isEmailValid || isAnyPending}
+              disabled={isAnyPending || !isInitialized}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
                 bg-[#f6c324] text-[#1a1a19] font-extrabold text-[15px]
                 border-2 border-[#1a1a19] shadow-[3px_3px_0px_0px_#1a1a19]
@@ -390,7 +312,7 @@ export default function SignInPage() {
               {isEmailPending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {isChecking ? "Checking your account…" : "Starting secure sign in…"}
+                  Starting secure sign in…
                 </>
               ) : (
                 <>
@@ -404,8 +326,8 @@ export default function SignInPage() {
 
             <button
               type="button"
-              onClick={handleWalletContinue}
-              disabled={isAnyPending}
+              onClick={() => void openWalletWeb3Auth()}
+              disabled={isAnyPending || !isInitialized}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
                 bg-white/10 text-white font-semibold text-[15px] border border-white/20
                 hover:bg-white/15 active:bg-white/20 transition-all
@@ -429,7 +351,7 @@ export default function SignInPage() {
             ) : null}
             {!isEmailValid && email.length > 0 ? (
               <p className="text-center text-xs text-white/50">
-                Enter a valid email to continue.
+                Enter a valid email to prefill Web3Auth, or continue anyway.
               </p>
             ) : null}
           </form>

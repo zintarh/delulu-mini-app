@@ -34,18 +34,6 @@ export function useGraphStakedDelulus() {
     fetchPolicy: "cache-and-network",
   });
 
-  // Debug: Log query results
-  useEffect(() => {
-    console.log('[useGraphStakedDelulus] Query state:', {
-      loading,
-      isConnected,
-      userId,
-      hasData: !!data,
-      stakesCount: data?.stakes?.length ?? 0,
-      error: error?.message,
-      rawData: data,
-    });
-  }, [data, loading, error, isConnected, userId]);
 
   // Extract unique delulus from the user's stakes
   const rawDelulus = useMemo(() => {

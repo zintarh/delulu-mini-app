@@ -2,12 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { ProfileLoader } from "@/components/profile-loader";
-import { MiniPayConnect } from "@/components/minipay-connect";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
-import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import { useAuth } from "@/hooks/use-auth";
-import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
+import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
@@ -17,7 +15,7 @@ const LeftSidebar = dynamic(
 );
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
-  { ssr: false },
+  { ssr: false, loading: () => <div className="fixed bottom-0 left-0 right-0 z-40 h-16 border-t border-border bg-background/95 lg:hidden" /> },
 );
 const ClaimPanel = dynamic(
   () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
@@ -49,7 +47,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
 function MainLayoutShell({ children }: { children: React.ReactNode }) {
   const { authenticated } = useAuth();
-  const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
+  const { navigateToCreate } = useNavigateToCreate();
   const router = useRouter();
 
   const handleProfileClick = () => {
@@ -60,30 +58,16 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
     else router.push("/profile");
   };
 
-  const handleCreateClick = async () => {
-    if (!authenticated) {
-      preloadAuthProviders();
-      router.push("/sign-in?redirect=%2Fboard");
-      return;
-    }
-    const allowed = await ensureWhitelisted("create");
-    if (!allowed) return;
-    prefetchCreateDelusionContent();
-    prefetchCreateManifestStep();
-    router.push("/board");
-  };
-
   return (
       <LogoutSheetProvider>
       <div className="h-screen overflow-hidden">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24">
-          <LeftSidebar />
+          <LeftSidebar onCreateClick={navigateToCreate} />
         </div>
 
         <div className="flex h-screen lg:pl-24">
-          <MiniPayConnect />
           <ProfileLoader />
-          {authenticated ? <NotificationsPanel /> : null}
+          <NotificationsPanel />
           <ClaimPanel />
           <WhitelistRedirectToast />
 
@@ -94,7 +78,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
 
         <BottomNav
           onProfileClick={handleProfileClick}
-          onCreateClick={handleCreateClick}
+          onCreateClick={navigateToCreate}
         />
       </div>
       </LogoutSheetProvider>

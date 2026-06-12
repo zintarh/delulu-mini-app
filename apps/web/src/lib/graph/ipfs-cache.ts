@@ -108,7 +108,7 @@ async function fetchFromGateways(
       }
 
       const normalized: DeluluIPFSMetadata = {
-        ...(data as any),
+        ...(data as object),
         text: textSource,
       };
 

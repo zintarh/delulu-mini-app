@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Check,
+  ChevronDown,
   ChevronRight,
   Clock,
   Hourglass,
@@ -414,23 +416,27 @@ export function DeluluJourneyCard({
   onSubmitDue: (key: string) => void;
   compact?: boolean;
 }) {
+  const [milestonesExpanded, setMilestonesExpanded] = useState(false);
   const pct = progressPct(tracker.completed, tracker.total);
   const endsLine = formatResolutionEndsLine(now, tracker.resolutionDeadline);
 
-  const visibleSteps = compact
-    ? (() => {
-        const actionSteps = tracker.steps.filter(
-          (s) => s.status === "due" || s.status === "review",
-        );
-        if (actionSteps.length > 0) return actionSteps;
-        const nextUp = tracker.steps.find((s) => s.status === "upcoming");
-        if (nextUp) return [nextUp];
-        const lastDone = [...tracker.steps]
-          .reverse()
-          .find((s) => s.status === "completed");
-        return lastDone ? [lastDone] : tracker.steps.slice(0, 1);
-      })()
-    : tracker.steps;
+  const collapsedSteps = (() => {
+    const actionSteps = tracker.steps.filter(
+      (s) => s.status === "due" || s.status === "review",
+    );
+    if (actionSteps.length > 0) return actionSteps;
+    const nextUp = tracker.steps.find((s) => s.status === "upcoming");
+    if (nextUp) return [nextUp];
+    const lastDone = [...tracker.steps]
+      .reverse()
+      .find((s) => s.status === "completed");
+    return lastDone ? [lastDone] : tracker.steps.slice(0, 1);
+  })();
+
+  const visibleSteps =
+    compact && !milestonesExpanded ? collapsedSteps : tracker.steps;
+  const hasHiddenMilestones =
+    compact && tracker.steps.length > collapsedSteps.length;
 
   return (
     <article
@@ -531,14 +537,24 @@ export function DeluluJourneyCard({
                 }
               />
             ))}
-            {compact && tracker.steps.length > visibleSteps.length ? (
-              <Link
-                href={tracker.deluluHref}
-                className="mt-1 block text-center text-xs font-semibold text-delulu-blue hover:underline"
+            {hasHiddenMilestones ? (
+              <button
+                type="button"
+                onClick={() => setMilestonesExpanded((open) => !open)}
+                className="mt-2 flex w-full items-center justify-center gap-1 border-t border-border/40 pt-3 text-xs font-semibold text-delulu-blue transition-colors hover:text-delulu-blue/80"
                 style={{ fontFamily: "var(--font-manrope)" }}
+                aria-expanded={milestonesExpanded}
               >
-                View all {tracker.total} milestones
-              </Link>
+                {milestonesExpanded
+                  ? "Show less"
+                  : `View all ${tracker.total} milestones`}
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    milestonesExpanded && "rotate-180",
+                  )}
+                />
+              </button>
             ) : null}
           </div>
         ) : (
@@ -558,7 +574,7 @@ export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolea
   return (
     <div
       className={cn(
-        "mx-auto max-w-lg space-y-4",
+        "mx-auto max-w-2xl space-y-4 xl:max-w-3xl",
         compact ? "px-4 pb-4" : "max-w-xl space-y-5 px-4 py-6",
       )}
     >

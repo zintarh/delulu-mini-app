@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +17,7 @@ import {
   normalizePathname,
 } from "@/components/main-nav-config";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
+import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 function Tooltip({ label }: { label: string }) {
   return (
@@ -38,7 +40,11 @@ function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) 
   );
 }
 
-export function LeftSidebar() {
+interface LeftSidebarProps {
+  onCreateClick?: () => void | Promise<void>;
+}
+
+export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const pathname = usePathname();
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
@@ -56,6 +62,7 @@ export function LeftSidebar() {
     const schedule = () => {
       prefetchCreateDelusionContent();
       prefetchCreateManifestStep();
+      prefetchExploreOnIntent();
     };
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(schedule, { timeout: 4000 });
@@ -102,19 +109,17 @@ export function LeftSidebar() {
       <div className="mb-8">
         <Link
           href="/"
-          aria-label="Home"
+          aria-label="Delulu home"
           className="flex items-center justify-center w-14 h-14"
           onClick={() => closePanels()}
         >
-          <span
-            className="text-3xl font-black text-delulu-yellow-reserved leading-none"
-            style={{
-              fontFamily: "var(--font-gloria), cursive",
-              textShadow: "2px 2px 0 #1a1a19, -1px -1px 0 #1a1a19",
-            }}
-          >
-            D
-          </span>
+          <Image
+            src="/favicon_io/android-chrome-192x192.png"
+            alt="Delulu"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-xl"
+          />
         </Link>
       </div>
 
@@ -136,7 +141,21 @@ export function LeftSidebar() {
 
           return (
             <div key={action} className="group relative">
-              {href ? (
+              {action === "create" && onCreateClick ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closePanels();
+                    void onCreateClick();
+                  }}
+                  onMouseEnter={prefetchCreate}
+                  className={itemCls(active)}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <NavIcon icon={icon} active={active} />
+                </button>
+              ) : href ? (
                 <Link
                   href={href}
                   className={itemCls(active)}
@@ -145,7 +164,11 @@ export function LeftSidebar() {
                   onClick={() => closePanels()}
                   onMouseEnter={() => {
                     router.prefetch(href);
-                    if (action === "create") prefetchCreate();
+                    if (action === "explore") prefetchExploreOnIntent();
+                  }}
+                  onTouchStart={() => {
+                    router.prefetch(href);
+                    if (action === "explore") prefetchExploreOnIntent();
                   }}
                 >
                   <NavIcon icon={icon} active={active} />

@@ -21,8 +21,6 @@ import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS, isGoodDollarToken } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { formatUsdEquivalent, getMinStakeWhole, getTokenSymbol } from "@/lib/token-amounts";
-import { useIsMiniPay } from "@/hooks/use-is-minipay";
-import { useDefaultToken } from "@/hooks/use-supported-tokens";
 import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
@@ -137,19 +135,11 @@ export function CreateManifestStep({
   const { redirectToSignIn } = useRedirectToSignIn();
 
   const supportedTokens = useSupportedTokens();
-  const inMiniPay = useIsMiniPay();
-  const miniPayDefault = useDefaultToken();
-  const defaultToken = inMiniPay
-    ? miniPayDefault
-    : (supportedTokens.find((t) => t.symbol === "G$")?.address ??
-       supportedTokens[0]?.address ??
-       GOODDOLLAR_ADDRESSES.mainnet);
+  const defaultToken =
+    supportedTokens.find((t) => t.symbol === "G$")?.address ??
+    supportedTokens[0]?.address ??
+    GOODDOLLAR_ADDRESSES.mainnet;
   const [selectedToken, setSelectedToken] = useState(defaultToken);
-
-  // Keep selectedToken in sync when MiniPay is detected after mount
-  useEffect(() => {
-    if (inMiniPay && miniPayDefault) setSelectedToken(miniPayDefault);
-  }, [inMiniPay, miniPayDefault]);
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
   const [stakeAmount, setStakeAmount] = useState(0);
@@ -911,8 +901,7 @@ export function CreateManifestStep({
                 <div ref={tokenDropdownRef} className="relative shrink-0">
                   <button
                     type="button"
-                    onClick={() => !inMiniPay && setIsTokenDropdownOpen(!isTokenDropdownOpen)}
-                    disabled={inMiniPay}
+                    onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-2 shadow-sm transition-colors hover:bg-secondary/80",
                       isTokenDropdownOpen && "bg-muted"
@@ -933,14 +922,12 @@ export function CreateManifestStep({
                           <span className="text-sm font-bold">
                             {selectedTokenInfo?.symbol || "Select"}
                           </span>
-                          {!inMiniPay && (
-                            <ChevronDown
-                              className={cn(
-                                "h-3.5 w-3.5 text-muted-foreground transition-transform",
-                                isTokenDropdownOpen && "rotate-180"
-                              )}
-                            />
-                          )}
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 text-muted-foreground transition-transform",
+                              isTokenDropdownOpen && "rotate-180"
+                            )}
+                          />
                         </>
                       );
                     })()}

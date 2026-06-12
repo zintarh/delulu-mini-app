@@ -1,45 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
-import { LazyDeluluCard } from "@/components/lazy-delulu-card";
+import { LazyExplorePinCard } from "@/components/lazy-explore-pin-card";
 import { SocialFeedCardSkeleton } from "@/components/delulu-skeleton";
-import { buildFeedCategories } from "@/lib/feed-categories";
-import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import type { FormattedDelulu } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-function orderFeedDelulus(
-  delulus: FormattedDelulu[],
-  address: string | undefined,
-): FormattedDelulu[] {
-  const seen = new Set<string>();
-  const ordered: FormattedDelulu[] = [];
-
-  for (const category of buildFeedCategories(delulus, address)) {
-    for (const item of category.items) {
-      const key = String(item.onChainId ?? item.id);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      ordered.push(item);
-    }
-  }
-
-  for (const item of delulus) {
-    const key = String(item.onChainId ?? item.id);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    ordered.push(item);
-  }
-
-  return ordered;
-}
 
 interface ExploreSocialFeedProps {
   delulus: FormattedDelulu[];
   isLoading?: boolean;
   nowMs?: number;
   creatorPfps: Record<string, string | null | undefined>;
-  address?: string;
   className?: string;
 }
 
@@ -48,19 +18,21 @@ export function ExploreSocialFeed({
   isLoading,
   nowMs,
   creatorPfps,
-  address,
   className,
 }: ExploreSocialFeedProps) {
-  const feedItems = useMemo(
-    () => orderFeedDelulus(delulus, address),
-    [delulus, address],
+  // Subgraph returns createdAt desc; keep that order (newest first).
+  const feedItems = delulus;
+
+  const masonryClass = cn(
+    "w-full columns-2 gap-x-3 sm:gap-x-4 md:columns-3",
+    className,
   );
 
   if (isLoading) {
     return (
-      <div className={cn("mx-auto flex w-full max-w-lg flex-col gap-3", className)}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <SocialFeedCardSkeleton key={i} />
+      <div className={masonryClass}>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <SocialFeedCardSkeleton key={i} index={i} />
         ))}
       </div>
     );
@@ -69,21 +41,16 @@ export function ExploreSocialFeed({
   if (feedItems.length === 0) return null;
 
   return (
-    <div className={cn("mx-auto flex w-full max-w-lg flex-col gap-3", className)}>
+    <div className={masonryClass}>
       {feedItems.map((delusion, index) => {
-        const feedDelusion = delusion as FormattedDeluluFeed;
         return (
-          <LazyDeluluCard
+          <LazyExplorePinCard
             key={`social-${delusion.onChainId || delusion.id}-${index}`}
             delusion={delusion}
             href={`/delulu/${delusion.id}`}
-            variant="social"
-            className="mb-0"
+            className="w-full"
             nowMs={nowMs}
-            disableMilestoneQuery
-            disableUsernameLookup
-            feedMilestones={feedDelusion.feedMilestones}
-            totalMilestoneCount={feedDelusion.totalMilestoneCount}
+            imagePriority={index < 6}
             creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()]}
           />
         );

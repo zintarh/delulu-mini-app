@@ -3,17 +3,17 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useIsMiniPay } from "@/hooks/use-is-minipay";
-import { USDT_ADDRESSES } from "@/lib/constant";
 import { useRouter } from "next/navigation";
 import { FormattedDelulu } from "@/lib/types";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn, formatGAmount } from "@/lib/utils";
 import {
+  formatUsdEquivalent,
   getDefaultTipAmount,
   getTokenSymbol,
   parseTokenAmount,
 } from "@/lib/token-amounts";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { Check, DollarSign, Loader2 } from "lucide-react";
 import { useApolloClient } from "@apollo/client/react";
@@ -62,8 +62,7 @@ interface DeluluCardProps {
   href?: string;
   onStake?: () => void;
   className?: string;
-  /** Softer Pinterest-style presentation on home feed rows. */
-  variant?: "default" | "feed" | "feed-for-you" | "grid" | "social";
+  variant?: "default" | "feed" | "feed-for-you" | "grid";
   isLast?: boolean;
   nowMs?: number;
   disableMilestoneQuery?: boolean;
@@ -71,6 +70,8 @@ interface DeluluCardProps {
   feedMilestones?: FeedMilestone[];
   totalMilestoneCount?: number;
   creatorPfpUrl?: string | null | undefined;
+  /** Eager-load cover image (first screenful on feeds). */
+  imagePriority?: boolean;
 }
 
 export function DeluluCard({
@@ -87,6 +88,7 @@ export function DeluluCard({
   feedMilestones,
   totalMilestoneCount,
   creatorPfpUrl,
+  imagePriority = false,
 }: DeluluCardProps) {
   const legacyStakeTotal = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const totalReceived = delusion.totalSupportCollected ?? 0;
@@ -122,12 +124,7 @@ export function DeluluCard({
   const router = useRouter();
   const apolloClient = useApolloClient();
   const chainId = useChainId();
-  const inMiniPay = useIsMiniPay();
-  // MiniPay uses USDT for tips except on the social explore feed (market token + min tip)
-  const effectiveTokenAddress =
-    inMiniPay && variant !== "social"
-      ? USDT_ADDRESSES.mainnet
-      : delusion.tokenAddress;
+  const effectiveTokenAddress = delusion.tokenAddress;
 
   const {
     writeContract: writeQuickTip,
@@ -226,7 +223,13 @@ export function DeluluCard({
   const headline = headlineRaw.trim() || "YOUR DELULU HEADLINE";
 
   const tvl = tvlValue;
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
   const formattedGAmount = formatGAmount(tvl);
+  const supportUsdLabel = formatUsdEquivalent(
+    tvl,
+    delusion.tokenAddress,
+    gDollarUsdPrice,
+  );
 
   const { totalCount, verifiedCount } = useMemo(() => {
     if (
@@ -275,7 +278,6 @@ export function DeluluCard({
   const isEnded = resolutionMs > 0 && resolutionMs <= now;
   const timeRemaining = !isEnded ? formatTimeLeftDayHour(now, resolutionMs) : null;
   const coverImageSrc = normalizeDeluluImageSrc(delusion.bgImageUrl);
-
   const showSupportButton =
     authenticated &&
     !isEnded &&
@@ -339,36 +341,6 @@ export function DeluluCard({
       : 0;
 
   const isForYouVariant = variant === "feed-for-you";
-  const isSocialVariant = variant === "social";
-
-  const socialTipEl =
-    showTipCta || isQuickTipping || showTipSuccess ? (
-      showTipSuccess ? (
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-delulu-blue">
-          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-          Tipped
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={handleQuickTip}
-          disabled={isQuickTipping || isCheckingWhitelist || tipDisabled}
-          className={cn(
-            "inline-flex h-8 items-center justify-center gap-1 rounded-full bg-foreground px-3 text-xs font-bold text-background transition-all active:scale-[0.97]",
-            (isQuickTipping || isCheckingWhitelist) && "cursor-wait opacity-80",
-            tipDisabled && "cursor-not-allowed opacity-40",
-          )}
-        >
-          {isQuickTipping ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : !authenticated ? (
-            SIGN_IN_BUTTON_LABEL
-          ) : (
-            `Tip ${tipAmount} ${tokenSymbol}`
-          )}
-        </button>
-      )
-    ) : null;
 
   const tipButtonEl =
     showTipCta || isQuickTipping || showTipSuccess ? (
@@ -508,111 +480,7 @@ export function DeluluCard({
     </div>
   );
 
-  const socialCardContent = (
-    <article className="overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-border/60">
-          <UserAvatar
-            address={delusion.creator}
-            username={displayUsername}
-            pfpUrl={resolvedPfpUrl}
-            size={36}
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-foreground">{creatorLabel}</p>
-          {timeRemaining ? (
-            <p className="text-[11px] font-medium text-muted-foreground">
-              {timeRemaining} left
-            </p>
-          ) : isEnded ? (
-            <p className="text-[11px] font-medium text-muted-foreground">Ended</p>
-          ) : null}
-        </div>
-      </div>
-
-      {href ? (
-        <Link
-          href={href}
-          onMouseEnter={handleMouseEnter}
-          onTouchStart={handleMouseEnter}
-          className="relative block aspect-[16/9] max-h-[180px] w-full overflow-hidden"
-          style={{ background: cardGradient }}
-        >
-          {coverImageSrc ? (
-            <Image
-              src={coverImageSrc}
-              alt=""
-              fill
-              sizes="(max-width: 512px) 100vw, 512px"
-              className="object-cover"
-              loading="lazy"
-              unoptimized={coverImageSrc.startsWith("data:")}
-            />
-          ) : null}
-        </Link>
-      ) : (
-        <div
-          className="relative aspect-[16/9] max-h-[180px] w-full overflow-hidden"
-          style={{ background: cardGradient }}
-          onClick={handleCardClick}
-        >
-          {coverImageSrc ? (
-            <Image
-              src={coverImageSrc}
-              alt=""
-              fill
-              sizes="(max-width: 512px) 100vw, 512px"
-              className="object-cover"
-              loading="lazy"
-              unoptimized={coverImageSrc.startsWith("data:")}
-            />
-          ) : null}
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2">
-        {socialTipEl}
-        {supportersCount > 0 ? (
-          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-            {supportersCount}{" "}
-            {supportersCount === 1 ? "supporter" : "supporters"}
-          </span>
-        ) : null}
-        {totalCount > 0 ? (
-          <span className="ml-auto text-[11px] font-semibold tabular-nums text-muted-foreground">
-            {verifiedCount}/{totalCount} milestones
-          </span>
-        ) : null}
-      </div>
-
-      <div className="space-y-1 px-3 pb-3">
-        {href ? (
-          <Link href={href} onMouseEnter={handleMouseEnter} className="block">
-            <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-              {headline}
-            </p>
-          </Link>
-        ) : (
-          <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-            {headline}
-          </p>
-        )}
-        {tvl > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            <span className="font-semibold tabular-nums text-foreground">
-              {formattedGAmount} {tokenSymbol}
-            </span>{" "}
-            in support
-          </p>
-        ) : null}
-      </div>
-    </article>
-  );
-
-  const cardContent = isSocialVariant ? (
-    socialCardContent
-  ) : isForYouVariant ? (
+  const cardContent = isForYouVariant ? (
     forYouCardContent
   ) : (
     <div
@@ -711,12 +579,23 @@ export function DeluluCard({
             Tipped so far
           </span>
           <span className="text-right text-base font-black tabular-nums text-foreground">
-            {formattedGAmount}
-            {delusion.tokenAddress ? (
-              <span className="ml-1 text-sm font-semibold text-muted-foreground">
-                {tokenSymbol}
-              </span>
-            ) : null}
+            {supportUsdLabel ? (
+              <>
+                ≈ ${supportUsdLabel}
+                <span className="ml-1 text-sm font-semibold text-muted-foreground">
+                  ({formattedGAmount} {tokenSymbol})
+                </span>
+              </>
+            ) : (
+              <>
+                {formattedGAmount}
+                {delusion.tokenAddress ? (
+                  <span className="ml-1 text-sm font-semibold text-muted-foreground">
+                    {tokenSymbol}
+                  </span>
+                ) : null}
+              </>
+            )}
           </span>
         </div>
 
@@ -744,18 +623,6 @@ export function DeluluCard({
       </div>
     </div>
   );
-
-  if (href && isSocialVariant) {
-    return (
-      <div
-        className={cn(className, "block h-auto")}
-        onMouseEnter={handleMouseEnter}
-        onTouchStart={handleMouseEnter}
-      >
-        {cardContent}
-      </div>
-    );
-  }
 
   if (href) {
     return (

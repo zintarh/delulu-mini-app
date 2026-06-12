@@ -32,7 +32,7 @@ import { cn, formatAddress } from "@/lib/utils";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { isConnected, address } = useAuth();
+  const { isConnected, address, isReady } = useAuth();
   const { user } = useUserStore();
   const { openLogoutSheet } = useLogoutSheet();
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
@@ -59,8 +59,25 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (!isConnected) router.replace("/sign-in");
-  }, [isConnected, router]);
+    if (isReady && !isConnected) router.replace("/sign-in");
+  }, [isReady, isConnected, router]);
+
+  if (!isReady || !isConnected) return (
+    <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
+        <div className="h-9 w-9 animate-pulse rounded-full bg-muted/60" />
+        <div className="h-5 w-24 animate-pulse rounded-md bg-muted/60" />
+      </div>
+      <div className="px-4 pt-5 pb-24 space-y-7">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-3 w-16 animate-pulse rounded bg-muted/40" />
+            <div className="h-14 w-full animate-pulse rounded-2xl bg-muted/40" />
+          </div>
+        ))}
+      </div>
+    </main>
+  );
 
   const handleCopyAddress = async () => {
     if (!address) return;

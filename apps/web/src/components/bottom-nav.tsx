@@ -15,6 +15,7 @@ import {
 } from "@/components/main-nav-config";
 import { MOBILE_BOTTOM_NAV_HEIGHT } from "@/lib/mobile-bottom-nav";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
+import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 interface BottomNavProps {
   /** @deprecated Profile is not in main nav; kept for existing callers */
@@ -41,6 +42,7 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
     const schedule = () => {
       prefetchCreateDelusionContent();
       prefetchCreateManifestStep();
+      prefetchExploreOnIntent();
     };
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(schedule, { timeout: 4000 });
@@ -114,22 +116,41 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
               isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted",
             );
 
+            if (item.action === "create" && onCreateClick) {
+              return (
+                <button
+                  key={item.action}
+                  type="button"
+                  onClick={() => {
+                    closePanels();
+                    void onCreateClick();
+                  }}
+                  onMouseEnter={prefetchCreate}
+                  onTouchStart={prefetchCreate}
+                  className={itemClass}
+                  aria-label={item.label}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {content}
+                </button>
+              );
+            }
+
             if (item.href) {
               return (
                 <Link
                   key={item.action}
                   href={item.href}
-                  onClick={() => {
-                    closePanels();
-                    if (item.action === "create" && onCreateClick) onCreateClick();
-                  }}
+                  onClick={() => closePanels()}
                   onMouseEnter={() => {
                     router.prefetch(item.href!);
                     if (item.action === "create") prefetchCreate();
+                    if (item.action === "explore") prefetchExploreOnIntent();
                   }}
                   onTouchStart={() => {
                     router.prefetch(item.href!);
                     if (item.action === "create") prefetchCreate();
+                    if (item.action === "explore") prefetchExploreOnIntent();
                   }}
                   className={itemClass}
                   aria-current={isActive ? "page" : undefined}

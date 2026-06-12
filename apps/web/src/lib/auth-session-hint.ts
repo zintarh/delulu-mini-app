@@ -1,17 +1,12 @@
-/** localStorage keys written by useAuth when a session is active */
+/** localStorage key written by useAuth while a wallet session is active */
 const AUTH_PROVIDER_KEY = "delulu:auth_provider";
-const LAST_PROVIDER_KEY = "delulu:last_provider";
 
-/**
- * True when the user likely has an active session (Privy or Web3Auth).
- * Used only to decide when to load wallet SDKs — not for security.
- */
+/** Active wallet session only — not last-used provider after logout. */
 export function hasStoredAuthSession(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const provider = localStorage.getItem(AUTH_PROVIDER_KEY);
-    const last = localStorage.getItem(LAST_PROVIDER_KEY);
-    return provider === "privy" || provider === "web3auth" || last === "privy" || last === "web3auth";
+    return provider === "web3auth";
   } catch {
     return false;
   }
@@ -36,5 +31,5 @@ export function shouldLoadAuthEagerly(pathname: string): boolean {
 /** Preload the heavy auth provider chunk (e.g. before navigation to sign-in). */
 export function preloadAuthProviders(): void {
   if (typeof window === "undefined") return;
-  void import("@/components/providers/app-with-privy");
+  void import("@/components/providers/app-providers");
 }

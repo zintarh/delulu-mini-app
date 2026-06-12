@@ -610,7 +610,7 @@ function Loader({ label = "Loading your wrap…" }: { label?: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function WrapPage() {
-  const { address, authenticated } = useAuth();
+  const { address, authenticated, isReady } = useAuth();
   const router = useRouter();
 
   const [period, setPeriod] = useState<WrapPeriod | null>(null);
@@ -625,8 +625,8 @@ export default function WrapPage() {
 
   // Auth guard
   useEffect(() => {
-    if (!authenticated) router.replace("/sign-in");
-  }, [authenticated, router]);
+    if (isReady && !authenticated) router.replace("/sign-in");
+  }, [isReady, authenticated, router]);
 
   // Fetch AI when data ready
   useEffect(() => {
@@ -695,7 +695,7 @@ export default function WrapPage() {
   }, [period, stats]);
 
   // ── Early returns
-  if (!authenticated) return <Loader />;
+  if (!isReady || !authenticated) return <Loader />;
   if (!period) return <PeriodSelector onSelect={handlePeriodSelect} />;
   if (stats.isLoading || isAiLoading) return <Loader label={isAiLoading ? "Analyzing your dreams…" : "Loading your wrap…"} />;
 

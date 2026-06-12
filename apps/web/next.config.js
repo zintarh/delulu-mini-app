@@ -25,7 +25,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Allow MiniPay webview (loaded via ngrok) to access all routes
+        // CORS for embedded webviews during local/dev testing
         source: "/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
@@ -48,8 +48,6 @@ const nextConfig = {
       "@radix-ui/react-dialog",
       "@radix-ui/react-select",
       "@radix-ui/react-slider",
-      "@privy-io/react-auth",
-      "@privy-io/wagmi",
       "react-textarea-autosize",
       "@web3auth/modal",
     ],

@@ -9,18 +9,23 @@ export function useDeluluSocialStats(
 ) {
   const [stats, setStats] = useState({ likes: 0, comments: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchStats = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const params = userKey
         ? `?userAddress=${encodeURIComponent(userKey)}`
         : "";
-      const res = await fetch(`/api/social/${deluluId}/stats${params}`);
+      const res = await fetch(`/api/social/${deluluId}/stats${params}`, { signal: controller.signal });
       if (res.ok) {
         const data = await res.json();
         setStats({ likes: data.likes ?? 0, comments: data.comments ?? 0 });
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       // keep previous values on error
     }
   }, [deluluId, userKey]);
@@ -32,6 +37,7 @@ export function useDeluluSocialStats(
     timerRef.current = setTimeout(() => void fetchStats(), jitter);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      abortRef.current?.abort();
     };
   }, [fetchStats]);
 

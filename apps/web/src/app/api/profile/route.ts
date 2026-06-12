@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     const profiles: Record<string, string | null> = {};
-    for (const row of data ?? []) {
-      profiles[String((row as any).address).toLowerCase()] =
-        typeof (row as any).pfp_url === "string" ? (row as any).pfp_url : null;
+    for (const row of data ?? [] as { address: string; pfp_url: string | null }[]) {
+      profiles[String(row.address).toLowerCase()] =
+        typeof row.pfp_url === "string" ? row.pfp_url : null;
     }
 
     return NextResponse.json({ profiles }, {

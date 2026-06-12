@@ -1,27 +1,20 @@
 import { ApolloClient, InMemoryCache, HttpLink, from } from "@apollo/client";
-import { onError } from "@apollo/client/link/error";
+import { ErrorLink } from "@apollo/client/link/error";
+import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { getSubgraphUrlForChain } from "./constant";
 
 function createApolloClient(subgraphUrl: string) {
-  // Error link to handle and suppress expected errors
-  const errorLink = onError((error) => {
-    const { graphQLErrors, networkError } = error as any;
-    // Suppress AbortError - these are expected when components unmount or requests are cancelled
-    if (networkError && networkError.name === 'AbortError') {
-      // Silently ignore - this is expected behavior
-      return;
-    }
+  const errorLink = new ErrorLink(({ error }) => {
+    if (error.name === "AbortError") return;
 
-    if (graphQLErrors) {
-      graphQLErrors.forEach(({ message, locations, path }: any) => {
+    if (CombinedGraphQLErrors.is(error)) {
+      error.errors.forEach(({ message, locations, path }) => {
         console.error(
           `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
         );
       });
-    }
-
-    if (networkError) {
-      console.error(`[Network error]: ${networkError}`);
+    } else {
+      console.error(`[Network error]: ${error}`);
     }
   });
 

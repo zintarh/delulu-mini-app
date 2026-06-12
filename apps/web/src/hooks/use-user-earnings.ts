@@ -4,9 +4,10 @@ import { useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import { weiToNumber } from "@/lib/graph/transformers";
-import { getTokenSymbol } from "@/lib/token-amounts";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { getTokenSymbol, toUsdAmount } from "@/lib/token-amounts";
+import { GOODDOLLAR_ADDRESSES, isGoodDollarToken } from "@/lib/constant";
 import { useGraphUserClaims } from "@/hooks/graph/useGraphUserClaims";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 const GET_USER_SUPPORT_TOTALS = gql`
   query GetUserSupportTotals($creatorAddresses: [String!]) {
@@ -28,11 +29,15 @@ interface SupportDeluluRow {
 }
 
 export interface EarningsLine {
+  tokenAddress: string;
   symbol: string;
   amount: number;
+  usdAmount: number | null;
 }
 
 export function useUserEarnings(address: string | undefined) {
+  const { usd: gDollarUsdPrice, isLoading: priceLoading } = useGoodDollarPrice();
+
   const creatorAddresses = useMemo(() => {
     if (!address) return [] as string[];
     return Array.from(new Set([address, address.toLowerCase()]));
@@ -41,7 +46,6 @@ export function useUserEarnings(address: string | undefined) {
   const {
     totalClaimed,
     isLoading: claimsLoading,
-    claims,
   } = useGraphUserClaims(address);
 
   const { data, loading: supportLoading } = useQuery<{
@@ -54,36 +58,59 @@ export function useUserEarnings(address: string | undefined) {
   });
 
   const earningsLines = useMemo(() => {
-    const bySymbol = new Map<string, number>();
+    const byToken = new Map<string, number>();
 
     for (const row of data?.delulus ?? []) {
-      const token = row.token ?? undefined;
-      const symbol = getTokenSymbol(token);
+      const token = (row.token ?? GOODDOLLAR_ADDRESSES.mainnet).toLowerCase();
       const support = row.totalSupportCollected
-        ? weiToNumber(row.totalSupportCollected, token ?? undefined)
+        ? weiToNumber(row.totalSupportCollected, token)
         : 0;
       const stake = row.creatorStake
-        ? weiToNumber(row.creatorStake, token ?? undefined)
+        ? weiToNumber(row.creatorStake, token)
         : 0;
       const lineTotal = support + stake;
       if (lineTotal > 0) {
-        bySymbol.set(symbol, (bySymbol.get(symbol) ?? 0) + lineTotal);
+        byToken.set(token, (byToken.get(token) ?? 0) + lineTotal);
       }
     }
 
     if (totalClaimed > 0) {
-      const claimSymbol = getTokenSymbol(GOODDOLLAR_ADDRESSES.mainnet);
-      bySymbol.set(claimSymbol, (bySymbol.get(claimSymbol) ?? 0) + totalClaimed);
+      const g$ = GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
+      byToken.set(g$, (byToken.get(g$) ?? 0) + totalClaimed);
     }
 
-    return Array.from(bySymbol.entries())
+    return Array.from(byToken.entries())
       .filter(([, amount]) => amount > 0)
-      .sort((a, b) => b[1] - a[1])
-      .map(([symbol, amount]) => ({ symbol, amount }) satisfies EarningsLine);
-  }, [data?.delulus, totalClaimed]);
+      .map(([tokenAddress, amount]) => ({
+        tokenAddress,
+        symbol: getTokenSymbol(tokenAddress),
+        amount,
+        usdAmount: toUsdAmount(amount, tokenAddress, gDollarUsdPrice),
+      }))
+      .sort((a, b) => (b.usdAmount ?? b.amount) - (a.usdAmount ?? a.amount));
+  }, [data?.delulus, totalClaimed, gDollarUsdPrice]);
+
+  const totalUsd = useMemo(() => {
+    if (earningsLines.length === 0) return null;
+    let sum = 0;
+    for (const line of earningsLines) {
+      if (line.usdAmount == null) return null;
+      sum += line.usdAmount;
+    }
+    return sum;
+  }, [earningsLines]);
+
+  const needsGPrice = earningsLines.some(
+    (line) =>
+      line.amount > 0 &&
+      isGoodDollarToken(line.tokenAddress) &&
+      line.usdAmount == null,
+  );
 
   return {
     earningsLines,
-    isLoading: (supportLoading && !data) || claimsLoading,
+    totalUsd,
+    isLoading:
+      (supportLoading && !data) || claimsLoading || (needsGPrice && priceLoading),
   };
 }

@@ -6,23 +6,25 @@ import { usePathname } from "next/navigation";
 import {
   shouldLoadAuthEagerly,
   isAuthEagerRoute,
+  hasStoredAuthSession,
 } from "@/lib/auth-session-hint";
-import { ProvidersSkeleton } from "@/components/providers/providers-skeleton";
+import {
+  ProvidersSkeleton,
+  type ProvidersSkeletonVariant,
+} from "@/components/providers/providers-skeleton";
 
-function AuthChunkLoading() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div
-        className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-foreground"
-        aria-label="Loading"
-      />
-    </div>
-  );
+function skeletonVariantForPath(pathname: string): ProvidersSkeletonVariant {
+  return pathname === "/" && !hasStoredAuthSession() ? "home-guest" : "default";
 }
 
-const AppWithPrivy = dynamic(
+function AuthChunkLoading() {
+  const pathname = usePathname() ?? "/";
+  return <ProvidersSkeleton variant={skeletonVariantForPath(pathname)} />;
+}
+
+const AppProviders = dynamic(
   () =>
-    import("@/components/providers/app-with-privy").then((m) => m.AppWithPrivy),
+    import("@/components/providers/app-providers").then((m) => m.AppProviders),
   {
     ssr: false,
     loading: () => <AuthChunkLoading />,
@@ -35,12 +37,8 @@ type AuthLoadPhase = "pending" | "loading" | "ready";
 
 export function AuthLoadOrchestrator({
   children,
-  privyAppId,
-  signerKeyQuorumId,
 }: {
   children: React.ReactNode;
-  privyAppId?: string;
-  signerKeyQuorumId?: string;
 }) {
   const pathname = usePathname() ?? "/";
   const eager = shouldLoadAuthEagerly(pathname);
@@ -49,7 +47,6 @@ export function AuthLoadOrchestrator({
     eager ? "loading" : "pending",
   );
 
-  // Eager routes & returning sessions: load wallet SDKs immediately.
   useEffect(() => {
     if (phase !== "pending") return;
 
@@ -79,7 +76,6 @@ export function AuthLoadOrchestrator({
     };
   }, [pathname, phase]);
 
-  // If user navigates to sign-in / board / etc. while still pending, load immediately.
   useEffect(() => {
     if (phase === "pending" && isAuthEagerRoute(pathname)) {
       setPhase("loading");
@@ -87,12 +83,8 @@ export function AuthLoadOrchestrator({
   }, [pathname, phase]);
 
   if (phase === "pending") {
-    return <ProvidersSkeleton />;
+    return <ProvidersSkeleton variant={skeletonVariantForPath(pathname)} />;
   }
 
-  return (
-    <AppWithPrivy privyAppId={privyAppId} signerKeyQuorumId={signerKeyQuorumId}>
-      {children}
-    </AppWithPrivy>
-  );
+  return <AppProviders>{children}</AppProviders>;
 }

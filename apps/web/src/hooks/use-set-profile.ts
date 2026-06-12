@@ -52,7 +52,7 @@ export function useSetProfile() {
           chain: celo,
         });
       } else {
-        // Privy / Farcaster path — wagmi connector is connected normally.
+        // Wagmi connector path — wallet client is connected normally.
         txHash = await writeContractAsync({
           address: getDeluluContractAddress(chainId),
           abi: DELULU_ABI,

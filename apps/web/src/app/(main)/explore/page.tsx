@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
+import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { SocialFeedCardSkeleton } from "@/components/delulu-skeleton";
 import { HomeSearch } from "@/components/home-search";
 import { ExploreSocialFeed } from "@/components/explore-social-feed";
@@ -11,6 +12,8 @@ import { buildFeedCategories, type FeedCategoryId } from "@/lib/feed-categories"
 import { recordSearchKeyword } from "@/lib/search-keywords";
 import type { DeluluSearchResult } from "@/lib/search-types";
 import { useAllDelulus } from "@/hooks/graph";
+import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
+import { FeedErrorState } from "@/components/feed-error-state";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,14 +24,6 @@ const CATEGORY_TITLES: Record<FeedCategoryId, string> = {
   "for-you": "For you",
   "worth-a-look": "Worth a look",
 };
-
-function isContentLoaded(d: FormattedDelulu) {
-  if (!d.content) return false;
-  const isHash =
-    d.content.startsWith("Qm") ||
-    (d.content.length > 40 && /^[a-f0-9]+$/i.test(d.content));
-  return !isHash;
-}
 
 function searchResultToCardProps(r: DeluluSearchResult): FormattedDelulu {
   return {
@@ -77,13 +72,13 @@ export default function ExplorePage() {
     delulus,
     isLoading: isFeedLoading,
     isIpfsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch: refetchFeed,
+    error: feedError,
   } = useAllDelulus();
-
-  const filteredFeed = useMemo(
-    () => delulus.filter(isContentLoaded),
-    [delulus],
-  );
+  const { navigateToCreate } = useNavigateToCreate();
 
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
 
@@ -115,7 +110,7 @@ export default function ExplorePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
 
-  const fetchResults = useCallback(async () => {
+  const fetchResults = useCallback(async (signal?: AbortSignal) => {
     if (category) {
       setApiResults([]);
       return;
@@ -131,12 +126,13 @@ export default function ExplorePage() {
       const params = new URLSearchParams();
       if (q) params.set("q", q.toLowerCase());
       if (country) params.set("country", country);
-      const res = await fetch(`/api/search?${params.toString()}`);
+      const res = await fetch(`/api/search?${params.toString()}`, { signal });
       if (!res.ok) throw new Error("search failed");
       const data = await res.json();
       setApiResults(data.results ?? []);
       if (q) recordSearchKeyword(q);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setSearchError(true);
       setApiResults([]);
     } finally {
@@ -145,21 +141,23 @@ export default function ExplorePage() {
   }, [q, country, category]);
 
   useEffect(() => {
-    void fetchResults();
+    const controller = new AbortController();
+    void fetchResults(controller.signal);
+    return () => controller.abort();
   }, [fetchResults]);
 
   const categoryItems = useMemo(() => {
     if (!category) return [];
-    const cats = buildFeedCategories(filteredFeed, address);
+    const cats = buildFeedCategories(delulus, address);
     return cats.find((c) => c.id === category)?.items ?? [];
-  }, [category, filteredFeed, address]);
+  }, [category, delulus, address]);
 
   const countryFeedItems = useMemo(() => {
     if (!country || q || category) return [];
-    return filteredFeed.filter(
+    return delulus.filter(
       (d) => d.gatekeeper?.enabled && d.gatekeeper.value?.toUpperCase() === country,
     );
-  }, [country, q, category, filteredFeed]);
+  }, [country, q, category, delulus]);
 
   const isDiscoverMode = !q && !category && !country;
 
@@ -186,8 +184,8 @@ export default function ExplorePage() {
     [displayDelulus],
   );
   const discoverCreatorAddresses = useMemo(
-    () => Array.from(new Set(filteredFeed.map((d) => d.creator.toLowerCase()))),
-    [filteredFeed],
+    () => Array.from(new Set(delulus.map((d) => d.creator.toLowerCase()))),
+    [delulus],
   );
   const creatorPfps = usePfps(
     isDiscoverMode ? discoverCreatorAddresses : creatorAddresses,
@@ -204,17 +202,60 @@ export default function ExplorePage() {
   const isFilteredLoading =
     isSearching || (isFeedLoading && displayDelulus.length === 0 && !q);
 
-  const isDiscoverLoading =
-    isDiscoverMode &&
-    (isFeedLoading || (isIpfsLoading && filteredFeed.length === 0));
+  const isDiscoverLoading = isDiscoverMode && isFeedLoading && delulus.length === 0;
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const refreshExplore = useCallback(async () => {
+    setFeedNowMs(Date.now());
+    await refetchFeed();
+    if (!isDiscoverMode) {
+      await fetchResults();
+    }
+  }, [refetchFeed, fetchResults, isDiscoverMode]);
+
+  useEffect(() => {
+    const onPullRefresh = (event: Event) => {
+      const path = (event as CustomEvent<{ pathname?: string }>).detail?.pathname;
+      if (path !== "/explore") return;
+      void refreshExplore();
+    };
+    window.addEventListener("delulu:pull-refresh", onPullRefresh);
+    return () => window.removeEventListener("delulu:pull-refresh", onPullRefresh);
+  }, [refreshExplore]);
+
+  useEffect(() => {
+    if (!isDiscoverMode) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (
+        distanceFromBottom < 240 &&
+        hasNextPage &&
+        !isFetchingNextPage &&
+        !isFeedLoading
+      ) {
+        fetchNextPage();
+      }
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [
+    isDiscoverMode,
+    hasNextPage,
+    isFetchingNextPage,
+    isFeedLoading,
+    fetchNextPage,
+  ]);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <div className="lg:hidden sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
-        <div className="flex items-center gap-2 px-4 py-3">
-          {!isDiscoverMode ? (
+        {!isDiscoverMode ? (
+          <div className="flex items-center gap-2 px-4 py-3">
             <button
               type="button"
               onClick={() => router.push("/explore")}
@@ -223,16 +264,30 @@ export default function ExplorePage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <HomeSearch variant="default" placeholder="Search…" />
+            <HomeSearch
+              variant="default"
+              placeholder="Search…"
+              className="min-w-0 flex-1 w-full"
+            />
           </div>
-        </div>
+        ) : (
+          <div className="px-4 py-3">
+            <HomeSearch
+              variant="default"
+              placeholder="Search…"
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
+
+      <MainDesktopHeader searchClassName="min-w-0 w-full flex-1 max-w-none" />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-20 h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
-          {(isDiscoverLoading || isFilteredLoading) && (
+          {(isDiscoverLoading ||
+            isFilteredLoading ||
+            (isDiscoverMode && isIpfsLoading && delulus.length > 0)) && (
             <div className="absolute inset-0 bg-border/30">
               <div className="h-full w-1/3 animate-[progress-indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-delulu-blue" />
             </div>
@@ -241,10 +296,10 @@ export default function ExplorePage() {
 
         <div
           className={cn(
-            "mx-auto w-full px-4 sm:px-6",
+            "mx-auto w-full px-4 sm:px-6 lg:px-8",
             isDiscoverMode
-              ? "max-w-lg pb-20 pt-3 lg:pb-12 lg:pt-4"
-              : "max-w-lg py-6 lg:py-8",
+              ? "max-w-[1600px] pb-20 pt-3 lg:pb-12 lg:pt-4"
+              : "max-w-[1600px] py-6 lg:py-8",
           )}
         >
           {isDiscoverMode ? (
@@ -253,25 +308,40 @@ export default function ExplorePage() {
                 delulus={[]}
                 isLoading
                 creatorPfps={{}}
-                address={address}
               />
-            ) : filteredFeed.length > 0 ? (
-              <ExploreSocialFeed
-                delulus={filteredFeed}
-                nowMs={feedNowMs}
-                creatorPfps={creatorPfps}
-                address={address}
+            ) : feedError && delulus.length === 0 ? (
+              <FeedErrorState
+                title="Couldn't load the feed"
+                message="We had trouble reaching the network. Pull down to refresh or try again."
+                onRetry={() => void refetchFeed()}
+                isRetrying={isFeedLoading}
               />
+            ) : delulus.length > 0 ? (
+              <>
+                <ExploreSocialFeed
+                  delulus={delulus}
+                  nowMs={feedNowMs}
+                  creatorPfps={creatorPfps}
+                />
+                {isFetchingNextPage ? (
+                  <div className="columns-2 gap-x-3 sm:gap-x-4 md:columns-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <SocialFeedCardSkeleton key={`more-${i}`} index={i} />
+                    ))}
+                  </div>
+                ) : null}
+              </>
             ) : (
               <div className="flex flex-col items-center gap-2 py-16 text-center">
                 <Search className="h-10 w-10 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground">No delulus yet</p>
-                <Link
-                  href="/board"
+                <button
+                  type="button"
+                  onClick={() => void navigateToCreate()}
                   className="text-sm font-semibold text-delulu-blue"
                 >
                   Create the first one
-                </Link>
+                </button>
               </div>
             )
           ) : (
@@ -298,9 +368,9 @@ export default function ExplorePage() {
                   </button>
                 </div>
               ) : isFilteredLoading ? (
-                <div className="flex flex-col gap-3">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <SocialFeedCardSkeleton key={i} />
+                <div className="columns-2 gap-x-3 sm:gap-x-4 md:columns-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <SocialFeedCardSkeleton key={i} index={i} />
                   ))}
                 </div>
               ) : displayDelulus.length === 0 ? (
@@ -319,7 +389,6 @@ export default function ExplorePage() {
                   delulus={displayDelulus}
                   nowMs={feedNowMs}
                   creatorPfps={creatorPfps}
-                  address={address}
                 />
               )}
             </>

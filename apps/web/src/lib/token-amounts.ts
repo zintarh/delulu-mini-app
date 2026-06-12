@@ -11,7 +11,6 @@ import {
 export const DEFAULT_TOKEN_DECIMALS = 18;
 /** Minimum stake for G$ and other 18-decimal tokens. */
 export const MIN_STAKE_WHOLE = 100;
-/** Minimum stake for 6-decimal stablecoins (USDT, cUSD, etc.). */
 export const MIN_STAKE_STABLECOIN = 1;
 
 /** Returns the minimum stake in whole tokens for the given token address. */
@@ -92,6 +91,15 @@ export function getDefaultTipAmount(tokenAddress: string | undefined | null): nu
   return getMinStakeWhole(tokenAddress);
 }
 
+export function toUsdAmount(
+  amount: number,
+  tokenAddress: string | undefined | null,
+  gDollarUsdPrice: number | null | undefined,
+): number | null {
+  const formatted = formatUsdEquivalent(amount, tokenAddress, gDollarUsdPrice);
+  return formatted != null ? parseFloat(formatted) : null;
+}
+
 export function formatUsdEquivalent(
   amount: number,
   tokenAddress: string | undefined | null,
@@ -106,4 +114,18 @@ export function formatUsdEquivalent(
     return amount.toFixed(2);
   }
   return null;
+}
+
+/** Display label for a token amount — USD equivalent when known, else raw token. */
+export function formatTokenAmountWithUsd(
+  amount: number,
+  tokenAddress: string | undefined | null,
+  gDollarUsdPrice: number | null | undefined,
+): { usdLabel: string | null; tokenLabel: string } {
+  const symbol = getTokenSymbol(tokenAddress);
+  const usdLabel = formatUsdEquivalent(amount, tokenAddress, gDollarUsdPrice);
+  return {
+    usdLabel,
+    tokenLabel: `${amount.toLocaleString(undefined, { maximumFractionDigits: amount >= 100 ? 0 : 2 })} ${symbol}`,
+  };
 }

@@ -7,9 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useWeb3Auth } from "@web3auth/modal/react";
 
 /**
- * Returns a viem WalletClient for both Privy (wagmi) and Web3Auth users.
- * Privy users get the wagmi-managed wallet client.
- * Web3Auth users get a viem client built from the Web3Auth EIP-1193 provider.
+ * Returns a viem WalletClient from wagmi or the Web3Auth EIP-1193 provider.
  */
 export function useUnifiedWalletClient() {
   const { data: wagmiWalletClient } = useWalletClient();

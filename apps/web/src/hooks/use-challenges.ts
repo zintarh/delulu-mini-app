@@ -34,7 +34,7 @@ function parseChallengeContent(contentHash: string): { title: string; descriptio
 
   // Challenge content is stored as "title\n\ndescription"
   // It might be in the text field or content field
-  const content = (cachedContent as any).text || (cachedContent as any).content || "";
+  const content = cachedContent.text || cachedContent.content || "";
   const parts = content.split("\n\n");
   return {
     title: parts[0] || "",

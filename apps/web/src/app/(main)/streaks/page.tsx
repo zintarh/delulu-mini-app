@@ -119,15 +119,17 @@ function StreakSkeleton() {
 
 export default function StreaksPage() {
   const router = useRouter();
-  const { address, authenticated } = useAuth();
+  const { address, authenticated, isReady } = useAuth();
 
   const { currentStreak, last7Days, isLoading } = useUserStreak(address);
   const { myRankEntry } = useAllUsersLeaderboard(0, address);
   const totalPoints = myRankEntry?.points ?? null;
 
   useEffect(() => {
-    if (!authenticated) router.replace("/sign-in");
-  }, [authenticated, router]);
+    if (isReady && !authenticated) router.replace("/sign-in");
+  }, [isReady, authenticated, router]);
+
+  if (!isReady || !authenticated) return <StreakSkeleton />;
 
   // Last 7 day labels aligned to today = Sunday/Monday/etc.
   const todayIdx = new Date().getDay(); // 0=Sun ... 6=Sat

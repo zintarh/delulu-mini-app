@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import {
   transformSubgraphDelulu,
@@ -13,49 +12,13 @@ import {
   getCachedContent,
   scheduleBatchResolveIPFS,
 } from "@/lib/graph/ipfs-cache";
+import {
+  EXPLORE_FEED_PAGE_SIZE,
+  GET_DELULUS_FEED,
+} from "@/lib/explore-feed-query";
 import type { FormattedDelulu } from "@/lib/types";
 
-const PAGE_SIZE = 30;
-
-const GET_DELULUS_FEED = gql`
-  query GetDelulusFeed($first: Int = 30, $skip: Int = 0) {
-    delulus(
-      first: $first
-      skip: $skip
-      orderBy: createdAt
-      orderDirection: desc
-      where: { isCancelled: false, milestoneCount_gt: 0 }
-    ) {
-      id
-      onChainId
-      token
-      creator {
-        id
-        username
-      }
-      creatorAddress
-      contentHash
-      stakingDeadline
-      resolutionDeadline
-      createdAt
-      creatorStake
-      totalSupportCollected
-      totalSupporters
-      challengeId
-      isResolved
-      isCancelled
-      milestoneCount
-      milestones(first: 15, orderBy: milestoneId, orderDirection: asc) {
-        milestoneId
-        milestoneURI
-        deadline
-        startTime
-        isSubmitted
-        isVerified
-      }
-    }
-  }
-`;
+const PAGE_SIZE = EXPLORE_FEED_PAGE_SIZE;
 
 interface FeedMilestoneRaw {
   milestoneId: string;

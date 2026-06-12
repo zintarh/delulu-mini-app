@@ -16,8 +16,8 @@ type WriteContractParams = {
 };
 
 /**
- * Drop-in replacement for wagmi's useWriteContract that works for both
- * Privy (wagmi connector) and Web3Auth (viem direct) users.
+ * Drop-in replacement for wagmi's useWriteContract that also supports
+ * Web3Auth users via a direct viem wallet client.
  *
  * Returns the same shape as wagmi's useWriteContract:
  *   { writeContract, writeContractAsync, data, isPending, error, reset }

@@ -28,7 +28,7 @@ export function ConnectorSelectionSheet({
 
     (async () => {
       try {
-        // Only trigger Privy login if the user is not already authenticated.
+        // Open Web3Auth when the user is not already authenticated.
         if (!authenticated) {
           await login();
         }
@@ -45,6 +45,6 @@ export function ConnectorSelectionSheet({
     };
   }, [open, authenticated, login, onOpenChange]);
 
-  // Do not render any sheet UI; this component is just a trigger for Privy.
+  // Do not render any sheet UI; this component is just a trigger for Web3Auth.
   return null;
 }

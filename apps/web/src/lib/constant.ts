@@ -110,10 +110,3 @@ export const SUPPORTED_TOKENS = [
   { address: USDT_ADDRESSES.mainnet, symbol: "USDT", name: "Tether USD" },
 ] as const;
 
-// ─── Farcaster ───────────────────────────────────────────────────────
-export const FARCASTER_KEY_REGISTRY_ADDRESS =
-  "0x00000000Fc1237824fb747aBDE0FF18990E59b7e" as const;
-
-export const FARCASTER_MINIAPP_BASE_URL =
-  process.env.NEXT_PUBLIC_FARCASTER_MINIAPP_URL ||
-  "https://farcaster.xyz/miniapps/6TpUBtkLM1a3/delulu";

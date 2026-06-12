@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
 /**
- * Redirect unauthenticated users to /sign-in (never opens Web3Auth/Privy modal inline).
+ * Redirect unauthenticated users to /sign-in (never opens Web3Auth modal inline).
  */
 export function useRedirectToSignIn() {
   const router = useRouter();

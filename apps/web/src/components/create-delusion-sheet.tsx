@@ -163,23 +163,6 @@ export function CreateDelusionSheet({
   const usdt = useTokenBalance(usdtToken?.address);
   const good = useTokenBalance(gToken?.address);
 
-  // Debug logging for balances
-  useEffect(() => {
-    console.log('[CreateDelusionSheet] Token balances:', {
-      supportedTokens: supportedTokens.map(t => ({ symbol: t.symbol, address: t.address })),
-      usdtToken: usdtToken?.address,
-      gToken: gToken?.address,
-      usdtBalance: usdt.balance?.value?.toString(),
-      usdtFormatted: usdt.formatted,
-      usdtLoading: usdt.isLoading,
-      usdtError: usdt.error?.message,
-      goodBalance: good.balance?.value?.toString(),
-      goodFormatted: good.formatted,
-      goodLoading: good.isLoading,
-      goodError: good.error?.message,
-      goodBalanceData: good.balance,
-    });
-  }, [supportedTokens, usdtToken, gToken, usdt, good]);
 
   const tokenBalances = [
     ...(usdtToken
@@ -273,11 +256,10 @@ export function CreateDelusionSheet({
 
   const handleNext = () => {
     if (canGoNext() && currentStep < 4) {
-      console.log("Moving to next step. Current stakeAmount:", stakeAmount);
       // Stake is optional: we only enforce a minimum of 100 G$ when the user
       // actually chooses to stake a non-zero amount. Empty / 0 stays as 0.
-      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 1) { // TODO: restore to 100 after testing
-        setStakeAmount([1]);
+      if (currentStep === 2 && stakeAmount[0] > 0 && stakeAmount[0] < 100) {
+        setStakeAmount([100]);
       }
       setCurrentStep(currentStep + 1);
     }
@@ -526,24 +508,6 @@ export function CreateDelusionSheet({
                                   const logoUrl = TOKEN_LOGOS[t.address.toLowerCase()];
                                   const isSelected = selectedToken?.toLowerCase() === t.address.toLowerCase();
                                   
-                                  // Debug logging for G$ specifically
-                                  if (t.symbol === "G$") {
-                                    console.log('[CreateDelusionSheet] G$ Balance Debug:', {
-                                      tokenAddress: t.address,
-                                      tokenBalanceInfo: tokenBalanceInfo ? {
-                                        address: tokenBalanceInfo.token.address,
-                                        formatted: tokenBalanceInfo.formatted,
-                                        isLoading: tokenBalanceInfo.isLoading,
-                                        error: tokenBalanceInfo.error?.message,
-                                        balanceValue: tokenBalanceInfo.balance?.value?.toString(),
-                                      } : null,
-                                      allTokenBalances: tokenBalances.map(tb => ({
-                                        symbol: tb.token.symbol,
-                                        address: tb.token.address,
-                                        formatted: tb.formatted,
-                                      })),
-                                    });
-                                  }
                                   return (
                                     <button
                                       key={t.address}
@@ -609,10 +573,6 @@ export function CreateDelusionSheet({
                                     ? Math.max(100, numValue)
                                     : 0;
                                 setStakeAmount([clampedValue]);
-                                console.log(
-                                  "Stake amount set to:",
-                                  clampedValue
-                                );
                               }
                             }}
                             onBlur={(e) => {
@@ -623,17 +583,12 @@ export function CreateDelusionSheet({
                                 currentValue < 0
                               ) {
                                 setStakeAmount([0]);
-                                console.log("Reset stake amount to 0");
                               } else {
                                 const clampedValue =
                                   currentValue > 0
                                     ? Math.max(100, currentValue)
                                     : 0;
                                 setStakeAmount([clampedValue]);
-                                console.log(
-                                  "Stake amount confirmed on blur:",
-                                  clampedValue
-                                );
                               }
                             }}
                             min={0}
@@ -869,10 +824,10 @@ export function CreateDelusionSheet({
                             }
                             if (
                               stakeAmount[0] > 0 &&
-                              stakeAmount[0] < 1 // TODO: restore to 100 after testing
+                              stakeAmount[0] < 100
                             ) {
                               throw new Error(
-                                "Minimum stake is 1 G$ or 0"
+                                "Minimum stake is 100 G$ or 0"
                               );
                             }
 
@@ -960,8 +915,6 @@ export function CreateDelusionSheet({
           }
         }}
         onComplete={(username, email) => {
-          // TODO: Save username and email when implementation is ready
-          console.log("User setup completed:", { username, email });
           setShowUserSetupModal(false);
         }}
       />

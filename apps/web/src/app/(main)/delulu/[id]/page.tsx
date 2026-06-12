@@ -24,6 +24,7 @@ import { useJoinChallenge } from "@/hooks/use-join-challenge";
 import { useDeluluMetadata } from "@/hooks/use-delulu-metadata";
 import type { EditSheetMode } from "@/components/edit-delulu-sheet";
 import { DeluluPageLoading } from "@/components/delulu-detail/delulu-page-loading";
+import { FeedErrorState } from "@/components/feed-error-state";
 
 const DeluluDetailHeader = dynamic(
   () =>
@@ -239,7 +240,7 @@ export default function DeluluPage() {
   } = useGraphDeluluStakes(deluluId || null, delulu?.tokenAddress);
 
   const leaderboard = useMemo(() => {
-    return buildDeluluLeaderboard(stakes as any);
+    return buildDeluluLeaderboard(stakes);
   }, [stakes]);
 
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -374,7 +375,7 @@ export default function DeluluPage() {
 
   const deluluDescription =
     deluluMeta?.description_override ??
-    (ipfsMetadata as any)?.description ??
+    ipfsMetadata?.description ??
     "";
 
   const supportersCount =
@@ -1030,15 +1031,21 @@ export default function DeluluPage() {
   }
 
   if (!isLoadingDelulu && !delulu) {
-    if (deluluError) {
-      return (
-        <div className="p-20 text-center text-foreground">
-          Unable to load this delulu right now. Please refresh in a moment.
-        </div>
-      );
-    }
     return (
-      <div className="p-20 text-center text-foreground">Delulu not found</div>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <FeedErrorState
+          title={
+            deluluError ? "Couldn't load this delulu" : "Delulu not found"
+          }
+          message={
+            deluluError
+              ? "Check your connection and try again."
+              : "This delulu may have been removed or the link is invalid."
+          }
+          onRetry={deluluError ? () => void refetchDelulu() : undefined}
+          isRetrying={isLoadingDelulu}
+        />
+      </div>
     );
   }
 

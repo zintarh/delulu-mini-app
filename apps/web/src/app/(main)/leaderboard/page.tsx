@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
+import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
@@ -280,7 +281,13 @@ function CampaignEmptyState() {
   );
 }
 
-function DreamersEmptyState({ message }: { message: string }) {
+function DreamersEmptyState({
+  message,
+  onCreateClick,
+}: {
+  message: string;
+  onCreateClick: () => void;
+}) {
   return (
     <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 pt-14 pb-20 text-center">
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
@@ -288,13 +295,14 @@ function DreamersEmptyState({ message }: { message: string }) {
       </div>
       <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">{message}</p>
       <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <Link
-          href="/board"
+        <button
+          type="button"
+          onClick={onCreateClick}
           className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
           Create a Delulu
-        </Link>
+        </button>
         <Link
           href="/"
           className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80"
@@ -465,7 +473,13 @@ function LeaderboardStatsRow({
   );
 }
 
-function LeaderboardAside({ activeTab }: { activeTab: Tab }) {
+function LeaderboardAside({
+  activeTab,
+  onCreateClick,
+}: {
+  activeTab: Tab;
+  onCreateClick: () => void;
+}) {
   return (
     <aside className="hidden space-y-4 lg:block">
       {activeTab === "dreamers" && (
@@ -482,13 +496,14 @@ function LeaderboardAside({ activeTab }: { activeTab: Tab }) {
               </li>
             ))}
           </ul>
-          <Link
-            href="/board"
+          <button
+            type="button"
+            onClick={onCreateClick}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Create a Delulu
-          </Link>
+          </button>
         </div>
       )}
 
@@ -768,7 +783,11 @@ function CampaignLeaderboard() {
   );
 }
 
-function DreamersLeaderboard() {
+function DreamersLeaderboard({
+  onCreateClick,
+}: {
+  onCreateClick: () => void;
+}) {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
   const {
@@ -794,7 +813,12 @@ function DreamersLeaderboard() {
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
   if (entries.length === 0) {
-    return <DreamersEmptyState message="No dreamers on the board yet." />;
+    return (
+      <DreamersEmptyState
+        message="No dreamers on the board yet."
+        onCreateClick={onCreateClick}
+      />
+    );
   }
 
   const isOnCurrentPage =
@@ -934,6 +958,8 @@ function LeaderboardTabs({
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dreamers");
   const { address, authenticated } = useAuth();
+  const { navigateToCreate } = useNavigateToCreate();
+  const handleCreateClick = () => void navigateToCreate();
 
   const chainId = useChainId();
   const deluluContractAddress = getDeluluContractAddress(chainId);
@@ -1006,21 +1032,29 @@ export default function LeaderboardPage() {
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               Verify milestones on your delulus to earn dreamer points.
             </p>
-            <Link
-              href="/board"
+            <button
+              type="button"
+              onClick={handleCreateClick}
               className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
             >
               <Plus className="h-4 w-4" />
               Create a Delulu
-            </Link>
+            </button>
           </div>
         )}
 
         <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-8">
           <div className="min-w-0">
-            {activeTab === "campaign" ? <CampaignLeaderboard /> : <DreamersLeaderboard />}
+            {activeTab === "campaign" ? (
+              <CampaignLeaderboard />
+            ) : (
+              <DreamersLeaderboard onCreateClick={handleCreateClick} />
+            )}
           </div>
-          <LeaderboardAside activeTab={activeTab} />
+          <LeaderboardAside
+            activeTab={activeTab}
+            onCreateClick={handleCreateClick}
+          />
         </div>
       </div>
     </main>

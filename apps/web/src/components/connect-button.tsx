@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useConnect } from "wagmi";
-import { useMiniApp } from "@/contexts/miniapp-context";
 import { Loader2, ChevronDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectedAccount } from "@/components/wallet/connected-account";
@@ -18,9 +17,7 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
 
   const { isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
-  const { context } = useMiniApp();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -39,24 +36,12 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
   }, []);
 
   if (!mounted) {
-    return (
-      <div className="w-20 h-9 animate-pulse bg-black/80 rounded-full" />
-    );
+    return <div className="w-20 h-9 animate-pulse bg-black/80 rounded-full" />;
   }
 
   if (isConnected) {
     return <ConnectedAccount className={className} />;
   }
-
-  // Logic:
-  // 1. If we have Farcaster Context, we prioritise the Farcaster connector.
-  // 2. If we are on localhost/browser (no context), we show all other connectors (MetaMask, etc).
-
-  const isFarcasterEnv = !!context;
-  const frameConnector = connectors.find((c) => c.id === "farcaster");
-
-  // Filter out farcaster from the list for the dropdown
-  const browserConnectors = connectors.filter((c) => c.id !== "farcaster");
 
   const getConnectorLabel = (connector: (typeof connectors)[number]) => {
     if (
@@ -69,7 +54,6 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
   };
 
   const getConnectorIcon = (connector: (typeof connectors)[number]) => {
-    // Use custom WalletConnect logo if it's WalletConnect
     if (
       connector.id === "walletConnect" ||
       connector.id.toLowerCase().includes("walletconnect")
@@ -84,13 +68,9 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
       );
     }
 
-    // For other connectors, try to get their icon from metadata
-    const anyConnector = connector as any;
     const iconUrl: string | undefined =
-      anyConnector?.icon ??
-      anyConnector?.iconUrl ??
-      anyConnector?.iconDark ??
-      anyConnector?.iconLight;
+      (connector as Record<string, unknown>).icon as string | undefined ??
+      (connector as Record<string, unknown>).iconUrl as string | undefined;
 
     if (iconUrl) {
       return (
@@ -106,22 +86,11 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
     return <Wallet className="w-4 h-4" />;
   };
 
-  const handleConnect = () => {
-    if (isFarcasterEnv && frameConnector) {
-      connect({ connector: frameConnector });
-    } else {
-      // Toggle dropdown to show MetaMask/others
-      setShowDropdown(!showDropdown);
-    }
-  };
-
-  const isLoading = isPending;
-
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
-        onClick={handleConnect}
-        disabled={isLoading || (isFarcasterEnv && !frameConnector)}
+        onClick={() => setShowDropdown(!showDropdown)}
+        disabled={isPending}
         type="button"
         className={cn(
           "relative px-5 py-2 flex items-center gap-2",
@@ -136,26 +105,23 @@ export function WalletConnectButton({ className }: WalletConnectButtonProps) {
           className
         )}
       >
-        {isLoading ? (
+        {isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <>
-            <span>{isFarcasterEnv ? "Connect" : "Connect Wallet"}</span>
-            {!isFarcasterEnv && <ChevronDown className="w-4 h-4" />}
+            <span>Connect Wallet</span>
+            <ChevronDown className="w-4 h-4" />
           </>
         )}
       </button>
 
-      {/* Dropdown for Browser Testing (MetaMask, etc) */}
-      {!isFarcasterEnv && showDropdown && (
+      {showDropdown && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-card border-2 border-border rounded-xl shadow-neo z-50 overflow-hidden">
           <div className="p-2 space-y-1">
-            {browserConnectors.length === 0 ? (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                No wallets found
-              </div>
+            {connectors.length === 0 ? (
+              <div className="px-4 py-2 text-sm text-gray-500">No wallets found</div>
             ) : (
-              browserConnectors.map((connector) => (
+              connectors.map((connector) => (
                 <button
                   key={connector.id}
                   onClick={() => {

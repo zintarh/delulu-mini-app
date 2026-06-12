@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 /** POST — mark a wallet address as onboarded */
 export async function POST(request: NextRequest) {
   try {
-    const { address, auth_provider = "privy" } = await request.json();
+    const { address, auth_provider = "web3auth" } = await request.json();
 
     if (!address || typeof address !== "string") {
       return NextResponse.json({ error: "address is required" }, { status: 400 });

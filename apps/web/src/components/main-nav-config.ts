@@ -79,14 +79,9 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav (no Updates — use header / /notifications on mobile) */
+/** Mobile bottom nav — includes Updates with unread badge */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [
-    ...coreNavItems(authenticated).filter(
-      (item) => item.action !== "notifications",
-    ),
-    getProfileNavItem(authenticated),
-  ];
+  return [...coreNavItems(authenticated), getProfileNavItem(authenticated)];
 }
 
 export function isMainNavItemActive(

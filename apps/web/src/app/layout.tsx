@@ -26,21 +26,6 @@ const gloriaHallelujah = Gloria_Hallelujah({
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
-const frame = {
-  version: "1",
-  imageUrl: `${appUrl}/opengraph-image.png`,
-  button: {
-    title: "Launch Delulu",
-    action: {
-      type: "launch_frame",
-      name: "delulu",
-      url: appUrl,
-      splashImageUrl: `${appUrl}/icon.png`,
-      splashBackgroundColor: "#ffffff",
-    },
-  },
-};
-
 export const viewport = {
   themeColor: "#f9f8f4",
   colorScheme: "light",
@@ -70,7 +55,6 @@ export const metadata: Metadata = {
     apple: ["/favicon_io/apple-touch-icon.png"],
   },
   other: {
-    "fc:frame": JSON.stringify(frame),
     "talentapp:project_verification":
       "388013914dddfaf9eef917711abcf5a4e51ad8b8bb32543a6ea374464cf32bd8ed80df08cbac444af7058282ea33c0415a72bda68b0da574009e714f082e2781",
   },
