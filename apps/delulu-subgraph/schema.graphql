@@ -173,6 +173,39 @@ type Challenge @entity(immutable: false) {
   totalPoints: BigInt! # Total points allocated across all delulus
   active: Boolean! # Whether challenge is active
   createdAt: BigInt! # Block timestamp when created
+  isCommunity: Boolean! # Community campaign (not delulu-linked)
+  isEnded: Boolean! # Community campaign ended early
+  endedAt: BigInt # When community campaign ended
+  proofIntervalSeconds: BigInt # Proof cadence for community campaigns
+  participants: [CommunityCampaignParticipant!]! @derivedFrom(field: "challenge")
+  proofs: [CommunityProof!]! @derivedFrom(field: "challenge")
+}
+
+# Community campaign participant — indexed from joinCommunityCampaign
+type CommunityCampaignParticipant @entity(immutable: false) {
+  id: ID! # challengeId-participantAddress
+  challenge: Challenge!
+  challengeId: BigInt!
+  participant: User!
+  participantAddress: String!
+  pointsTotal: BigInt!
+  streak: BigInt!
+  lastProofAt: BigInt
+  joinedAt: BigInt!
+}
+
+# Community proof submission — indexed from submitCommunityProof
+type CommunityProof @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  challenge: Challenge!
+  challengeId: BigInt!
+  participant: User!
+  participantAddress: String!
+  proofLink: String!
+  pointsAwarded: BigInt!
+  pointsTotal: BigInt!
+  txHash: Bytes!
+  createdAt: BigInt!
 }
 
 # Tip entity - tracks each individual tip

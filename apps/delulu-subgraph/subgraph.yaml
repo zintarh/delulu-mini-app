@@ -25,6 +25,8 @@ dataSources:
         - CreatorStats
         - ShareTrade
         - ShareHolding
+        - CommunityCampaignParticipant
+        - CommunityProof
       abis:
         - name: DeluluMarket
           file: ./abis/DeluluMarket.json
@@ -61,6 +63,16 @@ dataSources:
           handler: handleStreakBonus
         - event: ChallengeCreated(indexed uint256,string,uint256,uint256,uint256)
           handler: handleChallengeCreated
+        - event: CommunityChallengeCreated(indexed uint256,string,uint256,uint256,indexed address)
+          handler: handleCommunityChallengeCreated
+        - event: CommunityCampaignJoined(indexed uint256,indexed address)
+          handler: handleCommunityCampaignJoined
+        - event: CommunityProofSubmitted(indexed uint256,indexed address,string,uint256,uint256)
+          handler: handleCommunityProofSubmitted
+        - event: CommunityChallengeFunded(indexed uint256,uint256,uint256,indexed address)
+          handler: handleCommunityChallengeFunded
+        - event: CommunityChallengeEnded(indexed uint256,uint256)
+          handler: handleCommunityChallengeEnded
         - event: GoalFailed(indexed uint256,uint256)
           handler: handleGoalFailed
         - event: OwnershipTransferred(indexed address,indexed address)

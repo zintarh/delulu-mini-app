@@ -22,9 +22,14 @@ import {
   OwnershipTransferred as OwnershipTransferredEvent,
   Paused as PausedEvent,
   Unpaused as UnpausedEvent,
+  CommunityChallengeCreated as CommunityChallengeCreatedEvent,
+  CommunityCampaignJoined as CommunityCampaignJoinedEvent,
+  CommunityProofSubmitted as CommunityProofSubmittedEvent,
+  CommunityChallengeFunded as CommunityChallengeFundedEvent,
+  CommunityChallengeEnded as CommunityChallengeEndedEvent,
   DeluluMarket as DeluluMarketContract
 } from "../generated/DeluluMarket/DeluluMarket"
-import { User, Delulu, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding, Tip } from "../generated/schema"
+import { User, Delulu, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding, Tip, CommunityCampaignParticipant, CommunityProof } from "../generated/schema"
 
 function getOrCreateUser(userId: Bytes, timestamp: BigInt): User {
   let user = User.load(userId)
@@ -539,7 +544,110 @@ export function handleChallengeCreated(event: ChallengeCreatedEvent): void {
   challenge.totalPoints = BigInt.fromI32(0) 
   challenge.active = true
   challenge.createdAt = event.block.timestamp
+  challenge.isCommunity = false
+  challenge.isEnded = false
+  challenge.endedAt = null
+  challenge.proofIntervalSeconds = null
 
+  challenge.save()
+}
+
+export function handleCommunityChallengeCreated(event: CommunityChallengeCreatedEvent): void {
+  let challengeId = event.params.challengeId.toString()
+  let challenge = Challenge.load(challengeId)
+  if (challenge == null) {
+    challenge = new Challenge(challengeId)
+    challenge.challengeId = event.params.challengeId
+    challenge.contentHash = event.params.contentHash
+    challenge.poolAmount = BigInt.fromI32(0)
+    challenge.startTime = event.block.timestamp
+    challenge.duration = event.params.duration
+    challenge.totalPoints = BigInt.fromI32(0)
+    challenge.active = true
+    challenge.createdAt = event.block.timestamp
+  }
+  challenge.isCommunity = true
+  challenge.isEnded = false
+  challenge.endedAt = null
+  challenge.proofIntervalSeconds = event.params.proofIntervalSeconds
+  challenge.save()
+}
+
+export function handleCommunityCampaignJoined(event: CommunityCampaignJoinedEvent): void {
+  let challengeId = event.params.challengeId.toString()
+  let participantAddress = event.params.participant
+  let participantId = participantAddress.toHexString().toLowerCase()
+  let id = challengeId + "-" + participantId
+
+  let user = getOrCreateUser(participantAddress, event.block.timestamp)
+  let participant = new CommunityCampaignParticipant(id)
+  participant.challenge = challengeId
+  participant.challengeId = event.params.challengeId
+  participant.participant = user.id
+  participant.participantAddress = participantId
+  participant.pointsTotal = BigInt.fromI32(0)
+  participant.streak = BigInt.fromI32(0)
+  participant.lastProofAt = null
+  participant.joinedAt = event.block.timestamp
+  participant.save()
+}
+
+export function handleCommunityProofSubmitted(event: CommunityProofSubmittedEvent): void {
+  let challengeId = event.params.challengeId.toString()
+  let participantAddress = event.params.participant
+  let participantId = participantAddress.toHexString().toLowerCase()
+  let rowId = challengeId + "-" + participantId
+
+  let user = getOrCreateUser(participantAddress, event.block.timestamp)
+  let participant = CommunityCampaignParticipant.load(rowId)
+  if (participant == null) {
+    participant = new CommunityCampaignParticipant(rowId)
+    participant.challenge = challengeId
+    participant.challengeId = event.params.challengeId
+    participant.participant = user.id
+    participant.participantAddress = participantId
+    participant.joinedAt = event.block.timestamp
+  }
+  participant.pointsTotal = event.params.pointsTotal
+  participant.streak = participant.streak.plus(BigInt.fromI32(1))
+  participant.lastProofAt = event.block.timestamp
+  participant.save()
+
+  let challenge = Challenge.load(challengeId)
+  if (challenge != null) {
+    challenge.totalPoints = challenge.totalPoints.plus(event.params.pointsAwarded)
+    challenge.save()
+  }
+
+  let proofId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  let proof = new CommunityProof(proofId)
+  proof.challenge = challengeId
+  proof.challengeId = event.params.challengeId
+  proof.participant = user.id
+  proof.participantAddress = participantId
+  proof.proofLink = event.params.proofLink
+  proof.pointsAwarded = event.params.pointsAwarded
+  proof.pointsTotal = event.params.pointsTotal
+  proof.txHash = event.transaction.hash
+  proof.createdAt = event.block.timestamp
+  proof.save()
+}
+
+export function handleCommunityChallengeFunded(event: CommunityChallengeFundedEvent): void {
+  let challengeId = event.params.challengeId.toString()
+  let challenge = Challenge.load(challengeId)
+  if (challenge == null) return
+  challenge.poolAmount = event.params.totalPool
+  challenge.save()
+}
+
+export function handleCommunityChallengeEnded(event: CommunityChallengeEndedEvent): void {
+  let challengeId = event.params.challengeId.toString()
+  let challenge = Challenge.load(challengeId)
+  if (challenge == null) return
+  challenge.isEnded = true
+  challenge.endedAt = event.params.endedAt
+  challenge.active = false
   challenge.save()
 }
 

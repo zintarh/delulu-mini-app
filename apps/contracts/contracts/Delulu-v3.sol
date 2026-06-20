@@ -45,6 +45,7 @@ contract Delulu is
     error MilestoneExpired();
     error AlreadyClaimed();
     error NoPointsAllocated();
+    error ChallengePoolEmpty();
     error NotResolved();
     error StakeTooSmall();
     error StakingIsClosed();
@@ -55,6 +56,11 @@ contract Delulu is
     error TippingDisabled();
     error SlippageTooHigh();
     error InsufficientFreeLiquidity();
+    error AlreadyJoinedCommunity();
+    error NotJoinedCommunity();
+    error ProofTooSoon();
+    error NotCommunityChallenge();
+    error ChallengeAlreadyEnded();
 
     // --- CONSTANTS ---
     // MAX_MILESTONES removed — milestone count is now limited dynamically to one per remaining day.
@@ -189,6 +195,28 @@ contract Delulu is
     // Separate claimed flag for challenge rewards so personal support claim doesn't block it.
     mapping(uint256 => bool) public challengeRewardClaimed;
     mapping(address => uint256) public treasuryPendingByToken;
+    /// @dev Wallet that funded `createChallenge` — only they may refund the pool after close.
+    mapping(uint256 => address) public challengeFunder;
+
+    // --- Community campaign state (append-only) ---
+    /// @dev 0 = legacy delulu-linked challenge, 1 = community campaign.
+    mapping(uint256 => uint8) public challengeKind;
+    mapping(uint256 => bool) public communityChallengeEnded;
+    mapping(uint256 => uint256) public communityChallengeEndedAt;
+    mapping(uint256 => uint256) public communityChallengeTotalPoints;
+    mapping(uint256 => uint256) public communityProofInterval;
+    mapping(uint256 => mapping(address => bool)) public communityCampaignJoined;
+    mapping(uint256 => mapping(address => uint256)) public communityCampaignPoints;
+    mapping(uint256 => mapping(address => uint256)) public communityCampaignStreak;
+    mapping(uint256 => mapping(address => uint256)) public communityCampaignLastProofAt;
+
+    uint256 public constant COMMUNITY_KIND = 1;
+    uint256 public constant COMMUNITY_BASE_PROOF_POINTS = 10;
+    uint256 public constant COMMUNITY_EARLY_BONUS = 2;
+    uint256 public constant COMMUNITY_STREAK_BONUS = 1;
+    uint256 public constant COMMUNITY_MAX_STREAK_BONUS = 7;
+    uint256 public constant COMMUNITY_DAY = 86400;
+    uint256 public constant COMMUNITY_WEEK = 604800;
 
     // --- EVENTS ---
     event ProfileUpdated(address indexed user, string username);
@@ -256,6 +284,11 @@ contract Delulu is
         address indexed creator,
         uint256 netReward,
         uint256 fee
+    );
+    event ChallengePoolRefunded(
+        uint256 indexed challengeId,
+        address indexed recipient,
+        uint256 amount
     );
     event CurrencyUpdated(address indexed newCurrency);
     event PlatformFeeAddressUpdated(address indexed newPlatformFeeAddress);
@@ -351,6 +384,34 @@ contract Delulu is
         uint256 usersReset,
         uint256 delulusReset,
         uint256 challengesReset
+    );
+    event CommunityChallengeCreated(
+        uint256 indexed challengeId,
+        string contentHash,
+        uint256 duration,
+        uint256 proofIntervalSeconds,
+        address indexed creator
+    );
+    event CommunityCampaignJoined(
+        uint256 indexed challengeId,
+        address indexed participant
+    );
+    event CommunityProofSubmitted(
+        uint256 indexed challengeId,
+        address indexed participant,
+        string proofLink,
+        uint256 pointsAwarded,
+        uint256 pointsTotal
+    );
+    event CommunityChallengeFunded(
+        uint256 indexed challengeId,
+        uint256 amount,
+        uint256 totalPool,
+        address indexed funder
+    );
+    event CommunityChallengeEnded(
+        uint256 indexed challengeId,
+        uint256 endedAt
     );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -458,6 +519,7 @@ contract Delulu is
             totalPoints: 0,
             active: true
         });
+        challengeFunder[challengeId] = msg.sender;
         totalReservedRewards += _poolAmount;
         emit ChallengeCreated(
             challengeId,
@@ -774,6 +836,7 @@ contract Delulu is
         Market storage d = delulus[deluluId];
         Challenge storage c = challenges[challengeId];
         if (msg.sender != d.creator) revert Unauthorized();
+        if (challengeKind[challengeId] == COMMUNITY_KIND) revert NotCommunityChallenge();
         if (!c.active || block.timestamp > c.startTime + c.duration)
             revert ChallengeExpired();
         d.challengeId = challengeId;
@@ -1364,17 +1427,46 @@ contract Delulu is
         return usernameToAddress[username] != address(0);
     }
 
-    function refundChallengePool(uint256 challengeId) external onlyOwner {
+    /**
+     * @notice Campaign funder withdraws the remaining pool after the campaign ends.
+     * @dev Zeros poolAmount to prevent double refund. Legacy campaigns (pre-funder mapping)
+     *      fall back to contract owner until `setChallengeFunder` backfills the creator.
+     */
+    function refundChallengePool(uint256 challengeId) external nonReentrant {
         Challenge storage c = challenges[challengeId];
-        if (c.totalPoints == 0) revert NoPointsAllocated();
+        if (c.id == 0) revert ChallengeNotFound();
         if (block.timestamp <= c.startTime + c.duration)
             revert ChallengeNotClosed();
 
+        address funder = challengeFunder[challengeId];
+        if (funder == address(0)) {
+            funder = owner();
+        }
+        if (msg.sender != funder) revert Unauthorized();
+
         uint256 refundAmount = c.poolAmount;
+        if (refundAmount == 0) revert ChallengePoolEmpty();
+
+        c.poolAmount = 0;
         c.active = false;
         totalReservedRewards -= refundAmount;
 
-        currency.safeTransfer(vault, refundAmount);
+        currency.safeTransfer(funder, refundAmount);
+        emit ChallengePoolRefunded(challengeId, funder, refundAmount);
+    }
+
+    /**
+     * @notice One-time backfill of campaign funder for challenges created before `challengeFunder` existed.
+     */
+    function setChallengeFunder(
+        uint256 challengeId,
+        address funder
+    ) external onlyOwner {
+        Challenge storage c = challenges[challengeId];
+        if (c.id == 0) revert ChallengeNotFound();
+        if (funder == address(0)) revert Unauthorized();
+        if (challengeFunder[challengeId] != address(0)) revert AlreadyClaimed();
+        challengeFunder[challengeId] = funder;
     }
 
     /**
@@ -1409,7 +1501,152 @@ contract Delulu is
         emit PointsSystemReset(users.length, deluluIds.length, challengeIds.length);
     }
 
+    // --- COMMUNITY CAMPAIGNS ---
+
+    function _requireCommunityParticipating(uint256 challengeId) internal view {
+        Challenge storage c = challenges[challengeId];
+        if (c.id == 0 || challengeKind[challengeId] != COMMUNITY_KIND) {
+            revert ChallengeNotFound();
+        }
+        if (communityChallengeEnded[challengeId]) revert ChallengeAlreadyEnded();
+        if (!c.active || block.timestamp > c.startTime + c.duration) {
+            revert ChallengeExpired();
+        }
+    }
+
+    function createCommunityChallenge(
+        string calldata contentHash,
+        uint256 duration,
+        uint256 proofIntervalSeconds
+    ) external {
+        if (duration == 0) revert InvalidDeadlines();
+        if (proofIntervalSeconds == 0) {
+            proofIntervalSeconds = COMMUNITY_DAY;
+        }
+
+        uint256 challengeId = nextChallengeId++;
+        uint256 startTime = block.timestamp;
+        challenges[challengeId] = Challenge({
+            id: challengeId,
+            contentHash: contentHash,
+            poolAmount: 0,
+            startTime: startTime,
+            duration: duration,
+            totalPoints: 0,
+            active: true
+        });
+        challengeKind[challengeId] = uint8(COMMUNITY_KIND);
+        challengeFunder[challengeId] = msg.sender;
+        communityProofInterval[challengeId] = proofIntervalSeconds;
+
+        emit CommunityChallengeCreated(
+            challengeId,
+            contentHash,
+            duration,
+            proofIntervalSeconds,
+            msg.sender
+        );
+        emit ChallengeCreated(challengeId, contentHash, 0, startTime, duration);
+    }
+
+    function joinCommunityCampaign(uint256 challengeId) external {
+        _requireCommunityParticipating(challengeId);
+        if (communityCampaignJoined[challengeId][msg.sender]) {
+            revert AlreadyJoinedCommunity();
+        }
+        communityCampaignJoined[challengeId][msg.sender] = true;
+        emit CommunityCampaignJoined(challengeId, msg.sender);
+    }
+
+    function submitCommunityProof(
+        uint256 challengeId,
+        string calldata proofLink,
+        bool aiApproved
+    ) external {
+        if (!aiApproved) revert Unauthorized();
+        _requireCommunityParticipating(challengeId);
+        if (!communityCampaignJoined[challengeId][msg.sender]) {
+            revert NotJoinedCommunity();
+        }
+
+        uint256 interval = communityProofInterval[challengeId];
+        uint256 lastProof = communityCampaignLastProofAt[challengeId][msg.sender];
+        if (lastProof != 0 && block.timestamp < lastProof + interval) {
+            revert ProofTooSoon();
+        }
+
+        uint256 points = COMMUNITY_BASE_PROOF_POINTS;
+        uint256 streak = communityCampaignStreak[challengeId][msg.sender] + 1;
+        if (streak > 1) {
+            uint256 streakBonus = streak - 1;
+            if (streakBonus > COMMUNITY_MAX_STREAK_BONUS) {
+                streakBonus = COMMUNITY_MAX_STREAK_BONUS;
+            }
+            points += streakBonus * COMMUNITY_STREAK_BONUS;
+        }
+
+        communityCampaignStreak[challengeId][msg.sender] = streak;
+        communityCampaignLastProofAt[challengeId][msg.sender] = block.timestamp;
+
+        uint256 newTotal = communityCampaignPoints[challengeId][msg.sender] + points;
+        communityCampaignPoints[challengeId][msg.sender] = newTotal;
+        communityChallengeTotalPoints[challengeId] += points;
+        challenges[challengeId].totalPoints += points;
+
+        emit CommunityProofSubmitted(
+            challengeId,
+            msg.sender,
+            proofLink,
+            points,
+            newTotal
+        );
+    }
+
+    function fundCommunityChallenge(
+        uint256 challengeId,
+        uint256 amount
+    ) external nonReentrant {
+        Challenge storage c = challenges[challengeId];
+        if (c.id == 0 || challengeKind[challengeId] != COMMUNITY_KIND) {
+            revert ChallengeNotFound();
+        }
+        if (communityChallengeEnded[challengeId]) revert ChallengeAlreadyEnded();
+        if (amount == 0) revert ChallengePoolEmpty();
+
+        currency.safeTransferFrom(msg.sender, address(this), amount);
+        c.poolAmount += amount;
+        totalReservedRewards += amount;
+
+        emit CommunityChallengeFunded(
+            challengeId,
+            amount,
+            c.poolAmount,
+            msg.sender
+        );
+    }
+
+    function endCommunityChallenge(uint256 challengeId) external {
+        Challenge storage c = challenges[challengeId];
+        if (c.id == 0 || challengeKind[challengeId] != COMMUNITY_KIND) {
+            revert ChallengeNotFound();
+        }
+        if (communityChallengeEnded[challengeId]) revert ChallengeAlreadyEnded();
+
+        address funder = challengeFunder[challengeId];
+        if (msg.sender != funder && msg.sender != owner()) revert Unauthorized();
+
+        communityChallengeEnded[challengeId] = true;
+        communityChallengeEndedAt[challengeId] = block.timestamp;
+        c.active = false;
+
+        emit CommunityChallengeEnded(challengeId, block.timestamp);
+    }
+
+    function isCommunityCampaign(uint256 challengeId) external view returns (bool) {
+        return challengeKind[challengeId] == COMMUNITY_KIND;
+    }
+
     // --- UPGRADE SAFETY ---
     // Reserved storage gap for future upgrades to avoid storage collisions.
-    uint256[50] private __gap;
+    uint256[40] private __gap;
 }
