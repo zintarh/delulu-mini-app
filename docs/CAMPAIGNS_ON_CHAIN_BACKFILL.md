@@ -1,0 +1,17 @@
+-- Backfill on-chain community campaigns (approved/active without on_chain_challenge_id)
+--
+-- After deploying the Delulu v3 upgrade with community campaign functions:
+-- 1. For each row below, platform admin signs createCommunityChallenge(content_hash, duration_days * 86400, proof_interval)
+-- 2. POST /api/dashboard/campaigns/{id}/confirm-create with { txHash }
+--
+-- Proof interval: daily = 86400, weekly = 604800
+--
+-- SELECT id, title, status, content_hash, duration_days, proof_cadence, on_chain_challenge_id
+-- FROM community_campaigns
+-- WHERE status IN ('approved', 'active', 'funding')
+--   AND content_hash IS NOT NULL
+--   AND on_chain_challenge_id IS NULL
+-- ORDER BY created_at;
+
+-- Legacy Supabase-only participants (pre-migration) remain in campaign_participants;
+-- new join/proof flows use chain + subgraph once on_chain_challenge_id is set.
