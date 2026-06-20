@@ -6,31 +6,34 @@ import { ChevronRight, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserStreak } from "@/hooks/useUserStreak";
 
-const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"] as const;
-
 function getMonthName() {
   return new Date().toLocaleDateString("en-US", { month: "long" });
 }
 
+function streakDayLabel(daysAgo: number): string {
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 /** Today on the left, then yesterday, … 6 days ago on the right */
 function buildWeekDisplay(last7Days: boolean[]) {
-  const todayDow = new Date().getDay();
-  return Array.from({ length: 7 }, (_, i) => {
-    const active = last7Days[6 - i] ?? false;
-    const dayIdx = (todayDow - i + 7) % 7;
-    return {
-      active,
-      label: i === 0 ? "Today" : DAY_LETTERS[dayIdx] ?? "",
-    };
-  });
+  return Array.from({ length: 7 }, (_, i) => ({
+    active: last7Days[6 - i] ?? false,
+    label: streakDayLabel(i),
+  }));
 }
 
 function StreakDayDot({ active, label }: { active: boolean; label: string }) {
+  const isToday = label === "Today";
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
       <div
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-full transition-all",
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all",
           active
             ? "bg-delulu-yellow-reserved shadow-[0_0_8px_rgba(246,195,36,0.35)]"
             : "border border-border/50 bg-secondary/80",
@@ -42,8 +45,8 @@ function StreakDayDot({ active, label }: { active: boolean; label: string }) {
       </div>
       <span
         className={cn(
-          "text-[9px] font-semibold uppercase tracking-wide",
-          label === "Today" ? "text-foreground" : "text-muted-foreground",
+          "max-w-[2.75rem] text-center text-[8px] font-medium leading-tight",
+          isToday ? "text-foreground" : "text-muted-foreground",
         )}
         style={{ fontFamily: "var(--font-manrope)" }}
       >
@@ -103,19 +106,20 @@ export function HomeStreakStrip({ address }: { address: string | undefined }) {
             className="text-sm font-medium text-muted-foreground"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
-            {currentStreak === 1 ? "day" : "days"}
+            {currentStreak === 1 ? "day streak" : "days streak"}
           </span>
         </div>
 
         {showMonth ? (
           <p
-            className="text-xs font-medium text-muted-foreground"
+            className="text-xs font-medium text-muted-foreground text-right"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             <span className="tabular-nums font-semibold text-foreground">
               {activeDaysThisMonth}
             </span>{" "}
-            in {getMonthName()}
+            active {activeDaysThisMonth === 1 ? "day" : "days"} in{" "}
+            {getMonthName()}
           </p>
         ) : (
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
@@ -133,7 +137,7 @@ export function HomeStreakStrip({ address }: { address: string | undefined }) {
           className="mt-2.5 text-xs text-muted-foreground"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
-          Verify a milestone today to start your streak
+          Verify milestone proof today to start a streak
         </p>
       ) : null}
     </Link>

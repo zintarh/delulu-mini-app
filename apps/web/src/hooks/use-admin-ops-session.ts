@@ -20,7 +20,7 @@ export function useAdminOpsSession() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/admin/auth/me", { cache: "no-store" });
+        const res = await fetch("/api/dashboard/auth/me", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to read admin session");
         const json = await res.json();
         if (!mounted) return;

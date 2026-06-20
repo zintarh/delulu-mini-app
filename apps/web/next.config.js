@@ -34,10 +34,15 @@ const nextConfig = {
     ];
   },
   async redirects() {
-    return [{ source: "/market", destination: "/admin", permanent: false }];
+    return [{ source: "/market", destination: "/dashboard", permanent: false }];
   },
   transpilePackages: ["@repo/ui"],
   experimental: {
+    serverComponentsExternalPackages: [
+      "@supabase/ssr",
+      "@supabase/supabase-js",
+      "@supabase/functions-js",
+    ],
     optimizePackageImports: [
       "lucide-react",
       "wagmi",

@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigatio
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useClaimPanel, useNotificationsPanel } from "@/contexts/right-panel-context";
+import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
 import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
@@ -28,9 +28,8 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
   const { authenticated } = useAuth();
-  const { isOpen: notificationsOpen, toggle: toggleNotifications } = useNotificationsPanel();
-  const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
-    useClaimPanel();
+  const { isOpen: notificationsOpen, toggle: toggleNotifications, close: closePanels } =
+    useNotificationsPanel();
   const { unreadCount } = useNotificationCount();
 
   const navItems = getMobileBottomNavItems(authenticated);
@@ -61,7 +60,6 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const activeOptions = {
     isHomeRoute,
     notificationsOpen,
-    claimOpen,
     layoutSegment: segment,
   };
 
@@ -106,7 +104,7 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
                     isActive ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
-                  {item.label === "Claim G$" ? "Claim" : item.label}
+                  {item.label}
                 </span>
               </span>
             );
@@ -187,24 +185,6 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
                   className={itemClass}
                   aria-label={item.label}
                   aria-expanded={notificationsOpen}
-                >
-                  {content}
-                </button>
-              );
-            }
-
-            if (item.action === "claim") {
-              return (
-                <button
-                  key={item.action}
-                  type="button"
-                  onClick={() => {
-                    closePanels();
-                    toggleClaim();
-                  }}
-                  className={itemClass}
-                  aria-label={item.label}
-                  aria-expanded={claimOpen}
                 >
                   {content}
                 </button>

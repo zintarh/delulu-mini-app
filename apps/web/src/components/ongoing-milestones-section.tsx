@@ -42,11 +42,14 @@ interface OngoingMilestonesSectionProps {
   onCreateClick?: () => void;
   /** Tighter layout for the home dashboard */
   variant?: "default" | "home";
+  /** When true on home variant, render nothing instead of empty state */
+  hideWhenEmpty?: boolean;
 }
 
 export function OngoingMilestonesSection({
   onCreateClick,
   variant = "default",
+  hideWhenEmpty = false,
 }: OngoingMilestonesSectionProps) {
   const chainId = useChainId();
   const apolloClient = useApolloClient();
@@ -136,6 +139,7 @@ export function OngoingMilestonesSection({
   }
 
   if (trackers.length === 0) {
+    if (variant === "home" && hideWhenEmpty) return null;
     return (
       <MilestoneTrackerEmpty
         onCreateClick={onCreateClick}

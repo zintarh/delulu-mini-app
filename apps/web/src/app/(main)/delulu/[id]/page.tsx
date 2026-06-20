@@ -38,13 +38,13 @@ const DeluluDetailPinCard = dynamic(
       (m) => m.DeluluDetailPinCard,
     ),
 );
-const DeluluDetailCommentsSection = dynamic(
-  () =>
-    import("@/components/delulu-detail/delulu-detail-comments-section").then(
-      (m) => m.DeluluDetailCommentsSection,
-    ),
-  { ssr: false },
-);
+// const DeluluDetailCommentsSection = dynamic(
+//   () =>
+//     import("@/components/delulu-detail/delulu-detail-comments-section").then(
+//       (m) => m.DeluluDetailCommentsSection,
+//     ),
+//   { ssr: false },
+// );
 const DeluluClaimSection = dynamic(
   () =>
     import("@/components/delulu-detail/delulu-claim-section").then(
@@ -1152,13 +1152,13 @@ export default function DeluluPage() {
                 username={safeDelulu.username}
               />
 
-              <DeluluDetailCommentsSection
+              {/* <DeluluDetailCommentsSection
                 deluluId={safeDelulu.id}
                 deluluCreator={safeDelulu.creator}
                 userAddress={address}
                 username={currentUserUsername ?? null}
                 onRequireAuth={() => redirectToSignIn()}
-              />
+              /> */}
 
                 {shouldShowClaimSection ? (
                   <DeluluClaimSection

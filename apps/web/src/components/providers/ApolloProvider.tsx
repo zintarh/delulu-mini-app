@@ -37,10 +37,14 @@ export function ApolloProvider({ children }: { children: React.ReactNode }) {
   const effectiveChainId = chainId ?? CELO_MAINNET_ID;
 
   const client = useMemo(() => {
-    const apolloClient = createChainAwareApolloClient(effectiveChainId);
-    restoreApolloCacheFromStorage(apolloClient, effectiveChainId);
-    return apolloClient;
+    // Create client without blocking on cache restoration
+    return createChainAwareApolloClient(effectiveChainId);
   }, [effectiveChainId]);
+
+  // Restore cache asynchronously after client creation to avoid blocking render
+  useEffect(() => {
+    restoreApolloCacheFromStorage(client, effectiveChainId);
+  }, [client, effectiveChainId]);
 
   useEffect(() => {
     let writeTimer: ReturnType<typeof setTimeout> | null = null;

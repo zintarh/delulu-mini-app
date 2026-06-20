@@ -31,7 +31,7 @@ export function ExploreSocialFeed({
   if (isLoading) {
     return (
       <div className={masonryClass}>
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <SocialFeedCardSkeleton key={i} index={i} />
         ))}
       </div>

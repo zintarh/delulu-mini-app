@@ -1,9 +1,25 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 import { isAdminUser } from "@/lib/admin-auth";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
+
+/** Returns true if the Supabase Auth user ID exists in staff_users (community_admin or platform_admin). */
+export async function isStaffUser(userId: string | undefined): Promise<boolean> {
+  if (!userId) return false;
+  const url = getSupabaseUrl();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return false;
+  try {
+    const admin = createClient(url, serviceKey);
+    const { data } = await admin.from("staff_users").select("id").eq("id", userId).maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
+}
 
 function createSupabaseMiddlewareClient(request: NextRequest, response: NextResponse) {
   const url = getSupabaseUrl();
@@ -52,7 +68,7 @@ export async function validateAdminApiRequest(
     data: { user },
   } = await client.supabase.auth.getUser();
 
-  const authed = isAdminUser(user);
+  const authed = isAdminUser(user) || await isStaffUser(user?.id);
   return { authed, response: client.getResponse() };
 }
 

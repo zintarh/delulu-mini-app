@@ -369,7 +369,7 @@ export default function ExplorePage() {
                 </div>
               ) : isFilteredLoading ? (
                 <div className="columns-2 gap-x-3 sm:gap-x-4 md:columns-3">
-                  {Array.from({ length: 10 }).map((_, i) => (
+                  {Array.from({ length: 9 }).map((_, i) => (
                     <SocialFeedCardSkeleton key={i} index={i} />
                   ))}
                 </div>

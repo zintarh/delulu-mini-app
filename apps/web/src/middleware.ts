@@ -9,49 +9,69 @@ function addSecurityHeaders(response: NextResponse) {
   );
 }
 
-function isAdminLoginPath(pathname: string) {
-  return pathname === "/admin/login" || pathname.startsWith("/admin/login/");
+function isSignInPath(pathname: string) {
+  return pathname === "/signin" || pathname.startsWith("/signin/");
 }
 
-function isProtectedAdminPage(pathname: string) {
-  return pathname.startsWith("/admin") && !isAdminLoginPath(pathname);
+function isAcceptInvitePath(pathname: string) {
+  return pathname === "/dashboard/accept-invite" || pathname.startsWith("/dashboard/accept-invite/");
+}
+
+function isProtectedDashboardPage(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard") &&
+    !isSignInPath(pathname) &&
+    !isAcceptInvitePath(pathname)
+  );
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isProtectedAdminApi =
-    pathname.startsWith("/api/admin/") && !pathname.startsWith("/api/admin/auth/");
+  const isProtectedDashboardApi =
+    pathname.startsWith("/api/dashboard/") && !pathname.startsWith("/api/dashboard/auth/");
 
-  if (isProtectedAdminApi || isProtectedAdminPage(pathname) || isAdminLoginPath(pathname)) {
+  if (isProtectedDashboardApi || isProtectedDashboardPage(pathname) || isSignInPath(pathname)) {
     const { authed, response: supabaseResponse } = await validateAdminApiRequest(request);
 
-    if (isProtectedAdminApi && !authed) {
+    if (isProtectedDashboardApi && !authed) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (isProtectedAdminPage(pathname) && !authed) {
+    if (isProtectedDashboardPage(pathname) && !authed) {
       const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/admin/login";
+      loginUrl.pathname = "/signin";
       loginUrl.searchParams.set("next", pathname);
       const redirectResponse = NextResponse.redirect(loginUrl);
       addSecurityHeaders(redirectResponse);
       return redirectResponse;
     }
 
-    if (isAdminLoginPath(pathname) && authed) {
+    if (isSignInPath(pathname) && authed) {
       const nextPath = request.nextUrl.searchParams.get("next");
       const destination =
-        nextPath && nextPath.startsWith("/admin") && !isAdminLoginPath(nextPath)
+        nextPath && nextPath.startsWith("/dashboard") && !isSignInPath(nextPath)
           ? nextPath
-          : "/admin";
+          : "/dashboard";
       const redirectResponse = NextResponse.redirect(new URL(destination, request.url));
       addSecurityHeaders(redirectResponse);
       return redirectResponse;
     }
 
-    addSecurityHeaders(supabaseResponse);
-    return supabaseResponse;
+    let response = supabaseResponse;
+
+    if (isProtectedDashboardPage(pathname)) {
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-pathname", pathname);
+      const forwarded = NextResponse.next({ request: { headers: requestHeaders } });
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        forwarded.cookies.set(cookie);
+      });
+      response = forwarded;
+    }
+
+    addSecurityHeaders(response);
+    return response;
   }
 
   const response = NextResponse.next();

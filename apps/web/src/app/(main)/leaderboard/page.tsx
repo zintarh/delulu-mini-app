@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useChainId } from "wagmi";
@@ -965,14 +965,6 @@ export default function LeaderboardPage() {
   const deluluContractAddress = getDeluluContractAddress(chainId);
   const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
-  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
-    useGoodDollarTotalSupply();
-  const formattedGAmount =
-    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
-
-  const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
-  const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
-
   const subtitle =
     activeTab === "campaign"
       ? "Campaign delulus ranked by points earned"
@@ -1001,62 +993,122 @@ export default function LeaderboardPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
-        <LeaderboardStatsRow
+      <Suspense fallback={<LeaderboardSkeleton />}>
+        <LeaderboardContent
           activeTab={activeTab}
-          formattedGAmount={formattedGAmount}
-          isLoadingGSupply={isLoadingGSupply}
+          handleCreateClick={handleCreateClick}
+          chainId={chainId}
           celoscanContractUrl={celoscanContractUrl}
-          myRank={myRankEntry?.rank ?? null}
-          myPoints={myRankEntry?.points ?? null}
-          isRankLoading={isRankLoading}
           authenticated={authenticated}
-          totalDreamers={totalCount}
-          weeklyCampaignCount={weeklyCampaigns.length}
-          campaignEndDate={campaignEndDate}
         />
-
-        {activeTab === "campaign" ? (
-          <div className="mb-6 lg:hidden">
-            <Link
-              href="/campaigns"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background"
-            >
-              Join campaign
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        ) : (
-          <div className="mb-6 rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6 lg:hidden">
-            <h2 className="text-sm font-bold text-foreground">How to climb</h2>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Verify milestones on your delulus to earn dreamer points.
-            </p>
-            <button
-              type="button"
-              onClick={handleCreateClick}
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
-            >
-              <Plus className="h-4 w-4" />
-              Create a Delulu
-            </button>
-          </div>
-        )}
-
-        <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-8">
-          <div className="min-w-0">
-            {activeTab === "campaign" ? (
-              <CampaignLeaderboard />
-            ) : (
-              <DreamersLeaderboard onCreateClick={handleCreateClick} />
-            )}
-          </div>
-          <LeaderboardAside
-            activeTab={activeTab}
-            onCreateClick={handleCreateClick}
-          />
-        </div>
-      </div>
+      </Suspense>
     </main>
+  );
+}
+
+/** Inner component that fetches all data — wrapped in Suspense */
+function LeaderboardContent({
+  activeTab,
+  handleCreateClick,
+  chainId,
+  celoscanContractUrl,
+  authenticated,
+}: {
+  activeTab: Tab;
+  handleCreateClick: () => void;
+  chainId: number;
+  celoscanContractUrl: string;
+  authenticated: boolean;
+}) {
+  const { address } = useAuth();
+  
+  // These hooks are now inside the Suspense boundary, so the page renders without waiting
+  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
+    useGoodDollarTotalSupply();
+  const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
+  const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
+
+  const formattedGAmount =
+    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
+      <LeaderboardStatsRow
+        activeTab={activeTab}
+        formattedGAmount={formattedGAmount}
+        isLoadingGSupply={isLoadingGSupply}
+        celoscanContractUrl={celoscanContractUrl}
+        myRank={myRankEntry?.rank ?? null}
+        myPoints={myRankEntry?.points ?? null}
+        isRankLoading={isRankLoading}
+        authenticated={authenticated}
+        totalDreamers={totalCount}
+        weeklyCampaignCount={weeklyCampaigns.length}
+        campaignEndDate={campaignEndDate}
+      />
+
+      {activeTab === "campaign" ? (
+        <div className="mb-6 lg:hidden">
+          <Link
+            href="/campaigns"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background"
+          >
+            Join campaign
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6 lg:hidden">
+          <h2 className="text-sm font-bold text-foreground">How to climb</h2>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Verify milestones on your delulus to earn dreamer points.
+          </p>
+          <button
+            type="button"
+            onClick={handleCreateClick}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
+          >
+            <Plus className="h-4 w-4" />
+            Create a Delulu
+          </button>
+        </div>
+      )}
+
+      <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-8">
+        <div className="min-w-0">
+          {activeTab === "campaign" ? (
+            <CampaignLeaderboard />
+          ) : (
+            <DreamersLeaderboard onCreateClick={handleCreateClick} />
+          )}
+        </div>
+        <LeaderboardAside
+          activeTab={activeTab}
+          onCreateClick={handleCreateClick}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
+      {/* Stats row skeleton */}
+      <div className="mb-8 grid grid-cols-3 gap-3 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-border/40 bg-secondary/30 p-4 animate-pulse"
+          >
+            <div className="h-3 w-16 rounded-md bg-secondary mb-3" />
+            <div className="h-8 w-20 rounded-md bg-secondary mb-2" />
+            <div className="h-2.5 w-12 rounded-md bg-secondary/60" />
+          </div>
+        ))}
+      </div>
+      {/* List skeleton */}
+      <SkeletonRows />
+    </div>
   );
 }

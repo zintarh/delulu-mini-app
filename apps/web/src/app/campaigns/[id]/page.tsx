@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -10,7 +10,6 @@ import { BottomNav } from "@/components/bottom-nav";
 import { ChallengesHeader } from "@/components/challenges-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useReadContract, useChainId } from "wagmi";
 import { getDeluluContractAddress } from "@/lib/constant";
@@ -19,9 +18,6 @@ import { ArrowLeft, Trophy, Loader2 } from "lucide-react";
 import { cn, formatGAmount } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
 import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-skeleton";
-import { format } from "date-fns";
-import { useAllocatePoints } from "@/hooks/use-allocate-points";
-import { useChallengeLeaderboard } from "@/hooks/use-challenge-leaderboard";
 import type { Challenge } from "@/hooks/use-challenges";
 
 export default function ChallengeDetailPage() {
@@ -29,11 +25,9 @@ export default function ChallengeDetailPage() {
   const params = useParams();
   const { address } = useAccount();
   const { authenticated } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { redirectToSignIn } = useRedirectToSignIn();
   const { challenges, isLoading: isLoadingChallenges } = useChallenges();
   const chainId = useChainId();
-  const [editingPoints, setEditingPoints] = useState<number | null>(null);
-  const { redirectToSignIn } = useRedirectToSignIn();
 
   const handleProfileClick = () => {
     if (!authenticated) redirectToSignIn();
@@ -43,9 +37,6 @@ export default function ChallengeDetailPage() {
     if (!authenticated) redirectToSignIn();
     else router.push("/board");
   };
-  const [pointsInput, setPointsInput] = useState<string>("");
-  const [optimisticPoints, setOptimisticPoints] = useState<Record<number, number>>({});
-  const [lastAllocatedDeluluId, setLastAllocatedDeluluId] = useState<number | null>(null);
 
   const challengeId = params?.id ? parseInt(params.id as string) : null;
   const challenge = challengeId
@@ -63,81 +54,6 @@ export default function ChallengeDetailPage() {
     typeof currencyAddress === "string"
       ? (currencyAddress as `0x${string}`)
       : undefined;
-
-  const { allocatePoints, isAllocating, isConfirming, isSuccess: isAllocateSuccess } = useAllocatePoints();
-  const {
-    leaderboard,
-    isLoading: isLoadingLeaderboard,
-    error: leaderboardError,
-    refetch: refetchLeaderboard,
-  } = useChallengeLeaderboard(challengeId ?? null);
-
-  const handleAllocatePoints = async (deluluId: number) => {
-    const points = parseInt(pointsInput);
-    if (isNaN(points) || points < 0) {
-      alert("Please enter a valid number of points");
-      return;
-    }
-
-    try {
-      // Optimistically update points for this delulu in the UI
-      setOptimisticPoints((prev) => ({
-        ...prev,
-        [deluluId]: points,
-      }));
-      setLastAllocatedDeluluId(deluluId);
-
-      await allocatePoints(deluluId, points);
-    } catch (error) {
-      console.error("Failed to allocate points:", error);
-      // Roll back optimistic points if the transaction fails
-      setOptimisticPoints((prev) => {
-        const next = { ...prev };
-        delete next[deluluId];
-        return next;
-      });
-    }
-  };
-
-  // When point allocation tx is confirmed, refresh just the leaderboard data
-  useEffect(() => {
-    if (isAllocateSuccess && challengeId !== null && lastAllocatedDeluluId !== null) {
-      refetchLeaderboard().finally(() => {
-        // Clear optimistic override once fresh data has been fetched
-        setOptimisticPoints((prev) => {
-          const next = { ...prev };
-          delete next[lastAllocatedDeluluId];
-          return next;
-        });
-        setEditingPoints(null);
-        setPointsInput("");
-        setLastAllocatedDeluluId(null);
-      });
-    }
-  }, [isAllocateSuccess, refetchLeaderboard, challengeId, lastAllocatedDeluluId]);
-
-  // Visual feedback: lightweight confetti when points are allocated successfully
-  useEffect(() => {
-    if (!isAllocateSuccess) return;
-
-    (async () => {
-      try {
-        const confettiModule = await import("canvas-confetti");
-        const confetti = (confettiModule as any).default || confettiModule;
-        if (typeof confetti === "function") {
-          confetti({
-            particleCount: 80,
-            spread: 60,
-            origin: { y: 0.4 },
-            colors: ["#FCD34D", "#4B5563", "#A855F7"],
-          });
-        }
-      } catch {
-        // Confetti is optional and purely visual
-      }
-    })();
-  }, [isAllocateSuccess]);
-
 
   return (
     <div className="h-screen overflow-hidden">
@@ -211,130 +127,16 @@ export default function ChallengeDetailPage() {
                       </div>
                     </div>
                   </div>
+
+                  <Suspense fallback={<CampaignLeaderboardSkeleton rows={4} />}>
+                    <LeaderboardContent 
+                      challengeId={challengeId}
+                      challenge={challenge}
+                    />
+                  </Suspense>
                 </>
               )}
             </div>
-
-            
-
-            {/* Leaderboard */}
-            {challenge && (() => {
-              const isCampaignEnded = challenge.endTime < new Date();
-              const endDateLabel = isCampaignEnded
-                ? `Ended ${format(challenge.endTime, "MMM d, yyyy")}`
-                : `Ends ${format(challenge.endTime, "MMM d, yyyy")}`;
-              return (
-              <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-5">
-                  <h2 className="text-lg sm:text-xl font-black">
-                    Leaderboard
-                  </h2>
-                  <div className="text-xs sm:text-sm text-muted-foreground">
-                    {endDateLabel}
-                  </div>
-                </div>
-
-                {leaderboardError ? (
-                  <div className="bg-card rounded-xl border-2 border-border shadow-neo p-4 text-sm text-foreground">
-                    <p className="font-semibold text-destructive">Failed to load leaderboard</p>
-                    <p className="mt-1 text-muted-foreground">{leaderboardError.message}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Ensure the subgraph is synced and delulus have joined this campaign (and had points allocated) to appear.
-                    </p>
-                  </div>
-                ) : isLoadingLeaderboard ? (
-                  <CampaignLeaderboardSkeleton rows={4} />
-                ) : leaderboard.length === 0 ? (
-                  <div className="bg-card rounded-xl border-2 border-border shadow-neo p-10 text-center">
-                    <Trophy className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-muted-foreground font-medium mb-1">
-                      No participants yet
-                    </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Be the first to join this campaign! Join a campaign from a delulu page, then an admin can allocate points.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 sm:space-y-3">
-                    {leaderboard.map((entry, index) => {
-                      const rank = index + 1;
-                      const isTopThree = rank <= 3;
-                      const displayPoints =
-                        optimisticPoints[entry.deluluId] ?? entry.points;
-
-                      const label =
-                        entry.delulu.content && entry.delulu.content.length > 0
-                          ? entry.delulu.content
-                          : "";
-
-                      return (
-                        <div
-                          key={entry.deluluId}
-                          className={cn(
-                            "bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1a1a19] p-3 sm:p-4 hover:shadow-[3px_3px_0px_0px_#1a1a19] transition-all",
-                            isTopThree && "bg-card border-foreground/20"
-                          )}
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                              {/* Rank */}
-                              <div className="flex-shrink-0 w-7 sm:w-8 text-center">
-                                <span className="text-xs sm:text-sm font-black">
-                                  #{rank}
-                                </span>
-                              </div>
-
-                              {/* User Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="font-bold text-xs sm:text-sm truncate">
-                                  {entry.username ||
-                                    `${entry.creator.slice(0, 6)}...${entry.creator.slice(-4)}`}
-                                </div>
-                                {label && (
-                                  <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                                    {label}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Points */}
-                              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                                <span className="text-base sm:text-lg font-black">
-                                  {displayPoints}
-                                </span>
-                                <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                                  pts
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Admin Actions */}
-                            {isAdmin && (
-                              <div className="flex items-center gap-1.5 flex-shrink-0 self-stretch sm:self-auto">
-                                <button
-                                  onClick={() => {
-                                    setEditingPoints(entry.deluluId);
-                                    setPointsInput(
-                                      (optimisticPoints[entry.deluluId] ??
-                                        entry.points
-                                      ).toString()
-                                    );
-                                  }}
-                                  className="px-3 sm:px-3.5 py-1 text-[11px] sm:text-xs font-bold rounded-md border-2 border-border bg-card text-foreground shadow-[2px_2px_0px_0px_#1a1a19] hover:shadow-[3px_3px_0px_0px_#1a1a19] hover:border-foreground/20 active:scale-[0.98] transition-all w-full sm:w-auto"
-                                >
-                                  Allocate
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-            })()}
           </div>
         </main>
 
@@ -347,15 +149,197 @@ export default function ChallengeDetailPage() {
         onProfileClick={handleProfileClick}
         onCreateClick={handleCreateClick}
       />
+    </div>
+  );
+}
 
-      {/* Allocate points modal */}
+function LeaderboardContent({ challengeId, challenge }: { challengeId: number | null; challenge: Challenge | undefined }) {
+  const { isAdmin } = useIsAdminImport();
+  const [editingPoints, setEditingPoints] = useState<number | null>(null);
+  const [pointsInput, setPointsInput] = useState<string>("");
+  const [optimisticPoints, setOptimisticPoints] = useState<Record<number, number>>({});
+  const [lastAllocatedDeluluId, setLastAllocatedDeluluId] = useState<number | null>(null);
+
+  const { allocatePoints, isAllocating, isConfirming, isSuccess: isAllocateSuccess } = useAllocatePointsImport();
+  const {
+    leaderboard,
+    isLoading: isLoadingLeaderboard,
+    error: leaderboardError,
+    refetch: refetchLeaderboard,
+  } = useChallengeLeaderboardImport(challengeId ?? null);
+
+  const {
+    challenge: onChainChallenge,
+    canRefund,
+    canWithdrawAsFunder,
+    isRefunded,
+    isLoading: isLoadingOnChainChallenge,
+    refetch: refetchOnChainChallenge,
+  } = useChallengeOnChainImport(challengeId);
+
+  const {
+    refundChallengePool,
+    isPending: isRefunding,
+    isSuccess: isRefundSuccess,
+    errorMessage: refundErrorMessage,
+  } = useRefundChallengePoolImport();
+
+  useEffect(() => {
+    if (!isRefundSuccess || challengeId === null) return;
+    void refetchOnChainChallenge();
+    void refetchLeaderboard();
+    const t = setTimeout(() => {
+      refetchLeaderboard();
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [isRefundSuccess, challengeId, refetchOnChainChallenge, refetchLeaderboard]);
+
+  const handleAllocatePoints = async (deluluId: number) => {
+    const points = parseInt(pointsInput);
+    if (isNaN(points) || points < 0) {
+      alert("Please enter a valid number of points");
+      return;
+    }
+
+    try {
+      setOptimisticPoints((prev) => ({
+        ...prev,
+        [deluluId]: points,
+      }));
+      setLastAllocatedDeluluId(deluluId);
+      await allocatePoints(deluluId, points);
+    } catch (error) {
+      console.error("Failed to allocate points:", error);
+      setOptimisticPoints((prev) => {
+        const next = { ...prev };
+        delete next[deluluId];
+        return next;
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isAllocateSuccess && challengeId !== null && lastAllocatedDeluluId !== null) {
+      refetchLeaderboard().finally(() => {
+        setOptimisticPoints((prev) => {
+          const next = { ...prev };
+          delete next[lastAllocatedDeluluId];
+          return next;
+        });
+        setEditingPoints(null);
+        setPointsInput("");
+        setLastAllocatedDeluluId(null);
+      });
+    }
+  }, [isAllocateSuccess, refetchLeaderboard, challengeId, lastAllocatedDeluluId]);
+
+  useEffect(() => {
+    if (!isAllocateSuccess) return;
+    (async () => {
+      try {
+        const confettiModule = await import("canvas-confetti");
+        const confetti = (confettiModule as any).default || confettiModule;
+        if (typeof confetti === "function") {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.4 },
+            colors: ["#FCD34D", "#4B5563", "#A855F7"],
+          });
+        }
+      } catch {
+        // Confetti is optional
+      }
+    })();
+  }, [isAllocateSuccess]);
+
+  if (!challenge) return null;
+
+  const isCampaignEnded = challenge.endTime < new Date();
+  const endDateLabel = isCampaignEnded
+    ? `Ended ${formatDate(challenge.endTime, "MMM d, yyyy")}`
+    : `Ends ${formatDate(challenge.endTime, "MMM d, yyyy")}`;
+
+  return (
+    <>
+      {challenge && canWithdrawAsFunder ? (
+        <CampaignRefundPanelImport
+          className="mb-6"
+          challengeId={challenge.id}
+          poolAmount={onChainChallenge?.poolAmount ?? challenge.poolAmount}
+          totalPoints={onChainChallenge?.totalPoints ?? challenge.totalPoints}
+          currencyTokenAddress={undefined}
+          canRefund={canRefund}
+          isRefunded={isRefunded}
+          isLoading={isLoadingOnChainChallenge}
+          isPending={isRefunding}
+          isSuccess={isRefundSuccess}
+          errorMessage={refundErrorMessage}
+          onRefund={() => void refundChallengePool(challenge.id)}
+        />
+      ) : null}
+
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-5">
+          <h2 className="text-lg sm:text-xl font-black">Leaderboard</h2>
+          <div className="text-xs sm:text-sm text-muted-foreground">{endDateLabel}</div>
+        </div>
+
+        {leaderboardError ? (
+          <div className="bg-card rounded-xl border-2 border-border shadow-neo p-4 text-sm text-foreground">
+            <p className="font-semibold text-destructive">Failed to load leaderboard</p>
+            <p className="mt-1 text-muted-foreground">{leaderboardError.message}</p>
+          </div>
+        ) : isLoadingLeaderboard ? (
+          <CampaignLeaderboardSkeleton rows={4} />
+        ) : leaderboard.length === 0 ? (
+          <div className="bg-card rounded-xl border-2 border-border shadow-neo p-10 text-center">
+            <Trophy className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-muted-foreground font-medium mb-1">No participants yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2 sm:space-y-3">
+            {leaderboard.map((entry, index) => {
+              const rank = index + 1;
+              const displayPoints = optimisticPoints[entry.deluluId] ?? entry.points;
+              return (
+                <div key={entry.deluluId} className="bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1a1a19] p-3 sm:p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-xs font-black">#{rank}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-xs sm:text-sm truncate">
+                          {entry.username || `${entry.creator.slice(0, 6)}...${entry.creator.slice(-4)}`}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-base font-black">{displayPoints}</span>
+                        <span className="text-[11px] text-muted-foreground font-medium">pts</span>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setEditingPoints(entry.deluluId);
+                          setPointsInput((optimisticPoints[entry.deluluId] ?? entry.points).toString());
+                        }}
+                        className="px-3 py-1 text-[11px] font-bold rounded-md border-2 border-border bg-card text-foreground"
+                      >
+                        Allocate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {isAdmin && editingPoints !== null && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
-            <h3 className="text-base md:text-lg font-black mb-2">
-              Allocate points
-            </h3>
-           
+            <h3 className="text-base md:text-lg font-black mb-2">Allocate points</h3>
             <div className="flex items-center gap-2 mb-4">
               <input
                 type="number"
@@ -363,7 +347,7 @@ export default function ChallengeDetailPage() {
                 onChange={(e) => setPointsInput(e.target.value)}
                 placeholder="Points"
                 min={0}
-                className="flex-1 px-3 py-2 h-[46px] text-sm rounded-sm border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground"
+                className="flex-1 px-3 py-2 h-[46px] text-sm rounded-sm border border-border bg-background text-foreground"
               />
             </div>
             <div className="mt-3 flex justify-end gap-2">
@@ -371,12 +355,10 @@ export default function ChallengeDetailPage() {
                 type="button"
                 disabled={isAllocating || isConfirming}
                 onClick={() => {
-                  if (!isAllocating && !isConfirming) {
-                    setEditingPoints(null);
-                    setPointsInput("");
-                  }
+                  setEditingPoints(null);
+                  setPointsInput("");
                 }}
-                className="px-3 py-2 text-xs md:text-sm font-semibold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-xs font-semibold rounded-md border border-gray-300"
               >
                 Cancel
               </button>
@@ -384,12 +366,7 @@ export default function ChallengeDetailPage() {
                 type="button"
                 disabled={isAllocating || isConfirming || !pointsInput}
                 onClick={() => handleAllocatePoints(editingPoints)}
-                className={cn(
-                  "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
-                  "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
-                  (isAllocating || isConfirming || !pointsInput) &&
-                    "opacity-60 cursor-not-allowed"
-                )}
+                className="px-4 py-2 text-xs font-black rounded-md border-2 bg-delulu-yellow-reserved"
               >
                 {isAllocating || isConfirming ? (
                   <>
@@ -404,6 +381,15 @@ export default function ChallengeDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
+
+// Import aliases to avoid circular dependencies
+import { useIsAdmin as useIsAdminImport } from "@/hooks/use-is-admin";
+import { format as formatDate } from "date-fns";
+import { useAllocatePoints as useAllocatePointsImport } from "@/hooks/use-allocate-points";
+import { useChallengeLeaderboard as useChallengeLeaderboardImport } from "@/hooks/use-challenge-leaderboard";
+import { useChallengeOnChain as useChallengeOnChainImport } from "@/hooks/use-challenge-on-chain";
+import { useRefundChallengePool as useRefundChallengePoolImport } from "@/hooks/use-refund-challenge-pool";
+import { CampaignRefundPanel as CampaignRefundPanelImport } from "@/components/campaign-refund-panel";

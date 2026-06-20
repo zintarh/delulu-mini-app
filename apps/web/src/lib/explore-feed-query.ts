@@ -1,9 +1,9 @@
 import { gql } from "@apollo/client";
 
-export const EXPLORE_FEED_PAGE_SIZE = 10;
+export const EXPLORE_FEED_PAGE_SIZE = 9;
 
 export const GET_DELULUS_FEED = gql`
-  query GetDelulusFeed($first: Int = 10, $skip: Int = 0) {
+  query GetDelulusFeed($first: Int = 9, $skip: Int = 0) {
     delulus(
       first: $first
       skip: $skip

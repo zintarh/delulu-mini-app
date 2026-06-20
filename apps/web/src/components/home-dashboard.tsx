@@ -7,7 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { getDailyEncouragement } from "@/lib/daily-encouragement";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
-import { HomeStreakStrip } from "@/components/home-streak-strip";
+import { HomeClaimNudge } from "@/components/home-claim-nudge";
+import { HomeCampaignsSection } from "@/components/home-campaigns-section";
 import { useUserEarnings } from "@/hooks/use-user-earnings";
 import { formatGAmount } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -208,10 +209,16 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
 
       <div className="mb-4 mt-3 space-y-2.5 px-4">
         <DailyEncouragement />
-        <HomeStreakStrip address={address} />
+        <HomeClaimNudge />
       </div>
 
-      <OngoingMilestonesSection variant="home" onCreateClick={onCreateClick} />
+      <OngoingMilestonesSection
+        variant="home"
+        hideWhenEmpty
+        onCreateClick={onCreateClick}
+      />
+
+      <HomeCampaignsSection />
 
       <div className="px-4 pb-4 pt-2">
         <Link

@@ -25,6 +25,7 @@ const DELULU_ERROR_MESSAGES: Record<string, ContractErrorDisplay> = {
   ChallengeNotFound: { title: "Challenge not found", message: "The challenge could not be found." },
   ChallengeExpired: { title: "Too late", message: "This challenge has expired." },
   ChallengeNotClosed: { title: "Challenge still open", message: "Wait for the challenge to close." },
+  ChallengePoolEmpty: { title: "Pool empty", message: "This campaign pool was already withdrawn." },
   MilestoneNotFound: { title: "Step not found", message: "This step doesn't exist or was removed." },
   MilestoneAlreadyCompleted: { title: "Already done", message: "This step is already verified." },
   MilestoneExpired: { title: "Too late", message: "The deadline for this step has passed." },
@@ -81,7 +82,7 @@ function parseErrorNameFromMessage(error: unknown): string | null {
     const m = error.message;
     // Match "ErrorName" or "... ErrorName)" or "reverted with reason: ErrorName"
     const match = m.match(/(?:reverted with reason|revert|Error):\s*(\w+)/i)
-      ?? m.match(/\b(Unauthorized|DeluluNotFound|MilestoneNotFound|MilestoneExpired|MilestoneAlreadyCompleted|MilestoneCannotBeDeleted|StakingIsClosed|StakeTooSmall|InvalidDeadlines|TooManyMilestones|AlreadyClaimed|ChallengeExpired|ChallengeNotClosed|NotResolved|ProfileRequired|UsernameTaken|InvalidUsername|MilestonesCannotBeReset)\b/);
+      ?? m.match(/\b(Unauthorized|DeluluNotFound|MilestoneNotFound|MilestoneExpired|MilestoneAlreadyCompleted|MilestoneCannotBeDeleted|StakingIsClosed|StakeTooSmall|InvalidDeadlines|TooManyMilestones|AlreadyClaimed|ChallengeExpired|ChallengeNotClosed|ChallengePoolEmpty|NotResolved|ProfileRequired|UsernameTaken|InvalidUsername|MilestonesCannotBeReset)\b/);
     if (match) return match[1];
   }
   return null;

@@ -31,7 +31,7 @@ export function PullToRefresh() {
     if (!isStandalonePwa() && !onExplore) return;
     // Disable pull-to-refresh on single delulu pages.
     if (pathname?.startsWith("/delulu/")) return;
-    if (pathname?.startsWith("/admin")) return;
+    if (pathname?.startsWith("/dashboard")) return;
 
     const threshold = 72;
     const maxPull = 110;

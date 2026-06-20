@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { data: existing, error: selectError } = await supabase
       .from("profiles")
       .select("address, claim_count")
-      .eq("address", normalizedAddress)
+      .ilike("address", normalizedAddress)
       .maybeSingle();
     if (selectError) throw selectError;
 
@@ -27,11 +27,7 @@ export async function POST(request: NextRequest) {
     const { error: upsertError } = await supabase
       .from("profiles")
       .upsert(
-        {
-          address: normalizedAddress,
-          claim_count: nextCount,
-          updated_at: new Date().toISOString(),
-        },
+        { address: normalizedAddress, claim_count: nextCount, updated_at: new Date().toISOString() },
         { onConflict: "address" },
       );
     if (upsertError) throw upsertError;

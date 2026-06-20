@@ -7,7 +7,7 @@ import Image from "next/image";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useNotificationsPanel, useClaimPanel } from "@/contexts/right-panel-context";
+import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
 import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
@@ -52,9 +52,8 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const {
     isOpen: notificationsOpen,
     toggle: toggleNotifications,
+    close: closePanels,
   } = useNotificationsPanel();
-  const { isOpen: claimOpen, toggle: toggleClaim, close: closePanels } =
-    useClaimPanel();
   const { unreadCount } = useNotificationCount();
 
   useEffect(() => {
@@ -85,14 +84,12 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const profileActive = isMainNavItemActive(profileItem, path, {
     isHomeRoute,
     notificationsOpen,
-    claimOpen,
     layoutSegment: segment,
   });
 
   const activeOptions = {
     isHomeRoute,
     notificationsOpen,
-    claimOpen,
     layoutSegment: segment,
   };
 
@@ -131,10 +128,7 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
           const handlePanelAction = () => {
             if (action === "notifications") {
               toggleNotifications();
-              return;
             }
-            closePanels();
-            if (action === "claim") toggleClaim();
           };
 
           const showBadge = action === "notifications" && unreadCount > 0;
@@ -181,11 +175,7 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
                   className={itemCls(active)}
                   aria-label={label}
                   aria-expanded={
-                    action === "claim"
-                      ? claimOpen
-                      : action === "notifications"
-                        ? notificationsOpen
-                        : undefined
+                    action === "notifications" ? notificationsOpen : undefined
                   }
                 >
                   <span className="relative">

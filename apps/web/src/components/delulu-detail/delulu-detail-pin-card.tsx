@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DollarSign,
   Heart,
-  MessageCircle,
+  // MessageCircle,
   MoreHorizontal,
   Maximize2,
 } from "lucide-react";
@@ -80,7 +80,7 @@ export interface DeluluDetailPinCardProps {
   onRequireAuth: () => void;
   userAddress?: string | null;
   username?: string | null;
-  onCommentCountChange?: (count: number) => void;
+  // onCommentCountChange?: (count: number) => void;
 }
 
 export function DeluluDetailPinCard({
@@ -107,29 +107,29 @@ export function DeluluDetailPinCard({
   onRequireAuth,
   userAddress,
   username,
-  onCommentCountChange,
+  // onCommentCountChange,
 }: DeluluDetailPinCardProps) {
-  const [commentCount, setCommentCount] = useState(0);
+  // const [commentCount, setCommentCount] = useState(0);
 
-  const refreshCommentCount = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/social/${delulu.id}/comments`);
-      if (res.ok) {
-        const data = await res.json();
-        setCommentCount((data.comments ?? []).length);
-      }
-    } catch {
-      // keep
-    }
-  }, [delulu.id]);
+  // const refreshCommentCount = useCallback(async () => {
+  //   try {
+  //     const res = await fetch(`/api/social/${delulu.id}/comments`);
+  //     if (res.ok) {
+  //       const data = await res.json();
+  //       setCommentCount((data.comments ?? []).length);
+  //     }
+  //   } catch {
+  //     // keep
+  //   }
+  // }, [delulu.id]);
 
-  useEffect(() => {
-    void refreshCommentCount();
-  }, [refreshCommentCount]);
+  // useEffect(() => {
+  //   void refreshCommentCount();
+  // }, [refreshCommentCount]);
 
-  useEffect(() => {
-    onCommentCountChange?.(commentCount);
-  }, [commentCount, onCommentCountChange]);
+  // useEffect(() => {
+  //   onCommentCountChange?.(commentCount);
+  // }, [commentCount, onCommentCountChange]);
 
   const handleTipClick = () => {
     if (tipDisabled) return;
@@ -169,7 +169,7 @@ export function DeluluDetailPinCard({
     const onSocial = (e: Event) => {
       const detail = (e as CustomEvent<{ deluluId?: number }>).detail;
       if (detail?.deluluId != null && detail.deluluId !== delulu.id) return;
-      void refreshCommentCount();
+      // void refreshCommentCount();
       const fetchLikes = async () => {
         try {
           const params = userKey ? `?userAddress=${encodeURIComponent(userKey)}` : "";
@@ -187,7 +187,7 @@ export function DeluluDetailPinCard({
     };
     window.addEventListener(DELULU_SOCIAL_UPDATED_EVENT, onSocial);
     return () => window.removeEventListener(DELULU_SOCIAL_UPDATED_EVENT, onSocial);
-  }, [delulu.id, userKey, refreshCommentCount]);
+  }, [delulu.id, userKey]);
 
   const handleHeart = async () => {
     if (!userKey) {
@@ -281,7 +281,7 @@ export function DeluluDetailPinCard({
                   </span>
                 )}
 
-                <button
+                {/* <button
                   type="button"
                   className="flex h-10 w-10 items-center justify-center rounded-full text-foreground hover:bg-secondary"
                   aria-label="Comments"
@@ -300,7 +300,7 @@ export function DeluluDetailPinCard({
                   <span className="mr-0.5 text-sm font-bold tabular-nums text-foreground">
                     {commentCount}
                   </span>
-                )}
+                )} */}
 
                 {shareSlot}
               </div>

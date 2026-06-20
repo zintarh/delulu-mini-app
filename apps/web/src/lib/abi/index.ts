@@ -47,6 +47,11 @@ export const DELULU_ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "ChallengePoolEmpty",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "ClaimPeriodExpired",
 		"type": "error"
 	},
@@ -285,6 +290,31 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "ChallengeCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "recipient",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "ChallengePoolRefunded",
 		"type": "event"
 	},
 	{
@@ -2282,6 +2312,25 @@ export const DELULU_ABI = [
 		"inputs": [
 			{
 				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "challengeFunder",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
 				"name": "challengeId",
 				"type": "uint256"
 			}
@@ -2433,6 +2482,24 @@ export const DELULU_ABI = [
 			}
 		],
 		"name": "sellShares",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "challengeId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "funder",
+				"type": "address"
+			}
+		],
+		"name": "setChallengeFunder",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

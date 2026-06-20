@@ -20,7 +20,7 @@ const DISMISS_KEY = "delulu_email_prompt_dismissed_v1";
 function isExcludedPath(pathname: string): boolean {
   if (pathname.startsWith("/sign-in")) return true;
   if (pathname.startsWith("/welcome")) return true;
-  if (pathname.startsWith("/admin")) return true;
+  if (pathname.startsWith("/dashboard")) return true;
   return false;
 }
 

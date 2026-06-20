@@ -1,8 +1,6 @@
 import {
   Bell,
   Compass,
-  Flame,
-  Gift,
   Home,
   Plus,
   Trophy,
@@ -18,10 +16,8 @@ export type MainNavItem = {
     | "home"
     | "notifications"
     | "create"
-    | "claim"
     | "explore"
     | "leaderboard"
-    | "streaks"
     | "profile";
 };
 
@@ -48,7 +44,6 @@ const coreNavItems = (authenticated: boolean): MainNavItem[] => [
     action: "create",
   },
   { icon: Compass, label: "Explore", href: "/explore", action: "explore" },
-  { icon: Gift, label: "Claim G$", action: "claim" },
 ];
 
 /** Desktop left sidebar */
@@ -60,12 +55,6 @@ export function getMainNavItems(authenticated: boolean): MainNavItem[] {
       label: "Leaderboard",
       href: "/leaderboard",
       action: "leaderboard",
-    },
-    {
-      icon: Flame,
-      label: "Streaks",
-      href: "/streaks",
-      action: "streaks",
     },
   ];
 }
@@ -90,7 +79,6 @@ export function isMainNavItemActive(
   options: {
     isHomeRoute: boolean;
     notificationsOpen: boolean;
-    claimOpen: boolean;
     layoutSegment: string | null;
   },
 ): boolean {
@@ -98,15 +86,11 @@ export function isMainNavItemActive(
 
   switch (item.action) {
     case "home":
-      return (
-        options.isHomeRoute && !options.notificationsOpen && !options.claimOpen
-      );
+      return options.isHomeRoute && !options.notificationsOpen;
     case "notifications":
       return options.notificationsOpen;
     case "create":
       return isNavHrefActive(path, "/board");
-    case "claim":
-      return options.claimOpen;
     case "explore":
       return (
         options.layoutSegment === "explore" ||
@@ -116,11 +100,6 @@ export function isMainNavItemActive(
       return (
         options.layoutSegment === "leaderboard" ||
         isNavHrefActive(path, "/leaderboard")
-      );
-    case "streaks":
-      return (
-        options.layoutSegment === "streaks" ||
-        isNavHrefActive(path, "/streaks")
       );
     case "profile":
       return (

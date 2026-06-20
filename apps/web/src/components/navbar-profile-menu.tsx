@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
+import { useClaimAvailability } from "@/hooks/use-claim-availability";
+import { useUserStreak } from "@/hooks/useUserStreak";
 import { useLogoutSheetOptional } from "@/contexts/logout-sheet-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePfp } from "@/hooks/use-profile-pfp";
@@ -91,6 +93,8 @@ export function NavbarProfileMenu({
   const user = useUserStore((s) => s.user);
   const { isOpen: notificationsOpen, toggle: toggleNotifications } =
     useNotificationsPanel();
+  const { availability, showProfileClaim, openClaim } = useClaimAvailability();
+  const { currentStreak } = useUserStreak(address ?? undefined);
   const logoutSheet = useLogoutSheetOptional();
   const [open, setOpen] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -241,8 +245,37 @@ export function NavbarProfileMenu({
                   >
                     Notifications
                   </MenuAction>
+                  {showProfileClaim ? (
+                    <MenuAction
+                      className="px-1"
+                      onClick={() => {
+                        close();
+                        openClaim();
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        Claim G$
+                        {availability === "claimable" ? (
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full bg-[#f6c324]"
+                            aria-hidden
+                          />
+                        ) : null}
+                      </span>
+                    </MenuAction>
+                  ) : null}
                   <MenuAction href="/leaderboard" className="px-1" onClick={close}>
                     Leaderboard
+                  </MenuAction>
+                  <MenuAction href="/streaks" className="px-1" onClick={close}>
+                    <span className="flex items-center gap-2">
+                      Streaks & rewards
+                      {currentStreak > 0 ? (
+                        <span className="text-xs font-bold tabular-nums text-[#f6c324]">
+                          {currentStreak}d
+                        </span>
+                      ) : null}
+                    </span>
                   </MenuAction>
                   <MenuAction href="/settings" className="px-1" onClick={close}>
                     Settings
