@@ -32,6 +32,7 @@ export function FundingPageClient() {
     title: string;
     proposed_pool_amount: number;
     content_hash: string | null;
+    on_chain_challenge_id: number | null;
   } | null>(null);
 
   const filtered = useMemo(() => {
@@ -153,6 +154,7 @@ export function FundingPageClient() {
                             title: c.title,
                             proposed_pool_amount: c.proposed_pool_amount,
                             content_hash: c.content_hash,
+                            on_chain_challenge_id: c.on_chain_challenge_id ?? null,
                           })
                         }
                       >

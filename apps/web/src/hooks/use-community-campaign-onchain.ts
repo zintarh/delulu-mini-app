@@ -1,21 +1,14 @@
 "use client";
 
-import { useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
 import { decodeErrorResult } from "viem";
-import { createPublicClient, http } from "viem";
-import { celo } from "viem/chains";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI_WITH_COMMUNITY } from "@/lib/abi/delulu-with-community";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
-const publicClient = createPublicClient({ chain: celo, transport: http() });
-
-async function waitForHash(hash: `0x${string}`) {
-  await publicClient.waitForTransactionReceipt({ hash });
-}
-
 export function useJoinCommunityCampaignOnChain() {
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const { writeContractAsync, data: hash, isPending, error, reset } =
     useUnifiedWriteContract();
 
@@ -35,9 +28,9 @@ export function useJoinCommunityCampaignOnChain() {
   };
 
   const joinCommunityCampaignAndWait = async (challengeId: number | bigint) => {
-    const hash = await joinCommunityCampaign(challengeId);
-    await waitForHash(hash);
-    return hash;
+    const txHash = await joinCommunityCampaign(challengeId);
+    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
   };
 
   const isError = !!error || !!receiptError;
@@ -74,6 +67,7 @@ export function useJoinCommunityCampaignOnChain() {
 
 export function useSubmitCommunityProofOnChain() {
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const { writeContractAsync, data: hash, isPending, error, reset } =
     useUnifiedWriteContract();
 
@@ -101,9 +95,9 @@ export function useSubmitCommunityProofOnChain() {
     challengeId: number | bigint,
     proofLink: string,
   ) => {
-    const hash = await submitCommunityProof(challengeId, proofLink);
-    await waitForHash(hash);
-    return hash;
+    const txHash = await submitCommunityProof(challengeId, proofLink);
+    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
   };
 
   const isError = !!error || !!receiptError;

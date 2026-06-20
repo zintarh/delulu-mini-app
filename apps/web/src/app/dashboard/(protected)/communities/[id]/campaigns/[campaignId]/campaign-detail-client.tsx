@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, StopCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CAMPAIGN_DURATION_OPTIONS,
@@ -26,6 +26,7 @@ import {
   DashboardTableRow,
   DashboardTableCell,
   DashboardField,
+  DashboardModal,
   DashboardPrimaryButton,
   DashboardSelect,
   StatusChip,
@@ -38,6 +39,7 @@ import {
   useUpdateCampaign,
   type DashboardCampaign,
 } from "@/hooks/dashboard/use-dashboard-campaigns";
+import { useEndCommunityChallenge } from "@/hooks/use-community-campaign-onchain";
 
 function formatAddress(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -215,15 +217,45 @@ function CampaignSettingsForm({
 export function CampaignDetailClient({
   communityId,
   campaignId,
+  isPlatformAdmin,
 }: {
   communityId: string;
   campaignId: string;
+  isPlatformAdmin: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
+  const [endModalOpen, setEndModalOpen] = useState(false);
+  const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
+  const [endError, setEndError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const { data, isLoading } = useDashboardCampaign(campaignId);
+  const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
+  const { endCommunityChallenge, isPending: isEndingOnChain } = useEndCommunityChallenge();
+
+  const handleEndCampaign = async () => {
+    if (!campaign?.on_chain_challenge_id) return;
+    setEndStep("signing");
+    setEndError(null);
+    try {
+      const hash = await endCommunityChallenge(campaign.on_chain_challenge_id);
+      setEndStep("confirming");
+      const res = await fetch(`/api/dashboard/campaigns/${campaignId}/confirm-end`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ txHash: hash }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error ?? "Failed to confirm end");
+      }
+      setEndStep("done");
+      void refetch();
+    } catch (err) {
+      setEndStep("error");
+      setEndError(err instanceof Error ? err.message : "Failed to end campaign");
+    }
+  };
 
   useEffect(() => {
     if (searchParams.get("tab") === "settings") {
@@ -257,11 +289,47 @@ export function CampaignDetailClient({
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-bold text-foreground sm:text-2xl">{campaign.title}</h1>
           <StatusChip status={campaign.status} />
+          {isPlatformAdmin && campaign.status === "active" && campaign.on_chain_challenge_id ? (
+            <button
+              type="button"
+              onClick={() => { setEndModalOpen(true); setEndStep("idle"); setEndError(null); }}
+              className="ml-auto flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+            >
+              <StopCircle className="h-3.5 w-3.5" />
+              End campaign
+            </button>
+          ) : null}
         </div>
         {campaign.description ? (
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{campaign.description}</p>
         ) : null}
       </div>
+
+      <DashboardModal
+        open={endModalOpen}
+        onOpenChange={(o: boolean) => { if (!isEndingOnChain && endStep !== "confirming") setEndModalOpen(o); }}
+        title="End campaign"
+        description={`This will permanently close "${campaign.title}" on-chain. Participants will no longer be able to submit proofs.`}
+      >
+        <div className="space-y-4 pt-2 text-sm">
+          {endStep === "done" ? (
+            <p className="font-semibold text-emerald-700">Campaign ended successfully.</p>
+          ) : null}
+          {endError ? <p className="text-xs text-destructive">{endError}</p> : null}
+          {endStep !== "done" ? (
+            <DashboardPrimaryButton
+              className="w-full bg-red-600 hover:bg-red-700"
+              disabled={isEndingOnChain || endStep === "signing" || endStep === "confirming"}
+              onClick={() => void handleEndCampaign()}
+            >
+              {isEndingOnChain || endStep === "signing" || endStep === "confirming" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+              {endStep === "confirming" ? "Confirming…" : "Confirm end campaign"}
+            </DashboardPrimaryButton>
+          ) : null}
+        </div>
+      </DashboardModal>
 
       {campaign.cover_image_url ? (
         <div className="relative mb-6 h-32 w-full overflow-hidden rounded-xl border border-[#e8e8e3]">

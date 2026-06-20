@@ -58,7 +58,7 @@ export async function POST(
   const now = new Date().toISOString();
   const { data, error } = await admin
     .from("community_campaigns")
-    .update({ status: "ended", updated_at: now })
+    .update({ status: "ended", ended_at: now, ended_by: session.userId, updated_at: now })
     .eq("id", id)
     .select("id, status")
     .single();

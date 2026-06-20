@@ -5,8 +5,6 @@ import { Loader2 } from "lucide-react";
 import { useReadContract, useChainId } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
 import { getDeluluContractAddress } from "@/lib/constant";
-import { COMMUNITY_CAMPAIGN_DURATION_SECONDS } from "@/lib/dashboard/campaign-constants";
-import { useCreateChallenge } from "@/hooks/use-create-challenge";
 import { useFundCommunityChallenge } from "@/hooks/use-fund-community-challenge";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
@@ -64,30 +62,16 @@ export function FundCampaignModal({
 
   const balance = useTokenBalance(token);
   const {
-    createChallenge,
-    hash: createHash,
-    isPending: isCreatingLegacy,
-    isSuccess: isCreateSuccess,
-    isError: isCreateError,
-    errorMessage: createErrorMessage,
-    isConfirming: isCreateConfirming,
-  } = useCreateChallenge();
-
-  const {
     fundCommunityChallenge,
-    hash: fundHash,
+    hash,
     isPending: isFunding,
-    isSuccess: isFundSuccess,
-    isError: isFundError,
-    errorMessage: fundErrorMessage,
+    isSuccess: isTxSuccess,
+    isError: isTxError,
+    errorMessage,
   } = useFundCommunityChallenge();
 
-  const hash = fundHash ?? createHash;
-  const isCreating = isCreatingLegacy || isFunding;
-  const isTxSuccess = isFundSuccess || isCreateSuccess;
-  const isTxError = isFundError || isCreateError;
-  const errorMessage = fundErrorMessage ?? createErrorMessage;
-  const isConfirming = isCreateConfirming;
+  const isCreating = isFunding;
+  const isConfirming = false;
 
   useEffect(() => {
     if (!open) {
@@ -136,20 +120,18 @@ export function FundCampaignModal({
     setError(null);
     setStep("signing");
 
+    if (!campaign.on_chain_challenge_id) {
+      setError("Campaign must be deployed on-chain first. Complete the Approve step.");
+      setStep("idle");
+      return;
+    }
+
     try {
       if (needsApproval(poolAmount) && !isApprovalSuccess) {
         await approve(poolAmount);
         await refetchAllowance();
       }
-      if (campaign.on_chain_challenge_id) {
-        await fundCommunityChallenge(campaign.on_chain_challenge_id, poolAmount);
-      } else {
-        await createChallenge(
-          campaign.content_hash,
-          poolAmount,
-          COMMUNITY_CAMPAIGN_DURATION_SECONDS,
-        );
-      }
+      await fundCommunityChallenge(campaign.on_chain_challenge_id, poolAmount);
     } catch (err) {
       setStep("error");
       setError(err instanceof Error ? err.message : "Transaction failed");

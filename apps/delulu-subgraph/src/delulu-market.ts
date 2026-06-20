@@ -580,15 +580,18 @@ export function handleCommunityCampaignJoined(event: CommunityCampaignJoinedEven
   let id = challengeId + "-" + participantId
 
   let user = getOrCreateUser(participantAddress, event.block.timestamp)
-  let participant = new CommunityCampaignParticipant(id)
-  participant.challenge = challengeId
-  participant.challengeId = event.params.challengeId
-  participant.participant = user.id
-  participant.participantAddress = participantId
-  participant.pointsTotal = BigInt.fromI32(0)
-  participant.streak = BigInt.fromI32(0)
-  participant.lastProofAt = null
-  participant.joinedAt = event.block.timestamp
+  let participant = CommunityCampaignParticipant.load(id)
+  if (participant == null) {
+    participant = new CommunityCampaignParticipant(id)
+    participant.challenge = challengeId
+    participant.challengeId = event.params.challengeId
+    participant.participant = user.id
+    participant.participantAddress = participantId
+    participant.pointsTotal = BigInt.fromI32(0)
+    participant.streak = BigInt.fromI32(0)
+    participant.lastProofAt = null
+    participant.joinedAt = event.block.timestamp
+  }
   participant.save()
 }
 

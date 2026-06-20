@@ -22,5 +22,11 @@ export default async function DashboardCampaignDetailPage({
     notFound();
   }
 
-  return <CampaignDetailClient communityId={id} campaignId={campaignId} />;
+  return (
+    <CampaignDetailClient
+      communityId={id}
+      campaignId={campaignId}
+      isPlatformAdmin={isPlatformAdminRole(session.staffRole)}
+    />
+  );
 }

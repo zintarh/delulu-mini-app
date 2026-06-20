@@ -29,6 +29,7 @@ export async function GET(
       communities ( id, name, slug, description, created_by )
     `)
     .eq("id", id)
+    .in("status", ["approved", "active", "ended"])
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
