@@ -123,7 +123,7 @@ export default function SettingsPage() {
                       <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
                         Username
                       </p>
-                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "ù"}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "‚Äî"}</p>
                     </div>
                   </div>
                   {/* Email */}
@@ -186,23 +186,23 @@ export default function SettingsPage() {
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <StatCard
                     label="Delulus created"
-                    value={isLoadingStats ? "ù" : String(totalDelulus)}
+                    value={isLoadingStats ? "‚Äî" : String(totalDelulus)}
                   />
                   <StatCard
                     label="Active stakes"
-                    value={isLoadingStats ? "ù" : String(activeStakes)}
+                    value={isLoadingStats ? "‚Äî" : String(activeStakes)}
                   />
                   <StatCard
                     label="Total staked"
                     value={
-                      isLoadingStats ? "ù" : totalStaked.toFixed(2)
+                      isLoadingStats ? "‚Äî" : totalStaked.toFixed(2)
                     }
                     suffix="G$"
                   />
                   <StatCard
                     label="Total claimed"
                     value={
-                      isLoadingStats ? "ù" : totalClaimed.toFixed(2)
+                      isLoadingStats ? "‚Äî" : totalClaimed.toFixed(2)
                     }
                     suffix="G$"
                   />
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-bold tabular-nums truncate text-foreground">
                         {!isCeloLoading && celoBalance
                           ? parseFloat(celoBalance.formatted).toFixed(3)
-                          : "ù"}
+                          : "‚Äî"}
                       </p>
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-bold tabular-nums truncate text-foreground">
                         {!isBalanceLoading
                           ? parseFloat(gDollarBalance).toFixed(2)
-                          : "ù"}
+                          : "‚Äî"}
                       </p>
                     </div>
                   </div>
@@ -435,7 +435,7 @@ function LinkRow({
           </p>
         )}
       </div>
-      <span className="text-muted-foreground/60">ù</span>
+      <span className="text-muted-foreground/60">‚Äî</span>
     </>
   );
 
