@@ -22,6 +22,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { MainPage } from "@/components/main-app-header";
 
 import type { DeluluLeaderboardEntry } from "@/hooks/graph/useDeluluLeaderboard";
 import { usePfps } from "@/hooks/use-profile-pfp";
@@ -971,7 +972,7 @@ export default function LeaderboardPage() {
       : "Rank higher by verifying milestones on your delulus";
 
   return (
-    <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
         <div className="mx-auto max-w-5xl px-4 py-4 lg:px-8 lg:py-5">
           <Link
@@ -1002,7 +1003,7 @@ export default function LeaderboardPage() {
           authenticated={authenticated}
         />
       </Suspense>
-    </main>
+    </MainPage>
   );
 }
 

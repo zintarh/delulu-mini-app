@@ -25,6 +25,7 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { AddEmailSheet } from "@/components/add-email-sheet";
 import { useLogoutSheet } from "@/contexts/logout-sheet-context";
 import { TokenBadge } from "@/components/token-badge";
+import { MainPage } from "@/components/main-app-header";
 
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
@@ -63,12 +64,12 @@ export default function SettingsPage() {
   }, [isReady, isConnected, router]);
 
   if (!isReady || !isConnected) return (
-    <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
         <div className="h-9 w-9 animate-pulse rounded-full bg-muted/60" />
         <div className="h-5 w-24 animate-pulse rounded-md bg-muted/60" />
       </div>
-      <div className="px-4 pt-5 pb-24 space-y-7">
+      <div className="px-4 pt-5 space-y-7">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="space-y-2">
             <div className="h-3 w-16 animate-pulse rounded bg-muted/40" />
@@ -76,7 +77,7 @@ export default function SettingsPage() {
           </div>
         ))}
       </div>
-    </main>
+    </MainPage>
   );
 
   const handleCopyAddress = async () => {
@@ -88,7 +89,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
+      <MainPage>
           {/* Header */}
           <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
             <button
@@ -108,7 +109,7 @@ export default function SettingsPage() {
           </div>
 
           {address && (
-            <div className="px-4 pt-5 pb-24 lg:pb-10 space-y-7">
+            <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-7">
               {/* Account */}
               <section>
                 <SectionLabel>Account</SectionLabel>
@@ -122,7 +123,7 @@ export default function SettingsPage() {
                       <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
                         Username
                       </p>
-                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "‚Äî"}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "ù"}</p>
                     </div>
                   </div>
                   {/* Email */}
@@ -185,23 +186,23 @@ export default function SettingsPage() {
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <StatCard
                     label="Delulus created"
-                    value={isLoadingStats ? "‚Äî" : String(totalDelulus)}
+                    value={isLoadingStats ? "ù" : String(totalDelulus)}
                   />
                   <StatCard
                     label="Active stakes"
-                    value={isLoadingStats ? "‚Äî" : String(activeStakes)}
+                    value={isLoadingStats ? "ù" : String(activeStakes)}
                   />
                   <StatCard
                     label="Total staked"
                     value={
-                      isLoadingStats ? "‚Äî" : totalStaked.toFixed(2)
+                      isLoadingStats ? "ù" : totalStaked.toFixed(2)
                     }
                     suffix="G$"
                   />
                   <StatCard
                     label="Total claimed"
                     value={
-                      isLoadingStats ? "‚Äî" : totalClaimed.toFixed(2)
+                      isLoadingStats ? "ù" : totalClaimed.toFixed(2)
                     }
                     suffix="G$"
                   />
@@ -228,7 +229,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-bold tabular-nums truncate text-foreground">
                         {!isCeloLoading && celoBalance
                           ? parseFloat(celoBalance.formatted).toFixed(3)
-                          : "‚Äî"}
+                          : "ù"}
                       </p>
                     </div>
                   </div>
@@ -248,7 +249,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-bold tabular-nums truncate text-foreground">
                         {!isBalanceLoading
                           ? parseFloat(gDollarBalance).toFixed(2)
-                          : "‚Äî"}
+                          : "ù"}
                       </p>
                     </div>
                   </div>
@@ -301,7 +302,7 @@ export default function SettingsPage() {
               </section>
             </div>
           )}
-      </main>
+      </MainPage>
 
       <AddEmailSheet
         open={addEmailSheetOpen}
@@ -434,7 +435,7 @@ function LinkRow({
           </p>
         )}
       </div>
-      <span className="text-muted-foreground/60">‚Ä∫</span>
+      <span className="text-muted-foreground/60">ù</span>
     </>
   );
 

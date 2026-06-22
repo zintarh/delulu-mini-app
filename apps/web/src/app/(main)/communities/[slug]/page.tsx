@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronLeft, Loader2, Target } from "lucide-react";
+import { MainPage } from "@/components/main-app-header";
 
 type Campaign = {
   id: string;
@@ -49,22 +50,22 @@ export default function CommunityHubPage() {
 
   if (loading) {
     return (
-      <main className="flex justify-center py-20">
+      <MainPage className="flex justify-center py-20">
         <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
-      </main>
+      </MainPage>
     );
   }
 
   if (error || !community) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-muted-foreground">
+      <MainPage className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-muted-foreground">
         {error ?? "Community not found"}
-      </main>
+      </MainPage>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
+    <MainPage className="mx-auto max-w-2xl px-4 py-6">
       <Link
         href="/communities"
         className="mb-4 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
@@ -109,6 +110,6 @@ export default function CommunityHubPage() {
           ))}
         </ul>
       )}
-    </main>
+    </MainPage>
   );
 }

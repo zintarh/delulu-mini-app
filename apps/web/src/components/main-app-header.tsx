@@ -29,6 +29,15 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
   return { mobile: true, desktop: true, wideSearch: false };
 }
 
+/** Routes that own an inner scroll container (infinite scroll, PTR, create flow). */
+export function usesNestedScroll(pathname: string): boolean {
+  return (
+    pathname.startsWith("/explore") ||
+    pathname.startsWith("/board") ||
+    /^\/delulu\/[^/]+$/.test(pathname)
+  );
+}
+
 /** Shared mobile navbar + desktop search bar for main app routes. */
 export function MainAppHeader() {
   const pathname = usePathname() ?? "";
@@ -53,17 +62,32 @@ export function MainAppHeader() {
   );
 }
 
-/** Offsets fixed mobile navbar; keeps desktop pages flush with sticky search bar. */
+/** Standard page shell — scroll is handled by MainAppContent unless nested-scroll route. */
+export function MainPage({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <main className={cn("bg-background", className)}>{children}</main>;
+}
+
+/** Offsets fixed mobile navbar; scroll container for most routes. */
 export function MainAppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const config = getHeaderConfig(pathname);
   const needsMobileNavOffset = config?.mobile ?? false;
+  const nestedScroll = usesNestedScroll(pathname);
 
   return (
     <div
       className={cn(
-        "min-h-0 flex-1 overflow-hidden",
+        "min-h-0 flex-1",
+        nestedScroll ? "flex flex-col overflow-hidden" : "overflow-y-auto scrollbar-hide",
         needsMobileNavOffset && "pt-[4.5rem] lg:pt-0",
+        !nestedScroll &&
+          "pb-[calc(56px+max(env(safe-area-inset-bottom),8px)+12px)] lg:pb-0",
       )}
     >
       {children}

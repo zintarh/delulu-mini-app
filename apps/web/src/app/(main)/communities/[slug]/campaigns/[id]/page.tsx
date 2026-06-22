@@ -18,6 +18,7 @@ import {
   joinCommunityCampaignWithWallet,
   submitCommunityProofWithWallet,
 } from "@/lib/community/join-campaign-client";
+import { MainPage } from "@/components/main-app-header";
 
 function CommunityCampaignDetailSkeleton() {
   return (
@@ -172,7 +173,7 @@ export default function CommunityCampaignPage() {
   })();
 
   return (
-    <main className="h-full overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <div className="mx-auto w-full max-w-2xl xl:max-w-3xl lg:pt-6">
         {loading ? (
           <CommunityCampaignDetailSkeleton />
@@ -221,6 +222,6 @@ export default function CommunityCampaignPage() {
     />
         )}
       </div>
-    </main>
+    </MainPage>
   );
 }

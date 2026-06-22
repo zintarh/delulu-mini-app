@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { MainPage } from "@/components/main-app-header";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 
@@ -126,7 +127,7 @@ export default function StreaksPage() {
   }, [isReady, authenticated, router]);
 
   return (
-    <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
         <div className="mx-auto max-w-2xl px-4 py-4 lg:px-8 lg:py-5">
           <Link
@@ -155,7 +156,7 @@ export default function StreaksPage() {
       ) : (
         <StreakContentSkeleton />
       )}
-    </main>
+    </MainPage>
   );
 }
 
@@ -173,7 +174,7 @@ function StreakContent({ address }: { address: string | null }) {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-6 lg:px-8 lg:py-8 lg:pb-10 space-y-6">
 
       {/* ── Streak Display ─────────────────────────────────── */}
       {isLoading ? (
@@ -265,7 +266,7 @@ function StreakContent({ address }: { address: string | null }) {
 
 function StreakContentSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-6 lg:px-8 lg:py-8 lg:pb-10 space-y-6">
       <StreakSkeleton />
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => (

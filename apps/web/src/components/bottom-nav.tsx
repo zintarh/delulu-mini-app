@@ -13,7 +13,6 @@ import {
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
-import { MOBILE_BOTTOM_NAV_HEIGHT } from "@/lib/mobile-bottom-nav";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
@@ -64,17 +63,11 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   };
 
   return (
-    <>
-      <div
-        className="lg:hidden"
-        style={{ height: MOBILE_BOTTOM_NAV_HEIGHT }}
-        aria-hidden="true"
-      />
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
-        aria-label="Main navigation"
-      >
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
+      aria-label="Main navigation"
+    >
         <div className="flex items-center justify-around h-14 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -195,6 +188,5 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
           })}
         </div>
       </nav>
-    </>
   );
 }

@@ -14,6 +14,7 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { ProfileDeluluGrid } from "@/components/profile/profile-delulu-grid";
 import { ProfilePageActionsMenu } from "@/components/profile/profile-page-actions-menu";
+import { MainPage } from "@/components/main-app-header";
 import { TransferSheet } from "@/components/transfer-sheet";
 import { AddEmailSheet } from "@/components/add-email-sheet";
 
@@ -50,7 +51,7 @@ export default function ProfilePage() {
   }, [uploadToast]);
 
   if (!isReady || !isConnected) return (
-    <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <section className="relative px-4 pt-6 pb-4">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 animate-pulse rounded-full bg-muted/60" />
@@ -60,16 +61,16 @@ export default function ProfilePage() {
           </div>
         </div>
       </section>
-      <div className="px-4 space-y-3 pb-24">
+      <div className="px-4 space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-24 w-full animate-pulse rounded-2xl bg-muted/40" />
         ))}
       </div>
-    </main>
+    </MainPage>
   );
 
   return (
-    <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
+    <MainPage>
       <ProfileHeader 
         address={address} 
         uploadToast={uploadToast} 
@@ -120,7 +121,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-    </main>
+    </MainPage>
   );
 }
 

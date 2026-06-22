@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Building2, ChevronRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { MainPage } from "@/components/main-app-header";
 
 type Community = {
   id: string;
@@ -36,14 +37,14 @@ export default function CommunitiesPage() {
 
   if (!authenticated) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16 text-center">
+      <MainPage className="mx-auto max-w-lg px-4 py-16 text-center">
         <p className="text-sm font-semibold text-foreground">Sign in to see your communities.</p>
-      </main>
+      </MainPage>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
+    <MainPage className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-1 text-xl font-bold text-foreground">My communities</h1>
       <p className="mb-6 text-sm text-muted-foreground">Campaigns you can join from each community.</p>
 
@@ -80,6 +81,6 @@ export default function CommunitiesPage() {
           ))}
         </ul>
       )}
-    </main>
+    </MainPage>
   );
 }
