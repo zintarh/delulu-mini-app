@@ -161,11 +161,29 @@ export async function GET(request: NextRequest) {
   }
 
   const page = filtered.slice(0, limit);
+
+  // For non-on-chain campaigns fetch milestone counts from Supabase (not the subgraph).
+  const offChainPageIds = page
+    .filter((row) => !row.on_chain_challenge_id)
+    .map((row) => row.id);
+
+  const dbMilestoneCountMap = new Map<string, number>();
+  if (offChainPageIds.length > 0) {
+    const { data: dbMilestones } = await admin
+      .from("campaign_milestones")
+      .select("campaign_id")
+      .in("campaign_id", offChainPageIds);
+    for (const m of dbMilestones ?? []) {
+      const cid = (m as { campaign_id: string }).campaign_id;
+      dbMilestoneCountMap.set(cid, (dbMilestoneCountMap.get(cid) ?? 0) + 1);
+    }
+  }
+
   const milestoneCounts = await Promise.all(
     page.map((row) =>
       row.on_chain_challenge_id
         ? fetchCommunityCampaignMilestoneCountFromGraph(row.on_chain_challenge_id)
-        : Promise.resolve(0),
+        : Promise.resolve(dbMilestoneCountMap.get(row.id) ?? 0),
     ),
   );
   const campaigns = page.map((row, i) => {
