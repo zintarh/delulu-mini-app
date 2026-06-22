@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 // Required Supabase table (run once in your Supabase SQL editor):
 //
@@ -73,12 +77,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "pfpUrl is required" }, { status: 400 });
     }
 
+    const normalizedAddress = address.toLowerCase();
+    try {
+      requireAuthenticatedWallet(request, normalizedAddress);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
+    }
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
-
-    const normalizedAddress = address.toLowerCase();
 
     // Try UPDATE first — only touches existing rows, avoids email NOT NULL issue
     const { data: updatedRows, error: updateError } = await supabase
@@ -130,6 +139,13 @@ export async function POST(request: NextRequest) {
     }
     if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "email is required" }, { status: 400 });
+    }
+
+    const normalizedAddress = address.toLowerCase();
+    try {
+      requireAuthenticatedWallet(request, normalizedAddress);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
     }
 
     const supabase = getSupabaseAdmin();

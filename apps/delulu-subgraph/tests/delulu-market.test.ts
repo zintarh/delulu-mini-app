@@ -313,5 +313,8 @@ describe("handleChallengeCreated", () => {
     assert.fieldEquals("Challenge", "1", "contentHash", "QmChallengeHash")
     assert.fieldEquals("Challenge", "1", "poolAmount", "10000")
     assert.fieldEquals("Challenge", "1", "active", "true")
+    assert.fieldEquals("Challenge", "1", "isPaid", "false")
+    assert.fieldEquals("Challenge", "1", "joinAmount", "0")
+    assert.fieldEquals("Challenge", "1", "forfeitPct", "0")
   })
 })

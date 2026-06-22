@@ -1,0 +1,47 @@
+---
+description: Admin dashboard modals and sheets must use large sizing
+globs: apps/web/src/app/dashboard/**/*,apps/web/src/components/dashboard/**/*
+alwaysApply: false
+---
+
+# Dashboard modal sizing
+
+Admin dashboard modals and sheets should feel spacious — not the compact `max-w-sm` / `max-w-md` used in the consumer app.
+
+## Defaults
+
+Use shared constants from `@/components/dashboard/dashboard-ui`:
+
+- **`DASHBOARD_MODAL_CONTENT_CLASS`** — forms and single-column flows (`max-w-2xl`, `p-8`)
+- **`DASHBOARD_MODAL_LARGE_CLASS`** — wide workflows like broadcast composer (`max-w-6xl`)
+- **`DashboardModal`** — wrapper for new dashboard dialogs; pass `size="large"` only when needed
+
+## Do
+
+```tsx
+import { DashboardModal, DASHBOARD_MODAL_CONTENT_CLASS } from "@/components/dashboard/dashboard-ui";
+
+<DashboardModal open={open} onOpenChange={setOpen} title="New community">
+  {/* form */}
+</DashboardModal>
+
+<ResponsiveSheet modalClassName={DASHBOARD_MODAL_CONTENT_CLASS} ... />
+```
+
+## Don't
+
+- Use `max-w-sm`, `max-w-md`, or `max-w-lg` for dashboard modals
+- Build raw `ModalContent` without the dashboard size classes
+- Reuse consumer-app modal sizing in `/dashboard` routes
+
+## Minimum widths
+
+| Use case | Width |
+|----------|-------|
+| Create / invite / settings forms | `max-w-2xl` |
+| Milestone verify / reject | `max-w-2xl` |
+| Broadcast / multi-panel composer | `max-w-6xl` |
+
+## Auth pages
+
+Sign-in and accept-invite use **`DashboardAuthCard`** (`max-w-2xl`, `p-8`/`p-10`) — same spacious sizing, no logo badge.

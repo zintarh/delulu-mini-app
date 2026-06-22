@@ -3,6 +3,7 @@ import {
   isCampaignEndedByDate,
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
+import { fetchCommunityCampaignMilestoneCountFromGraph } from "@/lib/community/campaign-subgraph";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
@@ -56,11 +57,21 @@ export async function POST(
   const joinedCommunity = Boolean(membership?.status === "active");
 
   if (campaign.on_chain_challenge_id) {
+    const milestoneCount = await fetchCommunityCampaignMilestoneCountFromGraph(
+      campaign.on_chain_challenge_id,
+    );
+    if (milestoneCount === 0) {
+      return NextResponse.json(
+        { error: "Owner is setting up milestones", milestoneCount: 0 },
+        { status: 403 },
+      );
+    }
     return NextResponse.json({
       ok: true,
       requiresOnChain: true,
       challengeId: campaign.on_chain_challenge_id,
       joinedCommunity,
+      milestoneCount,
       community: { id: community.id, name: community.name, slug: community.slug },
     });
   }

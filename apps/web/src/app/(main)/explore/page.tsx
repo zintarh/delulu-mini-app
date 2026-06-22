@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search } from "lucide-react";
-import { MainDesktopHeader } from "@/components/main-desktop-header";
+import { Search } from "lucide-react";
 import { SocialFeedCardSkeleton } from "@/components/delulu-skeleton";
-import { HomeSearch } from "@/components/home-search";
 import { ExploreSocialFeed } from "@/components/explore-social-feed";
 import { buildFeedCategories, type FeedCategoryId } from "@/lib/feed-categories";
 import { recordSearchKeyword } from "@/lib/search-keywords";
@@ -14,6 +12,7 @@ import type { DeluluSearchResult } from "@/lib/search-types";
 import { useAllDelulus } from "@/hooks/graph";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { FeedErrorState } from "@/components/feed-error-state";
+import { ExploreCampaignsSection } from "@/components/explore-campaigns-section";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useAuth } from "@/hooks/use-auth";
@@ -67,6 +66,9 @@ export default function ExplorePage() {
   const q = searchParams.get("q")?.trim() ?? "";
   const country = searchParams.get("country")?.trim().toUpperCase() ?? "";
   const category = searchParams.get("category") as FeedCategoryId | null;
+  const tab = searchParams.get("tab") ?? "campaigns";
+  const isDiscoverMode = !q && !category && !country;
+  const isCampaignsTab = isDiscoverMode && tab === "campaigns";
 
   const {
     delulus,
@@ -77,7 +79,7 @@ export default function ExplorePage() {
     fetchNextPage,
     refetch: refetchFeed,
     error: feedError,
-  } = useAllDelulus();
+  } = useAllDelulus({ enabled: !isCampaignsTab });
   const { navigateToCreate } = useNavigateToCreate();
 
   const [feedNowMs, setFeedNowMs] = useState(() => Date.now());
@@ -159,8 +161,6 @@ export default function ExplorePage() {
     );
   }, [country, q, category, delulus]);
 
-  const isDiscoverMode = !q && !category && !country;
-
   const displayDelulus: FormattedDelulu[] = useMemo(() => {
     if (isDiscoverMode) return [];
     if (category) return categoryItems;
@@ -208,11 +208,13 @@ export default function ExplorePage() {
 
   const refreshExplore = useCallback(async () => {
     setFeedNowMs(Date.now());
-    await refetchFeed();
+    if (!isCampaignsTab) {
+      await refetchFeed();
+    }
     if (!isDiscoverMode) {
       await fetchResults();
     }
-  }, [refetchFeed, fetchResults, isDiscoverMode]);
+  }, [refetchFeed, fetchResults, isDiscoverMode, isCampaignsTab]);
 
   useEffect(() => {
     const onPullRefresh = (event: Event) => {
@@ -225,7 +227,7 @@ export default function ExplorePage() {
   }, [refreshExplore]);
 
   useEffect(() => {
-    if (!isDiscoverMode) return;
+    if (!isDiscoverMode || isCampaignsTab) return;
     const el = scrollRef.current;
     if (!el) return;
 
@@ -245,6 +247,7 @@ export default function ExplorePage() {
     return () => el.removeEventListener("scroll", onScroll);
   }, [
     isDiscoverMode,
+    isCampaignsTab,
     hasNextPage,
     isFetchingNextPage,
     isFeedLoading,
@@ -253,36 +256,6 @@ export default function ExplorePage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <div className="lg:hidden sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
-        {!isDiscoverMode ? (
-          <div className="flex items-center gap-2 px-4 py-3">
-            <button
-              type="button"
-              onClick={() => router.push("/explore")}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-muted"
-              aria-label="Back to explore"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <HomeSearch
-              variant="default"
-              placeholder="Search…"
-              className="min-w-0 flex-1 w-full"
-            />
-          </div>
-        ) : (
-          <div className="px-4 py-3">
-            <HomeSearch
-              variant="default"
-              placeholder="Search…"
-              className="w-full"
-            />
-          </div>
-        )}
-      </div>
-
-      <MainDesktopHeader searchClassName="min-w-0 w-full flex-1 max-w-none" />
-
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-20 h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
           {(isDiscoverLoading ||
@@ -302,7 +275,35 @@ export default function ExplorePage() {
               : "max-w-[1600px] py-6 lg:py-8",
           )}
         >
-          {isDiscoverMode ? (
+          {/* Tab switcher — only in discover mode */}
+          {isDiscoverMode && (
+            <div className="mb-4 flex gap-1 w-fit rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => router.push("/explore?tab=campaigns")}
+                className={cn(
+                  "rounded-lg px-4 py-1.5 text-sm font-bold transition-colors",
+                  tab === "campaigns" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Campaigns
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/explore?tab=goals")}
+                className={cn(
+                  "rounded-lg px-4 py-1.5 text-sm font-bold transition-colors",
+                  tab === "goals" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Goals
+              </button>
+            </div>
+          )}
+
+          {isDiscoverMode && tab === "campaigns" ? (
+            <ExploreCampaignsSection address={address} />
+          ) : isDiscoverMode ? (
             isDiscoverLoading ? (
               <ExploreSocialFeed
                 delulus={[]}
@@ -324,7 +325,7 @@ export default function ExplorePage() {
                   creatorPfps={creatorPfps}
                 />
                 {isFetchingNextPage ? (
-                  <div className="columns-2 gap-x-3 sm:gap-x-4 md:columns-3">
+                  <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <SocialFeedCardSkeleton key={`more-${i}`} index={i} />
                     ))}
@@ -368,7 +369,7 @@ export default function ExplorePage() {
                   </button>
                 </div>
               ) : isFilteredLoading ? (
-                <div className="columns-2 gap-x-3 sm:gap-x-4 md:columns-3">
+                <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3">
                   {Array.from({ length: 9 }).map((_, i) => (
                     <SocialFeedCardSkeleton key={i} index={i} />
                   ))}
@@ -378,7 +379,7 @@ export default function ExplorePage() {
                   <Search className="h-10 w-10 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">Nothing found</p>
                   <Link
-                    href="/explore"
+                    href="/explore?tab=goals"
                     className="text-sm font-semibold text-delulu-blue"
                   >
                     Browse all delulus

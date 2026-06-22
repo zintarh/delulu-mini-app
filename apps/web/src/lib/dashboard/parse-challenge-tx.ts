@@ -1,22 +1,29 @@
 import { createPublicClient, http, parseEventLogs } from "viem";
 import { celo } from "viem/chains";
-import { DELULU_ABI_WITH_COMMUNITY } from "@/lib/abi/delulu-with-community";
-import { DELULU_CHAIN_ID, getDeluluContractAddress } from "@/lib/constant";
+import { DELULU_ABI } from "@/lib/abi";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
+import { DELULU_CHAIN_ID, getDeluluContractAddress, getCommunityMarketV1Address } from "@/lib/constant";
 
 const publicClient = createPublicClient({
   chain: celo,
   transport: http(),
 });
 
-function contractAddress() {
+/** Personal-goals proxy — used for ChallengeCreated (non-community). */
+function proxyAddress() {
   return getDeluluContractAddress(DELULU_CHAIN_ID);
+}
+
+/** Community campaign contract — used for all CommunityCampaign* events. */
+function cmv1Address() {
+  return getCommunityMarketV1Address(DELULU_CHAIN_ID);
 }
 
 export async function parseChallengeIdFromTx(txHash: `0x${string}`): Promise<bigint | null> {
   const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
-  const contract = contractAddress();
+  const contract = proxyAddress();
   const logs = parseEventLogs({
-    abi: DELULU_ABI_WITH_COMMUNITY,
+    abi: DELULU_ABI,
     eventName: "ChallengeCreated",
     logs: receipt.logs,
   });
@@ -28,13 +35,31 @@ export async function parseChallengeIdFromTx(txHash: `0x${string}`): Promise<big
   return args.challengeId ?? null;
 }
 
+export async function parseCommunityChallengeCreatedFromTx(
+  txHash: `0x${string}`,
+): Promise<bigint | null> {
+  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+  const contract = cmv1Address();
+  const logs = parseEventLogs({
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    eventName: "CommunityChallengeCreated",
+    logs: receipt.logs,
+  });
+  const match = logs.find(
+    (log) => log.address.toLowerCase() === contract.toLowerCase(),
+  );
+  if (!match) return null;
+  const args = match.args as { campaignId?: bigint };
+  return args.campaignId ?? null;
+}
+
 export async function parseCommunityChallengeFundedFromTx(
   txHash: `0x${string}`,
 ): Promise<{ challengeId: bigint; totalPool: bigint } | null> {
   const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
-  const contract = contractAddress();
+  const contract = cmv1Address();
   const logs = parseEventLogs({
-    abi: DELULU_ABI_WITH_COMMUNITY,
+    abi: COMMUNITY_CAMPAIGN_ABI,
     eventName: "CommunityChallengeFunded",
     logs: receipt.logs,
   });
@@ -42,18 +67,18 @@ export async function parseCommunityChallengeFundedFromTx(
     (log) => log.address.toLowerCase() === contract.toLowerCase(),
   );
   if (!match) return null;
-  const args = match.args as { challengeId?: bigint; totalPool?: bigint };
-  if (args.challengeId == null || args.totalPool == null) return null;
-  return { challengeId: args.challengeId, totalPool: args.totalPool };
+  const args = match.args as { campaignId?: bigint; totalPool?: bigint };
+  if (args.campaignId == null || args.totalPool == null) return null;
+  return { challengeId: args.campaignId, totalPool: args.totalPool };
 }
 
 export async function parseCommunityChallengeEndedFromTx(
   txHash: `0x${string}`,
 ): Promise<{ challengeId: bigint; endedAt: bigint } | null> {
   const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
-  const contract = contractAddress();
+  const contract = cmv1Address();
   const logs = parseEventLogs({
-    abi: DELULU_ABI_WITH_COMMUNITY,
+    abi: COMMUNITY_CAMPAIGN_ABI,
     eventName: "CommunityChallengeEnded",
     logs: receipt.logs,
   });
@@ -61,7 +86,26 @@ export async function parseCommunityChallengeEndedFromTx(
     (log) => log.address.toLowerCase() === contract.toLowerCase(),
   );
   if (!match) return null;
-  const args = match.args as { challengeId?: bigint; endedAt?: bigint };
-  if (args.challengeId == null || args.endedAt == null) return null;
-  return { challengeId: args.challengeId, endedAt: args.endedAt };
+  const args = match.args as { campaignId?: bigint; endedAt?: bigint };
+  if (args.campaignId == null || args.endedAt == null) return null;
+  return { challengeId: args.campaignId, endedAt: args.endedAt };
+}
+
+export async function parseCommunityCampaignMilestonesAddedFromTx(
+  txHash: `0x${string}`,
+): Promise<{ challengeId: bigint; milestoneCount: bigint } | null> {
+  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+  const contract = cmv1Address();
+  const logs = parseEventLogs({
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    eventName: "CommunityCampaignMilestonesAdded",
+    logs: receipt.logs,
+  });
+  const match = logs.find(
+    (log) => log.address.toLowerCase() === contract.toLowerCase(),
+  );
+  if (!match) return null;
+  const args = match.args as { campaignId?: bigint; milestoneCount?: bigint };
+  if (args.campaignId == null || args.milestoneCount == null) return null;
+  return { challengeId: args.campaignId, milestoneCount: args.milestoneCount };
 }

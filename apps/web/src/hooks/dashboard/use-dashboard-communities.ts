@@ -11,6 +11,8 @@ export type DashboardCommunity = {
   status: string;
   created_at: string;
   member_count: number;
+  claimed_count: number;
+  unclaimed_count: number;
 };
 
 export const dashboardCommunityKeys = {
@@ -31,6 +33,8 @@ function normalizeCommunity(
     status: row.status ?? "active",
     created_at: row.created_at ?? new Date().toISOString(),
     member_count: row.member_count ?? 0,
+    claimed_count: row.claimed_count ?? 0,
+    unclaimed_count: row.unclaimed_count ?? 0,
   };
 }
 

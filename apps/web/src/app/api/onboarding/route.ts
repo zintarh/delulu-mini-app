@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 /** POST — mark a wallet address as onboarded */
 export async function POST(request: NextRequest) {
@@ -10,16 +14,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "address is required" }, { status: 400 });
     }
 
+    const normalizedAddress = address.toLowerCase();
+    try {
+      requireAuthenticatedWallet(request, normalizedAddress);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
+    }
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
-    const normalizedAddress = address.toLowerCase();
-
     const nowIso = new Date().toISOString();
-
-    // Update existing profile first to avoid NOT NULL email constraint on insert paths.
     const { data: updatedRows, error: updateError } = await supabase
       .from("profiles")
       .update({

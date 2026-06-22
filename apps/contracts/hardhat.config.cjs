@@ -24,6 +24,9 @@ const config = {
     },
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
     celo: {
       url: "https://forno.celo.org",
       accounts: celoDeployerAccounts(),

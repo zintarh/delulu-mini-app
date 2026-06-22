@@ -1,0 +1,49 @@
+---
+description: Dashboard CRUD must use React Query for cache and toasts
+globs: apps/web/src/app/dashboard/**/*,apps/web/src/components/dashboard/**/*,apps/web/src/hooks/dashboard/**/*
+alwaysApply: false
+---
+
+# Dashboard CRUD state
+
+Server mutations in the admin dashboard must use **TanStack React Query** — not raw `fetch` + `router.refresh()`.
+
+## Pattern
+
+1. Add hooks in `apps/web/src/hooks/dashboard/` with `useQuery` / `useMutation`
+2. Use shared query keys (e.g. `dashboardCommunityKeys.list()`)
+3. On mutation success: update cache with `setQueryData`, then `invalidateQueries`
+4. Show feedback with `useDashboardToast()` from `@/components/dashboard/dashboard-ui` (provider lives in `AdminShell`)
+
+```tsx
+// hooks/dashboard/use-dashboard-communities.ts
+export function useCreateCommunity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createCommunityApi,
+    onSuccess: (community) => {
+      queryClient.setQueryData(dashboardCommunityKeys.list(), (current) => [community, ...(current ?? [])]);
+      void queryClient.invalidateQueries({ queryKey: dashboardCommunityKeys.list() });
+    },
+  });
+}
+
+// page / modal
+const { show } = useDashboardToast();
+const create = useCreateCommunity();
+
+onSuccess: (community) => {
+  show(`${community.name} created`);
+  router.push(`/dashboard/communities/${community.id}`);
+};
+```
+
+## Don't
+
+- Call `router.refresh()` as the only way to update lists after create/update/delete
+- Keep list state only in server props without a client query
+- Render per-page `{Toast}` — toast is global via `DashboardToastProvider`
+
+## New dashboard resources
+
+Mirror `use-dashboard-communities.ts`: types, query keys, list query, create/update/delete mutations, success toasts.

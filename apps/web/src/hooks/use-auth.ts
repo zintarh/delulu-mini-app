@@ -8,6 +8,12 @@ import {
   useWeb3AuthDisconnect,
   useWeb3AuthUser,
 } from "@web3auth/modal/react";
+import {
+  clearWalletSessionClientState,
+  establishWalletSession,
+} from "@/lib/auth/establish-wallet-session-client";
+import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
+import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 
 export type AuthProvider = "web3auth" | null;
 
@@ -78,7 +84,39 @@ export function useAuth(): UseAuthReturn {
   const isReady = isInitialized;
   const email: string | undefined = userInfo?.email ?? undefined;
 
+  useEffect(() => {
+    if (!web3authConnected || !web3Auth?.provider || !web3authAddress) return;
+
+    let cancelled = false;
+    void establishWalletSession(web3authAddress, web3Auth.provider as {
+      request: (args: { method: string; params: unknown[] }) => Promise<string>;
+    }).catch((err) => {
+      if (!cancelled) {
+        console.warn("[auth] wallet session establishment failed:", err);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [web3authConnected, web3Auth, web3authAddress]);
+
   const pendingLogin = useRef(false);
+  const sessionRestoreAttemptedRef = useRef(false);
+
+  // After client navigation (e.g. sign-in → home), Web3Auth may need a nudge to
+  // restore the session — same as a full page refresh would do on init.
+  useEffect(() => {
+    if (!isInitialized || web3authConnected) return;
+    if (!hasStoredAuthSession()) return;
+    if (sessionRestoreAttemptedRef.current) return;
+    sessionRestoreAttemptedRef.current = true;
+
+    web3authConnect().catch((err) => {
+      console.warn("[auth] session restore failed:", err);
+      sessionRestoreAttemptedRef.current = false;
+    });
+  }, [isInitialized, web3authConnected, web3authConnect]);
 
   useEffect(() => {
     if (isInitialized && pendingLogin.current) {
@@ -101,6 +139,10 @@ export function useAuth(): UseAuthReturn {
 
   const logout = async () => {
     try {
+      await fetch("/api/auth/wallet-session", { method: "DELETE", credentials: "include" });
+    } catch {}
+
+    try {
       if (web3authConnected) {
         await web3authDisconnect();
       }
@@ -110,7 +152,10 @@ export function useAuth(): UseAuthReturn {
 
     try {
       localStorage.removeItem(PROVIDER_KEY);
+      consumeCommunityReferral();
+      consumeSignInRedirect();
     } catch {}
+    clearWalletSessionClientState();
     setWeb3authAddress(undefined);
     disconnect();
   };

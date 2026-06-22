@@ -13,10 +13,12 @@ export function useClaimAvailability() {
   const { open: openClaimPanel } = useClaimPanel();
   const {
     isLoading: isClaimDataLoading,
+    isClaiming,
     isWhitelisted,
     entitlement,
     hasClaimed,
     isInitialized,
+    claim,
   } = useGoodDollarClaim();
 
   const entitlementDisplay = useMemo(() => {
@@ -57,10 +59,20 @@ export function useClaimAvailability() {
     openClaimPanel();
   }, [openClaimPanel]);
 
+  const claimFromHome = useCallback(async () => {
+    if (availability === "claimable") {
+      await claim();
+      return;
+    }
+    openClaimPanel();
+  }, [availability, claim, openClaimPanel]);
+
   return {
     availability,
     entitlementDisplay,
     showProfileClaim,
     openClaim,
+    claimFromHome,
+    isClaiming,
   };
 }

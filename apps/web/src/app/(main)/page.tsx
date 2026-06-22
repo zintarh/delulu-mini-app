@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar } from "@/components/navbar";
-import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { HomeDashboard } from "@/components/home-dashboard";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
@@ -38,14 +36,8 @@ export default function HomePage() {
   ]);
 
   return (
-    <main className="h-screen overflow-y-auto scrollbar-hide bg-background">
-      <div className="lg:hidden">
-        <Navbar />
-      </div>
-
-      <MainDesktopHeader showSearch={false} />
-
-      <div className="mx-auto w-full max-w-2xl pb-24 pt-[4.5rem] xl:max-w-3xl lg:pb-12 lg:pt-6">
+    <main className="h-full overflow-y-auto scrollbar-hide bg-background">
+      <div className="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl lg:pb-12 lg:pt-6">
         <HomeDashboard onCreateClick={() => void navigateToCreate()} />
       </div>
     </main>

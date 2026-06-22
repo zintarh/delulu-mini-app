@@ -2,8 +2,8 @@
 
 import { useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
 import { decodeErrorResult } from "viem";
-import { getDeluluContractAddress } from "@/lib/constant";
-import { DELULU_ABI_WITH_COMMUNITY } from "@/lib/abi/delulu-with-community";
+import { getCommunityMarketV1Address } from "@/lib/constant";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useJoinCommunityCampaignOnChain() {
@@ -20,8 +20,8 @@ export function useJoinCommunityCampaignOnChain() {
 
   const joinCommunityCampaign = async (challengeId: number | bigint) => {
     return writeContractAsync({
-      address: getDeluluContractAddress(chainId),
-      abi: DELULU_ABI_WITH_COMMUNITY,
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
       functionName: "joinCommunityCampaign",
       args: [BigInt(challengeId)],
     });
@@ -40,7 +40,7 @@ export function useJoinCommunityCampaignOnChain() {
       const err = error || receiptError;
       if (err && typeof err === "object" && "data" in err) {
         const decoded = decodeErrorResult({
-          abi: DELULU_ABI_WITH_COMMUNITY,
+          abi: COMMUNITY_CAMPAIGN_ABI,
           data: err.data as `0x${string}`,
         });
         errorMessage =
@@ -65,7 +65,7 @@ export function useJoinCommunityCampaignOnChain() {
   };
 }
 
-export function useSubmitCommunityProofOnChain() {
+export function useSubmitCommunityMilestoneProofOnChain() {
   const chainId = useChainId();
   const publicClient = usePublicClient();
   const { writeContractAsync, data: hash, isPending, error, reset } =
@@ -77,25 +77,31 @@ export function useSubmitCommunityProofOnChain() {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  const submitCommunityProof = async (
+  const submitCommunityCampaignMilestoneProof = async (
     challengeId: number | bigint,
+    milestoneId: number | bigint,
     proofLink: string,
   ) => {
     const link = proofLink.trim();
     if (!link) throw new Error("Proof link is required");
     return writeContractAsync({
-      address: getDeluluContractAddress(chainId),
-      abi: DELULU_ABI_WITH_COMMUNITY,
-      functionName: "submitCommunityProof",
-      args: [BigInt(challengeId), link, true],
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
+      functionName: "submitCommunityCampaignMilestoneProof",
+      args: [BigInt(challengeId), BigInt(milestoneId), link],
     });
   };
 
-  const submitCommunityProofAndWait = async (
+  const submitCommunityCampaignMilestoneProofAndWait = async (
     challengeId: number | bigint,
+    milestoneId: number | bigint,
     proofLink: string,
   ) => {
-    const txHash = await submitCommunityProof(challengeId, proofLink);
+    const txHash = await submitCommunityCampaignMilestoneProof(
+      challengeId,
+      milestoneId,
+      proofLink,
+    );
     if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
     return txHash;
   };
@@ -107,7 +113,7 @@ export function useSubmitCommunityProofOnChain() {
       const err = error || receiptError;
       if (err && typeof err === "object" && "data" in err) {
         const decoded = decodeErrorResult({
-          abi: DELULU_ABI_WITH_COMMUNITY,
+          abi: COMMUNITY_CAMPAIGN_ABI,
           data: err.data as `0x${string}`,
         });
         errorMessage =
@@ -121,8 +127,8 @@ export function useSubmitCommunityProofOnChain() {
   }
 
   return {
-    submitCommunityProof,
-    submitCommunityProofAndWait,
+    submitCommunityCampaignMilestoneProof,
+    submitCommunityCampaignMilestoneProofAndWait,
     hash,
     isPending: isPending || isConfirming,
     isSuccess,
@@ -130,6 +136,11 @@ export function useSubmitCommunityProofOnChain() {
     errorMessage,
     reset,
   };
+}
+
+/** @deprecated Use useSubmitCommunityMilestoneProofOnChain */
+export function useSubmitCommunityProofOnChain() {
+  return useSubmitCommunityMilestoneProofOnChain();
 }
 
 export function useEndCommunityChallenge() {
@@ -145,8 +156,8 @@ export function useEndCommunityChallenge() {
 
   const endCommunityChallenge = async (challengeId: number | bigint) => {
     return writeContractAsync({
-      address: getDeluluContractAddress(chainId),
-      abi: DELULU_ABI_WITH_COMMUNITY,
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
       functionName: "endCommunityChallenge",
       args: [BigInt(challengeId)],
     });

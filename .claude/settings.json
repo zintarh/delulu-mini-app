@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\n# Get all .ts/.tsx/.js files, excluding Next.js special files and routes\nfind /Users/MAC/Desktop/delulu-v0/apps/web/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" \\\\\\) | grep -vE '\\(page\\\\.tsx|layout\\\\.tsx|route\\\\.\\(ts|tsx\\)|loading\\\\.tsx|error\\\\.tsx|not-found\\\\.tsx|middleware\\\\.ts|global-error\\\\.tsx|template\\\\.tsx|next\\\\.config|tailwind\\\\.config|postcss\\\\.config\\)' | sort > /tmp/all_files.txt\nwc -l /tmp/all_files.txt\n)",
+      "Read(//tmp/**)",
+      "Bash(\n# Filter out files that match Next.js special naming conventions\n# These should not be included in the unused list:\n# - opengraph-image.tsx\n# - twitter-image.tsx  \n# - sitemap.ts\n# - robots.ts\n# - app.tsx \\(next\\)\n# - document.tsx \\(next\\)\n\ncat /tmp/unused_files.txt | grep -vE \"\\(opengraph-image|twitter-image|sitemap|robots|^app\\\\.tsx|^document\\\\.tsx|DailyClaimClient\\)\" > /tmp/unused_files_filtered.txt\n\nwc -l /tmp/unused_files_filtered.txt\n)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

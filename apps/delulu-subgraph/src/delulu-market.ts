@@ -27,9 +27,11 @@ import {
   CommunityProofSubmitted as CommunityProofSubmittedEvent,
   CommunityChallengeFunded as CommunityChallengeFundedEvent,
   CommunityChallengeEnded as CommunityChallengeEndedEvent,
+  CommunityCampaignMilestonesAdded as CommunityCampaignMilestonesAddedEvent,
+  CommunityCampaignMilestoneProofSubmitted as CommunityCampaignMilestoneProofSubmittedEvent,
   DeluluMarket as DeluluMarketContract
 } from "../generated/DeluluMarket/DeluluMarket"
-import { User, Delulu, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding, Tip, CommunityCampaignParticipant, CommunityProof } from "../generated/schema"
+import { User, Delulu, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding, Tip, CommunityCampaignParticipant, CommunityProof, CommunityCampaignMilestone, CommunityCampaignMilestoneCompletion } from "../generated/schema"
 
 function getOrCreateUser(userId: Bytes, timestamp: BigInt): User {
   let user = User.load(userId)
@@ -548,6 +550,13 @@ export function handleChallengeCreated(event: ChallengeCreatedEvent): void {
   challenge.isEnded = false
   challenge.endedAt = null
   challenge.proofIntervalSeconds = null
+  challenge.milestoneCount = BigInt.fromI32(0)
+  // Legacy admin challenges are never paid community campaigns
+  challenge.isPaid = false
+  challenge.joinToken = null
+  challenge.joinAmount = BigInt.fromI32(0)
+  challenge.forfeitPct = 0
+  challenge.forfeitPool = BigInt.fromI32(0)
 
   challenge.save()
 }
@@ -570,6 +579,13 @@ export function handleCommunityChallengeCreated(event: CommunityChallengeCreated
   challenge.isEnded = false
   challenge.endedAt = null
   challenge.proofIntervalSeconds = event.params.proofIntervalSeconds
+  challenge.milestoneCount = BigInt.fromI32(0)
+  // Economics defaults (overwritten by CommunityCampaignPaidConfigured if paid)
+  challenge.isPaid = false
+  challenge.joinToken = null
+  challenge.joinAmount = BigInt.fromI32(0)
+  challenge.forfeitPct = 0
+  challenge.forfeitPool = BigInt.fromI32(0)
   challenge.save()
 }
 
@@ -588,9 +604,12 @@ export function handleCommunityCampaignJoined(event: CommunityCampaignJoinedEven
     participant.participant = user.id
     participant.participantAddress = participantId
     participant.pointsTotal = BigInt.fromI32(0)
+    participant.completedMilestoneCount = BigInt.fromI32(0)
     participant.streak = BigInt.fromI32(0)
     participant.lastProofAt = null
     participant.joinedAt = event.block.timestamp
+    participant.stakeAmount = BigInt.fromI32(0)
+    participant.forfeitedAmount = BigInt.fromI32(0)
   }
   participant.save()
 }
@@ -610,6 +629,8 @@ export function handleCommunityProofSubmitted(event: CommunityProofSubmittedEven
     participant.participant = user.id
     participant.participantAddress = participantId
     participant.joinedAt = event.block.timestamp
+    participant.stakeAmount = BigInt.fromI32(0)
+    participant.forfeitedAmount = BigInt.fromI32(0)
   }
   participant.pointsTotal = event.params.pointsTotal
   participant.streak = participant.streak.plus(BigInt.fromI32(1))
@@ -652,6 +673,153 @@ export function handleCommunityChallengeEnded(event: CommunityChallengeEndedEven
   challenge.endedAt = event.params.endedAt
   challenge.active = false
   challenge.save()
+}
+
+export function handleCommunityCampaignMilestonesAdded(
+  event: CommunityCampaignMilestonesAddedEvent
+): void {
+  let challengeId = event.params.challengeId.toString()
+  let challenge = Challenge.load(challengeId)
+  if (challenge == null) {
+    challenge = new Challenge(challengeId)
+    challenge.challengeId = event.params.challengeId
+    challenge.contentHash = ""
+    challenge.poolAmount = BigInt.fromI32(0)
+    challenge.startTime = event.block.timestamp
+    challenge.duration = BigInt.fromI32(0)
+    challenge.totalPoints = BigInt.fromI32(0)
+    challenge.active = true
+    challenge.createdAt = event.block.timestamp
+    challenge.isCommunity = true
+    challenge.isEnded = false
+    challenge.endedAt = null
+    challenge.proofIntervalSeconds = null
+    challenge.milestoneCount = BigInt.fromI32(0)
+    challenge.isPaid = false
+    challenge.joinToken = null
+    challenge.joinAmount = BigInt.fromI32(0)
+    challenge.forfeitPct = 0
+    challenge.forfeitPool = BigInt.fromI32(0)
+  }
+
+  let contract = DeluluMarketContract.bind(event.address)
+  let previousCount = challenge.milestoneCount.toI32()
+  let newCount = event.params.milestoneCount.toI32()
+
+  for (let i = previousCount; i < newCount; i++) {
+    let milestoneId = BigInt.fromI32(i)
+    let id = challengeId + "-" + i.toString()
+    if (CommunityCampaignMilestone.load(id) != null) continue
+
+    let milestone = new CommunityCampaignMilestone(id)
+    milestone.challenge = challengeId
+    milestone.challengeId = event.params.challengeId
+    milestone.milestoneId = milestoneId
+    milestone.milestoneURI = contract.communityChallengeMilestoneURI(
+      event.params.challengeId,
+      milestoneId
+    )
+    milestone.startTime = contract.communityChallengeMilestoneStartTime(
+      event.params.challengeId,
+      milestoneId
+    )
+    milestone.deadline = contract.communityChallengeMilestoneDeadline(
+      event.params.challengeId,
+      milestoneId
+    )
+    milestone.createdAt = event.block.timestamp
+    milestone.save()
+  }
+
+  challenge.milestoneCount = event.params.milestoneCount
+  challenge.save()
+}
+
+export function handleCommunityCampaignMilestoneProofSubmitted(
+  event: CommunityCampaignMilestoneProofSubmittedEvent
+): void {
+  let challengeId = event.params.challengeId.toString()
+  let milestoneId = event.params.milestoneId
+  let participantAddress = event.params.participant
+  let participantId = participantAddress.toHexString().toLowerCase()
+  let rowId = challengeId + "-" + participantId
+  let milestoneRowId = challengeId + "-" + milestoneId.toString()
+
+  let user = getOrCreateUser(participantAddress, event.block.timestamp)
+  let participant = CommunityCampaignParticipant.load(rowId)
+  if (participant == null) {
+    participant = new CommunityCampaignParticipant(rowId)
+    participant.challenge = challengeId
+    participant.challengeId = event.params.challengeId
+    participant.participant = user.id
+    participant.participantAddress = participantId
+    participant.joinedAt = event.block.timestamp
+    participant.completedMilestoneCount = BigInt.fromI32(0)
+    participant.streak = BigInt.fromI32(0)
+    participant.stakeAmount = BigInt.fromI32(0)
+    participant.forfeitedAmount = BigInt.fromI32(0)
+  }
+  participant.pointsTotal = event.params.pointsTotal
+  participant.completedMilestoneCount = participant.completedMilestoneCount.plus(
+    BigInt.fromI32(1)
+  )
+  participant.streak = participant.completedMilestoneCount
+  participant.lastProofAt = event.block.timestamp
+
+  // Compute forfeit: count milestones with passed deadlines not completed by this participant
+  let challenge = Challenge.load(challengeId)
+  if (challenge != null && challenge.isPaid && challenge.forfeitPct > 0 && participant.stakeAmount.gt(BigInt.fromI32(0))) {
+    let contract = DeluluMarketContract.bind(event.address)
+    let totalMilestones = challenge.milestoneCount.toI32()
+    let currentMilestoneId = milestoneId.toI32()
+    let missedCount = 0
+    for (let i = 0; i < currentMilestoneId; i++) {
+      let mId = BigInt.fromI32(i)
+      let deadline = contract.communityChallengeMilestoneDeadline(event.params.challengeId, mId)
+      if (deadline.lt(event.block.timestamp)) {
+        let completed = contract.communityMilestoneCompleted(event.params.challengeId, mId, participantAddress)
+        if (!completed) {
+          missedCount = missedCount + 1
+        }
+      }
+    }
+    // forfeitedAmount = missedCount * stakeAmount * forfeitPct / 100
+    let newForfeit = participant.stakeAmount
+      .times(BigInt.fromI32(missedCount))
+      .times(BigInt.fromI32(challenge.forfeitPct))
+      .div(BigInt.fromI32(100))
+    let delta = newForfeit.minus(participant.forfeitedAmount)
+    if (delta.gt(BigInt.fromI32(0))) {
+      participant.forfeitedAmount = newForfeit
+      challenge.forfeitPool = challenge.forfeitPool.plus(delta)
+      challenge.save()
+    }
+    let _ = totalMilestones // suppress unused warning
+  }
+
+  participant.save()
+
+  // Update challenge total points (challenge may already be loaded/saved by forfeit block above)
+  let challengeForPoints = Challenge.load(challengeId)
+  if (challengeForPoints != null) {
+    challengeForPoints.totalPoints = challengeForPoints.totalPoints.plus(event.params.pointsAwarded)
+    challengeForPoints.save()
+  }
+
+  let completionId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  let completion = new CommunityCampaignMilestoneCompletion(completionId)
+  completion.challenge = challengeId
+  completion.challengeId = event.params.challengeId
+  completion.milestone = milestoneRowId
+  completion.milestoneId = milestoneId
+  completion.participant = user.id
+  completion.participantAddress = participantId
+  completion.proofLink = event.params.proofLink
+  completion.pointsAwarded = event.params.pointsAwarded
+  completion.pointsTotal = event.params.pointsTotal
+  completion.txHash = event.transaction.hash
+  completion.createdAt = event.block.timestamp
+  completion.save()
 }
 
 export function handleOwnershipTransferred(

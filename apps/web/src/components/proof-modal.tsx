@@ -29,6 +29,16 @@ async function fireConfetti() {
   }
 }
 
+type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
+
+const STEP_LABEL: Record<ProofStep, string> = {
+  idle: "Submitting…",
+  uploading: "Uploading photo…",
+  "ai-verifying": "AI reviewing your proof…",
+  "wallet-sign": "Approve in your wallet…",
+  confirming: "Confirming on-chain…",
+};
+
 interface ProofModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,6 +47,9 @@ interface ProofModalProps {
   submitSuccess?: boolean;
   submitError?: Error | null;
   onDone?: () => void;
+  proofInstructions?: string | null;
+  isOnChain?: boolean;
+  proofStep?: ProofStep;
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -49,6 +62,9 @@ export function ProofModal({
   submitSuccess = false,
   submitError = null,
   onDone,
+  proofInstructions,
+  isOnChain = false,
+  proofStep = "idle",
 }: ProofModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -60,6 +76,7 @@ export function ProofModal({
 
   const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
   const busy = isSubmitting || isUploading;
+  const activeStep: ProofStep = isUploading ? "uploading" : proofStep;
   const displayError =
     uploadError ?? (submitError ? getContractErrorDisplay(submitError).message : null);
 
@@ -165,7 +182,7 @@ export function ProofModal({
         if (!next) onDone?.();
         onOpenChange(next);
       }}
-      title="Submit evidence"
+      title="Submit milestone"
       sheetClassName="rounded-t-3xl px-5 pb-12 pt-5"
       modalClassName="max-w-lg p-0 overflow-hidden"
       contentClassName="lg:p-0"
@@ -177,10 +194,12 @@ export function ProofModal({
               <CheckCircle2 className="h-11 w-11 text-delulu-blue" strokeWidth={2} />
             </div>
             <h3 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">
-              Evidence submitted
+              Milestone complete!
             </h3>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Your proof is on chain. We&apos;ll verify this milestone soon.
+              {isOnChain
+                ? "Your proof is recorded on-chain. Verifying shortly."
+                : "Keep the streak going — see you next time!"}
             </p>
             <button
               type="button"
@@ -191,38 +210,57 @@ export function ProofModal({
             </button>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="lg:hidden">
               <h2 className="text-xl font-black tracking-tight text-foreground">
-                Submit evidence
+                Submit milestone
               </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Show progress with a photo or screenshot.
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                Show your progress with a photo or screenshot.
               </p>
             </div>
             <p className="hidden text-sm leading-relaxed text-muted-foreground lg:block">
-              Show progress with a photo or screenshot. Clear evidence helps
-              supporters trust the journey.
+              Show your progress with a photo or screenshot. Clear evidence helps supporters trust
+              the journey.
             </p>
+
+            {/* Proof instructions */}
+            {proofInstructions ? (
+              <div className="rounded-xl border border-border bg-muted/40 px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  What to submit
+                </p>
+                <p className="mt-0.5 text-sm leading-relaxed text-foreground">
+                  {proofInstructions}
+                </p>
+              </div>
+            ) : null}
 
             {displayError && !busy ? (
               <div
                 role="alert"
                 className="rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3"
               >
-                <p className="text-sm font-bold text-destructive">
-                  Couldn&apos;t submit
-                </p>
+                <p className="text-sm font-bold text-destructive">Couldn&apos;t submit</p>
                 <p className="mt-0.5 text-sm text-destructive/85">{displayError}</p>
+                {imagePreview ? (
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    className="mt-1.5 text-xs font-semibold text-delulu-blue hover:underline"
+                  >
+                    Try a different photo →
+                  </button>
+                ) : null}
+                {proofInstructions ? (
+                  <p className="mt-1 text-xs text-destructive/70">
+                    Make sure your image clearly shows: {proofInstructions}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
-            <div
-              className={cn(
-                "relative",
-                busy && "pointer-events-none",
-              )}
-            >
+            <div className={cn("relative", busy && "pointer-events-none")}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -246,8 +284,11 @@ export function ProofModal({
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/45 backdrop-blur-[2px]">
                       <Loader2 className="h-8 w-8 animate-spin text-white" />
                       <p className="text-sm font-semibold text-white">
-                        {isUploading ? "Uploading photo…" : "Submitting proof…"}
+                        {STEP_LABEL[activeStep]}
                       </p>
+                      {activeStep === "wallet-sign" ? (
+                        <p className="text-xs text-white/70">Check your wallet app</p>
+                      ) : null}
                     </div>
                   ) : (
                     <>
@@ -304,7 +345,7 @@ export function ProofModal({
                     )}
                   </div>
                   <p className="text-base font-bold text-foreground">
-                    {isDragging ? "Drop your image here" : "Add evidence photo"}
+                    {isDragging ? "Drop your image here" : "Add proof photo"}
                   </p>
                   <p className="mt-1.5 max-w-[240px] text-sm text-muted-foreground">
                     Tap to browse or drag and drop
@@ -343,10 +384,10 @@ export function ProofModal({
                 {busy ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Submitting…
+                    {STEP_LABEL[activeStep]}
                   </>
                 ) : (
-                  "Submit evidence"
+                  "Submit proof"
                 )}
               </button>
             </div>

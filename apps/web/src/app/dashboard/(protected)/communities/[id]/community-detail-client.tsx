@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Copy, UserPlus, Users, ChevronLeft, Plus, Target } from "lucide-react";
+import { Copy, UserPlus, Users, ChevronLeft, Plus, Target, LogIn } from "lucide-react";
+import { CommunityMembersPanel } from "@/components/dashboard/community-members-panel";
+import { buildSignInWithCommunityUrl } from "@/lib/auth-redirect";
 import { cn } from "@/lib/utils";
 import {
   DashboardPage,
@@ -36,23 +38,13 @@ type Community = {
   created_at: string;
 };
 
-type Member = {
-  id: string;
-  wallet_address: string;
-  status: string;
-  joined_at: string;
-  joined_via: string | null;
+type MemberStats = {
+  memberCount: number;
+  claimedCount: number;
+  unclaimedCount: number;
 };
 
 type HubTab = "campaigns" | "members";
-
-function formatAddress(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 function HubTabs({
   activeTab,
@@ -93,12 +85,12 @@ function HubTabs({
 
 export function CommunityDetailClient({
   community,
-  members,
+  memberStats,
   isPlatformAdmin,
   communityId,
 }: {
   community: Community;
-  members: Member[];
+  memberStats: MemberStats;
   isPlatformAdmin: boolean;
   communityId: string;
 }) {
@@ -111,9 +103,6 @@ export function CommunityDetailClient({
 
   const openCampaigns = campaigns.filter((c) => isCampaignParticipatable(c.status)).length;
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
-  const pendingCampaigns = campaigns.filter((c) =>
-    ["pending_approval", "funding"].includes(c.status),
-  ).length;
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(community.member_invite_code);
@@ -124,6 +113,12 @@ export function CommunityDetailClient({
     const url = `${window.location.origin}/join/${community.member_invite_code}`;
     await navigator.clipboard.writeText(url);
     show("Join link copied");
+  };
+
+  const copyReferralSignIn = async () => {
+    const url = `${window.location.origin}${buildSignInWithCommunityUrl(community.member_invite_code)}`;
+    await navigator.clipboard.writeText(url);
+    show("Referral sign-in link copied");
   };
 
   return (
@@ -148,6 +143,9 @@ export function CommunityDetailClient({
           <DashboardIconButton title="Copy join link" onClick={copyLink}>
             <Users className="h-4 w-4" />
           </DashboardIconButton>
+          <DashboardIconButton title="Copy referral sign-in link" onClick={copyReferralSignIn}>
+            <LogIn className="h-4 w-4" />
+          </DashboardIconButton>
           <DashboardPrimaryButton onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Create campaign
@@ -162,10 +160,11 @@ export function CommunityDetailClient({
       </div>
 
       <DashboardStatGrid>
-        <DashboardStat label="Members" value={members.length} />
+        <DashboardStat label="Members" value={memberStats.memberCount} />
+        <DashboardStat label="Claimed G$" value={memberStats.claimedCount} />
+        <DashboardStat label="Unclaimed" value={memberStats.unclaimedCount} />
         <DashboardStat label="Open campaigns" value={openCampaigns} />
         <DashboardStat label="Funded campaigns" value={activeCampaigns} />
-        <DashboardStat label="Pending approval" value={pendingCampaigns} />
         <DashboardStat label="Code" value={community.member_invite_code} />
       </DashboardStatGrid>
 
@@ -173,7 +172,7 @@ export function CommunityDetailClient({
         activeTab={activeTab}
         onChange={setActiveTab}
         campaignCount={campaigns.length}
-        memberCount={members.length}
+        memberCount={memberStats.memberCount}
       />
 
       {activeTab === "campaigns" ? (
@@ -244,27 +243,7 @@ export function CommunityDetailClient({
           </DashboardCardGrid>
         )
       ) : (
-        <DashboardPanel>
-          {members.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">No members yet</p>
-          ) : (
-            <ul className="divide-y divide-[#e8e8e3]">
-              {members.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between px-4 py-3 text-sm"
-                >
-                  <span className="font-mono text-xs text-foreground">
-                    {formatAddress(m.wallet_address)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(m.joined_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DashboardPanel>
+        <CommunityMembersPanel communityId={communityId} />
       )}
 
       <CreateCampaignModal

@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CreateFlowSkeleton } from "@/components/create-flow-skeleton";
-import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
@@ -47,8 +46,6 @@ export default function BoardPage() {
           <NavbarProfileMenu size="compact" />
         </div>
       </div>
-
-      <MainDesktopHeader />
 
       <div className="hidden lg:block shrink-0 px-8 pt-6 pb-2">
         <h1 className="text-3xl font-black tracking-tight">Create</h1>

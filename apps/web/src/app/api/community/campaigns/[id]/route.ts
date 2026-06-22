@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 import {
+  fetchCommunityCampaignMilestoneCountFromGraph,
+  fetchCommunityCampaignMilestonesFromGraph,
   fetchCommunityCampaignParticipantCountFromGraph,
   isJoinedCommunityCampaignOnGraph,
 } from "@/lib/community/campaign-subgraph";
@@ -26,6 +28,7 @@ export async function GET(
       proposed_pool_amount, status, display_ends_at, duration_days,
       prize_winner_count, cover_image_url, created_at, updated_at,
       on_chain_challenge_id,
+      is_free_to_join, join_token, join_amount, forfeit_pct,
       communities ( id, name, slug, description, created_by )
     `)
     .eq("id", id)
@@ -52,10 +55,20 @@ export async function GET(
   let isCommunityMember = false;
   let participantCount = 0;
   let myPoints = 0;
+  let myStreak = 0;
+  let milestoneCount = 0;
+  let milestones: Awaited<ReturnType<typeof fetchCommunityCampaignMilestonesFromGraph>> = [];
 
   if (campaign.on_chain_challenge_id) {
     participantCount = await fetchCommunityCampaignParticipantCountFromGraph(
       campaign.on_chain_challenge_id,
+    );
+    milestoneCount = await fetchCommunityCampaignMilestoneCountFromGraph(
+      campaign.on_chain_challenge_id,
+    );
+    milestones = await fetchCommunityCampaignMilestonesFromGraph(
+      campaign.on_chain_challenge_id,
+      address ?? undefined,
     );
     if (address) {
       const joined = await isJoinedCommunityCampaignOnGraph(
@@ -87,13 +100,14 @@ export async function GET(
     if (!campaign.on_chain_challenge_id) {
       const { data: participant } = await admin
         .from("campaign_participants")
-        .select("id, points_total")
+        .select("id, points_total, current_streak")
         .eq("campaign_id", id)
         .eq("wallet_address", address)
         .eq("status", "joined")
         .maybeSingle();
       isJoined = Boolean(participant);
       myPoints = participant?.points_total ?? 0;
+      myStreak = participant?.current_streak ?? 0;
     }
   }
 
@@ -112,6 +126,10 @@ export async function GET(
       prize_winner_count: campaign.prize_winner_count,
       cover_image_url: campaign.cover_image_url ?? null,
       on_chain_challenge_id: campaign.on_chain_challenge_id,
+      is_free_to_join: campaign.is_free_to_join !== false,
+      join_token: campaign.join_token ?? "G$",
+      join_amount: campaign.join_amount ?? 0,
+      forfeit_pct: campaign.forfeit_pct ?? 0,
       created_at: campaign.created_at,
       updated_at: campaign.updated_at,
       communities: communityRaw
@@ -128,5 +146,8 @@ export async function GET(
     isCommunityMember,
     participantCount,
     myPoints,
+    myStreak,
+    milestoneCount,
+    milestones,
   });
 }

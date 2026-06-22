@@ -133,6 +133,22 @@ export async function POST(request: NextRequest) {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
+  const isFreeToJoin = body.isFreeToJoin !== false;
+  const joinToken = isFreeToJoin ? "G$" : (String(body.joinToken ?? "G$").trim() || "G$");
+  const joinAmount = isFreeToJoin ? 0 : Math.max(0, Number(body.joinAmount) || 0);
+  const forfeitPct = isFreeToJoin ? 0 : ([0, 2, 5, 10].includes(Number(body.forfeitPct)) ? Number(body.forfeitPct) : 0);
+
+  const milestones: { title: string; duration_days: number; order_index: number }[] =
+    Array.isArray(body.milestones)
+      ? body.milestones
+          .filter((m: unknown) => m && typeof (m as Record<string, unknown>).title === "string" && (m as Record<string, unknown>).title)
+          .map((m: Record<string, unknown>, i: number) => ({
+            title: String(m.title).slice(0, 200).trim(),
+            duration_days: Math.max(1, Number(m.duration_days) || 7),
+            order_index: typeof m.order_index === "number" ? m.order_index : i,
+          }))
+      : [];
+
   const { data, error } = await admin
     .from("community_campaigns")
     .insert({
@@ -146,12 +162,22 @@ export async function POST(request: NextRequest) {
       duration_days: durationDays,
       prize_winner_count: prizeWinnerCount,
       cover_image_url: coverImageUrl,
+      is_free_to_join: isFreeToJoin,
+      join_token: joinToken,
+      join_amount: joinAmount,
+      forfeit_pct: forfeitPct,
       status: "draft",
     })
     .select(CAMPAIGN_SELECT)
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (milestones.length > 0) {
+    await admin.from("campaign_milestones").insert(
+      milestones.map((m) => ({ ...m, campaign_id: data.id })),
+    );
+  }
 
   await logCampaignEvent(data.id, "created", session.userId, { status: "draft" });
 

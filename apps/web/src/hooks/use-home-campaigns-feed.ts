@@ -19,7 +19,7 @@ async function fetchFeedPage(
   const params = new URLSearchParams({
     address,
     section,
-    limit: "4",
+    limit: section === "ongoing" ? "3" : "4",
   });
   if (cursor) params.set("cursor", cursor);
 

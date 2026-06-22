@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sun, Compass, Wallet } from "lucide-react";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
@@ -168,7 +169,7 @@ function HomeGuestPrompt() {
           Sign in
         </Link>
         <Link
-          href="/explore"
+          href="/explore?tab=campaigns"
           onMouseEnter={prefetchExploreOnIntent}
           onTouchStart={prefetchExploreOnIntent}
           className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted/50"
@@ -189,7 +190,19 @@ interface HomeDashboardProps {
 export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) {
   const { authenticated, address, isReady } = useAuth();
   const sessionHint = hasStoredAuthSession();
-  const awaitingAuth = !isReady || (!authenticated && sessionHint);
+  const [restoreTimedOut, setRestoreTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!sessionHint || authenticated) {
+      setRestoreTimedOut(false);
+      return;
+    }
+    const id = window.setTimeout(() => setRestoreTimedOut(true), 12_000);
+    return () => window.clearTimeout(id);
+  }, [sessionHint, authenticated]);
+
+  const awaitingAuth =
+    !restoreTimedOut && (!isReady || (!authenticated && sessionHint));
 
   if (awaitingAuth) {
     return sessionHint ? (
@@ -212,17 +225,17 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
         <HomeClaimNudge />
       </div>
 
+      <HomeCampaignsSection />
+
       <OngoingMilestonesSection
         variant="home"
         hideWhenEmpty
         onCreateClick={onCreateClick}
       />
 
-      <HomeCampaignsSection />
-
       <div className="px-4 pb-4 pt-2">
         <Link
-          href="/explore"
+          href="/explore?tab=campaigns"
           onMouseEnter={prefetchExploreOnIntent}
           onTouchStart={prefetchExploreOnIntent}
           className="flex items-center justify-center gap-2 rounded-xl border border-border/50 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"

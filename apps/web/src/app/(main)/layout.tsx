@@ -2,6 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { ProfileLoader } from "@/components/profile-loader";
+import {
+  MainAppContent,
+  MainAppHeader,
+} from "@/components/main-app-header";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { useAuth } from "@/hooks/use-auth";
@@ -71,8 +75,9 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <ClaimPanel />
           <WhitelistRedirectToast />
 
-          <div className="flex-1 min-w-0 h-full overflow-hidden transition-[flex] duration-300 ease-out">
-            {children}
+          <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
+            <MainAppHeader />
+            <MainAppContent>{children}</MainAppContent>
           </div>
         </div>
 

@@ -27,6 +27,8 @@ dataSources:
         - ShareHolding
         - CommunityCampaignParticipant
         - CommunityProof
+        - CommunityCampaignMilestone
+        - CommunityCampaignMilestoneCompletion
       abis:
         - name: DeluluMarket
           file: ./abis/DeluluMarket.json
@@ -86,6 +88,43 @@ dataSources:
         - event: SharesSold(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
           handler: handleSharesSold
       file: ./src/delulu-market.ts
+  - kind: ethereum
+    name: CommunityMarketV1
+    network: celo
+    source:
+      abi: CommunityMarketV1
+      address: "0x6d8232F5B4D0Efa1ba84bb242cEB6cb81A7FCf2a"
+      startBlock: 70216934
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Challenge
+        - CommunityCampaignParticipant
+        - CommunityCampaignMilestone
+        - CommunityCampaignMilestoneCompletion
+        - User
+      abis:
+        - name: CommunityMarketV1
+          file: ./abis/CommunityMarketV1.json
+      eventHandlers:
+        - event: CommunityChallengeCreated(indexed uint256,string,uint256,uint256,indexed address)
+          handler: handleCMv1ChallengeCreated
+        - event: CommunityCampaignPaidConfigured(indexed uint256,bool,address,uint256,uint8)
+          handler: handleCMv1PaidConfigured
+        - event: CommunityCampaignMilestonesAdded(indexed uint256,uint256)
+          handler: handleCMv1MilestonesAdded
+        - event: CommunityCampaignJoined(indexed uint256,indexed address)
+          handler: handleCMv1CampaignJoined
+        - event: CommunityCampaignMilestoneProofSubmitted(indexed uint256,indexed uint256,indexed address,string,uint256,uint256)
+          handler: handleCMv1MilestoneProofSubmitted
+        - event: CommunityChallengeFunded(indexed uint256,uint256,uint256,indexed address)
+          handler: handleCMv1ChallengeFunded
+        - event: CommunityChallengeEnded(indexed uint256,uint256)
+          handler: handleCMv1ChallengeEnded
+      file: ./src/community-market-v1.ts
+
   - kind: ethereum
     name: ERC1967Proxy
     network: celo

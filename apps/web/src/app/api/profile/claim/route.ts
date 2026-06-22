@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { logCommunityMemberDailyClaim } from "@/lib/community/join-member";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +14,17 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedAddress = address.toLowerCase();
+    try {
+      requireAuthenticatedWallet(request, normalizedAddress);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
+    }
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
-    // Read current count (defaults to 0 when missing) and increment.
     const { data: existing, error: selectError } = await supabase
       .from("profiles")
       .select("address, claim_count")
@@ -24,18 +34,37 @@ export async function POST(request: NextRequest) {
 
     const nextCount = (existing?.claim_count ?? 0) + 1;
 
-    const { error: upsertError } = await supabase
-      .from("profiles")
-      .upsert(
-        { address: normalizedAddress, claim_count: nextCount, updated_at: new Date().toISOString() },
-        { onConflict: "address" },
-      );
-    if (upsertError) throw upsertError;
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ claim_count: nextCount, updated_at: new Date().toISOString() })
+        .eq("address", normalizedAddress);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabase.from("profiles").insert({
+        address: normalizedAddress,
+        claim_count: nextCount,
+        email: `${normalizedAddress}@wallet.local`,
+        updated_at: new Date().toISOString(),
+      });
+      if (insertError) throw insertError;
+    }
 
-    return NextResponse.json({ success: true, claim_count: nextCount });
+    let communityLogOk = true;
+    try {
+      await logCommunityMemberDailyClaim(supabase, normalizedAddress);
+    } catch (claimLogErr) {
+      communityLogOk = false;
+      console.error("[profile/claim] community claim log error:", claimLogErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      claim_count: nextCount,
+      community_log_ok: communityLogOk,
+    });
   } catch (error) {
     console.error("[profile/claim] increment error:", error);
     return NextResponse.json({ error: "Failed to increment claim count" }, { status: 500 });
   }
 }
-

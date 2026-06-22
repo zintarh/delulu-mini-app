@@ -102,6 +102,11 @@ export function useCreateCampaign(communityId: string) {
       prizeWinnerCount?: number;
       coverImageUrl?: string | null;
       submit?: boolean;
+      isFreeToJoin?: boolean;
+      joinToken?: string;
+      joinAmount?: number;
+      forfeitPct?: number;
+      milestones?: { title: string; duration_days: number; order_index: number }[];
     }) => {
       const res = await fetch("/api/dashboard/campaigns", {
         method: "POST",

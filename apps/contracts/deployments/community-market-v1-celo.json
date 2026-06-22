@@ -1,0 +1,10 @@
+{
+  "network": "celo",
+  "chainId": 42220,
+  "contract": "CommunityMarketV1",
+  "address": "0x6d8232F5B4D0Efa1ba84bb242cEB6cb81A7FCf2a",
+  "startBlock": 70216934,
+  "currency": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+  "owner": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
+  "deployedAt": "2026-06-02"
+}

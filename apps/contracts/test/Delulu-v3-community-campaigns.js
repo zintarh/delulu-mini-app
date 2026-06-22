@@ -62,6 +62,17 @@ describe("Delulu-v3 community campaigns", function () {
     return { delulu, cuSD, gDollar, owner, creator, participant };
   }
 
+  async function createCampaignWithMilestones(delulu, owner) {
+    await delulu.write.createCommunityChallenge(
+      ["ipfs-community-campaign", ONE_WEEK, ONE_DAY],
+      { account: owner.account }
+    );
+    await delulu.write.addCommunityCampaignMilestones(
+      [1n, ["Milestone 1", "Milestone 2", "Milestone 3"], [ONE_DAY, ONE_DAY, ONE_DAY]],
+      { account: owner.account }
+    );
+  }
+
   it("creates community challenge with zero pool", async function () {
     const { delulu, owner } = await loadFixture(deployV3Fixture);
 
@@ -71,43 +82,12 @@ describe("Delulu-v3 community campaigns", function () {
     );
 
     const challenge = await delulu.read.challenges([1n]);
-    expect(challenge[2]).to.equal(0n); // poolAmount
+    expect(challenge[2]).to.equal(0n);
     expect(await delulu.read.isCommunityCampaign([1n])).to.equal(true);
     expect(await delulu.read.challengeKind([1n])).to.equal(1);
   });
 
-  it("join and submit proof awards points with streak bonus", async function () {
-    const { delulu, owner, participant } = await loadFixture(deployV3Fixture);
-
-    await delulu.write.createCommunityChallenge(
-      ["ipfs-community-campaign", ONE_WEEK, ONE_DAY],
-      { account: owner.account }
-    );
-
-    await delulu.write.joinCommunityCampaign([1n], {
-      account: participant.account,
-    });
-
-    await delulu.write.submitCommunityProof(
-      [1n, "https://proof.example/1", true],
-      { account: participant.account }
-    );
-
-    let points = await delulu.read.communityCampaignPoints([1n, participant.account.address]);
-    expect(points).to.equal(10n);
-
-    await time.increase(ONE_DAY + 1n);
-
-    await delulu.write.submitCommunityProof(
-      [1n, "https://proof.example/2", true],
-      { account: participant.account }
-    );
-
-    points = await delulu.read.communityCampaignPoints([1n, participant.account.address]);
-    expect(points).to.equal(21n); // 10 + 11 (base + 1 streak bonus)
-  });
-
-  it("rejects proof before join and enforces cadence", async function () {
+  it("blocks join until milestones exist", async function () {
     const { delulu, owner, participant } = await loadFixture(deployV3Fixture);
 
     await delulu.write.createCommunityChallenge(
@@ -116,8 +96,57 @@ describe("Delulu-v3 community campaigns", function () {
     );
 
     await assertRevert(
-      delulu.write.submitCommunityProof(
-        [1n, "https://proof.example/1", true],
+      delulu.write.joinCommunityCampaign([1n], { account: participant.account }),
+      /NoCommunityMilestones/
+    );
+
+    await delulu.write.addCommunityCampaignMilestones(
+      [1n, ["Day 1"], [ONE_DAY]],
+      { account: owner.account }
+    );
+
+    await delulu.write.joinCommunityCampaign([1n], {
+      account: participant.account,
+    });
+    expect(await delulu.read.communityCampaignJoined([1n, participant.account.address])).to.equal(
+      true
+    );
+  });
+
+  it("milestone proof awards points with streak bonus", async function () {
+    const { delulu, owner, participant } = await loadFixture(deployV3Fixture);
+    await createCampaignWithMilestones(delulu, owner);
+
+    await delulu.write.joinCommunityCampaign([1n], {
+      account: participant.account,
+    });
+
+    await delulu.write.submitCommunityCampaignMilestoneProof(
+      [1n, 0n, "https://proof.example/1", true],
+      { account: participant.account }
+    );
+
+    let points = await delulu.read.communityCampaignPoints([1n, participant.account.address]);
+    expect(points).to.equal(12n); // 10 base + 2 early
+
+    await time.increase(ONE_DAY + 1n);
+
+    await delulu.write.submitCommunityCampaignMilestoneProof(
+      [1n, 1n, "https://proof.example/2", true],
+      { account: participant.account }
+    );
+
+    points = await delulu.read.communityCampaignPoints([1n, participant.account.address]);
+    expect(points).to.equal(25n); // 12 + 13 (10 + 1 streak + 2 early)
+  });
+
+  it("rejects milestone proof before join and duplicate submit", async function () {
+    const { delulu, owner, participant } = await loadFixture(deployV3Fixture);
+    await createCampaignWithMilestones(delulu, owner);
+
+    await assertRevert(
+      delulu.write.submitCommunityCampaignMilestoneProof(
+        [1n, 0n, "https://proof.example/1", true],
         { account: participant.account }
       ),
       /NotJoinedCommunity/
@@ -127,27 +156,23 @@ describe("Delulu-v3 community campaigns", function () {
       account: participant.account,
     });
 
-    await delulu.write.submitCommunityProof(
-      [1n, "https://proof.example/1", true],
+    await delulu.write.submitCommunityCampaignMilestoneProof(
+      [1n, 0n, "https://proof.example/1", true],
       { account: participant.account }
     );
 
     await assertRevert(
-      delulu.write.submitCommunityProof(
-        [1n, "https://proof.example/2", true],
+      delulu.write.submitCommunityCampaignMilestoneProof(
+        [1n, 0n, "https://proof.example/1-again", true],
         { account: participant.account }
       ),
-      /ProofTooSoon/
+      /CommunityMilestoneAlreadyCompleted/
     );
   });
 
   it("funds community challenge and ends it", async function () {
     const { delulu, gDollar, owner, participant } = await loadFixture(deployV3Fixture);
-
-    await delulu.write.createCommunityChallenge(
-      ["ipfs-community-campaign", ONE_WEEK, ONE_DAY],
-      { account: owner.account }
-    );
+    await createCampaignWithMilestones(delulu, owner);
 
     const fundAmount = parseEther("50");
     await delulu.write.fundCommunityChallenge([1n, fundAmount], {
@@ -183,13 +208,7 @@ describe("Delulu-v3 community campaigns", function () {
     const now = BigInt(Math.floor(Date.now() / 1000));
     await delulu.write.setProfile(["owner"], { account: owner.account });
     await delulu.write.createDelulu(
-      [
-        cuSD.address,
-        "ipfs-delulu",
-        now + ONE_WEEK,
-        now + ONE_WEEK * 2n,
-        stake,
-      ],
+      [cuSD.address, "ipfs-delulu", now + ONE_WEEK, now + ONE_WEEK * 2n, stake],
       { account: owner.account }
     );
 

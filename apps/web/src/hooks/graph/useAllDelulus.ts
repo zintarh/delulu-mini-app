@@ -76,7 +76,8 @@ interface GetDelulusFeedQueryVariables {
   skip?: number;
 }
 
-export function useAllDelulus() {
+export function useAllDelulus(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
   const [page, setPage] = useState(0);
   const [ipfsResolved, setIpfsResolved] = useState(0);
   const [isIpfsLoading, setIsIpfsLoading] = useState(false);
@@ -107,6 +108,7 @@ export function useAllDelulus() {
       fetchPolicy: "cache-first",
       nextFetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
+      skip: !enabled,
     }
   );
 

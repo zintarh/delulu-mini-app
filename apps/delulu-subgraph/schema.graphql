@@ -177,11 +177,48 @@ type Challenge @entity(immutable: false) {
   isEnded: Boolean! # Community campaign ended early
   endedAt: BigInt # When community campaign ended
   proofIntervalSeconds: BigInt # Proof cadence for community campaigns
+  milestoneCount: BigInt! # On-chain milestone definitions count
+  # Economics (v4)
+  isPaid: Boolean! # Whether joining requires a stake
+  joinToken: Bytes # Token address for paid join (null = default currency)
+  joinAmount: BigInt! # Stake amount for paid campaigns
+  forfeitPct: Int! # Forfeit % per missed milestone (0, 2, 5, or 10)
+  forfeitPool: BigInt! # Accumulated forfeit pool from missed milestones
   participants: [CommunityCampaignParticipant!]! @derivedFrom(field: "challenge")
   proofs: [CommunityProof!]! @derivedFrom(field: "challenge")
+  milestones: [CommunityCampaignMilestone!]! @derivedFrom(field: "challenge")
+  milestoneCompletions: [CommunityCampaignMilestoneCompletion!]! @derivedFrom(field: "challenge")
 }
 
-# Community campaign participant — indexed from joinCommunityCampaign
+# Admin-defined milestone for a community campaign
+type CommunityCampaignMilestone @entity(immutable: false) {
+  id: ID! # challengeId-milestoneId
+  challenge: Challenge!
+  challengeId: BigInt!
+  milestoneId: BigInt!
+  milestoneURI: String!
+  startTime: BigInt!
+  deadline: BigInt!
+  createdAt: BigInt!
+}
+
+# Per-participant milestone completion
+type CommunityCampaignMilestoneCompletion @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  challenge: Challenge!
+  challengeId: BigInt!
+  milestone: CommunityCampaignMilestone!
+  milestoneId: BigInt!
+  participant: User!
+  participantAddress: String!
+  proofLink: String!
+  pointsAwarded: BigInt!
+  pointsTotal: BigInt!
+  txHash: Bytes!
+  createdAt: BigInt!
+}
+
+# Community campaign participant — indexed from joinCommunityCampaign / joinCommunityCampaignPaid
 type CommunityCampaignParticipant @entity(immutable: false) {
   id: ID! # challengeId-participantAddress
   challenge: Challenge!
@@ -189,9 +226,13 @@ type CommunityCampaignParticipant @entity(immutable: false) {
   participant: User!
   participantAddress: String!
   pointsTotal: BigInt!
+  completedMilestoneCount: BigInt!
   streak: BigInt!
   lastProofAt: BigInt
   joinedAt: BigInt!
+  # Economics (v4)
+  stakeAmount: BigInt! # Amount staked (0 for free campaigns)
+  forfeitedAmount: BigInt! # Cumulative forfeited stake from missed milestones
 }
 
 # Community proof submission — indexed from submitCommunityProof

@@ -88,9 +88,13 @@ export function CommunitiesPageClient({
                 <StatusChip status={c.status} />
               </div>
               <h3 className="font-semibold text-foreground line-clamp-1">{c.name}</h3>
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Users className="h-3.5 w-3.5" />
-                <span>{c.member_count}</span>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  {c.member_count} members
+                </span>
+                <span>{c.claimed_count} claimed</span>
+                <span>{c.unclaimed_count} unclaimed</span>
               </div>
             </DashboardCard>
           ))}

@@ -1,10 +1,11 @@
 "use client";
 
-import { Gift, ShieldCheck } from "lucide-react";
+import { Gift, Loader2, ShieldCheck } from "lucide-react";
 import { useClaimAvailability } from "@/hooks/use-claim-availability";
 
 export function HomeClaimNudge() {
-  const { availability, entitlementDisplay, openClaim } = useClaimAvailability();
+  const { availability, entitlementDisplay, claimFromHome, isClaiming } =
+    useClaimAvailability();
 
   if (availability !== "claimable" && availability !== "verify") {
     return null;
@@ -15,8 +16,9 @@ export function HomeClaimNudge() {
   return (
     <button
       type="button"
-      onClick={openClaim}
-      className="w-full rounded-2xl border border-[#f6c324]/40 bg-gradient-to-r from-[#fffbeb] to-[#fffbeb]/50 px-3.5 py-3 text-left transition-colors hover:from-[#fff8dc] hover:to-[#fff8dc]/60"
+      onClick={() => void claimFromHome()}
+      disabled={isClaiming}
+      className="w-full rounded-2xl border border-[#f6c324]/40 bg-gradient-to-r from-[#fffbeb] to-[#fffbeb]/50 px-3.5 py-3 text-left transition-colors hover:from-[#fff8dc] hover:to-[#fff8dc]/60 disabled:opacity-70"
     >
       <div className="flex items-center gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f6c324]/40 text-[#1a1a19]">
@@ -45,10 +47,17 @@ export function HomeClaimNudge() {
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full bg-[#f6c324] px-3 py-1.5 text-[11px] font-bold text-[#1a1a19]"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#f6c324] px-3 py-1.5 text-[11px] font-bold text-[#1a1a19]"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
-          {isVerify ? "Verify" : "Claim"}
+          {isClaiming ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Claiming…
+            </>
+          ) : (
+            <>{isVerify ? "Verify" : "Claim"}</>
+          )}
         </span>
       </div>
     </button>

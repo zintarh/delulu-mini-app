@@ -34,6 +34,18 @@ export async function POST(
     return NextResponse.json({ error: "Campaign cannot be submitted in its current state." }, { status: 400 });
   }
 
+  const { count: milestoneCount } = await admin
+    .from("campaign_milestones")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", id);
+
+  if (!milestoneCount || milestoneCount === 0) {
+    return NextResponse.json(
+      { error: "Add at least one milestone before submitting for approval." },
+      { status: 400 },
+    );
+  }
+
   const { data, error } = await admin
     .from("community_campaigns")
     .update({

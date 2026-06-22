@@ -49,17 +49,29 @@ create table if not exists staff_invites (
   created_at    timestamptz not null default now()
 );
 
--- Wallet users who have joined a community via invite code
+-- Wallet users who have joined a community via invite code or onboarding
 create table if not exists community_members (
   id              uuid primary key default gen_random_uuid(),
   community_id    uuid not null references communities(id) on delete cascade,
   wallet_address  text not null,
   status          text not null default 'active'
                   check (status in ('active', 'banned')),
-  joined_via      text,  -- 'invite_code' | 'admin_added'
+  joined_via      text,  -- 'invite_code' | 'onboarding' | 'admin_added'
+  gd_first_claimed_at timestamptz,
+  gd_claim_count  int not null default 0,
   last_seen_at    timestamptz,
   joined_at       timestamptz not null default now(),
   unique (community_id, wallet_address)
+);
+
+-- Daily Good Dollar UBI claim counts per community member
+create table if not exists community_member_daily_claims (
+  id              uuid primary key default gen_random_uuid(),
+  community_id    uuid not null references communities(id) on delete cascade,
+  wallet_address  text not null,
+  claim_date      date not null,
+  claim_count     int not null default 1,
+  unique (community_id, wallet_address, claim_date)
 );
 
 -- Indexes
@@ -70,6 +82,8 @@ create index if not exists idx_staff_invites_token           on staff_invites (t
 create index if not exists idx_staff_invites_email           on staff_invites (email);
 create index if not exists idx_community_members_community   on community_members (community_id, status);
 create index if not exists idx_community_members_wallet      on community_members (wallet_address);
+create index if not exists idx_cm_daily_claims_community_date on community_member_daily_claims (community_id, claim_date);
+create index if not exists idx_cm_daily_claims_wallet_date    on community_member_daily_claims (wallet_address, claim_date);
 
 -- Seed: promote the default platform admin in staff_users.
 -- Run after creating the Supabase Auth user (or the accept-invite flow does it automatically).

@@ -24,7 +24,7 @@ export function ExploreSocialFeed({
   const feedItems = delulus;
 
   const masonryClass = cn(
-    "w-full columns-2 gap-x-3 sm:gap-x-4 md:columns-3",
+    "w-full columns-1 gap-x-5 sm:columns-2 lg:columns-3",
     className,
   );
 

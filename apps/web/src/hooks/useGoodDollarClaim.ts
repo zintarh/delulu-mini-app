@@ -204,6 +204,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
       fetch("/api/profile/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ address }),
       }).catch(() => {});
 

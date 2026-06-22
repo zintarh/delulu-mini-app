@@ -13,6 +13,7 @@ import {
 } from "@/lib/token-amounts";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { getPinCardAspectClassFromId } from "@/lib/pin-card-aspect";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -106,23 +107,15 @@ export function ExplorePinCard({
     return formatDurationMs(resolutionMs - startMs);
   }, [isEnded, delusion.createdAt, resolutionMs]);
   const coverImageSrc = normalizeDeluluImageSrc(delusion.bgImageUrl);
-  const coverSizes = "(max-width: 768px) 50vw, 33vw";
+  const coverSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
   const coverLoadProps = imagePriority
     ? { priority: true as const }
     : { loading: "lazy" as const };
 
-  const pinAspectClass = useMemo(() => {
-    const seed = Number(delusion.onChainId ?? delusion.id) || 0;
-    const aspects = [
-      "aspect-[4/5]",
-      "aspect-[3/4]",
-      "aspect-[5/6]",
-      "aspect-[4/5]",
-      "aspect-square",
-      "aspect-[3/5]",
-    ];
-    return aspects[seed % aspects.length];
-  }, [delusion.onChainId, delusion.id]);
+  const pinAspectClass = useMemo(
+    () => getPinCardAspectClassFromId(delusion.onChainId, delusion.id),
+    [delusion.onChainId, delusion.id],
+  );
 
   const addrHex = delusion.creator.replace("0x", "").toLowerCase();
   const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
@@ -134,12 +127,11 @@ export function ExplorePinCard({
   };
 
   return (
-    <article className={cn("group/pin mb-8 break-inside-avoid", className)}>
+    <article className={cn("group/pin mb-10 break-inside-avoid", className)}>
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-[20px] bg-muted",
           pinAspectClass,
-          "md:aspect-[5/4] md:max-h-[200px] lg:max-h-[220px]",
         )}
         style={{ background: cardGradient }}
       >
@@ -200,7 +192,7 @@ export function ExplorePinCard({
             </div>
           ) : (
             <h3
-              className="line-clamp-2 text-[15px] font-bold leading-snug tracking-tight text-foreground transition-colors group-hover/pin:text-delulu-charcoal/80"
+              className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-foreground transition-colors group-hover/pin:text-delulu-charcoal/80 sm:text-lg"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
               {headline}
@@ -208,32 +200,32 @@ export function ExplorePinCard({
           )}
         </Link>
 
-        <div className="mt-2 flex items-center gap-2">
-          <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full ring-1 ring-border/50">
+        <div className="mt-3 flex items-center gap-2.5">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border/50">
             <UserAvatar
               address={delusion.creator}
               username={displayUsername}
               pfpUrl={resolvedPfpUrl}
-              size={28}
+              size={32}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-foreground/90">
+            <p className="truncate text-sm font-semibold text-foreground/90">
               {creatorLabel}
             </p>
             {supportersCount > 0 ? (
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {supportersCount}{" "}
                 {supportersCount === 1 ? "supporter" : "supporters"}
               </p>
             ) : tvlValue > 0 ? (
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {supportUsdLabel
                   ? `${formattedGAmount} ${tokenSymbol} tipped`
                   : "Be the first to tip"}
               </p>
             ) : (
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 New delulu
               </p>
             )}

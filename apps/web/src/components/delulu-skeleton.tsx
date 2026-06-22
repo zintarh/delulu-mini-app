@@ -1,12 +1,5 @@
 import { cn } from "@/lib/utils";
-
-const PIN_SKELETON_ASPECTS = [
-  "aspect-[4/5]",
-  "aspect-[3/4]",
-  "aspect-[5/6]",
-  "aspect-square",
-  "aspect-[3/5]",
-] as const;
+import { PIN_CARD_ASPECTS } from "@/lib/pin-card-aspect";
 
 export function SocialFeedCardSkeleton({
   className,
@@ -15,28 +8,27 @@ export function SocialFeedCardSkeleton({
   className?: string;
   index?: number;
 }) {
-  const aspect = PIN_SKELETON_ASPECTS[index % PIN_SKELETON_ASPECTS.length];
+  const aspect = PIN_CARD_ASPECTS[index % PIN_CARD_ASPECTS.length];
 
   return (
-    <div className={cn("mb-8 break-inside-avoid animate-pulse", className)}>
+    <div className={cn("mb-10 break-inside-avoid animate-pulse", className)}>
       <div className="relative">
         <div
           className={cn(
             "w-full overflow-hidden rounded-[20px] bg-muted",
             aspect,
-            "md:aspect-[5/4] md:max-h-[200px] lg:max-h-[220px]",
           )}
         />
         <div className="absolute right-3 top-3 h-8 w-16 rounded-full bg-muted-foreground/15" />
       </div>
-      <div className="space-y-2 px-0.5 pt-2.5">
-        <div className="h-4 w-full rounded bg-muted" />
-        <div className="h-4 w-4/5 rounded bg-muted" />
-        <div className="flex items-center gap-2 pt-0.5">
-          <div className="h-7 w-7 shrink-0 rounded-full bg-muted" />
+      <div className="space-y-2.5 px-0.5 pt-3">
+        <div className="h-5 w-full rounded bg-muted" />
+        <div className="h-5 w-4/5 rounded bg-muted" />
+        <div className="flex items-center gap-2.5 pt-0.5">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-muted" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3 w-20 rounded bg-muted" />
-            <div className="h-2.5 w-14 rounded bg-muted" />
+            <div className="h-3.5 w-24 rounded bg-muted" />
+            <div className="h-3 w-16 rounded bg-muted" />
           </div>
         </div>
       </div>
@@ -96,8 +88,22 @@ export function HomeSignedInSkeleton({ className }: { className?: string }) {
         </div>
       </header>
       <div className="mb-4 mt-3 space-y-2.5 px-4">
-        <div className="h-[4.25rem] animate-pulse rounded-2xl bg-muted/50" />
-        <div className="h-14 animate-pulse rounded-xl bg-muted/40" />
+        <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-muted" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3.5 w-3/4 rounded bg-muted" />
+            <div className="h-2.5 w-1/2 rounded bg-muted/80" />
+          </div>
+          <div className="h-7 w-16 shrink-0 rounded-lg bg-muted" />
+        </div>
+        <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-muted" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3.5 w-3/4 rounded bg-muted" />
+            <div className="h-2.5 w-1/2 rounded bg-muted/80" />
+          </div>
+          <div className="h-7 w-16 shrink-0 rounded-lg bg-muted" />
+        </div>
       </div>
       <div className="space-y-3 px-4 pb-4">
         <div className="h-10 animate-pulse rounded-xl bg-muted/60" />

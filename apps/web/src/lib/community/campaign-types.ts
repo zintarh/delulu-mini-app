@@ -51,6 +51,9 @@ export type CommunityCampaignFeedItem = {
   on_chain_challenge_id: number | null;
   community: { id: string; name: string; slug: string };
   participant_state: "none" | "joined";
+  myStreak?: number;
+  myPoints?: number;
+  milestone_count?: number;
 };
 
 export function encodeFeedCursor(createdAt: string, id: string): string {

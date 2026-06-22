@@ -110,7 +110,7 @@ export function ApproveCampaignModal({
       <div className="space-y-4 pt-2 text-sm">
         <p className="text-muted-foreground">
           Approving uploads campaign metadata to IPFS and creates a zero-pool on-chain challenge so
-          members can join and submit proof immediately.
+          Owner must add milestones on-chain before members can join.
         </p>
 
         {step === "done" ? (

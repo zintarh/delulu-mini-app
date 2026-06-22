@@ -2,8 +2,8 @@
 
 import { useWaitForTransactionReceipt, useChainId } from "wagmi";
 import { decodeErrorResult } from "viem";
-import { getDeluluContractAddress } from "@/lib/constant";
-import { DELULU_ABI_WITH_COMMUNITY } from "@/lib/abi/delulu-with-community";
+import { getCommunityMarketV1Address } from "@/lib/constant";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import {
   campaignDurationSeconds,
   proofIntervalSeconds,
@@ -33,8 +33,8 @@ export function useCreateCommunityChallenge() {
     const interval = proofIntervalSeconds(input.proofCadence);
 
     return writeContractAsync({
-      address: getDeluluContractAddress(chainId),
-      abi: DELULU_ABI_WITH_COMMUNITY,
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
       functionName: "createCommunityChallenge",
       args: [contentHash, BigInt(duration), BigInt(interval)],
     });
@@ -47,7 +47,7 @@ export function useCreateCommunityChallenge() {
       const err = error || receiptError;
       if (err && typeof err === "object" && "data" in err) {
         const decoded = decodeErrorResult({
-          abi: DELULU_ABI_WITH_COMMUNITY,
+          abi: COMMUNITY_CAMPAIGN_ABI,
           data: err.data as `0x${string}`,
         });
         errorMessage =

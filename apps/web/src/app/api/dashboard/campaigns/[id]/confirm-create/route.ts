@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
-import { parseChallengeIdFromTx } from "@/lib/dashboard/parse-challenge-tx";
+import { parseCommunityChallengeCreatedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export async function POST(
 
   let challengeId: bigint | null;
   try {
-    challengeId = await parseChallengeIdFromTx(txHash);
+    challengeId = await parseCommunityChallengeCreatedFromTx(txHash);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to read transaction" },
@@ -55,7 +55,7 @@ export async function POST(
   }
 
   if (challengeId == null) {
-    return NextResponse.json({ error: "ChallengeCreated event not found in transaction." }, { status: 400 });
+    return NextResponse.json({ error: "CommunityChallengeCreated event not found in transaction." }, { status: 400 });
   }
 
   const now = new Date().toISOString();

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 const DEFAULT_BUCKET = "profile-images";
 
@@ -45,6 +49,13 @@ export async function POST(request: NextRequest) {
     if (!address || !address.startsWith("0x") || address.length !== 42) {
       return NextResponse.json({ error: "Valid address is required" }, { status: 400 });
     }
+
+    try {
+      requireAuthenticatedWallet(request, address);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
+    }
+
     if (!file.type.startsWith("image/")) {
       return NextResponse.json({ error: "File must be an image" }, { status: 400 });
     }

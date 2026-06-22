@@ -21,16 +21,23 @@ async function getCommunity(id: string) {
   return data;
 }
 
-async function getMembers(communityId: string) {
+async function getMemberStats(communityId: string) {
   const admin = getSupabaseAdmin();
-  if (!admin) return [];
-  const { data } = await admin
+  if (!admin) return { memberCount: 0, claimedCount: 0, unclaimedCount: 0 };
+
+  const { data: rows } = await admin
     .from("community_members")
-    .select("id, wallet_address, status, joined_at, joined_via")
+    .select("gd_first_claimed_at")
     .eq("community_id", communityId)
-    .order("joined_at", { ascending: false })
-    .limit(50);
-  return data ?? [];
+    .eq("status", "active");
+
+  const total = rows?.length ?? 0;
+  const claimed = (rows ?? []).filter((r) => r.gd_first_claimed_at).length;
+  return {
+    memberCount: total,
+    claimedCount: claimed,
+    unclaimedCount: total - claimed,
+  };
 }
 
 export default async function AdminCommunityDetailPage({
@@ -48,13 +55,13 @@ export default async function AdminCommunityDetailPage({
     notFound();
   }
 
-  const [community, members] = await Promise.all([getCommunity(id), getMembers(id)]);
+  const [community, memberStats] = await Promise.all([getCommunity(id), getMemberStats(id)]);
   if (!community) notFound();
 
   return (
     <CommunityDetailClient
       community={community}
-      members={members}
+      memberStats={memberStats}
       isPlatformAdmin={isPlatformAdmin}
       communityId={id}
     />

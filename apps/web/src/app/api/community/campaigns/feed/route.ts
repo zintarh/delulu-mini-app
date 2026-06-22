@@ -8,13 +8,17 @@ import {
   parseHomeCampaignFeedSection,
   PARTICIPATING_STATUSES,
 } from "@/lib/community/campaign-types";
-import { fetchJoinedChallengeIdsFromGraph } from "@/lib/community/campaign-subgraph";
+import {
+  fetchCommunityCampaignMilestoneCountFromGraph,
+  fetchJoinedChallengeIdsFromGraph,
+} from "@/lib/community/campaign-subgraph";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
 export const dynamic = "force-dynamic";
 
 const DEFAULT_LIMIT = 4;
+const ONGOING_HOME_LIMIT = 3;
 const MAX_LIMIT = 20;
 const FETCH_BATCH = 40;
 
@@ -41,7 +45,12 @@ type CampaignRow = {
   communities: { id: string; name: string; slug: string } | null;
 };
 
-function toFeedItem(row: CampaignRow, joined: boolean): CommunityCampaignFeedItem {
+function toFeedItem(
+  row: CampaignRow,
+  joined: boolean,
+  participantData?: { streak: number; points: number },
+  milestoneCount = 0,
+): CommunityCampaignFeedItem {
   const community = row.communities ?? { id: row.community_id, name: "Community", slug: "" };
   return {
     id: row.id,
@@ -57,6 +66,10 @@ function toFeedItem(row: CampaignRow, joined: boolean): CommunityCampaignFeedIte
     on_chain_challenge_id: row.on_chain_challenge_id,
     community: { id: community.id, name: community.name, slug: community.slug },
     participant_state: joined ? "joined" : "none",
+    milestone_count: milestoneCount,
+    ...(joined && participantData
+      ? { myStreak: participantData.streak, myPoints: participantData.points }
+      : {}),
   };
 }
 
@@ -64,9 +77,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const section = parseHomeCampaignFeedSection(searchParams.get("section"));
+  const defaultLimit = section === "ongoing" ? ONGOING_HOME_LIMIT : DEFAULT_LIMIT;
   const limit = Math.min(
     MAX_LIMIT,
-    Math.max(1, Number(searchParams.get("limit") ?? DEFAULT_LIMIT) || DEFAULT_LIMIT),
+    Math.max(1, Number(searchParams.get("limit") ?? defaultLimit) || defaultLimit),
   );
   const cursor = searchParams.get("cursor");
 
@@ -79,11 +93,17 @@ export async function GET(request: NextRequest) {
 
   const { data: joinedParticipants } = await admin
     .from("campaign_participants")
-    .select("campaign_id")
+    .select("campaign_id, current_streak, points_total")
     .eq("wallet_address", address)
     .eq("status", "joined");
 
   const joinedCampaignIds = new Set((joinedParticipants ?? []).map((p) => p.campaign_id));
+  const participantDataMap = new Map(
+    (joinedParticipants ?? []).map((p) => [
+      p.campaign_id,
+      { streak: p.current_streak ?? 0, points: p.points_total ?? 0 },
+    ]),
+  );
 
   const decoded = cursor ? decodeFeedCursor(cursor) : null;
 
@@ -140,13 +160,32 @@ export async function GET(request: NextRequest) {
   }
 
   const page = filtered.slice(0, limit);
-  const campaigns = page.map((row) => toFeedItem(row, joinedCampaignIds.has(row.id)));
+  const milestoneCounts = await Promise.all(
+    page.map((row) =>
+      row.on_chain_challenge_id
+        ? fetchCommunityCampaignMilestoneCountFromGraph(row.on_chain_challenge_id)
+        : Promise.resolve(0),
+    ),
+  );
+  const campaigns = page.map((row, i) => {
+    const isJoined = joinedCampaignIds.has(row.id);
+    return toFeedItem(
+      row,
+      isJoined,
+      isJoined ? participantDataMap.get(row.id) : undefined,
+      milestoneCounts[i],
+    );
+  });
 
   const last = page[page.length - 1];
   const hasMoreInBatch = filtered.length > limit;
   const batchFull = (rows ?? []).length >= FETCH_BATCH;
   const nextCursor =
-    last && (hasMoreInBatch || batchFull) ? encodeFeedCursor(last.created_at, last.id) : null;
+    section === "ongoing"
+      ? null
+      : last && (hasMoreInBatch || batchFull)
+        ? encodeFeedCursor(last.created_at, last.id)
+        : null;
 
   return NextResponse.json({ campaigns, nextCursor });
 }

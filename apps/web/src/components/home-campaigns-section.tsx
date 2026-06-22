@@ -1,186 +1,232 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Loader2, Target } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { cn } from "@/lib/utils";
-import type {
-  CommunityCampaignFeedItem,
-  HomeCampaignFeedSection,
-} from "@/lib/community/campaign-types";
+import { ProofModal } from "@/components/proof-modal";
+import type { CommunityCampaignFeedItem } from "@/lib/community/campaign-types";
+import {
+  CampaignActionButton,
+  CampaignHorizontalCard,
+  CampaignPoolMeta,
+  CampaignSectionSkeleton,
+} from "@/components/community/campaign-horizontal-card";
 import {
   homeCampaignKeys,
   useHomeCampaignsFeed,
 } from "@/hooks/use-home-campaigns-feed";
-import { joinCommunityCampaignWithWallet } from "@/lib/community/join-campaign-client";
-import { useJoinCommunityCampaignOnChain } from "@/hooks/use-community-campaign-onchain";
+import {
+  joinedDashboardKeys,
+  useJoinedCampaignDashboard,
+} from "@/hooks/use-user-campaign-milestones";
+import { joinCommunityCampaignWithWallet, submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
+import {
+  useJoinCommunityCampaignOnChain,
+  useSubmitCommunityMilestoneProofOnChain,
+} from "@/hooks/use-community-campaign-onchain";
+import { useAuth } from "@/hooks/use-auth";
 
-function CampaignFeedCard({
-  campaign,
-  onJoin,
-  joiningId,
-  isJoinedSection,
-}: {
-  campaign: CommunityCampaignFeedItem;
-  onJoin: (campaign: CommunityCampaignFeedItem) => void;
-  joiningId: string | null;
-  isJoinedSection: boolean;
-}) {
-  const href = `/communities/${campaign.community.slug}/campaigns/${campaign.id}`;
-  const isJoining = joiningId === campaign.id;
-  const showPool =
-    campaign.is_funded && campaign.proposed_pool_amount > 0;
-
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm">
-      <Link href={href} className="block min-w-0">
-        <div className="flex items-start gap-2.5">
-          {campaign.cover_image_url ? (
-            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl">
-              <Image
-                src={campaign.cover_image_url}
-                alt=""
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          ) : (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-delulu-blue-light text-delulu-blue">
-              <Target className="h-4 w-4" />
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-sm text-foreground leading-snug line-clamp-2">
-              {campaign.title}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Hosted by {campaign.community.name}
-            </p>
-            {showPool ? (
-              <p className="mt-1 text-xs font-semibold tabular-nums text-foreground">
-                {campaign.proposed_pool_amount} G$ pool
-              </p>
-            ) : null}
-          </div>
-          <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-        </div>
-      </Link>
-      {isJoinedSection ? (
-        <Link
-          href={href}
-          className={cn(
-            "mt-3 flex w-full items-center justify-center rounded-xl py-2.5 text-sm font-bold transition-colors",
-            "bg-delulu-blue-light text-delulu-blue hover:bg-delulu-blue-light/80",
-          )}
-        >
-          Submit proof
-        </Link>
-      ) : (
-        <button
-          type="button"
-          disabled={isJoining}
-          onClick={(e) => {
-            e.preventDefault();
-            onJoin(campaign);
-          }}
-          className={cn(
-            "mt-3 w-full rounded-xl py-2.5 text-sm font-bold transition-colors",
-            "bg-delulu-blue text-white hover:bg-delulu-blue/90 disabled:opacity-50",
-          )}
-        >
-          {isJoining ? (
-            <span className="inline-flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Joining…
-            </span>
-          ) : (
-            "Join"
-          )}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function CampaignSection({
-  title,
-  section,
+function JoinedCampaignSection({
   address,
-  onJoin,
-  joiningId,
+  joinError,
 }: {
-  title: string;
-  section: HomeCampaignFeedSection;
   address: string;
-  onJoin: (campaign: CommunityCampaignFeedItem) => void;
-  joiningId: string | null;
+  joinError: string | null;
 }) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    useHomeCampaignsFeed(section, address);
+  const queryClient = useQueryClient();
+  const { submitCommunityCampaignMilestoneProofAndWait } =
+    useSubmitCommunityMilestoneProofOnChain();
+  const { data, isLoading } = useJoinedCampaignDashboard(address);
+  const campaigns = data ?? [];
 
-  const campaigns = data?.pages.flatMap((p) => p.campaigns) ?? [];
+  const [proofOpen, setProofOpen] = useState(false);
+  const [proofBusy, setProofBusy] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
+  const [proofSuccess, setProofSuccess] = useState(false);
+  const [activeProof, setActiveProof] = useState<{
+    campaignId: string;
+    challengeId: number;
+    milestoneId: number;
+  } | null>(null);
 
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || !hasNextPage) return;
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: joinedDashboardKeys.all(address) });
+  }, [address, queryClient]);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
-          void fetchNextPage();
-        }
-      },
-      { rootMargin: "120px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, campaigns.length]);
+  const handleProofSubmit = async (imageUrl: string) => {
+    if (!activeProof) return;
+    setProofBusy(true);
+    setProofError(null);
+    try {
+      await submitCommunityProofWithWallet({
+        campaignId: activeProof.campaignId,
+        walletAddress: address,
+        proofUrl: imageUrl,
+        milestoneId: activeProof.milestoneId,
+        submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
+      });
+      setProofSuccess(true);
+      invalidate();
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : "Proof failed");
+    } finally {
+      setProofBusy(false);
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-2">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </p>
-        <div className="space-y-2.5">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted/50" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <CampaignSectionSkeleton rows={2} />;
   if (campaigns.length === 0) return null;
 
   return (
     <div className="px-4 py-2">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </p>
-      <div className="space-y-2.5">
-        {campaigns.map((c) => (
-          <CampaignFeedCard
-            key={c.id}
-            campaign={c}
-            joiningId={joiningId}
-            isJoinedSection={section === "joined"}
-            onJoin={onJoin}
-          />
-        ))}
+      <div className="mb-2 flex items-center gap-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Your campaigns
+        </p>
+        <span className="rounded-full bg-delulu-blue-light px-1.5 py-0.5 text-[10px] font-bold text-delulu-blue">
+          {campaigns.length}
+        </span>
       </div>
-      <div ref={sentinelRef} className="h-1" />
-      {isFetchingNextPage ? (
-        <div className="flex justify-center py-3">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+      {joinError ? (
+        <p className="mb-2 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
+          {joinError}
+        </p>
       ) : null}
+      <div className="space-y-3">
+        {campaigns.map((c) => {
+          const href = `/communities/${c.community.slug}/campaigns/${c.campaign_id}`;
+          const nextDue = c.next_milestones[0];
+          return (
+            <CampaignHorizontalCard
+              key={c.campaign_id}
+              href={href}
+              title={c.title}
+              subtitle={c.community.name}
+              coverImageUrl={c.cover_image_url}
+              size="comfortable"
+              thumbnailSize="lg"
+              progress={{ completed: c.completed_count, total: c.milestone_count }}
+              milestones={c.next_milestones.slice(0, 2)}
+              action={
+                nextDue ? (
+                  <CampaignActionButton
+                    onClick={() => {
+                      setActiveProof({
+                        campaignId: c.campaign_id,
+                        challengeId: c.challenge_id,
+                        milestoneId: nextDue.milestone_id,
+                      });
+                      setProofSuccess(false);
+                      setProofError(null);
+                      setProofOpen(true);
+                    }}
+                  >
+                    Submit proof
+                  </CampaignActionButton>
+                ) : (
+                  <CampaignActionButton href={href} variant="muted">
+                    View →
+                  </CampaignActionButton>
+                )
+              }
+            />
+          );
+        })}
+      </div>
+
+      <ProofModal
+        open={proofOpen}
+        onOpenChange={setProofOpen}
+        onSubmit={handleProofSubmit}
+        isSubmitting={proofBusy}
+        submitSuccess={proofSuccess}
+        submitError={proofError ? new Error(proofError) : null}
+        onDone={() => {
+          setProofOpen(false);
+          setProofSuccess(false);
+          setActiveProof(null);
+        }}
+        isOnChain
+      />
+    </div>
+  );
+}
+
+function OngoingCampaignSection({
+  address,
+  onJoin,
+  joiningId,
+  joinError,
+}: {
+  address: string;
+  onJoin: (campaign: CommunityCampaignFeedItem) => void;
+  joiningId: string | null;
+  joinError: string | null;
+}) {
+  const { data, isLoading } = useHomeCampaignsFeed("ongoing", address);
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 3);
+
+  if (isLoading) return <CampaignSectionSkeleton rows={3} />;
+  if (campaigns.length === 0) return null;
+
+  return (
+    <div className="px-4 py-2">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Discover campaigns
+        </p>
+        <Link
+          href="/explore?tab=campaigns"
+          className="text-[11px] font-semibold text-delulu-blue hover:underline"
+        >
+          See all →
+        </Link>
+      </div>
+      {joinError ? (
+        <p className="mb-2 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
+          {joinError}
+        </p>
+      ) : null}
+      <div className="space-y-3">
+        {campaigns.map((c) => {
+          const href = `/communities/${c.community.slug}/campaigns/${c.id}`;
+          const hasMilestones = (c.milestone_count ?? 0) > 0;
+          return (
+            <CampaignHorizontalCard
+              key={c.id}
+              href={href}
+              title={c.title}
+              subtitle={`${c.community.name} · ${c.duration_days}d`}
+              coverImageUrl={c.cover_image_url}
+              size="comfortable"
+              thumbnailSize="lg"
+              meta={
+                <CampaignPoolMeta
+                  amount={c.proposed_pool_amount}
+                  funded={c.is_funded}
+                  comfortable
+                />
+              }
+              action={
+                hasMilestones ? (
+                  <CampaignActionButton
+                    disabled={joiningId === c.id}
+                    onClick={() => onJoin(c)}
+                  >
+                    Join
+                  </CampaignActionButton>
+                ) : (
+                  <CampaignActionButton href={href} variant="muted" size="compact">
+                    <span className="sm:hidden">Soon</span>
+                    <span className="hidden sm:inline">Milestones soon</span>
+                  </CampaignActionButton>
+                )
+              }
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -195,8 +241,8 @@ export function HomeCampaignsSection() {
 
   const invalidateFeeds = useCallback(() => {
     if (!address) return;
-    void queryClient.invalidateQueries({ queryKey: homeCampaignKeys.feed("joined", address) });
     void queryClient.invalidateQueries({ queryKey: homeCampaignKeys.feed("ongoing", address) });
+    void queryClient.invalidateQueries({ queryKey: joinedDashboardKeys.all(address) });
   }, [address, queryClient]);
 
   const runJoin = useCallback(
@@ -227,23 +273,13 @@ export function HomeCampaignsSection() {
 
   return (
     <>
-      <CampaignSection
-        title="Your campaigns"
-        section="joined"
+      <JoinedCampaignSection address={address} joinError={joiningId ? null : joinError} />
+      <OngoingCampaignSection
         address={address}
         onJoin={runJoin}
         joiningId={joiningId}
+        joinError={joiningId ? joinError : null}
       />
-      <CampaignSection
-        title="Ongoing campaigns"
-        section="ongoing"
-        address={address}
-        onJoin={runJoin}
-        joiningId={joiningId}
-      />
-      {joinError ? (
-        <p className="px-4 pb-2 text-xs text-destructive">{joinError}</p>
-      ) : null}
     </>
   );
 }

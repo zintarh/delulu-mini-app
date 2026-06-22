@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAuth } from "@/hooks/use-auth";
 import { invalidatePfpCache } from "@/hooks/use-profile-pfp";
+import { compressImageForUpload, formatImageUploadError } from "@/lib/compress-image";
 
 export interface UsePfpUploadReturn {
   upload: (file: File) => Promise<string>;
@@ -12,6 +13,7 @@ export interface UsePfpUploadReturn {
   inputRef: React.RefObject<HTMLInputElement>;
   openPicker: () => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  clearError: () => void;
 }
 
 export function usePfpUpload(): UsePfpUploadReturn {
@@ -26,13 +28,10 @@ export function usePfpUpload(): UsePfpUploadReturn {
     setError(null);
 
     try {
-      const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
-      if (file.size > MAX_SIZE) {
-        throw new Error("Image must be smaller than 2 MB.");
-      }
+      const prepared = await compressImageForUpload(file);
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", prepared);
       if (!address) {
         throw new Error("Wallet address not available. Please reconnect and try again.");
       }
@@ -40,6 +39,7 @@ export function usePfpUpload(): UsePfpUploadReturn {
 
       const uploadRes = await fetch("/api/profile/upload-image", {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
       const uploadData = await uploadRes.json();
@@ -50,6 +50,7 @@ export function usePfpUpload(): UsePfpUploadReturn {
       const persistRes = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ address, pfpUrl }),
       });
       const persistData = await persistRes.json().catch(() => ({}));
@@ -61,8 +62,8 @@ export function usePfpUpload(): UsePfpUploadReturn {
       invalidatePfpCache(address);
 
       return pfpUrl;
-    } catch (err: any) {
-      const msg = err?.message ?? "Upload failed";
+    } catch (err: unknown) {
+      const msg = formatImageUploadError(err);
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -78,8 +79,12 @@ export function usePfpUpload(): UsePfpUploadReturn {
     e.target.value = "";
     try {
       await upload(file);
-    } catch {}
+    } catch {
+      // error state set in upload()
+    }
   };
 
-  return { upload, isUploading, error, inputRef, openPicker, onFileChange };
+  const clearError = () => setError(null);
+
+  return { upload, isUploading, error, inputRef, openPicker, onFileChange, clearError };
 }

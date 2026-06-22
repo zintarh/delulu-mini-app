@@ -27,6 +27,23 @@ export const DELULU_CONTRACT_ADDRESS = DELULU_CONTRACT_ADDRESSES.mainnet as `0x$
 export const DELULU_IMPLEMENTATION_ADDRESS =
   "0x444fb1A40eEf95A21F9FB5db8eE21c5A8d7b4E2F" as const;
 
+/** Standalone community campaign contract — separate from the personal-goals proxy. */
+export const COMMUNITY_MARKET_V1_ADDRESSES = {
+  mainnet:
+    process.env.NEXT_PUBLIC_COMMUNITY_MARKET_V1_MAINNET || "",
+  sepolia:
+    process.env.NEXT_PUBLIC_COMMUNITY_MARKET_V1_SEPOLIA || "",
+} as const;
+
+export function getCommunityMarketV1Address(chainId?: number): `0x${string}` {
+  const addr =
+    chainId === CELO_SEPOLIA_ID
+      ? COMMUNITY_MARKET_V1_ADDRESSES.sepolia
+      : COMMUNITY_MARKET_V1_ADDRESSES.mainnet;
+  if (!addr) throw new Error("CommunityMarketV1 address not configured. Set NEXT_PUBLIC_COMMUNITY_MARKET_V1_MAINNET.");
+  return addr as `0x${string}`;
+}
+
 
 
 export const CUSD_ADDRESSES = {

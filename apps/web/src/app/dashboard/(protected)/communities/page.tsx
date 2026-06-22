@@ -24,19 +24,32 @@ async function getCommunities(isPlatformAdmin: boolean, communityIds: string[]) 
   const rows = data ?? [];
 
   const ids = rows.map((c: { id: string }) => c.id);
-  const { data: counts } = ids.length
-    ? await admin.from("community_members").select("community_id").in("community_id", ids).eq("status", "active")
+  const { data: memberRows } = ids.length
+    ? await admin
+        .from("community_members")
+        .select("community_id, gd_first_claimed_at")
+        .in("community_id", ids)
+        .eq("status", "active")
     : { data: [] };
 
-  const countMap: Record<string, number> = {};
-  for (const row of counts ?? []) {
-    countMap[row.community_id] = (countMap[row.community_id] ?? 0) + 1;
+  const statsMap: Record<string, { total: number; claimed: number; unclaimed: number }> = {};
+  for (const row of memberRows ?? []) {
+    const entry = statsMap[row.community_id] ?? { total: 0, claimed: 0, unclaimed: 0 };
+    entry.total += 1;
+    if (row.gd_first_claimed_at) entry.claimed += 1;
+    else entry.unclaimed += 1;
+    statsMap[row.community_id] = entry;
   }
 
-  return rows.map((c: { id: string; [key: string]: unknown }) => ({
-    ...c,
-    member_count: countMap[c.id] ?? 0,
-  })) as CommunityRow[];
+  return rows.map((c: { id: string; [key: string]: unknown }) => {
+    const stats = statsMap[c.id] ?? { total: 0, claimed: 0, unclaimed: 0 };
+    return {
+      ...c,
+      member_count: stats.total,
+      claimed_count: stats.claimed,
+      unclaimed_count: stats.unclaimed,
+    };
+  }) as CommunityRow[];
 }
 
 export default async function AdminCommunitiesPage() {

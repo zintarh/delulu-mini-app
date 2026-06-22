@@ -61,6 +61,12 @@ contract Delulu is
     error ProofTooSoon();
     error NotCommunityChallenge();
     error ChallengeAlreadyEnded();
+    error NoCommunityMilestones();
+    error CommunityMilestoneNotFound();
+    error CommunityMilestoneAlreadyCompleted();
+    error CommunityMilestoneExpired();
+    error InvalidJoinAmount();
+    error InvalidForfeitPct();
 
     // --- CONSTANTS ---
     // MAX_MILESTONES removed — milestone count is now limited dynamically to one per remaining day.
@@ -201,6 +207,14 @@ contract Delulu is
     // --- Community campaign state (append-only) ---
     /// @dev 0 = legacy delulu-linked challenge, 1 = community campaign.
     mapping(uint256 => uint8) public challengeKind;
+
+    // --- Community campaign economics (append-only) ---
+    mapping(uint256 => bool)    public communityCampaignIsPaid;
+    mapping(uint256 => address) public communityCampaignJoinToken;   // address(0) = use default currency
+    mapping(uint256 => uint256) public communityCampaignJoinAmount;
+    mapping(uint256 => uint8)   public communityCampaignForfeitPct;  // 0 | 2 | 5 | 10
+    mapping(uint256 => mapping(address => uint256)) public communityCampaignStake;
+    mapping(uint256 => uint256) public communityChallengeForFeitPool;
     mapping(uint256 => bool) public communityChallengeEnded;
     mapping(uint256 => uint256) public communityChallengeEndedAt;
     mapping(uint256 => uint256) public communityChallengeTotalPoints;
@@ -209,6 +223,12 @@ contract Delulu is
     mapping(uint256 => mapping(address => uint256)) public communityCampaignPoints;
     mapping(uint256 => mapping(address => uint256)) public communityCampaignStreak;
     mapping(uint256 => mapping(address => uint256)) public communityCampaignLastProofAt;
+
+    mapping(uint256 => uint256) public communityChallengeMilestoneCount;
+    mapping(uint256 => mapping(uint256 => string)) public communityChallengeMilestoneURI;
+    mapping(uint256 => mapping(uint256 => uint256)) public communityChallengeMilestoneStartTime;
+    mapping(uint256 => mapping(uint256 => uint256)) public communityChallengeMilestoneDeadline;
+    mapping(uint256 => mapping(uint256 => mapping(address => bool))) public communityMilestoneCompleted;
 
     uint256 public constant COMMUNITY_KIND = 1;
     uint256 public constant COMMUNITY_BASE_PROOF_POINTS = 10;
@@ -392,6 +412,12 @@ contract Delulu is
         uint256 proofIntervalSeconds,
         address indexed creator
     );
+    event CommunityCampaignPaidConfigured(
+        uint256 indexed challengeId,
+        address joinToken,
+        uint256 joinAmount,
+        uint8   forfeitPct
+    );
     event CommunityCampaignJoined(
         uint256 indexed challengeId,
         address indexed participant
@@ -412,6 +438,18 @@ contract Delulu is
     event CommunityChallengeEnded(
         uint256 indexed challengeId,
         uint256 endedAt
+    );
+    event CommunityCampaignMilestonesAdded(
+        uint256 indexed challengeId,
+        uint256 milestoneCount
+    );
+    event CommunityCampaignMilestoneProofSubmitted(
+        uint256 indexed challengeId,
+        uint256 indexed milestoneId,
+        address indexed participant,
+        string proofLink,
+        uint256 pointsAwarded,
+        uint256 pointsTotal
     );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -1371,7 +1409,7 @@ contract Delulu is
      */
     function claimScoutEarnings(uint256 deluluId) external nonReentrant {
         uint256 amount = scoutEarnings[deluluId][msg.sender];
-        require(amount > 0, "No scout earnings");
+        if (amount == 0) revert Unauthorized();
 
         scoutEarnings[deluluId][msg.sender] = 0;
 
@@ -1549,8 +1587,31 @@ contract Delulu is
         emit ChallengeCreated(challengeId, contentHash, 0, startTime, duration);
     }
 
+    /// @notice Set paid-join economics for a campaign. Call after createCommunityChallenge.
+    function setCommunityCampaignEconomics(
+        uint256 challengeId,
+        bool isPaid,
+        address joinToken,
+        uint256 joinAmount,
+        uint8 forfeitPct
+    ) external {
+        _requireCommunityOwner(challengeId);
+        if (isPaid) {
+            if (joinAmount == 0) revert InvalidJoinAmount();
+            if (forfeitPct != 0 && forfeitPct != 2 && forfeitPct != 5 && forfeitPct != 10) revert InvalidForfeitPct();
+        }
+        communityCampaignIsPaid[challengeId] = isPaid;
+        communityCampaignJoinToken[challengeId] = joinToken;
+        communityCampaignJoinAmount[challengeId] = joinAmount;
+        communityCampaignForfeitPct[challengeId] = forfeitPct;
+        emit CommunityCampaignPaidConfigured(challengeId, joinToken, joinAmount, forfeitPct);
+    }
+
     function joinCommunityCampaign(uint256 challengeId) external {
         _requireCommunityParticipating(challengeId);
+        if (communityChallengeMilestoneCount[challengeId] == 0) {
+            revert NoCommunityMilestones();
+        }
         if (communityCampaignJoined[challengeId][msg.sender]) {
             revert AlreadyJoinedCommunity();
         }
@@ -1558,8 +1619,63 @@ contract Delulu is
         emit CommunityCampaignJoined(challengeId, msg.sender);
     }
 
-    function submitCommunityProof(
+    function _getLastCommunityMilestoneDeadline(
+        uint256 challengeId
+    ) internal view returns (uint256) {
+        uint256 count = communityChallengeMilestoneCount[challengeId];
+        if (count == 0) return challenges[challengeId].startTime;
+        return communityChallengeMilestoneDeadline[challengeId][count - 1];
+    }
+
+    function _requireCommunityOwner(uint256 challengeId) internal view {
+        Challenge storage c = challenges[challengeId];
+        if (c.id == 0 || challengeKind[challengeId] != COMMUNITY_KIND) {
+            revert ChallengeNotFound();
+        }
+        address funder = challengeFunder[challengeId];
+        if (msg.sender != funder && msg.sender != owner()) revert Unauthorized();
+    }
+
+    function addCommunityCampaignMilestones(
         uint256 challengeId,
+        string[] calldata mURIs,
+        uint256[] calldata mDurations
+    ) external {
+        _requireCommunityOwner(challengeId);
+        if (communityChallengeEnded[challengeId]) revert ChallengeAlreadyEnded();
+        if (mURIs.length == 0) revert TooManyMilestones();
+        if (mURIs.length != mDurations.length) revert TooManyMilestones();
+
+        Challenge storage c = challenges[challengeId];
+        uint256 runningTime = _getLastCommunityMilestoneDeadline(challengeId);
+        uint256 campaignEnd = c.startTime + c.duration;
+        uint256 maxAllowed = campaignEnd > runningTime
+            ? (campaignEnd - runningTime) / 1 days
+            : 0;
+        if (mURIs.length > maxAllowed && maxAllowed > 0) revert TooManyMilestones();
+
+        uint256 startIndex = communityChallengeMilestoneCount[challengeId];
+
+        for (uint256 i = 0; i < mURIs.length; i++) {
+            if (mDurations[i] == 0) revert InvalidDeadlines();
+            uint256 deadline = runningTime + mDurations[i];
+            if (deadline > campaignEnd) revert InvalidDeadlines();
+            communityChallengeMilestoneURI[challengeId][startIndex + i] = mURIs[i];
+            communityChallengeMilestoneStartTime[challengeId][startIndex + i] = runningTime;
+            communityChallengeMilestoneDeadline[challengeId][startIndex + i] = deadline;
+            runningTime = deadline;
+        }
+
+        communityChallengeMilestoneCount[challengeId] = startIndex + mURIs.length;
+        emit CommunityCampaignMilestonesAdded(
+            challengeId,
+            communityChallengeMilestoneCount[challengeId]
+        );
+    }
+
+    function submitCommunityCampaignMilestoneProof(
+        uint256 challengeId,
+        uint256 milestoneId,
         string calldata proofLink,
         bool aiApproved
     ) external {
@@ -1568,33 +1684,38 @@ contract Delulu is
         if (!communityCampaignJoined[challengeId][msg.sender]) {
             revert NotJoinedCommunity();
         }
-
-        uint256 interval = communityProofInterval[challengeId];
-        uint256 lastProof = communityCampaignLastProofAt[challengeId][msg.sender];
-        if (lastProof != 0 && block.timestamp < lastProof + interval) {
-            revert ProofTooSoon();
+        if (milestoneId >= communityChallengeMilestoneCount[challengeId]) {
+            revert CommunityMilestoneNotFound();
         }
+        if (communityMilestoneCompleted[challengeId][milestoneId][msg.sender]) {
+            revert CommunityMilestoneAlreadyCompleted();
+        }
+
+        uint256 deadline = communityChallengeMilestoneDeadline[challengeId][milestoneId];
+        if (block.timestamp > deadline) revert CommunityMilestoneExpired();
+
+        communityMilestoneCompleted[challengeId][milestoneId][msg.sender] = true;
 
         uint256 points = COMMUNITY_BASE_PROOF_POINTS;
-        uint256 streak = communityCampaignStreak[challengeId][msg.sender] + 1;
-        if (streak > 1) {
-            uint256 streakBonus = streak - 1;
-            if (streakBonus > COMMUNITY_MAX_STREAK_BONUS) {
-                streakBonus = COMMUNITY_MAX_STREAK_BONUS;
-            }
-            points += streakBonus * COMMUNITY_STREAK_BONUS;
+        uint256 mStart = communityChallengeMilestoneStartTime[challengeId][milestoneId];
+        if (block.timestamp < mStart + (deadline - mStart) / 2) {
+            points += COMMUNITY_EARLY_BONUS;
         }
-
-        communityCampaignStreak[challengeId][msg.sender] = streak;
-        communityCampaignLastProofAt[challengeId][msg.sender] = block.timestamp;
+        if (
+            milestoneId > 0 &&
+            communityMilestoneCompleted[challengeId][milestoneId - 1][msg.sender]
+        ) {
+            points += COMMUNITY_STREAK_BONUS;
+        }
 
         uint256 newTotal = communityCampaignPoints[challengeId][msg.sender] + points;
         communityCampaignPoints[challengeId][msg.sender] = newTotal;
         communityChallengeTotalPoints[challengeId] += points;
         challenges[challengeId].totalPoints += points;
 
-        emit CommunityProofSubmitted(
+        emit CommunityCampaignMilestoneProofSubmitted(
             challengeId,
+            milestoneId,
             msg.sender,
             proofLink,
             points,
@@ -1648,5 +1769,6 @@ contract Delulu is
 
     // --- UPGRADE SAFETY ---
     // Reserved storage gap for future upgrades to avoid storage collisions.
-    uint256[40] private __gap;
+    // Decreased by 6 to account for the 6 new community economics mappings above.
+    uint256[29] private __gap;
 }
