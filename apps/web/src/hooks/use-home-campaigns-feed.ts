@@ -1,6 +1,7 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CommunityCampaignFeedItem,
   HomeCampaignFeedSection,
@@ -23,7 +24,7 @@ async function fetchFeedPage(
   });
   if (cursor) params.set("cursor", cursor);
 
-  const res = await fetch(`/api/community/campaigns/feed?${params}`);
+  const res = await fetch(`/api/community/campaigns/feed?${params}`, { cache: "no-store" });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error ?? "Failed to load campaigns");
   return {
@@ -36,13 +37,24 @@ export function useHomeCampaignsFeed(
   section: HomeCampaignFeedSection,
   address: string | undefined,
 ) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const onDeleted = () => {
+      void queryClient.invalidateQueries({ queryKey: ["home", "campaigns"] });
+    };
+    window.addEventListener("delulu:campaign-deleted", onDeleted);
+    return () => window.removeEventListener("delulu:campaign-deleted", onDeleted);
+  }, [queryClient]);
+
   return useInfiniteQuery({
     queryKey: homeCampaignKeys.feed(section, address ?? ""),
     queryFn: ({ pageParam }) => fetchFeedPage(section, address!, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(address),
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 

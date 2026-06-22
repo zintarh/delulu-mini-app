@@ -22,10 +22,8 @@ import {
 import { InviteSubAdminModal } from "@/components/dashboard/invite-subadmin-modal";
 import { CreateCampaignModal } from "@/components/dashboard/create-campaign-modal";
 import { CampaignCardMenu } from "@/components/dashboard/campaign-card-menu";
-import {
-  useDashboardCampaigns,
-  useDeleteCampaign,
-} from "@/hooks/dashboard/use-dashboard-campaigns";
+import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
+import { useDashboardCampaigns } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { isCampaignParticipatable } from "@/lib/community/campaign-types";
 
 type Community = {
@@ -97,9 +95,11 @@ export function CommunityDetailClient({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HubTab>("campaigns");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(
+    null,
+  );
   const { show } = useDashboardToast();
-  const deleteCampaign = useDeleteCampaign();
-  const { data: campaigns = [], refetch } = useDashboardCampaigns({ communityId });
+  const { data: campaigns = [] } = useDashboardCampaigns({ communityId });
 
   const openCampaigns = campaigns.filter((c) => isCampaignParticipatable(c.status)).length;
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
@@ -221,19 +221,9 @@ export function CommunityDetailClient({
                       communityId={communityId}
                       status={c.status}
                       title={c.title}
-                      onDelete={() => {
-                        void deleteCampaign
-                          .mutateAsync(c.id)
-                          .then(() => {
-                            show("Campaign deleted");
-                            void refetch();
-                          })
-                          .catch((err) => {
-                            show(
-                              err instanceof Error ? err.message : "Failed to delete campaign",
-                            );
-                          });
-                      }}
+                      onRequestDelete={() =>
+                        setDeleteTarget({ id: c.id, title: c.title })
+                      }
                     />
                     <StatusChip status={c.status} />
                   </div>
@@ -254,8 +244,16 @@ export function CommunityDetailClient({
           show(
             submitted ? "Campaign submitted for approval" : "Campaign saved as draft",
           );
-          void refetch();
         }}
+      />
+
+      <DeleteCampaignModal
+        open={deleteTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        campaignId={deleteTarget?.id ?? null}
+        title={deleteTarget?.title ?? ""}
       />
 
       {isPlatformAdmin ? (

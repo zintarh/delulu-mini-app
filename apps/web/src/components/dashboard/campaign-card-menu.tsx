@@ -4,26 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const DELETABLE_STATUSES = new Set(["draft", "rejected", "pending_approval"]);
+import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 
 export function CampaignCardMenu({
   campaignId,
   communityId,
   status,
   title,
-  onDelete,
+  onRequestDelete,
 }: {
   campaignId: string;
   communityId: string;
   status: string;
   title: string;
-  onDelete?: () => void;
+  onRequestDelete?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const canDelete = DELETABLE_STATUSES.has(status);
+  const canDelete = canDeleteDashboardCampaign(status);
 
   useEffect(() => {
     if (!open) return;
@@ -85,8 +84,7 @@ export function CampaignCardMenu({
                 e.preventDefault();
                 e.stopPropagation();
                 close();
-                const ok = window.confirm(`Delete "${title}"? This cannot be undone.`);
-                if (ok) onDelete?.();
+                onRequestDelete?.();
               }}
             >
               Delete

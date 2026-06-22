@@ -13,6 +13,11 @@ export const CAMPAIGN_STATUSES = [
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 
+/** Admin may delete campaigns that have not been funded on-chain yet. */
+export function canDeleteDashboardCampaign(status: string): boolean {
+  return status !== "active" && status !== "funding" && status !== "ended";
+}
+
 export const BASE_PROOF_POINTS = 10;
 export const EARLY_SUBMIT_BONUS = 2;
 export const STREAK_BONUS_PER_DAY = 1;

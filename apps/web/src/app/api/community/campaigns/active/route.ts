@@ -129,5 +129,8 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ campaigns: result, nextCursor });
+  return NextResponse.json(
+    { campaigns: result, nextCursor },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

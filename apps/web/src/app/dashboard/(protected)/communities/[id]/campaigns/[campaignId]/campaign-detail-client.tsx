@@ -3,9 +3,10 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2, Plus, Sparkles, StopCircle, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronLeft, Loader2, Plus, Sparkles, StopCircle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import {
   CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
@@ -41,6 +42,7 @@ import {
 } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { useEndCommunityChallenge } from "@/hooks/use-community-campaign-onchain";
 import { CampaignMilestonesModal } from "@/components/dashboard/campaign-milestones-modal";
+import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 
 function formatAddress(addr: string) {
@@ -241,7 +243,9 @@ export function CampaignDetailClient({
   const [draftMilestoneError, setDraftMilestoneError] = useState<string | null>(null);
   const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
   const [endError, setEndError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
@@ -379,6 +383,7 @@ export function CampaignDetailClient({
   const communityName =
     (campaign as { communities?: { name?: string } }).communities?.name ?? "Community";
   const timelineIndex = TIMELINE.indexOf(campaign.status as (typeof TIMELINE)[number]);
+  const canDelete = canDeleteDashboardCampaign(campaign.status);
 
   return (
     <DashboardPage>
@@ -394,7 +399,16 @@ export function CampaignDetailClient({
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-bold text-foreground sm:text-2xl">{campaign.title}</h1>
           <StatusChip status={campaign.status} />
-          {isPlatformAdmin && campaign.status === "active" && campaign.on_chain_challenge_id ? (
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="ml-auto flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          ) : isPlatformAdmin && campaign.status === "active" && campaign.on_chain_challenge_id ? (
             <button
               type="button"
               onClick={() => { setEndModalOpen(true); setEndStep("idle"); setEndError(null); }}
@@ -702,6 +716,14 @@ export function CampaignDetailClient({
           </DashboardPanel>
         </>
       )}
+
+      <DeleteCampaignModal
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        campaignId={campaignId}
+        title={campaign.title}
+        onDeleted={() => router.push(`/dashboard/communities/${communityId}`)}
+      />
     </DashboardPage>
   );
 }

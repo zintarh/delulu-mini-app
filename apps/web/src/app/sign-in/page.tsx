@@ -246,7 +246,7 @@ export default function SignInPage() {
                 </span>
               ) : communityName ? (
                 <>
-                  You&apos;re joining <span className="font-bold">{communityName}</span>.
+                  You&apos;re joining <span className="font-bold">{communityName} community</span>.
                   We&apos;ll confirm your invite after profile setup.
                 </>
               ) : (

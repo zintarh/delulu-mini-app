@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { exploreCampaignKeys } from "@/hooks/use-explore-campaigns";
 
 export type DashboardCampaign = {
   id: string;
@@ -225,8 +226,22 @@ export function useDeleteCampaign() {
       if (!res.ok) await parseError(res);
       return res.json();
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: dashboardCampaignKeys.all });
+    onSuccess: (_data, deletedId) => {
+      queryClient.setQueriesData<DashboardCampaign[]>(
+        { queryKey: dashboardCampaignKeys.all },
+        (campaigns) => {
+          if (!Array.isArray(campaigns)) return campaigns;
+          return campaigns.filter((c) => c.id !== deletedId);
+        },
+      );
+      queryClient.removeQueries({ queryKey: dashboardCampaignKeys.detail(deletedId) });
+      void queryClient.invalidateQueries({ queryKey: exploreCampaignKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["home", "campaigns"] });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("delulu:campaign-deleted", { detail: { id: deletedId } }),
+        );
+      }
     },
   });
 }
