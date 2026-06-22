@@ -174,9 +174,13 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (milestones.length > 0) {
-    await admin.from("campaign_milestones").insert(
+    const { error: milestonesError } = await admin.from("campaign_milestones").insert(
       milestones.map((m) => ({ ...m, campaign_id: data.id })),
     );
+    if (milestonesError) {
+      console.error("[campaigns] milestones insert error:", milestonesError);
+      return NextResponse.json({ error: milestonesError.message }, { status: 500 });
+    }
   }
 
   await logCampaignEvent(data.id, "created", session.userId, { status: "draft" });
