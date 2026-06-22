@@ -129,7 +129,7 @@ function MissionCard({
             type="button"
             disabled={isBusy}
             onClick={onSubmit}
-            className="w-full rounded-full bg-white py-2.5 text-sm font-black text-[#1a1a19] transition-opacity disabled:opacity-60 active:opacity-80"
+            className="w-full rounded-full border border-white/25 bg-white/12 py-2.5 text-sm font-black text-white backdrop-blur-sm transition-opacity disabled:opacity-50 active:opacity-70"
           >
             {isBusy ? "Uploading…" : "Submit proof →"}
           </button>
