@@ -151,15 +151,16 @@ export default function StreaksPage() {
       </header>
 
       <Suspense fallback={<StreakContentSkeleton />}>
-        <StreakContent address={address} />
+        <StreakContent address={address ?? null} />
       </Suspense>
     </main>
   );
 }
 
 function StreakContent({ address }: { address: string | null }) {
-  const { currentStreak, last7Days, isLoading } = useUserStreak(address);
-  const { myRankEntry } = useAllUsersLeaderboard(0, address);
+  const addr = address ?? undefined;
+  const { currentStreak, last7Days, isLoading } = useUserStreak(addr);
+  const { myRankEntry } = useAllUsersLeaderboard(0, addr);
   const totalPoints = myRankEntry?.points ?? null;
 
   // Last 7 day labels aligned to today = Sunday/Monday/etc.

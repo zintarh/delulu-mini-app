@@ -3,6 +3,7 @@ import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseDurationDays, parsePrizeWinnerCount } from "@/lib/community/campaign-types";
+import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import { fetchCommunityCampaignLeaderboardFromGraph } from "@/lib/community/campaign-subgraph";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
@@ -77,6 +78,7 @@ export async function GET(
     );
 
     leaderboard = graphRows.map((row) => ({
+      id: null,
       wallet_address: row.wallet_address,
       points_total: row.points_total,
       current_streak: row.current_streak,
@@ -194,8 +196,6 @@ export async function PATCH(
   return NextResponse.json({ campaign });
 }
 
-const DELETABLE_STATUSES = new Set(["draft", "rejected", "pending_approval"]);
-
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -220,9 +220,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!DELETABLE_STATUSES.has(existing.status)) {
+  if (!canDeleteDashboardCampaign(existing.status)) {
     return NextResponse.json(
-      { error: "Only draft, rejected, or pending campaigns can be deleted." },
+      { error: "Only unfunded campaigns can be deleted." },
       { status: 400 },
     );
   }

@@ -141,7 +141,7 @@ function ProfileHeader({
   const [copied, setCopied] = useState(false);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   
-  const { username: contractUsername } = useUsernameByAddress(address);
+  const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const displayUsername = contractUsername || null;
   const pfpFromSupabase = usePfp(address);
   const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
