@@ -301,7 +301,7 @@ function DiscoverCampaignsSection({
     <div className="px-4 py-2">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Discover campaigns
+          You might also like
         </p>
         <Link
           href="/explore?tab=campaigns"

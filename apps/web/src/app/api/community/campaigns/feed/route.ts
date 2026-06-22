@@ -153,9 +153,8 @@ export async function GET(request: NextRequest) {
     const isJoined = joinedCampaignIds.has(row.id);
     if (section === "joined") {
       if (!isJoined) continue;
-    } else if (isJoined) {
-      continue;
     }
+    // For "ongoing" (discover), include all campaigns — joined ones show "Joined · View →"
 
     filtered.push(row);
   }
