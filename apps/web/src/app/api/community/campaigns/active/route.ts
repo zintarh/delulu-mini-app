@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     (id) => !campaigns.find((c) => c.id === id && c.on_chain_challenge_id != null),
   );
 
-  const [batchStats, legacyCountRows, graphJoinedIds] = await Promise.all([
+  const [batchStats, legacyCountRows, graphJoinedIds, legacyMilestoneCounts] = await Promise.all([
     onChainIds.length > 0 ? fetchBatchCampaignStats(onChainIds) : Promise.resolve(new Map()),
     legacyIds.length > 0
       ? admin
@@ -81,6 +81,14 @@ export async function GET(request: NextRequest) {
     address && onChainIds.length > 0
       ? fetchJoinedChallengeIdsFromGraph(address, onChainIds)
       : Promise.resolve(new Set<number>()),
+    // Count milestones from Supabase for campaigns not yet on-chain
+    legacyIds.length > 0
+      ? admin
+          .from("campaign_milestones")
+          .select("campaign_id")
+          .in("campaign_id", legacyIds)
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]),
   ]);
 
   for (const [challengeId, stats] of batchStats) {
@@ -99,8 +107,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const legacyMilestoneCountMap = new Map<string, number>();
+  for (const row of legacyMilestoneCounts) {
+    legacyMilestoneCountMap.set(row.campaign_id, (legacyMilestoneCountMap.get(row.campaign_id) ?? 0) + 1);
+  }
+
   const milestoneCounts = campaigns.map((c) => {
-    if (!c.on_chain_challenge_id) return 0;
+    if (!c.on_chain_challenge_id) return legacyMilestoneCountMap.get(c.id) ?? 0;
     return batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0;
   });
 

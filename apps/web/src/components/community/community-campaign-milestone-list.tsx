@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 
 function formatCountdown(deadline: string) {
+  if (!deadline) return "Pending start";
   const ms = new Date(deadline).getTime() - Date.now();
   if (ms <= 0) return "Overdue";
   const days = Math.floor(ms / 86400000);
@@ -19,6 +20,9 @@ function statusMeta(m: CommunityCampaignMilestoneRow) {
   }
   if (m.is_overdue) {
     return { label: "Overdue", dot: "bg-destructive", ring: "border-destructive/30 bg-destructive/10" };
+  }
+  if (!m.deadline) {
+    return { label: "Upcoming", dot: "bg-muted-foreground", ring: "border-border bg-muted/40" };
   }
   return { label: "Active", dot: "bg-delulu-blue", ring: "border-delulu-blue/30 bg-delulu-blue-light" };
 }

@@ -79,12 +79,45 @@ export async function GET(
       myPoints = joined.pointsTotal;
     }
   } else {
-    const { count } = await admin
-      .from("campaign_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", id)
-      .eq("status", "joined");
-    participantCount = count ?? 0;
+    const [participantsResult, milestonesResult] = await Promise.all([
+      admin
+        .from("campaign_participants")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", id)
+        .eq("status", "joined"),
+      admin
+        .from("campaign_milestones")
+        .select("id, title, duration_days, order_index")
+        .eq("campaign_id", id)
+        .order("order_index", { ascending: true }),
+    ]);
+
+    participantCount = participantsResult.count ?? 0;
+
+    // Map Supabase milestones to the CommunityCampaignMilestoneRow shape.
+    // Pre-launch campaigns have no on-chain deadlines yet — deadline/start_time
+    // are left empty so the milestone list renders them as "Pending start".
+    const dbMilestones = milestonesResult.data ?? [];
+    milestoneCount = dbMilestones.length;
+    milestones = dbMilestones.map((m, i) => ({
+      milestone_id: i + 1,
+      label: m.title,
+      deadline: "",
+      start_time: "",
+      completed: false,
+      is_overdue: false,
+    }));
+
+    if (address) {
+      const { data: participant } = await admin
+        .from("campaign_participants")
+        .select("id")
+        .eq("campaign_id", id)
+        .eq("wallet_address", address)
+        .eq("status", "joined")
+        .maybeSingle();
+      isJoined = Boolean(participant);
+    }
   }
 
   if (address) {
