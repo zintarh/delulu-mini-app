@@ -9,6 +9,8 @@ interface ResponsiveSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
+  /** When true the title is sr-only everywhere — the caller renders its own visible heading */
+  hideTitleVisually?: boolean;
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
@@ -21,6 +23,7 @@ export function ResponsiveSheet({
   open,
   onOpenChange,
   title,
+  hideTitleVisually = false,
   children,
   className,
   contentClassName,
@@ -63,9 +66,13 @@ export function ResponsiveSheet({
         showClose={showClose}
       >
         {title && (
-          <ModalHeader>
-            <ModalTitle>{title}</ModalTitle>
-          </ModalHeader>
+          hideTitleVisually ? (
+            <ModalTitle className="sr-only">{title}</ModalTitle>
+          ) : (
+            <ModalHeader>
+              <ModalTitle>{title}</ModalTitle>
+            </ModalHeader>
+          )
         )}
         {children}
       </ModalContent>
