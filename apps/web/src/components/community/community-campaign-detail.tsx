@@ -209,6 +209,8 @@ export function CommunityCampaignDetail({
 }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const MILESTONES_PREVIEW = 4;
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const funded = isCampaignFunded(campaign.status);
   const endsLabel = formatEndsAt(campaign.display_ends_at);
@@ -434,12 +436,23 @@ export function CommunityCampaignDetail({
                 Milestones
               </h2>
               <CommunityCampaignMilestoneList
-                milestones={milestones}
+                milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
                 isJoined={isJoined}
                 proofBusy={proofBusy}
                 activeMilestoneId={activeMilestoneId}
                 onSubmitMilestone={onOpenProof}
               />
+              {milestones.length > MILESTONES_PREVIEW ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMilestones((v) => !v)}
+                  className="mt-3 flex w-full items-center justify-center rounded-xl border border-border/60 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  {showAllMilestones
+                    ? "Show less"
+                    : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
+                </button>
+              ) : null}
             </section>
 
             {/* Campaign details — collapsible */}
@@ -600,12 +613,23 @@ export function CommunityCampaignDetail({
                 </p>
               </div>
               <CommunityCampaignMilestoneList
-                milestones={milestones}
+                milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
                 isJoined={false}
                 proofBusy={proofBusy}
                 activeMilestoneId={activeMilestoneId}
                 onSubmitMilestone={onOpenProof}
               />
+              {milestones.length > MILESTONES_PREVIEW ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMilestones((v) => !v)}
+                  className="mt-3 flex w-full items-center justify-center rounded-xl border border-border/60 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  {showAllMilestones
+                    ? "Show less"
+                    : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
+                </button>
+              ) : null}
             </section>
           </>
         )}
