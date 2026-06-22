@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Target } from "lucide-react";
 import { ProofModal } from "@/components/proof-modal";
 import {
   CampaignExploreCard,
@@ -13,7 +12,6 @@ import {
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
 import type { CommunityCampaignFeedItem } from "@/lib/community/campaign-types";
-import { CampaignSectionSkeleton } from "@/components/community/campaign-horizontal-card";
 import {
   homeCampaignKeys,
   useHomeCampaignsFeed,
@@ -48,8 +46,101 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
   };
 }
 
+function MissionCard({
+  campaign,
+  onSubmit,
+  isBusy,
+}: {
+  campaign: ReturnType<typeof useJoinedCampaignDashboard>["data"] extends (infer T)[] | undefined
+    ? T
+    : never;
+  onSubmit: () => void;
+  isBusy: boolean;
+}) {
+  const milestone = campaign.next_milestones[0];
+  if (!milestone) return null;
+
+  const progress =
+    campaign.milestone_count > 0
+      ? `${campaign.completed_count} of ${campaign.milestone_count} done`
+      : null;
+
+  return (
+    <div className="relative h-44 overflow-hidden rounded-2xl">
+      {/* Background */}
+      {campaign.cover_image_url ? (
+        <Image
+          src={campaign.cover_image_url}
+          alt=""
+          fill
+          className="object-cover"
+          unoptimized
+        />
+      ) : (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, #4f46e5 0%, #1e1b4b 50%, #1a1a19 100%)",
+          }}
+        />
+      )}
+
+      {/* Overlay — heavy at bottom, light at top */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/15" />
+
+      {/* Scanline texture for that editorial feel */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 3px)",
+        }}
+      />
+
+      {/* Content */}
+      <div className="absolute inset-0 flex flex-col justify-between p-4">
+        {/* Top row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
+              {campaign.community.name}
+            </p>
+            <p className="truncate text-[11px] font-semibold text-white/70">
+              {campaign.title}
+            </p>
+          </div>
+          {progress ? (
+            <span className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/70 backdrop-blur-sm">
+              {progress}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Bottom */}
+        <div>
+          <p className="mb-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+            Today&apos;s milestone
+          </p>
+          <p className="mb-3.5 line-clamp-2 text-[17px] font-black leading-tight text-white">
+            {milestone.label}
+          </p>
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={onSubmit}
+            className="w-full rounded-full bg-white py-2.5 text-sm font-black text-[#1a1a19] transition-opacity disabled:opacity-60 active:opacity-80"
+          >
+            {isBusy ? "Uploading…" : "Submit proof →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
- * "Submit proof" section — shows only the active (next) milestone per joined campaign.
+ * Immersive mission cards — one per joined campaign with a pending milestone.
  * Proof modal state lives here so submissions happen without page navigation.
  */
 function TodaysMilestonesSection({ address }: { address: string }) {
@@ -66,7 +157,6 @@ function TodaysMilestonesSection({ address }: { address: string }) {
     campaignId: string;
     challengeId: number;
     milestoneId: number;
-    proofInstructions?: string | null;
   } | null>(null);
 
   const invalidate = useCallback(() => {
@@ -94,9 +184,16 @@ function TodaysMilestonesSection({ address }: { address: string }) {
     }
   };
 
-  if (isLoading) return <CampaignSectionSkeleton rows={2} />;
+  if (isLoading) {
+    return (
+      <div className="space-y-3 px-4 py-2">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-44 animate-pulse rounded-2xl bg-muted" />
+        ))}
+      </div>
+    );
+  }
 
-  // Only show campaigns that have an active (next) milestone to submit
   const active = (data ?? []).filter((c) => c.next_milestones.length > 0);
   if (active.length === 0) return null;
 
@@ -106,94 +203,54 @@ function TodaysMilestonesSection({ address }: { address: string }) {
 
   return (
     <div className="px-4 py-2">
+      {/* Section header */}
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Submit proof
+        <p
+          className="text-[11px] font-black uppercase tracking-[0.16em] text-foreground/60"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          Your missions
         </p>
+        {active.length > 1 && (
+          <Link
+            href="/communities"
+            className="text-[11px] font-semibold text-delulu-blue hover:underline"
+          >
+            {active.length} active →
+          </Link>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {visible.map((c) => (
+          <MissionCard
+            key={c.campaign_id}
+            campaign={c}
+            isBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
+            onSubmit={() => {
+              const milestone = c.next_milestones[0];
+              if (!milestone) return;
+              setActiveProof({
+                campaignId: c.campaign_id,
+                challengeId: c.challenge_id,
+                milestoneId: milestone.milestone_id,
+              });
+              setProofSuccess(false);
+              setProofError(null);
+              setProofOpen(true);
+            }}
+          />
+        ))}
+      </div>
+
+      {hiddenCount > 0 && (
         <Link
           href="/communities"
-          className="text-[11px] font-semibold text-delulu-blue hover:underline"
+          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-border/50 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
         >
-          All campaigns ({active.length}) →
+          +{hiddenCount} more campaign{hiddenCount !== 1 ? "s" : ""} →
         </Link>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-        {visible.map((c, idx) => {
-          const milestone = c.next_milestones[0];
-          const isLast = idx === visible.length - 1 && hiddenCount === 0;
-          const isBusy = proofBusy && activeProof?.campaignId === c.campaign_id;
-
-          return (
-            <div
-              key={c.campaign_id}
-              className={
-                isLast ? undefined : "border-b border-border/50"
-              }
-            >
-              <div className="flex items-center gap-3 p-3.5">
-                {/* Thumbnail */}
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-delulu-blue-light">
-                  {c.cover_image_url ? (
-                    <Image
-                      src={c.cover_image_url}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="absolute inset-0 flex items-center justify-center text-delulu-blue/40">
-                      <Target className="h-4 w-4" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-muted-foreground">
-                    {c.title}
-                  </p>
-                  <p className="truncate text-sm font-bold text-foreground">
-                    {milestone.label}
-                  </p>
-                </div>
-
-                {/* Submit button */}
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => {
-                    setActiveProof({
-                      campaignId: c.campaign_id,
-                      challengeId: c.challenge_id,
-                      milestoneId: milestone.milestone_id,
-                    });
-                    setProofSuccess(false);
-                    setProofError(null);
-                    setProofOpen(true);
-                  }}
-                  className="shrink-0 rounded-xl bg-delulu-blue px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
-                >
-                  {isBusy ? "…" : "Submit proof"}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* "N more" row */}
-        {hiddenCount > 0 ? (
-          <div className="border-t border-border/50">
-            <Link
-              href="/communities"
-              className="flex w-full items-center justify-center py-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
-            >
-              +{hiddenCount} more campaign{hiddenCount !== 1 ? "s" : ""} →
-            </Link>
-          </div>
-        ) : null}
-      </div>
+      )}
 
       <ProofModal
         open={proofOpen}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sun, Compass, Wallet } from "lucide-react";
+import { Compass, Wallet } from "lucide-react";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
@@ -34,26 +34,36 @@ function DailyEncouragement() {
   const message = getDailyEncouragement();
 
   return (
-    <div className="rounded-2xl border border-[#f6c324]/30 bg-gradient-to-r from-[#fffbeb] to-[#fffbeb]/40 px-3.5 py-3">
-      <div className="flex gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f6c324]/35 text-[#1a1a19]">
-          <Sun className="h-4 w-4" strokeWidth={2.25} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9a7b0a]"
-            style={{ fontFamily: "var(--font-manrope)" }}
-          >
-            Today&apos;s nudge
-          </p>
-          <p
-            className="mt-0.5 text-[13px] font-medium leading-snug text-[#1a1a19]/90"
-            style={{ fontFamily: "var(--font-manrope)" }}
-          >
-            {message}
-          </p>
-        </div>
+    <div
+      className="relative overflow-hidden rounded-2xl px-5 py-5"
+      style={{
+        background: [
+          "radial-gradient(ellipse at 12% 65%, rgba(246,195,36,0.28) 0%, transparent 52%)",
+          "radial-gradient(ellipse at 88% 18%, rgba(79,70,229,0.32) 0%, transparent 48%)",
+          "radial-gradient(ellipse at 55% 95%, rgba(79,70,229,0.14) 0%, transparent 45%)",
+          "#1a1a19",
+        ].join(", "),
+      }}
+    >
+      {/* Decorative accent dots */}
+      <div className="absolute right-4 top-4 flex items-center gap-1.5 opacity-40">
+        <span className="h-1 w-1 rounded-full bg-[#f6c324]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+        <span className="h-1 w-1 rounded-full bg-indigo-400" />
       </div>
+
+      <p
+        className="mb-2.5 text-[9px] font-black uppercase tracking-[0.22em] text-[#f6c324]"
+        style={{ fontFamily: "var(--font-manrope)" }}
+      >
+        Today&apos;s nudge
+      </p>
+      <p
+        className="text-[16px] font-bold leading-snug text-white"
+        style={{ fontFamily: '"Clash Display", sans-serif' }}
+      >
+        {message}
+      </p>
     </div>
   );
 }
