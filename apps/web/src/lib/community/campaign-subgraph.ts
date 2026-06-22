@@ -166,6 +166,56 @@ const JOINED_PARTICIPANTS_QUERY = `
   }
 `;
 
+const BATCH_PARTICIPANT_COUNTS_QUERY = `
+  query BatchParticipantCounts($challengeIds: [BigInt!]!) {
+    communityCampaignParticipants(
+      where: { challengeId_in: $challengeIds }
+      first: 5000
+    ) {
+      challengeId
+      id
+    }
+  }
+`;
+
+const BATCH_MILESTONE_COUNTS_QUERY = `
+  query BatchMilestoneCounts($challengeIds: [ID!]!) {
+    challenges(where: { id_in: $challengeIds }) {
+      id
+      milestoneCount
+    }
+  }
+`;
+
+const BATCH_CAMPAIGN_MILESTONES_QUERY = `
+  query BatchCampaignMilestones($challengeIds: [BigInt!]!) {
+    communityCampaignMilestones(
+      where: { challengeId_in: $challengeIds }
+      orderBy: milestoneId
+      orderDirection: asc
+      first: 1000
+    ) {
+      challengeId
+      milestoneId
+      milestoneURI
+      deadline
+      startTime
+    }
+  }
+`;
+
+const BATCH_MILESTONE_COMPLETIONS_QUERY = `
+  query BatchMilestoneCompletions($challengeIds: [BigInt!]!, $address: String!) {
+    communityCampaignMilestoneCompletions(
+      where: { challengeId_in: $challengeIds, participantAddress: $address }
+      first: 1000
+    ) {
+      challengeId
+      milestoneId
+    }
+  }
+`;
+
 export async function fetchCommunityCampaignLeaderboardFromGraph(
   challengeId: number,
   memberWallets: Set<string>,
@@ -302,6 +352,94 @@ export async function fetchCommunityCampaignMilestonesFromGraph(
   }
 }
 
+export async function fetchBatchCampaignStats(
+  challengeIds: number[],
+): Promise<Map<number, { participantCount: number; milestoneCount: number }>> {
+  if (challengeIds.length === 0) return new Map();
+  try {
+    const ids = challengeIds.map(String);
+    const [participantData, milestoneData] = await Promise.all([
+      fetchSubgraph<{ communityCampaignParticipants: Array<{ challengeId: string; id: string }> }>(
+        BATCH_PARTICIPANT_COUNTS_QUERY,
+        { challengeIds: ids },
+      ),
+      fetchSubgraph<{ challenges: Array<{ id: string; milestoneCount: string }> }>(
+        BATCH_MILESTONE_COUNTS_QUERY,
+        { challengeIds: ids },
+      ),
+    ]);
+
+    const participantCounts = new Map<number, number>();
+    for (const p of participantData.communityCampaignParticipants ?? []) {
+      const cid = Number(p.challengeId);
+      participantCounts.set(cid, (participantCounts.get(cid) ?? 0) + 1);
+    }
+
+    const milestoneCounts = new Map<number, number>();
+    for (const c of milestoneData.challenges ?? []) {
+      milestoneCounts.set(Number(c.id), Number(c.milestoneCount ?? 0));
+    }
+
+    const result = new Map<number, { participantCount: number; milestoneCount: number }>();
+    for (const cid of challengeIds) {
+      result.set(cid, {
+        participantCount: participantCounts.get(cid) ?? 0,
+        milestoneCount: milestoneCounts.get(cid) ?? 0,
+      });
+    }
+    return result;
+  } catch {
+    return new Map();
+  }
+}
+
+async function fetchBatchCampaignMilestones(
+  challengeIds: number[],
+  walletAddress: string,
+): Promise<Map<number, CommunityCampaignMilestoneRow[]>> {
+  if (challengeIds.length === 0) return new Map();
+  try {
+    const ids = challengeIds.map(String);
+    const [milestonesData, completionsData] = await Promise.all([
+      fetchSubgraph<{ communityCampaignMilestones: Array<SubgraphMilestone & { challengeId: string }> }>(
+        BATCH_CAMPAIGN_MILESTONES_QUERY,
+        { challengeIds: ids },
+      ),
+      fetchSubgraph<{ communityCampaignMilestoneCompletions: Array<SubgraphCompletion & { challengeId: string }> }>(
+        BATCH_MILESTONE_COMPLETIONS_QUERY,
+        { challengeIds: ids, address: walletAddress.toLowerCase() },
+      ),
+    ]);
+
+    const completedByChallenge = new Map<number, Set<number>>();
+    for (const c of completionsData.communityCampaignMilestoneCompletions ?? []) {
+      const cid = Number(c.challengeId);
+      if (!completedByChallenge.has(cid)) completedByChallenge.set(cid, new Set());
+      completedByChallenge.get(cid)!.add(Number(c.milestoneId));
+    }
+
+    const result = new Map<number, CommunityCampaignMilestoneRow[]>();
+    const now = Date.now();
+    for (const m of milestonesData.communityCampaignMilestones ?? []) {
+      const cid = Number(m.challengeId);
+      if (!result.has(cid)) result.set(cid, []);
+      const deadlineMs = Number(m.deadline) * 1000;
+      const completed = completedByChallenge.get(cid)?.has(Number(m.milestoneId)) ?? false;
+      result.get(cid)!.push({
+        milestone_id: Number(m.milestoneId),
+        label: m.milestoneURI,
+        deadline: new Date(deadlineMs).toISOString(),
+        start_time: new Date(Number(m.startTime) * 1000).toISOString(),
+        completed,
+        is_overdue: !completed && deadlineMs < now,
+      });
+    }
+    return result;
+  } catch {
+    return new Map();
+  }
+}
+
 export async function fetchJoinedCampaignDashboardFromGraph(
   walletAddress: string,
   challengeIdToCampaign: Map<number, { id: string; title: string; community: { name: string; slug: string }; cover_image_url: string | null; display_ends_at: string | null; duration_days: number }>,
@@ -325,34 +463,36 @@ export async function fetchJoinedCampaignDashboardFromGraph(
       }>;
     }>(JOINED_PARTICIPANTS_QUERY, { address: walletAddress.toLowerCase() });
 
-    const rows = await Promise.all(
-      (data.communityCampaignParticipants ?? []).map(async (p) => {
-        const challengeId = Number(p.challengeId);
-        const meta = challengeIdToCampaign.get(challengeId);
-        if (!meta) return null;
+    const participants = data.communityCampaignParticipants ?? [];
+    const relevantChallengeIds = participants
+      .map((p) => Number(p.challengeId))
+      .filter((cid) => challengeIdToCampaign.has(cid));
 
-        const milestones = await fetchCommunityCampaignMilestonesFromGraph(
-          challengeId,
-          walletAddress,
-        );
-        const completedCount = Number(p.completedMilestoneCount ?? 0);
-        const pending = milestones.filter((m) => !m.completed);
-        const next_milestones = pending.slice(0, 2);
+    const batchedMilestones = await fetchBatchCampaignMilestones(relevantChallengeIds, walletAddress);
 
-        return {
-          campaign_id: meta.id,
-          challenge_id: challengeId,
-          title: meta.title,
-          community: meta.community,
-          cover_image_url: meta.cover_image_url,
-          display_ends_at: meta.display_ends_at,
-          duration_days: meta.duration_days,
-          milestone_count: milestones.length,
-          completed_count: completedCount,
-          next_milestones,
-        };
-      }),
-    );
+    const rows = participants.map((p) => {
+      const challengeId = Number(p.challengeId);
+      const meta = challengeIdToCampaign.get(challengeId);
+      if (!meta) return null;
+
+      const milestones = batchedMilestones.get(challengeId) ?? [];
+      const completedCount = Number(p.completedMilestoneCount ?? 0);
+      const pending = milestones.filter((m) => !m.completed);
+      const next_milestones = pending.slice(0, 2);
+
+      return {
+        campaign_id: meta.id,
+        challenge_id: challengeId,
+        title: meta.title,
+        community: meta.community,
+        cover_image_url: meta.cover_image_url,
+        display_ends_at: meta.display_ends_at,
+        duration_days: meta.duration_days,
+        milestone_count: milestones.length,
+        completed_count: completedCount,
+        next_milestones,
+      };
+    });
 
     return rows.filter((r): r is NonNullable<typeof r> => r != null);
   } catch {

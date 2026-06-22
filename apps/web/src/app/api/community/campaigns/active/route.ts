@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  fetchCommunityCampaignMilestoneCountFromGraph,
-  fetchCommunityCampaignParticipantCountFromGraph,
+  fetchBatchCampaignStats,
   fetchJoinedChallengeIdsFromGraph,
 } from "@/lib/community/campaign-subgraph";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-
-export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -60,51 +57,52 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (onChainIds.length > 0) {
-    const challengeIdToCampaignId = new Map<number, string>();
-    for (const c of campaigns) {
-      if (c.on_chain_challenge_id != null) {
-        challengeIdToCampaignId.set(c.on_chain_challenge_id, c.id);
-      }
-    }
-
-    if (address) {
-      const graphJoinedIds = await fetchJoinedChallengeIdsFromGraph(address, onChainIds);
-      for (const challengeId of graphJoinedIds) {
-        const campaignId = challengeIdToCampaignId.get(challengeId);
-        if (campaignId) joinedSet.add(campaignId);
-      }
-    }
-
-    await Promise.all(
-      onChainIds.map(async (challengeId) => {
-        const campaignId = challengeIdToCampaignId.get(challengeId);
-        if (!campaignId) return;
-        const count = await fetchCommunityCampaignParticipantCountFromGraph(challengeId);
-        countMap.set(campaignId, count);
-      }),
-    );
-  }
-
-  const legacyIds = campaignIds.filter((id) => !countMap.has(id));
-  if (legacyIds.length > 0) {
-    const { data: countRows } = await admin
-      .from("campaign_participants")
-      .select("campaign_id")
-      .in("campaign_id", legacyIds)
-      .eq("status", "joined");
-
-    for (const row of countRows ?? []) {
-      countMap.set(row.campaign_id, (countMap.get(row.campaign_id) ?? 0) + 1);
+  const challengeIdToCampaignId = new Map<number, string>();
+  for (const c of campaigns) {
+    if (c.on_chain_challenge_id != null) {
+      challengeIdToCampaignId.set(c.on_chain_challenge_id, c.id);
     }
   }
 
-  const milestoneCounts = await Promise.all(
-    campaigns.map(async (c) => {
-      if (!c.on_chain_challenge_id) return 0;
-      return fetchCommunityCampaignMilestoneCountFromGraph(c.on_chain_challenge_id);
-    }),
+  const legacyIds = campaignIds.filter(
+    (id) => !campaigns.find((c) => c.id === id && c.on_chain_challenge_id != null),
   );
+
+  const [batchStats, legacyCountRows, graphJoinedIds] = await Promise.all([
+    onChainIds.length > 0 ? fetchBatchCampaignStats(onChainIds) : Promise.resolve(new Map()),
+    legacyIds.length > 0
+      ? admin
+          .from("campaign_participants")
+          .select("campaign_id")
+          .in("campaign_id", legacyIds)
+          .eq("status", "joined")
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]),
+    address && onChainIds.length > 0
+      ? fetchJoinedChallengeIdsFromGraph(address, onChainIds)
+      : Promise.resolve(new Set<number>()),
+  ]);
+
+  for (const [challengeId, stats] of batchStats) {
+    const campaignId = challengeIdToCampaignId.get(challengeId);
+    if (campaignId) countMap.set(campaignId, stats.participantCount);
+  }
+
+  for (const row of legacyCountRows) {
+    countMap.set(row.campaign_id, (countMap.get(row.campaign_id) ?? 0) + 1);
+  }
+
+  if (address) {
+    for (const challengeId of graphJoinedIds) {
+      const campaignId = challengeIdToCampaignId.get(challengeId);
+      if (campaignId) joinedSet.add(campaignId);
+    }
+  }
+
+  const milestoneCounts = campaigns.map((c) => {
+    if (!c.on_chain_challenge_id) return 0;
+    return batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0;
+  });
 
   const result = campaigns.map((c, index) => {
     const community = Array.isArray(c.communities) ? c.communities[0] : c.communities;
@@ -129,8 +127,12 @@ export async function GET(request: NextRequest) {
     };
   });
 
+  const cacheControl = address
+    ? "private, no-store"
+    : "public, s-maxage=60, stale-while-revalidate=120";
+
   return NextResponse.json(
     { campaigns: result, nextCursor },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: { "Cache-Control": cacheControl } },
   );
 }

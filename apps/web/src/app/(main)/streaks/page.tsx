@@ -125,8 +125,6 @@ export default function StreaksPage() {
     if (isReady && !authenticated) router.replace("/sign-in");
   }, [isReady, authenticated, router]);
 
-  if (!isReady || !authenticated) return <StreakSkeleton />;
-
   return (
     <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background">
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
@@ -150,9 +148,13 @@ export default function StreaksPage() {
         </div>
       </header>
 
-      <Suspense fallback={<StreakContentSkeleton />}>
-        <StreakContent address={address ?? null} />
-      </Suspense>
+      {isReady && authenticated ? (
+        <Suspense fallback={<StreakContentSkeleton />}>
+          <StreakContent address={address ?? null} />
+        </Suspense>
+      ) : (
+        <StreakContentSkeleton />
+      )}
     </main>
   );
 }

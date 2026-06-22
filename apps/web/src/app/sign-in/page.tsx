@@ -127,14 +127,6 @@ export default function SignInPage() {
     void openEmailWeb3Auth();
   };
 
-  if (!isReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   if (authenticated && (isCheckingAccount || routeState === "loading" || routeState === "redirecting_home" || routeState === "redirecting_welcome")) {
     const label =
       routeState === "redirecting_welcome"

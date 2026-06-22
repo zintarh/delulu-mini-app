@@ -197,7 +197,7 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
       setRestoreTimedOut(false);
       return;
     }
-    const id = window.setTimeout(() => setRestoreTimedOut(true), 12_000);
+    const id = window.setTimeout(() => setRestoreTimedOut(true), 3_000);
     return () => window.clearTimeout(id);
   }, [sessionHint, authenticated]);
 

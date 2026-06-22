@@ -15,7 +15,7 @@ import {
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // address-specific, cannot be CDN-cached
 
 const DEFAULT_LIMIT = 4;
 const ONGOING_HOME_LIMIT = 3;
@@ -91,23 +91,9 @@ export async function GET(request: NextRequest) {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
-  const { data: joinedParticipants } = await admin
-    .from("campaign_participants")
-    .select("campaign_id, current_streak, points_total")
-    .eq("wallet_address", address)
-    .eq("status", "joined");
-
-  const joinedCampaignIds = new Set((joinedParticipants ?? []).map((p) => p.campaign_id));
-  const participantDataMap = new Map(
-    (joinedParticipants ?? []).map((p) => [
-      p.campaign_id,
-      { streak: p.current_streak ?? 0, points: p.points_total ?? 0 },
-    ]),
-  );
-
   const decoded = cursor ? decodeFeedCursor(cursor) : null;
 
-  let query = admin
+  let campaignsQuery = admin
     .from("community_campaigns")
     .select(CAMPAIGN_FEED_SELECT)
     .in("status", [...PARTICIPATING_STATUSES])
@@ -116,10 +102,25 @@ export async function GET(request: NextRequest) {
     .limit(FETCH_BATCH);
 
   if (decoded) {
-    query = query.lt("created_at", decoded.createdAt);
+    campaignsQuery = campaignsQuery.lt("created_at", decoded.createdAt);
   }
 
-  const { data: rows, error } = await query;
+  const [{ data: joinedParticipants }, { data: rows, error }] = await Promise.all([
+    admin
+      .from("campaign_participants")
+      .select("campaign_id, current_streak, points_total")
+      .eq("wallet_address", address)
+      .eq("status", "joined"),
+    campaignsQuery,
+  ]);
+
+  const joinedCampaignIds = new Set((joinedParticipants ?? []).map((p) => p.campaign_id));
+  const participantDataMap = new Map(
+    (joinedParticipants ?? []).map((p) => [
+      p.campaign_id,
+      { streak: p.current_streak ?? 0, points: p.points_total ?? 0 },
+    ]),
+  );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const onChainIds = (rows ?? [])

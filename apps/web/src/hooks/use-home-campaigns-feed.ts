@@ -24,7 +24,7 @@ async function fetchFeedPage(
   });
   if (cursor) params.set("cursor", cursor);
 
-  const res = await fetch(`/api/community/campaigns/feed?${params}`, { cache: "no-store" });
+  const res = await fetch(`/api/community/campaigns/feed?${params}`);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error ?? "Failed to load campaigns");
   return {
@@ -53,8 +53,8 @@ export function useHomeCampaignsFeed(
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(address),
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

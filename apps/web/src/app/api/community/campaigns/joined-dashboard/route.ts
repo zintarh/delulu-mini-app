@@ -4,7 +4,7 @@ import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/c
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // per-user data, must stay dynamic
 
 export async function GET(request: NextRequest) {
   const address = new URL(request.url).searchParams.get("address")?.trim().toLowerCase();

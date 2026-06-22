@@ -53,14 +53,16 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     ALL_USERS_QUERY,
     {
       variables: { first: PAGE_SIZE, skip: page * PAGE_SIZE },
-      fetchPolicy: "cache-and-network",
+      fetchPolicy: "cache-first",
+      nextFetchPolicy: "cache-first",
     }
   );
 
   const { data: rankData, loading: rankLoading, error: rankError } = useQuery<{
     users: { id: string; deluluPoints: string }[];
   }>(ALL_USERS_RANK_QUERY, {
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-first",
   });
 
   if (error) {

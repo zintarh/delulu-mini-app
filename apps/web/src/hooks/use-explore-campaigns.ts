@@ -17,9 +17,7 @@ async function fetchActivePage(
   if (cursor) params.set("cursor", cursor);
   if (address) params.set("address", address);
 
-  const res = await fetch(`/api/community/campaigns/active?${params}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(`/api/community/campaigns/active?${params}`);
   if (!res.ok) throw new Error("Failed to load campaigns");
   return res.json();
 }
@@ -40,7 +38,7 @@ export function useExploreCampaigns(address?: string) {
     queryFn: ({ pageParam }) => fetchActivePage(address, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
