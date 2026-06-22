@@ -727,18 +727,6 @@ export function CommunityCampaignDetail({
         </section>
       </main>
 
-      {/* Sticky join bar — non-joined mobile */}
-      {!isJoined && authenticated && milestoneCount > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md">
-          <JoinButton
-            joining={joining}
-            milestoneCount={milestoneCount}
-            onJoin={() => setJoinModalOpen(true)}
-            size="large"
-            className="w-full"
-          />
-        </div>
-      ) : null}
 
       <ProofModal
         open={proofOpen}
