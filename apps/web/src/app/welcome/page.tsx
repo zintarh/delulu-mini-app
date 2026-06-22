@@ -183,7 +183,15 @@ export default function WelcomePage() {
     if (!isSuccess || !address || savedRef.current) return;
     savedRef.current = true;
 
+    // Never store a placeholder — the form now requires a non-empty email before submit.
     const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+    if (!email.trim()) {
+      // Shouldn't reach here since canSubmitProfile already requires email,
+      // but guard against any edge case to avoid polluting the profile row.
+      savedRef.current = false;
+      setProfileSaveError("Please enter an email address before continuing.");
+      return;
+    }
 
     (async () => {
       setProfileSaveError(null);
@@ -268,7 +276,11 @@ export default function WelcomePage() {
   const isSubmittingProfile = isPending || isSuccess;
   const usernameTooShort = username.trim().length > 0 && username.trim().length < 3;
   const canSubmitProfile =
-    username.trim().length >= 3 && !!pfpUrl && !isSubmittingProfile && !isUploading;
+    username.trim().length >= 3 &&
+    !!pfpUrl &&
+    !!email.trim() &&
+    !isSubmittingProfile &&
+    !isUploading;
   const missingPfp = touched.pfp && !pfpUrl && !isUploading;
   const missingUsername = touched.username && !username.trim();
   const showUsernameTooShort = touched.username && usernameTooShort;

@@ -3,11 +3,6 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * Update profile email only (real inbox — not @wallet.local).
- * Caller must be updating their own row; app trusts wallet session context from client
- * (same pattern as other profile routes).
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -26,13 +21,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database not configured" }, { status: 503 });
     }
 
-    const { data: taken, error: takenErr } = await supabase
+    // Use limit(1) instead of maybeSingle() — maybeSingle() throws PGRST116 when
+    // multiple rows match, which surfaces as a 500. limit(1) is always safe.
+    const { data: takenRows, error: takenErr } = await supabase
       .from("profiles")
       .select("address")
       .eq("email", emailRaw)
-      .maybeSingle();
+      .limit(1);
 
     if (takenErr) throw takenErr;
+
+    const taken = takenRows?.[0] ?? null;
     if (taken && String((taken as { address: string }).address).toLowerCase() !== addressRaw) {
       return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
@@ -46,7 +45,15 @@ export async function POST(request: NextRequest) {
       .eq("address", addressRaw)
       .select("address");
 
-    if (updateErr) throw updateErr;
+    if (updateErr) {
+      // Unique constraint violation — another address claimed this email between
+      // our check and the update (race condition).
+      if ((updateErr as any).code === "23505") {
+        return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+      }
+      throw updateErr;
+    }
+
     if (!updated?.length) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }

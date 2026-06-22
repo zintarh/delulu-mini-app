@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const DISMISS_KEY = "delulu_email_prompt_dismissed_v1";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isExcludedPath(pathname: string): boolean {
   if (pathname.startsWith("/sign-in")) return true;
@@ -111,8 +112,50 @@ export function EmailCaptureGate() {
     }
   }, [authProviderEmail]);
 
+  // When the modal opens with a valid prefilled email (e.g. from Web3Auth),
+  // auto-submit it silently so the user doesn't have to click "Save email".
+  const autoSaveAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!open || autoSaveAttemptedRef.current) return;
+    const trimmed = input.trim().toLowerCase();
+    if (
+      !address ||
+      !trimmed ||
+      !EMAIL_RE.test(trimmed) ||
+      trimmed.endsWith("@wallet.local")
+    ) return;
+
+    autoSaveAttemptedRef.current = true;
+    setSubmitting(true);
+    fetch("/api/profile/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: address.toLowerCase(), email: trimmed }),
+    })
+      .then((res) => res.json().then((json) => ({ ok: res.ok, json })))
+      .then(({ ok, json }) => {
+        if (ok) {
+          closedAfterSuccessRef.current = true;
+          updateProfile({ email: trimmed });
+          setProfile((prev) => (prev ? { ...prev, email: trimmed } : prev));
+          setOpen(false);
+          queueMicrotask(() => { closedAfterSuccessRef.current = false; });
+        } else {
+          // Auto-save failed — show the modal for manual entry
+          setError(typeof json.error === "string" ? json.error : null);
+        }
+      })
+      .catch(() => {
+        // Network error — let the user save manually
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  }, [open, input, address, updateProfile]);
+
   useEffect(() => {
     setLocalDismissed(false);
+    autoSaveAttemptedRef.current = false;
   }, [address]);
 
   const needsEmail = useMemo(() => {
