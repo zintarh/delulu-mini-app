@@ -18,7 +18,7 @@ import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 export const dynamic = "force-dynamic"; // address-specific, cannot be CDN-cached
 
 const DEFAULT_LIMIT = 4;
-const ONGOING_HOME_LIMIT = 3;
+const ONGOING_HOME_LIMIT = 5;
 const MAX_LIMIT = 20;
 const FETCH_BATCH = 40;
 
@@ -153,8 +153,9 @@ export async function GET(request: NextRequest) {
     const isJoined = joinedCampaignIds.has(row.id);
     if (section === "joined") {
       if (!isJoined) continue;
+    } else if (isJoined) {
+      continue; // Discover section shows only campaigns the user has not joined
     }
-    // For "ongoing" (discover), include all campaigns — joined ones show "Joined · View →"
 
     filtered.push(row);
   }

@@ -282,7 +282,7 @@ function DiscoverCampaignsSection({
   joinError: string | null;
 }) {
   const { data, isLoading } = useHomeCampaignsFeed("ongoing", address);
-  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 4);
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 5);
 
   if (isLoading) {
     return (
@@ -295,7 +295,7 @@ function DiscoverCampaignsSection({
     );
   }
 
-  if (campaigns.length === 0) return null;
+  if (campaigns.length === 0) return null; // nothing new to discover — don't show empty section
 
   return (
     <div className="px-4 py-2">
