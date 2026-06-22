@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Target, Trophy, Users } from "lucide-react";
+import { Loader2, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded } from "@/lib/community/campaign-types";
-import { CampaignActionButton } from "@/components/community/campaign-horizontal-card";
 
 export type CampaignExploreCardData = {
   id: string;
@@ -21,11 +20,6 @@ export type CampaignExploreCardData = {
   community: { name: string; slug: string } | null;
 };
 
-function daysLeft(displayEndsAt: string | null, durationDays: number) {
-  if (!displayEndsAt) return durationDays;
-  return Math.max(0, Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000));
-}
-
 export function CampaignExploreCard({
   campaign,
   joining,
@@ -38,73 +32,91 @@ export function CampaignExploreCard({
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
   const poolAmount = campaign.proposedPoolAmount;
-  const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
   const hasMilestones = campaign.milestoneCount > 0;
+  const communityName = campaign.community?.name ?? "Community";
 
   return (
-    <article className="flex flex-col rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
-      <Link href={href} className="block">
-        <div className="relative mb-4 aspect-[3/2] w-full overflow-hidden rounded-2xl bg-delulu-blue-light/60">
-          {campaign.coverImageUrl ? (
-            <Image
-              src={campaign.coverImageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          ) : (
-            <span className="absolute inset-0 flex items-center justify-center text-delulu-blue/50">
-              <Target className="h-12 w-12" />
-            </span>
-          )}
-        </div>
-        <p
-          className="line-clamp-2 text-base font-bold leading-snug text-foreground sm:text-lg"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
-        >
-          {campaign.title}
-        </p>
-        <p className="mt-1.5 truncate text-sm text-muted-foreground">
-          {campaign.community?.name ?? "Community"} · {left}d left
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+    <article className="relative overflow-hidden rounded-2xl bg-black shadow-[0_4px_20px_rgba(0,0,0,0.14)]">
+      <div className="relative aspect-[3/4]">
+        {/* Cover image or fallback */}
+        {campaign.coverImageUrl ? (
+          <Image
+            src={campaign.coverImageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            unoptimized
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]">
+            <Target className="h-12 w-12 text-white/20" />
+          </div>
+        )}
+
+        {/* Gradient overlay — heavier at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+
+        {/* Top: community pill + prize badge */}
+        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+          <span className="max-w-[65%] truncate rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+            {communityName}
+          </span>
           {funded && poolAmount > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#fffbeb] px-2.5 py-1 text-sm font-bold text-[#9a7b0a]">
-              <Trophy className="h-3.5 w-3.5" />
-              {poolAmount} G$ prize pool
-            </span>
-          ) : poolAmount > 0 ? (
-            <span className="text-sm text-muted-foreground">
-              {poolAmount} G$ proposed ·{" "}
-              <span className="font-medium text-foreground/80">not funded</span>
-            </span>
-          ) : (
-            <span className="text-sm font-medium text-muted-foreground">Not funded</span>
-          )}
-          {campaign.participantCount > 0 ? (
-            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              {campaign.participantCount}
+            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-yellow-400 px-2 py-1 text-[10px] font-black text-black">
+              <Trophy className="h-2.5 w-2.5" />
+              {poolAmount} G$
             </span>
           ) : null}
         </div>
-      </Link>
 
-      <div className="mt-4">
-        {campaign.isJoined ? (
-          <CampaignActionButton href={href} variant="muted" fullWidth>
-            Joined · View →
-          </CampaignActionButton>
-        ) : hasMilestones ? (
-          <CampaignActionButton disabled={joining} onClick={onJoin} fullWidth>
-            {joining ? "Joining…" : "Join"}
-          </CampaignActionButton>
-        ) : (
-          <CampaignActionButton href={href} variant="muted" fullWidth>
-            Milestones coming soon
-          </CampaignActionButton>
-        )}
+        {/* Bottom: stats + title + CTA */}
+        <div className="absolute inset-x-0 bottom-0 p-3.5">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] text-white/60">
+            <Users className="h-3 w-3 shrink-0" />
+            {campaign.participantCount > 0
+              ? `${campaign.participantCount} joined`
+              : `${campaign.durationDays}d`}
+            {hasMilestones ? ` · ${campaign.milestoneCount} milestones` : ""}
+          </p>
+          <h3
+            className="mb-3 line-clamp-2 text-sm font-black leading-tight text-white sm:text-base"
+            style={{ fontFamily: '"Clash Display", sans-serif' }}
+          >
+            {campaign.title}
+          </h3>
+
+          {campaign.isJoined ? (
+            <Link
+              href={href}
+              className="block w-full rounded-xl bg-white/20 py-2.5 text-center text-xs font-bold text-white backdrop-blur-sm"
+            >
+              Joined · View →
+            </Link>
+          ) : hasMilestones ? (
+            <button
+              type="button"
+              disabled={joining}
+              onClick={onJoin}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-xs font-black text-black hover:bg-white/90 disabled:opacity-70"
+            >
+              {joining ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Joining…
+                </>
+              ) : (
+                "Join →"
+              )}
+            </button>
+          ) : (
+            <Link
+              href={href}
+              className="block w-full rounded-xl bg-white/10 py-2.5 text-center text-xs font-bold text-white/50 backdrop-blur-sm"
+            >
+              Milestones soon
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -112,16 +124,8 @@ export function CampaignExploreCard({
 
 export function CampaignExploreCardSkeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        "flex animate-pulse flex-col rounded-2xl border border-border/60 bg-card p-4 sm:p-5",
-        className,
-      )}
-    >
-      <div className="mb-4 aspect-[3/2] w-full rounded-2xl bg-muted" />
-      <div className="h-5 w-3/4 rounded bg-muted" />
-      <div className="mt-2 h-4 w-1/2 rounded bg-muted/80" />
-      <div className="mt-4 h-9 w-full rounded-xl bg-muted" />
+    <div className={cn("relative overflow-hidden rounded-2xl bg-muted", className)}>
+      <div className="animate-pulse aspect-[3/4] bg-gradient-to-br from-muted to-muted-foreground/10" />
     </div>
   );
 }

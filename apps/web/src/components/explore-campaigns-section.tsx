@@ -73,8 +73,8 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        {[1, 2, 3, 4].map((i) => (
           <CampaignExploreCardSkeleton key={i} />
         ))}
       </div>
@@ -113,7 +113,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
           {joinError}
         </p>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}

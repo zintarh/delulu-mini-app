@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Calendar,
+  ChevronDown,
   ChevronLeft,
   Clock,
   Flame,
@@ -66,6 +67,16 @@ function formatEndsAt(iso: string | null) {
 function daysRemaining(displayEndsAt: string | null, durationDays: number) {
   if (!displayEndsAt) return durationDays;
   return Math.max(0, Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000));
+}
+
+function milestoneCountdown(deadline: string) {
+  if (!deadline) return "Pending start";
+  const ms = new Date(deadline).getTime() - Date.now();
+  if (ms <= 0) return "Overdue";
+  const days = Math.floor(ms / 86400000);
+  if (days >= 1) return `${days}d left`;
+  const hours = Math.ceil(ms / 3600000);
+  return `${hours}h left`;
 }
 
 function JoinButton({
@@ -197,6 +208,7 @@ export function CommunityCampaignDetail({
   onProofDone: () => void;
 }) {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const funded = isCampaignFunded(campaign.status);
   const endsLabel = formatEndsAt(campaign.display_ends_at);
@@ -212,8 +224,6 @@ export function CommunityCampaignDetail({
   const showClaimNote = inPrizeZone && isJoined && !isCommunityMember && funded;
 
   const completedCount = milestones.filter((m) => m.completed).length;
-  const progressPct =
-    milestoneCount > 0 ? Math.round((completedCount / milestoneCount) * 100) : 0;
 
   const nextMilestone = useMemo(
     () => milestones.find((m) => !m.completed) ?? null,
@@ -238,62 +248,14 @@ export function CommunityCampaignDetail({
     active: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
   }[campaignPhase];
 
-  function renderPrimaryCta(className?: string) {
-    if (!authenticated) {
-      return (
-        <Link
-          href="/sign-in"
-          className={cn(
-            "inline-flex items-center justify-center rounded-xl bg-delulu-blue px-6 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] hover:bg-delulu-blue/90",
-            className,
-          )}
-        >
-          Sign in to join
-        </Link>
-      );
-    }
-    if (isJoined && nextMilestone) {
-      return (
-        <button
-          type="button"
-          disabled={proofBusy}
-          onClick={() => onOpenProof(nextMilestone.milestone_id)}
-          className={cn(
-            "rounded-xl bg-delulu-blue px-6 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] hover:bg-delulu-blue/90 disabled:opacity-50",
-            className,
-          )}
-        >
-          {proofBusy ? "Submitting…" : "Submit next proof"}
-        </button>
-      );
-    }
-    if (isJoined) {
-      return (
-        <div className={cn("text-center text-sm", className)}>
-          <p className="font-bold text-foreground">
-            {myRank ? `Rank #${myRank}` : "All milestones complete"}
-          </p>
-          {myPoints > 0 ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{myPoints} points earned</p>
-          ) : null}
-        </div>
-      );
-    }
-    return (
-      <JoinButton
-        joining={joining}
-        milestoneCount={milestoneCount}
-        onJoin={() => setJoinModalOpen(true)}
-        size="large"
-        className={className}
-      />
-    );
-  }
+  /* ─── Hero (slimmer for joined users) ─── */
+  const heroAspect = isJoined ? "aspect-[2/1]" : "aspect-[16/9] sm:aspect-[2/1]";
 
   return (
     <>
-      <main className="mx-auto max-w-2xl pb-24">
-        {/* Hero */}
+      <main className="mx-auto max-w-2xl pb-28">
+
+        {/* ── Back nav + Hero ── */}
         <div className="relative px-4 pt-2">
           <Link
             href={`/communities/${communitySlug}`}
@@ -305,7 +267,7 @@ export function CommunityCampaignDetail({
 
           <div className="relative overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
             {campaign.cover_image_url ? (
-              <div className="relative aspect-[16/9] w-full sm:aspect-[2/1]">
+              <div className={cn("relative w-full", heroAspect)}>
                 <Image
                   src={campaign.cover_image_url}
                   alt=""
@@ -317,7 +279,12 @@ export function CommunityCampaignDetail({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
               </div>
             ) : (
-              <div className="aspect-[16/9] w-full bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a] sm:aspect-[2/1]" />
+              <div
+                className={cn(
+                  "w-full bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]",
+                  heroAspect,
+                )}
+              />
             )}
 
             <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
@@ -343,7 +310,8 @@ export function CommunityCampaignDetail({
               >
                 {campaign.title}
               </h1>
-              {campaign.description ? (
+              {/* Description only shown on hero for non-joined (evaluators need context) */}
+              {!isJoined && campaign.description ? (
                 <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/85">
                   {campaign.description}
                 </p>
@@ -352,7 +320,7 @@ export function CommunityCampaignDetail({
           </div>
         </div>
 
-        {/* Hosted by */}
+        {/* ── Hosted by ── */}
         <div className="mt-4 px-4">
           <p className="text-[11px] text-muted-foreground">
             Hosted by{" "}
@@ -365,156 +333,284 @@ export function CommunityCampaignDetail({
           </p>
         </div>
 
-        {/* Action card */}
-        <div className="relative z-10 mx-4 mt-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                {isJoined ? "Your progress" : "Ready to compete?"}
-              </p>
-              {isJoined && milestoneCount > 0 ? (
-                <div className="mt-1.5 flex items-center gap-3">
-                  <div className="relative h-10 w-10">
-                    <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/30" />
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeDasharray={`${progressPct} 100`}
-                        strokeLinecap="round"
-                        className="text-delulu-blue"
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-delulu-blue">
-                      {progressPct}%
-                    </span>
+        {/* ════════════════════════════════════════════
+            JOINED PATH — action-first layout
+            ════════════════════════════════════════════ */}
+        {isJoined ? (
+          <>
+            {/* "Today's proof" card */}
+            <div className="mx-4 mt-4">
+              {nextMilestone ? (
+                <div className="overflow-hidden rounded-2xl border border-delulu-blue/30 bg-delulu-blue-light/30">
+                  <div className="flex items-start gap-3 border-l-4 border-delulu-blue p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-delulu-blue">
+                          Today&apos;s proof
+                        </p>
+                        {myStreak > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-600">
+                            <Flame className="h-3 w-3" />
+                            {myStreak} streak
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm font-bold text-foreground">
+                        {nextMilestone.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {milestoneCountdown(nextMilestone.deadline)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
-                      {completedCount}/{milestoneCount} milestones
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {daysLeft}d left · {participantCount} joined
-                    </p>
+                  <div className="border-t border-delulu-blue/20 px-4 pb-4 pt-3">
+                    <button
+                      type="button"
+                      disabled={proofBusy}
+                      onClick={() => onOpenProof(nextMilestone.milestone_id)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-50"
+                    >
+                      {proofBusy ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Submitting…
+                        </>
+                      ) : (
+                        "Submit proof"
+                      )}
+                    </button>
                   </div>
                 </div>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {milestoneCount === 0
-                    ? "Host is adding milestones"
-                    : `${participantCount} participant${participantCount !== 1 ? "s" : ""} · ${daysLeft}d left`}
-                </p>
+                // All milestones complete
+                <div className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/8">
+                  <div className="border-l-4 border-emerald-500 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+                      🎉 All milestones complete
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {myRank
+                        ? `You're ranked #${myRank}`
+                        : "Waiting for campaign to end"}
+                      {myPoints > 0 ? ` · ${myPoints} pts` : ""}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-            <div>{renderPrimaryCta()}</div>
-          </div>
 
-          {isJoined && (myStreak > 0 || myPoints > 0) ? (
-            <div className="mt-3 flex flex-wrap gap-2 border-t border-border/50 pt-3">
-              {myStreak > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-600">
-                  <Flame className="h-3.5 w-3.5" />
-                  {myStreak} streak
-                </span>
-              ) : null}
+            {/* Progress strip (compact chips) */}
+            <div className="mt-3 flex flex-wrap items-center gap-2 px-4">
+              <span className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-bold tabular-nums text-foreground">
+                {completedCount}/{milestoneCount} milestones
+              </span>
               {myPoints > 0 ? (
-                <span className="rounded-lg bg-delulu-blue-light px-2.5 py-1 text-xs font-bold tabular-nums text-delulu-blue">
+                <span className="rounded-lg bg-delulu-blue-light px-2.5 py-1.5 text-xs font-bold tabular-nums text-delulu-blue">
                   {myPoints} pts
                 </span>
               ) : null}
               {myRank ? (
-                <span className="rounded-lg bg-muted px-2.5 py-1 text-xs font-bold text-foreground">
+                <span className="rounded-lg bg-muted px-2.5 py-1.5 text-xs font-bold text-foreground">
                   Rank #{myRank}
                 </span>
               ) : null}
+              <span className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">
+                {daysLeft}d left
+              </span>
             </div>
-          ) : null}
 
-          {actionError ? (
-            <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {actionError}
-            </p>
-          ) : null}
-        </div>
-
-        {/* Stats strip */}
-        <div className="mt-4 overflow-x-auto px-4 scrollbar-hide">
-          <div className="flex gap-2 pb-1">
-            {funded && campaign.proposed_pool_amount > 0 ? (
-              <StatPill
-                icon={Trophy}
-                label="Prize"
-                value={`${campaign.proposed_pool_amount} G$`}
-                accent
-              />
+            {actionError ? (
+              <p className="mx-4 mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {actionError}
+              </p>
             ) : null}
-            <StatPill
-              icon={Target}
-              label="Milestones"
-              value={milestoneCount > 0 ? `${completedCount}/${milestoneCount}` : "Soon"}
-            />
-            <StatPill icon={Clock} label="Time left" value={`${daysLeft}d`} />
-            <StatPill icon={Calendar} label="Ends" value={endsLabel ?? `${campaign.duration_days}d`} />
-            <StatPill icon={Users} label="Winners" value={`Top ${topN}`} />
-          </div>
-        </div>
 
-        {/* How it works — moved up, visual cards */}
-        <section className="mt-6 px-4">
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            How it works
-          </h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border/60 bg-card p-3.5">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
-                <Trophy className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-foreground">Win the pool</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Top {topN} on the leaderboard split the prize when the campaign ends.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-card p-3.5">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-foreground">Submit proof</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {campaign.proof_instructions ??
-                  "Complete each milestone and upload proof to earn points."}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Milestones */}
-        <section className="mt-6 px-4">
-          <div className="mb-3 flex items-end justify-between gap-2">
-            <div>
-              <h2 className="text-base font-black text-foreground" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+            {/* All milestones */}
+            <section className="mt-5 px-4">
+              <h2
+                className="mb-3 text-base font-black text-foreground"
+                style={{ fontFamily: '"Clash Display", sans-serif' }}
+              >
                 Milestones
               </h2>
-              <p className="text-xs text-muted-foreground">
-                {milestoneCount > 0
-                  ? "Complete each checkpoint before its deadline"
-                  : "Checkpoints will appear here"}
-              </p>
-            </div>
-          </div>
-          <CommunityCampaignMilestoneList
-            milestones={milestones}
-            isJoined={isJoined}
-            proofBusy={proofBusy}
-            activeMilestoneId={activeMilestoneId}
-            onSubmitMilestone={onOpenProof}
-          />
-        </section>
+              <CommunityCampaignMilestoneList
+                milestones={milestones}
+                isJoined={isJoined}
+                proofBusy={proofBusy}
+                activeMilestoneId={activeMilestoneId}
+                onSubmitMilestone={onOpenProof}
+              />
+            </section>
 
-        {/* Leaderboard */}
+            {/* Campaign details — collapsible */}
+            <section className="mt-6 px-4">
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-card px-4 py-3 text-sm font-bold text-foreground"
+              >
+                Campaign details
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    detailsOpen && "rotate-180",
+                  )}
+                />
+              </button>
+              {detailsOpen ? (
+                <div className="mt-2 space-y-3">
+                  {campaign.description ? (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {campaign.description}
+                    </p>
+                  ) : null}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
+                        <Trophy className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm font-bold text-foreground">Win the pool</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Top {topN} on the leaderboard split the prize when the campaign ends.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm font-bold text-foreground">Submit proof</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {campaign.proof_instructions ??
+                          "Complete each milestone and upload proof to earn points."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          </>
+        ) : (
+          /* ════════════════════════════════════════════
+              NON-JOINED PATH — discovery layout
+              ════════════════════════════════════════════ */
+          <>
+            {/* Action card — simplified for non-joined */}
+            <div className="relative z-10 mx-4 mt-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Ready to compete?
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {milestoneCount === 0
+                      ? "Host is adding milestones"
+                      : `${participantCount} joined · ${daysLeft}d left`}
+                  </p>
+                </div>
+                {!authenticated ? (
+                  <Link
+                    href="/sign-in"
+                    className="inline-flex items-center justify-center rounded-xl bg-delulu-blue px-6 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] hover:bg-delulu-blue/90"
+                  >
+                    Sign in to join
+                  </Link>
+                ) : (
+                  <JoinButton
+                    joining={joining}
+                    milestoneCount={milestoneCount}
+                    onJoin={() => setJoinModalOpen(true)}
+                    size="large"
+                  />
+                )}
+              </div>
+              {actionError ? (
+                <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {actionError}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Stats strip */}
+            <div className="mt-4 overflow-x-auto px-4 scrollbar-hide">
+              <div className="flex gap-2 pb-1">
+                {funded && campaign.proposed_pool_amount > 0 ? (
+                  <StatPill
+                    icon={Trophy}
+                    label="Prize"
+                    value={`${campaign.proposed_pool_amount} G$`}
+                    accent
+                  />
+                ) : null}
+                <StatPill
+                  icon={Target}
+                  label="Milestones"
+                  value={milestoneCount > 0 ? `${milestoneCount}` : "Soon"}
+                />
+                <StatPill icon={Clock} label="Time left" value={`${daysLeft}d`} />
+                <StatPill
+                  icon={Calendar}
+                  label="Ends"
+                  value={endsLabel ?? `${campaign.duration_days}d`}
+                />
+                <StatPill icon={Users} label="Winners" value={`Top ${topN}`} />
+              </div>
+            </div>
+
+            {/* How it works */}
+            <section className="mt-6 px-4">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                How it works
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
+                    <Trophy className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">Win the pool</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Top {topN} on the leaderboard split the prize when the campaign ends.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">Submit proof</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {campaign.proof_instructions ??
+                      "Complete each milestone and upload proof to earn points."}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Milestone preview */}
+            <section className="mt-6 px-4">
+              <div className="mb-3">
+                <h2
+                  className="text-base font-black text-foreground"
+                  style={{ fontFamily: '"Clash Display", sans-serif' }}
+                >
+                  Milestones
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {milestoneCount > 0
+                    ? "Complete each checkpoint before its deadline"
+                    : "Checkpoints will appear here"}
+                </p>
+              </div>
+              <CommunityCampaignMilestoneList
+                milestones={milestones}
+                isJoined={false}
+                proofBusy={proofBusy}
+                activeMilestoneId={activeMilestoneId}
+                onSubmitMilestone={onOpenProof}
+              />
+            </section>
+          </>
+        )}
+
+        {/* ── Leaderboard (always last) ── */}
         <section ref={leaderboardRef} className="mt-8 px-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
@@ -585,7 +681,9 @@ export function CommunityCampaignDetail({
                     </div>
                     <span className="shrink-0 text-sm font-black tabular-nums text-foreground">
                       {row.points_total}
-                      <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground">pts</span>
+                      <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground">
+                        pts
+                      </span>
                     </span>
                   </li>
                 );
@@ -604,6 +702,19 @@ export function CommunityCampaignDetail({
           ) : null}
         </section>
       </main>
+
+      {/* Sticky join bar — non-joined mobile */}
+      {!isJoined && authenticated && milestoneCount > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md">
+          <JoinButton
+            joining={joining}
+            milestoneCount={milestoneCount}
+            onJoin={() => setJoinModalOpen(true)}
+            size="large"
+            className="w-full"
+          />
+        </div>
+      ) : null}
 
       <ProofModal
         open={proofOpen}
