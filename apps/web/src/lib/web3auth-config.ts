@@ -1,6 +1,5 @@
 import type { Web3AuthContextConfig } from "@web3auth/modal/react";
 import { WEB3AUTH_NETWORK } from "@web3auth/modal";
-
 const HIDDEN = { showOnModal: false } as const;
 
 export const web3AuthContextConfig: Web3AuthContextConfig = {
