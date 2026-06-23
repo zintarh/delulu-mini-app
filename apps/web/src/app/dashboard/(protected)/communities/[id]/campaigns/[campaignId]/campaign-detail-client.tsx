@@ -372,6 +372,12 @@ export function CampaignDetailClient({
     }
   }, [campaign, loadDraftMilestones]);
 
+  useEffect(() => {
+    if (campaign?.on_chain_challenge_id && milestoneCount === 0) {
+      void loadDraftMilestones();
+    }
+  }, [campaign?.on_chain_challenge_id, loadDraftMilestones, milestoneCount]);
+
   if (isLoading || !campaign) {
     return (
       <DashboardPage>
@@ -528,23 +534,36 @@ export function CampaignDetailClient({
           <div className="mb-4">
             <DashboardPanel>
               {campaign.on_chain_challenge_id ? (
-                // On-chain: read from subgraph, allow adding more via wallet TX
                 <div>
+                  {milestoneCount === 0 ? (
+                    <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      <p className="font-semibold">Milestones not published yet</p>
+                      <p className="mt-1 text-xs text-amber-800/90">
+                        This campaign is on-chain but members cannot join until you publish milestones.
+                        {draftMilestones.length > 0
+                          ? ` ${draftMilestones.length} planned milestone${draftMilestones.length !== 1 ? "s" : ""} ready to publish.`
+                          : " Add milestones in the draft first."}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                     <div>
                       <h2 className="text-sm font-semibold text-foreground">Milestones</h2>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {milestoneCount > 0
                           ? `${milestoneCount} live on-chain`
-                          : "No milestones on-chain yet."}
+                          : draftMilestones.length > 0
+                            ? `${draftMilestones.length} planned — not on-chain yet`
+                            : "No milestones on-chain yet."}
                       </p>
                     </div>
                     {(campaign.status === "approved" || campaign.status === "active") ? (
                       <DashboardPrimaryButton
                         type="button"
+                        disabled={milestoneCount === 0 && draftMilestones.length === 0}
                         onClick={() => setMilestonesModalOpen(true)}
                       >
-                        {milestoneCount > 0 ? "Add more" : "Add milestones"}
+                        {milestoneCount > 0 ? "Add more milestones" : "Publish milestones on-chain"}
                       </DashboardPrimaryButton>
                     ) : null}
                   </div>
@@ -667,6 +686,7 @@ export function CampaignDetailClient({
             challengeId={campaign.on_chain_challenge_id ?? 0}
             campaignTitle={campaign.title}
             durationDays={campaign.duration_days ?? 30}
+            onChainMilestoneCount={milestoneCount}
             onDone={() => {
               setMilestonesModalOpen(false);
               void refetch();

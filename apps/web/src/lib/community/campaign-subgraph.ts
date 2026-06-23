@@ -46,7 +46,11 @@ type SubgraphCompletion = {
   participantAddress: string;
 };
 
-async function fetchSubgraph<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+async function fetchSubgraph<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  options?: { fresh?: boolean },
+): Promise<T> {
   const url =
     getSubgraphUrlForChain(CELO_MAINNET_ID) || process.env.NEXT_PUBLIC_SUBGRAPH_URL;
   if (!url) throw new Error("Subgraph URL not configured");
@@ -55,13 +59,17 @@ async function fetchSubgraph<T>(query: string, variables: Record<string, unknown
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 15 },
+    ...(options?.fresh ? { cache: "no-store" as const } : { next: { revalidate: 15 } }),
   });
   const json = await res.json();
   if (json.errors?.length) {
     throw new Error(json.errors[0]?.message ?? "Subgraph query failed");
   }
   return json.data as T;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const LEADERBOARD_QUERY = `
@@ -170,7 +178,7 @@ const BATCH_PARTICIPANT_COUNTS_QUERY = `
   query BatchParticipantCounts($challengeIds: [BigInt!]!) {
     communityCampaignParticipants(
       where: { challengeId_in: $challengeIds }
-      first: 5000
+      first: 1000
     ) {
       challengeId
       id
@@ -179,10 +187,12 @@ const BATCH_PARTICIPANT_COUNTS_QUERY = `
 `;
 
 const BATCH_MILESTONE_COUNTS_QUERY = `
-  query BatchMilestoneCounts($challengeIds: [ID!]!) {
-    challenges(where: { id_in: $challengeIds }) {
-      id
-      milestoneCount
+  query BatchMilestoneCounts($challengeIds: [BigInt!]!) {
+    communityCampaignMilestones(
+      where: { challengeId_in: $challengeIds }
+      first: 1000
+    ) {
+      challengeId
     }
   }
 `;
@@ -280,15 +290,20 @@ export async function fetchCommunityCampaignParticipantCountFromGraph(
 export async function fetchJoinedChallengeIdsFromGraph(
   walletAddress: string,
   challengeIds: number[],
+  fresh = false,
 ): Promise<Set<number>> {
   if (challengeIds.length === 0) return new Set();
   try {
     const data = await fetchSubgraph<{
       communityCampaignParticipants: Array<{ challengeId: string }>;
-    }>(JOINED_CHALLENGE_IDS_QUERY, {
-      address: walletAddress.toLowerCase(),
-      challengeIds: challengeIds.map(String),
-    });
+    }>(
+      JOINED_CHALLENGE_IDS_QUERY,
+      {
+        address: walletAddress.toLowerCase(),
+        challengeIds: challengeIds.map(String),
+      },
+      { fresh },
+    );
     return new Set(
       (data.communityCampaignParticipants ?? []).map((r) => Number(r.challengeId)),
     );
@@ -299,12 +314,22 @@ export async function fetchJoinedChallengeIdsFromGraph(
 
 export async function fetchCommunityCampaignMilestoneCountFromGraph(
   challengeId: number,
+  fresh = false,
 ): Promise<number> {
   try {
-    const data = await fetchSubgraph<{
-      challenge: { milestoneCount: string } | null;
-    }>(CHALLENGE_MILESTONE_COUNT_QUERY, { challengeId: challengeId.toString() });
-    return Number(data.challenge?.milestoneCount ?? 0);
+    const [countData, milestonesData] = await Promise.all([
+      fetchSubgraph<{
+        challenge: { milestoneCount: string } | null;
+      }>(CHALLENGE_MILESTONE_COUNT_QUERY, { challengeId: challengeId.toString() }, { fresh }),
+      fetchSubgraph<{ communityCampaignMilestones: Array<{ milestoneId: string }> }>(
+        CAMPAIGN_MILESTONES_QUERY,
+        { challengeId: challengeId.toString() },
+        { fresh },
+      ),
+    ]);
+    const fromChallenge = Number(countData.challenge?.milestoneCount ?? 0);
+    const fromEntities = milestonesData.communityCampaignMilestones?.length ?? 0;
+    return Math.max(fromChallenge, fromEntities);
   } catch {
     return 0;
   }
@@ -313,17 +338,20 @@ export async function fetchCommunityCampaignMilestoneCountFromGraph(
 export async function fetchCommunityCampaignMilestonesFromGraph(
   challengeId: number,
   walletAddress?: string,
+  fresh = false,
 ): Promise<CommunityCampaignMilestoneRow[]> {
   try {
     const [milestonesData, completionsData] = await Promise.all([
       fetchSubgraph<{ communityCampaignMilestones: SubgraphMilestone[] }>(
         CAMPAIGN_MILESTONES_QUERY,
         { challengeId: challengeId.toString() },
+        { fresh },
       ),
       walletAddress
         ? fetchSubgraph<{ communityCampaignMilestoneCompletions: SubgraphCompletion[] }>(
             USER_MILESTONE_COMPLETIONS_QUERY,
             { challengeId: challengeId.toString(), address: walletAddress.toLowerCase() },
+            { fresh },
           )
         : Promise.resolve({ communityCampaignMilestoneCompletions: [] }),
     ]);
@@ -363,7 +391,7 @@ export async function fetchBatchCampaignStats(
         BATCH_PARTICIPANT_COUNTS_QUERY,
         { challengeIds: ids },
       ),
-      fetchSubgraph<{ challenges: Array<{ id: string; milestoneCount: string }> }>(
+      fetchSubgraph<{ communityCampaignMilestones: Array<{ challengeId: string }> }>(
         BATCH_MILESTONE_COUNTS_QUERY,
         { challengeIds: ids },
       ),
@@ -376,8 +404,9 @@ export async function fetchBatchCampaignStats(
     }
 
     const milestoneCounts = new Map<number, number>();
-    for (const c of milestoneData.challenges ?? []) {
-      milestoneCounts.set(Number(c.id), Number(c.milestoneCount ?? 0));
+    for (const m of milestoneData.communityCampaignMilestones ?? []) {
+      const cid = Number(m.challengeId);
+      milestoneCounts.set(cid, (milestoneCounts.get(cid) ?? 0) + 1);
     }
 
     const result = new Map<number, { participantCount: number; milestoneCount: number }>();
@@ -461,7 +490,7 @@ export async function fetchJoinedCampaignDashboardFromGraph(
         challengeId: string;
         completedMilestoneCount: string;
       }>;
-    }>(JOINED_PARTICIPANTS_QUERY, { address: walletAddress.toLowerCase() });
+    }>(JOINED_PARTICIPANTS_QUERY, { address: walletAddress.toLowerCase() }, { fresh: true });
 
     const participants = data.communityCampaignParticipants ?? [];
     const relevantChallengeIds = participants
@@ -498,4 +527,54 @@ export async function fetchJoinedCampaignDashboardFromGraph(
   } catch {
     return [];
   }
+}
+
+/** Poll subgraph until at least minCount milestones are indexed. */
+export async function waitForGraphMilestoneCount(
+  challengeId: number,
+  minCount = 1,
+  { attempts = 15, delayMs = 2500 } = {},
+): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    const count = await fetchCommunityCampaignMilestoneCountFromGraph(challengeId, true);
+    if (count >= minCount) return true;
+    if (i < attempts - 1) await sleep(delayMs);
+  }
+  return false;
+}
+
+/** Poll subgraph until a milestone shows completed (post-tx indexing lag). */
+export async function waitForMilestoneCompletionInGraph(
+  challengeId: number,
+  walletAddress: string,
+  milestoneId: number,
+  { attempts = 12, delayMs = 2500 } = {},
+): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    const milestones = await fetchCommunityCampaignMilestonesFromGraph(
+      challengeId,
+      walletAddress,
+      true,
+    );
+    if (milestones.some((m) => m.milestone_id === milestoneId && m.completed)) {
+      return true;
+    }
+    if (i < attempts - 1) await sleep(delayMs);
+  }
+  return false;
+}
+
+/** Poll subgraph until participant appears (post-join indexing lag). */
+export async function waitForJoinInGraph(
+  walletAddress: string,
+  challengeIds: number[],
+  { attempts = 10, delayMs = 2000 } = {},
+): Promise<boolean> {
+  if (challengeIds.length === 0) return false;
+  for (let i = 0; i < attempts; i++) {
+    const joined = await fetchJoinedChallengeIdsFromGraph(walletAddress, challengeIds, true);
+    if (joined.size > 0) return true;
+    if (i < attempts - 1) await sleep(delayMs);
+  }
+  return false;
 }

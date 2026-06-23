@@ -16,7 +16,7 @@ export async function GET(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("on_chain_challenge_id, duration_days, display_ends_at, proof_cadence")
+    .select("on_chain_challenge_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -35,18 +35,25 @@ export async function GET(
     });
   }
 
-  const durationDays = campaign.duration_days ?? 30;
-  const totalMilestones =
-    campaign.proof_cadence === "weekly" ? Math.ceil(durationDays / 7) : durationDays;
+  const { data: dbMilestones } = await admin
+    .from("campaign_milestones")
+    .select("id, title, duration_days, order_index")
+    .eq("campaign_id", id)
+    .order("order_index", { ascending: true });
+
+  const planned = dbMilestones ?? [];
+  const milestones = planned.map((m, i) => ({
+    milestone_id: i + 1,
+    label: m.title,
+    deadline: "",
+    start_time: "",
+    completed: false,
+    is_overdue: false,
+  }));
 
   return NextResponse.json({
-    milestones: [],
-    milestoneCount: 0,
+    milestones,
+    milestoneCount: planned.length,
     completedCount: 0,
-    legacyCadence: true,
-    totalMilestones,
-    proofCadence: campaign.proof_cadence,
-    displayEndsAt: campaign.display_ends_at,
-    durationDays,
   });
 }

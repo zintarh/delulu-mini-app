@@ -29,6 +29,7 @@ import {
   useSubmitCommunityMilestoneProofOnChain,
 } from "@/hooks/use-community-campaign-onchain";
 import { useAuth } from "@/hooks/use-auth";
+import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 
 function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardData {
   return {
@@ -41,6 +42,8 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
     status: c.status,
     participantCount: 0,
     milestoneCount: c.milestone_count ?? 0,
+    canJoin: c.can_join ?? false,
+    isOnChain: isValidOnChainChallengeId(c.on_chain_challenge_id ?? null),
     isJoined: c.participant_state === "joined",
     community: { name: c.community.name, slug: c.community.slug },
   };
@@ -161,6 +164,8 @@ function TodaysMilestonesSection({ address }: { address: string }) {
 
   const invalidate = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: joinedDashboardKeys.all(address) });
+    void queryClient.invalidateQueries({ queryKey: homeCampaignKeys.feed("ongoing", address) });
+    void queryClient.invalidateQueries({ queryKey: ["explore", "campaigns"] });
   }, [address, queryClient]);
 
   const handleProofSubmit = async (imageUrl: string) => {
@@ -355,6 +360,7 @@ export function HomeCampaignsSection() {
           campaign.id,
           address,
           joinCommunityCampaignAndWait,
+          { campaignTitle: campaign.title },
         );
         invalidateFeeds();
         if (result.joinedCampaign || result.alreadyJoined) {

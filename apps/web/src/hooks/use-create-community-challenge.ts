@@ -1,6 +1,6 @@
 "use client";
 
-import { useWaitForTransactionReceipt, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
 import { decodeErrorResult } from "viem";
 import { getCommunityMarketV1Address } from "@/lib/constant";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
@@ -12,6 +12,7 @@ import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
 export function useCreateCommunityChallenge() {
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const { writeContractAsync, data: hash, isPending, error, reset } =
     useUnifiedWriteContract();
 
@@ -40,6 +41,16 @@ export function useCreateCommunityChallenge() {
     });
   };
 
+  const createCommunityChallengeAndWait = async (input: {
+    contentHash: string;
+    durationDays: number;
+    proofCadence: "daily" | "weekly";
+  }) => {
+    const txHash = await createCommunityChallenge(input);
+    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
+  };
+
   const isError = !!error || !!receiptError;
   let errorMessage: string | null = null;
   if (error || receiptError) {
@@ -62,6 +73,7 @@ export function useCreateCommunityChallenge() {
 
   return {
     createCommunityChallenge,
+    createCommunityChallengeAndWait,
     hash,
     isPending: isPending || isConfirming,
     isSuccess,

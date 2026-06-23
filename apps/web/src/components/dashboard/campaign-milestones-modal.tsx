@@ -5,6 +5,10 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Loader2, X, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAddCommunityCampaignMilestones } from "@/hooks/use-add-community-campaign-milestones";
+import {
+  fetchDraftMilestones,
+  publishDraftMilestonesOnChain,
+} from "@/lib/community/publish-campaign-milestones-client";
 
 interface AiMilestone {
   title: string;
@@ -18,6 +22,7 @@ export function CampaignMilestonesModal({
   challengeId,
   campaignTitle,
   durationDays,
+  onChainMilestoneCount = 0,
   onDone,
 }: {
   open: boolean;
@@ -26,12 +31,15 @@ export function CampaignMilestonesModal({
   challengeId: number;
   campaignTitle: string;
   durationDays: number;
+  /** Subgraph milestone count — 0 means initial publish from DB drafts. */
+  onChainMilestoneCount?: number;
   onDone: () => void;
 }) {
   const maxDays = Math.max(1, durationDays);
+  const isInitialPublish = onChainMilestoneCount === 0;
   const [milestones, setMilestones] = useState<AiMilestone[]>([]);
-  const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const {
@@ -42,44 +50,66 @@ export function CampaignMilestonesModal({
     reset,
   } = useAddCommunityCampaignMilestones();
 
-  const fetchMilestones = useCallback(async () => {
+  const generateWithAi = useCallback(async () => {
+    const res = await fetch("/api/ai/milestones", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal: campaignTitle, durationDays: maxDays }),
+    });
+    const data = await res.json();
+    if (data.milestones?.length) {
+      const items: AiMilestone[] = data.milestones
+        .map((m: AiMilestone) => ({
+          title: String(m.title || "").trim(),
+          days: Math.max(1, Number(m.days) || 1),
+        }))
+        .filter((m: AiMilestone) => m.title.length > 0);
+      setMilestones(items);
+      return;
+    }
+    throw new Error("No milestones returned");
+  }, [campaignTitle, maxDays]);
+
+  const loadMilestones = useCallback(async () => {
     if (!campaignTitle) return;
-    setIsLoadingAI(true);
-    setAiError(null);
+    setIsLoading(true);
+    setLoadError(null);
     setMilestones([]);
     try {
-      const res = await fetch("/api/ai/milestones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: campaignTitle, durationDays: maxDays }),
-      });
-      const data = await res.json();
-      if (data.milestones?.length) {
-        const items: AiMilestone[] = data.milestones
-          .map((m: AiMilestone) => ({
-            title: String(m.title || "").trim(),
-            days: Math.max(1, Number(m.days) || 1),
-          }))
-          .filter((m: AiMilestone) => m.title.length > 0);
-        setMilestones(items);
-      } else {
-        throw new Error("No milestones returned");
+      if (isInitialPublish) {
+        const drafts = await fetchDraftMilestones(campaignId);
+        if (drafts.length > 0) {
+          setMilestones(
+            drafts.map((m) => ({
+              title: m.title,
+              days: Math.max(1, Number(m.duration_days) || 1),
+            })),
+          );
+          return;
+        }
+        setLoadError("No draft milestones found. Generate with AI or add them in the campaign draft.");
       }
+      await generateWithAi();
     } catch {
-      setAiError("Could not generate milestones. Add them manually below.");
-      setMilestones([{ title: "", days: maxDays }]);
+      if (isInitialPublish) {
+        setLoadError("Could not load draft milestones. Generate with AI below.");
+        setMilestones([{ title: "", days: maxDays }]);
+      } else {
+        setLoadError("Could not generate milestones. Add them manually below.");
+        setMilestones([{ title: "", days: maxDays }]);
+      }
     } finally {
-      setIsLoadingAI(false);
+      setIsLoading(false);
     }
-  }, [campaignTitle, maxDays]);
+  }, [campaignId, campaignTitle, generateWithAi, isInitialPublish, maxDays]);
 
   useEffect(() => {
     if (open) {
       reset();
       setConfirmError(null);
-      void fetchMilestones();
+      void loadMilestones();
     }
-  }, [open, fetchMilestones, reset]);
+  }, [open, loadMilestones, reset]);
 
   useEffect(() => {
     if (!isSuccess) return;
@@ -130,23 +160,17 @@ export function CampaignMilestonesModal({
   const handleSave = async () => {
     if (milestones.length < 1) return;
     setConfirmError(null);
-    const mURIs = milestones.map((m) => m.title.trim());
-    const mDurations = milestones.map((m) => BigInt(Math.max(1, m.days) * 24 * 60 * 60));
     try {
-      const txHash = await addCommunityCampaignMilestones({
+      await publishDraftMilestonesOnChain({
+        campaignId,
         challengeId,
-        mURIs,
-        mDurations,
+        durationDays: maxDays,
+        draftRows: milestones.map((m) => ({
+          title: m.title,
+          duration_days: m.days,
+        })),
+        addOnChain: addCommunityCampaignMilestones,
       });
-      const res = await fetch(`/api/dashboard/campaigns/${campaignId}/confirm-milestones`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ txHash }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error((json as { error?: string }).error ?? "Failed to confirm milestones");
-      }
     } catch (err) {
       setConfirmError(err instanceof Error ? err.message : "Failed to save milestones");
     }
@@ -159,7 +183,7 @@ export function CampaignMilestonesModal({
     milestones.length >= 1 &&
     totalMilestoneDays === maxDays &&
     milestones.every((m) => m.title.trim().length > 0);
-  const showList = !isLoadingAI && milestones.length > 0;
+  const showList = !isLoading && milestones.length > 0;
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -170,7 +194,7 @@ export function CampaignMilestonesModal({
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Campaign milestones
+                  {isInitialPublish ? "Publish milestones on-chain" : "Campaign milestones"}
                 </p>
                 <h2 className="text-lg font-bold text-foreground">{campaignTitle}</h2>
               </div>
@@ -179,17 +203,29 @@ export function CampaignMilestonesModal({
               </DialogPrimitive.Close>
             </div>
 
-            {isLoadingAI ? (
+            {isLoading ? (
               <div className="flex flex-col items-center gap-3 py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Generating milestones…</p>
+                <p className="text-sm text-muted-foreground">
+                  {isInitialPublish ? "Loading planned milestones…" : "Generating milestones…"}
+                </p>
               </div>
             ) : null}
 
-            {aiError ? (
+            {loadError ? (
               <p className="mb-3 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-800">
-                {aiError}
+                {loadError}
               </p>
+            ) : null}
+
+            {!isInitialPublish && !isLoading ? (
+              <button
+                type="button"
+                onClick={() => void generateWithAi().catch(() => setLoadError("AI generation failed"))}
+                className="mb-3 text-xs font-semibold text-delulu-blue hover:underline"
+              >
+                Regenerate with AI
+              </button>
             ) : null}
 
             {showList ? (

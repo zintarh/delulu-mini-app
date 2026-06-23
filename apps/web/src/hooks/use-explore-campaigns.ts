@@ -38,7 +38,7 @@ export function useExploreCampaigns(address?: string) {
     queryFn: ({ pageParam }) => fetchActivePage(address, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,
+    refetchOnMount: true,
   });
 }

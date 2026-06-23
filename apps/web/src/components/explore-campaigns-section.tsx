@@ -57,6 +57,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
           campaign.id,
           address,
           joinCommunityCampaignAndWait,
+          { campaignTitle: campaign.title },
         );
         await refetch();
         if (result.joinedCampaign || result.alreadyJoined) {

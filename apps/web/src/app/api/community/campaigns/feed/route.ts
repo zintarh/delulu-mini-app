@@ -6,12 +6,16 @@ import {
   isCampaignEndedByDate,
   isCampaignFunded,
   parseHomeCampaignFeedSection,
-  PARTICIPATING_STATUSES,
 } from "@/lib/community/campaign-types";
 import {
-  fetchCommunityCampaignMilestoneCountFromGraph,
+  fetchBatchCampaignStats,
   fetchJoinedChallengeIdsFromGraph,
 } from "@/lib/community/campaign-subgraph";
+import {
+  fetchDbMilestoneCounts,
+  isValidOnChainChallengeId,
+  mergeMilestoneCount,
+} from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
@@ -50,6 +54,7 @@ function toFeedItem(
   joined: boolean,
   participantData?: { streak: number; points: number },
   milestoneCount = 0,
+  canJoin = false,
 ): CommunityCampaignFeedItem {
   const community = row.communities ?? { id: row.community_id, name: "Community", slug: "" };
   return {
@@ -67,6 +72,7 @@ function toFeedItem(
     community: { id: community.id, name: community.name, slug: community.slug },
     participant_state: joined ? "joined" : "none",
     milestone_count: milestoneCount,
+    can_join: canJoin,
     ...(joined && participantData
       ? { myStreak: participantData.streak, myPoints: participantData.points }
       : {}),
@@ -96,9 +102,8 @@ export async function GET(request: NextRequest) {
   let campaignsQuery = admin
     .from("community_campaigns")
     .select(CAMPAIGN_FEED_SELECT)
-    .in("status", [...PARTICIPATING_STATUSES])
+    .in("status", ["approved", "active"])
     .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
     .limit(FETCH_BATCH);
 
   if (decoded) {
@@ -125,13 +130,13 @@ export async function GET(request: NextRequest) {
 
   const onChainIds = (rows ?? [])
     .map((r) => (r as { on_chain_challenge_id?: number | null }).on_chain_challenge_id)
-    .filter((id): id is number => id != null);
+    .filter(isValidOnChainChallengeId);
 
-  const graphJoinedIds = await fetchJoinedChallengeIdsFromGraph(address, onChainIds);
+  const graphJoinedIds = await fetchJoinedChallengeIdsFromGraph(address, onChainIds, true);
   const challengeIdToCampaignId = new Map<number, string>();
   for (const raw of rows ?? []) {
     const cid = (raw as { on_chain_challenge_id?: number | null; id: string }).on_chain_challenge_id;
-    if (cid != null) challengeIdToCampaignId.set(cid, (raw as { id: string }).id);
+    if (isValidOnChainChallengeId(cid)) challengeIdToCampaignId.set(cid, (raw as { id: string }).id);
   }
   for (const challengeId of graphJoinedIds) {
     const campaignId = challengeIdToCampaignId.get(challengeId);
@@ -160,39 +165,68 @@ export async function GET(request: NextRequest) {
     filtered.push(row);
   }
 
-  const page = filtered.slice(0, limit);
+  // Discover: prefer joinable campaigns (milestones configured).
+  let page: CampaignRow[] = [];
+  if (section === "ongoing") {
+    const onChainFiltered = filtered
+      .map((row) => row.on_chain_challenge_id)
+      .filter(isValidOnChainChallengeId);
+    const batchStats =
+      onChainFiltered.length > 0
+        ? await fetchBatchCampaignStats(onChainFiltered)
+        : new Map();
 
-  // For non-on-chain campaigns fetch milestone counts from Supabase (not the subgraph).
-  const offChainPageIds = page
-    .filter((row) => !row.on_chain_challenge_id)
-    .map((row) => row.id);
-
-  const dbMilestoneCountMap = new Map<string, number>();
-  if (offChainPageIds.length > 0) {
-    const { data: dbMilestones } = await admin
-      .from("campaign_milestones")
-      .select("campaign_id")
-      .in("campaign_id", offChainPageIds);
-    for (const m of dbMilestones ?? []) {
-      const cid = (m as { campaign_id: string }).campaign_id;
-      dbMilestoneCountMap.set(cid, (dbMilestoneCountMap.get(cid) ?? 0) + 1);
-    }
+    const joinable = filtered.filter((row) => {
+      if (!isValidOnChainChallengeId(row.on_chain_challenge_id)) return false;
+      const graphCount = batchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0;
+      return graphCount > 0;
+    });
+    page = joinable.slice(0, limit);
+  } else {
+    page = filtered.slice(0, limit);
   }
 
-  const milestoneCounts = await Promise.all(
-    page.map((row) =>
-      row.on_chain_challenge_id
-        ? fetchCommunityCampaignMilestoneCountFromGraph(row.on_chain_challenge_id)
-        : Promise.resolve(dbMilestoneCountMap.get(row.id) ?? 0),
-    ),
+  const dbMilestoneCountMap = await fetchDbMilestoneCounts(
+    admin,
+    page.map((row) => row.id),
   );
+  const pageOnChainIds = page
+    .map((row) => row.on_chain_challenge_id)
+    .filter(isValidOnChainChallengeId);
+  const pageBatchStats =
+    pageOnChainIds.length > 0
+      ? await fetchBatchCampaignStats(pageOnChainIds)
+      : new Map();
+
+  const milestoneCounts = page.map((row) => {
+    const dbCount = dbMilestoneCountMap.get(row.id) ?? 0;
+    const graphCount = isValidOnChainChallengeId(row.on_chain_challenge_id)
+      ? (pageBatchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0)
+      : 0;
+    return mergeMilestoneCount(dbCount, graphCount);
+  });
+
+  const graphMilestoneCounts = page.map((row) =>
+    isValidOnChainChallengeId(row.on_chain_challenge_id)
+      ? (pageBatchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0)
+      : 0,
+  );
+
   const campaigns = page.map((row, i) => {
     const isJoined = joinedCampaignIds.has(row.id);
+    const graphCount = graphMilestoneCounts[i] ?? 0;
+    const count = isValidOnChainChallengeId(row.on_chain_challenge_id)
+      ? graphCount
+      : (milestoneCounts[i] ?? 0);
+    const canJoin = isJoined
+      ? false
+      : isValidOnChainChallengeId(row.on_chain_challenge_id) && graphCount > 0;
     return toFeedItem(
       row,
       isJoined,
       isJoined ? participantDataMap.get(row.id) : undefined,
-      milestoneCounts[i],
+      count,
+      canJoin,
     );
   });
 

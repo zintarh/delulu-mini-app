@@ -109,3 +109,22 @@ export async function parseCommunityCampaignMilestonesAddedFromTx(
   if (args.campaignId == null || args.milestoneCount == null) return null;
   return { challengeId: args.campaignId, milestoneCount: args.milestoneCount };
 }
+
+export async function parseCommunityCampaignJoinedFromTx(
+  txHash: `0x${string}`,
+): Promise<{ challengeId: bigint; participant: string } | null> {
+  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+  const contract = cmv1Address();
+  const logs = parseEventLogs({
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    eventName: "CommunityCampaignJoined",
+    logs: receipt.logs,
+  });
+  const match = logs.find(
+    (log) => log.address.toLowerCase() === contract.toLowerCase(),
+  );
+  if (!match) return null;
+  const args = match.args as { campaignId?: bigint; participant?: string };
+  if (args.campaignId == null || !args.participant) return null;
+  return { challengeId: args.campaignId, participant: args.participant.toLowerCase() };
+}

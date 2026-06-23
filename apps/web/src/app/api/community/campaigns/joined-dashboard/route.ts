@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     // Which milestones the user has already submitted proof for (approved)
     admin
       .from("campaign_proof_submissions")
-      .select("campaign_id, milestone_id")
+      .select("campaign_id, milestone_id, ai_verdict")
       .eq("wallet_address", address)
       .eq("status", "approved")
       .in("campaign_id", joinedIds),
@@ -108,7 +108,11 @@ export async function GET(request: NextRequest) {
   const completedMap = new Map<string, Set<number>>();
   for (const p of approvedProofsResult.data ?? []) {
     const cid = (p as { campaign_id: string }).campaign_id;
-    const mid = (p as { milestone_id: number }).milestone_id;
+    const row = p as { milestone_id?: number | null; ai_verdict?: { milestoneId?: number } | null };
+    const mid =
+      row.milestone_id ??
+      (typeof row.ai_verdict?.milestoneId === "number" ? row.ai_verdict.milestoneId : null);
+    if (mid == null) continue;
     if (!completedMap.has(cid)) completedMap.set(cid, new Set());
     completedMap.get(cid)!.add(mid);
   }

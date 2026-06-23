@@ -81,18 +81,17 @@ function milestoneCountdown(deadline: string) {
 
 function JoinButton({
   joining,
-  milestoneCount,
+  canJoin,
   onJoin,
   className,
   size = "default",
 }: {
   joining: boolean;
-  milestoneCount: number;
+  canJoin: boolean;
   onJoin: () => void;
   className?: string;
   size?: "default" | "large";
 }) {
-  const canJoin = milestoneCount > 0;
   return (
     <button
       type="button"
@@ -115,7 +114,7 @@ function JoinButton({
       ) : canJoin ? (
         "Join campaign"
       ) : (
-        "Milestones coming soon"
+        "Not open yet"
       )}
     </button>
   );
@@ -166,6 +165,7 @@ export function CommunityCampaignDetail({
   myStreak = 0,
   myRank,
   milestoneCount = 0,
+  canJoin = false,
   milestones = [],
   proofOpen,
   proofBusy,
@@ -193,6 +193,7 @@ export function CommunityCampaignDetail({
   myStreak?: number;
   myRank?: number;
   milestoneCount?: number;
+  canJoin?: boolean;
   milestones?: CommunityCampaignMilestoneRow[];
   proofOpen: boolean;
   proofBusy: boolean;
@@ -527,13 +528,15 @@ export function CommunityCampaignDetail({
                   >
                     Sign in to join
                   </Link>
-                ) : (
+                ) : canJoin ? (
                   <JoinButton
                     joining={joining}
-                    milestoneCount={milestoneCount}
+                    canJoin={canJoin}
                     onJoin={() => setJoinModalOpen(true)}
                     size="large"
                   />
+                ) : (
+                  <p className="text-sm font-semibold text-muted-foreground">Not open yet</p>
                 )}
               </div>
               {actionError ? (
@@ -660,9 +663,9 @@ export function CommunityCampaignDetail({
               <p className="mt-1 text-xs text-muted-foreground">
                 Be the first to join and claim the top spot.
               </p>
-              {!isJoined && authenticated && milestoneCount > 0 ? (
+              {!isJoined && authenticated && canJoin ? (
                 <div className="mt-4 flex justify-center">
-                  <JoinButton joining={joining} milestoneCount={milestoneCount} onJoin={onJoin} />
+                  <JoinButton joining={joining} canJoin={canJoin} onJoin={onJoin} />
                 </div>
               ) : null}
             </div>

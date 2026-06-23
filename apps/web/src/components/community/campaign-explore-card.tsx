@@ -17,6 +17,8 @@ export type CampaignExploreCardData = {
   status: string;
   participantCount: number;
   milestoneCount: number;
+  canJoin?: boolean;
+  isOnChain?: boolean;
   isJoined: boolean;
   community: { name: string; slug: string } | null;
 };
@@ -39,6 +41,8 @@ export function CampaignExploreCard({
   const funded = isCampaignFunded(campaign.status);
   const poolAmount = campaign.proposedPoolAmount;
   const hasMilestones = campaign.milestoneCount > 0;
+  const canJoin = campaign.canJoin ?? false;
+  const isOnChain = campaign.isOnChain ?? canJoin;
   const communityName = campaign.community?.name ?? "Community";
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
 
@@ -120,7 +124,7 @@ export function CampaignExploreCard({
           >
             Joined · View →
           </Link>
-        ) : hasMilestones ? (
+        ) : canJoin ? (
           <button
             type="button"
             disabled={joining}
@@ -136,6 +140,20 @@ export function CampaignExploreCard({
               "Join campaign →"
             )}
           </button>
+        ) : isOnChain ? (
+          <Link
+            href={href}
+            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+          >
+            Not open yet
+          </Link>
+        ) : hasMilestones ? (
+          <Link
+            href={href}
+            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+          >
+            Pending on-chain registration
+          </Link>
         ) : (
           <Link
             href={href}

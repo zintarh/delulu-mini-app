@@ -33,6 +33,21 @@ export async function POST(
     return NextResponse.json({ error: "Only pending campaigns can be approved." }, { status: 400 });
   }
 
+  const { count: milestoneCount, error: milestoneError } = await admin
+    .from("campaign_milestones")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", id);
+
+  if (milestoneError) {
+    return NextResponse.json({ error: milestoneError.message }, { status: 500 });
+  }
+  if (!milestoneCount || milestoneCount < 1) {
+    return NextResponse.json(
+      { error: "Add at least one milestone before approving this campaign." },
+      { status: 400 },
+    );
+  }
+
   let contentHash: string;
   try {
     contentHash = await uploadCampaignContentHash(campaign.title, campaign.description);

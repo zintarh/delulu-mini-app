@@ -7,6 +7,7 @@ import {
   fetchCommunityCampaignParticipantCountFromGraph,
   isJoinedCommunityCampaignOnGraph,
 } from "@/lib/community/campaign-subgraph";
+import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 
 export const dynamic = "force-dynamic";
 
@@ -57,24 +58,20 @@ export async function GET(
   let myPoints = 0;
   let myStreak = 0;
   let milestoneCount = 0;
+  let graphMilestoneCount = 0;
   let milestones: Awaited<ReturnType<typeof fetchCommunityCampaignMilestonesFromGraph>> = [];
 
-  if (campaign.on_chain_challenge_id) {
-    participantCount = await fetchCommunityCampaignParticipantCountFromGraph(
-      campaign.on_chain_challenge_id,
-    );
-    milestoneCount = await fetchCommunityCampaignMilestoneCountFromGraph(
-      campaign.on_chain_challenge_id,
-    );
+  if (isValidOnChainChallengeId(campaign.on_chain_challenge_id)) {
+    const challengeId = campaign.on_chain_challenge_id;
+    participantCount = await fetchCommunityCampaignParticipantCountFromGraph(challengeId);
+    graphMilestoneCount = await fetchCommunityCampaignMilestoneCountFromGraph(challengeId);
     milestones = await fetchCommunityCampaignMilestonesFromGraph(
-      campaign.on_chain_challenge_id,
+      challengeId,
       address ?? undefined,
     );
+    milestoneCount = graphMilestoneCount;
     if (address) {
-      const joined = await isJoinedCommunityCampaignOnGraph(
-        campaign.on_chain_challenge_id,
-        address,
-      );
+      const joined = await isJoinedCommunityCampaignOnGraph(challengeId, address);
       isJoined = joined.joined;
       myPoints = joined.pointsTotal;
     }
@@ -182,5 +179,9 @@ export async function GET(
     myStreak,
     milestoneCount,
     milestones,
+    canJoin:
+      !isJoined &&
+      isValidOnChainChallengeId(campaign.on_chain_challenge_id) &&
+      graphMilestoneCount > 0,
   });
 }

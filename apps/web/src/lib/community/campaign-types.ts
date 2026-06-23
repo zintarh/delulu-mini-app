@@ -54,6 +54,7 @@ export type CommunityCampaignFeedItem = {
   myStreak?: number;
   myPoints?: number;
   milestone_count?: number;
+  can_join?: boolean;
 };
 
 export function encodeFeedCursor(createdAt: string, id: string): string {

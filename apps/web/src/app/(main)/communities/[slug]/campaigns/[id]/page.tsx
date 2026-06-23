@@ -67,6 +67,7 @@ export default function CommunityCampaignPage() {
   const [myPoints, setMyPoints] = useState(0);
   const [myStreak, setMyStreak] = useState(0);
   const [milestoneCount, setMilestoneCount] = useState(0);
+  const [canJoin, setCanJoin] = useState(false);
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,7 @@ export default function CommunityCampaignPage() {
       if (json.myPoints != null) setMyPoints(Number(json.myPoints));
       if (json.myStreak != null) setMyStreak(Number(json.myStreak));
       setMilestoneCount(Number(json.milestoneCount ?? 0));
+      setCanJoin(Boolean(json.canJoin));
       setMilestones(json.milestones ?? []);
       return Boolean(json.isJoined);
     }
@@ -123,7 +125,9 @@ export default function CommunityCampaignPage() {
     setJoining(true);
     setActionError(null);
     try {
-      await joinCommunityCampaignWithWallet(params.id, address, joinCommunityCampaignAndWait);
+      await joinCommunityCampaignWithWallet(params.id, address, joinCommunityCampaignAndWait, {
+        campaignTitle: campaign?.title,
+      });
       setIsJoined(true);
       await Promise.all([loadCampaign(), loadLeaderboard()]);
     } catch (err) {
@@ -196,6 +200,7 @@ export default function CommunityCampaignPage() {
       myStreak={myStreak}
       myRank={myRankInLeaderboard}
       milestoneCount={milestoneCount}
+      canJoin={canJoin}
       milestones={milestones}
       proofOpen={proofOpen}
       proofBusy={proofBusy}

@@ -3,6 +3,11 @@ import {
   fetchBatchCampaignStats,
   fetchJoinedChallengeIdsFromGraph,
 } from "@/lib/community/campaign-subgraph";
+import {
+  fetchDbMilestoneCounts,
+  isValidOnChainChallengeId,
+  mergeMilestoneCount,
+} from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export async function GET(request: NextRequest) {
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
   const campaignIds = campaigns.map((c) => c.id);
   const onChainIds = campaigns
     .map((c) => c.on_chain_challenge_id)
-    .filter((id): id is number => id != null);
+    .filter(isValidOnChainChallengeId);
 
   const countMap = new Map<string, number>();
   const joinedSet = new Set<string>();
@@ -59,16 +64,16 @@ export async function GET(request: NextRequest) {
 
   const challengeIdToCampaignId = new Map<number, string>();
   for (const c of campaigns) {
-    if (c.on_chain_challenge_id != null) {
+    if (isValidOnChainChallengeId(c.on_chain_challenge_id)) {
       challengeIdToCampaignId.set(c.on_chain_challenge_id, c.id);
     }
   }
 
   const legacyIds = campaignIds.filter(
-    (id) => !campaigns.find((c) => c.id === id && c.on_chain_challenge_id != null),
+    (id) => !campaigns.find((c) => c.id === id && isValidOnChainChallengeId(c.on_chain_challenge_id)),
   );
 
-  const [batchStats, legacyCountRows, graphJoinedIds, legacyMilestoneCounts] = await Promise.all([
+  const [batchStats, legacyCountRows, graphJoinedIds, dbMilestoneCounts] = await Promise.all([
     onChainIds.length > 0 ? fetchBatchCampaignStats(onChainIds) : Promise.resolve(new Map()),
     legacyIds.length > 0
       ? admin
@@ -81,14 +86,7 @@ export async function GET(request: NextRequest) {
     address && onChainIds.length > 0
       ? fetchJoinedChallengeIdsFromGraph(address, onChainIds)
       : Promise.resolve(new Set<number>()),
-    // Count milestones from Supabase for campaigns not yet on-chain
-    legacyIds.length > 0
-      ? admin
-          .from("campaign_milestones")
-          .select("campaign_id")
-          .in("campaign_id", legacyIds)
-          .then((r) => r.data ?? [])
-      : Promise.resolve([]),
+    fetchDbMilestoneCounts(admin, campaignIds),
   ]);
 
   for (const [challengeId, stats] of batchStats) {
@@ -107,15 +105,18 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const legacyMilestoneCountMap = new Map<string, number>();
-  for (const row of legacyMilestoneCounts) {
-    legacyMilestoneCountMap.set(row.campaign_id, (legacyMilestoneCountMap.get(row.campaign_id) ?? 0) + 1);
-  }
-
   const milestoneCounts = campaigns.map((c) => {
-    if (!c.on_chain_challenge_id) return legacyMilestoneCountMap.get(c.id) ?? 0;
-    return batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0;
+    const dbCount = dbMilestoneCounts.get(c.id) ?? 0;
+    if (!isValidOnChainChallengeId(c.on_chain_challenge_id)) return dbCount;
+    const graphCount = batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0;
+    return mergeMilestoneCount(dbCount, graphCount);
   });
+
+  const graphMilestoneCounts = campaigns.map((c) =>
+    isValidOnChainChallengeId(c.on_chain_challenge_id)
+      ? (batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0)
+      : 0,
+  );
 
   const result = campaigns.map((c, index) => {
     const community = Array.isArray(c.communities) ? c.communities[0] : c.communities;
@@ -129,10 +130,16 @@ export async function GET(request: NextRequest) {
       prizeWinnerCount: c.prize_winner_count,
       coverImageUrl: c.cover_image_url,
       displayEndsAt: c.display_ends_at,
-      isOnChain: Boolean(c.on_chain_challenge_id),
+      isOnChain: isValidOnChainChallengeId(c.on_chain_challenge_id),
       status: c.status,
       participantCount: countMap.get(c.id) ?? 0,
-      milestoneCount: milestoneCounts[index] ?? 0,
+      milestoneCount: isValidOnChainChallengeId(c.on_chain_challenge_id)
+        ? (graphMilestoneCounts[index] ?? 0)
+        : (milestoneCounts[index] ?? 0),
+      canJoin: joinedSet.has(c.id)
+        ? false
+        : isValidOnChainChallengeId(c.on_chain_challenge_id) &&
+          (graphMilestoneCounts[index] ?? 0) > 0,
       isJoined: joinedSet.has(c.id),
       community: community
         ? { id: community.id, name: community.name, slug: community.slug }

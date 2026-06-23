@@ -1,18 +1,43 @@
 "use client";
 
 import { joinCommunityCampaign as joinCommunityCampaignApi } from "@/hooks/use-home-campaigns-feed";
+import { celebrateCampaignJoin } from "@/lib/celebrate";
+import { waitForMilestoneCompletionInGraph } from "@/lib/community/campaign-subgraph";
 
-type JoinOnChain = (challengeId: number | bigint) => Promise<unknown>;
+type JoinOnChain = (challengeId: number | bigint) => Promise<`0x${string}` | string>;
+
+async function confirmJoinOnChain(
+  campaignId: string,
+  walletAddress: string,
+  txHash: string,
+) {
+  const res = await fetch(`/api/community/campaigns/${campaignId}/confirm-join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ txHash, walletAddress }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? "Failed to sync join metadata");
+  }
+}
 
 export async function joinCommunityCampaignWithWallet(
   campaignId: string,
   walletAddress: string,
   joinOnChain: JoinOnChain,
+  options?: { campaignTitle?: string },
 ) {
   const result = await joinCommunityCampaignApi(campaignId, walletAddress);
 
+  if (result.alreadyJoined) {
+    return result;
+  }
+
   if (result.requiresOnChain && result.challengeId) {
-    await joinOnChain(result.challengeId);
+    const txHash = await joinOnChain(result.challengeId);
+    await confirmJoinOnChain(campaignId, walletAddress, txHash);
+    await celebrateCampaignJoin(options?.campaignTitle);
     return { ...result, joinedCampaign: true };
   }
 
@@ -52,6 +77,11 @@ export async function submitCommunityProofWithWallet(input: {
     input.onStepChange?.("wallet-sign");
     await input.submitOnChain(json.challengeId, json.milestoneId, input.proofUrl);
     input.onStepChange?.("confirming");
+    await waitForMilestoneCompletionInGraph(
+      json.challengeId,
+      input.walletAddress,
+      json.milestoneId,
+    );
     return { verified: true as const, onChain: true };
   }
 
