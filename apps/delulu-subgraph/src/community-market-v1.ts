@@ -114,6 +114,9 @@ export function handleCMv1CampaignJoined(event: CommunityCampaignJoinedEvent): v
   let user = getOrCreateUser(participantAddress, event.block.timestamp)
   let participantEntityId = cmParticipantId(campaignId, participantAddress)
 
+  let contract = CommunityMarketV1Contract.bind(event.address)
+  let stake = contract.participantStake(campaignId, participantAddress)
+
   let participant = CommunityCampaignParticipant.load(participantEntityId)
   if (participant == null) {
     participant = new CommunityCampaignParticipant(participantEntityId)
@@ -126,8 +129,10 @@ export function handleCMv1CampaignJoined(event: CommunityCampaignJoinedEvent): v
     participant.streak                   = BigInt.fromI32(0)
     participant.lastProofAt              = null
     participant.joinedAt                 = event.block.timestamp
-    participant.stakeAmount              = BigInt.fromI32(0)
+    participant.stakeAmount              = stake
     participant.forfeitedAmount          = BigInt.fromI32(0)
+  } else {
+    participant.stakeAmount = stake
   }
   participant.save()
 }

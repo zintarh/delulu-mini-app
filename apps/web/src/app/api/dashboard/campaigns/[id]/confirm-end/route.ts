@@ -4,6 +4,7 @@ import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseCommunityChallengeEndedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +14,6 @@ export async function POST(
 ) {
   const session = await readAdminSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isPlatformAdminRole(session.staffRole)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => ({}));
   const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
@@ -29,13 +27,22 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, status, on_chain_challenge_id")
+    .select("id, community_id, status, on_chain_challenge_id")
     .eq("id", id)
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const isPlatformAdmin = isPlatformAdminRole(session.staffRole);
+  if (!isPlatformAdmin && !session.communityIds.includes(campaign.community_id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (!campaign.on_chain_challenge_id) {
     return NextResponse.json({ error: "Campaign has no on-chain challenge." }, { status: 400 });
+  }
+  if (!canEndDashboardCampaign(campaign.status, campaign.on_chain_challenge_id)) {
+    return NextResponse.json({ error: "Campaign cannot be ended in its current state." }, { status: 400 });
   }
   if (campaign.status === "ended") {
     return NextResponse.json({ campaign: { id: campaign.id, status: "ended" } });

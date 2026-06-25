@@ -8,6 +8,7 @@ import {
   isJoinedCommunityCampaignOnGraph,
 } from "@/lib/community/campaign-subgraph";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
+import { fetchCampaignOnchainEconomics } from "@/lib/community/campaign-onchain-economics";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +142,32 @@ export async function GET(
     }
   }
 
+  let poolStats: {
+    fundedPoolAmount: number;
+    totalParticipantStakes: number;
+    totalPrizePoolAmount: number;
+    joinTokenLabel: string;
+    isPaidOnChain: boolean;
+    joinAmountOnChain: number;
+  } | null = null;
+
+  if (isValidOnChainChallengeId(campaign.on_chain_challenge_id)) {
+    const onchain = await fetchCampaignOnchainEconomics(campaign.on_chain_challenge_id);
+    if (onchain) {
+      if (onchain.participantCount > participantCount) {
+        participantCount = onchain.participantCount;
+      }
+      poolStats = {
+        fundedPoolAmount: onchain.fundedPoolAmount,
+        totalParticipantStakes: onchain.totalParticipantStakes,
+        totalPrizePoolAmount: onchain.totalPrizePoolAmount,
+        joinTokenLabel: onchain.joinTokenLabel,
+        isPaidOnChain: onchain.isPaid,
+        joinAmountOnChain: onchain.joinAmount,
+      };
+    }
+  }
+
   return NextResponse.json({
     campaign: {
       id: campaign.id,
@@ -183,5 +210,6 @@ export async function GET(
       !isJoined &&
       isValidOnChainChallengeId(campaign.on_chain_challenge_id) &&
       graphMilestoneCount > 0,
+    poolStats,
   });
 }

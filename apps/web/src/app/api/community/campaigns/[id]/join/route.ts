@@ -4,6 +4,7 @@ import {
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
 import { fetchCommunityCampaignMilestoneCountFromGraph } from "@/lib/community/campaign-subgraph";
+import { fetchCampaignOnchainEconomics } from "@/lib/community/campaign-onchain-economics";
 import {
   fetchDbMilestoneCounts,
   isValidOnChainChallengeId,
@@ -33,6 +34,7 @@ export async function POST(
     .from("community_campaigns")
     .select(`
       id, community_id, status, title, display_ends_at, on_chain_challenge_id,
+      is_free_to_join, join_amount, join_token,
       communities ( id, name, slug, status )
     `)
     .eq("id", campaignId)
@@ -83,12 +85,29 @@ export async function POST(
         { status: 403 },
       );
     }
+
+    const dbIsPaid =
+      campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0;
+    const onchain = await fetchCampaignOnchainEconomics(challengeId);
+    if (dbIsPaid && onchain && !onchain.isPaid) {
+      return NextResponse.json(
+        {
+          error:
+            "This campaign requires a paid stake, but on-chain join economics are not configured yet. Ask the host to re-approve the campaign.",
+        },
+        { status: 403 },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       requiresOnChain: true,
       challengeId,
       joinedCommunity,
       milestoneCount,
+      isPaidOnChain: onchain?.isPaid ?? false,
+      joinAmountOnChain: onchain?.joinAmount ?? 0,
+      joinTokenOnChain: onchain?.joinTokenLabel ?? campaign.join_token ?? "G$",
       community: { id: community.id, name: community.name, slug: community.slug },
     });
   }

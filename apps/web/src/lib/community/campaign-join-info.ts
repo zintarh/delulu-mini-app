@@ -27,6 +27,10 @@ export type CampaignJoinSource = {
   proof_instructions?: string | null;
   proofInstructions?: string | null;
   status?: string;
+  funded_pool_amount?: number;
+  total_participant_stakes?: number;
+  total_prize_pool_amount?: number;
+  participant_count?: number;
 };
 
 export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoinInfo {
@@ -63,5 +67,9 @@ export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoi
       campaign.proof_instructions ?? campaign.proofInstructions ?? null,
     pointsPerMilestone: BASE_PROOF_POINTS,
     maxForfeitTotal,
+    fundedPoolAmount: campaign.funded_pool_amount,
+    totalParticipantStakes: campaign.total_participant_stakes,
+    totalPrizePoolAmount: campaign.total_prize_pool_amount,
+    participantCount: campaign.participant_count,
   };
 }

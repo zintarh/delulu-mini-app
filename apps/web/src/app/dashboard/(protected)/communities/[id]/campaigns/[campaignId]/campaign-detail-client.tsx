@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Plus, Sparkles, StopCircle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
-import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
+import { canDeleteDashboardCampaign, canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import {
   CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
@@ -222,11 +222,9 @@ function CampaignSettingsForm({
 export function CampaignDetailClient({
   communityId,
   campaignId,
-  isPlatformAdmin,
 }: {
   communityId: string;
   campaignId: string;
-  isPlatformAdmin: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [endModalOpen, setEndModalOpen] = useState(false);
@@ -391,6 +389,7 @@ export function CampaignDetailClient({
     (campaign as { communities?: { name?: string } }).communities?.name ?? "Community";
   const timelineIndex = TIMELINE.indexOf(campaign.status as (typeof TIMELINE)[number]);
   const canDelete = canDeleteDashboardCampaign(campaign.status);
+  const canEnd = canEndDashboardCampaign(campaign.status, campaign.on_chain_challenge_id);
 
   return (
     <DashboardPage>
@@ -415,7 +414,7 @@ export function CampaignDetailClient({
               <Trash2 className="h-3.5 w-3.5" />
               Delete
             </button>
-          ) : isPlatformAdmin && campaign.status === "active" && campaign.on_chain_challenge_id ? (
+          ) : canEnd ? (
             <button
               type="button"
               onClick={() => { setEndModalOpen(true); setEndStep("idle"); setEndError(null); }}
@@ -489,7 +488,34 @@ export function CampaignDetailClient({
       </div>
 
       {activeTab === "settings" ? (
-        <CampaignSettingsForm campaign={campaign} campaignId={campaignId} />
+        <div className="space-y-4">
+          <CampaignSettingsForm campaign={campaign} campaignId={campaignId} />
+          {canEnd ? (
+            <DashboardPanel>
+              <div className="space-y-3 p-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">End campaign</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Permanently close this campaign on-chain. Participants will no longer be able to
+                    submit proofs.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEndModalOpen(true);
+                    setEndStep("idle");
+                    setEndError(null);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                >
+                  <StopCircle className="h-3.5 w-3.5" />
+                  End campaign
+                </button>
+              </div>
+            </DashboardPanel>
+          ) : null}
+        </div>
       ) : (
         <>
           <div className="mb-6 flex items-center gap-2">

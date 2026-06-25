@@ -51,6 +51,15 @@ export type CommunityCampaignDetailData = {
   };
 };
 
+export type CampaignPoolStats = {
+  fundedPoolAmount: number;
+  totalParticipantStakes: number;
+  totalPrizePoolAmount: number;
+  joinTokenLabel: string;
+  isPaidOnChain: boolean;
+  joinAmountOnChain: number;
+};
+
 export type CampaignLeaderboardRow = {
   rank: number;
   wallet_address: string;
@@ -180,6 +189,7 @@ export function CommunityCampaignDetail({
   proofStep = "idle",
   activeMilestoneId,
   actionError,
+  poolStats,
   onJoin,
   onOpenProof,
   onProofOpenChange,
@@ -208,6 +218,7 @@ export function CommunityCampaignDetail({
   proofStep?: ProofStep;
   activeMilestoneId?: number | null;
   actionError: string | null;
+  poolStats?: CampaignPoolStats | null;
   onJoin: () => void;
   onOpenProof: (milestoneId: number) => void;
   onProofOpenChange: (open: boolean) => void;
@@ -223,6 +234,19 @@ export function CommunityCampaignDetail({
   const daysLeft = daysRemaining(campaign.display_ends_at, campaign.duration_days ?? 30);
   const topN = campaign.prize_winner_count ?? 10;
   const communityName = campaign.communities?.name ?? "Community";
+  const fundedPool =
+    poolStats?.fundedPoolAmount ??
+    (funded && campaign.proposed_pool_amount > 0 ? campaign.proposed_pool_amount : 0);
+  const participantStakes = poolStats?.totalParticipantStakes ?? 0;
+  const stakeToken = poolStats?.joinTokenLabel ?? campaign.join_token ?? "G$";
+  const totalPrizePool =
+    poolStats?.totalPrizePoolAmount ?? fundedPool + participantStakes;
+  const showPrizePool = totalPrizePool > 0 || participantStakes > 0 || fundedPool > 0;
+  const isPaidJoin =
+    poolStats?.isPaidOnChain ??
+    (campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0);
+  const joinStakeAmount =
+    poolStats?.joinAmountOnChain ?? Number(campaign.join_amount ?? 0);
 
   const myLeaderboardRow = address
     ? leaderboard.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase())
@@ -309,7 +333,15 @@ export function CommunityCampaignDetail({
                 >
                   {phaseLabel}
                 </span>
-                {funded && campaign.proposed_pool_amount > 0 ? (
+                {showPrizePool ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#1a1a19]">
+                    <Trophy className="h-3 w-3" />
+                    {participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
+                      ? `${fundedPool} G$ + ${participantStakes} ${stakeToken}`
+                      : `${totalPrizePool} G$`}{" "}
+                    pool
+                  </span>
+                ) : funded && campaign.proposed_pool_amount > 0 ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#1a1a19]">
                     <Trophy className="h-3 w-3" />
                     {campaign.proposed_pool_amount} G$ pool
@@ -524,6 +556,55 @@ export function CommunityCampaignDetail({
               NON-JOINED PATH — discovery layout
               ════════════════════════════════════════════ */
           <>
+            {showPrizePool ? (
+              <section className="mx-4 mt-4 rounded-2xl border border-[#f6c324]/35 bg-[#fffbeb]/80 p-4">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-[#9a7b0a]" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-[#9a7b0a]">
+                    Prize pool
+                  </h2>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {fundedPool > 0 ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Host funded</span>
+                      <span className="font-bold text-foreground">{fundedPool} G$</span>
+                    </div>
+                  ) : null}
+                  {participantStakes > 0 ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Participant stakes ({participantCount} joined)
+                      </span>
+                      <span className="font-bold text-foreground">
+                        {participantStakes} {stakeToken}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between border-t border-[#f6c324]/25 pt-2 text-sm">
+                    <span className="font-semibold text-foreground">Total pool</span>
+                    <span className="font-black text-foreground">
+                      {participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
+                        ? `${fundedPool} G$ + ${participantStakes} ${stakeToken}`
+                        : `${totalPrizePool} G$`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Top {topN} on the leaderboard share the pool when the campaign ends.
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
+            {isPaidJoin && joinStakeAmount > 0 ? (
+              <p className="mx-4 mt-3 text-center text-xs text-muted-foreground">
+                Join stake: <strong className="text-foreground">{joinStakeAmount} {stakeToken}</strong>
+                {poolStats?.isPaidOnChain
+                  ? " — debited from your wallet on confirm"
+                  : ""}
+              </p>
+            ) : null}
+
             {/* Action card — simplified for non-joined */}
             <div className="relative z-10 mx-4 mt-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -565,7 +646,18 @@ export function CommunityCampaignDetail({
             {/* Stats strip */}
             <div className="mt-4 overflow-x-auto px-4 scrollbar-hide">
               <div className="flex gap-2 pb-1">
-                {funded && campaign.proposed_pool_amount > 0 ? (
+                {showPrizePool ? (
+                  <StatPill
+                    icon={Trophy}
+                    label="Prize"
+                    value={
+                      participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
+                        ? `${totalPrizePool} G$+`
+                        : `${totalPrizePool} G$`
+                    }
+                    accent
+                  />
+                ) : funded && campaign.proposed_pool_amount > 0 ? (
                   <StatPill
                     icon={Trophy}
                     label="Prize"

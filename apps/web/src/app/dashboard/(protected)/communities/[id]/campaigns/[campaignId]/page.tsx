@@ -26,7 +26,6 @@ export default async function DashboardCampaignDetailPage({
     <CampaignDetailClient
       communityId={id}
       campaignId={campaignId}
-      isPlatformAdmin={isPlatformAdminRole(session.staffRole)}
     />
   );
 }

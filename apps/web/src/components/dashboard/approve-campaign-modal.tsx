@@ -118,12 +118,15 @@ export function ApproveCampaignModal({
       const joinAmount = Number(campaign.join_amount ?? 0);
       if (!isFreeToJoin && joinAmount > 0) {
         const joinToken = resolveJoinTokenAddress(campaign.join_token);
-        const gDollar = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
+        const erc20Token =
+          joinToken === "0x0000000000000000000000000000000000000000"
+            ? (GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`)
+            : joinToken;
         await setCommunityCampaignEconomicsAndWait({
           challengeId,
           isPaid: true,
           joinToken,
-          joinAmountWei: parseTokenAmount(joinAmount, gDollar, 18),
+          joinAmountWei: parseTokenAmount(joinAmount, erc20Token),
           forfeitPct: Number(campaign.forfeit_pct ?? 0),
         });
       }

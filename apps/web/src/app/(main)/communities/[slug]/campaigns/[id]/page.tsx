@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   CommunityCampaignDetail,
   type CampaignLeaderboardRow,
+  type CampaignPoolStats,
   type CommunityCampaignDetailData,
 } from "@/components/community/community-campaign-detail";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
@@ -65,6 +66,7 @@ export default function CommunityCampaignPage() {
   const [milestoneCount, setMilestoneCount] = useState(0);
   const [canJoin, setCanJoin] = useState(false);
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
+  const [poolStats, setPoolStats] = useState<CampaignPoolStats | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [proofOpen, setProofOpen] = useState(false);
@@ -100,6 +102,7 @@ export default function CommunityCampaignPage() {
       setMilestoneCount(Number(json.milestoneCount ?? 0));
       setCanJoin(Boolean(json.canJoin));
       setMilestones(json.milestones ?? []);
+      setPoolStats(json.poolStats ?? null);
       return Boolean(json.isJoined);
     }
     return false;
@@ -132,8 +135,12 @@ export default function CommunityCampaignPage() {
       proof_cadence: campaign.proof_cadence,
       proof_instructions: campaign.proof_instructions,
       status: campaign.status,
+      funded_pool_amount: poolStats?.fundedPoolAmount,
+      total_participant_stakes: poolStats?.totalParticipantStakes,
+      total_prize_pool_amount: poolStats?.totalPrizePoolAmount,
+      participant_count: participantCount,
     });
-  }, [campaign, joinFlow, milestoneCount, params.id]);
+  }, [campaign, joinFlow, milestoneCount, params.id, participantCount, poolStats]);
 
   const handleJoined = useCallback(async () => {
     setIsJoined(true);
@@ -212,6 +219,7 @@ export default function CommunityCampaignPage() {
             proofStep={proofStep}
             activeMilestoneId={activeMilestoneId}
             actionError={actionError}
+            poolStats={poolStats}
             onJoin={openJoinModal}
             onOpenProof={(milestoneId) => {
               setActiveMilestoneId(milestoneId);

@@ -19,6 +19,10 @@ export type CampaignJoinInfo = {
   proofInstructions?: string | null;
   pointsPerMilestone?: number;
   maxForfeitTotal?: number;
+  fundedPoolAmount?: number;
+  totalParticipantStakes?: number;
+  totalPrizePoolAmount?: number;
+  participantCount?: number;
 };
 
 export function CampaignJoinModal({
@@ -49,6 +53,11 @@ export function CampaignJoinModal({
       : null;
   const cadenceLabel = info.proofCadence === "weekly" ? "weekly" : "daily";
   const points = info.pointsPerMilestone ?? 1000;
+  const fundedPool = info.fundedPoolAmount ?? info.proposedPoolAmount ?? 0;
+  const participantStakes = info.totalParticipantStakes ?? 0;
+  const totalPool = info.totalPrizePoolAmount ?? fundedPool + participantStakes;
+  const stakeToken = info.joinToken ?? "G$";
+  const hasPoolBreakdown = fundedPool > 0 || participantStakes > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -135,7 +144,32 @@ export function CampaignJoinModal({
                 Prize pool
               </p>
             </div>
-            {info.isFunded && info.proposedPoolAmount > 0 ? (
+            {hasPoolBreakdown ? (
+              <div className="space-y-1">
+                {fundedPool > 0 ? (
+                  <p className="text-sm text-foreground">
+                    Host funded: <strong>{fundedPool} G$</strong>
+                  </p>
+                ) : null}
+                {participantStakes > 0 ? (
+                  <p className="text-sm text-foreground">
+                    Participant stakes:{" "}
+                    <strong>
+                      {participantStakes} {stakeToken}
+                    </strong>
+                    {info.participantCount
+                      ? ` from ${info.participantCount} joined`
+                      : ""}
+                  </p>
+                ) : null}
+                <p className="text-sm font-semibold text-foreground">
+                  Total prize pool:{" "}
+                  {fundedPool > 0 && participantStakes > 0 && stakeToken !== "G$"
+                    ? `${fundedPool} G$ + ${participantStakes} ${stakeToken}`
+                    : `${totalPool} G$`}
+                </p>
+              </div>
+            ) : info.isFunded && info.proposedPoolAmount > 0 ? (
               <p className="text-sm font-semibold text-foreground">
                 Funded: {info.proposedPoolAmount} G$ in the pool
                 {hasForfeit ? " + participant forfeits" : ""}
