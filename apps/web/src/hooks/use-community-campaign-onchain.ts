@@ -186,3 +186,55 @@ export function useEndCommunityChallenge() {
     reset,
   };
 }
+
+export function useSetCommunityCampaignEconomics() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, data: hash, isPending, error, reset } =
+    useUnifiedWriteContract();
+
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
+  const setCommunityCampaignEconomics = async (input: {
+    challengeId: number | bigint;
+    isPaid: boolean;
+    joinToken: `0x${string}`;
+    joinAmountWei: bigint;
+    forfeitPct: number;
+  }) => {
+    return writeContractAsync({
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
+      functionName: "setCommunityCampaignEconomics",
+      args: [
+        BigInt(input.challengeId),
+        input.isPaid,
+        input.joinToken,
+        input.joinAmountWei,
+        input.forfeitPct,
+      ],
+    });
+  };
+
+  const setCommunityCampaignEconomicsAndWait = async (
+    input: Parameters<typeof setCommunityCampaignEconomics>[0],
+  ) => {
+    const txHash = await setCommunityCampaignEconomics(input);
+    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
+  };
+
+  return {
+    setCommunityCampaignEconomics,
+    setCommunityCampaignEconomicsAndWait,
+    hash,
+    isPending: isPending || isConfirming,
+    isSuccess,
+    isError: !!error || !!receiptError,
+    reset,
+  };
+}

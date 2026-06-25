@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       id, title, description, proof_cadence, proposed_pool_amount,
       duration_days, prize_winner_count, cover_image_url, display_ends_at,
       on_chain_challenge_id, status, created_at,
+      is_free_to_join, join_token, join_amount, forfeit_pct, proof_instructions,
       communities ( id, name, slug )
     `)
     .in("status", ["approved", "active"])
@@ -141,6 +142,11 @@ export async function GET(request: NextRequest) {
         : isValidOnChainChallengeId(c.on_chain_challenge_id) &&
           (graphMilestoneCounts[index] ?? 0) > 0,
       isJoined: joinedSet.has(c.id),
+      isFreeToJoin: c.is_free_to_join !== false,
+      joinToken: c.join_token ?? "G$",
+      joinAmount: Number(c.join_amount ?? 0),
+      forfeitPct: Number(c.forfeit_pct ?? 0),
+      proofInstructions: c.proof_instructions ?? null,
       community: community
         ? { id: community.id, name: community.name, slug: community.slug }
         : null,

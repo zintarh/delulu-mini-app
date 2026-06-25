@@ -8,6 +8,24 @@ type SignProvider = {
 let establishedAddress: string | null = null;
 let inFlight: Promise<boolean> | null = null;
 let inFlightAddress: string | null = null;
+/** Prevents duplicate effect invocations across many useAuth() subscribers. */
+let sessionRequestGuard: string | null = null;
+
+export function shouldStartWalletSessionEstablishment(address: string): boolean {
+  const normalized = address.toLowerCase();
+  if (sessionRequestGuard === normalized) return false;
+  sessionRequestGuard = normalized;
+  return true;
+}
+
+export function resetWalletSessionRequestGuard(): void {
+  sessionRequestGuard = null;
+}
+
+function clearSessionRequestGuard(address: string) {
+  const normalized = address.toLowerCase();
+  if (sessionRequestGuard === normalized) sessionRequestGuard = null;
+}
 
 async function hasValidWalletSession(expectedAddress: string): Promise<boolean> {
   try {
@@ -36,18 +54,19 @@ export async function establishWalletSession(
 
   if (establishedAddress === normalized) return true;
 
-  if (await hasValidWalletSession(normalized)) {
-    establishedAddress = normalized;
-    return true;
-  }
-
   if (inFlight && inFlightAddress === normalized) {
     return inFlight;
   }
 
-  inFlightAddress = normalized;
-  inFlight = (async () => {
+  const run = async (): Promise<boolean> => {
     try {
+      if (establishedAddress === normalized) return true;
+
+      if (await hasValidWalletSession(normalized)) {
+        establishedAddress = normalized;
+        return true;
+      }
+
       const message = buildWalletAuthMessage(address);
       const signature = await provider.request({
         method: "personal_sign",
@@ -66,11 +85,16 @@ export async function establishWalletSession(
       return false;
     } catch {
       return false;
-    } finally {
+    }
+  };
+
+  inFlightAddress = normalized;
+  inFlight = run().finally(() => {
+    if (inFlightAddress === normalized) {
       inFlight = null;
       inFlightAddress = null;
     }
-  })();
+  });
 
   return inFlight;
 }
@@ -79,4 +103,7 @@ export function clearWalletSessionClientState(): void {
   establishedAddress = null;
   inFlight = null;
   inFlightAddress = null;
+  sessionRequestGuard = null;
 }
+
+export { clearSessionRequestGuard };

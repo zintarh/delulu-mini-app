@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Plus, Sparkles, StopCircle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import {
   CAMPAIGN_DURATION_OPTIONS,
@@ -714,7 +715,7 @@ export function CampaignDetailClient({
                 <DashboardTableHead>
                   <DashboardTableHeadRow>
                     <DashboardTableHeadCell>#</DashboardTableHeadCell>
-                    <DashboardTableHeadCell>Wallet</DashboardTableHeadCell>
+                    <DashboardTableHeadCell>Participant</DashboardTableHeadCell>
                     <DashboardTableHeadCell align="right">Points</DashboardTableHeadCell>
                   </DashboardTableHeadRow>
                 </DashboardTableHead>
@@ -722,8 +723,12 @@ export function CampaignDetailClient({
                   {leaderboard.map((row, index) => (
                     <DashboardTableRow key={row.wallet_address}>
                       <DashboardTableCell>{index + 1}</DashboardTableCell>
-                      <DashboardTableCell className="font-mono text-xs">
-                        {formatAddress(row.wallet_address)}
+                      <DashboardTableCell className="text-xs">
+                        {formatLeaderboardDisplayName({
+                          username: (row as { username?: string | null }).username,
+                          walletAddress: row.wallet_address,
+                          formatAddress,
+                        })}
                       </DashboardTableCell>
                       <DashboardTableCell align="right" className="font-bold tabular-nums">
                         {row.points_total}

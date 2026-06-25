@@ -2,7 +2,6 @@ import {
   Bell,
   Compass,
   Home,
-  Plus,
   Trophy,
   User,
   type LucideIcon,
@@ -34,22 +33,16 @@ export function isNavHrefActive(pathname: string, href: string) {
   return path === target || path.startsWith(`${target}/`);
 }
 
-const coreNavItems = (authenticated: boolean): MainNavItem[] => [
+const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: "/", action: "home" },
   { icon: Bell, label: "Updates", action: "notifications" },
-  {
-    icon: Plus,
-    label: "Create",
-    href: authenticated ? "/board" : undefined,
-    action: "create",
-  },
   { icon: Compass, label: "Explore", href: "/explore", action: "explore" },
 ];
 
 /** Desktop left sidebar */
 export function getMainNavItems(authenticated: boolean): MainNavItem[] {
   return [
-    ...coreNavItems(authenticated),
+    ...coreNavItems(),
     {
       icon: Trophy,
       label: "Leaderboard",
@@ -70,7 +63,7 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
 
 /** Mobile bottom nav — includes Updates with unread badge */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [...coreNavItems(authenticated), getProfileNavItem(authenticated)];
+  return [...coreNavItems(), getProfileNavItem(authenticated)];
 }
 
 export function isMainNavItemActive(

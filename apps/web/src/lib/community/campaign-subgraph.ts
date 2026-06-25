@@ -1,9 +1,11 @@
 import { getSubgraphUrlForChain } from "@/lib/constant";
 import { CELO_MAINNET_ID } from "@/lib/constant";
+import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
 
 export type CommunityCampaignLeaderboardRow = {
   rank: number;
   wallet_address: string;
+  username?: string | null;
   points_total: number;
   current_streak: number;
   joined_at: string | null;
@@ -32,6 +34,7 @@ type SubgraphParticipant = {
   streak: string;
   joinedAt: string;
   completedMilestoneCount?: string;
+  participant?: { username?: string | null } | null;
 };
 
 type SubgraphMilestone = {
@@ -84,6 +87,9 @@ const LEADERBOARD_QUERY = `
       pointsTotal
       streak
       joinedAt
+      participant {
+        username
+      }
     }
   }
 `;
@@ -240,6 +246,7 @@ export async function fetchCommunityCampaignLeaderboardFromGraph(
       return {
         rank: index + 1,
         wallet_address: wallet,
+        username: row.participant?.username ?? null,
         points_total: Number(row.pointsTotal),
         current_streak: Number(row.streak),
         joined_at: row.joinedAt
@@ -506,8 +513,7 @@ export async function fetchJoinedCampaignDashboardFromGraph(
 
       const milestones = batchedMilestones.get(challengeId) ?? [];
       const completedCount = Number(p.completedMilestoneCount ?? 0);
-      const pending = milestones.filter((m) => !m.completed);
-      const next_milestones = pending.slice(0, 2);
+      const next_milestones = getDashboardNextMilestones(milestones);
 
       return {
         campaign_id: meta.id,

@@ -93,8 +93,8 @@ dataSources:
     network: celo
     source:
       abi: CommunityMarketV1
-      address: "0x6d8232F5B4D0Efa1ba84bb242cEB6cb81A7FCf2a"
-      startBlock: 70216934
+      address: "0xE652E0cA7DACb6489928C6801D83356a016DcfE1"
+      startBlock: 70315658
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

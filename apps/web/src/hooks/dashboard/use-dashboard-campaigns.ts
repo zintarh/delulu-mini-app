@@ -21,6 +21,10 @@ export type DashboardCampaign = {
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
+  is_free_to_join?: boolean;
+  join_token?: string | null;
+  join_amount?: number | null;
+  forfeit_pct?: number | null;
   community?: { id: string; name: string; slug: string } | null;
 };
 

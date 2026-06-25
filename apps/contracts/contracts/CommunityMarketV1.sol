@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title CommunityMarketV1
- * @notice Standalone community campaign contract. Handles campaign creation,
+ * @notice UUPS-upgradeable community campaign contract. Handles campaign creation,
  *         milestone tracking, paid-join economics, and proof submission.
- *         Deployed separately from the personal-goals proxy so each contract
- *         stays within the 24 KB EIP-170 bytecode limit.
+ *         Deploy behind an ERC1967 proxy; upgrade via owner-only upgradeToAndCall.
  */
-contract CommunityMarketV1 is Ownable, ReentrancyGuard {
+contract CommunityMarketV1 is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
 
     // --- ERRORS ---
@@ -29,11 +35,12 @@ contract CommunityMarketV1 is Ownable, ReentrancyGuard {
     error MilestoneNotFound();
     error AlreadyCompleted();
     error ProofAfterDeadline();
+    error ProofBeforeStart();
     error InvalidForfeitPct();
 
     // --- CONSTANTS ---
     uint256 public constant DAY = 86400;
-    uint256 public constant BASE_PROOF_POINTS = 10;
+    uint256 public constant BASE_PROOF_POINTS = 1000;
     uint256 public constant STREAK_BONUS = 1;
     uint256 public constant MAX_STREAK_BONUS = 7;
 
@@ -118,11 +125,19 @@ contract CommunityMarketV1 is Ownable, ReentrancyGuard {
         uint256 endedAt
     );
 
-    // --- CONSTRUCTOR ---
-    constructor(address _currency, address initialOwner) Ownable(initialOwner) {
-        if (_currency == address(0)) revert InvalidInput();
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _currency, address initialOwner) public initializer {
+        if (_currency == address(0) || initialOwner == address(0)) revert InvalidInput();
+        __Ownable_init(initialOwner);
+        __ReentrancyGuard_init();
         currency = IERC20(_currency);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // --- CAMPAIGN LIFECYCLE ---
 
@@ -233,6 +248,9 @@ contract CommunityMarketV1 is Ownable, ReentrancyGuard {
         if (milestoneId >= campaignMilestoneCount[campaignId]) revert MilestoneNotFound();
         if (milestoneCompleted[campaignId][milestoneId][msg.sender]) revert AlreadyCompleted();
 
+        uint256 startTime = campaignMilestoneStartTime[campaignId][milestoneId];
+        if (block.timestamp < startTime) revert ProofBeforeStart();
+
         uint256 deadline = campaignMilestoneDeadline[campaignId][milestoneId];
         if (block.timestamp > deadline) revert ProofAfterDeadline();
 
@@ -242,8 +260,7 @@ contract CommunityMarketV1 is Ownable, ReentrancyGuard {
         participantStreak[campaignId][msg.sender] = streak;
         participantLastProofAt[campaignId][msg.sender] = block.timestamp;
 
-        uint256 streakBonus = streak > MAX_STREAK_BONUS ? MAX_STREAK_BONUS : streak;
-        uint256 points = BASE_PROOF_POINTS + streakBonus * STREAK_BONUS;
+        uint256 points = BASE_PROOF_POINTS;
 
         uint256 newTotal = participantPoints[campaignId][msg.sender] + points;
         participantPoints[campaignId][msg.sender] = newTotal;
@@ -299,4 +316,7 @@ contract CommunityMarketV1 is Ownable, ReentrancyGuard {
         Campaign storage c = campaigns[campaignId];
         return c.active && !c.ended && block.timestamp <= c.startTime + c.duration;
     }
+
+    /// @dev Reserved for future storage without breaking upgrades.
+    uint256[50] private __gap;
 }

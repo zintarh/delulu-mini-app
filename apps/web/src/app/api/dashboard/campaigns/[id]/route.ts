@@ -5,6 +5,7 @@ import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseDurationDays, parsePrizeWinnerCount } from "@/lib/community/campaign-types";
 import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import { fetchCommunityCampaignLeaderboardFromGraph } from "@/lib/community/campaign-subgraph";
+import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ const CAMPAIGN_DETAIL_SELECT = `
   id, community_id, title, description, proof_cadence, proof_instructions,
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
   display_ends_at, duration_days, prize_winner_count, cover_image_url,
+  is_free_to_join, join_token, join_amount, forfeit_pct,
   rejection_reason, approved_at, created_at, updated_at,
   communities ( id, name, slug, member_invite_code )
 `;
@@ -83,8 +85,11 @@ export async function GET(
       points_total: row.points_total,
       current_streak: row.current_streak,
       joined_at: row.joined_at,
+      username: row.username ?? null,
     }));
   }
+
+  leaderboard = await enrichLeaderboardWithUsernames(admin, leaderboard);
 
   return NextResponse.json({ campaign, leaderboard });
 }

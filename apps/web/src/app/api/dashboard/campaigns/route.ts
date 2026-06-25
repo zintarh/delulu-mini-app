@@ -57,7 +57,9 @@ function normalizeCampaign(row: Record<string, unknown>): DashboardCampaign {
 const CAMPAIGN_SELECT = `
   id, community_id, title, description, proof_cadence, proof_instructions,
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
-  display_ends_at, duration_days, prize_winner_count, cover_image_url, created_at, updated_at,
+  display_ends_at, duration_days, prize_winner_count, cover_image_url,
+  is_free_to_join, join_token, join_amount, forfeit_pct,
+  created_at, updated_at,
   communities ( id, name, slug )
 `;
 

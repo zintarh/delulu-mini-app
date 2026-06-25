@@ -29,7 +29,8 @@ const FETCH_BATCH = 40;
 const CAMPAIGN_FEED_SELECT = `
   id, title, status, proposed_pool_amount, proof_cadence, duration_days,
   prize_winner_count, cover_image_url, display_ends_at, created_at, community_id,
-  on_chain_challenge_id,
+  on_chain_challenge_id, is_free_to_join, join_token, join_amount, forfeit_pct,
+  proof_instructions,
   communities ( id, name, slug )
 `;
 
@@ -46,6 +47,11 @@ type CampaignRow = {
   created_at: string;
   community_id: string;
   on_chain_challenge_id: number | null;
+  is_free_to_join?: boolean | null;
+  join_token?: string | null;
+  join_amount?: number | null;
+  forfeit_pct?: number | null;
+  proof_instructions?: string | null;
   communities: { id: string; name: string; slug: string } | null;
 };
 
@@ -73,6 +79,11 @@ function toFeedItem(
     participant_state: joined ? "joined" : "none",
     milestone_count: milestoneCount,
     can_join: canJoin,
+    is_free_to_join: row.is_free_to_join !== false,
+    join_token: row.join_token ?? "G$",
+    join_amount: Number(row.join_amount ?? 0),
+    forfeit_pct: Number(row.forfeit_pct ?? 0),
+    proof_instructions: row.proof_instructions ?? null,
     ...(joined && participantData
       ? { myStreak: participantData.streak, myPoints: participantData.points }
       : {}),

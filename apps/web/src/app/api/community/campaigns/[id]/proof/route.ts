@@ -5,6 +5,7 @@ import {
 } from "@/lib/community/campaign-types";
 import { verifyImageProof } from "@/lib/ai/verify-image-proof";
 import { fetchCommunityCampaignMilestonesFromGraph } from "@/lib/community/campaign-subgraph";
+import { canSubmitMilestone } from "@/lib/community/milestone-submit-eligibility";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
@@ -68,6 +69,12 @@ export async function POST(
   }
   if (milestone.completed) {
     return NextResponse.json({ error: "Milestone already completed" }, { status: 409 });
+  }
+  if (!canSubmitMilestone(milestone)) {
+    return NextResponse.json(
+      { error: "This milestone is not open for submission yet. Check back when its day starts." },
+      { status: 400 },
+    );
   }
 
   let verdict;

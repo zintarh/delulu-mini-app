@@ -10,14 +10,10 @@ import {
 } from "@/components/community/community-campaign-detail";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-skeleton";
-import {
-  useJoinCommunityCampaignOnChain,
-  useSubmitCommunityMilestoneProofOnChain,
-} from "@/hooks/use-community-campaign-onchain";
-import {
-  joinCommunityCampaignWithWallet,
-  submitCommunityProofWithWallet,
-} from "@/lib/community/join-campaign-client";
+import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
+import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
+import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
+import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { MainPage } from "@/components/main-app-header";
 
 function CommunityCampaignDetailSkeleton() {
@@ -55,7 +51,7 @@ type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confir
 export default function CommunityCampaignPage() {
   const params = useParams<{ slug: string; id: string }>();
   const { address, authenticated } = useAuth();
-  const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
+  const joinFlow = useCampaignJoinFlow();
   const { submitCommunityCampaignMilestoneProofAndWait } =
     useSubmitCommunityMilestoneProofOnChain();
 
@@ -71,7 +67,6 @@ export default function CommunityCampaignPage() {
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
   const [proofOpen, setProofOpen] = useState(false);
   const [proofBusy, setProofBusy] = useState(false);
   const [proofSuccess, setProofSuccess] = useState(false);
@@ -120,22 +115,30 @@ export default function CommunityCampaignPage() {
     })();
   }, [loadCampaign, loadLeaderboard]);
 
-  const runJoin = async () => {
-    if (!address) return;
-    setJoining(true);
+  const openJoinModal = useCallback(() => {
+    if (!campaign) return;
     setActionError(null);
-    try {
-      await joinCommunityCampaignWithWallet(params.id, address, joinCommunityCampaignAndWait, {
-        campaignTitle: campaign?.title,
-      });
-      setIsJoined(true);
-      await Promise.all([loadCampaign(), loadLeaderboard()]);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Join failed");
-    } finally {
-      setJoining(false);
-    }
-  };
+    joinFlow.openJoinModal(params.id, {
+      title: campaign.title,
+      community: campaign.communities ? { name: campaign.communities.name } : null,
+      duration_days: campaign.duration_days,
+      milestone_count: milestoneCount,
+      is_free_to_join: campaign.is_free_to_join,
+      join_token: campaign.join_token,
+      join_amount: campaign.join_amount,
+      forfeit_pct: campaign.forfeit_pct,
+      proposed_pool_amount: campaign.proposed_pool_amount,
+      prize_winner_count: campaign.prize_winner_count,
+      proof_cadence: campaign.proof_cadence,
+      proof_instructions: campaign.proof_instructions,
+      status: campaign.status,
+    });
+  }, [campaign, joinFlow, milestoneCount, params.id]);
+
+  const handleJoined = useCallback(async () => {
+    setIsJoined(true);
+    await Promise.all([loadCampaign(), loadLeaderboard()]);
+  }, [loadCampaign, loadLeaderboard]);
 
   const handleProofSubmit = async (imageUrl: string) => {
     if (!address || activeMilestoneId == null) return;
@@ -186,47 +189,53 @@ export default function CommunityCampaignPage() {
             Campaign not found
           </p>
         ) : (
-    <CommunityCampaignDetail
-      campaign={campaign}
-      communitySlug={communitySlug}
-      leaderboard={leaderboard}
-      participantCount={participantCount}
-      isJoined={isJoined}
-      isCommunityMember={isCommunityMember}
-      address={address}
-      authenticated={authenticated}
-      joining={joining}
-      myPoints={myPoints}
-      myStreak={myStreak}
-      myRank={myRankInLeaderboard}
-      milestoneCount={milestoneCount}
-      canJoin={canJoin}
-      milestones={milestones}
-      proofOpen={proofOpen}
-      proofBusy={proofBusy}
-      proofSuccess={proofSuccess}
-      proofError={proofError}
-      proofStep={proofStep}
-      activeMilestoneId={activeMilestoneId}
-      actionError={actionError}
-      onJoin={() => void runJoin()}
-      onOpenProof={(milestoneId) => {
-        setActiveMilestoneId(milestoneId);
-        setProofSuccess(false);
-        setProofError(null);
-        setProofStep("idle");
-        setProofOpen(true);
-      }}
-      onProofOpenChange={setProofOpen}
-      onProofSubmit={handleProofSubmit}
-      onProofDone={() => {
-        setProofOpen(false);
-        setProofSuccess(false);
-        setActiveMilestoneId(null);
-      }}
-    />
+          <CommunityCampaignDetail
+            campaign={campaign}
+            communitySlug={communitySlug}
+            leaderboard={leaderboard}
+            participantCount={participantCount}
+            isJoined={isJoined}
+            isCommunityMember={isCommunityMember}
+            address={address}
+            authenticated={authenticated}
+            joining={joinFlow.joining}
+            myPoints={myPoints}
+            myStreak={myStreak}
+            myRank={myRankInLeaderboard}
+            milestoneCount={milestoneCount}
+            canJoin={canJoin}
+            milestones={milestones}
+            proofOpen={proofOpen}
+            proofBusy={proofBusy}
+            proofSuccess={proofSuccess}
+            proofError={proofError}
+            proofStep={proofStep}
+            activeMilestoneId={activeMilestoneId}
+            actionError={actionError}
+            onJoin={openJoinModal}
+            onOpenProof={(milestoneId) => {
+              setActiveMilestoneId(milestoneId);
+              setProofSuccess(false);
+              setProofError(null);
+              setProofStep("idle");
+              setProofOpen(true);
+            }}
+            onProofOpenChange={setProofOpen}
+            onProofSubmit={handleProofSubmit}
+            onProofDone={() => {
+              setProofOpen(false);
+              setProofSuccess(false);
+              setActiveMilestoneId(null);
+            }}
+          />
         )}
       </div>
+
+      <CampaignJoinFlowOverlay
+        flow={joinFlow}
+        address={address}
+        onJoined={handleJoined}
+      />
     </MainPage>
   );
 }

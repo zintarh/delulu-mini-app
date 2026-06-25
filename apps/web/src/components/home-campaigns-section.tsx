@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   CampaignExploreCardSkeleton,
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
+import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import type { CommunityCampaignFeedItem } from "@/lib/community/campaign-types";
 import {
   homeCampaignKeys,
@@ -21,15 +22,19 @@ import {
   useJoinedCampaignDashboard,
 } from "@/hooks/use-user-campaign-milestones";
 import {
-  joinCommunityCampaignWithWallet,
   submitCommunityProofWithWallet,
 } from "@/lib/community/join-campaign-client";
 import {
-  useJoinCommunityCampaignOnChain,
   useSubmitCommunityMilestoneProofOnChain,
 } from "@/hooks/use-community-campaign-onchain";
+import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useAuth } from "@/hooks/use-auth";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
+import {
+  canSubmitMilestone,
+  formatMilestoneOpensAt,
+  getActiveMilestone,
+} from "@/lib/community/milestone-submit-eligibility";
 
 function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardData {
   return {
@@ -45,6 +50,13 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
     canJoin: c.can_join ?? false,
     isOnChain: isValidOnChainChallengeId(c.on_chain_challenge_id ?? null),
     isJoined: c.participant_state === "joined",
+    isFreeToJoin: c.is_free_to_join,
+    joinToken: c.join_token ?? "G$",
+    joinAmount: Number(c.join_amount ?? 0),
+    forfeitPct: Number(c.forfeit_pct ?? 0),
+    proofInstructions: c.proof_instructions ?? null,
+    proofCadence: c.proof_cadence,
+    prizeWinnerCount: c.prize_winner_count,
     community: { name: c.community.name, slug: c.community.slug },
   };
 }
@@ -62,6 +74,12 @@ function MissionCard({
 }) {
   const milestone = campaign.next_milestones[0];
   if (!milestone) return null;
+
+  const activeMilestone = getActiveMilestone(campaign.next_milestones) ?? milestone;
+  const canSubmit = canSubmitMilestone(activeMilestone);
+  const waitingLabel = milestone.start_time
+    ? formatMilestoneOpensAt(milestone.start_time)
+    : "Opens soon";
 
   const progress =
     campaign.milestone_count > 0
@@ -123,18 +141,21 @@ function MissionCard({
         {/* Bottom */}
         <div>
           <p className="mb-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-            Today&apos;s milestone
+            {canSubmit ? "Today's milestone" : "Up next"}
           </p>
           <p className="mb-3.5 line-clamp-2 text-[17px] font-black leading-tight text-white">
             {milestone.label}
           </p>
+          {!canSubmit ? (
+            <p className="mb-3 text-[11px] font-semibold text-white/60">{waitingLabel}</p>
+          ) : null}
           <button
             type="button"
-            disabled={isBusy}
+            disabled={isBusy || !canSubmit}
             onClick={onSubmit}
             className="w-full rounded-full border border-white/25 bg-white/12 py-2.5 text-sm font-black text-white backdrop-blur-sm transition-opacity disabled:opacity-50 active:opacity-70"
           >
-            {isBusy ? "Uploading…" : "Submit proof →"}
+            {isBusy ? "Uploading…" : canSubmit ? "Submit proof →" : waitingLabel}
           </button>
         </div>
       </div>
@@ -234,7 +255,7 @@ function TodaysMilestonesSection({ address }: { address: string }) {
             isBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
             onSubmit={() => {
               const milestone = c.next_milestones[0];
-              if (!milestone) return;
+              if (!milestone || !canSubmitMilestone(milestone)) return;
               setActiveProof({
                 campaignId: c.campaign_id,
                 challengeId: c.challenge_id,
@@ -279,12 +300,10 @@ function DiscoverCampaignsSection({
   address,
   onJoin,
   joiningId,
-  joinError,
 }: {
   address: string;
   onJoin: (campaign: CommunityCampaignFeedItem) => void;
   joiningId: string | null;
-  joinError: string | null;
 }) {
   const { data, isLoading } = useHomeCampaignsFeed("ongoing", address);
   const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 5);
@@ -316,12 +335,6 @@ function DiscoverCampaignsSection({
         </Link>
       </div>
 
-      {joinError ? (
-        <p className="mb-2 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
-          {joinError}
-        </p>
-      ) : null}
-
       <div className="space-y-4">
         {campaigns.map((c) => (
           <CampaignExploreCard
@@ -340,9 +353,8 @@ export function HomeCampaignsSection() {
   const { address } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [joinError, setJoinError] = useState<string | null>(null);
+  const joinFlow = useCampaignJoinFlow();
+  const pendingJoinRef = useRef<CommunityCampaignFeedItem | null>(null);
 
   const invalidateFeeds = useCallback(() => {
     if (!address) return;
@@ -350,29 +362,38 @@ export function HomeCampaignsSection() {
     void queryClient.invalidateQueries({ queryKey: joinedDashboardKeys.all(address) });
   }, [address, queryClient]);
 
-  const runJoin = useCallback(
-    async (campaign: CommunityCampaignFeedItem) => {
-      if (!address) return;
-      setJoiningId(campaign.id);
-      setJoinError(null);
-      try {
-        const result = await joinCommunityCampaignWithWallet(
-          campaign.id,
-          address,
-          joinCommunityCampaignAndWait,
-          { campaignTitle: campaign.title },
-        );
-        invalidateFeeds();
-        if (result.joinedCampaign || result.alreadyJoined) {
-          router.push(`/communities/${campaign.community.slug}/campaigns/${campaign.id}`);
-        }
-      } catch (err) {
-        setJoinError(err instanceof Error ? err.message : "Join failed");
-      } finally {
-        setJoiningId(null);
+  const openJoin = useCallback(
+    (campaign: CommunityCampaignFeedItem) => {
+      pendingJoinRef.current = campaign;
+      joinFlow.openJoinModal(campaign.id, {
+        title: campaign.title,
+        community: { name: campaign.community.name },
+        duration_days: campaign.duration_days,
+        milestone_count: campaign.milestone_count,
+        is_free_to_join: campaign.is_free_to_join,
+        join_token: campaign.join_token,
+        join_amount: campaign.join_amount,
+        forfeit_pct: campaign.forfeit_pct,
+        proposed_pool_amount: campaign.proposed_pool_amount,
+        prize_winner_count: campaign.prize_winner_count,
+        proof_cadence: campaign.proof_cadence,
+        proof_instructions: campaign.proof_instructions,
+        status: campaign.status,
+      });
+    },
+    [joinFlow],
+  );
+
+  const handleJoined = useCallback(
+    async (campaignId: string) => {
+      invalidateFeeds();
+      const campaign = pendingJoinRef.current;
+      pendingJoinRef.current = null;
+      if (campaign && campaign.id === campaignId) {
+        router.push(`/communities/${campaign.community.slug}/campaigns/${campaignId}`);
       }
     },
-    [address, invalidateFeeds, joinCommunityCampaignAndWait, router],
+    [invalidateFeeds, router],
   );
 
   if (!address) return null;
@@ -382,9 +403,15 @@ export function HomeCampaignsSection() {
       <TodaysMilestonesSection address={address} />
       <DiscoverCampaignsSection
         address={address}
-        onJoin={runJoin}
-        joiningId={joiningId}
-        joinError={joiningId ? joinError : null}
+        onJoin={openJoin}
+        joiningId={
+          joinFlow.joining ? joinFlow.pendingCampaignId : null
+        }
+      />
+      <CampaignJoinFlowOverlay
+        flow={joinFlow}
+        address={address}
+        onJoined={handleJoined}
       />
     </>
   );

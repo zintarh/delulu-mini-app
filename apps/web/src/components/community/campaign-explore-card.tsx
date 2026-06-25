@@ -20,6 +20,13 @@ export type CampaignExploreCardData = {
   canJoin?: boolean;
   isOnChain?: boolean;
   isJoined: boolean;
+  isFreeToJoin?: boolean;
+  joinToken?: string;
+  joinAmount?: number;
+  forfeitPct?: number;
+  proofInstructions?: string | null;
+  proofCadence?: string;
+  prizeWinnerCount?: number;
   community: { name: string; slug: string } | null;
 };
 

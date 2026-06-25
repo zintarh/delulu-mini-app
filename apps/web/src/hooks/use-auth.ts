@@ -9,8 +9,11 @@ import {
   useWeb3AuthUser,
 } from "@web3auth/modal/react";
 import {
+  clearSessionRequestGuard,
   clearWalletSessionClientState,
   establishWalletSession,
+  resetWalletSessionRequestGuard,
+  shouldStartWalletSessionEstablishment,
 } from "@/lib/auth/establish-wallet-session-client";
 import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
 
@@ -52,10 +55,6 @@ export function useAuth(): UseAuthReturn {
     `0x${string}` | undefined
   >();
   const pendingLogin = useRef(false);
-  // Tracks which address we've already started session establishment for.
-  // Prevents re-firing personal_sign when web3Auth object reference changes
-  // (common in React contexts) after inFlight has already settled.
-  const sessionAttemptedForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!web3authConnected || !web3Auth?.provider) {
@@ -79,8 +78,7 @@ export function useAuth(): UseAuthReturn {
         localStorage.setItem(PROVIDER_KEY, "web3auth");
       } catch {}
     } else {
-      // Reset so the next login (possibly same address) runs session establishment fresh.
-      sessionAttemptedForRef.current = null;
+      resetWalletSessionRequestGuard();
     }
   }, [web3authConnected]);
 
@@ -93,21 +91,19 @@ export function useAuth(): UseAuthReturn {
 
   useEffect(() => {
     if (!web3authConnected || !web3Auth?.provider || !web3authAddress) return;
-    // Guard: each useAuth() instance must only attempt once per connected address.
-    // web3Auth object reference changes frequently in React context — without this,
-    // the effect re-fires after inFlight settles, causing duplicate personal_sign prompts.
-    if (sessionAttemptedForRef.current === web3authAddress) return;
-    sessionAttemptedForRef.current = web3authAddress;
+    // Module-level guard: many components call useAuth(); only one should trigger personal_sign.
+    if (!shouldStartWalletSessionEstablishment(web3authAddress)) return;
 
     void establishWalletSession(web3authAddress, web3Auth.provider as {
       request: (args: { method: string; params: unknown[] }) => Promise<string>;
-    }).catch((err) => {
-      // Allow retry on the next connect cycle by clearing the guard on failure.
-      if (sessionAttemptedForRef.current === web3authAddress) {
-        sessionAttemptedForRef.current = null;
-      }
-      console.warn("[auth] wallet session establishment failed:", err);
-    });
+    })
+      .then((ok) => {
+        if (!ok) clearSessionRequestGuard(web3authAddress);
+      })
+      .catch((err) => {
+        clearSessionRequestGuard(web3authAddress);
+        console.warn("[auth] wallet session establishment failed:", err);
+      });
   }, [web3authConnected, web3Auth, web3authAddress]);
 
   // Clear stale localStorage hint when SDK initialises with no active session.

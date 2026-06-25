@@ -17,9 +17,14 @@ import {
 } from "lucide-react";
 import { ProofModal } from "@/components/proof-modal";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
-import { CampaignJoinModal } from "@/components/community/campaign-join-modal";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { cn, formatAddress } from "@/lib/utils";
+import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
+import {
+  formatMilestoneOpensAt,
+  getActiveMilestone,
+  getUpcomingMilestone,
+} from "@/lib/community/milestone-submit-eligibility";
 import { isCampaignFunded } from "@/lib/community/campaign-types";
 
 export type CommunityCampaignDetailData = {
@@ -49,6 +54,7 @@ export type CommunityCampaignDetailData = {
 export type CampaignLeaderboardRow = {
   rank: number;
   wallet_address: string;
+  username?: string | null;
   points_total: number;
   is_community_member: boolean;
 };
@@ -208,7 +214,6 @@ export function CommunityCampaignDetail({
   onProofSubmit: (imageUrl: string) => void;
   onProofDone: () => void;
 }) {
-  const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const MILESTONES_PREVIEW = 4;
@@ -218,7 +223,6 @@ export function CommunityCampaignDetail({
   const daysLeft = daysRemaining(campaign.display_ends_at, campaign.duration_days ?? 30);
   const topN = campaign.prize_winner_count ?? 10;
   const communityName = campaign.communities?.name ?? "Community";
-  const isFreeToJoin = campaign.is_free_to_join !== false;
 
   const myLeaderboardRow = address
     ? leaderboard.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase())
@@ -228,10 +232,15 @@ export function CommunityCampaignDetail({
 
   const completedCount = milestones.filter((m) => m.completed).length;
 
-  const nextMilestone = useMemo(
-    () => milestones.find((m) => !m.completed) ?? null,
+  const activeMilestone = useMemo(
+    () => getActiveMilestone(milestones),
     [milestones],
   );
+  const upcomingMilestone = useMemo(
+    () => getUpcomingMilestone(milestones),
+    [milestones],
+  );
+  const focusMilestone = activeMilestone ?? upcomingMilestone;
 
   const campaignPhase = useMemo(() => {
     if (milestoneCount === 0) return "setup" as const;
@@ -343,13 +352,13 @@ export function CommunityCampaignDetail({
           <>
             {/* "Today's proof" card */}
             <div className="mx-4 mt-4">
-              {nextMilestone ? (
+              {focusMilestone ? (
                 <div className="overflow-hidden rounded-2xl border border-delulu-blue/30 bg-delulu-blue-light/30">
                   <div className="flex items-start gap-3 border-l-4 border-delulu-blue p-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold uppercase tracking-wide text-delulu-blue">
-                          Today&apos;s proof
+                          {activeMilestone ? "Today's proof" : "Up next"}
                         </p>
                         {myStreak > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-600">
@@ -359,18 +368,23 @@ export function CommunityCampaignDetail({
                         ) : null}
                       </div>
                       <p className="mt-1 text-sm font-bold text-foreground">
-                        {nextMilestone.label}
+                        {focusMilestone.label}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {milestoneCountdown(nextMilestone.deadline)}
+                        {activeMilestone
+                          ? milestoneCountdown(activeMilestone.deadline)
+                          : formatMilestoneOpensAt(focusMilestone.start_time)}
                       </p>
                     </div>
                   </div>
                   <div className="border-t border-delulu-blue/20 px-4 pb-4 pt-3">
                     <button
                       type="button"
-                      disabled={proofBusy}
-                      onClick={() => onOpenProof(nextMilestone.milestone_id)}
+                      disabled={proofBusy || !activeMilestone}
+                      onClick={() => {
+                        if (!activeMilestone) return;
+                        onOpenProof(activeMilestone.milestone_id);
+                      }}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-50"
                     >
                       {proofBusy ? (
@@ -378,8 +392,10 @@ export function CommunityCampaignDetail({
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Submitting…
                         </>
-                      ) : (
+                      ) : activeMilestone ? (
                         "Submit proof"
+                      ) : (
+                        formatMilestoneOpensAt(focusMilestone.start_time)
                       )}
                     </button>
                   </div>
@@ -532,7 +548,7 @@ export function CommunityCampaignDetail({
                   <JoinButton
                     joining={joining}
                     canJoin={canJoin}
-                    onJoin={() => setJoinModalOpen(true)}
+                    onJoin={onJoin}
                     size="large"
                   />
                 ) : (
@@ -696,7 +712,12 @@ export function CommunityCampaignDetail({
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="truncate text-sm font-semibold">
-                            {isMe ? "You" : formatAddress(row.wallet_address)}
+                            {formatLeaderboardDisplayName({
+                              username: row.username,
+                              walletAddress: row.wallet_address,
+                              isMe,
+                              formatAddress,
+                            })}
                           </span>
                           {row.is_community_member ? (
                             <span className="rounded-full bg-delulu-blue-light px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-delulu-blue">
@@ -742,29 +763,6 @@ export function CommunityCampaignDetail({
         proofInstructions={campaign.proof_instructions}
         isOnChain={Boolean(campaign.on_chain_challenge_id)}
         proofStep={proofStep}
-      />
-
-      <CampaignJoinModal
-        open={joinModalOpen}
-        joining={joining}
-        info={{
-          title: campaign.title,
-          communityName,
-          milestoneCount,
-          durationDays: campaign.duration_days,
-          isFreeToJoin,
-          joinToken: campaign.join_token ?? "G$",
-          joinAmount: campaign.join_amount ?? 0,
-          forfeitPct: campaign.forfeit_pct ?? 0,
-          proposedPoolAmount: campaign.proposed_pool_amount,
-          prizeWinnerCount: campaign.prize_winner_count,
-          isFunded: funded,
-        }}
-        onConfirm={() => {
-          setJoinModalOpen(false);
-          onJoin();
-        }}
-        onCancel={() => setJoinModalOpen(false)}
       />
     </>
   );

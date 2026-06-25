@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchJoinedCampaignDashboardFromGraph } from "@/lib/community/campaign-subgraph";
+import {
+  buildOffChainMilestoneSchedule,
+  getDashboardNextMilestones,
+} from "@/lib/community/milestone-submit-eligibility";
 import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
@@ -80,7 +84,7 @@ export async function GET(request: NextRequest) {
     admin
       .from("community_campaigns")
       .select(`
-        id, title, cover_image_url, display_ends_at, duration_days,
+        id, title, cover_image_url, display_ends_at, duration_days, proof_cadence,
         communities ( name, slug )
       `)
       .in("status", [...PARTICIPATING_STATUSES])
@@ -147,18 +151,14 @@ export async function GET(request: NextRequest) {
     );
     const allMilestones = milestonesByCampaign.get(cid) ?? [];
     const completedSet = completedMap.get(cid) ?? new Set<number>();
-
-    // Only milestones not yet approved count as "next"
-    const nextMilestones = allMilestones
-      .filter((m) => !completedSet.has(m.order_index))
-      .map((m) => ({
-        milestone_id: m.order_index,
-        label: m.title,
-        deadline: "",
-        start_time: "",
-        completed: false as const,
-        is_overdue: false as const,
-      }));
+    const scheduled = buildOffChainMilestoneSchedule({
+      displayEndsAt: (raw as { display_ends_at: string | null }).display_ends_at,
+      durationDays: Number((raw as { duration_days: number }).duration_days ?? 30),
+      proofCadence: (raw as { proof_cadence?: string }).proof_cadence ?? "daily",
+      milestones: allMilestones,
+      completedOrderIndices: completedSet,
+    });
+    const nextMilestones = getDashboardNextMilestones(scheduled);
 
     return {
       campaign_id: cid,

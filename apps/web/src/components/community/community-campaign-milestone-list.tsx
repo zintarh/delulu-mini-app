@@ -3,6 +3,11 @@
 import { Check, Clock, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
+import {
+  canSubmitMilestone,
+  formatMilestoneOpensAt,
+  getActiveMilestone,
+} from "@/lib/community/milestone-submit-eligibility";
 
 function formatCountdown(deadline: string) {
   if (!deadline) return "Pending start";
@@ -17,6 +22,13 @@ function formatCountdown(deadline: string) {
 function statusMeta(m: CommunityCampaignMilestoneRow) {
   if (m.completed) {
     return { label: "Complete", dot: "bg-emerald-500", ring: "border-emerald-500/30 bg-emerald-500/10" };
+  }
+  if (canSubmitMilestone(m)) {
+    return { label: "Active", dot: "bg-delulu-blue", ring: "border-delulu-blue/30 bg-delulu-blue-light" };
+  }
+  const startMs = m.start_time ? new Date(m.start_time).getTime() : null;
+  if (startMs != null && startMs > Date.now()) {
+    return { label: "Upcoming", dot: "bg-muted-foreground", ring: "border-border bg-muted/40" };
   }
   if (m.is_overdue) {
     return { label: "Overdue", dot: "bg-destructive", ring: "border-destructive/30 bg-destructive/10" };
@@ -54,15 +66,21 @@ export function CommunityCampaignMilestoneList({
     );
   }
 
-  const nextDueIndex = milestones.findIndex((m) => !m.completed);
+  const highlightMilestoneId =
+    getActiveMilestone(milestones)?.milestone_id ??
+    milestones.find((m) => !m.completed && !canSubmitMilestone(m))?.milestone_id ??
+    null;
+  const nextDueIndex = milestones.findIndex(
+    (m) => m.milestone_id === highlightMilestoneId,
+  );
 
   return (
     <ol className="relative space-y-0">
       {milestones.map((m, index) => {
         const meta = statusMeta(m);
         const isLast = index === milestones.length - 1;
-        const isNext = index === nextDueIndex;
-        const canSubmit = isJoined && !m.completed && !proofBusy;
+        const isNext = m.milestone_id === highlightMilestoneId || index === nextDueIndex;
+        const canSubmit = isJoined && canSubmitMilestone(m) && !proofBusy;
         const submitting = proofBusy && activeMilestoneId === m.milestone_id;
 
         return (
@@ -135,8 +153,12 @@ export function CommunityCampaignMilestoneList({
                         <Loader2 className="h-3 w-3 animate-spin" />
                         …
                       </span>
-                    ) : (
+                    ) : canSubmit ? (
                       "Submit proof"
+                    ) : m.start_time ? (
+                      formatMilestoneOpensAt(m.start_time)
+                    ) : (
+                      "Not open"
                     )}
                   </button>
                 ) : null}

@@ -10,10 +10,14 @@ import {
 import { useApproveCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { useCreateCommunityChallenge } from "@/hooks/use-create-community-challenge";
 import { useAddCommunityCampaignMilestones } from "@/hooks/use-add-community-campaign-milestones";
+import { useSetCommunityCampaignEconomics } from "@/hooks/use-community-campaign-onchain";
 import {
   fetchDraftMilestones,
   publishDraftMilestonesOnChain,
 } from "@/lib/community/publish-campaign-milestones-client";
+import { resolveJoinTokenAddress } from "@/lib/community/join-token";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { parseTokenAmount } from "@/lib/token-amounts";
 import type { DashboardCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 
 type DeployStep =
@@ -62,6 +66,7 @@ export function ApproveCampaignModal({
   const approve = useApproveCampaign();
   const { createCommunityChallengeAndWait } = useCreateCommunityChallenge();
   const { addCommunityCampaignMilestones } = useAddCommunityCampaignMilestones();
+  const { setCommunityCampaignEconomicsAndWait } = useSetCommunityCampaignEconomics();
   const { show } = useDashboardToast();
   const [step, setStep] = useState<DeployStep>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +112,20 @@ export function ApproveCampaignModal({
       const challengeId = confirmed.campaign?.on_chain_challenge_id;
       if (!challengeId) {
         throw new Error("On-chain challenge ID missing after deploy.");
+      }
+
+      const isFreeToJoin = campaign.is_free_to_join !== false;
+      const joinAmount = Number(campaign.join_amount ?? 0);
+      if (!isFreeToJoin && joinAmount > 0) {
+        const joinToken = resolveJoinTokenAddress(campaign.join_token);
+        const gDollar = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
+        await setCommunityCampaignEconomicsAndWait({
+          challengeId,
+          isPaid: true,
+          joinToken,
+          joinAmountWei: parseTokenAmount(joinAmount, gDollar, 18),
+          forfeitPct: Number(campaign.forfeit_pct ?? 0),
+        });
       }
 
       setStep("deploying_milestones");

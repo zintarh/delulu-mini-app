@@ -18,6 +18,6 @@ export function canDeleteDashboardCampaign(status: string): boolean {
   return status !== "active" && status !== "funding" && status !== "ended";
 }
 
-export const BASE_PROOF_POINTS = 10;
-export const EARLY_SUBMIT_BONUS = 2;
-export const STREAK_BONUS_PER_DAY = 1;
+export const BASE_PROOF_POINTS = 1000;
+export const EARLY_SUBMIT_BONUS = 0;
+export const STREAK_BONUS_PER_DAY = 0;

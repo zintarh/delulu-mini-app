@@ -5,6 +5,7 @@ import {
   fetchCommunityCampaignParticipantCountFromGraph,
   isJoinedCommunityCampaignOnGraph,
 } from "@/lib/community/campaign-subgraph";
+import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 
 export const dynamic = "force-dynamic";
 
@@ -76,15 +77,21 @@ export async function GET(
       (members ?? []).map((m) => m.wallet_address.toLowerCase()),
     );
 
-    const leaderboard = await fetchCommunityCampaignLeaderboardFromGraph(
-      campaign.on_chain_challenge_id,
-      memberWallets,
+    const leaderboard = await enrichLeaderboardWithUsernames(
+      admin,
+      await fetchCommunityCampaignLeaderboardFromGraph(
+        campaign.on_chain_challenge_id,
+        memberWallets,
+      ),
     );
     return NextResponse.json({ leaderboard });
   }
 
   try {
-    const leaderboard = await supabaseLeaderboard(admin, id, campaign.community_id);
+    const leaderboard = await enrichLeaderboardWithUsernames(
+      admin,
+      await supabaseLeaderboard(admin, id, campaign.community_id),
+    );
     return NextResponse.json({ leaderboard });
   } catch (err) {
     return NextResponse.json(

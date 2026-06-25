@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,13 +9,13 @@ import {
   CampaignExploreCardSkeleton,
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
-import { joinCommunityCampaignWithWallet } from "@/lib/community/join-campaign-client";
-import { useJoinCommunityCampaignOnChain } from "@/hooks/use-community-campaign-onchain";
+import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
+import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
 
 export function ExploreCampaignsSection({ address }: { address?: string }) {
   const router = useRouter();
-  const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
+  const joinFlow = useCampaignJoinFlow();
   const {
     data,
     isLoading,
@@ -26,8 +26,6 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     refetch,
     isRefetching,
   } = useExploreCampaigns(address);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [joinError, setJoinError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const campaigns = data?.pages.flatMap((page) => page.campaigns) ?? [];
@@ -47,29 +45,36 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
-  const runJoin = useCallback(
-    async (campaign: CampaignExploreCardData) => {
-      if (!address) return;
-      setJoiningId(campaign.id);
-      setJoinError(null);
-      try {
-        const result = await joinCommunityCampaignWithWallet(
-          campaign.id,
-          address,
-          joinCommunityCampaignAndWait,
-          { campaignTitle: campaign.title },
-        );
-        await refetch();
-        if (result.joinedCampaign || result.alreadyJoined) {
-          router.push(`/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`);
-        }
-      } catch (err) {
-        setJoinError(err instanceof Error ? err.message : "Join failed");
-      } finally {
-        setJoiningId(null);
+  const openJoin = useCallback(
+    (campaign: CampaignExploreCardData) => {
+      joinFlow.openJoinModal(campaign.id, {
+        title: campaign.title,
+        community: campaign.community ? { name: campaign.community.name } : null,
+        durationDays: campaign.durationDays,
+        milestoneCount: campaign.milestoneCount,
+        isFreeToJoin: campaign.isFreeToJoin,
+        joinToken: campaign.joinToken,
+        joinAmount: campaign.joinAmount,
+        forfeitPct: campaign.forfeitPct,
+        proposedPoolAmount: campaign.proposedPoolAmount,
+        prizeWinnerCount: campaign.prizeWinnerCount,
+        proofCadence: campaign.proofCadence,
+        proofInstructions: campaign.proofInstructions,
+        status: campaign.status,
+      });
+    },
+    [joinFlow],
+  );
+
+  const handleJoined = useCallback(
+    async (campaignId: string) => {
+      await refetch();
+      const campaign = campaigns.find((c) => c.id === campaignId);
+      if (campaign?.community?.slug) {
+        router.push(`/communities/${campaign.community.slug}/campaigns/${campaignId}`);
       }
     },
-    [address, joinCommunityCampaignAndWait, refetch, router],
+    [campaigns, refetch, router],
   );
 
   if (isLoading) {
@@ -109,18 +114,13 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
 
   return (
     <div>
-      {joinError ? (
-        <p className="mb-3 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
-          {joinError}
-        </p>
-      ) : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
             campaign={c}
-            joining={joiningId === c.id}
-            onJoin={() => void runJoin(c)}
+            joining={joinFlow.pendingCampaignId === c.id && joinFlow.joining}
+            onJoin={() => openJoin(c)}
           />
         ))}
       </div>
@@ -130,6 +130,8 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
           <Loader2 className={cn("h-5 w-5 animate-spin text-muted-foreground")} />
         </div>
       ) : null}
+
+      <CampaignJoinFlowOverlay flow={joinFlow} address={address} onJoined={handleJoined} />
     </div>
   );
 }

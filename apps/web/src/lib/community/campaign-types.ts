@@ -51,6 +51,11 @@ export type CommunityCampaignFeedItem = {
   on_chain_challenge_id: number | null;
   community: { id: string; name: string; slug: string };
   participant_state: "none" | "joined";
+  is_free_to_join?: boolean;
+  join_token?: string | null;
+  join_amount?: number | null;
+  forfeit_pct?: number | null;
+  proof_instructions?: string | null;
   myStreak?: number;
   myPoints?: number;
   milestone_count?: number;
