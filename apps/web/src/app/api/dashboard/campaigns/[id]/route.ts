@@ -170,7 +170,7 @@ export async function PATCH(
     body.prizeWinnerCount !== undefined
   ) {
     return NextResponse.json(
-      { error: "Only draft, rejected, or pending campaigns can edit metadata" },
+      { error: "Only draft, rejected or pending campaigns can edit metadata" },
       { status: 400 },
     );
   }
