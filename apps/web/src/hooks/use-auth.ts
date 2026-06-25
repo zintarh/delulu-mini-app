@@ -9,11 +9,7 @@ import {
   useWeb3AuthUser,
 } from "@web3auth/modal/react";
 import {
-  clearSessionRequestGuard,
   clearWalletSessionClientState,
-  establishWalletSession,
-  resetWalletSessionRequestGuard,
-  shouldStartWalletSessionEstablishment,
 } from "@/lib/auth/establish-wallet-session-client";
 import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
 
@@ -77,8 +73,6 @@ export function useAuth(): UseAuthReturn {
       try {
         localStorage.setItem(PROVIDER_KEY, "web3auth");
       } catch {}
-    } else {
-      resetWalletSessionRequestGuard();
     }
   }, [web3authConnected]);
 
@@ -88,23 +82,6 @@ export function useAuth(): UseAuthReturn {
     web3authAddress ?? account.address;
   const isReady = isInitialized;
   const email: string | undefined = userInfo?.email ?? undefined;
-
-  useEffect(() => {
-    if (!web3authConnected || !web3Auth?.provider || !web3authAddress) return;
-    // Module-level guard: many components call useAuth(); only one should trigger personal_sign.
-    if (!shouldStartWalletSessionEstablishment(web3authAddress)) return;
-
-    void establishWalletSession(web3authAddress, web3Auth.provider as {
-      request: (args: { method: string; params: unknown[] }) => Promise<string>;
-    })
-      .then((ok) => {
-        if (!ok) clearSessionRequestGuard(web3authAddress);
-      })
-      .catch((err) => {
-        clearSessionRequestGuard(web3authAddress);
-        console.warn("[auth] wallet session establishment failed:", err);
-      });
-  }, [web3authConnected, web3Auth, web3authAddress]);
 
   // Clear stale localStorage hint when SDK initialises with no active session.
   // This prevents hasStoredAuthSession() from returning true on next visit when
