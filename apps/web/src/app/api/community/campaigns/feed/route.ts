@@ -236,9 +236,7 @@ export async function GET(request: NextRequest) {
   const campaigns = page.map((row, i) => {
     const isJoined = joinedCampaignIds.has(row.id);
     const graphCount = graphMilestoneCounts[i] ?? 0;
-    const count = isValidOnChainChallengeId(row.on_chain_challenge_id)
-      ? graphCount
-      : (milestoneCounts[i] ?? 0);
+    const count = milestoneCounts[i] ?? 0;
     const canJoin = isJoined
       ? false
       : isValidOnChainChallengeId(row.on_chain_challenge_id) && graphCount > 0;

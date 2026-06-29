@@ -179,7 +179,7 @@ export function CampaignExploreCard({
               href={href}
               className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
             >
-              Not open yet
+              Finalizing on-chain…
             </Link>
           ) : hasMilestones ? (
             <Link

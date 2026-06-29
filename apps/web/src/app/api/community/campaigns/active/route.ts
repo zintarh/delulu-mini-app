@@ -134,9 +134,7 @@ export async function GET(request: NextRequest) {
       isOnChain: isValidOnChainChallengeId(c.on_chain_challenge_id),
       status: c.status,
       participantCount: countMap.get(c.id) ?? 0,
-      milestoneCount: isValidOnChainChallengeId(c.on_chain_challenge_id)
-        ? (graphMilestoneCounts[index] ?? 0)
-        : (milestoneCounts[index] ?? 0),
+      milestoneCount: milestoneCounts[index] ?? 0,
       canJoin: joinedSet.has(c.id)
         ? false
         : isValidOnChainChallengeId(c.on_chain_challenge_id) &&

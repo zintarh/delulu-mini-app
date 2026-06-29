@@ -130,7 +130,7 @@ function JoinButton({
       ) : canJoin ? (
         "Join campaign"
       ) : (
-        "Not open yet"
+        "Finalizing on-chain…"
       )}
     </button>
   );
