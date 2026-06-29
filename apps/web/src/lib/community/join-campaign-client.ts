@@ -34,7 +34,7 @@ export async function joinCommunityCampaignWithWallet(
     return result;
   }
 
-  if (result.requiresOnChain && result.challengeId) {
+  if (result.requiresOnChain && result.challengeId != null) {
     const txHash = await joinOnChain(result.challengeId);
     await confirmJoinOnChain(campaignId, walletAddress, txHash);
     await celebrateCampaignJoin(options?.campaignTitle);
