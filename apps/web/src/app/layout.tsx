@@ -34,7 +34,7 @@ export const viewport = {
 export const metadata: Metadata = {
   title: "delulu — Crush your goals with a community behind you",
   description:
-    "Join campaigns, commit to your goals publicly, and win real rewards when you deliver. Stay accountable with a community that keeps you on track.",
+    "Commit to your goals publicly. Join campaigns, stay accountable, and earn real rewards when you deliver.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -43,8 +43,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "delulu — Crush your goals with a community behind you",
     description:
-      "Join campaigns, commit to your goals publicly, and win real rewards when you deliver. Stay accountable with a community that keeps you on track.",
+      "Commit to your goals publicly. Join campaigns, stay accountable, and earn real rewards when you deliver.",
     url: appUrl,
+    siteName: "delulu",
   },
   icons: {
     icon: [
