@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title: "Commiting to personal goals and growth onchain with Good dollar",
     description:
       "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
-    images: [`${appUrl}/opengraph-image.png`],
+    url: appUrl,
   },
   icons: {
     icon: [
