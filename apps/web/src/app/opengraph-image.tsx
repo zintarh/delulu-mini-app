@@ -69,7 +69,7 @@ export default function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Stake your goal · Prove your progress · Win together
+            Join a campaign · Prove your progress · Win together
           </p>
         </div>
 
