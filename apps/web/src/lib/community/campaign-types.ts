@@ -60,6 +60,8 @@ export type CommunityCampaignFeedItem = {
   myPoints?: number;
   milestone_count?: number;
   can_join?: boolean;
+  participant_count?: number;
+  telegram_link?: string | null;
 };
 
 export function encodeFeedCursor(createdAt: string, id: string): string {

@@ -111,6 +111,7 @@ export function useCreateCampaign(communityId: string) {
       joinToken?: string;
       joinAmount?: number;
       forfeitPct?: number;
+      telegramLink?: string;
       milestones?: { title: string; duration_days: number; order_index: number }[];
     }) => {
       const res = await fetch("/api/dashboard/campaigns", {

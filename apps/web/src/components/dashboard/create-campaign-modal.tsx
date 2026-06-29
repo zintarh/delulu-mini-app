@@ -56,6 +56,9 @@ export function CreateCampaignModal({
   const [durationDays, setDurationDays] = useState<CampaignDurationDays>(30);
   const [prizeWinnerCount, setPrizeWinnerCount] = useState<PrizeWinnerCount>(10);
 
+  // Telegram
+  const [telegramLink, setTelegramLink] = useState("");
+
   // Economics
   const [isFree, setIsFree] = useState(true);
   const [joinToken, setJoinToken] = useState<"G$" | "USDT">("G$");
@@ -73,6 +76,7 @@ export function CreateCampaignModal({
     setTitle(""); setDescription(""); setCoverImageUrl(null); setProofInstructions("");
     setCadence("daily"); setDurationDays(30); setPrizeWinnerCount(10);
     setIsFree(true); setJoinToken("G$"); setJoinAmount(""); setForfeitPct(0);
+    setTelegramLink("");
     setMilestones([]); setSuggestError(null); setError(null);
   };
 
@@ -121,10 +125,12 @@ export function CreateCampaignModal({
         joinToken: isFree ? undefined : joinToken,
         joinAmount: isFree ? undefined : parseFloat(joinAmount) || 0,
         forfeitPct: isFree ? 0 : forfeitPct,
+        telegramLink: telegramLink.trim() || undefined,
         milestones: milestones
           .filter((m) => m.title.trim())
           .map((m, i) => ({ title: m.title.trim(), duration_days: m.duration_days, order_index: i })),
       });
+      window.dispatchEvent(new Event("delulu:campaign-created"));
       onSuccess?.({ submitted: forApproval });
       onOpenChange(false);
       reset();
@@ -204,6 +210,16 @@ export function CreateCampaignModal({
             value={proofInstructions}
             onChange={(e) => setProofInstructions(e.target.value)}
             placeholder="Upload a screenshot of your step count or fitness app."
+          />
+        </DashboardField>
+
+        <DashboardField label="Telegram group link (optional)">
+          <input
+            type="url"
+            className={dashboardInputClass}
+            value={telegramLink}
+            onChange={(e) => setTelegramLink(e.target.value)}
+            placeholder="https://t.me/yourcommunity"
           />
         </DashboardField>
 

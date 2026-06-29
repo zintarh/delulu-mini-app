@@ -30,7 +30,7 @@ const CAMPAIGN_FEED_SELECT = `
   id, title, status, proposed_pool_amount, proof_cadence, duration_days,
   prize_winner_count, cover_image_url, display_ends_at, created_at, community_id,
   on_chain_challenge_id, is_free_to_join, join_token, join_amount, forfeit_pct,
-  proof_instructions,
+  proof_instructions, telegram_link,
   communities ( id, name, slug )
 `;
 
@@ -52,6 +52,7 @@ type CampaignRow = {
   join_amount?: number | null;
   forfeit_pct?: number | null;
   proof_instructions?: string | null;
+  telegram_link?: string | null;
   communities: { id: string; name: string; slug: string } | null;
 };
 
@@ -61,6 +62,7 @@ function toFeedItem(
   participantData?: { streak: number; points: number },
   milestoneCount = 0,
   canJoin = false,
+  participantCount = 0,
 ): CommunityCampaignFeedItem {
   const community = row.communities ?? { id: row.community_id, name: "Community", slug: "" };
   return {
@@ -84,6 +86,8 @@ function toFeedItem(
     join_amount: Number(row.join_amount ?? 0),
     forfeit_pct: Number(row.forfeit_pct ?? 0),
     proof_instructions: row.proof_instructions ?? null,
+    telegram_link: row.telegram_link ?? null,
+    participant_count: participantCount,
     ...(joined && participantData
       ? { myStreak: participantData.streak, myPoints: participantData.points }
       : {}),
@@ -223,6 +227,12 @@ export async function GET(request: NextRequest) {
       : 0,
   );
 
+  const pageCountMap = new Map<string, number>();
+  for (const [challengeId, stats] of pageBatchStats) {
+    const campaignId = page.find((r) => r.on_chain_challenge_id === challengeId)?.id;
+    if (campaignId) pageCountMap.set(campaignId, stats.participantCount);
+  }
+
   const campaigns = page.map((row, i) => {
     const isJoined = joinedCampaignIds.has(row.id);
     const graphCount = graphMilestoneCounts[i] ?? 0;
@@ -238,6 +248,7 @@ export async function GET(request: NextRequest) {
       isJoined ? participantDataMap.get(row.id) : undefined,
       count,
       canJoin,
+      pageCountMap.get(row.id) ?? 0,
     );
   });
 

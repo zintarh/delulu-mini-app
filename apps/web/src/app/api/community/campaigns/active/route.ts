@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       id, title, description, proof_cadence, proposed_pool_amount,
       duration_days, prize_winner_count, cover_image_url, display_ends_at,
       on_chain_challenge_id, status, created_at,
-      is_free_to_join, join_token, join_amount, forfeit_pct, proof_instructions,
+      is_free_to_join, join_token, join_amount, forfeit_pct, proof_instructions, telegram_link,
       communities ( id, name, slug )
     `)
     .in("status", ["approved", "active"])
@@ -147,6 +147,7 @@ export async function GET(request: NextRequest) {
       joinAmount: Number(c.join_amount ?? 0),
       forfeitPct: Number(c.forfeit_pct ?? 0),
       proofInstructions: c.proof_instructions ?? null,
+      telegramLink: (c as { telegram_link?: string | null }).telegram_link ?? null,
       community: community
         ? { id: community.id, name: community.name, slug: community.slug }
         : null,

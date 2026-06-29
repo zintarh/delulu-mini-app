@@ -26,11 +26,15 @@ export function useExploreCampaigns(address?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const onDeleted = () => {
+    const invalidate = () => {
       void queryClient.invalidateQueries({ queryKey: exploreCampaignKeys.all });
     };
-    window.addEventListener("delulu:campaign-deleted", onDeleted);
-    return () => window.removeEventListener("delulu:campaign-deleted", onDeleted);
+    window.addEventListener("delulu:campaign-deleted", invalidate);
+    window.addEventListener("delulu:campaign-created", invalidate);
+    return () => {
+      window.removeEventListener("delulu:campaign-deleted", invalidate);
+      window.removeEventListener("delulu:campaign-created", invalidate);
+    };
   }, [queryClient]);
 
   return useInfiniteQuery({

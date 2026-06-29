@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Target, Trophy, Users } from "lucide-react";
+import { Loader2, Target, Trophy, Users, Share2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isCampaignFunded } from "@/lib/community/campaign-types";
+import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
 export type CampaignExploreCardData = {
   id: string;
@@ -27,6 +28,7 @@ export type CampaignExploreCardData = {
   proofInstructions?: string | null;
   proofCadence?: string;
   prizeWinnerCount?: number;
+  telegramLink?: string | null;
   community: { name: string; slug: string } | null;
 };
 
@@ -44,14 +46,27 @@ export function CampaignExploreCard({
   joining: boolean;
   onJoin: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
+  const isClosed = isCampaignEndedByDate(campaign.displayEndsAt);
   const poolAmount = campaign.proposedPoolAmount;
   const hasMilestones = campaign.milestoneCount > 0;
-  const canJoin = campaign.canJoin ?? false;
+  const canJoin = !isClosed && (campaign.canJoin ?? false);
   const isOnChain = campaign.isOnChain ?? canJoin;
   const communityName = campaign.community?.name ?? "Community";
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${href}`;
+    if (navigator.share) {
+      await navigator.share({ title: campaign.title, url }).catch(() => null);
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -77,9 +92,19 @@ export function CampaignExploreCard({
 
           {/* Top: community + prize */}
           <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-            <span className="max-w-[60%] truncate rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-              {communityName}
-            </span>
+            <div className="flex flex-col gap-1">
+              <span className="max-w-[60%] truncate rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+                {communityName}
+              </span>
+              <span
+                className={cn(
+                  "w-fit rounded-full px-2 py-0.5 text-[10px] font-black text-white",
+                  campaign.isFreeToJoin !== false ? "bg-emerald-500" : "bg-orange-500",
+                )}
+              >
+                {campaign.isFreeToJoin !== false ? "Free" : "Paid"}
+              </span>
+            </div>
             {funded && poolAmount > 0 ? (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-black text-black">
                 <Trophy className="h-3 w-3" />
@@ -87,6 +112,15 @@ export function CampaignExploreCard({
               </span>
             ) : null}
           </div>
+
+          {/* Closed overlay */}
+          {isClosed ? (
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 py-2">
+              <span className="text-[11px] font-black uppercase tracking-widest text-white/90">
+                Closed
+              </span>
+            </div>
+          ) : null}
         </div>
 
         {/* Content */}
@@ -122,53 +156,86 @@ export function CampaignExploreCard({
         </div>
       </Link>
 
-      {/* CTA */}
-      <div className="px-4 pb-4 pt-3">
-        {campaign.isJoined ? (
-          <Link
-            href={href}
-            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-sm font-bold text-foreground hover:bg-muted/60"
+      {/* CTA row */}
+      <div className="flex items-center gap-2 px-4 pb-4 pt-3">
+        <div className="flex-1">
+          {isClosed ? (
+            <div className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground">
+              Campaign ended
+            </div>
+          ) : campaign.isJoined ? (
+            <Link
+              href={href}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-sm font-bold text-foreground hover:bg-muted/60"
+            >
+              Joined · View →
+            </Link>
+          ) : canJoin ? (
+            <button
+              type="button"
+              disabled={joining}
+              onClick={onJoin}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue text-sm font-bold text-white shadow-[0_2px_12px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-60"
+            >
+              {joining ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Joining…
+                </>
+              ) : (
+                "Join campaign →"
+              )}
+            </button>
+          ) : isOnChain ? (
+            <Link
+              href={href}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+            >
+              Not open yet
+            </Link>
+          ) : hasMilestones ? (
+            <Link
+              href={href}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+            >
+              Pending on-chain registration
+            </Link>
+          ) : (
+            <Link
+              href={href}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+            >
+              Milestones coming soon
+            </Link>
+          )}
+        </div>
+
+        {/* Telegram button */}
+        {campaign.telegramLink ? (
+          <a
+            href={campaign.telegramLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground hover:bg-[#2AABEE]/10 hover:text-[#2AABEE] transition-colors"
+            title="Join Telegram group"
           >
-            Joined · View →
-          </Link>
-        ) : canJoin ? (
-          <button
-            type="button"
-            disabled={joining}
-            onClick={onJoin}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue text-sm font-bold text-white shadow-[0_2px_12px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-60"
-          >
-            {joining ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Joining…
-              </>
-            ) : (
-              "Join campaign →"
-            )}
-          </button>
-        ) : isOnChain ? (
-          <Link
-            href={href}
-            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
-          >
-            Not open yet
-          </Link>
-        ) : hasMilestones ? (
-          <Link
-            href={href}
-            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
-          >
-            Pending on-chain registration
-          </Link>
-        ) : (
-          <Link
-            href={href}
-            className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
-          >
-            Milestones coming soon
-          </Link>
-        )}
+            <Send className="h-4 w-4" />
+          </a>
+        ) : null}
+
+        {/* Share button */}
+        <button
+          type="button"
+          onClick={() => void handleShare()}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted transition-colors"
+          title={copied ? "Copied!" : "Share"}
+        >
+          {copied ? (
+            <span className="text-[9px] font-black text-emerald-500">✓</span>
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+        </button>
       </div>
     </article>
   );

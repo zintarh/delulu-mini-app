@@ -139,6 +139,10 @@ export async function POST(request: NextRequest) {
   const joinToken = isFreeToJoin ? "G$" : (String(body.joinToken ?? "G$").trim() || "G$");
   const joinAmount = isFreeToJoin ? 0 : Math.max(0, Number(body.joinAmount) || 0);
   const forfeitPct = isFreeToJoin ? 0 : ([0, 2, 5, 10].includes(Number(body.forfeitPct)) ? Number(body.forfeitPct) : 0);
+  const telegramLink =
+    body.telegramLink && typeof body.telegramLink === "string" && body.telegramLink.startsWith("https://t.me/")
+      ? body.telegramLink.trim()
+      : null;
 
   const milestones: { title: string; duration_days: number; order_index: number }[] =
     Array.isArray(body.milestones)
@@ -168,6 +172,7 @@ export async function POST(request: NextRequest) {
       join_token: joinToken,
       join_amount: joinAmount,
       forfeit_pct: forfeitPct,
+      telegram_link: telegramLink,
       status: "draft",
     })
     .select(CAMPAIGN_SELECT)
