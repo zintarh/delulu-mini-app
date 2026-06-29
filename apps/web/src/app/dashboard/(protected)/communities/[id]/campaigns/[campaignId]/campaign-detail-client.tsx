@@ -242,6 +242,8 @@ export function CampaignDetailClient({
   const [draftMilestoneError, setDraftMilestoneError] = useState<string | null>(null);
   const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
   const [endError, setEndError] = useState<string | null>(null);
+  const [submitPending, setSubmitPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -271,6 +273,21 @@ export function CampaignDetailClient({
     } catch (err) {
       setEndStep("error");
       setEndError(err instanceof Error ? err.message : "Failed to end campaign");
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    setSubmitPending(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch(`/api/dashboard/campaigns/${campaignId}/submit`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to submit");
+      void refetch();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Submit failed");
+    } finally {
+      setSubmitPending(false);
     }
   };
 
@@ -672,7 +689,7 @@ export function CampaignDetailClient({
                   ) : null}
 
                   {["draft", "rejected"].includes(campaign.status) ? (
-                    <div className="border-t border-border p-4">
+                    <div className="border-t border-border p-4 space-y-3">
                       <div className="flex gap-2">
                         <input
                           className={dashboardInputClass + " flex-1"}
@@ -699,6 +716,21 @@ export function CampaignDetailClient({
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
+                      {draftMilestones.length > 0 ? (
+                        <div>
+                          {submitError ? (
+                            <p className="mb-2 text-xs text-destructive">{submitError}</p>
+                          ) : null}
+                          <DashboardPrimaryButton
+                            className="w-full"
+                            disabled={submitPending}
+                            onClick={() => void handleSubmitForApproval()}
+                          >
+                            {submitPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            Submit for approval
+                          </DashboardPrimaryButton>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
