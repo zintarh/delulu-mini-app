@@ -48,32 +48,20 @@ export default function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <p
             style={{
-              fontSize: 88,
+              fontSize: 84,
               fontWeight: 900,
               color: "#1a1a19",
               letterSpacing: "-0.04em",
-              lineHeight: 1.0,
+              lineHeight: 1.05,
               margin: 0,
+              maxWidth: 920,
             }}
           >
-            Stay delulu.
+            Join thousands already achieving their goals.
           </p>
           <p
             style={{
-              fontSize: 88,
-              fontWeight: 900,
-              color: "#1a1a19",
-              letterSpacing: "-0.04em",
-              lineHeight: 1.0,
-              margin: 0,
-              opacity: 0.25,
-            }}
-          >
-            Stake your goals.
-          </p>
-          <p
-            style={{
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: 500,
               color: "#7a7a74",
               margin: 0,
@@ -81,7 +69,7 @@ export default function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Back your boldest goals with real stakes — prove them publicly, win when you deliver.
+            Stake your goal · Prove your progress · Win together
           </p>
         </div>
 
