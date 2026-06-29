@@ -73,27 +73,50 @@ export default function Image() {
           </p>
         </div>
 
-        {/* Bottom — URL */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Bottom — CTA + URL */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div
             style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: "#f6c324",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#1a1a19",
-              letterSpacing: "0.02em",
-              opacity: 0.45,
+              background: "#1a1a19",
+              borderRadius: 100,
+              padding: "16px 36px",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            staydelulu.xyz
-          </span>
+            <span
+              style={{
+                fontSize: 20,
+                fontWeight: 800,
+                color: "#f6c324",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Join a campaign →
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#f6c324",
+              }}
+            />
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1a1a19",
+                letterSpacing: "0.02em",
+                opacity: 0.45,
+              }}
+            >
+              staydelulu.xyz
+            </span>
+          </div>
         </div>
       </div>
     ),
