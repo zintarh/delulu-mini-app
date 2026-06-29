@@ -232,14 +232,10 @@ export function CommunityCampaignDetail({
 
   const handleInvite = useCallback(async () => {
     const url = `${window.location.origin}/communities/${communitySlug}/campaigns/${campaign.id}`;
-    if (navigator.share) {
-      await navigator.share({ title: campaign.title, text: "Join me on this campaign!", url }).catch(() => null);
-    } else {
-      await navigator.clipboard.writeText(url).catch(() => null);
-      setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 2000);
-    }
-  }, [campaign.id, campaign.title, communitySlug]);
+    await navigator.clipboard.writeText(url).catch(() => null);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }, [campaign.id, communitySlug]);
   const MILESTONES_PREVIEW = 4;
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const funded = isCampaignFunded(campaign.status);

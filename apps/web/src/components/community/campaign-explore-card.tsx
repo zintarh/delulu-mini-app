@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Loader2, Target, Trophy, Users, Send } from "lucide-react";
+import { Clock, Loader2, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
@@ -198,18 +198,6 @@ export function CampaignExploreCard({
           )}
         </div>
 
-        {/* Telegram button */}
-        {campaign.telegramLink ? (
-          <a
-            href={campaign.telegramLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground hover:bg-[#2AABEE]/10 hover:text-[#2AABEE] transition-colors"
-            title="Join Telegram group"
-          >
-            <Send className="h-4 w-4" />
-          </a>
-        ) : null}
       </div>
     </article>
   );
