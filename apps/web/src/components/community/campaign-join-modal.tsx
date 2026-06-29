@@ -58,7 +58,7 @@ export function CampaignJoinModal({
       : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={joining ? undefined : onCancel}
@@ -67,7 +67,7 @@ export function CampaignJoinModal({
       <div className="relative w-full max-w-sm overflow-hidden rounded-t-3xl sm:rounded-2xl bg-background shadow-xl">
         <div className="mx-auto mt-3 mb-1 h-1 w-10 rounded-full bg-border sm:hidden" />
 
-        <div className="px-5 pt-4 pb-5">
+        <div className="px-5 pt-4 pb-5" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
           {/* Header */}
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             {info.communityName}

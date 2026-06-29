@@ -188,8 +188,8 @@ export function CampaignMilestonesModal({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-        <DialogPrimitive.Content className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[88vh] flex-col rounded-t-[28px] border-t border-border bg-background lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:w-[calc(100%-2rem)] lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:border">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed bottom-0 left-0 right-0 z-[60] flex max-h-[88vh] flex-col rounded-t-[28px] border-t border-border bg-background lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:w-[calc(100%-2rem)] lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:border">
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="mb-4 flex items-start justify-between">
               <div>

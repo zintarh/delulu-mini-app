@@ -17,7 +17,7 @@ const ModalOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm",
+      "fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -38,7 +38,7 @@ const ModalContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 w-[calc(100%-2rem)] max-w-sm",
+        "fixed left-[50%] top-[50%] z-[60] w-[calc(100%-2rem)] max-w-sm",
         "translate-x-[-50%] translate-y-[-50%]",
         "rounded-3xl p-6 shadow-xl border",
         "bg-card text-foreground border-border",

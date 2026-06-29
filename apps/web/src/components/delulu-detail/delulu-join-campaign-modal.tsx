@@ -31,7 +31,7 @@ export function DeluluJoinCampaignModal({
   const busy = isJoining || isConfirming;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
         <h3 className="text-base md:text-lg font-black text-foreground mb-2">
           Join a campaign
