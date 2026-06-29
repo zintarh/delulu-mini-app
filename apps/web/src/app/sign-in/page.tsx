@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,32 +9,9 @@ import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
+import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
+import { getEmailValidationMessage, isValidEmail, normalizeEmail } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
-
-type ProfileProvider = "privy" | "web3auth" | null;
-
-type EmailCheckResponse = {
-  taken: boolean;
-  auth_provider: ProfileProvider;
-};
-
-function pickProvider(input: EmailCheckResponse): "privy" | "web3auth" {
-  if (input.taken && input.auth_provider === "privy") return "privy";
-  if (input.taken && input.auth_provider === "web3auth") return "web3auth";
-  return "web3auth";
-}
-
-async function checkEmailRoute(
-  email: string,
-  signal?: AbortSignal,
-): Promise<EmailCheckResponse> {
-  const res = await fetch(
-    `/api/profile/check-email?email=${encodeURIComponent(email)}`,
-    { signal },
-  );
-  if (!res.ok) throw new Error("Could not check email");
-  return res.json() as Promise<EmailCheckResponse>;
-}
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -49,11 +26,13 @@ export default function SignInPage() {
 
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  // Pre-resolved while the user types so submit is a single click.
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [resolvedProvider, setResolvedProvider] = useState<ProfileProvider>(null);
-  const [resolvedEmail, setResolvedEmail] = useState("");
+  const {
+    isChecking: isCheckingEmail,
+    flushLookup,
+    resolveForSubmit,
+  } = useDebouncedEmailProvider(email);
 
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] = useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
@@ -62,11 +41,10 @@ export default function SignInPage() {
 
   const { routeState, address, refetchBalance, isCheckingAccount } = usePostAuthRoute();
 
-  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const isEmailValid = useMemo(
-    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail),
-    [normalizedEmail],
-  );
+  const normalizedEmail = normalizeEmail(email);
+  const emailValidationError = getEmailValidationMessage(email);
+  const showEmailError =
+    Boolean(emailValidationError) && (emailTouched || submitAttempted) && email.trim().length > 0;
 
   const isEmailPending = isCheckingEmail || isLaunchingEmailProvider;
   const isAnyPending = isEmailPending || isLaunchingWalletProvider;
@@ -93,39 +71,6 @@ export default function SignInPage() {
     return () => { cancelled = true; };
   }, [referralCode]);
 
-  // Debounced email check — pre-resolves provider so submit needs no extra round-trip.
-  // AbortController with 5s timeout ensures the button re-enables even on a hung network.
-  useEffect(() => {
-    setResolvedProvider(null);
-    setResolvedEmail("");
-    if (!isEmailValid) return;
-
-    setIsCheckingEmail(true);
-    const controller = new AbortController();
-    const networkTimeout = setTimeout(() => controller.abort(), 5000);
-
-    const timer = setTimeout(async () => {
-      try {
-        const result = await checkEmailRoute(normalizedEmail, controller.signal);
-        setResolvedProvider(pickProvider(result));
-        setResolvedEmail(normalizedEmail);
-      } catch {
-        // Network error or timeout — submit path will do an inline check or fall
-        // back to web3auth as the default provider.
-      } finally {
-        clearTimeout(networkTimeout);
-        setIsCheckingEmail(false);
-      }
-    }, 400);
-
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(networkTimeout);
-      controller.abort();
-      setIsCheckingEmail(false);
-    };
-  }, [isEmailValid, normalizedEmail]);
-
   // Gas polling
   useEffect(() => {
     if (routeState !== "needs_gas") return;
@@ -133,49 +78,30 @@ export default function SignInPage() {
     return () => clearInterval(id);
   }, [routeState, refetchBalance]);
 
-  const triggerEmailAuth = async (email: string) => {
+  const triggerEmailAuth = async (targetEmail: string) => {
     if (!isInitialized) {
       setRouteError("Sign-in is still loading. Wait a moment and try again.");
       return;
     }
-    // Pass loginHint so Web3Auth sends the magic link directly without asking
-    // the user to re-enter their email in the modal.
     await connectTo(WALLET_CONNECTORS.AUTH, {
       authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
-      loginHint: email,
-      extraLoginOptions: { login_hint: email },
+      loginHint: targetEmail,
+      extraLoginOptions: { login_hint: targetEmail },
     });
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEmailTouched(true);
-    if (!isEmailValid || isAnyPending) return;
+    setSubmitAttempted(true);
+    if (!isValidEmail(email) || isAnyPending) return;
+
     setRouteError(null);
     setIsLaunchingEmailProvider(true);
     try {
-      // Use pre-resolved provider if it matches the current email; otherwise re-check.
-      let provider: "privy" | "web3auth" = "web3auth";
-      if (resolvedEmail === normalizedEmail && resolvedProvider) {
-        provider = resolvedProvider;
-      } else {
-        try {
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 5000);
-          const result = await checkEmailRoute(normalizedEmail, ctrl.signal).finally(() => clearTimeout(t));
-          provider = pickProvider(result);
-        } catch {
-          // Network error or timeout — proceed with web3auth default.
-        }
-      }
-
-      // Both Privy and Web3Auth users go through Web3Auth passwordless now.
-      // (Privy SDK is no longer bundled; Web3Auth accepts the same email.)
-      // loginHint bypasses the email-entry step inside the Web3Auth modal.
+      // Uses cache / prior lookup when possible; otherwise one inline check.
+      const provider = await resolveForSubmit();
       await triggerEmailAuth(normalizedEmail);
-
-      // Suppress unused-variable warning — provider is kept for future
-      // re-integration if Privy SDK is added back.
       void provider;
     } catch {
       setRouteError("Couldn't open email sign in. Try again.");
@@ -307,36 +233,53 @@ export default function SignInPage() {
             </div>
           ) : null}
 
-          <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 flex flex-col gap-3">
+          <form
+            noValidate
+            onSubmit={(e) => void handleSubmit(e)}
+            className="mt-8 flex flex-col gap-3"
+          >
             <div>
               <div
                 className={cn(
                   "rounded-2xl border px-4 py-3.5 transition-colors",
-                  email.trim()
-                    ? "border-foreground/25 bg-background focus-within:border-foreground/40"
-                    : "border-border bg-muted/30",
+                  showEmailError
+                    ? "border-rose-300 bg-rose-50/50 focus-within:border-rose-400"
+                    : email.trim()
+                      ? "border-foreground/25 bg-background focus-within:border-foreground/40"
+                      : "border-border bg-muted/30",
                 )}
               >
                 <input
                   type="email"
+                  inputMode="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => setEmailTouched(true)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (routeError) setRouteError(null);
+                  }}
+                  onBlur={() => {
+                    setEmailTouched(true);
+                    flushLookup();
+                  }}
                   placeholder="Email address"
                   autoComplete="email"
                   autoFocus={false}
+                  aria-invalid={showEmailError}
+                  aria-describedby={showEmailError ? "email-error" : undefined}
                   className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
                   disabled={isAnyPending}
                 />
               </div>
-              {emailTouched && email.trim() && !isEmailValid ? (
-                <p className="mt-1.5 px-1 text-xs text-rose-500">Enter a valid email address</p>
+              {showEmailError ? (
+                <p id="email-error" className="mt-1.5 px-1 text-xs text-rose-500">
+                  {emailValidationError}
+                </p>
               ) : null}
             </div>
 
             <button
               type="submit"
-              disabled={isAnyPending || !isInitialized || !isEmailValid}
+              disabled={isAnyPending || !isInitialized || !isValidEmail(email)}
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a19] bg-[#f6c324] py-3.5 text-[15px] font-extrabold text-[#1a1a19]",
                 "shadow-[3px_3px_0px_0px_#1a1a19] transition-all hover:translate-x-[1px] hover:translate-y-[1px]",
