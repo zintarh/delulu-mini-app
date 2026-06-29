@@ -11,9 +11,34 @@ import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { cn } from "@/lib/utils";
 
+type ProfileProvider = "privy" | "web3auth" | null;
+
+type EmailCheckResponse = {
+  taken: boolean;
+  auth_provider: ProfileProvider;
+};
+
+function pickProvider(input: EmailCheckResponse): "privy" | "web3auth" {
+  if (input.taken && input.auth_provider === "privy") return "privy";
+  if (input.taken && input.auth_provider === "web3auth") return "web3auth";
+  return "web3auth";
+}
+
+async function checkEmailRoute(
+  email: string,
+  signal?: AbortSignal,
+): Promise<EmailCheckResponse> {
+  const res = await fetch(
+    `/api/profile/check-email?email=${encodeURIComponent(email)}`,
+    { signal },
+  );
+  if (!res.ok) throw new Error("Could not check email");
+  return res.json() as Promise<EmailCheckResponse>;
+}
+
 export default function SignInPage() {
   const searchParams = useSearchParams();
-  const { authenticated, isReady } = useAuth();
+  const { authenticated } = useAuth();
   const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
 
@@ -21,8 +46,15 @@ export default function SignInPage() {
   const [referralCode, setReferralCode] = useState<string | null>(communityCode);
   const [communityName, setCommunityName] = useState<string | null>(null);
   const [isLoadingCommunityName, setIsLoadingCommunityName] = useState(false);
+
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
+
+  // Pre-resolved while the user types so submit is a single click.
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [resolvedProvider, setResolvedProvider] = useState<ProfileProvider>(null);
+  const [resolvedEmail, setResolvedEmail] = useState("");
+
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] = useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -30,72 +62,121 @@ export default function SignInPage() {
 
   const { routeState, address, refetchBalance, isCheckingAccount } = usePostAuthRoute();
 
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const isEmailValid = useMemo(
+    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail),
+    [normalizedEmail],
+  );
+
+  const isEmailPending = isCheckingEmail || isLaunchingEmailProvider;
+  const isAnyPending = isEmailPending || isLaunchingWalletProvider;
+
+  // Community referral
   useEffect(() => {
     if (communityCode) persistCommunityReferral(communityCode);
     setReferralCode(communityCode ?? peekCommunityReferral());
   }, [communityCode]);
 
   useEffect(() => {
-    if (!referralCode) {
-      setCommunityName(null);
-      setIsLoadingCommunityName(false);
-      return;
-    }
-
+    if (!referralCode) { setCommunityName(null); setIsLoadingCommunityName(false); return; }
     let cancelled = false;
     setIsLoadingCommunityName(true);
-
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/community/validate-code?code=${encodeURIComponent(referralCode)}`,
-        );
-        const json = (await res.json()) as {
-          valid?: boolean;
-          community?: { name?: string };
-        };
+        const res = await fetch(`/api/community/validate-code?code=${encodeURIComponent(referralCode)}`);
+        const json = (await res.json()) as { valid?: boolean; community?: { name?: string } };
         if (cancelled) return;
         setCommunityName(res.ok && json.valid ? (json.community?.name ?? null) : null);
-      } catch {
-        if (!cancelled) setCommunityName(null);
-      } finally {
-        if (!cancelled) setIsLoadingCommunityName(false);
-      }
+      } catch { if (!cancelled) setCommunityName(null); }
+      finally { if (!cancelled) setIsLoadingCommunityName(false); }
     })();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [referralCode]);
 
-  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const isEmailValid = useMemo(
-    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail),
-    [normalizedEmail],
-  );
-  const isAnyPending = isLaunchingEmailProvider || isLaunchingWalletProvider;
+  // Debounced email check — pre-resolves provider so submit needs no extra round-trip.
+  // AbortController with 5s timeout ensures the button re-enables even on a hung network.
+  useEffect(() => {
+    setResolvedProvider(null);
+    setResolvedEmail("");
+    if (!isEmailValid) return;
 
+    setIsCheckingEmail(true);
+    const controller = new AbortController();
+    const networkTimeout = setTimeout(() => controller.abort(), 5000);
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await checkEmailRoute(normalizedEmail, controller.signal);
+        setResolvedProvider(pickProvider(result));
+        setResolvedEmail(normalizedEmail);
+      } catch {
+        // Network error or timeout — submit path will do an inline check or fall
+        // back to web3auth as the default provider.
+      } finally {
+        clearTimeout(networkTimeout);
+        setIsCheckingEmail(false);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(networkTimeout);
+      controller.abort();
+      setIsCheckingEmail(false);
+    };
+  }, [isEmailValid, normalizedEmail]);
+
+  // Gas polling
   useEffect(() => {
     if (routeState !== "needs_gas") return;
     const id = setInterval(() => void refetchBalance(), 10000);
     return () => clearInterval(id);
   }, [routeState, refetchBalance]);
 
-  const openEmailWeb3Auth = async () => {
+  const triggerEmailAuth = async (email: string) => {
+    if (!isInitialized) {
+      setRouteError("Sign-in is still loading. Wait a moment and try again.");
+      return;
+    }
+    // Pass loginHint so Web3Auth sends the magic link directly without asking
+    // the user to re-enter their email in the modal.
+    await connectTo(WALLET_CONNECTORS.AUTH, {
+      authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
+      loginHint: email,
+      extraLoginOptions: { login_hint: email },
+    });
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setEmailTouched(true);
+    if (!isEmailValid || isAnyPending) return;
     setRouteError(null);
-    if (isAnyPending) return;
     setIsLaunchingEmailProvider(true);
     try {
-      if (!isInitialized) {
-        setRouteError("Sign-in is still loading. Wait a moment and try again.");
-        return;
+      // Use pre-resolved provider if it matches the current email; otherwise re-check.
+      let provider: "privy" | "web3auth" = "web3auth";
+      if (resolvedEmail === normalizedEmail && resolvedProvider) {
+        provider = resolvedProvider;
+      } else {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 5000);
+          const result = await checkEmailRoute(normalizedEmail, ctrl.signal).finally(() => clearTimeout(t));
+          provider = pickProvider(result);
+        } catch {
+          // Network error or timeout — proceed with web3auth default.
+        }
       }
-      await connectTo(WALLET_CONNECTORS.AUTH, {
-        authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
-        ...(isEmailValid
-          ? { loginHint: normalizedEmail, extraLoginOptions: { login_hint: normalizedEmail } }
-          : {}),
-      });
+
+      // Both Privy and Web3Auth users go through Web3Auth passwordless now.
+      // (Privy SDK is no longer bundled; Web3Auth accepts the same email.)
+      // loginHint bypasses the email-entry step inside the Web3Auth modal.
+      await triggerEmailAuth(normalizedEmail);
+
+      // Suppress unused-variable warning — provider is kept for future
+      // re-integration if Privy SDK is added back.
+      void provider;
     } catch {
       setRouteError("Couldn't open email sign in. Try again.");
     } finally {
@@ -103,7 +184,7 @@ export default function SignInPage() {
     }
   };
 
-  const openWalletWeb3Auth = async () => {
+  const handleWalletConnect = async () => {
     setRouteError(null);
     if (isAnyPending) return;
     setIsLaunchingWalletProvider(true);
@@ -120,20 +201,13 @@ export default function SignInPage() {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setEmailTouched(true);
-    if (!isEmailValid) return;
-    void openEmailWeb3Auth();
-  };
+  // ── Authenticated states ──────────────────────────────────────────────────
 
   if (authenticated && (isCheckingAccount || routeState === "loading" || routeState === "redirecting_home" || routeState === "redirecting_welcome")) {
     const label =
-      routeState === "redirecting_welcome"
-        ? "Setting up your profile…"
-        : routeState === "redirecting_home"
-          ? "Welcome back…"
-          : "Checking your account…";
+      routeState === "redirecting_welcome" ? "Setting up your profile…"
+      : routeState === "redirecting_home"  ? "Welcome back…"
+      : "Checking your account…";
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
         <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
@@ -160,32 +234,19 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(address);
-                  setCopiedAddress(true);
-                  setTimeout(() => setCopiedAddress(false), 2000);
-                } catch {}
+                try { await navigator.clipboard.writeText(address); setCopiedAddress(true); setTimeout(() => setCopiedAddress(false), 2000); } catch {}
               }}
               className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-muted"
             >
-              {copiedAddress ? (
-                <Check className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <Copy className="h-4 w-4 text-muted-foreground" />
-              )}
+              {copiedAddress ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
             </button>
           </div>
-          <a
-            href={TG_GROUP_URL}
-            target="_blank"
-            rel="noreferrer"
+          <a href={TG_GROUP_URL} target="_blank" rel="noreferrer"
             className="flex w-full items-center justify-center rounded-2xl border border-foreground/90 bg-foreground py-3 text-sm font-semibold text-background shadow-sm transition-opacity hover:opacity-90"
           >
             Join Telegram group
           </a>
-          <button
-            type="button"
-            onClick={() => void refetchBalance()}
+          <button type="button" onClick={() => void refetchBalance()}
             className="w-full py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             I have gas — check again
@@ -195,16 +256,17 @@ export default function SignInPage() {
     );
   }
 
+  // ── Sign-in form ──────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-2">
+      {/* Left panel — desktop only */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:bg-[#1a1a19] lg:p-12">
         <img src="/bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/50 to-[#1a1a19]" />
         <div className="relative z-10 flex items-center gap-2">
           <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-9 w-9 rounded-xl" />
-          <span className="text-lg font-black text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>
-            Delulu
-          </span>
+          <span className="text-lg font-black text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>Delulu</span>
         </div>
         <div className="relative z-10 max-w-md">
           <h1 className="text-4xl font-black leading-tight text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>
@@ -216,6 +278,7 @@ export default function SignInPage() {
         </div>
       </div>
 
+      {/* Right panel — form */}
       <div className="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-16">
         <div className="mx-auto w-full max-w-[400px]">
           <div className="mb-8 flex flex-col items-center lg:hidden">
@@ -237,20 +300,14 @@ export default function SignInPage() {
                   Looking up community…
                 </span>
               ) : communityName ? (
-                <>
-                  You&apos;re joining <span className="font-bold">{communityName} community</span>.
-                  We&apos;ll confirm your invite after profile setup.
-                </>
+                <>You&apos;re joining <span className="font-bold">{communityName} community</span>. We&apos;ll confirm your invite after profile setup.</>
               ) : (
-                <>
-                  You&apos;re joining a community. We&apos;ll confirm your code after profile
-                  setup.
-                </>
+                <>You&apos;re joining a community. We&apos;ll confirm your code after profile setup.</>
               )}
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
+          <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 flex flex-col gap-3">
             <div>
               <div
                 className={cn(
@@ -286,16 +343,12 @@ export default function SignInPage() {
                 "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-[3px_3px_0px_0px_#1a1a19] disabled:translate-x-0 disabled:translate-y-0",
               )}
             >
-              {isLaunchingEmailProvider ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Starting secure sign in…
-                </>
+              {isCheckingEmail ? (
+                <><Loader2 className="h-5 w-5 animate-spin" /> Checking your account…</>
+              ) : isLaunchingEmailProvider ? (
+                <><Loader2 className="h-5 w-5 animate-spin" /> Starting secure sign in…</>
               ) : (
-                <>
-                  <Mail className="h-5 w-5" />
-                  Continue with email
-                </>
+                <><Mail className="h-5 w-5" /> Continue with email</>
               )}
             </button>
 
@@ -308,20 +361,14 @@ export default function SignInPage() {
 
             <button
               type="button"
-              onClick={() => void openWalletWeb3Auth()}
+              onClick={() => void handleWalletConnect()}
               disabled={isAnyPending || !isInitialized}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background py-3.5 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLaunchingWalletProvider ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Opening wallet options…
-                </>
+                <><Loader2 className="h-5 w-5 animate-spin" /> Opening wallet options…</>
               ) : (
-                <>
-                  <Wallet className="h-5 w-5" />
-                  Continue with wallet
-                </>
+                <><Wallet className="h-5 w-5" /> Continue with wallet</>
               )}
             </button>
 
@@ -330,10 +377,7 @@ export default function SignInPage() {
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             By continuing you agree to our{" "}
-            <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
-              terms of service
-            </a>
-            .
+            <a href="/terms" className="underline underline-offset-2 hover:text-foreground">terms of service</a>.
           </p>
         </div>
       </div>
