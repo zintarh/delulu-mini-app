@@ -66,6 +66,7 @@ export function DeluluMilestonesSidebar({
   onDeleteMilestone,
   onOpenAiMilestones,
   isWaitingForMilestones,
+  pendingSubmittedIds,
 }: {
   showOnboardingBanner: boolean;
   delulu: FormattedDelulu;
@@ -95,6 +96,7 @@ export function DeluluMilestonesSidebar({
   onDeleteMilestone: (milestoneId: string) => void;
   onOpenAiMilestones: () => void;
   isWaitingForMilestones: boolean;
+  pendingSubmittedIds?: Set<string>;
 }) {
   return (
     <aside
@@ -166,6 +168,7 @@ export function DeluluMilestonesSidebar({
               onToggleMilestone={onToggleMilestone}
               onOpenProof={onOpenProof}
               onDeleteMilestone={onDeleteMilestone}
+              pendingSubmittedIds={pendingSubmittedIds}
             />
           ) : (
             <DeluluMilestonesViewerList
@@ -338,6 +341,7 @@ function CreatorMilestonesList({
   onToggleMilestone,
   onOpenProof,
   onDeleteMilestone,
+  pendingSubmittedIds,
 }: {
   milestoneView: MilestoneViewState;
   now: number;
@@ -345,6 +349,7 @@ function CreatorMilestonesList({
   onToggleMilestone: (id: string) => void;
   onOpenProof: (milestoneId: string, existingProof?: string | null) => void;
   onDeleteMilestone: (milestoneId: string) => void;
+  pendingSubmittedIds?: Set<string>;
 }) {
   return (
     <div className="space-y-3 md:space-y-4 pt-1">
@@ -357,11 +362,12 @@ function CreatorMilestonesList({
           i < milestoneView.currentIndex;
         const isOngoing = i === milestoneView.currentIndex && !m.isVerified;
         const isUpcoming = !isPast && !isOngoing;
+        const effectiveIsSubmitted = m.isSubmitted || (pendingSubmittedIds?.has(m.milestoneId) ?? false);
         let statusLabel = "Upcoming";
         if (m.isVerified) statusLabel = "Completed";
-        else if (isPast) statusLabel = m.isSubmitted ? "In review" : "Expired";
+        else if (isPast) statusLabel = effectiveIsSubmitted ? "In review" : "Expired";
         else if (isOngoing)
-          statusLabel = m.isSubmitted ? "Under review" : "Pending";
+          statusLabel = effectiveIsSubmitted ? "Under review" : "Pending";
 
         const isPastExpired = isPast && !m.isVerified && !m.isSubmitted;
         const isInReview = isPast && m.isSubmitted && !m.isVerified;
@@ -416,7 +422,7 @@ function CreatorMilestonesList({
                     {shortTitle}
                   </p>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {isOngoing ? (
+                    {isOngoing && !effectiveIsSubmitted ? (
                       <div className="flex flex-col items-center gap-x-2">
                         <button
                           type="button"
@@ -427,7 +433,7 @@ function CreatorMilestonesList({
                           }}
                           className="inline-flex items-center rounded-full px-2.5 py-1 border border-border text-[11px] font-semibold bg-secondary"
                         >
-                          {m.proofLink ? "Replace Evidence" : "Submit Evidence"}
+                          Submit Evidence
                         </button>
                       </div>
                     ) : (
@@ -444,7 +450,7 @@ function CreatorMilestonesList({
                           "inline-flex items-center rounded-full px-1.5 py-0 text-[9px] md:text-[10px] font-semibold border cursor-default",
                           m.isVerified
                             ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                            : isInReview || (isOngoing && m.isSubmitted)
+                            : isInReview || (isOngoing && effectiveIsSubmitted)
                               ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                               : isPastExpired
                                 ? "bg-red-500/10 text-red-600 border-red-500/20"
@@ -457,7 +463,7 @@ function CreatorMilestonesList({
                       </button>
                     )}
 
-                    {!m.isSubmitted &&
+                    {!effectiveIsSubmitted &&
                     !m.isVerified &&
                     !m.isMissed &&
                     endTimeMs >= now ? (

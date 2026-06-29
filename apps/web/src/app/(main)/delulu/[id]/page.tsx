@@ -286,6 +286,7 @@ export default function DeluluPage() {
   const [proofAiError, setProofAiError] = useState<string | null>(null);
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const proofSubmittedRef = useRef<string | null>(null);
+  const [pendingSubmittedIds, setPendingSubmittedIds] = useState<Set<string>>(new Set());
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const [isWaitingForMilestones, setIsWaitingForMilestones] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -1022,6 +1023,7 @@ export default function DeluluPage() {
       proofSubmittedRef.current === activeProofMilestoneId
     ) {
       setProofSubmitSuccess(true);
+      setPendingSubmittedIds((prev) => new Set([...prev, activeProofMilestoneId]));
       proofSubmittedRef.current = null;
     }
   }, [isSubmitMilestoneSuccess, activeProofMilestoneId]);
@@ -1220,6 +1222,7 @@ export default function DeluluPage() {
               onDeleteMilestone={handleDeleteMilestone}
               onOpenAiMilestones={() => setShowAiMilestonesModal(true)}
               isWaitingForMilestones={isWaitingForMilestones}
+              pendingSubmittedIds={pendingSubmittedIds}
             />
           </div>
 
