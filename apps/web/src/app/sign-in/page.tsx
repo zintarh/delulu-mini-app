@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +41,12 @@ export default function SignInPage() {
 
   const { routeState, address, refetchBalance, isCheckingAccount } = usePostAuthRoute();
 
+  // Faucet state — auto-triggered when routeState === "needs_gas"
+  type FaucetState = "idle" | "claiming" | "claimed" | "rejected" | "error";
+  const [faucetState, setFaucetState] = useState<FaucetState>("idle");
+  const [faucetReason, setFaucetReason] = useState<string | null>(null);
+  const faucetCalledRef = useRef(false);
+
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
   const showEmailError =
@@ -73,7 +79,21 @@ export default function SignInPage() {
     return () => { cancelled = true; };
   }, [referralCode]);
 
-  // Gas polling
+  // Auto-claim faucet when needs_gas — fires once per mount
+  useEffect(() => {
+    if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
+    faucetCalledRef.current = true;
+    setFaucetState("claiming");
+    fetch("/api/faucet/claim", { method: "POST" })
+      .then((r) => r.json())
+      .then((data: { success: boolean; reason?: string }) => {
+        setFaucetState(data.success ? "claimed" : "rejected");
+        if (!data.success) setFaucetReason(data.reason ?? null);
+      })
+      .catch(() => setFaucetState("error"));
+  }, [authenticated, routeState]);
+
+  // Gas polling — detects when CELO lands and advances to /welcome
   useEffect(() => {
     if (routeState !== "needs_gas") return;
     const id = setInterval(() => void refetchBalance(), 10000);
@@ -148,27 +168,65 @@ export default function SignInPage() {
   }
 
   if (authenticated && routeState === "needs_gas") {
+    // Happy path: claiming or sent — show spinner, balance poll drives the redirect
+    if (faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed") {
+      const label =
+        faucetState === "claimed"
+          ? "Gas sent! Waiting for confirmation…"
+          : "Getting your gas… this takes a few seconds";
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
+          <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {label}
+          </div>
+        </div>
+      );
+    }
+
+    // Rejection states — show contextual message + Telegram fallback
+    const isAlreadyReceived =
+      faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
+    const isIpLimit = faucetReason === "ip_rate_exceeded";
+    const isFaucetEmpty = faucetReason === "insufficient_faucet_funds" || faucetState === "error";
+
+    const title = isAlreadyReceived
+      ? "Gas already received"
+      : isIpLimit
+        ? "Daily limit reached"
+        : "Faucet temporarily unavailable";
+
+    const description = isAlreadyReceived
+      ? "This address or email has already been funded. Join our Telegram if you need more CELO."
+      : isIpLimit
+        ? "We limit faucet requests per network to prevent abuse. Try again tomorrow or join Telegram."
+        : "Our faucet is being refilled. Join our Telegram group and we'll send gas manually.";
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="w-full max-w-md space-y-5 rounded-3xl border border-border/80 bg-card p-6 shadow-lg">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">You need gas to continue</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              Join our Telegram group to receive CELO gas. We&apos;ll check your balance automatically.
-            </p>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-muted/30 px-3 py-3">
-            <span className="flex-1 break-all font-mono text-xs text-foreground">{address}</span>
-            <button
-              type="button"
-              onClick={async () => {
-                try { await navigator.clipboard.writeText(address); setCopiedAddress(true); setTimeout(() => setCopiedAddress(false), 2000); } catch {}
-              }}
-              className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-muted"
-            >
-              {copiedAddress ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-            </button>
-          </div>
+
+          {/* Show address copy only when faucet is empty (user needs to get gas manually) */}
+          {isFaucetEmpty ? (
+            <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-muted/30 px-3 py-3">
+              <span className="flex-1 break-all font-mono text-xs text-foreground">{address}</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(address); setCopiedAddress(true); setTimeout(() => setCopiedAddress(false), 2000); } catch {}
+                }}
+                className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-muted"
+              >
+                {copiedAddress ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            </div>
+          ) : null}
+
           <a href={TG_GROUP_URL} target="_blank" rel="noreferrer"
             className="flex w-full items-center justify-center rounded-2xl border border-foreground/90 bg-foreground py-3 text-sm font-semibold text-background shadow-sm transition-opacity hover:opacity-90"
           >

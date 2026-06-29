@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAccount } from "wagmi";
-import { Copy, Check, Fuel } from "lucide-react";
+import { Copy, Check, Fuel, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import {
@@ -18,9 +18,27 @@ interface NoGasModalProps {
   onClose: () => void;
 }
 
+type TopupState = "idle" | "claiming" | "sent" | "rejected" | "error";
+
 export function NoGasModal({ open, onClose }: NoGasModalProps) {
   const { address } = useAccount();
   const [copied, setCopied] = useState(false);
+  const [topupState, setTopupState] = useState<TopupState>("idle");
+  const [topupReason, setTopupReason] = useState<string | null>(null);
+  const topupCalledRef = useRef(false);
+
+  const handleGetGas = () => {
+    if (topupCalledRef.current || topupState === "claiming") return;
+    topupCalledRef.current = true;
+    setTopupState("claiming");
+    fetch("/api/faucet/topup", { method: "POST" })
+      .then((r) => r.json())
+      .then((data: { success: boolean; reason?: string }) => {
+        setTopupState(data.success ? "sent" : "rejected");
+        if (!data.success) setTopupReason(data.reason ?? null);
+      })
+      .catch(() => { setTopupState("error"); topupCalledRef.current = false; });
+  };
 
   const handleCopy = async () => {
     if (!address) return;
@@ -77,11 +95,40 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
 
           {/* Actions */}
           <div className="space-y-2.5">
+            {/* Auto top-up button — shown unless rejected for abuse (low_nonce) */}
+            {topupState === "sent" ? (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+                0.1 CELO sent — retry your transaction in a moment.
+              </div>
+            ) : topupReason === "low_nonce" ? null : (
+              <button
+                type="button"
+                onClick={handleGetGas}
+                disabled={topupState === "claiming"}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved py-3.5 text-sm font-black text-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19] hover:brightness-95 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {topupState === "claiming" ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Getting your gas…</>
+                ) : (
+                  <>⚡ Get gas automatically</>
+                )}
+              </button>
+            )}
+
+            {/* Contextual message after rejection */}
+            {topupState === "rejected" && topupReason === "too_soon" ? (
+              <p className="text-center text-xs text-muted-foreground">You received gas recently. Join Telegram if you need more.</p>
+            ) : topupState === "rejected" && topupReason === "ip_rate_exceeded" ? (
+              <p className="text-center text-xs text-muted-foreground">Daily limit reached. Try again tomorrow.</p>
+            ) : topupState === "error" ? (
+              <p className="text-center text-xs text-muted-foreground">Couldn&apos;t reach the faucet. Try Telegram below.</p>
+            ) : null}
+
             <a
               href={TG_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved py-3.5 text-sm font-black text-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19] hover:brightness-95 active:scale-[0.99] transition-all"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-secondary py-3 text-sm font-semibold text-foreground hover:bg-secondary/80 transition-colors"
             >
               {/* Telegram icon */}
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -93,7 +140,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="w-full py-3 rounded-xl bg-secondary text-sm font-semibold text-foreground hover:bg-secondary/80 transition-colors"
+              className="w-full py-3 rounded-xl bg-transparent text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               I&apos;ll top up myself
             </button>
