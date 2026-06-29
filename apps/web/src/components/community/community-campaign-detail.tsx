@@ -41,6 +41,7 @@ export type CommunityCampaignDetailData = {
   duration_days: number;
   prize_winner_count: number;
   on_chain_challenge_id?: number | null;
+  telegram_link?: string | null;
   is_free_to_join?: boolean;
   join_token?: string | null;
   join_amount?: number | null;
@@ -389,14 +390,26 @@ export function CommunityCampaignDetail({
               {communityName}
             </Link>
           </p>
-          <button
-            type="button"
-            onClick={() => void handleInvite()}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            {inviteCopied ? "Link copied!" : "Invite friends"}
-          </button>
+          <div className="flex items-center gap-2">
+            {campaign.telegram_link ? (
+              <a
+                href={campaign.telegram_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-3 py-1.5 text-xs font-semibold text-[#1a8cc7] hover:bg-[#2AABEE]/20 transition-colors"
+              >
+                Join Telegram
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void handleInvite()}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              {inviteCopied ? "Link copied!" : "Invite friends"}
+            </button>
+          </div>
         </div>
 
         {/* ════════════════════════════════════════════

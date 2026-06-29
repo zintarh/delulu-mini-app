@@ -27,7 +27,8 @@ export async function GET(
     .from("community_campaigns")
     .select(`
       id, title, description, proof_cadence, proof_instructions,
-      proposed_pool_amount, status, display_ends_at, created_at
+      proposed_pool_amount, status, display_ends_at, created_at,
+      cover_image_url, duration_days
     `)
     .eq("community_id", community.id)
     .in("status", [...PARTICIPATING_STATUSES])

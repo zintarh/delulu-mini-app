@@ -29,7 +29,7 @@ export async function GET(
       id, community_id, title, description, proof_cadence, proof_instructions,
       proposed_pool_amount, status, display_ends_at, duration_days,
       prize_winner_count, cover_image_url, created_at, updated_at,
-      on_chain_challenge_id,
+      on_chain_challenge_id, telegram_link,
       is_free_to_join, join_token, join_amount, forfeit_pct,
       communities ( id, name, slug, description, created_by )
     `)
@@ -183,6 +183,7 @@ export async function GET(
       prize_winner_count: campaign.prize_winner_count,
       cover_image_url: campaign.cover_image_url ?? null,
       on_chain_challenge_id: campaign.on_chain_challenge_id,
+      telegram_link: (campaign as { telegram_link?: string | null }).telegram_link ?? null,
       is_free_to_join: campaign.is_free_to_join !== false,
       join_token: campaign.join_token ?? "G$",
       join_amount: campaign.join_amount ?? 0,
