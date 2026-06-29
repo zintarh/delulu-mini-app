@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -10,6 +10,7 @@ import {
   Clock,
   Flame,
   Loader2,
+  Share2,
   Sparkles,
   Target,
   Trophy,
@@ -227,6 +228,18 @@ export function CommunityCampaignDetail({
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const handleInvite = useCallback(async () => {
+    const url = `${window.location.origin}/communities/${communitySlug}/campaigns/${campaign.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: campaign.title, text: "Join me on this campaign!", url }).catch(() => null);
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => null);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    }
+  }, [campaign.id, campaign.title, communitySlug]);
   const MILESTONES_PREVIEW = 4;
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const funded = isCampaignFunded(campaign.status);
@@ -364,8 +377,8 @@ export function CommunityCampaignDetail({
           </div>
         </div>
 
-        {/* ── Hosted by ── */}
-        <div className="mt-4 px-4">
+        {/* ── Hosted by + Invite ── */}
+        <div className="mt-4 flex items-center justify-between gap-3 px-4">
           <p className="text-[11px] text-muted-foreground">
             Hosted by{" "}
             <Link
@@ -375,6 +388,14 @@ export function CommunityCampaignDetail({
               {communityName}
             </Link>
           </p>
+          <button
+            type="button"
+            onClick={() => void handleInvite()}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            {inviteCopied ? "Link copied!" : "Invite friends"}
+          </button>
         </div>
 
         {/* ════════════════════════════════════════════

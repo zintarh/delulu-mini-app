@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Target, Trophy, Users, Share2, Send } from "lucide-react";
+import { Loader2, Target, Trophy, Users, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
@@ -46,7 +45,6 @@ export function CampaignExploreCard({
   joining: boolean;
   onJoin: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
   const isClosed = isCampaignEndedByDate(campaign.displayEndsAt);
@@ -54,19 +52,7 @@ export function CampaignExploreCard({
   const hasMilestones = campaign.milestoneCount > 0;
   const canJoin = !isClosed && (campaign.canJoin ?? false);
   const isOnChain = campaign.isOnChain ?? canJoin;
-  const communityName = campaign.community?.name ?? "Community";
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}${href}`;
-    if (navigator.share) {
-      await navigator.share({ title: campaign.title, url }).catch(() => null);
-    } else {
-      await navigator.clipboard.writeText(url).catch(() => null);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -90,28 +76,15 @@ export function CampaignExploreCard({
           {/* Subtle vignette */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
 
-          {/* Top: community + prize */}
-          <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-            <div className="flex flex-col gap-1">
-              <span className="max-w-[60%] truncate rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-                {communityName}
-              </span>
-              <span
-                className={cn(
-                  "w-fit rounded-full px-2 py-0.5 text-[10px] font-black text-white",
-                  campaign.isFreeToJoin !== false ? "bg-emerald-500" : "bg-orange-500",
-                )}
-              >
-                {campaign.isFreeToJoin !== false ? "Free" : "Paid"}
-              </span>
-            </div>
-            {funded && poolAmount > 0 ? (
+          {/* Prize badge top-right */}
+          {funded && poolAmount > 0 ? (
+            <div className="absolute right-3 top-3">
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-black text-black">
                 <Trophy className="h-3 w-3" />
                 {poolAmount} G$
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {/* Closed overlay */}
           {isClosed ? (
@@ -125,6 +98,16 @@ export function CampaignExploreCard({
 
         {/* Content */}
         <div className="px-4 pt-3.5 pb-1">
+          {/* Free/Paid badge above title */}
+          <span
+            className={cn(
+              "mb-2 inline-block rounded-full px-3 py-1 text-[12px] font-black text-white",
+              campaign.isFreeToJoin !== false ? "bg-emerald-500" : "bg-orange-500",
+            )}
+          >
+            {campaign.isFreeToJoin !== false ? "Free" : "Paid"}
+          </span>
+
           <h3
             className="line-clamp-2 text-base font-black leading-snug text-foreground sm:text-lg"
             style={{ fontFamily: '"Clash Display", sans-serif' }}
@@ -222,20 +205,6 @@ export function CampaignExploreCard({
             <Send className="h-4 w-4" />
           </a>
         ) : null}
-
-        {/* Share button */}
-        <button
-          type="button"
-          onClick={() => void handleShare()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted transition-colors"
-          title={copied ? "Copied!" : "Share"}
-        >
-          {copied ? (
-            <span className="text-[9px] font-black text-emerald-500">✓</span>
-          ) : (
-            <Share2 className="h-4 w-4" />
-          )}
-        </button>
       </div>
     </article>
   );

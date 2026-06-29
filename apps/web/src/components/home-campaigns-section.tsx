@@ -22,10 +22,6 @@ import {
   useJoinedCampaignDashboard,
 } from "@/hooks/use-user-campaign-milestones";
 import {
-  CampaignHorizontalCard,
-  CampaignHorizontalCardSkeleton,
-} from "@/components/community/campaign-horizontal-card";
-import {
   submitCommunityProofWithWallet,
 } from "@/lib/community/join-campaign-client";
 import {
@@ -80,6 +76,7 @@ function MissionCard({
   const milestone = campaign.next_milestones[0];
   if (!milestone) return null;
 
+  const href = `/communities/${campaign.community.slug}/campaigns/${campaign.campaign_id}`;
   const activeMilestone = getActiveMilestone(campaign.next_milestones) ?? milestone;
   const canSubmit = canSubmitMilestone(activeMilestone);
   const waitingLabel = milestone.start_time
@@ -126,8 +123,8 @@ function MissionCard({
 
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-between p-4">
-        {/* Top row */}
-        <div className="flex items-start justify-between gap-2">
+        {/* Top row — clickable to campaign page */}
+        <Link href={href} className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
               {campaign.community.name}
@@ -141,7 +138,7 @@ function MissionCard({
               {progress}
             </span>
           ) : null}
-        </div>
+        </Link>
 
         {/* Bottom */}
         <div>
@@ -301,64 +298,6 @@ function TodaysMilestonesSection({ address }: { address: string }) {
   );
 }
 
-function MyCampaignsSection({ address }: { address: string }) {
-  const { data, isLoading } = useJoinedCampaignDashboard(address);
-
-  if (isLoading) {
-    return (
-      <div className="px-4 py-2 space-y-3">
-        <div className="h-4 w-28 animate-pulse rounded-lg bg-muted" />
-        <CampaignHorizontalCardSkeleton comfortable />
-        <CampaignHorizontalCardSkeleton comfortable />
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) return null;
-
-  return (
-    <div className="px-4 py-2">
-      <div className="mb-3 flex items-center justify-between">
-        <p
-          className="text-[11px] font-black uppercase tracking-[0.16em] text-foreground/60"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          My campaigns
-        </p>
-      </div>
-      <div className="space-y-3">
-        {data.map((c) => {
-          const href = `/communities/${c.community.slug}/campaigns/${c.campaign_id}`;
-          const progress =
-            c.milestone_count > 0
-              ? { completed: c.completed_count, total: c.milestone_count }
-              : undefined;
-          return (
-            <CampaignHorizontalCard
-              key={c.campaign_id}
-              href={href}
-              title={c.title}
-              subtitle={c.community.name}
-              coverImageUrl={c.cover_image_url}
-              thumbnailSize="md"
-              size="comfortable"
-              progress={progress}
-              action={
-                <a
-                  href={href}
-                  className="rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
-                >
-                  View →
-                </a>
-              }
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function DiscoverCampaignsSection({
   address,
   onJoin,
@@ -464,7 +403,6 @@ export function HomeCampaignsSection() {
   return (
     <>
       <TodaysMilestonesSection address={address} />
-      <MyCampaignsSection address={address} />
       <DiscoverCampaignsSection
         address={address}
         onJoin={openJoin}
