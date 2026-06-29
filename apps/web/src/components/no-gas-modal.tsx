@@ -98,7 +98,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
             {/* Auto top-up button — shown unless rejected for abuse (low_nonce) */}
             {topupState === "sent" ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
-                0.1 CELO sent — retry your transaction in a moment.
+                0.3 CELO sent — retry your transaction in a moment.
               </div>
             ) : topupReason === "low_nonce" ? null : (
               <button

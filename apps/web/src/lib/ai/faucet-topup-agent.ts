@@ -13,7 +13,7 @@ export type TopupAgentResult =
   | { outcome: "rejected"; reason: string }
   | { outcome: "error"; error: string };
 
-const SYSTEM_PROMPT = `You are a CELO gas top-up agent for the Delulu app. A user with an existing profile has run out of gas mid-session. Your job is to approve a small 0.1 CELO top-up ONLY for genuinely active users — not for people trying to game the system.
+const SYSTEM_PROMPT = `You are a CELO gas top-up agent for the Delulu app. A user with an existing profile has run out of gas mid-session. Your job is to approve a 0.3 CELO top-up ONLY for genuinely active users — not for people trying to game the system.
 
 EXACT PROTOCOL — follow this order strictly:
 1. Call check_wallet_activity with the user's address.
@@ -22,8 +22,8 @@ EXACT PROTOCOL — follow this order strictly:
 2. Call check_ip_rate with the user's IP.
    - If count >= 2 → call reject_claim("ip_rate_exceeded") and stop.
 3. Call check_faucet_balance.
-   - If balance_celo < 0.3 → call reject_claim("insufficient_faucet_funds") and stop.
-4. All checks passed → call send_gas with address and amount_celo=0.1.
+   - If balance_celo < 0.5 → call reject_claim("insufficient_faucet_funds") and stop.
+4. All checks passed → call send_gas with address and amount_celo=0.3.
 
 STRICT RULES:
 - You MUST end every response by calling either send_gas or reject_claim. Never stop early.
@@ -77,7 +77,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "send_gas",
-      description: "Send 0.1 CELO to the user's wallet.",
+      description: "Send 0.3 CELO to the user's wallet.",
       parameters: {
         type: "object",
         properties: {

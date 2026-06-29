@@ -14,7 +14,7 @@ export type FaucetAgentResult =
   | { outcome: "rejected"; reason: string }
   | { outcome: "error"; error: string };
 
-const SYSTEM_PROMPT = `You are a CELO gas faucet agent for the Delulu app. Your ONLY job is to decide whether a new user should receive 0.3 CELO for gas fees.
+const SYSTEM_PROMPT = `You are a CELO gas faucet agent for the Delulu app. Your ONLY job is to decide whether a new user should receive 0.5 CELO for gas fees.
 
 EXACT PROTOCOL — follow this order strictly:
 1. Call check_wallet_claim with the user's address.
@@ -24,8 +24,8 @@ EXACT PROTOCOL — follow this order strictly:
 3. Call check_ip_rate with the user's IP.
    - If count >= 3 → call reject_claim("ip_rate_exceeded") and stop.
 4. Call check_faucet_balance.
-   - If balance_celo < 0.5 → call reject_claim("insufficient_faucet_funds") and stop.
-5. All checks passed → call send_gas with address and amount_celo=0.3.
+   - If balance_celo < 1.0 → call reject_claim("insufficient_faucet_funds") and stop.
+5. All checks passed → call send_gas with address and amount_celo=0.5.
 
 STRICT RULES:
 - You MUST end every response by calling either send_gas or reject_claim. Never stop early.
@@ -98,7 +98,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         type: "object",
         properties: {
           address: { type: "string", description: "Recipient wallet address" },
-          amount_celo: { type: "number", description: "Amount of CELO to send (use 0.3)" },
+          amount_celo: { type: "number", description: "Amount of CELO to send (use 0.5)" },
         },
         required: ["address", "amount_celo"],
       },
