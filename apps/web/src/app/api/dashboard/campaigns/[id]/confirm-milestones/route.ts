@@ -31,7 +31,7 @@ export async function POST(
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!campaign.on_chain_challenge_id) {
+  if (campaign.on_chain_challenge_id == null) {
     return NextResponse.json({ error: "Campaign has no on-chain challenge." }, { status: 400 });
   }
 

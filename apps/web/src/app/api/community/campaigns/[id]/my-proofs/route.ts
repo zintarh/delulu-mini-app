@@ -22,7 +22,7 @@ export async function GET(
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  if (campaign.on_chain_challenge_id) {
+  if (campaign.on_chain_challenge_id != null) {
     const milestones = await fetchCommunityCampaignMilestonesFromGraph(
       campaign.on_chain_challenge_id,
       address,

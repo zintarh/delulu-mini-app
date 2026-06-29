@@ -253,7 +253,7 @@ export function CampaignDetailClient({
   const { endCommunityChallenge, isPending: isEndingOnChain } = useEndCommunityChallenge();
 
   const handleEndCampaign = async () => {
-    if (!campaign?.on_chain_challenge_id) return;
+    if (campaign?.on_chain_challenge_id == null) return;
     setEndStep("signing");
     setEndError(null);
     try {
@@ -372,7 +372,7 @@ export function CampaignDetailClient({
   }, [searchParams]);
 
   useEffect(() => {
-    if (!campaign?.on_chain_challenge_id) return;
+    if (campaign?.on_chain_challenge_id == null) return;
     void (async () => {
       const res = await fetch(`/api/community/campaigns/${campaignId}/my-proofs`);
       if (!res.ok) return;
@@ -383,13 +383,13 @@ export function CampaignDetailClient({
   }, [campaign?.on_chain_challenge_id, campaignId, milestonesModalOpen]);
 
   useEffect(() => {
-    if (campaign && !campaign.on_chain_challenge_id) {
+    if (campaign && campaign.on_chain_challenge_id == null) {
       void loadDraftMilestones();
     }
   }, [campaign, loadDraftMilestones]);
 
   useEffect(() => {
-    if (campaign?.on_chain_challenge_id && milestoneCount === 0) {
+    if (campaign?.on_chain_challenge_id != null && milestoneCount === 0) {
       void loadDraftMilestones();
     }
   }, [campaign?.on_chain_challenge_id, loadDraftMilestones, milestoneCount]);
@@ -577,7 +577,7 @@ export function CampaignDetailClient({
           {/* Milestones panel — always visible */}
           <div className="mb-4">
             <DashboardPanel>
-              {campaign.on_chain_challenge_id ? (
+              {campaign.on_chain_challenge_id != null ? (
                 <div>
                   {milestoneCount === 0 ? (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

@@ -110,7 +110,7 @@ export function ApproveCampaignModal({
       setStep("confirming_challenge");
       const confirmed = await confirmCreateOnChain(campaign.id, createTxHash);
       const challengeId = confirmed.campaign?.on_chain_challenge_id;
-      if (!challengeId) {
+      if (challengeId == null) {
         throw new Error("On-chain challenge ID missing after deploy.");
       }
 

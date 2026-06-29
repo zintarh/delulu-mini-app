@@ -879,7 +879,7 @@ export function CommunityCampaignDetail({
         submitError={proofError ? new Error(proofError) : null}
         onDone={onProofDone}
         proofInstructions={campaign.proof_instructions}
-        isOnChain={Boolean(campaign.on_chain_challenge_id)}
+        isOnChain={campaign.on_chain_challenge_id != null}
         proofStep={proofStep}
       />
     </>

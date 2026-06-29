@@ -128,7 +128,7 @@ export async function GET(
       .maybeSingle();
     isCommunityMember = Boolean(membership);
 
-    if (!campaign.on_chain_challenge_id) {
+    if (campaign.on_chain_challenge_id == null) {
       const { data: participant } = await admin
         .from("campaign_participants")
         .select("id, points_total, current_streak")

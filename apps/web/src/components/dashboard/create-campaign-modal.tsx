@@ -149,9 +149,9 @@ export function CreateCampaignModal({
         onOpenChange(v);
       }}
       title="Create campaign"
-      className="max-w-3xl p-6 sm:p-8"
+      className="max-w-3xl p-6 sm:p-8 max-h-[90vh] overflow-hidden flex flex-col"
     >
-      <form className="space-y-5 pt-2" onSubmit={(e) => submit(e, true)}>
+      <form className="space-y-5 pt-2 overflow-y-auto flex-1 pr-1" onSubmit={(e) => submit(e, true)}>
         {/* Basic info */}
         <DashboardField label="Title" required>
           <input

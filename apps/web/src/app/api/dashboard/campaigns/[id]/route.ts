@@ -63,7 +63,7 @@ export async function GET(
 
   let leaderboard = participants ?? [];
 
-  if (campaign.on_chain_challenge_id) {
+  if (campaign.on_chain_challenge_id != null) {
     const { data: members } = await admin
       .from("community_members")
       .select("wallet_address")

@@ -38,7 +38,7 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!campaign.on_chain_challenge_id) {
+  if (campaign.on_chain_challenge_id == null) {
     return NextResponse.json({ error: "Campaign has no on-chain challenge." }, { status: 400 });
   }
   if (!canEndDashboardCampaign(campaign.status, campaign.on_chain_challenge_id)) {

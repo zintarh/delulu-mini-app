@@ -314,43 +314,37 @@ export function ProofModal({
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className="relative flex h-52 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/8 transition-all"
+                className="relative flex h-52 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border bg-white transition-all"
                 style={{
                   background: isDragging
-                    ? [
-                        "radial-gradient(ellipse at 50% 50%, rgba(79,70,229,0.35) 0%, transparent 70%)",
-                        "#1a1a19",
-                      ].join(", ")
-                    : [
-                        "radial-gradient(ellipse at 50% 45%, rgba(79,70,229,0.18) 0%, transparent 65%)",
-                        "#1a1a19",
-                      ].join(", "),
+                    ? "radial-gradient(ellipse at 50% 50%, rgba(79,70,229,0.08) 0%, transparent 70%), #ffffff"
+                    : "#ffffff",
                 }}
               >
                 {isDragging && (
                   <div className="absolute inset-0 rounded-2xl border-2 border-indigo-500/60" />
                 )}
 
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
                   <Camera
                     className={cn(
                       "h-7 w-7 transition-colors",
-                      isDragging ? "text-indigo-400" : "text-white/60",
+                      isDragging ? "text-indigo-500" : "text-muted-foreground/60",
                     )}
                     strokeWidth={1.75}
                   />
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[15px] font-black text-white">
+                  <p className="text-[15px] font-black text-foreground">
                     {isDragging ? "Drop it here" : "Tap to add proof"}
                   </p>
-                  <p className="mt-1 text-[11px] text-white/35">
+                  <p className="mt-1 text-[11px] text-muted-foreground/60">
                     screenshot · photo · selfie — anything real
                   </p>
                 </div>
 
-                <p className="absolute bottom-3 text-[10px] font-semibold text-white/20">
+                <p className="absolute bottom-3 text-[10px] font-semibold text-muted-foreground/40">
                   max 5 MB
                 </p>
               </button>

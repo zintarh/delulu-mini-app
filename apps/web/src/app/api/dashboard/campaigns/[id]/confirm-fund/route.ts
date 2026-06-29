@@ -50,7 +50,7 @@ export async function POST(
   let challengeId: bigint | null = null;
   let confirmedPool = poolAmount;
 
-  if (campaign.on_chain_challenge_id) {
+  if (campaign.on_chain_challenge_id != null) {
     try {
       const funded = await parseCommunityChallengeFundedFromTx(txHash);
       if (!funded || Number(funded.challengeId) !== campaign.on_chain_challenge_id) {
@@ -93,7 +93,7 @@ export async function POST(
     display_ends_at: displayEndsAt,
     updated_at: now,
   };
-  if (!campaign.on_chain_challenge_id && challengeId != null) {
+  if (campaign.on_chain_challenge_id == null && challengeId != null) {
     updatePayload.on_chain_challenge_id = Number(challengeId);
   }
 

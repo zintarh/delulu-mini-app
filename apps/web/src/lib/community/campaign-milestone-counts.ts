@@ -29,7 +29,7 @@ export function mergeMilestoneCount(dbCount: number, graphCount: number): number
   return Math.max(dbCount, graphCount);
 }
 
-/** Treat 0 as unset — some rows store 0 instead of null before on-chain deploy. */
+/** Returns true for any non-null number, including 0 (valid first campaign ID on a fresh contract). */
 export function isValidOnChainChallengeId(id: number | null | undefined): id is number {
-  return typeof id === "number" && id > 0;
+  return typeof id === "number" && id >= 0;
 }

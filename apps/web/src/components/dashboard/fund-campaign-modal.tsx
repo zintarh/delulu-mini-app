@@ -120,7 +120,7 @@ export function FundCampaignModal({
     setError(null);
     setStep("signing");
 
-    if (!campaign.on_chain_challenge_id) {
+    if (campaign.on_chain_challenge_id == null) {
       setError("Campaign must be deployed on-chain first. Complete the Approve step.");
       setStep("idle");
       return;
