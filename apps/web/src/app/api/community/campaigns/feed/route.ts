@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
     const count = milestoneCounts[i] ?? 0;
     const canJoin = isJoined
       ? false
-      : isValidOnChainChallengeId(row.on_chain_challenge_id) && graphCount > 0;
+      : isValidOnChainChallengeId(row.on_chain_challenge_id) && (milestoneCounts[i] ?? 0) > 0;
     return toFeedItem(
       row,
       isJoined,

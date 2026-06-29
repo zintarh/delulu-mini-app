@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       canJoin: joinedSet.has(c.id)
         ? false
         : isValidOnChainChallengeId(c.on_chain_challenge_id) &&
-          (graphMilestoneCounts[index] ?? 0) > 0,
+          (milestoneCounts[index] ?? 0) > 0,
       isJoined: joinedSet.has(c.id),
       isFreeToJoin: c.is_free_to_join !== false,
       joinToken: c.join_token ?? "G$",
