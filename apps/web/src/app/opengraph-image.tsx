@@ -45,30 +45,43 @@ export default function Image() {
         </div>
 
         {/* Center — headline */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <p
             style={{
-              fontSize: 80,
+              fontSize: 88,
               fontWeight: 900,
               color: "#1a1a19",
               letterSpacing: "-0.04em",
-              lineHeight: 1.05,
+              lineHeight: 1.0,
               margin: 0,
-              maxWidth: 900,
             }}
           >
-            Crush your goals with others behind you.
+            Stay delulu.
           </p>
           <p
             style={{
-              fontSize: 24,
+              fontSize: 88,
+              fontWeight: 900,
+              color: "#1a1a19",
+              letterSpacing: "-0.04em",
+              lineHeight: 1.0,
+              margin: 0,
+              opacity: 0.25,
+            }}
+          >
+            Stake your goals.
+          </p>
+          <p
+            style={{
+              fontSize: 22,
               fontWeight: 500,
               color: "#7a7a74",
               margin: 0,
+              marginTop: 4,
               letterSpacing: "-0.01em",
             }}
           >
-            Join campaigns · Stay accountable · Win together
+            Back your boldest goals with real stakes — prove them publicly, win when you deliver.
           </p>
         </div>
 
