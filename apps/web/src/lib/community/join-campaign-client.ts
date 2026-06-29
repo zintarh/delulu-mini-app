@@ -73,7 +73,7 @@ export async function submitCommunityProofWithWallet(input: {
     throw new Error(json.message ?? json.reason ?? json.error ?? "Proof not accepted");
   }
 
-  if (json.requiresOnChain && json.challengeId) {
+  if (json.requiresOnChain && json.challengeId != null) {
     input.onStepChange?.("wallet-sign");
     await input.submitOnChain(json.challengeId, json.milestoneId, input.proofUrl);
     input.onStepChange?.("confirming");
