@@ -89,7 +89,7 @@ function MissionCard({
       : null;
 
   return (
-    <div className="relative h-44 overflow-hidden rounded-2xl">
+    <Link href={href} className="relative block h-44 overflow-hidden rounded-2xl">
       {/* Background */}
       {campaign.cover_image_url ? (
         <Image
@@ -123,8 +123,8 @@ function MissionCard({
 
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-between p-4">
-        {/* Top row — clickable to campaign page */}
-        <Link href={href} className="flex items-start justify-between gap-2">
+        {/* Top row */}
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
               {campaign.community.name}
@@ -138,7 +138,7 @@ function MissionCard({
               {progress}
             </span>
           ) : null}
-        </Link>
+        </div>
 
         {/* Bottom */}
         <div>
@@ -154,14 +154,18 @@ function MissionCard({
           <button
             type="button"
             disabled={isBusy || !canSubmit}
-            onClick={onSubmit}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSubmit();
+            }}
             className="w-full rounded-full border border-white/25 bg-white/12 py-2.5 text-sm font-black text-white backdrop-blur-sm transition-opacity disabled:opacity-50 active:opacity-70"
           >
             {isBusy ? "Uploading…" : canSubmit ? "Submit proof →" : waitingLabel}
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -241,7 +245,7 @@ function TodaysMilestonesSection({ address }: { address: string }) {
         </p>
         {active.length > 1 && (
           <Link
-            href="/communities"
+            href="/communities/joined"
             className="text-[11px] font-semibold text-delulu-blue hover:underline"
           >
             {active.length} active →
@@ -273,7 +277,7 @@ function TodaysMilestonesSection({ address }: { address: string }) {
 
       {hiddenCount > 0 && (
         <Link
-          href="/communities"
+          href="/communities/joined"
           className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-border/50 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
         >
           +{hiddenCount} more campaign{hiddenCount !== 1 ? "s" : ""} →

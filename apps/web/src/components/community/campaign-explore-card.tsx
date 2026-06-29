@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Target, Trophy, Users, Send } from "lucide-react";
+import { Clock, Loader2, Target, Trophy, Users, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
@@ -122,7 +122,10 @@ export function CampaignExploreCard({
           ) : null}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span>{left}d campaign</span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
+            </span>
             {campaign.participantCount > 0 ? (
               <span className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
@@ -165,8 +168,10 @@ export function CampaignExploreCard({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Joining…
                 </>
+              ) : campaign.isFreeToJoin !== false ? (
+                "Join free →"
               ) : (
-                "Join campaign →"
+                `Join · ${campaign.joinAmount ?? 0} ${campaign.joinToken ?? "G$"}`
               )}
             </button>
           ) : isOnChain ? (

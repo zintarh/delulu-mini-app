@@ -13,6 +13,11 @@ import { useAllDelulus } from "@/hooks/graph";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { FeedErrorState } from "@/components/feed-error-state";
 import { ExploreCampaignsSection } from "@/components/explore-campaigns-section";
+import {
+  CampaignExploreCard,
+  CampaignExploreCardSkeleton,
+} from "@/components/community/campaign-explore-card";
+import type { CampaignSearchResult } from "@/hooks/use-campaign-search";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useAuth } from "@/hooks/use-auth";
@@ -67,6 +72,7 @@ export default function ExplorePage() {
   const country = searchParams.get("country")?.trim().toUpperCase() ?? "";
   const category = searchParams.get("category") as FeedCategoryId | null;
   const tab = searchParams.get("tab") ?? "campaigns";
+  const isCampaignSearch = !!q && !country && !category;
   const isDiscoverMode = !q && !category && !country;
   const isCampaignsTab = isDiscoverMode && tab === "campaigns";
 
@@ -111,6 +117,35 @@ export default function ExplorePage() {
   const [apiResults, setApiResults] = useState<DeluluSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
+
+  const [campaignResults, setCampaignResults] = useState<CampaignSearchResult[]>([]);
+  const [isCampaignSearching, setIsCampaignSearching] = useState(false);
+  const [campaignSearchError, setCampaignSearchError] = useState(false);
+
+  const fetchCampaignResults = useCallback(async (signal?: AbortSignal) => {
+    if (!q) { setCampaignResults([]); return; }
+    setIsCampaignSearching(true);
+    setCampaignSearchError(false);
+    try {
+      const res = await fetch(`/api/search/campaigns?q=${encodeURIComponent(q)}`, { signal });
+      if (!res.ok) throw new Error("search failed");
+      const data = await res.json();
+      setCampaignResults(data.results ?? []);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setCampaignSearchError(true);
+      setCampaignResults([]);
+    } finally {
+      setIsCampaignSearching(false);
+    }
+  }, [q]);
+
+  useEffect(() => {
+    if (!isCampaignSearch) return;
+    const controller = new AbortController();
+    void fetchCampaignResults(controller.signal);
+    return () => controller.abort();
+  }, [isCampaignSearch, fetchCampaignResults]);
 
   const fetchResults = useCallback(async (signal?: AbortSignal) => {
     if (category) {
@@ -352,11 +387,69 @@ export default function ExplorePage() {
                   className="text-lg font-black tracking-tight text-foreground"
                   style={{ fontFamily: '"Clash Display", sans-serif' }}
                 >
-                  {pageTitle}
+                  {q ? `Results for "${q}"` : pageTitle}
                 </h1>
               </header>
 
-              {searchError ? (
+              {isCampaignSearch ? (
+                campaignSearchError ? (
+                  <div className="flex flex-col items-center gap-2 py-16 text-center">
+                    <Search className="h-10 w-10 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">Search failed</p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchCampaignResults()}
+                      className="text-sm font-semibold text-delulu-blue underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : isCampaignSearching ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <CampaignExploreCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : campaignResults.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-16 text-center">
+                    <Search className="h-10 w-10 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">No campaigns found</p>
+                    <Link
+                      href="/explore?tab=campaigns"
+                      className="text-sm font-semibold text-delulu-blue"
+                    >
+                      Browse all campaigns
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {campaignResults.map((c) => (
+                      <CampaignExploreCard
+                        key={c.id}
+                        campaign={{
+                          id: c.id,
+                          title: c.title,
+                          description: c.description,
+                          proposedPoolAmount: 0,
+                          durationDays: c.duration_days,
+                          coverImageUrl: c.cover_image_url,
+                          displayEndsAt: c.display_ends_at,
+                          status: "active",
+                          participantCount: 0,
+                          milestoneCount: 0,
+                          isJoined: false,
+                          isFreeToJoin: c.is_free_to_join,
+                          community: { name: c.community_name, slug: c.community_slug },
+                        }}
+                        joining={false}
+                        onJoin={() => {
+                          router.push(`/communities/${c.community_slug}/campaigns/${c.id}`);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )
+              ) : searchError ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <Search className="h-10 w-10 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">Search failed</p>

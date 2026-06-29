@@ -31,10 +31,13 @@ function statusMeta(m: CommunityCampaignMilestoneRow) {
     return { label: "Upcoming", dot: "bg-muted-foreground", ring: "border-border bg-muted/40" };
   }
   if (m.is_overdue) {
-    return { label: "Overdue", dot: "bg-destructive", ring: "border-destructive/30 bg-destructive/10" };
+    return { label: "Closed", dot: "bg-muted-foreground", ring: "border-border/60 bg-muted/40" };
   }
   if (!m.deadline) {
     return { label: "Upcoming", dot: "bg-muted-foreground", ring: "border-border bg-muted/40" };
+  }
+  if (new Date(m.deadline).getTime() < Date.now()) {
+    return { label: "Closed", dot: "bg-muted-foreground", ring: "border-border/60 bg-muted/40" };
   }
   return { label: "Active", dot: "bg-delulu-blue", ring: "border-delulu-blue/30 bg-delulu-blue-light" };
 }
@@ -155,10 +158,10 @@ export function CommunityCampaignMilestoneList({
                       </span>
                     ) : canSubmit ? (
                       "Submit proof"
-                    ) : m.start_time ? (
+                    ) : m.start_time && new Date(m.start_time).getTime() > Date.now() ? (
                       formatMilestoneOpensAt(m.start_time)
                     ) : (
-                      "Not open"
+                      "Closed"
                     )}
                   </button>
                 ) : null}

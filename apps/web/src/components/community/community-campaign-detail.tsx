@@ -26,7 +26,7 @@ import {
   getActiveMilestone,
   getUpcomingMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
-import { isCampaignFunded } from "@/lib/community/campaign-types";
+import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
 export type CommunityCampaignDetailData = {
   id: string;
@@ -279,19 +279,24 @@ export function CommunityCampaignDetail({
   );
   const focusMilestone = activeMilestone ?? upcomingMilestone;
 
+  const isClosed = isCampaignEndedByDate(campaign.display_ends_at);
+
   const campaignPhase = useMemo(() => {
+    if (isClosed) return "closed" as const;
     if (milestoneCount === 0) return "setup" as const;
     if (isJoined) return "active" as const;
     return "open" as const;
-  }, [milestoneCount, isJoined]);
+  }, [isClosed, milestoneCount, isJoined]);
 
   const phaseLabel = {
+    closed: "Closed",
     setup: "Setting up",
     open: "Open to join",
     active: "You're in",
   }[campaignPhase];
 
   const phaseClass = {
+    closed: "bg-muted text-muted-foreground border-border/60",
     setup: "bg-[#fffbeb] text-[#9a7b0a] border-[#f6c324]/40",
     open: "bg-delulu-blue-light text-delulu-blue border-delulu-blue/30",
     active: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
