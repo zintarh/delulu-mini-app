@@ -51,7 +51,7 @@ export async function POST(
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard/accept-invite?token=${token}`;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/dashboard/accept-invite?token=${token}`;
 
   try {
     const { Resend } = await import("resend");
