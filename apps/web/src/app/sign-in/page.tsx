@@ -10,7 +10,7 @@ import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
-import { getEmailValidationMessage, isValidEmail, normalizeEmail } from "@/lib/email-validation";
+import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
 
 export default function SignInPage() {
@@ -44,7 +44,9 @@ export default function SignInPage() {
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
   const showEmailError =
-    Boolean(emailValidationError) && (emailTouched || submitAttempted) && email.trim().length > 0;
+    Boolean(emailValidationError) &&
+    (emailTouched || submitAttempted || emailLooksComplete(email)) &&
+    email.trim().length > 0;
 
   const isEmailPending = isCheckingEmail || isLaunchingEmailProvider;
   const isAnyPending = isEmailPending || isLaunchingWalletProvider;
