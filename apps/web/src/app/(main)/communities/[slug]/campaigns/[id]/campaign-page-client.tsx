@@ -161,13 +161,13 @@ export function CommunityCampaignPageClient() {
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
         onStepChange: setProofStep,
       });
-      setProofSuccess(true);
-      setProofStep("idle");
       if (!result.onChain && result.pointsTotal != null) {
         setMyPoints(result.pointsTotal);
       }
       await loadLeaderboard();
       await loadCampaign();
+      setProofSuccess(true);
+      setProofStep("idle");
     } catch (err) {
       setProofError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setProofStep("idle");
