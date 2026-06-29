@@ -32,18 +32,18 @@ export const viewport = {
 } as const;
 
 export const metadata: Metadata = {
-  title: "Commiting to personal goals and growth onchain with Good dollar",
+  title: "delulu — Crush your goals with a community behind you",
   description:
-    "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
+    "Join campaigns, commit to your goals publicly, and win real rewards when you deliver. Stay accountable with a community that keeps you on track.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Commiting to personal goals and growth onchain with Good dollar",
+    title: "delulu — Crush your goals with a community behind you",
   },
   openGraph: {
-    title: "Commiting to personal goals and growth onchain with Good dollar",
+    title: "delulu — Crush your goals with a community behind you",
     description:
-      "A prediction market that turns social media trendy topics, opinions and wild(delusional) goals into high stakes",
+      "Join campaigns, commit to your goals publicly, and win real rewards when you deliver. Stay accountable with a community that keeps you on track.",
     url: appUrl,
   },
   icons: {
