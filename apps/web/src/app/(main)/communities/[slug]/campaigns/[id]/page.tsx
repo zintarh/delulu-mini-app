@@ -45,10 +45,6 @@ export async function generateMetadata({
       ? `${campaign.description} — Join the challenge and earn your reward on Delulu.`
       : `Join the "${campaign.title}" challenge on ${communityName} and earn your reward on Delulu.`;
 
-  const images = campaign.cover_image_url
-    ? [{ url: campaign.cover_image_url, width: 1200, height: 630, alt: campaign.title }]
-    : [{ url: `${appUrl}/og-default.png`, width: 1200, height: 630, alt: "Delulu" }];
-
   return {
     title,
     description,
@@ -57,14 +53,12 @@ export async function generateMetadata({
       description,
       url: pageUrl,
       siteName: "Delulu",
-      images,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: images.map((i) => i.url),
     },
     alternates: { canonical: pageUrl },
   };
