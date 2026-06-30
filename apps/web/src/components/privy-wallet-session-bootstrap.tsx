@@ -17,7 +17,9 @@ export function PrivyWalletSessionBootstrap() {
   useEffect(() => {
     if (!authenticated || wallets.length === 0) return;
 
-    const privyWallet = wallets.find((w) => w.walletClientType === "privy");
+    const privyWallet = wallets.find(
+      (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
+    );
     if (!privyWallet) return;
     if (establishedRef.current === privyWallet.address) return;
 

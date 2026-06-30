@@ -71,10 +71,10 @@ export function useAuth(): UseAuthReturn {
       .catch(() => setWeb3authAddress(undefined));
   }, [web3authConnected, web3Auth]);
 
-  // Privy embedded wallet address
-  const privyAddress = wallets.find((w) => w.walletClientType === "privy")?.address as
-    | `0x${string}`
-    | undefined;
+  // Privy embedded wallet address — match both "privy" (v1) and "privy-v2"
+  const privyAddress = wallets.find(
+    (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
+  )?.address as `0x${string}` | undefined;
 
   // Persist provider hint in localStorage for eager auth loading on return visits
   useEffect(() => {
@@ -96,7 +96,9 @@ export function useAuth(): UseAuthReturn {
   const authenticated = web3authConnected || privyAuthenticated;
   const provider: AuthProvider = web3authConnected ? "web3auth" : privyAuthenticated ? "privy" : null;
   const address: `0x${string}` | undefined = web3authAddress ?? privyAddress ?? account.address;
-  const isReady = isInitialized && privyReady;
+  // Ready when either SDK has finished initialising — OR so Privy users aren't
+  // blocked if Web3Auth fails, and vice versa.
+  const isReady = isInitialized || privyReady;
   const email: string | undefined = userInfo?.email ?? undefined;
 
   useEffect(() => {

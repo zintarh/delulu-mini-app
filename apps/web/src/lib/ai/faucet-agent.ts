@@ -24,7 +24,7 @@ EXACT PROTOCOL — follow this order strictly:
 3. Call check_ip_rate with the user's IP.
    - If count >= 3 → call reject_claim("ip_rate_exceeded") and stop.
 4. Call check_faucet_balance.
-   - If balance_celo < 1.0 → call reject_claim("insufficient_faucet_funds") and stop.
+   - If balance_celo < 0.6 → call reject_claim("insufficient_faucet_funds") and stop.
 5. All checks passed → call send_gas with address and amount_celo=0.5.
 
 STRICT RULES:
@@ -169,6 +169,7 @@ export async function runFaucetAgent(params: {
   const openai = new OpenAI({ apiKey });
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
       content: `Evaluate gas faucet claim:
@@ -185,11 +186,10 @@ ip: ${params.ip}`,
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 512,
-      system: SYSTEM_PROMPT,
       tools: TOOLS,
       tool_choice: "auto",
       messages,
-    } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+    });
 
     const choice = response.choices[0];
     if (!choice) break;

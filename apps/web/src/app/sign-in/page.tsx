@@ -1,12 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
@@ -17,10 +17,12 @@ import { establishWalletSession } from "@/lib/auth/establish-wallet-session-clie
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { authenticated } = useAuth();
-  const { isInitialized, provider } = useWeb3Auth();
+  const { isInitialized, provider: web3authProvider } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
   const { login: privyLogin } = usePrivy();
+  const { wallets: privyWallets } = useWallets();
 
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
   const [referralCode, setReferralCode] = useState<string | null>(communityCode);
@@ -82,20 +84,40 @@ export default function SignInPage() {
     return () => { cancelled = true; };
   }, [referralCode]);
 
-  // Auto-claim faucet when needs_gas — fires once per mount.
-  // Awaits wallet session establishment first so the cookie is always present
-  // before the faucet API is called (avoids 401 race with WalletSessionBootstrap).
+  // Auto-claim faucet when needs_gas — fires once per page load.
+  // Web3Auth: uses web3authProvider directly.
+  // Privy: finds the embedded wallet from useWallets() and gets its EIP-1193 provider.
+  // In both cases, establishWalletSession() deduplicates with WalletSessionBootstrap
+  // so no extra signing prompt is shown when the session is already in-flight.
   useEffect(() => {
     if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
-    if (!address || !provider) return;
+    if (!address) return;
+
+    const privyWallet = privyWallets.find(
+      (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
+    );
+
+    // Wait until whichever provider is active has loaded
+    if (!web3authProvider && !privyWallet) return;
+
     faucetCalledRef.current = true;
     setFaucetState("claiming");
 
     const run = async () => {
-      const sessionReady = await establishWalletSession(address, provider as {
-        request: (args: { method: string; params: unknown[] }) => Promise<string>;
-      });
-      if (!sessionReady) { setFaucetState("error"); return; }
+      if (web3authProvider) {
+        const ok = await establishWalletSession(address, web3authProvider as {
+          request: (args: { method: string; params: unknown[] }) => Promise<string>;
+        });
+        if (!ok) { setFaucetState("error"); return; }
+      } else if (privyWallet) {
+        const ethProvider = await privyWallet.getEthereumProvider();
+        const ok = await establishWalletSession(privyWallet.address as `0x${string}`, {
+          request: (args: { method: string; params: unknown[] }) =>
+            ethProvider.request(args) as Promise<string>,
+        });
+        if (!ok) { setFaucetState("error"); return; }
+      }
+
       const r = await fetch("/api/faucet/claim", { method: "POST" });
       const data = (await r.json()) as { success: boolean; reason?: string };
       setFaucetState(data.success ? "claimed" : "rejected");
@@ -103,7 +125,7 @@ export default function SignInPage() {
     };
 
     run().catch(() => setFaucetState("error"));
-  }, [authenticated, routeState, address, provider]);
+  }, [authenticated, routeState, address, web3authProvider, privyWallets]);
 
   // Gas polling — detects when CELO lands and advances to /welcome
   useEffect(() => {
@@ -111,6 +133,17 @@ export default function SignInPage() {
     const id = setInterval(() => void refetchBalance(), 10000);
     return () => clearInterval(id);
   }, [routeState, refetchBalance]);
+
+  // Non-actionable faucet failures (empty wallet, network error) redirect silently after 2s
+  // so users are never stuck. Actionable rejections (already_received, ip_rate_exceeded)
+  // keep the blocking card so users understand why.
+  useEffect(() => {
+    const isNonActionable =
+      faucetState === "error" || faucetReason === "insufficient_faucet_funds";
+    if (!isNonActionable) return;
+    const t = setTimeout(() => router.replace("/welcome"), 2000);
+    return () => clearTimeout(t);
+  }, [faucetState, faucetReason, router]);
 
   const triggerEmailAuth = async (targetEmail: string) => {
     if (!isInitialized) {
@@ -185,12 +218,20 @@ export default function SignInPage() {
   }
 
   if (authenticated && routeState === "needs_gas") {
-    // Happy path: claiming or sent — show spinner, balance poll drives the redirect
-    if (faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed") {
+    // Show spinner for: normal flow + non-actionable failures (redirect fires after 2s)
+    if (
+      faucetState === "idle" ||
+      faucetState === "claiming" ||
+      faucetState === "claimed" ||
+      faucetState === "error" ||
+      faucetReason === "insufficient_faucet_funds"
+    ) {
       const label =
         faucetState === "claimed"
           ? "Gas sent! Waiting for confirmation…"
-          : "Getting your gas… this takes a few seconds";
+          : faucetState === "error" || faucetReason === "insufficient_faucet_funds"
+            ? "Getting you started…"
+            : "Getting your gas… this takes a few seconds";
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
           <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
@@ -202,11 +243,10 @@ export default function SignInPage() {
       );
     }
 
-    // Rejection states — show contextual message + Telegram fallback
+    // Actionable rejection states — user can understand and act on these
     const isAlreadyReceived =
       faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
     const isIpLimit = faucetReason === "ip_rate_exceeded";
-    const isFaucetEmpty = faucetReason === "insufficient_faucet_funds" || faucetState === "error";
 
     const title = isAlreadyReceived
       ? "Gas already received"
@@ -227,22 +267,6 @@ export default function SignInPage() {
             <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
           </div>
-
-          {/* Show address copy only when faucet is empty (user needs to get gas manually) */}
-          {isFaucetEmpty ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-muted/30 px-3 py-3">
-              <span className="flex-1 break-all font-mono text-xs text-foreground">{address}</span>
-              <button
-                type="button"
-                onClick={async () => {
-                  try { await navigator.clipboard.writeText(address); setCopiedAddress(true); setTimeout(() => setCopiedAddress(false), 2000); } catch {}
-                }}
-                className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-muted"
-              >
-                {copiedAddress ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-              </button>
-            </div>
-          ) : null}
 
           <a href={TG_GROUP_URL} target="_blank" rel="noreferrer"
             className="flex w-full items-center justify-center rounded-2xl border border-foreground/90 bg-foreground py-3 text-sm font-semibold text-background shadow-sm transition-opacity hover:opacity-90"
