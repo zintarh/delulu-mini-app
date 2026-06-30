@@ -38,7 +38,7 @@ export default async function Image({
       : campaign.communities
     : null;
 
-  const title = truncate(campaign?.title ?? "Community campaign", 90);
+  const title = truncate(campaign?.title ?? "Community campaign", 80);
   const communityName = community?.name ?? "Delulu";
   const cadence =
     campaign?.proof_cadence === "weekly" ? "Weekly proofs" : "Daily proofs";
@@ -47,8 +47,7 @@ export default async function Image({
       ? `${Number(campaign.proposed_pool_amount)} G$ prize pool`
       : "Join and earn rewards";
 
-  const titleSize =
-    title.length > 70 ? 38 : title.length > 45 ? 46 : 54;
+  const titleSize = title.length > 60 ? 44 : title.length > 40 ? 52 : 60;
 
   return new ImageResponse(
     (
@@ -56,185 +55,120 @@ export default async function Image({
         style={{
           width: 1200,
           height: 630,
-          background: "#080808",
+          background: "#f9f8f4",
           display: "flex",
           flexDirection: "column",
-          padding: "56px 64px",
-          position: "relative",
-          overflow: "hidden",
+          justifyContent: "space-between",
+          padding: "64px 80px",
           fontFamily: "sans-serif",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: -120,
-            right: -120,
-            width: 480,
-            height: 480,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(246,195,36,0.14) 0%, transparent 70%)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: -80,
-            left: -80,
-            width: 320,
-            height: 320,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(53,208,127,0.08) 0%, transparent 70%)",
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 32,
-          }}
-        >
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: "#f6c324",
-              boxShadow: "0 0 12px rgba(246,195,36,0.8)",
-            }}
-          />
+        {/* Top — wordmark */}
+        <div style={{ display: "flex", alignItems: "baseline" }}>
           <span
             style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#f6c324",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
+              fontSize: 36,
+              fontWeight: 900,
+              color: "#1a1a19",
+              letterSpacing: "-0.03em",
             }}
           >
-            delulu campaign
+            delulu
+          </span>
+          <span
+            style={{
+              fontSize: 36,
+              fontWeight: 900,
+              color: "#f6c324",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            .
           </span>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-          }}
-        >
+        {/* Center — campaign title */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#7a7a74",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
+          >
+            {communityName} · Campaign
+          </span>
           <p
             style={{
               fontSize: titleSize,
-              fontWeight: 800,
-              color: "rgba(255,255,255,0.95)",
-              lineHeight: 1.2,
+              fontWeight: 900,
+              color: "#1a1a19",
+              letterSpacing: "-0.04em",
+              lineHeight: 1.1,
               margin: 0,
-              maxWidth: 980,
+              maxWidth: 960,
             }}
           >
             {title}
           </p>
           <p
             style={{
-              marginTop: 18,
-              fontSize: 24,
-              fontWeight: 600,
-              color: "#f6c324",
-              opacity: 0.95,
+              fontSize: 22,
+              fontWeight: 500,
+              color: "#7a7a74",
+              margin: 0,
+              marginTop: 4,
+              letterSpacing: "-0.01em",
             }}
           >
-            {communityName}
+            {cadence} · {pool}
           </p>
         </div>
 
-        <div
-          style={{
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-            paddingTop: 28,
-            display: "flex",
-            alignItems: "center",
-            gap: 40,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.9)",
-              }}
-            >
-              {cadence}
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.4)",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              proof schedule
-            </span>
-          </div>
-
+        {/* Bottom — CTA + URL */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div
             style={{
-              width: 1,
-              height: 40,
-              background: "rgba(255,255,255,0.08)",
-            }}
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: "#f6c324",
-              }}
-            >
-              {pool}
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.4)",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              rewards
-            </span>
-          </div>
-
-          <div
-            style={{
-              marginLeft: "auto",
+              background: "#1a1a19",
+              borderRadius: 100,
+              padding: "16px 36px",
               display: "flex",
               alignItems: "center",
-              background: "#f6c324",
-              borderRadius: 40,
-              padding: "14px 32px",
             }}
           >
             <span
               style={{
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: 800,
-                color: "#1a1a19",
+                color: "#f6c324",
                 letterSpacing: "-0.01em",
               }}
             >
               Join the challenge →
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#f6c324",
+              }}
+            />
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1a1a19",
+                letterSpacing: "0.02em",
+                opacity: 0.45,
+              }}
+            >
+              staydelulu.xyz
             </span>
           </div>
         </div>

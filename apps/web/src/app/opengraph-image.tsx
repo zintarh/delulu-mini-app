@@ -48,11 +48,11 @@ export default function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <p
             style={{
-              fontSize: 84,
+              fontSize: 62,
               fontWeight: 900,
               color: "#1a1a19",
               letterSpacing: "-0.04em",
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               margin: 0,
               maxWidth: 920,
             }}

@@ -19,10 +19,19 @@ function getFaucetAccount() {
 
 /** Returns the faucet wallet's current CELO balance in CELO (not wei). */
 export async function getFaucetBalance(): Promise<number> {
+  const raw = process.env.CELO_FAUCET_PRIVATE_KEY;
+  if (!raw) {
+    console.error("[send-celo] CELO_FAUCET_PRIVATE_KEY is not set");
+    throw new Error("CELO_FAUCET_PRIVATE_KEY is not configured");
+  }
   const account = getFaucetAccount();
-  const client = createPublicClient({ chain: celo, transport: http(getRpcUrl()) });
+  const rpc = getRpcUrl();
+  console.log("[send-celo] checking balance for faucet address:", account.address, "via RPC:", rpc);
+  const client = createPublicClient({ chain: celo, transport: http(rpc) });
   const wei = await client.getBalance({ address: account.address });
-  return parseFloat(formatEther(wei));
+  const balance = parseFloat(formatEther(wei));
+  console.log("[send-celo] faucet balance:", balance, "CELO");
+  return balance;
 }
 
 /** Returns the faucet wallet's address (for display/logging). */
@@ -36,12 +45,16 @@ export async function sendCelo(
   amountCelo: string,
 ): Promise<`0x${string}`> {
   const account = getFaucetAccount();
+  const rpc = getRpcUrl();
+  console.log("[send-celo] sending", amountCelo, "CELO from", account.address, "to", to, "via RPC:", rpc);
   const client = createWalletClient({
     account,
     chain: celo,
-    transport: http(getRpcUrl()),
+    transport: http(rpc),
   });
-  return client.sendTransaction({ to, value: parseEther(amountCelo) });
+  const hash = await client.sendTransaction({ to, value: parseEther(amountCelo) });
+  console.log("[send-celo] tx submitted:", hash);
+  return hash;
 }
 
 /** Returns the transaction count (nonce) for any address — used to detect new vs active wallets. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { isValidEmail, normalizeEmail } from "@/lib/email-validation";
 import {
   lookupEmailProvider,
@@ -154,19 +154,10 @@ export function useDebouncedEmailProvider(
     }
   }, [cancelScheduled, emailIsValid, normalizedEmail, resolved]);
 
-  useEffect(() => {
-    scheduleLookup(normalizedEmail);
-    return () => {
-      cancelScheduled();
-      abortRef.current?.abort();
-    };
-  }, [cancelScheduled, normalizedEmail, scheduleLookup]);
-
   return {
     isChecking,
     resolvedProvider: resolved?.provider ?? null,
     resolvedEmail: resolved?.email ?? "",
-    flushLookup,
     resolveForSubmit,
   };
 }

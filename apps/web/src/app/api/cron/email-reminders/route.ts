@@ -11,6 +11,8 @@ import {
   getMilestoneLabel,
 } from "@/lib/milestone-utils";
 import { sendReminderEmail } from "@/lib/email/send-reminder";
+import { buildOffChainMilestoneSchedule } from "@/lib/community/milestone-submit-eligibility";
+import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
 
 export const maxDuration = 300;
 
@@ -228,6 +230,218 @@ function collectReminderCandidates(
   return candidates;
 }
 
+type CampaignReminderStats = {
+  sent: number;
+  skipped: number;
+  noEmail: number;
+  alreadySent: number;
+  sendErrors: number;
+  idempotencyErrors: number;
+};
+
+async function sendCampaignMilestoneReminders(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  nowSec: number,
+  windowStartSec: number,
+  windowEndSec: number,
+  appUrl: string,
+): Promise<CampaignReminderStats> {
+  const stats: CampaignReminderStats = { sent: 0, skipped: 0, noEmail: 0, alreadySent: 0, sendErrors: 0, idempotencyErrors: 0 };
+  const nowMs = nowSec * 1000;
+
+  // Active off-chain campaigns (milestones stored in Supabase, not The Graph)
+  const { data: campaignData, error: campaignErr } = await supabase
+    .from("community_campaigns")
+    .select("id, title, display_ends_at, duration_days, proof_cadence")
+    .in("status", [...PARTICIPATING_STATUSES])
+    .is("on_chain_challenge_id", null);
+
+  if (campaignErr) {
+    console.error("[email-reminders] campaign query error:", campaignErr.message);
+    return stats;
+  }
+
+  const activeCampaigns = (campaignData ?? []).filter(
+    (c) => !isCampaignEndedByDate((c as { display_ends_at: string | null }).display_ends_at),
+  );
+  if (activeCampaigns.length === 0) return stats;
+
+  const campaignIds = activeCampaigns.map((c) => (c as { id: string }).id);
+
+  const [participantResult, milestoneResult] = await Promise.all([
+    supabase
+      .from("campaign_participants")
+      .select("campaign_id, wallet_address")
+      .in("campaign_id", campaignIds)
+      .eq("status", "joined"),
+    supabase
+      .from("campaign_milestones")
+      .select("campaign_id, title, order_index")
+      .in("campaign_id", campaignIds)
+      .order("order_index", { ascending: true }),
+  ]);
+
+  const participants = participantResult.data ?? [];
+  if (participants.length === 0) return stats;
+
+  const allAddresses = [
+    ...new Set(
+      participants.map((p) => (p as { wallet_address: string }).wallet_address.toLowerCase()),
+    ),
+  ];
+
+  const { data: proofData } = await supabase
+    .from("campaign_proof_submissions")
+    .select("campaign_id, wallet_address, milestone_id")
+    .in("campaign_id", campaignIds)
+    .in("wallet_address", allAddresses)
+    .eq("status", "approved");
+
+  // campaignId:address → completed milestone order_indices
+  const completedMap = new Map<string, Set<number>>();
+  for (const p of proofData ?? []) {
+    const row = p as { campaign_id: string; wallet_address: string; milestone_id?: number | null };
+    if (row.milestone_id == null) continue;
+    const key = `${row.campaign_id}:${row.wallet_address.toLowerCase()}`;
+    if (!completedMap.has(key)) completedMap.set(key, new Set());
+    completedMap.get(key)!.add(row.milestone_id);
+  }
+
+  const milestonesByCampaign = new Map<string, { title: string; order_index: number }[]>();
+  for (const m of milestoneResult.data ?? []) {
+    const cid = (m as { campaign_id: string }).campaign_id;
+    if (!milestonesByCampaign.has(cid)) milestonesByCampaign.set(cid, []);
+    milestonesByCampaign.get(cid)!.push({
+      title: (m as { title: string }).title,
+      order_index: Number((m as { order_index: number }).order_index),
+    });
+  }
+
+  const campaignById = new Map<
+    string,
+    { title: string; display_ends_at: string | null; duration_days: number; proof_cadence: string }
+  >();
+  for (const c of activeCampaigns) {
+    campaignById.set((c as { id: string }).id, {
+      title: (c as { title: string }).title,
+      display_ends_at: (c as { display_ends_at: string | null }).display_ends_at,
+      duration_days: Number((c as { duration_days: number }).duration_days ?? 30),
+      proof_cadence: (c as { proof_cadence?: string }).proof_cadence ?? "daily",
+    });
+  }
+
+  const profilesByAddress = await fetchProfilesByAddress(supabase, allAddresses);
+
+  for (const participant of participants) {
+    const pRow = participant as { campaign_id: string; wallet_address: string };
+    const address = pRow.wallet_address.toLowerCase();
+    const campaignId = pRow.campaign_id;
+    const campaign = campaignById.get(campaignId);
+    if (!campaign) continue;
+
+    const allMilestones = milestonesByCampaign.get(campaignId) ?? [];
+    if (allMilestones.length === 0) continue;
+
+    const completedSet = completedMap.get(`${campaignId}:${address}`) ?? new Set<number>();
+
+    const schedule = buildOffChainMilestoneSchedule({
+      displayEndsAt: campaign.display_ends_at,
+      durationDays: campaign.duration_days,
+      proofCadence: campaign.proof_cadence,
+      milestones: allMilestones,
+      completedOrderIndices: completedSet,
+      nowMs,
+    });
+
+    for (const m of schedule) {
+      if (m.completed || m.is_overdue) continue;
+      const deadlineSec = m.deadline ? Math.floor(new Date(m.deadline).getTime() / 1000) : null;
+      if (!deadlineSec) continue;
+      if (deadlineSec <= windowStartSec || deadlineSec > windowEndSec) continue;
+
+      const profile = profilesByAddress.get(address);
+      if (!isValidEmail(profile?.email)) {
+        stats.noEmail++;
+        stats.skipped++;
+        continue;
+      }
+
+      const scheduledForSec = deadlineSec - 60 * 60;
+      const eventKey = [
+        "campaign_milestone_due_1h_email",
+        campaignId,
+        String(m.milestone_id),
+        address,
+        String(scheduledForSec),
+      ].join(":");
+
+      const { error: insertErr } = await supabase.from("push_events_sent").insert({
+        event_key: eventKey,
+        address,
+      });
+
+      if (insertErr) {
+        if (insertErr.code === "23505") {
+          stats.alreadySent++;
+          stats.skipped++;
+          continue;
+        }
+        stats.idempotencyErrors++;
+        stats.skipped++;
+        console.error("[email-reminders] campaign push_events_sent insert error:", {
+          code: insertErr.code,
+          message: insertErr.message,
+          campaignId,
+          milestoneId: m.milestone_id,
+        });
+        continue;
+      }
+
+      const campaignUrl = `${appUrl}/community/campaigns/${campaignId}`;
+
+      try {
+        await sendReminderEmail(
+          profile!.email as string,
+          {
+            username: profile?.username ?? "Visionary",
+            goalTitle: "A campaign milestone is due in about 1 hour",
+            pendingHabits: [
+              {
+                emoji: "",
+                title: campaign.title,
+                milestoneTitle: m.label,
+                timeLeftText: formatRemainingTime(nowSec, deadlineSec),
+                ctaUrl: campaignUrl,
+                ctaLabel: "Submit proof",
+              },
+            ],
+            appUrl,
+            ctaUrl: campaignUrl,
+            ctaLabel: "Submit proof",
+            manageUrl: `${appUrl}/profile`,
+          },
+          {
+            subject: `Zinta from Delulu: "${m.label}" is due soon in "${campaign.title}"`,
+          },
+        );
+        stats.sent++;
+      } catch (sendErr: unknown) {
+        stats.sendErrors++;
+        stats.skipped++;
+        await supabase.from("push_events_sent").delete().eq("event_key", eventKey);
+        console.error("[email-reminders] campaign send failed:", {
+          address,
+          campaignId,
+          milestoneId: m.milestone_id,
+          message: sendErr instanceof Error ? sendErr.message : String(sendErr),
+        });
+      }
+    }
+  }
+
+  return stats;
+}
+
 export async function GET(req: NextRequest) {
   try {
     if (!isCronAuthorized(req)) {
@@ -427,22 +641,49 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const campaignStats = await sendCampaignMilestoneReminders(
+      supabase,
+      nowSec,
+      windowStartSec,
+      windowEndSec,
+      appUrl,
+    );
+
     return jsonResponse({
       ok: true,
       nowSec,
       windowStartSec,
       windowEndSec,
-      activeDelulus: delulus.length,
-      milestonesInWindow: candidates.length,
-      sent,
-      skipped,
-      skippedBreakdown: {
-        noEmail,
-        alreadySent,
-        idempotencyErrors,
-        other: Math.max(0, skipped - noEmail - alreadySent - idempotencyErrors),
+      delulu: {
+        activeDelulus: delulus.length,
+        milestonesInWindow: candidates.length,
+        sent,
+        skipped,
+        skippedBreakdown: {
+          noEmail,
+          alreadySent,
+          idempotencyErrors,
+          other: Math.max(0, skipped - noEmail - alreadySent - idempotencyErrors),
+        },
+        sendErrors,
       },
-      sendErrors,
+      campaigns: {
+        sent: campaignStats.sent,
+        skipped: campaignStats.skipped,
+        skippedBreakdown: {
+          noEmail: campaignStats.noEmail,
+          alreadySent: campaignStats.alreadySent,
+          idempotencyErrors: campaignStats.idempotencyErrors,
+          other: Math.max(
+            0,
+            campaignStats.skipped -
+              campaignStats.noEmail -
+              campaignStats.alreadySent -
+              campaignStats.idempotencyErrors,
+          ),
+        },
+        sendErrors: campaignStats.sendErrors,
+      },
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Cron failed";

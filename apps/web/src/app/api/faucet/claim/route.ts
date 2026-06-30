@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return errorResponse("Database unavailable", 503);
 
+  console.log("[faucet/claim] request from address:", address, "ip:", ip);
+
   // 3. Look up email — may be null if profile row doesn't exist yet
   const { data: profile } = await supabase
     .from("profiles")
@@ -27,6 +29,7 @@ export async function POST(request: NextRequest) {
     .eq("address", address)
     .maybeSingle();
   const email = profile?.email ?? null;
+  console.log("[faucet/claim] profile email:", email);
 
   // 4. Pre-flight: if a sent record already exists, skip the agent entirely
   const { data: existing } = await supabase

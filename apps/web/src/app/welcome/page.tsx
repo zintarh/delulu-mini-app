@@ -16,7 +16,7 @@ import {
   consumeSignInRedirect,
   peekCommunityReferral,
 } from "@/lib/auth-redirect";
-import { getEmailValidationMessage, emailLooksComplete } from "@/lib/email-validation";
+import { getEmailValidationMessage } from "@/lib/email-validation";
 
 type WizardStep = "profile" | "community";
 
@@ -40,7 +40,6 @@ export default function WelcomePage() {
 
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const savedRef = useRef(false);
   const profileSubmittedRef = useRef(false);
 
@@ -50,41 +49,6 @@ export default function WelcomePage() {
   useEffect(() => {
     if (resolvedEmail) setEmail(resolvedEmail);
   }, [resolvedEmail]);
-
-  useEffect(() => {
-    setEmailCheckError(null);
-    if (!emailLooksComplete(email) || getEmailValidationMessage(email) !== null) return;
-
-    const controller = new AbortController();
-    let settled = false;
-
-    const t = setTimeout(async () => {
-      setIsCheckingEmail(true);
-      try {
-        const params = new URLSearchParams({ email: email.trim() });
-        if (address) params.set("excludeAddress", address.toLowerCase());
-        const res = await fetch(`/api/profile/check-email?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        const json = await res.json() as { taken?: boolean };
-        if (json.taken) setEmailCheckError("Email already in use. Please use a different address.");
-        else setEmailCheckError(null);
-      } catch (err) {
-        if ((err as { name?: string }).name !== "AbortError") {
-          // silently ignore non-abort errors — server rejects truly taken emails on submit
-        }
-      } finally {
-        settled = true;
-        setIsCheckingEmail(false);
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-      if (!settled) setIsCheckingEmail(false);
-    };
-  }, [email, address]);
 
   useEffect(() => {
     if (isReady && !authenticated) router.replace("/sign-in");
@@ -288,7 +252,27 @@ export default function WelcomePage() {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ username: true, pfp: true });
+    setEmailCheckError(null);
     if (username.trim().length < 3 || !pfpUrl || !address || profileSubmittedRef.current) return;
+
+    try {
+      const params = new URLSearchParams({ email: email.trim() });
+      if (address) params.set("excludeAddress", address.toLowerCase());
+      const res = await fetch(`/api/profile/check-email?${params.toString()}`);
+      if (!res.ok) {
+        setEmailCheckError("Could not verify email. Please try again.");
+        return;
+      }
+      const json = await res.json() as { taken?: boolean };
+      if (json.taken) {
+        setEmailCheckError("This email is already in use. Please use a different one.");
+        return;
+      }
+    } catch {
+      setEmailCheckError("Could not verify email. Check your connection and try again.");
+      return;
+    }
+
     profileSubmittedRef.current = true;
     try {
       await setProfile(username.trim());
@@ -320,7 +304,6 @@ export default function WelcomePage() {
     !!pfpUrl &&
     !!email.trim() &&
     !emailError &&
-    !isCheckingEmail &&
     !isSubmittingProfile &&
     !isUploading;
   const missingPfp = touched.pfp && !pfpUrl && !isUploading;
@@ -376,8 +359,8 @@ export default function WelcomePage() {
                     </div>
                   )}
                   {isUploading ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                      <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
                     </div>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity hover:opacity-100">
@@ -439,13 +422,12 @@ export default function WelcomePage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setEmailCheckError(null); }}
                     placeholder="you@example.com"
                     autoComplete="email"
                     disabled={isSubmittingProfile}
                     className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
                   />
-                  {isCheckingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
                 </div>
                 {emailError ? (
                   <p className="mt-1.5 px-1 text-xs text-rose-500">{emailError}</p>

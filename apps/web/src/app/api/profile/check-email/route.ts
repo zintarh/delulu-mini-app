@@ -18,25 +18,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
 
+  const normalized = normalizeEmail(email);
+
+  // Exclude wallet.local placeholders inserted by the photo-upload stub
   let query = supabase
     .from("profiles")
     .select("address, auth_provider")
-    .eq("email", normalizeEmail(email));
+    .eq("email", normalized)
+    .not("email", "ilike", "%@wallet.local")
+    .limit(2); // limit(2) avoids maybeSingle() throwing on duplicate rows
 
   if (excludeAddress) {
     query = query.neq("address", excludeAddress);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query;
 
   if (error) {
-    // Column missing or query failed — treat as unknown (route to web3auth)
     console.error("[check-email] supabase error:", error.message);
-    return NextResponse.json({ taken: false, auth_provider: null });
+    // Return a real error so the client blocks the submit rather than silently proceeding
+    return NextResponse.json({ error: "Could not verify email" }, { status: 500 });
   }
 
+  const match = (data ?? []).find(
+    (row) => !(row as { email?: string }).email?.endsWith("@wallet.local"),
+  );
+
   return NextResponse.json({
-    taken: !!data,
-    auth_provider: (data?.auth_provider as "privy" | "web3auth") ?? null,
+    taken: (data ?? []).length > 0,
+    auth_provider: (match?.auth_provider as "privy" | "web3auth") ?? null,
   });
 }

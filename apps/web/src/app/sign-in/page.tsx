@@ -35,7 +35,6 @@ export default function SignInPage() {
 
   const {
     isChecking: isCheckingEmail,
-    flushLookup,
     resolveForSubmit,
   } = useDebouncedEmailProvider(email);
 
@@ -361,10 +360,7 @@ export default function SignInPage() {
                     setEmail(e.target.value);
                     if (routeError) setRouteError(null);
                   }}
-                  onBlur={() => {
-                    setEmailTouched(true);
-                    flushLookup();
-                  }}
+                  onBlur={() => setEmailTouched(true)}
                   placeholder="Email address"
                   autoComplete="email"
                   autoFocus={false}

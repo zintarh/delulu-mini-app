@@ -103,8 +103,10 @@ export function EmailCaptureGate() {
       setOpen(false);
       return;
     }
+    // Re-fetch whenever leaving an excluded page (e.g. /welcome → /) so the gate
+    // sees the real email saved during onboarding rather than the stale stub.
     void loadProfile();
-  }, [authenticated, address, isReady, loadProfile]);
+  }, [authenticated, address, isReady, excluded, loadProfile]);
 
   useEffect(() => {
     if (typeof authProviderEmail === "string" && authProviderEmail.includes("@")) {
