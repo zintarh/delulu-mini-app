@@ -6,7 +6,7 @@ export function hasStoredAuthSession(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const provider = localStorage.getItem(AUTH_PROVIDER_KEY);
-    return provider === "web3auth";
+    return provider === "web3auth" || provider === "privy";
   } catch {
     return false;
   }

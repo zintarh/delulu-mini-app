@@ -8,12 +8,13 @@ import {
   useWeb3AuthDisconnect,
   useWeb3AuthUser,
 } from "@web3auth/modal/react";
+import { usePrivy, useWallets, useLogout as usePrivyLogout } from "@privy-io/react-auth";
 import {
   clearWalletSessionClientState,
 } from "@/lib/auth/establish-wallet-session-client";
 import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
 
-export type AuthProvider = "web3auth" | null;
+export type AuthProvider = "web3auth" | "privy" | null;
 
 const PROVIDER_KEY = "delulu:auth_provider";
 
@@ -33,6 +34,7 @@ export function useAuth(): UseAuthReturn {
   const account = useAccount();
   const { disconnect } = useDisconnect();
 
+  // Web3Auth
   const {
     isConnected: web3authConnected,
     isInitialized,
@@ -43,13 +45,16 @@ export function useAuth(): UseAuthReturn {
   const { disconnect: web3authDisconnect } = useWeb3AuthDisconnect();
   const { userInfo } = useWeb3AuthUser();
 
+  // Privy
+  const { authenticated: privyAuthenticated, ready: privyReady } = usePrivy();
+  const { wallets } = useWallets();
+  const { logout: privyLogout } = usePrivyLogout({ onSuccess: () => {} });
+
   useEffect(() => {
     if (initError) console.error("[auth] web3auth init error:", initError);
   }, [initError]);
 
-  const [web3authAddress, setWeb3authAddress] = useState<
-    `0x${string}` | undefined
-  >();
+  const [web3authAddress, setWeb3authAddress] = useState<`0x${string}` | undefined>();
   const pendingLogin = useRef(false);
 
   useEffect(() => {
@@ -63,33 +68,36 @@ export function useAuth(): UseAuthReturn {
         if (accounts?.[0]) setWeb3authAddress(accounts[0] as `0x${string}`);
         else setWeb3authAddress(undefined);
       })
-      .catch(() => {
-        setWeb3authAddress(undefined);
-      });
+      .catch(() => setWeb3authAddress(undefined));
   }, [web3authConnected, web3Auth]);
 
+  // Privy embedded wallet address
+  const privyAddress = wallets.find((w) => w.walletClientType === "privy")?.address as
+    | `0x${string}`
+    | undefined;
+
+  // Persist provider hint in localStorage for eager auth loading on return visits
   useEffect(() => {
     if (web3authConnected) {
-      try {
-        localStorage.setItem(PROVIDER_KEY, "web3auth");
-      } catch {}
+      try { localStorage.setItem(PROVIDER_KEY, "web3auth"); } catch {}
+    } else if (privyAuthenticated) {
+      try { localStorage.setItem(PROVIDER_KEY, "privy"); } catch {}
     }
-  }, [web3authConnected]);
+  }, [web3authConnected, privyAuthenticated]);
 
-  const authenticated = web3authConnected;
-  const provider: AuthProvider = web3authConnected ? "web3auth" : null;
-  const address: `0x${string}` | undefined =
-    web3authAddress ?? account.address;
-  const isReady = isInitialized;
-  const email: string | undefined = userInfo?.email ?? undefined;
-
-  // Clear stale localStorage hint when SDK initialises with no active session.
-  // This prevents hasStoredAuthSession() from returning true on next visit when
-  // the Web3Auth session has already expired.
+  // Clear stale hint when both SDKs are initialized with no active session
   useEffect(() => {
-    if (!isInitialized || web3authConnected) return;
-    try { localStorage.removeItem(PROVIDER_KEY); } catch {}
-  }, [isInitialized, web3authConnected]);
+    if (!isInitialized || !privyReady) return;
+    if (!web3authConnected && !privyAuthenticated) {
+      try { localStorage.removeItem(PROVIDER_KEY); } catch {}
+    }
+  }, [isInitialized, privyReady, web3authConnected, privyAuthenticated]);
+
+  const authenticated = web3authConnected || privyAuthenticated;
+  const provider: AuthProvider = web3authConnected ? "web3auth" : privyAuthenticated ? "privy" : null;
+  const address: `0x${string}` | undefined = web3authAddress ?? privyAddress ?? account.address;
+  const isReady = isInitialized && privyReady;
+  const email: string | undefined = userInfo?.email ?? undefined;
 
   useEffect(() => {
     if (isInitialized && pendingLogin.current) {
@@ -116,11 +124,15 @@ export function useAuth(): UseAuthReturn {
     } catch {}
 
     try {
-      if (web3authConnected) {
-        await web3authDisconnect();
-      }
+      if (web3authConnected) await web3authDisconnect();
     } catch (err) {
-      console.error("[auth] logout error:", err);
+      console.error("[auth] web3auth logout error:", err);
+    }
+
+    try {
+      if (privyAuthenticated) await privyLogout();
+    } catch (err) {
+      console.error("[auth] privy logout error:", err);
     }
 
     try {

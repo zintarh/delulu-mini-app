@@ -6,6 +6,7 @@ import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
+import { usePrivy } from "@privy-io/react-auth";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
@@ -19,6 +20,7 @@ export default function SignInPage() {
   const { authenticated } = useAuth();
   const { isInitialized, provider } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
+  const { login: privyLogin } = usePrivy();
 
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
   const [referralCode, setReferralCode] = useState<string | null>(communityCode);
@@ -131,10 +133,15 @@ export default function SignInPage() {
     setRouteError(null);
     setIsLaunchingEmailProvider(true);
     try {
-      // Uses cache / prior lookup when possible; otherwise one inline check.
-      const provider = await resolveForSubmit();
-      await triggerEmailAuth(normalizedEmail);
-      void provider;
+      // Check DB to see if this email belongs to an existing Privy account.
+      const detectedProvider = await resolveForSubmit();
+      if (detectedProvider === "privy") {
+        // Existing Privy user — open Privy modal so they keep their original address.
+        privyLogin();
+      } else {
+        // New user or Web3Auth user — use Web3Auth email OTP.
+        await triggerEmailAuth(normalizedEmail);
+      }
     } catch {
       setRouteError("Couldn't open email sign in. Try again.");
     } finally {
