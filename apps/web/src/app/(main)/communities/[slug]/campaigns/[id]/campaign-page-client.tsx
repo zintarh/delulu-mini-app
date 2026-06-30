@@ -135,6 +135,7 @@ export function CommunityCampaignPageClient() {
       proof_cadence: campaign.proof_cadence,
       proof_instructions: campaign.proof_instructions,
       status: campaign.status,
+      display_ends_at: campaign.display_ends_at,
       funded_pool_amount: poolStats?.fundedPoolAmount,
       total_participant_stakes: poolStats?.totalParticipantStakes,
       total_prize_pool_amount: poolStats?.totalPrizePoolAmount,

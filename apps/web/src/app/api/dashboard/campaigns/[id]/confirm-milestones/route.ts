@@ -3,6 +3,7 @@ import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseCommunityCampaignMilestonesAddedFromTx } from "@/lib/dashboard/parse-challenge-tx";
+import { computeDisplayEndsAt } from "@/lib/community/campaign-types";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, community_id, on_chain_challenge_id, status")
+    .select("id, community_id, on_chain_challenge_id, status, duration_days, display_ends_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -63,6 +64,15 @@ export async function POST(
     tx_hash: txHash,
     milestone_count: Number(parsed.milestoneCount),
   });
+
+  // Start the campaign clock on first milestone publish (if not already set)
+  if (!campaign.display_ends_at) {
+    const durationDays = Number(campaign.duration_days ?? 30) || 30;
+    await admin
+      .from("community_campaigns")
+      .update({ display_ends_at: computeDisplayEndsAt(durationDays, new Date()), updated_at: new Date().toISOString() })
+      .eq("id", id);
+  }
 
   return NextResponse.json({
     ok: true,

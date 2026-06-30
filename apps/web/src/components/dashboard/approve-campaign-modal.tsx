@@ -35,11 +35,11 @@ async function confirmCreateOnChain(id: string, txHash: string) {
 }
 
 const STEP_LABEL: Record<DeployStep, string> = {
-  idle: "Approve uploads metadata and deploys the campaign on-chain.",
-  approving: "Preparing approval…",
-  deploying_challenge: "Sign transaction — create campaign on-chain.",
-  confirming_challenge: "Confirming campaign on-chain…",
-  done: "Campaign is live. Add milestones on-chain from the campaign detail page.",
+  idle: "This will upload campaign content to IPFS and deploy it on-chain. You'll need to sign one wallet transaction.",
+  approving: "Preparing content hash…",
+  deploying_challenge: "Sign the wallet transaction to create the campaign on-chain.",
+  confirming_challenge: "Confirming on-chain deployment…",
+  done: "",
   error: "",
 };
 
@@ -134,15 +134,15 @@ export function ApproveCampaignModal({
       description={campaign?.title}
     >
       <div className="space-y-4 pt-2 text-sm">
-        <p className="text-muted-foreground">
-          {STEP_LABEL[step === "error" ? "idle" : step]}
-        </p>
-
-        {step === "done" ? (
-          <p className="font-semibold text-emerald-700">
-            Campaign deployed on-chain. Add milestones from the campaign detail page.
+        {step !== "done" ? (
+          <p className="text-muted-foreground">
+            {STEP_LABEL[step === "error" ? "idle" : step]}
           </p>
-        ) : null}
+        ) : (
+          <p className="font-semibold text-emerald-700">
+            Campaign deployed on-chain. Open the campaign detail page to add milestones.
+          </p>
+        )}
 
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
 

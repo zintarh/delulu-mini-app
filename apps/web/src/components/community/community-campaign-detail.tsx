@@ -15,6 +15,7 @@ import {
   Target,
   Trophy,
   Users,
+  Wallet,
 } from "lucide-react";
 import { ProofModal } from "@/components/proof-modal";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
@@ -131,7 +132,7 @@ function JoinButton({
       ) : canJoin ? (
         "Join campaign"
       ) : (
-        "Finalizing on-chain…"
+        "Coming soon"
       )}
     </button>
   );
@@ -151,17 +152,17 @@ function StatPill({
   return (
     <div
       className={cn(
-        "flex min-w-[88px] shrink-0 flex-col rounded-xl border px-3 py-2.5",
+        "flex flex-col rounded-xl border px-3 py-2.5 sm:min-w-[88px] sm:shrink-0",
         accent
           ? "border-[#f6c324]/40 bg-gradient-to-br from-[#fffbeb] to-white"
           : "border-border/60 bg-card",
       )}
     >
       <div className="flex items-center gap-1 text-muted-foreground">
-        <Icon className={cn("h-3.5 w-3.5", accent && "text-[#9a7b0a]")} />
-        <span className="text-[10px] font-semibold uppercase tracking-wide">{label}</span>
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", accent && "text-[#9a7b0a]")} />
+        <span className="truncate text-[10px] font-semibold uppercase tracking-wide">{label}</span>
       </div>
-      <p className={cn("mt-0.5 text-sm font-black tabular-nums", accent && "text-[#9a7b0a]")}>
+      <p className={cn("mt-0.5 truncate text-sm font-black tabular-nums", accent && "text-[#9a7b0a]")}>
         {value}
       </p>
     </div>
@@ -467,12 +468,24 @@ export function CommunityCampaignDetail({
                     </button>
                   </div>
                 </div>
+                      ) : milestones.length === 0 ? (
+                // No milestones yet — admin hasn't published them on-chain
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-muted/20">
+                  <div className="border-l-4 border-muted-foreground/30 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Milestones coming soon
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      An admin is adding milestones on-chain. Check back shortly.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 // All milestones complete
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/8">
                   <div className="border-l-4 border-emerald-500 p-4">
                     <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                      🎉 All milestones complete
+                      All milestones complete
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {myRank
@@ -649,7 +662,7 @@ export function CommunityCampaignDetail({
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {milestoneCount === 0
-                      ? "Host is adding milestones"
+                      ? "Milestones coming soon"
                       : `${participantCount} joined · ${daysLeft}d left`}
                   </p>
                 </div>
@@ -679,8 +692,8 @@ export function CommunityCampaignDetail({
             </div>
 
             {/* Stats strip */}
-            <div className="mt-4 overflow-x-auto px-4 scrollbar-hide">
-              <div className="flex gap-2 pb-1">
+            <div className="mt-4 px-4">
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                 {showPrizePool ? (
                   <StatPill
                     icon={Trophy}
@@ -698,6 +711,13 @@ export function CommunityCampaignDetail({
                     label="Prize"
                     value={`${campaign.proposed_pool_amount} G$`}
                     accent
+                  />
+                ) : null}
+                {isPaidJoin && joinStakeAmount > 0 ? (
+                  <StatPill
+                    icon={Wallet}
+                    label="Stake"
+                    value={`${joinStakeAmount} ${stakeToken}`}
                   />
                 ) : null}
                 <StatPill
@@ -890,6 +910,8 @@ export function CommunityCampaignDetail({
         proofInstructions={campaign.proof_instructions}
         isOnChain={campaign.on_chain_challenge_id != null}
         proofStep={proofStep}
+        milestoneName={activeMilestone?.label ?? null}
+        milestoneDeadline={activeMilestone?.deadline ?? null}
       />
     </>
   );

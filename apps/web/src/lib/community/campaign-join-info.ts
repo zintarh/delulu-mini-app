@@ -27,6 +27,7 @@ export type CampaignJoinSource = {
   proof_instructions?: string | null;
   proofInstructions?: string | null;
   status?: string;
+  display_ends_at?: string | null;
   funded_pool_amount?: number;
   total_participant_stakes?: number;
   total_prize_pool_amount?: number;
@@ -54,6 +55,7 @@ export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoi
     communityName: campaign.community?.name ?? "Community",
     milestoneCount,
     durationDays: campaign.duration_days ?? campaign.durationDays ?? 30,
+    endsAt: campaign.display_ends_at ?? null,
     isFreeToJoin,
     joinToken,
     joinAmount,

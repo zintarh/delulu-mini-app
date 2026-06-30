@@ -45,6 +45,8 @@ interface ProofModalProps {
   proofInstructions?: string | null;
   isOnChain?: boolean;
   proofStep?: ProofStep;
+  milestoneName?: string | null;
+  milestoneDeadline?: string | null;
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -60,6 +62,8 @@ export function ProofModal({
   proofInstructions,
   isOnChain = false,
   proofStep = "idle",
+  milestoneName,
+  milestoneDeadline,
 }: ProofModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -219,15 +223,30 @@ export function ProofModal({
       ) : (
         /* ── Upload state ──────────────────────────────────────── */
         <div className="space-y-4">
-          {/* Header — single title, no duplicate */}
+          {/* Header */}
           <div>
+            {milestoneName ? (
+              <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                {milestoneName}
+              </p>
+            ) : null}
             <h2
               className="text-xl font-black tracking-tight text-foreground"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
               Submit proof
             </h2>
-            <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+            {milestoneDeadline ? (
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Due{" "}
+                {new Date(milestoneDeadline).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            ) : null}
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
               {proofInstructions
                 ? proofInstructions
                 : "Show what you did — a screenshot is totally fine."}

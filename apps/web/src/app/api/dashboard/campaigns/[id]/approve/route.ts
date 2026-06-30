@@ -3,7 +3,6 @@ import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { uploadCampaignContentHash } from "@/lib/dashboard/campaign-ipfs";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
-import { computeDisplayEndsAt } from "@/lib/community/campaign-types";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
@@ -33,21 +32,6 @@ export async function POST(
     return NextResponse.json({ error: "Only pending campaigns can be approved." }, { status: 400 });
   }
 
-  const { count: milestoneCount, error: milestoneError } = await admin
-    .from("campaign_milestones")
-    .select("id", { count: "exact", head: true })
-    .eq("campaign_id", id);
-
-  if (milestoneError) {
-    return NextResponse.json({ error: milestoneError.message }, { status: 500 });
-  }
-  if (!milestoneCount || milestoneCount < 1) {
-    return NextResponse.json(
-      { error: "Add at least one milestone before approving this campaign." },
-      { status: 400 },
-    );
-  }
-
   let contentHash: string;
   try {
     contentHash = await uploadCampaignContentHash(campaign.title, campaign.description);
@@ -58,10 +42,7 @@ export async function POST(
     );
   }
 
-  const now = new Date();
-  const nowIso = now.toISOString();
-  const durationDays = Number(campaign.duration_days ?? 30) || 30;
-  const displayEndsAt = computeDisplayEndsAt(durationDays, now);
+  const nowIso = new Date().toISOString();
 
   const { data, error } = await admin
     .from("community_campaigns")
@@ -70,7 +51,6 @@ export async function POST(
       content_hash: contentHash,
       approved_by: session.userId,
       approved_at: nowIso,
-      display_ends_at: displayEndsAt,
       updated_at: nowIso,
     })
     .eq("id", id)
@@ -101,8 +81,8 @@ export async function POST(
           to: proposer.email,
           subject: `Campaign approved: ${campaign.title}`,
           html: `
-            <p>Your campaign <strong>${campaign.title}</strong> for ${communityName} was approved.</p>
-            <p>Members can join and submit proof right away. A platform admin can fund the on-chain prize pool later — points and the leaderboard are live now.</p>
+            <p>Your campaign <strong>${campaign.title}</strong> for ${communityName} was approved and is being deployed on-chain.</p>
+            <p>Once milestones are added on-chain, members will be able to join and compete. A platform admin can fund the prize pool separately — points and the leaderboard go live when the first member joins.</p>
             <p><a href="${dashboardUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View campaign</a></p>
           `,
         });

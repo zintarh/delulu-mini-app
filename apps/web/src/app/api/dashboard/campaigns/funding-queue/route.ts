@@ -19,7 +19,8 @@ export async function GET() {
     .from("community_campaigns")
     .select(`
       id, community_id, title, description, proof_cadence, proposed_pool_amount,
-      content_hash, status, created_at, updated_at,
+      content_hash, status, duration_days, prize_winner_count, on_chain_challenge_id,
+      created_at, updated_at,
       communities ( id, name, slug )
     `)
     .eq("status", "approved")

@@ -38,6 +38,7 @@ export function CampaignMilestonesModal({
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const {
     addCommunityCampaignMilestones,
@@ -69,20 +70,22 @@ export function CampaignMilestonesModal({
 
   const loadMilestones = useCallback(async () => {
     if (!campaignTitle) return;
-    setIsLoading(true);
     setLoadError(null);
     setMilestones([]);
-    try {
-      if (isInitialPublish) {
-        setMilestones([{ title: "", days: maxDays }]);
-      } else {
-        await generateWithAi();
-      }
-    } catch {
-      setLoadError("Could not generate milestones. Add them manually below.");
+    setHasInteracted(false);
+    if (isInitialPublish) {
+      // Start with a blank slate — no loading state needed
       setMilestones([{ title: "", days: maxDays }]);
-    } finally {
-      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+      try {
+        await generateWithAi();
+      } catch {
+        setLoadError("Could not generate milestones. Add them manually below.");
+        setMilestones([{ title: "", days: maxDays }]);
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [campaignTitle, generateWithAi, isInitialPublish, maxDays]);
 
@@ -100,10 +103,13 @@ export function CampaignMilestonesModal({
     return () => clearTimeout(t);
   }, [isSuccess, onDone]);
 
-  const updateTitle = (idx: number, value: string) =>
+  const updateTitle = (idx: number, value: string) => {
+    setHasInteracted(true);
     setMilestones((prev) => prev.map((m, i) => (i === idx ? { ...m, title: value } : m)));
+  };
 
-  const updateDays = (idx: number, delta: number) =>
+  const updateDays = (idx: number, delta: number) => {
+    setHasInteracted(true);
     setMilestones((prev) => {
       const total = prev.reduce((sum, m) => sum + m.days, 0);
       return prev.map((m, i) => {
@@ -113,6 +119,7 @@ export function CampaignMilestonesModal({
         return { ...m, days: Math.max(1, m.days + delta) };
       });
     });
+  };
 
   const addMilestone = () => {
     setMilestones((prev) => {
@@ -189,9 +196,7 @@ export function CampaignMilestonesModal({
             {isLoading ? (
               <div className="flex flex-col items-center gap-3 py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  {isInitialPublish ? "Loading planned milestones…" : "Generating milestones…"}
-                </p>
+                <p className="text-sm text-muted-foreground">Generating milestones…</p>
               </div>
             ) : null}
 
@@ -201,13 +206,22 @@ export function CampaignMilestonesModal({
               </p>
             ) : null}
 
-            {!isInitialPublish && !isLoading ? (
+            {!isLoading ? (
               <button
                 type="button"
-                onClick={() => void generateWithAi().catch(() => setLoadError("AI generation failed"))}
+                onClick={() => {
+                  setIsLoading(true);
+                  setLoadError(null);
+                  void generateWithAi()
+                    .catch(() => {
+                      setLoadError("AI generation failed. Edit milestones manually.");
+                      setMilestones([{ title: "", days: maxDays }]);
+                    })
+                    .finally(() => setIsLoading(false));
+                }}
                 className="mb-3 text-xs font-semibold text-delulu-blue hover:underline"
               >
-                Regenerate with AI
+                {isInitialPublish ? "Generate with AI" : "Regenerate with AI"}
               </button>
             ) : null}
 
@@ -251,7 +265,7 @@ export function CampaignMilestonesModal({
               </div>
             ) : null}
 
-            {daysRemaining !== 0 && showList ? (
+            {daysRemaining !== 0 && showList && hasInteracted ? (
               <p className="mt-2 text-xs text-destructive">
                 Milestones must total {maxDays} days ({totalMilestoneDays}/{maxDays}).
               </p>

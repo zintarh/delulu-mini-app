@@ -274,7 +274,7 @@ export function CreateCampaignModal({
           </DashboardPrimaryButton>
         </div>
         <p className="text-[11px] text-muted-foreground -mt-2">
-          Drafts are only visible to you. Submit when your campaign is ready to go live.
+          Drafts are visible to community admins. Submit when your campaign is ready for review.
         </p>
       </form>
     </DashboardModal>

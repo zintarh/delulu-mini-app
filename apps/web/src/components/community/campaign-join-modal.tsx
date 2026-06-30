@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Target, Trophy, CalendarDays } from "lucide-react";
+import { Loader2, Target, Trophy, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CampaignJoinInfo = {
@@ -8,6 +8,7 @@ export type CampaignJoinInfo = {
   communityName: string;
   milestoneCount: number;
   durationDays: number;
+  endsAt?: string | null;
   isFreeToJoin: boolean;
   joinToken?: string;
   joinAmount?: number;
@@ -56,6 +57,10 @@ export function CampaignJoinModal({
     hasForfeit && joinAmount > 0
       ? ((joinAmount * (info.forfeitPct ?? 0)) / 100).toFixed(2)
       : null;
+  const maxForfeitTotal = info.maxForfeitTotal ?? 0;
+  const endsLabel = info.endsAt
+    ? new Date(info.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -79,18 +84,35 @@ export function CampaignJoinModal({
           {/* Stats row */}
           <div className="mt-4 flex gap-2">
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
-              <p className="text-[11px] text-muted-foreground">Duration</p>
-              <p className="mt-0.5 text-sm font-black text-foreground">{info.durationDays}d</p>
+              <p className="text-[11px] text-muted-foreground">Milestones</p>
+              <p className="mt-0.5 text-sm font-black text-foreground">{info.milestoneCount}</p>
             </div>
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
               <p className="text-[11px] text-muted-foreground">Proofs</p>
               <p className="mt-0.5 text-sm font-black text-foreground">{cadenceLabel}</p>
             </div>
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
-              <p className="text-[11px] text-muted-foreground">Steps</p>
-              <p className="mt-0.5 text-sm font-black text-foreground">{info.milestoneCount}</p>
+              <p className="text-[11px] text-muted-foreground">Ends</p>
+              <p className="mt-0.5 text-sm font-black text-foreground">
+                {endsLabel ?? `${info.durationDays}d`}
+              </p>
             </div>
           </div>
+
+          {/* Stake required (paid campaigns) */}
+          {!info.isFreeToJoin && joinAmount > 0 ? (
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+              <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="text-sm font-black text-foreground">
+                  {joinAmount} {joinToken} stake required
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Returned when you complete the campaign
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {/* Prize pool */}
           {hasPool ? (
@@ -118,7 +140,8 @@ export function CampaignJoinModal({
           {/* Forfeit warning — only for paid with forfeit */}
           {hasForfeit ? (
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Miss a milestone? You forfeit {info.forfeitPct}%{forfeitPerMiss ? ` (${forfeitPerMiss} ${joinToken})` : ""} per miss to the prize pool.
+              Miss a milestone? You forfeit {info.forfeitPct}%{forfeitPerMiss ? ` (${forfeitPerMiss} ${joinToken})` : ""} per miss to the prize pool
+              {maxForfeitTotal > 0 ? ` — up to ${maxForfeitTotal} ${joinToken} total` : ""}.
             </p>
           ) : null}
 
@@ -156,6 +179,13 @@ export function CampaignJoinModal({
               )}
             </button>
           </div>
+
+          {/* Wallet note */}
+          <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
+            {info.isFreeToJoin
+              ? "You'll need to sign a wallet transaction to confirm your join."
+              : "Your stake is held on-chain and returned when you complete the campaign."}
+          </p>
         </div>
       </div>
     </div>
