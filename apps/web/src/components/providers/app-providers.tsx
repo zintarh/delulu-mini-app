@@ -31,7 +31,7 @@ const EmailCaptureGate = dynamic(
   { ssr: false },
 );
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+const PRIVY_APP_ID = process.env.PRIVY_APP_ID ?? "";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (

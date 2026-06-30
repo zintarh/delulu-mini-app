@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    // Expose the server-side PRIVY_APP_ID to client bundles so PrivyProvider
+    // can read it. Production/Preview Vercel uses PRIVY_APP_ID (no NEXT_PUBLIC_ prefix).
+    PRIVY_APP_ID: process.env.PRIVY_APP_ID,
+  },
   eslint: { ignoreDuringBuilds: true },
   images: {
     formats: ["image/avif", "image/webp"],
