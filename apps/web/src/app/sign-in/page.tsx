@@ -12,11 +12,12 @@ import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
+import { establishWalletSession } from "@/lib/auth/establish-wallet-session-client";
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
   const { authenticated } = useAuth();
-  const { isInitialized } = useWeb3Auth();
+  const { isInitialized, provider } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
 
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
@@ -79,19 +80,28 @@ export default function SignInPage() {
     return () => { cancelled = true; };
   }, [referralCode]);
 
-  // Auto-claim faucet when needs_gas — fires once per mount
+  // Auto-claim faucet when needs_gas — fires once per mount.
+  // Awaits wallet session establishment first so the cookie is always present
+  // before the faucet API is called (avoids 401 race with WalletSessionBootstrap).
   useEffect(() => {
     if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
+    if (!address || !provider) return;
     faucetCalledRef.current = true;
     setFaucetState("claiming");
-    fetch("/api/faucet/claim", { method: "POST" })
-      .then((r) => r.json())
-      .then((data: { success: boolean; reason?: string }) => {
-        setFaucetState(data.success ? "claimed" : "rejected");
-        if (!data.success) setFaucetReason(data.reason ?? null);
-      })
-      .catch(() => setFaucetState("error"));
-  }, [authenticated, routeState]);
+
+    const run = async () => {
+      const sessionReady = await establishWalletSession(address, provider as {
+        request: (args: { method: string; params: unknown[] }) => Promise<string>;
+      });
+      if (!sessionReady) { setFaucetState("error"); return; }
+      const r = await fetch("/api/faucet/claim", { method: "POST" });
+      const data = (await r.json()) as { success: boolean; reason?: string };
+      setFaucetState(data.success ? "claimed" : "rejected");
+      if (!data.success) setFaucetReason(data.reason ?? null);
+    };
+
+    run().catch(() => setFaucetState("error"));
+  }, [authenticated, routeState, address, provider]);
 
   // Gas polling — detects when CELO lands and advances to /welcome
   useEffect(() => {
