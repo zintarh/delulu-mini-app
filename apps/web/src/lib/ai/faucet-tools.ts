@@ -25,7 +25,10 @@ export async function checkWalletClaim(
   return { already_received: !!data };
 }
 
-/** Check if this email has already received gas. Skips query when email is null. */
+/** Check if this email has already received gas. Skips query when email is null.
+ *  Note: when email is null (pre-profile wallet), the per-wallet dedup in
+ *  checkWalletClaim is still enforced — each address can only claim once. The
+ *  cross-wallet email guard is simply unavailable until the user completes onboarding. */
 export async function checkEmailClaim(
   email: string | null,
   supabase: SupabaseClient,
@@ -40,7 +43,10 @@ export async function checkEmailClaim(
   return { already_received: !!data };
 }
 
-/** Count claims from this IP in the last 24 hours. */
+/** Count sent + pending claims from this IP in the last 24 hours.
+ *  Pending rows are included so concurrent in-flight requests from the same IP
+ *  can't all read count=0 and bypass the limit simultaneously. Rejected rows are
+ *  excluded so legitimate users sharing a NAT aren't penalised by others' failures. */
 export async function checkIpRate(
   ip: string,
   supabase: SupabaseClient,
@@ -50,6 +56,7 @@ export async function checkIpRate(
     .from("gas_faucet_claims")
     .select("id", { count: "exact", head: true })
     .eq("ip_address", ip)
+    .in("status", ["sent", "pending"])
     .gte("created_at", cutoff);
   return { count: count ?? 0 };
 }
@@ -106,7 +113,11 @@ export async function executeSendGas(
       if (dbError.code === "23505") {
         return { success: false, error: "already_sent_concurrent" };
       }
-      console.error("[faucet] DB update after send failed:", dbError);
+      // Any other DB error: CELO was sent but the row stays "pending".
+      // Return failure so the caller doesn't treat this as a successful claim;
+      // the pending row will be left for manual reconciliation.
+      console.error("[faucet] DB update after send failed — CELO sent but row not marked sent:", dbError);
+      return { success: false, error: "db_update_failed" };
     }
 
     return { success: true, tx_hash: txHash };

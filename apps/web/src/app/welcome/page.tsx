@@ -16,6 +16,7 @@ import {
   consumeSignInRedirect,
   peekCommunityReferral,
 } from "@/lib/auth-redirect";
+import { getEmailValidationMessage, emailLooksComplete } from "@/lib/email-validation";
 
 type WizardStep = "profile" | "community";
 
@@ -38,6 +39,8 @@ export default function WelcomePage() {
   const [isJoiningCommunity, setIsJoiningCommunity] = useState(false);
 
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
+  const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const savedRef = useRef(false);
   const profileSubmittedRef = useRef(false);
 
@@ -47,6 +50,41 @@ export default function WelcomePage() {
   useEffect(() => {
     if (resolvedEmail) setEmail(resolvedEmail);
   }, [resolvedEmail]);
+
+  useEffect(() => {
+    setEmailCheckError(null);
+    if (!emailLooksComplete(email) || getEmailValidationMessage(email) !== null) return;
+
+    const controller = new AbortController();
+    let settled = false;
+
+    const t = setTimeout(async () => {
+      setIsCheckingEmail(true);
+      try {
+        const params = new URLSearchParams({ email: email.trim() });
+        if (address) params.set("excludeAddress", address.toLowerCase());
+        const res = await fetch(`/api/profile/check-email?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const json = await res.json() as { taken?: boolean };
+        if (json.taken) setEmailCheckError("Email already in use. Please use a different address.");
+        else setEmailCheckError(null);
+      } catch (err) {
+        if ((err as { name?: string }).name !== "AbortError") {
+          // silently ignore non-abort errors — server rejects truly taken emails on submit
+        }
+      } finally {
+        settled = true;
+        setIsCheckingEmail(false);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+      if (!settled) setIsCheckingEmail(false);
+    };
+  }, [email, address]);
 
   useEffect(() => {
     if (isReady && !authenticated) router.replace("/sign-in");
@@ -275,10 +313,14 @@ export default function WelcomePage() {
 
   const isSubmittingProfile = isPending || isSuccess;
   const usernameTooShort = username.trim().length > 0 && username.trim().length < 3;
+  const emailFormatError = email.trim() ? getEmailValidationMessage(email) : null;
+  const emailError = emailFormatError ?? emailCheckError;
   const canSubmitProfile =
     username.trim().length >= 3 &&
     !!pfpUrl &&
     !!email.trim() &&
+    !emailError &&
+    !isCheckingEmail &&
     !isSubmittingProfile &&
     !isUploading;
   const missingPfp = touched.pfp && !pfpUrl && !isUploading;
@@ -390,7 +432,10 @@ export default function WelcomePage() {
               </div>
 
               <div className="mb-8">
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-4 py-3.5 transition-all focus-within:border-foreground/40 focus-within:bg-background">
+                <div className={cn(
+                  "flex items-center gap-2 rounded-2xl border bg-muted/40 px-4 py-3.5 transition-all focus-within:bg-background",
+                  emailError ? "border-rose-500" : "border-border focus-within:border-foreground/40",
+                )}>
                   <input
                     type="email"
                     value={email}
@@ -400,7 +445,11 @@ export default function WelcomePage() {
                     disabled={isSubmittingProfile}
                     className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
                   />
+                  {isCheckingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
                 </div>
+                {emailError ? (
+                  <p className="mt-1.5 px-1 text-xs text-rose-500">{emailError}</p>
+                ) : null}
               </div>
 
               {contractError ? (
