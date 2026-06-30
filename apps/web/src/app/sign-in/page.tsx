@@ -21,7 +21,7 @@ export default function SignInPage() {
   const { authenticated } = useAuth();
   const { isInitialized, provider: web3authProvider } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
-  const { login: privyLogin } = usePrivy();
+  const { login: privyLogin, ready: privyReady } = usePrivy();
   const { wallets: privyWallets } = useWallets();
 
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
@@ -51,6 +51,9 @@ export default function SignInPage() {
   const [faucetState, setFaucetState] = useState<FaucetState>("idle");
   const [faucetReason, setFaucetReason] = useState<string | null>(null);
   const faucetCalledRef = useRef(false);
+  // Rejection reasons the user can act on (show blocking card).
+  // Everything else auto-redirects after 2s.
+  const ACTIONABLE_REASONS = new Set(["already_received_wallet", "already_received_email", "ip_rate_exceeded"]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -119,6 +122,7 @@ export default function SignInPage() {
       }
 
       const r = await fetch("/api/faucet/claim", { method: "POST" });
+      if (!r.ok) { setFaucetState("error"); return; }
       const data = (await r.json()) as { success: boolean; reason?: string };
       setFaucetState(data.success ? "claimed" : "rejected");
       if (!data.success) setFaucetReason(data.reason ?? null);
@@ -134,15 +138,13 @@ export default function SignInPage() {
     return () => clearInterval(id);
   }, [routeState, refetchBalance]);
 
-  // Non-actionable faucet failures (empty wallet, network error) redirect silently after 2s
-  // so users are never stuck. Actionable rejections (already_received, ip_rate_exceeded)
-  // keep the blocking card so users understand why.
+  // Redirect silently after 2s for all non-actionable faucet outcomes so users are never stuck.
   useEffect(() => {
-    const isNonActionable =
-      faucetState === "error" || faucetReason === "insufficient_faucet_funds";
-    if (!isNonActionable) return;
+    const isActionable = faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
+    if (faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed" || isActionable) return;
     const t = setTimeout(() => router.replace("/welcome"), 2000);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faucetState, faucetReason, router]);
 
   const triggerEmailAuth = async (targetEmail: string) => {
@@ -175,8 +177,12 @@ export default function SignInPage() {
         // New user or Web3Auth user — use Web3Auth email OTP.
         await triggerEmailAuth(normalizedEmail);
       }
-    } catch {
-      setRouteError("Couldn't open email sign in. Try again.");
+    } catch (err) {
+      setRouteError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't open email sign in. Try again.",
+      );
     } finally {
       setIsLaunchingEmailProvider(false);
     }
@@ -218,18 +224,15 @@ export default function SignInPage() {
   }
 
   if (authenticated && routeState === "needs_gas") {
-    // Show spinner for: normal flow + non-actionable failures (redirect fires after 2s)
-    if (
-      faucetState === "idle" ||
-      faucetState === "claiming" ||
-      faucetState === "claimed" ||
-      faucetState === "error" ||
-      faucetReason === "insufficient_faucet_funds"
-    ) {
+    // Show spinner for any state that triggers the auto-redirect (non-actionable),
+    // or during the happy path. Only actionable rejections show the blocking card.
+    const isActionableRejection =
+      faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
+    if (!isActionableRejection) {
       const label =
         faucetState === "claimed"
           ? "Gas sent! Waiting for confirmation…"
-          : faucetState === "error" || faucetReason === "insufficient_faucet_funds"
+          : faucetState === "error" || (faucetState === "rejected" && !isActionableRejection)
             ? "Getting you started…"
             : "Getting your gas… this takes a few seconds";
       return (
@@ -380,7 +383,7 @@ export default function SignInPage() {
 
             <button
               type="submit"
-              disabled={isAnyPending || !isInitialized || !isValidEmail(email)}
+              disabled={isAnyPending || (!isInitialized && !privyReady) || !isValidEmail(email)}
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a19] bg-[#f6c324] py-3.5 text-[15px] font-extrabold text-[#1a1a19]",
                 "shadow-[3px_3px_0px_0px_#1a1a19] transition-all hover:translate-x-[1px] hover:translate-y-[1px]",

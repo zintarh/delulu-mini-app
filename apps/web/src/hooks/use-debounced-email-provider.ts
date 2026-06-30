@@ -143,7 +143,11 @@ export function useDebouncedEmailProvider(
       setResolved({ email: normalizedEmail, provider });
       return provider;
     } catch {
-      return "web3auth";
+      // Do NOT silently fall back to "web3auth" here — an existing Privy user whose
+      // lookup times out would be routed into Web3Auth and get a brand-new address,
+      // losing their GoodDollar-whitelisted wallet. Throw so the caller can surface
+      // a connection error and let the user retry instead.
+      throw new Error("Couldn't verify your account — check your connection and try again.");
     } finally {
       clearTimeout(networkTimeout);
       setIsChecking(false);

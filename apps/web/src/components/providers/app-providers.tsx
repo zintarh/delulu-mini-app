@@ -44,6 +44,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           supportedChains: [celo],
           embeddedWallets: {
             ethereum: { createOnLogin: "users-without-wallets" },
+            showWalletUIs: false,
           },
         }}
       >
