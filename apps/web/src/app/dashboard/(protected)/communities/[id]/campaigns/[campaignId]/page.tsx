@@ -18,7 +18,9 @@ export default async function DashboardCampaignDetailPage({
   const session = await readAdminSession();
   if (!session) redirect("/signin");
 
-  if (!isPlatformAdminRole(session.staffRole) && !canAccessCommunity(toStaffSession(session), id)) {
+  const isPlatformAdmin = isPlatformAdminRole(session.staffRole);
+
+  if (!isPlatformAdmin && !canAccessCommunity(toStaffSession(session), id)) {
     notFound();
   }
 
@@ -26,6 +28,7 @@ export default async function DashboardCampaignDetailPage({
     <CampaignDetailClient
       communityId={id}
       campaignId={campaignId}
+      isPlatformAdmin={isPlatformAdmin}
     />
   );
 }

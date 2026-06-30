@@ -9,12 +9,7 @@ import {
 } from "@/components/dashboard/dashboard-ui";
 import { useApproveCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { useCreateCommunityChallenge } from "@/hooks/use-create-community-challenge";
-import { useAddCommunityCampaignMilestones } from "@/hooks/use-add-community-campaign-milestones";
 import { useSetCommunityCampaignEconomics } from "@/hooks/use-community-campaign-onchain";
-import {
-  fetchDraftMilestones,
-  publishDraftMilestonesOnChain,
-} from "@/lib/community/publish-campaign-milestones-client";
 import { resolveJoinTokenAddress } from "@/lib/community/join-token";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { parseTokenAmount } from "@/lib/token-amounts";
@@ -25,8 +20,6 @@ type DeployStep =
   | "approving"
   | "deploying_challenge"
   | "confirming_challenge"
-  | "deploying_milestones"
-  | "indexing"
   | "done"
   | "error";
 
@@ -42,13 +35,11 @@ async function confirmCreateOnChain(id: string, txHash: string) {
 }
 
 const STEP_LABEL: Record<DeployStep, string> = {
-  idle: "Approve uploads metadata and deploys the campaign on-chain with milestones.",
+  idle: "Approve uploads metadata and deploys the campaign on-chain.",
   approving: "Preparing approval…",
-  deploying_challenge: "Sign transaction 1 of 2 — create campaign on-chain.",
+  deploying_challenge: "Sign transaction — create campaign on-chain.",
   confirming_challenge: "Confirming campaign on-chain…",
-  deploying_milestones: "Sign transaction 2 of 2 — publish milestones on-chain.",
-  indexing: "Waiting for indexer — almost ready for members to join.",
-  done: "Campaign is live. Members can join and submit proof.",
+  done: "Campaign is live. Add milestones on-chain from the campaign detail page.",
   error: "",
 };
 
@@ -65,23 +56,16 @@ export function ApproveCampaignModal({
 }) {
   const approve = useApproveCampaign();
   const { createCommunityChallengeAndWait } = useCreateCommunityChallenge();
-  const { addCommunityCampaignMilestones } = useAddCommunityCampaignMilestones();
   const { setCommunityCampaignEconomicsAndWait } = useSetCommunityCampaignEconomics();
   const { show } = useDashboardToast();
   const [step, setStep] = useState<DeployStep>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [draftCount, setDraftCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open || !campaign) {
       setStep("idle");
       setError(null);
-      setDraftCount(null);
-      return;
     }
-    void fetchDraftMilestones(campaign.id)
-      .then((rows) => setDraftCount(rows.length))
-      .catch(() => setDraftCount(0));
   }, [open, campaign]);
 
   const handleApprove = async () => {
@@ -93,11 +77,6 @@ export function ApproveCampaignModal({
       const contentHash = json.campaign?.content_hash as string | undefined;
       if (!contentHash) {
         throw new Error("Campaign content hash missing after approval");
-      }
-
-      const drafts = await fetchDraftMilestones(campaign.id);
-      if (drafts.length < 1) {
-        throw new Error("Add at least one milestone before approving.");
       }
 
       setStep("deploying_challenge");
@@ -131,18 +110,8 @@ export function ApproveCampaignModal({
         });
       }
 
-      setStep("deploying_milestones");
-      await publishDraftMilestonesOnChain({
-        campaignId: campaign.id,
-        challengeId,
-        durationDays: campaign.duration_days ?? 30,
-        draftRows: drafts,
-        addOnChain: addCommunityCampaignMilestones,
-      });
-
-      setStep("indexing");
       setStep("done");
-      show(`${campaign.title} is live — members can join`);
+      show(`${campaign.title} deployed — add milestones on-chain from the campaign page`);
       onSuccess?.();
     } catch (err) {
       setStep("error");
@@ -155,7 +124,7 @@ export function ApproveCampaignModal({
     step !== "done" &&
     step !== "error";
 
-  const canApprove = Boolean(campaign) && draftCount !== null && draftCount > 0;
+  const canApprove = Boolean(campaign);
 
   return (
     <DashboardModal
@@ -169,15 +138,9 @@ export function ApproveCampaignModal({
           {STEP_LABEL[step === "error" ? "idle" : step]}
         </p>
 
-        {draftCount === 0 ? (
-          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-800">
-            This campaign has no milestones. Add milestones in the draft before approving.
-          </p>
-        ) : null}
-
         {step === "done" ? (
           <p className="font-semibold text-emerald-700">
-            Campaign approved, milestones published, and indexed on-chain.
+            Campaign deployed on-chain. Add milestones from the campaign detail page.
           </p>
         ) : null}
 

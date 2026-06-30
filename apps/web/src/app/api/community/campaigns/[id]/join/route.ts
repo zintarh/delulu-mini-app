@@ -86,18 +86,7 @@ export async function POST(
       );
     }
 
-    const dbIsPaid =
-      campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0;
     const onchain = await fetchCampaignOnchainEconomics(challengeId);
-    if (dbIsPaid && onchain && !onchain.isPaid) {
-      return NextResponse.json(
-        {
-          error:
-            "This campaign requires a paid stake, but on-chain join economics are not configured yet. Ask the host to re-approve the campaign.",
-        },
-        { status: 403 },
-      );
-    }
 
     return NextResponse.json({
       ok: true,

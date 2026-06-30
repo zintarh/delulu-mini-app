@@ -35,25 +35,5 @@ export async function GET(
     });
   }
 
-  const { data: dbMilestones } = await admin
-    .from("campaign_milestones")
-    .select("id, title, duration_days, order_index")
-    .eq("campaign_id", id)
-    .order("order_index", { ascending: true });
-
-  const planned = dbMilestones ?? [];
-  const milestones = planned.map((m, i) => ({
-    milestone_id: i + 1,
-    label: m.title,
-    deadline: "",
-    start_time: "",
-    completed: false,
-    is_overdue: false,
-  }));
-
-  return NextResponse.json({
-    milestones,
-    milestoneCount: planned.length,
-    completedCount: 0,
-  });
+  return NextResponse.json({ milestones: [], milestoneCount: 0, completedCount: 0 });
 }

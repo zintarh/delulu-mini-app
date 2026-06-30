@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2, Plus, Sparkles, StopCircle, Trash2, X } from "lucide-react";
+import { ChevronLeft, Loader2, StopCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { canDeleteDashboardCampaign, canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
@@ -222,24 +222,17 @@ function CampaignSettingsForm({
 export function CampaignDetailClient({
   communityId,
   campaignId,
+  isPlatformAdmin,
 }: {
   communityId: string;
   campaignId: string;
+  isPlatformAdmin: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [milestonesModalOpen, setMilestonesModalOpen] = useState(false);
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
   const [milestoneCount, setMilestoneCount] = useState(0);
-
-  // Draft milestone management (before campaign is on-chain)
-  type DraftMilestone = { id: string; title: string; duration_days: number; order_index: number };
-  const [draftMilestones, setDraftMilestones] = useState<DraftMilestone[]>([]);
-  const [draftMilestonesLoading, setDraftMilestonesLoading] = useState(false);
-  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
-  const [newMilestoneDays, setNewMilestoneDays] = useState(7);
-  const [draftSuggesting, setDraftSuggesting] = useState(false);
-  const [draftMilestoneError, setDraftMilestoneError] = useState<string | null>(null);
   const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
   const [endError, setEndError] = useState<string | null>(null);
   const [submitPending, setSubmitPending] = useState(false);
@@ -291,80 +284,6 @@ export function CampaignDetailClient({
     }
   };
 
-  const loadDraftMilestones = useCallback(async () => {
-    setDraftMilestonesLoading(true);
-    try {
-      const res = await fetch(`/api/dashboard/campaigns/${campaignId}/milestones`);
-      if (!res.ok) return;
-      const json = await res.json();
-      setDraftMilestones(json.milestones ?? []);
-    } finally {
-      setDraftMilestonesLoading(false);
-    }
-  }, [campaignId]);
-
-  const addDraftMilestone = async () => {
-    if (!newMilestoneTitle.trim()) return;
-    setDraftMilestoneError(null);
-    try {
-      const res = await fetch(`/api/dashboard/campaigns/${campaignId}/milestones`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newMilestoneTitle.trim(), duration_days: newMilestoneDays }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error((json as { error?: string }).error ?? "Failed to add milestone");
-      }
-      setNewMilestoneTitle("");
-      setNewMilestoneDays(7);
-      await loadDraftMilestones();
-    } catch (err) {
-      setDraftMilestoneError(err instanceof Error ? err.message : "Failed");
-    }
-  };
-
-  const removeDraftMilestone = async (milestoneId: string) => {
-    setDraftMilestoneError(null);
-    try {
-      await fetch(`/api/dashboard/campaigns/${campaignId}/milestones/${milestoneId}`, {
-        method: "DELETE",
-      });
-      await loadDraftMilestones();
-    } catch {
-      setDraftMilestoneError("Failed to remove milestone");
-    }
-  };
-
-  const suggestDraftMilestones = async () => {
-    if (!campaign) return;
-    setDraftSuggesting(true);
-    setDraftMilestoneError(null);
-    try {
-      const res = await fetch("/api/ai/milestones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: campaign.title, durationDays: campaign.duration_days ?? 30 }),
-      });
-      const json = await res.json() as { milestones?: { title: string; days: number }[] };
-      const suggestions = json.milestones ?? [];
-      await Promise.all(
-        suggestions.map((m) =>
-          fetch(`/api/dashboard/campaigns/${campaignId}/milestones`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: m.title, duration_days: m.days }),
-          }),
-        ),
-      );
-      await loadDraftMilestones();
-    } catch {
-      setDraftMilestoneError("Couldn't generate suggestions. Add milestones manually.");
-    } finally {
-      setDraftSuggesting(false);
-    }
-  };
-
   useEffect(() => {
     if (searchParams.get("tab") === "settings") {
       setActiveTab("settings");
@@ -381,18 +300,6 @@ export function CampaignDetailClient({
       setMilestoneCount(json.milestoneCount ?? 0);
     })();
   }, [campaign?.on_chain_challenge_id, campaignId, milestonesModalOpen]);
-
-  useEffect(() => {
-    if (campaign && campaign.on_chain_challenge_id == null) {
-      void loadDraftMilestones();
-    }
-  }, [campaign, loadDraftMilestones]);
-
-  useEffect(() => {
-    if (campaign?.on_chain_challenge_id != null && milestoneCount === 0) {
-      void loadDraftMilestones();
-    }
-  }, [campaign?.on_chain_challenge_id, loadDraftMilestones, milestoneCount]);
 
   if (isLoading || !campaign) {
     return (
@@ -581,12 +488,11 @@ export function CampaignDetailClient({
                 <div>
                   {milestoneCount === 0 ? (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      <p className="font-semibold">Milestones not published yet</p>
+                      <p className="font-semibold">No milestones on-chain yet</p>
                       <p className="mt-1 text-xs text-amber-800/90">
-                        This campaign is on-chain but members cannot join until you publish milestones.
-                        {draftMilestones.length > 0
-                          ? ` ${draftMilestones.length} planned milestone${draftMilestones.length !== 1 ? "s" : ""} ready to publish.`
-                          : " Add milestones in the draft first."}
+                        {isPlatformAdmin
+                          ? "Add milestones on-chain so members can join and submit proof."
+                          : "Milestones have not been published on-chain yet."}
                       </p>
                     </div>
                   ) : null}
@@ -594,20 +500,15 @@ export function CampaignDetailClient({
                     <div>
                       <h2 className="text-sm font-semibold text-foreground">Milestones</h2>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {milestoneCount > 0
-                          ? `${milestoneCount} live on-chain`
-                          : draftMilestones.length > 0
-                            ? `${draftMilestones.length} planned — not on-chain yet`
-                            : "No milestones on-chain yet."}
+                        {milestoneCount > 0 ? `${milestoneCount} live on-chain` : "No milestones on-chain yet."}
                       </p>
                     </div>
-                    {(campaign.status === "approved" || campaign.status === "active") ? (
+                    {isPlatformAdmin && (campaign.status === "approved" || campaign.status === "active") ? (
                       <DashboardPrimaryButton
                         type="button"
-                        disabled={milestoneCount === 0 && draftMilestones.length === 0}
                         onClick={() => setMilestonesModalOpen(true)}
                       >
-                        {milestoneCount > 0 ? "Add more milestones" : "Publish milestones on-chain"}
+                        {milestoneCount > 0 ? "Add more milestones" : "Add milestones on-chain"}
                       </DashboardPrimaryButton>
                     ) : null}
                   </div>
@@ -625,112 +526,27 @@ export function CampaignDetailClient({
                   ) : null}
                 </div>
               ) : (
-                // Draft / pending / rejected: read from DB, allow add/remove
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-                    <div>
-                      <h2 className="text-sm font-semibold text-foreground">Milestones</h2>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {campaign.status === "pending_approval"
-                          ? "Milestones locked — campaign is awaiting approval."
-                          : draftMilestones.length > 0
-                            ? `${draftMilestones.length} milestone${draftMilestones.length !== 1 ? "s" : ""} planned`
-                            : "Add milestones before submitting for approval."}
-                      </p>
-                    </div>
-                    {["draft", "rejected"].includes(campaign.status) ? (
-                      <button
-                        type="button"
-                        disabled={draftSuggesting}
-                        onClick={() => void suggestDraftMilestones()}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-40"
-                      >
-                        {draftSuggesting ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3 w-3 text-delulu-blue" />
-                        )}
-                        AI suggest
-                      </button>
-                    ) : null}
+                // Draft / pending / rejected: no on-chain challenge yet
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">Milestones</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Milestones will be added on-chain by an admin after the campaign is approved and deployed.
+                    </p>
                   </div>
-
-                  {draftMilestoneError ? (
-                    <p className="px-4 pb-3 text-xs text-destructive">{draftMilestoneError}</p>
-                  ) : null}
-
-                  {draftMilestonesLoading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : draftMilestones.length > 0 ? (
-                    <ul className="divide-y divide-border border-t border-border">
-                      {draftMilestones.map((m, i) => (
-                        <li key={m.id} className="flex items-center gap-3 px-4 py-3">
-                          <span className="w-5 shrink-0 text-center text-xs font-bold text-muted-foreground">
-                            {i + 1}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-foreground">{m.title}</p>
-                            <p className="text-xs text-muted-foreground">{m.duration_days}d</p>
-                          </div>
-                          {["draft", "rejected"].includes(campaign.status) ? (
-                            <button
-                              type="button"
-                              onClick={() => void removeDraftMilestone(m.id)}
-                              className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
                   {["draft", "rejected"].includes(campaign.status) ? (
-                    <div className="border-t border-border p-4 space-y-3">
-                      <div className="flex gap-2">
-                        <input
-                          className={dashboardInputClass + " flex-1"}
-                          value={newMilestoneTitle}
-                          onChange={(e) => setNewMilestoneTitle(e.target.value)}
-                          placeholder="Milestone title"
-                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addDraftMilestone(); } }}
-                        />
-                        <select
-                          className={dashboardInputClass + " w-16 shrink-0"}
-                          value={newMilestoneDays}
-                          onChange={(e) => setNewMilestoneDays(Number(e.target.value))}
-                        >
-                          {[1, 3, 7, 14, 30].map((d) => (
-                            <option key={d} value={d}>{d}d</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          disabled={!newMilestoneTitle.trim()}
-                          onClick={() => void addDraftMilestone()}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-delulu-blue text-white hover:bg-delulu-blue/90 disabled:opacity-40"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                      {draftMilestones.length > 0 ? (
-                        <div>
-                          {submitError ? (
-                            <p className="mb-2 text-xs text-destructive">{submitError}</p>
-                          ) : null}
-                          <DashboardPrimaryButton
-                            className="w-full"
-                            disabled={submitPending}
-                            onClick={() => void handleSubmitForApproval()}
-                          >
-                            {submitPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                            Submit for approval
-                          </DashboardPrimaryButton>
-                        </div>
+                    <div>
+                      {submitError ? (
+                        <p className="mb-2 text-xs text-destructive">{submitError}</p>
                       ) : null}
+                      <DashboardPrimaryButton
+                        className="w-full"
+                        disabled={submitPending}
+                        onClick={() => void handleSubmitForApproval()}
+                      >
+                        {submitPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        Submit for approval
+                      </DashboardPrimaryButton>
                     </div>
                   ) : null}
                 </div>

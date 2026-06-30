@@ -5,10 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Loader2, X, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAddCommunityCampaignMilestones } from "@/hooks/use-add-community-campaign-milestones";
-import {
-  fetchDraftMilestones,
-  publishDraftMilestonesOnChain,
-} from "@/lib/community/publish-campaign-milestones-client";
+import { publishDraftMilestonesOnChain } from "@/lib/community/publish-campaign-milestones-client";
 
 interface AiMilestone {
   title: string;
@@ -77,31 +74,17 @@ export function CampaignMilestonesModal({
     setMilestones([]);
     try {
       if (isInitialPublish) {
-        const drafts = await fetchDraftMilestones(campaignId);
-        if (drafts.length > 0) {
-          setMilestones(
-            drafts.map((m) => ({
-              title: m.title,
-              days: Math.max(1, Number(m.duration_days) || 1),
-            })),
-          );
-          return;
-        }
-        setLoadError("No draft milestones found. Generate with AI or add them in the campaign draft.");
-      }
-      await generateWithAi();
-    } catch {
-      if (isInitialPublish) {
-        setLoadError("Could not load draft milestones. Generate with AI below.");
         setMilestones([{ title: "", days: maxDays }]);
       } else {
-        setLoadError("Could not generate milestones. Add them manually below.");
-        setMilestones([{ title: "", days: maxDays }]);
+        await generateWithAi();
       }
+    } catch {
+      setLoadError("Could not generate milestones. Add them manually below.");
+      setMilestones([{ title: "", days: maxDays }]);
     } finally {
       setIsLoading(false);
     }
-  }, [campaignId, campaignTitle, generateWithAi, isInitialPublish, maxDays]);
+  }, [campaignTitle, generateWithAi, isInitialPublish, maxDays]);
 
   useEffect(() => {
     if (open) {

@@ -68,15 +68,8 @@ export async function POST(
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isPlatformAdmin = isPlatformAdminRole(session.staffRole);
-  if (!isPlatformAdmin && !session.communityIds.includes(campaign.community_id)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  if (!["draft", "rejected"].includes(campaign.status)) {
-    return NextResponse.json(
-      { error: "Milestones can only be added to draft or rejected campaigns." },
-      { status: 400 },
-    );
+  if (!isPlatformAdmin) {
+    return NextResponse.json({ error: "Forbidden — only platform admins can add milestones" }, { status: 403 });
   }
 
   // Get current max order_index
