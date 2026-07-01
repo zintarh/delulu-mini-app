@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-community-campaign-onchain";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserStore } from "@/stores/useUserStore";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import {
   canSubmitMilestone,
@@ -179,6 +180,7 @@ function TodaysMilestonesSection({ address }: { address: string }) {
     useSubmitCommunityMilestoneProofOnChain();
   const { data, isLoading } = useJoinedCampaignDashboard(address);
 
+  const { user } = useUserStore();
   const [proofOpen, setProofOpen] = useState(false);
   const [proofBusy, setProofBusy] = useState(false);
   const [proofError, setProofError] = useState<string | null>(null);
@@ -187,6 +189,8 @@ function TodaysMilestonesSection({ address }: { address: string }) {
     campaignId: string;
     challengeId: number;
     milestoneId: number;
+    campaignTitle?: string;
+    communitySlug?: string;
   } | null>(null);
 
   const invalidate = useCallback(() => {
@@ -266,6 +270,8 @@ function TodaysMilestonesSection({ address }: { address: string }) {
                 campaignId: c.campaign_id,
                 challengeId: c.challenge_id,
                 milestoneId: milestone.milestone_id,
+                campaignTitle: c.title,
+                communitySlug: c.community.slug,
               });
               setProofSuccess(false);
               setProofError(null);
@@ -297,6 +303,14 @@ function TodaysMilestonesSection({ address }: { address: string }) {
           setActiveProof(null);
         }}
         isOnChain
+        campaignTitle={activeProof?.campaignTitle}
+        myUsername={user?.username}
+        myAvatar={user?.pfpUrl}
+        shareUrl={
+          activeProof?.communitySlug && activeProof?.campaignId && typeof window !== "undefined"
+            ? `${window.location.origin}/communities/${activeProof.communitySlug}/campaigns/${activeProof.campaignId}`
+            : null
+        }
       />
     </div>
   );

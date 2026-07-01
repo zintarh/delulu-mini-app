@@ -66,7 +66,18 @@ export function useCampaignJoinFlow() {
         setPendingCampaignId(null);
         setJoinInfo(null);
       } catch (err) {
-        setJoinError(err instanceof Error ? err.message : "Join failed");
+        const raw = err instanceof Error ? err.message : "";
+        const isWalletError =
+          raw.toLowerCase().includes("connector not connected") ||
+          raw.toLowerCase().includes("not connected") ||
+          raw.toLowerCase().includes("no connector") ||
+          raw.toLowerCase().includes("wallet") ||
+          raw.toLowerCase().includes("account not found");
+        setJoinError(
+          isWalletError
+            ? "Wallet not ready — please retry or reconnect your wallet."
+            : raw || "Something went wrong. Please try again.",
+        );
         setApprovalStep(false);
       } finally {
         setJoining(false);

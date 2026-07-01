@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -68,6 +68,11 @@ export function CommunityCampaignPageClient() {
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
   const [poolStats, setPoolStats] = useState<CampaignPoolStats | null>(null);
 
+  // Track local confirmations so reloads never regress the UI while the
+  // indexer (The Graph) catches up after an on-chain tx.
+  const optimisticallyJoinedRef = useRef(false);
+  const optimisticallyCompletedRef = useRef<Set<number>>(new Set());
+
   const [loading, setLoading] = useState(true);
   const [proofOpen, setProofOpen] = useState(false);
   const [proofBusy, setProofBusy] = useState(false);
@@ -94,14 +99,24 @@ export function CommunityCampaignPageClient() {
     const json = await res.json();
     if (res.ok) {
       setCampaign(json.campaign);
-      setIsJoined(Boolean(json.isJoined));
+      // Never regress a locally-confirmed join even if the indexer hasn't caught up
+      setIsJoined(optimisticallyJoinedRef.current || Boolean(json.isJoined));
       setIsCommunityMember(Boolean(json.isCommunityMember));
       setParticipantCount(Number(json.participantCount ?? 0));
       if (json.myPoints != null) setMyPoints(Number(json.myPoints));
       if (json.myStreak != null) setMyStreak(Number(json.myStreak));
       setMilestoneCount(Number(json.milestoneCount ?? 0));
       setCanJoin(Boolean(json.canJoin));
-      setMilestones(json.milestones ?? []);
+      // Merge server milestones with any locally-confirmed completions
+      const serverMilestones = (json.milestones ?? []) as CommunityCampaignMilestoneRow[];
+      const optimistic = optimisticallyCompletedRef.current;
+      setMilestones(
+        optimistic.size > 0
+          ? serverMilestones.map((m) =>
+              optimistic.has(m.milestone_id) ? { ...m, completed: true, is_overdue: false } : m,
+            )
+          : serverMilestones,
+      );
       setPoolStats(json.poolStats ?? null);
       return Boolean(json.isJoined);
     }
@@ -144,6 +159,8 @@ export function CommunityCampaignPageClient() {
   }, [campaign, joinFlow, milestoneCount, params.id, participantCount, poolStats]);
 
   const handleJoined = useCallback(async () => {
+    // Mark joined optimistically so loadCampaign can't reset it
+    optimisticallyJoinedRef.current = true;
     setIsJoined(true);
     await Promise.all([loadCampaign(), loadLeaderboard()]);
   }, [loadCampaign, loadLeaderboard]);
@@ -162,13 +179,28 @@ export function CommunityCampaignPageClient() {
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
         onStepChange: setProofStep,
       });
+
+      // Optimistically mark this milestone complete so the UI updates
+      // immediately even if the indexer hasn't indexed the tx yet.
+      optimisticallyCompletedRef.current.add(activeMilestoneId);
+      setMilestones((prev) =>
+        prev.map((m) =>
+          m.milestone_id === activeMilestoneId
+            ? { ...m, completed: true, is_overdue: false }
+            : m,
+        ),
+      );
+
       if (!result.onChain && result.pointsTotal != null) {
         setMyPoints(result.pointsTotal);
       }
-      await loadLeaderboard();
-      await loadCampaign();
+
       setProofSuccess(true);
       setProofStep("idle");
+
+      // Reload in background — if indexer catches up great, if not the
+      // optimistic state above keeps the milestone showing as complete.
+      void Promise.all([loadLeaderboard(), loadCampaign()]);
     } catch (err) {
       setProofError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setProofStep("idle");

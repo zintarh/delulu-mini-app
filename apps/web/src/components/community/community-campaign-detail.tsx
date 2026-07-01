@@ -22,6 +22,7 @@ import { CommunityCampaignMilestoneList } from "@/components/community/community
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { cn, formatAddress } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
+import { useUserStore } from "@/stores/useUserStore";
 import {
   formatMilestoneOpensAt,
   getActiveMilestone,
@@ -231,6 +232,18 @@ export function CommunityCampaignDetail({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
+
+  const { user } = useUserStore();
+  const myUsername = user?.username ?? null;
+  const myAvatar = user?.pfpUrl ?? null;
+  const campaignShareUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/communities/${communitySlug}/campaigns/${campaign.id}`
+      : null;
+  const activeMilestoneIndex =
+    activeMilestoneId != null
+      ? milestones.findIndex((m) => m.milestone_id === activeMilestoneId)
+      : null;
 
   const handleInvite = useCallback(async () => {
     const url = `${window.location.origin}/communities/${communitySlug}/campaigns/${campaign.id}`;
@@ -912,6 +925,15 @@ export function CommunityCampaignDetail({
         proofStep={proofStep}
         milestoneName={activeMilestone?.label ?? null}
         milestoneDeadline={activeMilestone?.deadline ?? null}
+        campaignTitle={campaign.title}
+        communityName={campaign.communities?.name ?? null}
+        myUsername={myUsername}
+        myAvatar={myAvatar}
+        myStreak={myStreak}
+        myPoints={myPoints}
+        milestoneIndex={activeMilestoneIndex ?? undefined}
+        milestoneCount={milestoneCount}
+        shareUrl={campaignShareUrl}
       />
     </>
   );

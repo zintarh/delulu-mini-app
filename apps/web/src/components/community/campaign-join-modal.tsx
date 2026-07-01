@@ -32,6 +32,8 @@ export function CampaignJoinModal({
   joining,
   joiningLabel,
   joinError,
+  insufficientBalance,
+  userBalance,
   onConfirm,
   onCancel,
 }: {
@@ -40,6 +42,8 @@ export function CampaignJoinModal({
   joining: boolean;
   joiningLabel?: string;
   joinError?: string | null;
+  insufficientBalance?: boolean;
+  userBalance?: number;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -145,7 +149,17 @@ export function CampaignJoinModal({
             </p>
           ) : null}
 
-          {joinError ? (
+          {insufficientBalance ? (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs font-semibold text-rose-600">
+                Insufficient balance
+              </p>
+              <p className="mt-0.5 text-[11px] text-rose-500">
+                You need {joinAmount} {joinToken} to join.
+                {userBalance !== undefined ? ` Your balance: ${userBalance.toFixed(2)} ${joinToken}.` : ""}
+              </p>
+            </div>
+          ) : joinError ? (
             <p className="mt-3 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
               {joinError}
             </p>
@@ -163,9 +177,9 @@ export function CampaignJoinModal({
             </button>
             <button
               type="button"
-              disabled={joining}
+              disabled={joining || !!insufficientBalance}
               onClick={onConfirm}
-              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 transition-colors"
+              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {joining ? (
                 <span className="inline-flex items-center gap-2 justify-center">
