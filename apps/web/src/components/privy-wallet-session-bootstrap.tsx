@@ -17,6 +17,9 @@ export function PrivyWalletSessionBootstrap() {
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
   const establishedRef = useRef<string | null>(null);
+  // Track whether this component was the one that set the bridge provider
+  // so the cleanup only clears what Privy set — not what Web3Auth may have set.
+  const didSetProviderRef = useRef(false);
 
   useEffect(() => {
     if (!authenticated || wallets.length === 0) return;
@@ -35,6 +38,7 @@ export function PrivyWalletSessionBootstrap() {
         // useUnifiedWriteContract checks this first and signs directly via
         // viem — bypassing wagmi's connector (which Privy never registers).
         setWeb3AuthProvider(ethProvider as unknown as EIP1193Provider);
+        didSetProviderRef.current = true;
 
         const ok = await establishWalletSession(privyWallet.address, {
           request: (args: { method: string; params: unknown[] }) =>
@@ -47,10 +51,12 @@ export function PrivyWalletSessionBootstrap() {
     })();
   }, [authenticated, wallets]);
 
-  // Clear the provider bridge when the user logs out
+  // Only clear the bridge when Privy logs out AND Privy was the one who set it.
+  // Avoids clobbering the Web3Auth provider for Web3Auth users.
   useEffect(() => {
-    if (!authenticated) {
+    if (!authenticated && didSetProviderRef.current) {
       setWeb3AuthProvider(null);
+      didSetProviderRef.current = false;
       establishedRef.current = null;
     }
   }, [authenticated]);
