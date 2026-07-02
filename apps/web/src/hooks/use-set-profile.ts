@@ -1,10 +1,12 @@
+"use client";
+
 import {
   useWaitForTransactionReceipt,
   useChainId,
   useWriteContract,
 } from "wagmi";
 import { useState } from "react";
-import { createWalletClient, custom, decodeErrorResult } from "viem";
+import { createPublicClient, createWalletClient, custom, decodeErrorResult, http } from "viem";
 import { celo } from "wagmi/chains";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
@@ -27,37 +29,59 @@ export function useSetProfile() {
     if (!username || username.trim().length === 0) {
       throw new Error("Username is required");
     }
+    const trimmed = username.trim();
+
     try {
       setIsPending(true);
       setWriteError(null);
 
-      const w3aProvider = getWeb3AuthProvider();
+      // Pre-check: is the username already taken? Doing this via a direct
+      // public-client read avoids opening the wallet popup only to get a
+      // revert, which causes MetaMask to show a scary "Network fee: Unavailable" warning.
+      const publicClient = createPublicClient({ chain: celo, transport: http("https://forno.celo.org") });
+      const contractAddress = getDeluluContractAddress(chainId);
+      try {
+        const taken = await publicClient.readContract({
+          address: contractAddress,
+          abi: DELULU_ABI,
+          functionName: "isUsernameTaken",
+          args: [trimmed],
+        });
+        if (taken) throw new Error("This username is already taken. Please choose another.");
+      } catch (preCheckErr) {
+        // Re-throw only known pre-check errors; ignore RPC failures so the tx
+        // still attempts and the contract itself can return the real revert reason.
+        if (preCheckErr instanceof Error && preCheckErr.message.includes("already taken")) {
+          throw preCheckErr;
+        }
+      }
 
+      const w3aProvider = getWeb3AuthProvider();
       let txHash: `0x${string}`;
 
       if (w3aProvider) {
-        // Web3Auth path — wagmi has no wallet client for this user,
-        // so write directly via viem using the Web3Auth EIP-1193 provider.
+        // Web3Auth / Privy path — wagmi has no wallet client for this user,
+        // so write directly via viem using the EIP-1193 provider from the bridge.
         const walletClient = createWalletClient({
           chain: celo,
           transport: custom(w3aProvider),
         });
         const [account] = await walletClient.getAddresses();
         txHash = await walletClient.writeContract({
-          address: getDeluluContractAddress(chainId),
+          address: contractAddress,
           abi: DELULU_ABI,
           functionName: "setProfile",
-          args: [username.trim()],
+          args: [trimmed],
           account,
           chain: celo,
         });
       } else {
-        // Wagmi connector path — wallet client is connected normally.
+        // Wagmi connector path (MetaMask / injected wallet).
         txHash = await writeContractAsync({
-          address: getDeluluContractAddress(chainId),
+          address: contractAddress,
           abi: DELULU_ABI,
           functionName: "setProfile",
-          args: [username.trim()],
+          args: [trimmed],
         });
       }
 
@@ -87,60 +111,82 @@ export function useSetProfile() {
 }
 
 function formatErrorForDisplay(error: unknown): Error {
-  const err = error as { message?: string; data?: unknown };
+  const err = error as { message?: string; data?: unknown; cause?: unknown };
 
-  if (err?.data) {
+  // 1. Try to decode a typed contract revert (e.g. UsernameTaken, UsernameTooShort…)
+  const revertData =
+    (err?.data as string | undefined) ??
+    ((err?.cause as { data?: string } | undefined)?.data);
+  if (revertData && revertData !== "0x") {
     try {
-      const decoded = decodeErrorResult({ abi: DELULU_ABI, data: err.data as `0x${string}` });
+      const decoded = decodeErrorResult({ abi: DELULU_ABI, data: revertData as `0x${string}` });
       const errorMessage = decoded.args?.[0];
       const message = typeof errorMessage === "string" ? errorMessage : decoded.errorName || "Transaction failed";
       return new Error(message);
     } catch {}
   }
 
-  if (err?.message) {
-    const rawMessage = err.message;
-    const message = rawMessage.toLowerCase();
+  // 2. Walk the full message + cause chain so nested viem errors are caught
+  const rawMessage = [
+    err?.message ?? "",
+    (err?.cause as { message?: string } | undefined)?.message ?? "",
+  ].join(" ").toLowerCase();
 
-    if (message.includes("usernamealreadytaken")) {
-      return new Error("This username is already taken");
-    }
-    if (message.includes("usernametooshort")) {
-      return new Error("Username must be at least 3 characters");
-    }
-    if (message.includes("usernametoolong")) {
-      return new Error("Username must be 16 characters or less");
-    }
-    if (message.includes("usernameinvalid")) {
-      return new Error("Username can only contain letters, numbers, and underscores");
-    }
-    if (
-      message.includes("insufficient funds") ||
-      message.includes("fee payer balance too low") ||
-      message.includes("gas * price + value")
-    ) {
-      return new Error("Your wallet doesn’t have enough CELO for gas. Please top up and try again.");
-    }
-    if (
-      message.includes("user rejected") ||
-      message.includes("transaction was cancelled") ||
-      message.includes("request rejected")
-    ) {
-      return new Error("Transaction was cancelled.");
-    }
-    if (
-      message.includes("failed to sign message") ||
-      message.includes("transaction signature")
-    ) {
-      return new Error("We couldn’t sign this transaction. Please try again.");
-    }
-    if (message.includes("popup window is blocked")) {
-      return new Error("Your browser blocked the wallet popup. Allow popups and try again.");
-    }
+  if (!rawMessage.trim()) return new Error("An unknown error occurred");
 
-    // Never leak raw stack-heavy provider errors to end users.
-    return new Error("We couldn’t update your profile right now. Please try again.");
+  // Username errors (from error name in revert message, e.g. ContractFunctionExecutionError)
+  if (rawMessage.includes("usernamealreadytaken") || rawMessage.includes("already taken")) {
+    return new Error("This username is already taken. Please choose another.");
+  }
+  if (rawMessage.includes("usernametooshort")) {
+    return new Error("Username must be at least 3 characters.");
+  }
+  if (rawMessage.includes("usernametoolong")) {
+    return new Error("Username must be 16 characters or less.");
+  }
+  if (rawMessage.includes("usernameinvalid")) {
+    return new Error("Username can only contain letters, numbers, and underscores.");
   }
 
-  return new Error("An unknown error occurred");
+  // Insufficient gas / funds — covers MetaMask, viem, Celo node messages
+  if (
+    rawMessage.includes("insufficient funds") ||
+    rawMessage.includes("fee payer balance too low") ||
+    rawMessage.includes("gas * price + value") ||
+    rawMessage.includes("gas required exceeds allowance") ||
+    rawMessage.includes("exceeds allowance") ||
+    rawMessage.includes("balance is insufficient") ||
+    rawMessage.includes("not enough celo") ||
+    rawMessage.includes("intrinsic gas too low") ||
+    rawMessage.includes("out of gas")
+  ) {
+    return new Error("Not enough CELO for gas fees. Please top up your wallet and try again.");
+  }
+
+  // User / wallet cancelled
+  if (
+    rawMessage.includes("user rejected") ||
+    rawMessage.includes("transaction was cancelled") ||
+    rawMessage.includes("request rejected") ||
+    rawMessage.includes("user denied") ||
+    rawMessage.includes("rejected the request")
+  ) {
+    return new Error("Transaction cancelled.");
+  }
+
+  // Signing failures
+  if (
+    rawMessage.includes("failed to sign") ||
+    rawMessage.includes("transaction signature")
+  ) {
+    return new Error("We couldn't sign this transaction. Please try again.");
+  }
+
+  // Popup blocked
+  if (rawMessage.includes("popup window is blocked")) {
+    return new Error("Your browser blocked the wallet popup. Allow popups and try again.");
+  }
+
+  // Generic fallback — never leak raw viem/provider stack traces to users
+  return new Error("We couldn't update your profile right now. Please try again.");
 }

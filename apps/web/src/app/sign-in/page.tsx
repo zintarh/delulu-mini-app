@@ -52,7 +52,7 @@ export default function SignInPage() {
   const faucetCalledRef = useRef(false);
   // Rejection reasons the user can act on (show blocking card).
   // Everything else auto-redirects after 2s.
-  const ACTIONABLE_REASONS = new Set(["already_received_wallet", "already_received_email", "ip_rate_exceeded"]);
+  const ACTIONABLE_REASONS = new Set(["already_received_wallet", "already_received_email", "ip_rate_exceeded", "insufficient_faucet_funds"]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -249,18 +249,23 @@ export default function SignInPage() {
     const isAlreadyReceived =
       faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
     const isIpLimit = faucetReason === "ip_rate_exceeded";
+    const isFaucetEmpty = faucetReason === "insufficient_faucet_funds";
 
     const title = isAlreadyReceived
       ? "Gas already received"
       : isIpLimit
         ? "Daily limit reached"
-        : "Faucet temporarily unavailable";
+        : isFaucetEmpty
+          ? "Faucet being refilled"
+          : "Faucet temporarily unavailable";
 
     const description = isAlreadyReceived
       ? "This address or email has already been funded. Join our Telegram if you need more CELO."
       : isIpLimit
         ? "We limit faucet requests per network to prevent abuse. Try again tomorrow or join Telegram."
-        : "Our faucet is being refilled. Join our Telegram group and we'll send gas manually.";
+        : isFaucetEmpty
+          ? "Our gas faucet is temporarily empty. Join our Telegram group and we'll send you CELO manually so you can complete setup."
+          : "Our faucet is being refilled. Join our Telegram group and we'll send gas manually.";
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
