@@ -63,3 +63,10 @@ export async function getWalletNonce(address: `0x${string}`): Promise<number> {
   const count = await client.getTransactionCount({ address });
   return count;
 }
+
+/** Returns the CELO balance (in CELO, not wei) for any address. */
+export async function getWalletCeloBalance(address: `0x${string}`): Promise<number> {
+  const client = createPublicClient({ chain: celo, transport: http(getRpcUrl()) });
+  const wei = await client.getBalance({ address });
+  return parseFloat(formatEther(wei));
+}

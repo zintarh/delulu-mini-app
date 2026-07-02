@@ -7,6 +7,12 @@ import {
   executeRejectClaim,
   executeSendGas,
 } from "./faucet-tools";
+import { getWalletCeloBalance } from "@/lib/celo/send-celo";
+
+// Minimum CELO a wallet must have before we consider a prior claim "real".
+// If the DB says sent but the wallet has less than this, the tx was dropped
+// or never confirmed — treat it as a phantom and allow a fresh claim.
+const MIN_CONFIRMED_CELO = 0.005;
 
 export type FaucetAgentResult =
   | { outcome: "sent"; txHash: string }
@@ -26,8 +32,24 @@ export async function runFaucetAgent(params: {
     const walletCheck = await checkWalletClaim(params.address, params.supabase);
     console.log("[faucet-agent] wallet check:", walletCheck);
     if (walletCheck.already_received) {
-      await executeRejectClaim("already_received_wallet", params.claimId, params.supabase);
-      return { outcome: "rejected", reason: "already_received_wallet" };
+      // Verify the gas actually landed on-chain. If the DB says "sent" but the
+      // wallet has no CELO, the transaction was dropped/never confirmed — let
+      // them claim again rather than blocking them forever on a phantom record.
+      try {
+        const onChainBalance = await getWalletCeloBalance(params.address as `0x${string}`);
+        console.log("[faucet-agent] on-chain balance for previously-claimed wallet:", onChainBalance, "CELO");
+        if (onChainBalance >= MIN_CONFIRMED_CELO) {
+          await executeRejectClaim("already_received_wallet", params.claimId, params.supabase);
+          return { outcome: "rejected", reason: "already_received_wallet" };
+        }
+        console.log("[faucet-agent] phantom claim detected — DB says sent but wallet has no CELO, allowing re-claim");
+      } catch (balanceErr) {
+        // If we can't check the balance, fall back to rejecting — better to
+        // block one person than to double-send to everyone who hits an RPC blip.
+        console.warn("[faucet-agent] could not verify on-chain balance:", balanceErr);
+        await executeRejectClaim("already_received_wallet", params.claimId, params.supabase);
+        return { outcome: "rejected", reason: "already_received_wallet" };
+      }
     }
 
     // 2. Email already claimed?
