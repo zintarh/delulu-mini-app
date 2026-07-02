@@ -46,13 +46,22 @@ export default function SignInPage() {
   const { routeState, address, refetchBalance, isCheckingAccount } = usePostAuthRoute();
 
   // Faucet state — auto-triggered when routeState === "needs_gas"
-  type FaucetState = "idle" | "claiming" | "claimed" | "rejected" | "error";
+  type FaucetState = "idle" | "claiming" | "claimed" | "rejected" | "error" | "tx_timeout";
   const [faucetState, setFaucetState] = useState<FaucetState>("idle");
   const [faucetReason, setFaucetReason] = useState<string | null>(null);
   const faucetCalledRef = useRef(false);
   // Rejection reasons the user can act on (show blocking card).
   // Everything else auto-redirects after 2s.
   const ACTIONABLE_REASONS = new Set(["already_received_wallet", "already_received_email", "ip_rate_exceeded", "insufficient_faucet_funds"]);
+
+  // Dropped-tx watchdog: if we've been in "claimed" for 3 minutes with no
+  // CELO arriving, the transaction was likely dropped on-chain. Show the
+  // blocking card so the user can reach out via Telegram instead of waiting forever.
+  useEffect(() => {
+    if (faucetState !== "claimed") return;
+    const t = setTimeout(() => setFaucetState("tx_timeout"), 3 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, [faucetState]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -137,10 +146,12 @@ export default function SignInPage() {
     return () => clearInterval(id);
   }, [routeState, refetchBalance]);
 
-  // Redirect silently after 2s for all non-actionable faucet outcomes so users are never stuck.
+  // Redirect silently after 2s for non-actionable faucet rejections only.
+  // "error" and "tx_timeout" now show blocking cards so users are never stuck.
   useEffect(() => {
-    const isActionable = faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
-    if (faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed" || isActionable) return;
+    const isActionableRejection = faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
+    const isNonActionableRejection = faucetState === "rejected" && !isActionableRejection;
+    if (!isNonActionableRejection) return;
     const t = setTimeout(() => router.replace("/welcome"), 2000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,15 +234,19 @@ export default function SignInPage() {
   }
 
   if (authenticated && routeState === "needs_gas") {
-    // Show spinner for any state that triggers the auto-redirect (non-actionable),
-    // or during the happy path. Only actionable rejections show the blocking card.
+    // "error" and "tx_timeout" are now actionable — show blocking cards.
+    // Only non-actionable rejections keep the spinner + silent redirect.
     const isActionableRejection =
       faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
-    if (!isActionableRejection) {
+    const isNonActionableRejection = faucetState === "rejected" && !isActionableRejection;
+    const showSpinner =
+      faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed" || isNonActionableRejection;
+
+    if (showSpinner) {
       const label =
         faucetState === "claimed"
           ? "Gas sent! Waiting for confirmation…"
-          : faucetState === "error" || (faucetState === "rejected" && !isActionableRejection)
+          : isNonActionableRejection
             ? "Getting you started…"
             : "Getting your gas… this takes a few seconds";
       return (
@@ -245,11 +260,16 @@ export default function SignInPage() {
       );
     }
 
-    // Actionable rejection states — user can understand and act on these
+    // Blocking card — all actionable states land here:
+    // - rejected (known reason): already_received, ip_limit, faucet_empty
+    // - error: faucet API returned 500 (retry makes sense)
+    // - tx_timeout: gas was "sent" but never confirmed after 3 min (tx likely dropped)
     const isAlreadyReceived =
       faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
     const isIpLimit = faucetReason === "ip_rate_exceeded";
     const isFaucetEmpty = faucetReason === "insufficient_faucet_funds";
+    const isTxTimeout = faucetState === "tx_timeout";
+    const isServerError = faucetState === "error";
 
     const title = isAlreadyReceived
       ? "Gas already received"
@@ -257,7 +277,9 @@ export default function SignInPage() {
         ? "Daily limit reached"
         : isFaucetEmpty
           ? "Faucet being refilled"
-          : "Faucet temporarily unavailable";
+          : isTxTimeout
+            ? "Transaction taking too long"
+            : "Something went wrong";
 
     const description = isAlreadyReceived
       ? "This address or email has already been funded. Join our Telegram if you need more CELO."
@@ -265,7 +287,9 @@ export default function SignInPage() {
         ? "We limit faucet requests per network to prevent abuse. Try again tomorrow or join Telegram."
         : isFaucetEmpty
           ? "Our gas faucet is temporarily empty. Join our Telegram group and we'll send you CELO manually so you can complete setup."
-          : "Our faucet is being refilled. Join our Telegram group and we'll send gas manually.";
+          : isTxTimeout
+            ? "Your gas transaction was submitted but hasn't confirmed after 3 minutes — it may have been dropped. Copy your address and message us on Telegram so we can send it manually."
+            : "We hit an error while getting your gas. You can try again or reach out on Telegram for help.";
 
     const shortAddress = address
       ? `${address.slice(0, 6)}…${address.slice(-4)}`
@@ -302,6 +326,18 @@ export default function SignInPage() {
           >
             Join Telegram group
           </a>
+          {isServerError && (
+            <button
+              type="button"
+              onClick={() => {
+                faucetCalledRef.current = false;
+                setFaucetState("idle");
+              }}
+              className="w-full rounded-2xl border border-border py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
+            >
+              Try again
+            </button>
+          )}
           <button type="button" onClick={() => void refetchBalance()}
             className="w-full py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
