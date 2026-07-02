@@ -267,6 +267,10 @@ export default function SignInPage() {
           ? "Our gas faucet is temporarily empty. Join our Telegram group and we'll send you CELO manually so you can complete setup."
           : "Our faucet is being refilled. Join our Telegram group and we'll send gas manually.";
 
+    const shortAddress = address
+      ? `${address.slice(0, 6)}…${address.slice(-4)}`
+      : null;
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="w-full max-w-md space-y-5 rounded-3xl border border-border/80 bg-card p-6 shadow-lg">
@@ -274,6 +278,24 @@ export default function SignInPage() {
             <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
           </div>
+
+          {shortAddress && (
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(address);
+                setCopiedAddress(true);
+                setTimeout(() => setCopiedAddress(false), 2000);
+              }}
+              className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm transition-colors hover:bg-muted/70"
+            >
+              <span className="font-mono text-xs text-muted-foreground">{shortAddress}</span>
+              <span className={cn("flex items-center gap-1.5 text-xs font-semibold", copiedAddress ? "text-emerald-600" : "text-foreground")}>
+                {copiedAddress ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedAddress ? "Copied!" : "Copy address"}
+              </span>
+            </button>
+          )}
 
           <a href={TG_GROUP_URL} target="_blank" rel="noreferrer"
             className="flex w-full items-center justify-center rounded-2xl border border-foreground/90 bg-foreground py-3 text-sm font-semibold text-background shadow-sm transition-opacity hover:opacity-90"
