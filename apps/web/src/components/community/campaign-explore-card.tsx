@@ -206,7 +206,8 @@ export function CampaignExploreCard({
                 {canSubmit ? "Today's milestone" : "Up next"}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-delulu-blue">
+                <span className="flex items-center gap-1 text-[10px] font-black text-delulu-blue">
+                  <Star className="h-3 w-3 fill-delulu-blue text-delulu-blue" />
                   +{BASE_PROOF_POINTS.toLocaleString()} pts
                 </span>
                 {countdown ? (
