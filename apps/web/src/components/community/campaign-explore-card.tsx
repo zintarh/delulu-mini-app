@@ -132,7 +132,7 @@ export function CampaignExploreCard({
                 {forfeitAmt > 0 ? (
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold text-orange-700">
                     <AlertTriangle className="h-3 w-3 shrink-0" />
-                    Miss a milestone — forfeit {forfeitAmt} {token} ({campaign.forfeitPct}%)
+                    Miss your milestone — forfeit {campaign.forfeitPct}% of your stake
                   </p>
                 ) : null}
                 <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">

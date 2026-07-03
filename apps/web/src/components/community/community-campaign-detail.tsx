@@ -446,9 +446,9 @@ export function CommunityCampaignDetail({
                     </div>
                     {(campaign.forfeit_pct ?? 0) > 0 ? (
                       <div className="flex items-start justify-between gap-2 text-sm">
-                        <span className="text-muted-foreground">Miss a milestone</span>
+                        <span className="text-muted-foreground">Miss your milestone</span>
                         <span className="text-right font-bold text-orange-600">
-                          −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} ({campaign.forfeit_pct}% forfeited)
+                          forfeit {campaign.forfeit_pct}% of your stake
                         </span>
                       </div>
                     ) : null}
@@ -602,9 +602,9 @@ export function CommunityCampaignDetail({
                         <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
                           <AlertTriangle className="h-4 w-4" />
                         </div>
-                        <p className="text-sm font-bold text-foreground">Miss a milestone</p>
+                        <p className="text-sm font-bold text-foreground">Miss your milestone</p>
                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                          Missing a milestone forfeits <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
+                          Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
                           {Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss).
                           Stay consistent — forfeited stakes grow the prize pool for winners.
                         </p>
