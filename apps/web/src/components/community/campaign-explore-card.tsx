@@ -162,7 +162,7 @@ export function CampaignExploreCard({
           {!isClosed ? (
             <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-delulu-blue">
               <Star className="h-3 w-3 shrink-0" />
-              Complete milestones, earn points &amp; qualify for future rewards
+              Complete milestones, earn points &amp; qualify for rewards
             </p>
           ) : null}
         </div>

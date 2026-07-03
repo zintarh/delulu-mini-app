@@ -475,7 +475,7 @@ export function CommunityCampaignDetail({
                   ) : null}
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">
-                  Points earned here count toward future rewards on Delulu.
+                  Points earned here count toward rewards on Delulu.
                 </p>
               </div>
 
@@ -591,7 +591,7 @@ export function CommunityCampaignDetail({
                       </div>
                       <p className="text-sm font-bold text-foreground">Earn points</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Submit proof for each milestone and earn points. Points count toward future rewards on Delulu.
+                        Submit proof for each milestone and earn points. Points count toward rewards on Delulu.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card p-3.5">
@@ -804,7 +804,7 @@ export function CommunityCampaignDetail({
                   </div>
                   <p className="text-sm font-bold text-foreground">Earn points</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Submit proof for each milestone and earn points. Points count toward future rewards on Delulu.
+                    Submit proof for each milestone and earn points. Points count toward rewards on Delulu.
                   </p>
                 </div>
                 {/* 2 — Achieve goal */}
