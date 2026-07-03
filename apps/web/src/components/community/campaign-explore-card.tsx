@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { AlertTriangle, Clock, Loader2, Target, Trophy, Users } from "lucide-react";
+import { AlertTriangle, Clock, Loader2, Star, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
@@ -174,6 +174,13 @@ export function CampaignExploreCard({
               </div>
             );
           })()}
+          {/* Wins hint — always shown for non-closed campaigns */}
+          {!isClosed ? (
+            <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Star className="h-3 w-3 shrink-0 text-delulu-blue" />
+              Complete milestones · earn points · achieve your goal
+            </p>
+          ) : null}
         </div>
       </Link>
 

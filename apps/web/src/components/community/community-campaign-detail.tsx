@@ -13,6 +13,7 @@ import {
   Loader2,
   Share2,
   Sparkles,
+  Star,
   Target,
   Trophy,
   Users,
@@ -432,45 +433,51 @@ export function CommunityCampaignDetail({
             ════════════════════════════════════════════ */}
         {isJoined ? (
           <>
-            {/* Campaign info card — stakes/rewards for paid, description for free */}
+            {/* Campaign info card — what you're playing for */}
             <div className="mx-4 mt-4 space-y-3">
-              {isPaidJoin && joinStakeAmount > 0 ? (
-                <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-orange-700">
-                    Stakes &amp; Rewards
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Your stake</span>
-                      <span className="font-bold text-foreground">{joinStakeAmount} {stakeToken}</span>
-                    </div>
-                    {(campaign.forfeit_pct ?? 0) > 0 ? (
-                      <div className="flex items-start justify-between gap-2 text-sm">
-                        <span className="text-muted-foreground">Miss your milestone</span>
-                        <span className="text-right font-bold text-orange-600">
-                          forfeit {campaign.forfeit_pct}% of your stake
-                        </span>
-                      </div>
-                    ) : null}
-                    <div className="flex items-center justify-between border-t border-orange-200/60 pt-2 text-sm">
-                      <span className="flex items-center gap-1.5 font-semibold text-emerald-700">
-                        <Trophy className="h-3.5 w-3.5" />
-                        Top {topN} split the forfeit pool
-                      </span>
-                      {totalPrizePool > 0 ? (
-                        <span className="text-xs text-muted-foreground">{totalPrizePool} G$ pool</span>
-                      ) : null}
-                    </div>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  What you&apos;re playing for
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <Star className="h-3.5 w-3.5 text-delulu-blue" />
+                      Complete a milestone
+                    </span>
+                    <span className="font-bold text-delulu-blue">Earn points</span>
                   </div>
+                  {isPaidJoin ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        <Trophy className="h-3.5 w-3.5 text-emerald-600" />
+                        Rank in the top {topN}
+                      </span>
+                      <span className="font-bold text-emerald-700">
+                        Split the forfeit pool{totalPrizePool > 0 ? ` · ${totalPrizePool} G$` : ""}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <Target className="h-3.5 w-3.5 text-[#9a7b0a]" />
+                      Stay consistent
+                    </span>
+                    <span className="font-bold text-[#9a7b0a]">Achieve your goal</span>
+                  </div>
+                  {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
+                    <div className="flex items-center justify-between border-t border-border/40 pt-2 text-sm">
+                      <span className="text-muted-foreground">Miss your milestone</span>
+                      <span className="text-xs font-semibold text-orange-600">
+                        forfeit {campaign.forfeit_pct}% of your stake
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
-              ) : campaign.description ? (
-                <div className="rounded-2xl border border-border/60 bg-card p-4">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    About this campaign
-                  </p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{campaign.description}</p>
-                </div>
-              ) : null}
+                <p className="mt-3 text-[11px] text-muted-foreground">
+                  Points earned here count toward future rewards on Delulu.
+                </p>
+              </div>
 
               {/* Status cards — milestones coming soon or all complete */}
               {milestones.length === 0 ? (
@@ -578,13 +585,13 @@ export function CommunityCampaignDetail({
                     </p>
                   ) : null}
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                    <div className="rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-3.5">
                       <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
-                        <Trophy className="h-4 w-4" />
+                        <Star className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-bold text-foreground">Win the forfeit pool</p>
+                      <p className="text-sm font-bold text-foreground">Earn points</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
+                        Submit proof for each milestone and earn points. Points count toward future rewards on Delulu.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card p-3.5">
@@ -594,7 +601,7 @@ export function CommunityCampaignDetail({
                       <p className="text-sm font-bold text-foreground">Submit proof</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         {campaign.proof_instructions ??
-                          "Complete each milestone and upload proof to earn points."}
+                          "Complete each milestone and upload proof to earn your points."}
                       </p>
                     </div>
                     {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
@@ -604,9 +611,7 @@ export function CommunityCampaignDetail({
                         </div>
                         <p className="text-sm font-bold text-foreground">Miss your milestone</p>
                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                          Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
-                          {Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss).
-                          Stay consistent — forfeited stakes grow the prize pool for winners.
+                          Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> ({Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss). Stay consistent — forfeited stakes grow the forfeit pool for winners.
                         </p>
                       </div>
                     ) : null}
@@ -792,8 +797,29 @@ export function CommunityCampaignDetail({
                 How it works
               </h2>
               <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                {/* 1 — Earn points (lead with the win) */}
+                <div className="rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-3.5">
                   <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
+                    <Star className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">Earn points</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Submit proof for each milestone and earn points. Points count toward future rewards on Delulu.
+                  </p>
+                </div>
+                {/* 2 — Achieve goal */}
+                <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <Target className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">Achieve your goal</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Stay consistent, build the habit, and actually accomplish what you set out to do.
+                  </p>
+                </div>
+                {/* 3 — Win the forfeit pool */}
+                <div className="rounded-2xl border border-border/60 bg-card p-3.5">
+                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
                     <Trophy className="h-4 w-4" />
                   </div>
                   <p className="text-sm font-bold text-foreground">Win the forfeit pool</p>
@@ -801,6 +827,7 @@ export function CommunityCampaignDetail({
                     Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
                   </p>
                 </div>
+                {/* 4 — Submit proof */}
                 <div className="rounded-2xl border border-border/60 bg-card p-3.5">
                   <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
                     <Sparkles className="h-4 w-4" />
@@ -808,19 +835,18 @@ export function CommunityCampaignDetail({
                   <p className="text-sm font-bold text-foreground">Submit proof</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {campaign.proof_instructions ??
-                      "Complete each milestone and upload proof to earn points."}
+                      "Complete each milestone and upload proof to earn your points."}
                   </p>
                 </div>
+                {/* 5 — Risk reminder last, paid campaigns only */}
                 {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
                   <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-3.5 sm:col-span-2">
                     <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
                       <AlertTriangle className="h-4 w-4" />
                     </div>
-                    <p className="text-sm font-bold text-foreground">Miss a milestone</p>
+                    <p className="text-sm font-bold text-foreground">Miss your milestone</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Missing a milestone forfeits <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
-                      {Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss).
-                      Forfeited amounts grow the prize pool — consistent participants win more.
+                      Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> ({Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss). Those amounts grow the forfeit pool — consistent players earn more.
                     </p>
                   </div>
                 ) : null}
