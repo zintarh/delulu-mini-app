@@ -6,6 +6,23 @@ import { getCommunityMarketV1Address } from "@/lib/constant";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 
+function formatOnChainError(raw: string): string {
+  const msg = raw.toLowerCase();
+  if (
+    msg.includes("user rejected") ||
+    msg.includes("user denied") ||
+    msg.includes("rejected the request") ||
+    msg.includes("transaction was cancelled") ||
+    msg.includes("request rejected")
+  ) return "Transaction cancelled.";
+  if (
+    msg.includes("insufficient funds") ||
+    msg.includes("fee payer balance too low") ||
+    msg.includes("not enough celo")
+  ) return "Not enough CELO for gas fees.";
+  return "Transaction failed. Please try again.";
+}
+
 export function useJoinCommunityCampaignOnChain() {
   const chainId = useChainId();
   const publicClient = usePublicClient();
@@ -46,10 +63,10 @@ export function useJoinCommunityCampaignOnChain() {
         errorMessage =
           decoded.args?.[0]?.toString() || decoded.errorName || "Transaction failed";
       } else if (err && typeof err === "object" && "message" in err) {
-        errorMessage = err.message as string;
+        errorMessage = formatOnChainError(err.message as string);
       }
     } catch {
-      errorMessage = error?.message || receiptError?.message || "Transaction failed";
+      errorMessage = formatOnChainError(error?.message || receiptError?.message || "");
     }
   }
 
@@ -119,10 +136,10 @@ export function useSubmitCommunityMilestoneProofOnChain() {
         errorMessage =
           decoded.args?.[0]?.toString() || decoded.errorName || "Transaction failed";
       } else if (err && typeof err === "object" && "message" in err) {
-        errorMessage = err.message as string;
+        errorMessage = formatOnChainError(err.message as string);
       }
     } catch {
-      errorMessage = error?.message || receiptError?.message || "Transaction failed";
+      errorMessage = formatOnChainError(error?.message || receiptError?.message || "");
     }
   }
 

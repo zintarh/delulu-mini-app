@@ -66,17 +66,24 @@ export function useCampaignJoinFlow() {
         setPendingCampaignId(null);
         setJoinInfo(null);
       } catch (err) {
-        const raw = err instanceof Error ? err.message : "";
+        const raw = (err instanceof Error ? err.message : String(err)).toLowerCase();
+        const isUserRejection =
+          raw.includes("user rejected") ||
+          raw.includes("user denied") ||
+          raw.includes("rejected the request") ||
+          raw.includes("transaction was cancelled") ||
+          raw.includes("request rejected");
         const isWalletError =
-          raw.toLowerCase().includes("connector not connected") ||
-          raw.toLowerCase().includes("not connected") ||
-          raw.toLowerCase().includes("no connector") ||
-          raw.toLowerCase().includes("wallet") ||
-          raw.toLowerCase().includes("account not found");
+          raw.includes("connector not connected") ||
+          raw.includes("not connected") ||
+          raw.includes("no connector") ||
+          raw.includes("account not found");
         setJoinError(
-          isWalletError
-            ? "Wallet not ready — please retry or reconnect your wallet."
-            : raw || "Something went wrong. Please try again.",
+          isUserRejection
+            ? "Transaction cancelled."
+            : isWalletError
+              ? "Wallet not ready — please retry or reconnect your wallet."
+              : "Something went wrong. Please try again.",
         );
         setApprovalStep(false);
       } finally {
