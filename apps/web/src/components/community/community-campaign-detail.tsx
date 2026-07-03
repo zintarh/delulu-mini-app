@@ -348,7 +348,7 @@ export function CommunityCampaignDetail({
                   unoptimized
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/15" />
               </div>
             ) : (
               <div
@@ -396,21 +396,22 @@ export function CommunityCampaignDetail({
                   {campaign.description}
                 </p>
               ) : null}
+              {/* Hosted by — inside cover so it never wraps alongside action buttons */}
+              <p className="mt-2 text-[11px] text-white/55">
+                Hosted by{" "}
+                <Link
+                  href={`/communities/${communitySlug}`}
+                  className="font-semibold text-white/80 hover:text-white"
+                >
+                  {communityName}
+                </Link>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* ── Hosted by + Invite ── */}
-        <div className="mt-4 flex items-center justify-between gap-3 px-4">
-          <p className="text-[11px] text-muted-foreground">
-            Hosted by{" "}
-            <Link
-              href={`/communities/${communitySlug}`}
-              className="font-semibold text-foreground hover:underline"
-            >
-              {communityName}
-            </Link>
-          </p>
+        {/* ── Invite / share actions ── */}
+        <div className="mt-3 flex items-center justify-end gap-2 px-4">
           <div className="flex items-center gap-2">
             {campaign.telegram_link ? (
               <a
