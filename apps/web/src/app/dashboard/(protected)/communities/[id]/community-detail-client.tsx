@@ -3,7 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Copy, UserPlus, Users, ChevronLeft, Plus, Target, LogIn } from "lucide-react";
+import {
+  Copy,
+  UserPlus,
+  Users,
+  ChevronLeft,
+  Plus,
+  Target,
+  LogIn,
+  Check,
+  X,
+  Wallet,
+  ExternalLink,
+} from "lucide-react";
 import { CommunityMembersPanel } from "@/components/dashboard/community-members-panel";
 import { buildSignInWithCommunityUrl } from "@/lib/auth-redirect";
 import { cn } from "@/lib/utils";
@@ -14,16 +26,26 @@ import {
   DashboardPanel,
   DashboardIconButton,
   DashboardPrimaryButton,
-  DashboardCardGrid,
-  DashboardCard,
+  DashboardTableCard,
+  DashboardTableLoading,
+  DashboardTableEmptyState,
+  DashboardTableScroll,
+  DashboardTableHead,
+  DashboardTableHeadRow,
+  DashboardTableHeadCell,
+  DashboardTableBody,
+  DashboardTableRow,
+  DashboardTableCell,
   StatusChip,
   useDashboardToast,
 } from "@/components/dashboard/dashboard-ui";
 import { InviteSubAdminModal } from "@/components/dashboard/invite-subadmin-modal";
 import { CreateCampaignModal } from "@/components/dashboard/create-campaign-modal";
-import { CampaignCardMenu } from "@/components/dashboard/campaign-card-menu";
 import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
-import { useDashboardCampaigns } from "@/hooks/dashboard/use-dashboard-campaigns";
+import { ApproveCampaignModal } from "@/components/dashboard/approve-campaign-modal";
+import { RejectCampaignModal } from "@/components/dashboard/reject-campaign-modal";
+import { FundCampaignModal } from "@/components/dashboard/fund-campaign-modal";
+import { useDashboardCampaigns, type DashboardCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { isCampaignParticipatable } from "@/lib/community/campaign-types";
 
 type Community = {
@@ -81,6 +103,76 @@ function HubTabs({
   );
 }
 
+function ActionButtons({
+  campaign,
+  communityId,
+  onApprove,
+  onReject,
+  onFund,
+  onDelete,
+}: {
+  campaign: DashboardCampaign;
+  communityId: string;
+  onApprove: (c: DashboardCampaign) => void;
+  onReject: (c: { id: string; title: string }) => void;
+  onFund: (c: DashboardCampaign) => void;
+  onDelete: (c: { id: string; title: string }) => void;
+}) {
+  const s = campaign.status;
+  return (
+    <div className="flex items-center gap-1.5">
+      {s === "pending_approval" ? (
+        <>
+          <button
+            type="button"
+            onClick={() => onApprove(campaign)}
+            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            <Check className="h-3 w-3" />
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => onReject({ id: campaign.id, title: campaign.title })}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+          >
+            <X className="h-3 w-3" />
+            Reject
+          </button>
+        </>
+      ) : s === "approved" ? (
+        <button
+          type="button"
+          onClick={() => onFund(campaign)}
+          className="inline-flex items-center gap-1 rounded-lg bg-delulu-blue px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-delulu-blue/90"
+        >
+          <Wallet className="h-3 w-3" />
+          Fund
+        </button>
+      ) : null}
+
+      <Link
+        href={`/dashboard/communities/${communityId}/campaigns/${campaign.id}`}
+        className="inline-flex items-center gap-1 rounded-lg border border-[#e8e8e3] px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+      >
+        <ExternalLink className="h-3 w-3" />
+        Details
+      </Link>
+
+      {(s === "draft" || s === "rejected") ? (
+        <button
+          type="button"
+          onClick={() => onDelete({ id: campaign.id, title: campaign.title })}
+          className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50"
+        >
+          <X className="h-3 w-3" />
+          Delete
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function CommunityDetailClient({
   community,
   memberStats,
@@ -95,14 +187,18 @@ export function CommunityDetailClient({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HubTab>("campaigns");
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [approveTarget, setApproveTarget] = useState<DashboardCampaign | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<{ id: string; title: string } | null>(null);
+  const [fundTarget, setFundTarget] = useState<DashboardCampaign | null>(null);
+
   const { show } = useDashboardToast();
-  const { data: campaigns = [] } = useDashboardCampaigns({ communityId });
+  const { data: campaigns = [], isLoading, refetch } = useDashboardCampaigns({ communityId });
 
   const openCampaigns = campaigns.filter((c) => isCampaignParticipatable(c.status)).length;
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
+  const pendingCount = campaigns.filter((c) => c.status === "pending_approval").length;
+  const approvedCount = campaigns.filter((c) => c.status === "approved").length;
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(community.member_invite_code);
@@ -164,8 +260,9 @@ export function CommunityDetailClient({
         <DashboardStat label="Claimed G$" value={memberStats.claimedCount} />
         <DashboardStat label="Unclaimed" value={memberStats.unclaimedCount} />
         <DashboardStat label="Open campaigns" value={openCampaigns} />
-        <DashboardStat label="Funded campaigns" value={activeCampaigns} />
-        <DashboardStat label="Code" value={community.member_invite_code} />
+        <DashboardStat label="Active" value={activeCampaigns} />
+        {pendingCount > 0 ? <DashboardStat label="Pending approval" value={pendingCount} /> : null}
+        {approvedCount > 0 ? <DashboardStat label="Needs funding" value={approvedCount} /> : null}
       </DashboardStatGrid>
 
       <HubTabs
@@ -176,85 +273,136 @@ export function CommunityDetailClient({
       />
 
       {activeTab === "campaigns" ? (
-        campaigns.length === 0 ? (
+        isLoading ? (
+          <DashboardTableLoading />
+        ) : campaigns.length === 0 ? (
           <DashboardPanel>
             <p className="py-10 text-center text-sm text-muted-foreground">No campaigns yet</p>
           </DashboardPanel>
         ) : (
-          <DashboardCardGrid>
-            {campaigns.map((c) => (
-              <DashboardCard key={c.id}>
-                <div className="flex items-start gap-3">
-                  <Link
-                    href={`/dashboard/communities/${communityId}/campaigns/${c.id}`}
-                    className="flex min-w-0 flex-1 items-start gap-3"
-                  >
-                    {c.cover_image_url ? (
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                        <Image
-                          src={c.cover_image_url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
+          <DashboardTableCard>
+            <DashboardTableScroll>
+              <DashboardTableHead>
+                <DashboardTableHeadRow>
+                  <DashboardTableHeadCell>Campaign</DashboardTableHeadCell>
+                  <DashboardTableHeadCell>Status</DashboardTableHeadCell>
+                  <DashboardTableHeadCell>Pool</DashboardTableHeadCell>
+                  <DashboardTableHeadCell>Cadence</DashboardTableHeadCell>
+                  <DashboardTableHeadCell>Actions</DashboardTableHeadCell>
+                </DashboardTableHeadRow>
+              </DashboardTableHead>
+              <DashboardTableBody>
+                {campaigns.map((c) => (
+                  <DashboardTableRow key={c.id}>
+                    {/* Title + thumbnail */}
+                    <DashboardTableCell>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {c.cover_image_url ? (
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
+                            <Image
+                              src={c.cover_image_url}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
+                            <Target className="h-4 w-4" />
+                          </span>
+                        )}
+                        <span className="min-w-0 max-w-[220px] truncate font-semibold text-foreground text-sm">
+                          {c.title}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
-                        <Target className="h-5 w-5" />
+                    </DashboardTableCell>
+
+                    {/* Status */}
+                    <DashboardTableCell>
+                      <StatusChip status={c.status} />
+                    </DashboardTableCell>
+
+                    {/* Pool */}
+                    <DashboardTableCell>
+                      <span className="text-sm text-foreground">
+                        {c.proposed_pool_amount > 0 ? `${c.proposed_pool_amount} G$` : "—"}
                       </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground line-clamp-2">{c.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {c.proposed_pool_amount > 0
-                          ? `${c.proposed_pool_amount} G$`
-                          : "Pool at funding"}
-                        {" · "}
+                    </DashboardTableCell>
+
+                    {/* Cadence */}
+                    <DashboardTableCell>
+                      <span className="capitalize text-sm text-muted-foreground">
                         {c.proof_cadence}
-                      </p>
-                    </div>
-                  </Link>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    <CampaignCardMenu
-                      campaignId={c.id}
-                      communityId={communityId}
-                      status={c.status}
-                      title={c.title}
-                      onRequestDelete={() =>
-                        setDeleteTarget({ id: c.id, title: c.title })
-                      }
-                    />
-                    <StatusChip status={c.status} />
-                  </div>
-                </div>
-              </DashboardCard>
-            ))}
-          </DashboardCardGrid>
+                      </span>
+                    </DashboardTableCell>
+
+                    {/* Actions */}
+                    <DashboardTableCell>
+                      <ActionButtons
+                        campaign={c}
+                        communityId={communityId}
+                        onApprove={setApproveTarget}
+                        onReject={setRejectTarget}
+                        onFund={setFundTarget}
+                        onDelete={setDeleteTarget}
+                      />
+                    </DashboardTableCell>
+                  </DashboardTableRow>
+                ))}
+              </DashboardTableBody>
+            </DashboardTableScroll>
+          </DashboardTableCard>
         )
       ) : (
         <CommunityMembersPanel communityId={communityId} />
       )}
 
+      {/* ── Modals ── */}
       <CreateCampaignModal
         open={createOpen}
         onOpenChange={setCreateOpen}
         communityId={communityId}
         onSuccess={({ submitted }) => {
-          show(
-            submitted ? "Campaign submitted for approval" : "Campaign saved as draft",
-          );
+          show(submitted ? "Campaign submitted for approval" : "Campaign saved as draft");
+          void refetch();
         }}
       />
 
       <DeleteCampaignModal
         open={deleteTarget != null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         campaignId={deleteTarget?.id ?? null}
         title={deleteTarget?.title ?? ""}
       />
+
+      {approveTarget ? (
+        <ApproveCampaignModal
+          open
+          onOpenChange={(open) => { if (!open) setApproveTarget(null); }}
+          campaign={approveTarget}
+          onSuccess={() => { show("Campaign approved"); void refetch(); setApproveTarget(null); }}
+        />
+      ) : null}
+
+      {rejectTarget ? (
+        <RejectCampaignModal
+          open
+          onOpenChange={(open) => { if (!open) setRejectTarget(null); }}
+          campaignId={rejectTarget.id}
+          campaignTitle={rejectTarget.title}
+          onSuccess={() => { show("Campaign rejected"); void refetch(); setRejectTarget(null); }}
+        />
+      ) : null}
+
+      {fundTarget ? (
+        <FundCampaignModal
+          open
+          onOpenChange={(open) => { if (!open) setFundTarget(null); }}
+          campaign={fundTarget}
+          onSuccess={() => { show("Campaign funded"); void refetch(); setFundTarget(null); }}
+        />
+      ) : null}
 
       {isPlatformAdmin ? (
         <InviteSubAdminModal
