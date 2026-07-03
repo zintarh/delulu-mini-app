@@ -54,7 +54,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
       className="group block overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md hover:border-border"
     >
       {/* Cover image with overlay title */}
-      <div className="relative aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
+      <div className="relative aspect-[4/1] overflow-hidden bg-delulu-blue-light/40">
         {c.cover_image_url ? (
           <Image
             src={c.cover_image_url}
