@@ -432,58 +432,48 @@ export function CommunityCampaignDetail({
             ════════════════════════════════════════════ */}
         {isJoined ? (
           <>
-            {/* "Today's proof" card */}
-            <div className="mx-4 mt-4">
-              {focusMilestone ? (
-                <div className="overflow-hidden rounded-2xl border border-delulu-blue/30 bg-delulu-blue-light/30">
-                  <div className="flex items-start gap-3 border-l-4 border-delulu-blue p-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold uppercase tracking-wide text-delulu-blue">
-                          {activeMilestone ? "Today's proof" : "Up next"}
-                        </p>
-                        {myStreak > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-600">
-                            <Flame className="h-3 w-3" />
-                            {myStreak} streak
-                          </span>
-                        ) : null}
+            {/* Campaign info card — stakes/rewards for paid, description for free */}
+            <div className="mx-4 mt-4 space-y-3">
+              {isPaidJoin && joinStakeAmount > 0 ? (
+                <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-orange-700">
+                    Stakes &amp; Rewards
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Your stake</span>
+                      <span className="font-bold text-foreground">{joinStakeAmount} {stakeToken}</span>
+                    </div>
+                    {(campaign.forfeit_pct ?? 0) > 0 ? (
+                      <div className="flex items-start justify-between gap-2 text-sm">
+                        <span className="text-muted-foreground">Miss a milestone</span>
+                        <span className="text-right font-bold text-orange-600">
+                          −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} ({campaign.forfeit_pct}% forfeited)
+                        </span>
                       </div>
-                      <p className="mt-1 text-sm font-bold text-foreground">
-                        {focusMilestone.label}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {activeMilestone
-                          ? milestoneCountdown(activeMilestone.deadline)
-                          : formatMilestoneOpensAt(focusMilestone.start_time)}
-                      </p>
+                    ) : null}
+                    <div className="flex items-center justify-between border-t border-orange-200/60 pt-2 text-sm">
+                      <span className="flex items-center gap-1.5 font-semibold text-emerald-700">
+                        <Trophy className="h-3.5 w-3.5" />
+                        Top {topN} split the forfeit pool
+                      </span>
+                      {totalPrizePool > 0 ? (
+                        <span className="text-xs text-muted-foreground">{totalPrizePool} G$ pool</span>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="border-t border-delulu-blue/20 px-4 pb-4 pt-3">
-                    <button
-                      type="button"
-                      disabled={proofBusy || !activeMilestone}
-                      onClick={() => {
-                        if (!activeMilestone) return;
-                        onOpenProof(activeMilestone.milestone_id);
-                      }}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-50"
-                    >
-                      {proofBusy ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Submitting…
-                        </>
-                      ) : activeMilestone ? (
-                        "Submit proof"
-                      ) : (
-                        formatMilestoneOpensAt(focusMilestone.start_time)
-                      )}
-                    </button>
-                  </div>
                 </div>
-                      ) : milestones.length === 0 ? (
-                // No milestones yet — admin hasn't published them on-chain
+              ) : campaign.description ? (
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    About this campaign
+                  </p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{campaign.description}</p>
+                </div>
+              ) : null}
+
+              {/* Status cards — milestones coming soon or all complete */}
+              {milestones.length === 0 ? (
                 <div className="overflow-hidden rounded-2xl border border-border/60 bg-muted/20">
                   <div className="border-l-4 border-muted-foreground/30 p-4">
                     <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -494,8 +484,7 @@ export function CommunityCampaignDetail({
                     </p>
                   </div>
                 </div>
-              ) : (
-                // All milestones complete
+              ) : !focusMilestone ? (
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/8">
                   <div className="border-l-4 border-emerald-500 p-4">
                     <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
@@ -509,7 +498,7 @@ export function CommunityCampaignDetail({
                     </p>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Progress strip (compact chips) */}
@@ -593,9 +582,9 @@ export function CommunityCampaignDetail({
                       <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
                         <Trophy className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-bold text-foreground">Win the pool</p>
+                      <p className="text-sm font-bold text-foreground">Win the forfeit pool</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Top {topN} on the leaderboard split the prize when the campaign ends.
+                        Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card p-3.5">
@@ -665,7 +654,7 @@ export function CommunityCampaignDetail({
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Top {topN} on the leaderboard share the pool when the campaign ends.
+                    Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
                   </p>
                 </div>
               </section>
@@ -699,7 +688,7 @@ export function CommunityCampaignDetail({
                   <div className="flex items-center justify-between border-t border-orange-200/60 pt-2.5 text-sm">
                     <span className="text-muted-foreground">If you win</span>
                     <span className="font-bold text-emerald-700">
-                      Top {topN} share the prize pool
+                      Top {topN} split the forfeit pool
                     </span>
                   </div>
                   {totalPrizePool > 0 ? (
@@ -807,9 +796,9 @@ export function CommunityCampaignDetail({
                   <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
                     <Trophy className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-bold text-foreground">Win the pool</p>
+                  <p className="text-sm font-bold text-foreground">Win the forfeit pool</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Top {topN} on the leaderboard split the prize when the campaign ends.
+                    Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-card p-3.5">

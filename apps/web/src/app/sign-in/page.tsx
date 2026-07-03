@@ -100,6 +100,9 @@ export default function SignInPage() {
   // Privy: finds the embedded wallet from useWallets() and gets its EIP-1193 provider.
   // In both cases, establishWalletSession() deduplicates with WalletSessionBootstrap
   // so no extra signing prompt is shown when the session is already in-flight.
+
+
+  
   useEffect(() => {
     if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
     if (!address) return;
@@ -130,6 +133,7 @@ export default function SignInPage() {
       }
 
       const r = await fetch("/api/faucet/claim", { method: "POST" });
+
       if (!r.ok) { setFaucetState("error"); return; }
       const data = (await r.json()) as { success: boolean; reason?: string };
       setFaucetState(data.success ? "claimed" : "rejected");
@@ -138,6 +142,12 @@ export default function SignInPage() {
 
     run().catch(() => setFaucetState("error"));
   }, [authenticated, routeState, address, web3authProvider, privyWallets]);
+
+
+
+
+
+
 
   // Gas polling — detects when CELO lands and advances to /welcome
   useEffect(() => {
@@ -154,8 +164,10 @@ export default function SignInPage() {
     if (!isNonActionableRejection) return;
     const t = setTimeout(() => router.replace("/welcome"), 2000);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faucetState, faucetReason, router]);
+
+
+
 
   const triggerEmailAuth = async (targetEmail: string) => {
     if (!isInitialized) {
@@ -197,6 +209,9 @@ export default function SignInPage() {
       setIsLaunchingEmailProvider(false);
     }
   };
+
+
+
 
   const handleWalletConnect = async () => {
     setRouteError(null);
@@ -440,6 +455,7 @@ export default function SignInPage() {
               ) : null}
             </div>
 
+
             <button
               type="submit"
               disabled={isAnyPending || (!isInitialized && !privyReady) || !isValidEmail(email)}
@@ -464,6 +480,9 @@ export default function SignInPage() {
               </div>
               <p className="relative mx-auto w-fit bg-background px-2 text-xs text-muted-foreground">or</p>
             </div>
+
+
+
 
             <button
               type="button"

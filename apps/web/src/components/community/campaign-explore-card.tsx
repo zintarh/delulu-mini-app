@@ -58,7 +58,7 @@ export function CampaignExploreCard({
     <article className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md">
       {/* Image header */}
       <Link href={href} className="block">
-        <div className="relative aspect-[16/9] overflow-hidden bg-delulu-blue-light/40">
+        <div className="relative aspect-[16/9] sm:aspect-[3/1] overflow-hidden bg-delulu-blue-light/40">
           {campaign.coverImageUrl ? (
             <Image
               src={campaign.coverImageUrl}
@@ -122,42 +122,58 @@ export function CampaignExploreCard({
           ) : null}
 
           {/* Stakes strip — only for paid campaigns */}
-          {campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0 ? (
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-orange-200/70 bg-orange-50/60 px-3 py-2">
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-700">
-                <AlertTriangle className="h-3 w-3 shrink-0" />
-                Miss milestone → lose {campaign.forfeitPct ?? 0}%
-                {(campaign.forfeitPct ?? 0) > 0
-                  ? ` (${Math.round((campaign.joinAmount ?? 0) * (campaign.forfeitPct ?? 0) / 100)} ${campaign.joinToken ?? "G$"})`
-                  : ""}
-              </span>
-              {(campaign.prizeWinnerCount ?? 0) > 0 ? (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+          {campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0 ? (() => {
+            const token = campaign.joinToken ?? "G$";
+            const forfeitAmt = (campaign.forfeitPct ?? 0) > 0
+              ? Math.round((campaign.joinAmount ?? 0) * (campaign.forfeitPct ?? 0) / 100)
+              : 0;
+            return (
+              <div className="mt-2.5 rounded-xl border border-orange-200/70 bg-orange-50/60 px-3 py-2 space-y-1">
+                {forfeitAmt > 0 ? (
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-orange-700">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    Miss a milestone — forfeit {forfeitAmt} {token} ({campaign.forfeitPct}%)
+                  </p>
+                ) : null}
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
                   <Trophy className="h-3 w-3 shrink-0" />
-                  Top {campaign.prizeWinnerCount} win the pool
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+                  Top {campaign.prizeWinnerCount ?? 0} split the forfeit pool
+                </p>
+              </div>
+            );
+          })() : null}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
-            </span>
-            {campaign.participantCount > 0 ? (
-              <span className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {campaign.participantCount} joined
-              </span>
-            ) : null}
-            {hasMilestones ? (
-              <span className="flex items-center gap-1">
-                <Target className="h-3 w-3" />
-                {campaign.milestoneCount} milestones
-              </span>
-            ) : null}
-          </div>
+          {(() => {
+            const token = campaign.joinToken ?? "G$";
+            const totalStaked = campaign.isFreeToJoin === false
+              ? (campaign.joinAmount ?? 0) * campaign.participantCount
+              : 0;
+            return (
+              <div className="mt-2.5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
+                </span>
+                {campaign.participantCount > 0 ? (
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {campaign.participantCount} joined
+                  </span>
+                ) : null}
+                {hasMilestones ? (
+                  <span className="flex items-center gap-1">
+                    <Target className="h-3 w-3" />
+                    {campaign.milestoneCount} milestones
+                  </span>
+                ) : null}
+                {totalStaked > 0 ? (
+                  <span className="ml-auto font-semibold text-foreground">
+                    {totalStaked} {token} staked
+                  </span>
+                ) : null}
+              </div>
+            );
+          })()}
         </div>
       </Link>
 
@@ -190,7 +206,7 @@ export function CampaignExploreCard({
               ) : campaign.isFreeToJoin !== false ? (
                 "Join free →"
               ) : (
-                `Join · ${campaign.joinAmount ?? 0} ${campaign.joinToken ?? "G$"}`
+                `Join  ·  Stake ${campaign.joinAmount ?? 0} ${campaign.joinToken ?? "G$"}`
               )}
             </button>
           ) : isOnChain ? (
@@ -226,7 +242,7 @@ export function CampaignExploreCardSkeleton({ className }: { className?: string 
   return (
     <div className={cn("overflow-hidden rounded-2xl border border-border/60 bg-card", className)}>
       <div className="animate-pulse">
-        <div className="aspect-[16/9] bg-muted" />
+        <div className="aspect-[16/9] sm:aspect-[3/1] bg-muted" />
         <div className="p-4 space-y-2.5">
           <div className="h-5 w-3/4 rounded-lg bg-muted" />
           <div className="h-4 w-1/2 rounded-lg bg-muted/80" />
