@@ -5,6 +5,18 @@ import Image from "next/image";
 import { AlertTriangle, Clock, Loader2, Star, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import {
+  canSubmitMilestone,
+  formatMilestoneOpensAt,
+} from "@/lib/community/milestone-submit-eligibility";
+
+export type ActiveMilestoneData = {
+  milestone_id: number;
+  label: string;
+  deadline: string | null;
+  start_time?: string | null;
+  is_overdue?: boolean;
+};
 
 export type CampaignExploreCardData = {
   id: string;
@@ -29,6 +41,7 @@ export type CampaignExploreCardData = {
   prizeWinnerCount?: number;
   telegramLink?: string | null;
   community: { name: string; slug: string } | null;
+  activeMilestone?: ActiveMilestoneData | null;
 };
 
 function daysLeft(displayEndsAt: string | null, durationDays: number) {
@@ -40,10 +53,14 @@ export function CampaignExploreCard({
   campaign,
   joining,
   onJoin,
+  onSubmitMilestone,
+  proofBusy,
 }: {
   campaign: CampaignExploreCardData;
   joining: boolean;
   onJoin: () => void;
+  onSubmitMilestone?: () => void;
+  proofBusy?: boolean;
 }) {
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
@@ -158,8 +175,8 @@ export function CampaignExploreCard({
               </div>
             );
           })()}
-          {/* Points motivator — always shown for non-closed campaigns */}
-          {!isClosed ? (
+          {/* Points motivator — only for non-joined, non-closed campaigns */}
+          {!isClosed && !campaign.isJoined ? (
             <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-delulu-blue">
               <Star className="h-3 w-3 shrink-0" />
               Complete milestones, earn points &amp; qualify for rewards
@@ -167,6 +184,66 @@ export function CampaignExploreCard({
           ) : null}
         </div>
       </Link>
+
+      {/* Inline milestone block — joined campaigns only */}
+      {campaign.isJoined && campaign.activeMilestone && !isClosed ? (() => {
+        const m = campaign.activeMilestone!;
+        const canSubmit = canSubmitMilestone(m as Parameters<typeof canSubmitMilestone>[0]);
+        const waitLabel = m.start_time ? formatMilestoneOpensAt(m.start_time) : "Opens soon";
+        const countdown = (() => {
+          if (!m.deadline) return null;
+          const ms = new Date(m.deadline).getTime() - Date.now();
+          if (ms <= 0) return "Overdue";
+          const days = Math.floor(ms / 86400000);
+          if (days >= 1) return `${days}d left`;
+          return `${Math.ceil(ms / 3600000)}h left`;
+        })();
+        return (
+          <div className="mx-4 mb-3 overflow-hidden rounded-xl border border-delulu-blue/30 bg-delulu-blue-light/40">
+            <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-delulu-blue/70">
+                {canSubmit ? "Today's milestone" : "Up next"}
+              </span>
+              {countdown ? (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Clock className="h-2.5 w-2.5" />
+                  {countdown}
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3.5 pb-3">
+              <p className="min-w-0 flex-1 text-sm font-bold leading-snug text-foreground line-clamp-2">
+                {m.label}
+              </p>
+              {canSubmit ? (
+                <button
+                  type="button"
+                  disabled={proofBusy}
+                  onClick={onSubmitMilestone}
+                  className="shrink-0 rounded-lg bg-delulu-blue px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_1px_8px_rgba(37,99,235,0.25)] hover:opacity-90 disabled:opacity-50"
+                >
+                  {proofBusy ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />…
+                    </span>
+                  ) : (
+                    "Submit proof"
+                  )}
+                </button>
+              ) : (
+                <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                  {waitLabel}
+                </span>
+              )}
+            </div>
+            <div className="border-t border-delulu-blue/15 px-3.5 py-1.5">
+              <Link href={href} className="text-[10px] font-semibold text-delulu-blue/70 hover:text-delulu-blue">
+                See all milestones →
+              </Link>
+            </div>
+          </div>
+        );
+      })() : null}
 
       {/* CTA row */}
       <div className="flex items-center gap-2 px-4 pb-4 pt-3">
@@ -180,7 +257,7 @@ export function CampaignExploreCard({
               href={href}
               className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-sm font-bold text-foreground hover:bg-muted/60"
             >
-              Joined · View →
+              {campaign.activeMilestone ? "View campaign →" : "Joined · View →"}
             </Link>
           ) : canJoin ? (
             <button

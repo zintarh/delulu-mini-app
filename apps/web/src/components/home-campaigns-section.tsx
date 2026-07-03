@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProofModal } from "@/components/proof-modal";
@@ -20,6 +19,7 @@ import {
 import {
   joinedDashboardKeys,
   useJoinedCampaignDashboard,
+  type JoinedDashboardCampaign,
 } from "@/hooks/use-user-campaign-milestones";
 import {
   submitCommunityProofWithWallet,
@@ -33,7 +33,6 @@ import { useUserStore } from "@/stores/useUserStore";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import {
   canSubmitMilestone,
-  formatMilestoneOpensAt,
   getActiveMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
 
@@ -63,111 +62,30 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
   };
 }
 
-function MissionCard({
-  campaign,
-  onSubmit,
-  isBusy,
-}: {
-  campaign: ReturnType<typeof useJoinedCampaignDashboard>["data"] extends (infer T)[] | undefined
-    ? T
-    : never;
-  onSubmit: () => void;
-  isBusy: boolean;
-}) {
-  const milestone = campaign.next_milestones[0];
-  if (!milestone) return null;
-
-  const href = `/communities/${campaign.community.slug}/campaigns/${campaign.campaign_id}`;
-  const activeMilestone = getActiveMilestone(campaign.next_milestones) ?? milestone;
-  const canSubmit = canSubmitMilestone(activeMilestone);
-  const waitingLabel = milestone.start_time
-    ? formatMilestoneOpensAt(milestone.start_time)
-    : "Opens soon";
-
-  const progress =
-    campaign.milestone_count > 0
-      ? `${campaign.completed_count} of ${campaign.milestone_count} done`
-      : null;
-
-  return (
-    <Link href={href} className="relative block h-44 overflow-hidden rounded-2xl">
-      {/* Background */}
-      {campaign.cover_image_url ? (
-        <Image
-          src={campaign.cover_image_url}
-          alt=""
-          fill
-          className="object-cover"
-          unoptimized
-        />
-      ) : (
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, #4f46e5 0%, #1e1b4b 50%, #1a1a19 100%)",
-          }}
-        />
-      )}
-
-      {/* Overlay — heavy at bottom, light at top */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/15" />
-
-      {/* Scanline texture for that editorial feel */}
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 3px)",
-        }}
-      />
-
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-between p-4">
-        {/* Top row */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
-              {campaign.community.name}
-            </p>
-            <p className="truncate text-[11px] font-semibold text-white/70">
-              {campaign.title}
-            </p>
-          </div>
-          {progress ? (
-            <span className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/70 backdrop-blur-sm">
-              {progress}
-            </span>
-          ) : null}
-        </div>
-
-        {/* Bottom */}
-        <div>
-          <p className="mb-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-            {canSubmit ? "Today's milestone" : "Up next"}
-          </p>
-          <p className="mb-3.5 line-clamp-2 text-[17px] font-black leading-tight text-white">
-            {milestone.label}
-          </p>
-          {!canSubmit ? (
-            <p className="mb-3 text-[11px] font-semibold text-white/60">{waitingLabel}</p>
-          ) : null}
-          <button
-            type="button"
-            disabled={isBusy || !canSubmit}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onSubmit();
-            }}
-            className="w-full rounded-full border border-white/25 bg-white/12 py-2.5 text-sm font-black text-white backdrop-blur-sm transition-opacity disabled:opacity-50 active:opacity-70"
-          >
-            {isBusy ? "Uploading…" : canSubmit ? "Submit proof →" : waitingLabel}
-          </button>
-        </div>
-      </div>
-    </Link>
-  );
+function dashboardCampaignToCardData(c: JoinedDashboardCampaign): CampaignExploreCardData {
+  const activeMilestone = getActiveMilestone(c.next_milestones) ?? c.next_milestones[0] ?? null;
+  return {
+    id: c.campaign_id,
+    title: c.title,
+    community: c.community,
+    coverImageUrl: c.cover_image_url,
+    displayEndsAt: c.display_ends_at,
+    durationDays: c.duration_days,
+    milestoneCount: c.milestone_count,
+    proposedPoolAmount: 0,
+    status: "active",
+    participantCount: 0,
+    isJoined: true,
+    activeMilestone: activeMilestone
+      ? {
+          milestone_id: activeMilestone.milestone_id,
+          label: activeMilestone.label,
+          deadline: activeMilestone.deadline ?? null,
+          start_time: activeMilestone.start_time ?? null,
+          is_overdue: activeMilestone.is_overdue,
+        }
+      : null,
+  };
 }
 
 /**
@@ -257,28 +175,32 @@ function TodaysMilestonesSection({ address }: { address: string }) {
         )}
       </div>
 
-      <div className="space-y-3">
-        {visible.map((c) => (
-          <MissionCard
-            key={c.campaign_id}
-            campaign={c}
-            isBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
-            onSubmit={() => {
-              const milestone = c.next_milestones[0];
-              if (!milestone || !canSubmitMilestone(milestone)) return;
-              setActiveProof({
-                campaignId: c.campaign_id,
-                challengeId: c.challenge_id,
-                milestoneId: milestone.milestone_id,
-                campaignTitle: c.title,
-                communitySlug: c.community.slug,
-              });
-              setProofSuccess(false);
-              setProofError(null);
-              setProofOpen(true);
-            }}
-          />
-        ))}
+      <div className="space-y-4">
+        {visible.map((c) => {
+          const activeMilestone = getActiveMilestone(c.next_milestones) ?? c.next_milestones[0];
+          return (
+            <CampaignExploreCard
+              key={c.campaign_id}
+              campaign={dashboardCampaignToCardData(c)}
+              joining={false}
+              onJoin={() => {}}
+              proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
+              onSubmitMilestone={() => {
+                if (!activeMilestone || !canSubmitMilestone(activeMilestone)) return;
+                setActiveProof({
+                  campaignId: c.campaign_id,
+                  challengeId: c.challenge_id,
+                  milestoneId: activeMilestone.milestone_id,
+                  campaignTitle: c.title,
+                  communitySlug: c.community.slug,
+                });
+                setProofSuccess(false);
+                setProofError(null);
+                setProofOpen(true);
+              }}
+            />
+          );
+        })}
       </div>
 
       {hiddenCount > 0 && (
