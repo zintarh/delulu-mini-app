@@ -82,6 +82,7 @@ export function CommunityCampaignPageClient() {
   const [activeMilestoneId, setActiveMilestoneId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joiningCommunity, setJoiningCommunity] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const loadLeaderboard = useCallback(async () => {
     const res = await fetch(`/api/community/campaigns/${params.id}/leaderboard`);
@@ -181,6 +182,24 @@ export function CommunityCampaignPageClient() {
     }
   }, [address, params.id]);
 
+  const handleLeave = useCallback(async () => {
+    if (!address) return;
+    setLeaving(true);
+    try {
+      const res = await fetch(`/api/community/campaigns/${params.id}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      if (res.ok) {
+        setIsJoined(false);
+        optimisticallyJoinedRef.current = false;
+      }
+    } finally {
+      setLeaving(false);
+    }
+  }, [address, params.id]);
+
   const handleProofSubmit = async (imageUrl: string) => {
     if (!address || activeMilestoneId == null) return;
     setProofBusy(true);
@@ -272,6 +291,8 @@ export function CommunityCampaignPageClient() {
             onJoin={openJoinModal}
             onJoinCommunity={handleJoinCommunity}
             joiningCommunity={joiningCommunity}
+            onLeave={handleLeave}
+            leaving={leaving}
             onOpenProof={(milestoneId) => {
               setActiveMilestoneId(milestoneId);
               setProofSuccess(false);

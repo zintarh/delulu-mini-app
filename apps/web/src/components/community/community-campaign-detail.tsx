@@ -167,6 +167,8 @@ export function CommunityCampaignDetail({
   onJoin,
   onJoinCommunity,
   joiningCommunity = false,
+  onLeave,
+  leaving = false,
   onOpenProof,
   onProofOpenChange,
   onProofSubmit,
@@ -198,6 +200,8 @@ export function CommunityCampaignDetail({
   onJoin: () => void;
   onJoinCommunity?: () => void;
   joiningCommunity?: boolean;
+  onLeave?: () => void;
+  leaving?: boolean;
   onOpenProof: (milestoneId: number) => void;
   onProofOpenChange: (open: boolean) => void;
   onProofSubmit: (imageUrl: string) => void;
@@ -205,6 +209,7 @@ export function CommunityCampaignDetail({
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
 
   const { user } = useUserStore();
@@ -414,6 +419,38 @@ export function CommunityCampaignDetail({
               <span className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">
                 {daysLeft}d left
               </span>
+
+              {/* Leave campaign */}
+              {onLeave && !isClosed ? (
+                leaveConfirm ? (
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">Leave campaign?</span>
+                    <button
+                      type="button"
+                      disabled={leaving}
+                      onClick={() => { onLeave(); setLeaveConfirm(false); }}
+                      className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                    >
+                      {leaving ? "Leaving…" : "Yes, leave"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLeaveConfirm(false)}
+                      className="rounded-lg border border-border/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLeaveConfirm(true)}
+                    className="ml-auto text-[11px] font-semibold text-muted-foreground/60 hover:text-red-500 transition-colors"
+                  >
+                    Leave campaign
+                  </button>
+                )
+              ) : null}
             </div>
 
             {actionError ? (

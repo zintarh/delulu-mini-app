@@ -48,6 +48,26 @@ export async function POST(
     return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
   }
 
+  // ── 2-campaign join limit ──────────────────────────────────────────────
+  const { count: activeCount } = await admin
+    .from("campaign_participants")
+    .select(
+      `id, community_campaigns!inner(status, display_ends_at)`,
+      { count: "exact", head: true },
+    )
+    .eq("wallet_address", walletAddress)
+    .eq("status", "joined")
+    .in("community_campaigns.status", ["active", "approved", "open"])
+    .neq("campaign_id", campaignId);
+
+  if ((activeCount ?? 0) >= 2) {
+    return NextResponse.json(
+      { error: "You can only join 2 campaigns at a time. Complete your active campaigns to join another." },
+      { status: 403 },
+    );
+  }
+  // ──────────────────────────────────────────────────────────────────────
+
   const community = unwrapRelation(campaign.communities);
 
   if (!community || community.status !== "active") {
