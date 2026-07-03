@@ -5,10 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   AlertTriangle,
-  Calendar,
   ChevronDown,
   ChevronLeft,
-  Clock,
   Flame,
   Loader2,
   Share2,
@@ -17,7 +15,6 @@ import {
   Target,
   Trophy,
   Users,
-  Wallet,
 } from "lucide-react";
 import { ProofModal } from "@/components/proof-modal";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
@@ -142,36 +139,6 @@ function JoinButton({
   );
 }
 
-function StatPill({
-  icon: Icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col rounded-xl border px-2 py-2 sm:px-3 sm:py-2.5 sm:min-w-[88px] sm:shrink-0",
-        accent
-          ? "border-[#f6c324]/40 bg-gradient-to-br from-[#fffbeb] to-white"
-          : "border-border/60 bg-card",
-      )}
-    >
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <Icon className={cn("h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5", accent && "text-[#9a7b0a]")} />
-        <span className="truncate text-[9px] font-semibold uppercase tracking-wide sm:text-[10px]">{label}</span>
-      </div>
-      <p className={cn("mt-0.5 truncate text-xs font-black tabular-nums sm:text-sm", accent && "text-[#9a7b0a]")}>
-        {value}
-      </p>
-    </div>
-  );
-}
 
 export function CommunityCampaignDetail({
   campaign,
@@ -755,48 +722,116 @@ export function CommunityCampaignDetail({
               ) : null}
             </div>
 
-            {/* Stats strip */}
+            {/* ── Reward card — replaces stats strip ── */}
             <div className="mt-4 px-4">
-              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
-                {showPrizePool ? (
-                  <StatPill
-                    icon={Trophy}
-                    label="Prize"
-                    value={
-                      participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
-                        ? `${totalPrizePool} G$+`
-                        : `${totalPrizePool} G$`
-                    }
-                    accent
-                  />
-                ) : funded && campaign.proposed_pool_amount > 0 ? (
-                  <StatPill
-                    icon={Trophy}
-                    label="Prize"
-                    value={`${campaign.proposed_pool_amount} G$`}
-                    accent
-                  />
-                ) : null}
-                {isPaidJoin && joinStakeAmount > 0 ? (
-                  <StatPill
-                    icon={Wallet}
-                    label="Stake"
-                    value={`${joinStakeAmount} ${stakeToken}`}
-                  />
-                ) : null}
-                <StatPill
-                  icon={Target}
-                  label="Milestones"
-                  value={milestoneCount > 0 ? `${milestoneCount}` : "Soon"}
-                />
-                <StatPill icon={Clock} label="Time left" value={`${daysLeft}d`} />
-                <StatPill
-                  icon={Calendar}
-                  label="Ends"
-                  value={endsLabel ?? `${campaign.duration_days}d`}
-                />
-                <StatPill icon={Users} label="Winners" value={`Top ${topN}`} />
-              </div>
+              {showPrizePool ? (() => {
+                const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
+                const forfeitPerMiss = isPaidJoin && (campaign.forfeit_pct ?? 0) > 0
+                  ? Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)
+                  : 0;
+                return (
+                  <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 border-b border-[#f6c324]/20 px-4 py-2.5">
+                      <Trophy className="h-4 w-4 text-[#9a7b0a]" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9a7b0a]">
+                        Prize Pool
+                      </p>
+                    </div>
+
+                    {/* Three stat columns */}
+                    <div className="grid grid-cols-3 divide-x divide-[#f6c324]/20">
+                      <div className="flex flex-col items-center px-3 py-4 text-center">
+                        <p
+                          className="text-xl font-black tabular-nums text-foreground sm:text-2xl"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          {totalPrizePool.toLocaleString()}
+                          <span className="ml-1 text-sm font-bold text-[#9a7b0a]">G$</span>
+                        </p>
+                        <p className="mt-1 text-[10px] font-semibold text-[#9a7b0a]/70">Total pool</p>
+                      </div>
+
+                      <div className="flex flex-col items-center px-3 py-4 text-center">
+                        <p
+                          className="text-xl font-black tabular-nums text-foreground sm:text-2xl"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          {perWinner > 0 ? (
+                            <>
+                              ~{perWinner.toLocaleString()}
+                              <span className="ml-1 text-sm font-bold text-[#9a7b0a]">G$</span>
+                            </>
+                          ) : "TBD"}
+                        </p>
+                        <p className="mt-1 text-[10px] font-semibold text-[#9a7b0a]/70">Per winner</p>
+                      </div>
+
+                      <div className="flex flex-col items-center px-3 py-4 text-center">
+                        <p
+                          className="text-xl font-black tabular-nums text-foreground sm:text-2xl"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          Top {topN}
+                        </p>
+                        <p className="mt-1 text-[10px] font-semibold text-[#9a7b0a]/70">Winners</p>
+                      </div>
+                    </div>
+
+                    {/* Forfeit rule — only for paid campaigns */}
+                    {forfeitPerMiss > 0 ? (
+                      <div className="border-t border-[#f6c324]/20 bg-orange-50/60 px-4 py-2.5">
+                        <p className="text-[11px] leading-relaxed text-orange-700">
+                          <span className="font-black">Forfeit rule · </span>
+                          Miss a milestone → −{forfeitPerMiss} {stakeToken} ({campaign.forfeit_pct}% of stake) added straight to the prize pool. Winners earn more when others slip up.
+                        </p>
+                      </div>
+                    ) : isPaidJoin && joinStakeAmount > 0 ? (
+                      <div className="border-t border-[#f6c324]/20 px-4 py-2.5">
+                        <p className="text-[11px] text-[#9a7b0a]/70">
+                          Stake <span className="font-bold text-foreground">{joinStakeAmount} {stakeToken}</span> to join · top {topN} on the leaderboard split the pool.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="border-t border-[#f6c324]/20 px-4 py-2.5">
+                        <p className="text-[11px] text-[#9a7b0a]/70">
+                          Top {topN} on the leaderboard share the prize pool.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
+                /* Free campaign — points-only reward card */
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                  <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
+                    <Star className="h-4 w-4 fill-[#f6c324] text-[#f6c324]" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                      Leaderboard Reward
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x divide-border/40">
+                    <div className="flex flex-col items-center px-3 py-4 text-center">
+                      <p
+                        className="text-2xl font-black text-foreground"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        Top {topN}
+                      </p>
+                      <p className="mt-1 text-[10px] font-semibold text-muted-foreground">Winners</p>
+                    </div>
+                    <div className="flex flex-col items-center px-3 py-4 text-center">
+                      <p
+                        className="text-2xl font-black text-foreground"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        Points
+                      </p>
+                      <p className="mt-1 text-[10px] font-semibold text-muted-foreground">Ranked by</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
