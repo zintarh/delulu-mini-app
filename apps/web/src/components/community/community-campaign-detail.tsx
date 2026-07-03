@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
+  AlertTriangle,
   Calendar,
   ChevronDown,
   ChevronLeft,
@@ -607,6 +608,19 @@ export function CommunityCampaignDetail({
                           "Complete each milestone and upload proof to earn points."}
                       </p>
                     </div>
+                    {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
+                      <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-3.5 sm:col-span-2">
+                        <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                          <AlertTriangle className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-bold text-foreground">Miss a milestone</p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          Missing a milestone forfeits <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
+                          {Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss).
+                          Stay consistent — forfeited stakes grow the prize pool for winners.
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -657,13 +671,48 @@ export function CommunityCampaignDetail({
               </section>
             ) : null}
 
+            {/* Stakes & Rewards card — only for paid campaigns */}
             {isPaidJoin && joinStakeAmount > 0 ? (
-              <p className="mx-4 mt-3 text-center text-xs text-muted-foreground">
-                Join stake: <strong className="text-foreground">{joinStakeAmount} {stakeToken}</strong>
-                {poolStats?.isPaidOnChain
-                  ? " — debited from your wallet on confirm"
-                  : ""}
-              </p>
+              <section className="mx-4 mt-4 rounded-2xl border border-orange-200/70 bg-orange-50/60 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-orange-700">
+                    Stakes &amp; Rewards
+                  </h2>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Your stake to join</span>
+                    <span className="font-bold text-foreground">
+                      {joinStakeAmount} {stakeToken}
+                    </span>
+                  </div>
+                  {(campaign.forfeit_pct ?? 0) > 0 ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Miss a milestone</span>
+                      <span className="font-bold text-orange-600">
+                        −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)}{" "}
+                        {stakeToken} ({campaign.forfeit_pct}% forfeited)
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between border-t border-orange-200/60 pt-2.5 text-sm">
+                    <span className="text-muted-foreground">If you win</span>
+                    <span className="font-bold text-emerald-700">
+                      Top {topN} share the prize pool
+                    </span>
+                  </div>
+                  {totalPrizePool > 0 ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Current pool</span>
+                      <span className="font-bold text-foreground">{totalPrizePool} G$</span>
+                    </div>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-[11px] leading-relaxed text-orange-700/70">
+                  Forfeited stakes from missed milestones are added to the prize pool — winners earn more when others slip up.
+                </p>
+              </section>
             ) : null}
 
             {/* Action card — simplified for non-joined */}
@@ -773,6 +822,19 @@ export function CommunityCampaignDetail({
                       "Complete each milestone and upload proof to earn points."}
                   </p>
                 </div>
+                {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
+                  <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-3.5 sm:col-span-2">
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <p className="text-sm font-bold text-foreground">Miss a milestone</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Missing a milestone forfeits <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> (
+                      {Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss).
+                      Forfeited amounts grow the prize pool — consistent participants win more.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </section>
 

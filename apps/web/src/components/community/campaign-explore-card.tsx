@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Loader2, Target, Trophy, Users } from "lucide-react";
+import { AlertTriangle, Clock, Loader2, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 
@@ -119,6 +119,25 @@ export function CampaignExploreCard({
             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
               {campaign.description}
             </p>
+          ) : null}
+
+          {/* Stakes strip — only for paid campaigns */}
+          {campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0 ? (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-orange-200/70 bg-orange-50/60 px-3 py-2">
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-700">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                Miss milestone → lose {campaign.forfeitPct ?? 0}%
+                {(campaign.forfeitPct ?? 0) > 0
+                  ? ` (${Math.round((campaign.joinAmount ?? 0) * (campaign.forfeitPct ?? 0) / 100)} ${campaign.joinToken ?? "G$"})`
+                  : ""}
+              </span>
+              {(campaign.prizeWinnerCount ?? 0) > 0 ? (
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                  <Trophy className="h-3 w-3 shrink-0" />
+                  Top {campaign.prizeWinnerCount} win the pool
+                </span>
+              ) : null}
+            </div>
           ) : null}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
