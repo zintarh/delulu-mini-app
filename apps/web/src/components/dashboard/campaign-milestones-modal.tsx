@@ -20,6 +20,7 @@ export function CampaignMilestonesModal({
   campaignTitle,
   durationDays,
   onChainMilestoneCount = 0,
+  autoGenerate = false,
   onDone,
 }: {
   open: boolean;
@@ -30,6 +31,8 @@ export function CampaignMilestonesModal({
   durationDays: number;
   /** Subgraph milestone count — 0 means initial publish from DB drafts. */
   onChainMilestoneCount?: number;
+  /** When true, AI generation runs immediately on open (even for initial publish). */
+  autoGenerate?: boolean;
   onDone: () => void;
 }) {
   const maxDays = Math.max(1, durationDays);
@@ -73,10 +76,12 @@ export function CampaignMilestonesModal({
     setLoadError(null);
     setMilestones([]);
     setHasInteracted(false);
-    if (isInitialPublish) {
-      // Start with a blank slate — no loading state needed
+    if (isInitialPublish && !autoGenerate) {
+      // Manual mode: start with a blank slate
       setMilestones([{ title: "", days: maxDays }]);
     } else {
+      // Auto-generate with AI (either because there are existing milestones
+      // to build on, or because the caller explicitly requested AI generation)
       setIsLoading(true);
       try {
         await generateWithAi();
@@ -87,7 +92,7 @@ export function CampaignMilestonesModal({
         setIsLoading(false);
       }
     }
-  }, [campaignTitle, generateWithAi, isInitialPublish, maxDays]);
+  }, [campaignTitle, generateWithAi, isInitialPublish, autoGenerate, maxDays]);
 
   useEffect(() => {
     if (open) {
@@ -184,7 +189,11 @@ export function CampaignMilestonesModal({
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {isInitialPublish ? "Publish milestones on-chain" : "Campaign milestones"}
+                  {isInitialPublish && autoGenerate
+                    ? "AI-generated milestones"
+                    : isInitialPublish
+                      ? "Publish milestones on-chain"
+                      : "Campaign milestones"}
                 </p>
                 <h2 className="text-lg font-bold text-foreground">{campaignTitle}</h2>
               </div>

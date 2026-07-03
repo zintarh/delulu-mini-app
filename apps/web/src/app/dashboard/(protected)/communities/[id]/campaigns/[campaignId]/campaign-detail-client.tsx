@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2, StopCircle, Trash2 } from "lucide-react";
+import { ChevronLeft, Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { canDeleteDashboardCampaign, canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
@@ -231,6 +231,7 @@ export function CampaignDetailClient({
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [milestonesModalOpen, setMilestonesModalOpen] = useState(false);
+  const [milestonesAutoGenerate, setMilestonesAutoGenerate] = useState(false);
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
   const [milestoneCount, setMilestoneCount] = useState(0);
   const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
@@ -495,12 +496,30 @@ export function CampaignDetailClient({
                       </p>
                     </div>
                     {isPlatformAdmin && (campaign.status === "approved" || campaign.status === "active") ? (
-                      <DashboardPrimaryButton
-                        type="button"
-                        onClick={() => setMilestonesModalOpen(true)}
-                      >
-                        {milestoneCount > 0 ? "Add more milestones" : "Add milestones on-chain"}
-                      </DashboardPrimaryButton>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {milestoneCount === 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMilestonesAutoGenerate(true);
+                              setMilestonesModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-delulu-blue/30 bg-delulu-blue/8 px-3.5 py-2 text-xs font-semibold text-delulu-blue transition-colors hover:bg-delulu-blue/15"
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Generate with AI
+                          </button>
+                        ) : null}
+                        <DashboardPrimaryButton
+                          type="button"
+                          onClick={() => {
+                            setMilestonesAutoGenerate(false);
+                            setMilestonesModalOpen(true);
+                          }}
+                        >
+                          {milestoneCount > 0 ? "Add more milestones" : "Add milestones manually"}
+                        </DashboardPrimaryButton>
+                      </div>
                     ) : null}
                   </div>
                   {milestones.length > 0 ? (
@@ -547,14 +566,19 @@ export function CampaignDetailClient({
 
           <CampaignMilestonesModal
             open={milestonesModalOpen}
-            onOpenChange={setMilestonesModalOpen}
+            onOpenChange={(o) => {
+              setMilestonesModalOpen(o);
+              if (!o) setMilestonesAutoGenerate(false);
+            }}
             campaignId={campaignId}
             challengeId={campaign.on_chain_challenge_id ?? 0}
             campaignTitle={campaign.title}
             durationDays={campaign.duration_days ?? 30}
             onChainMilestoneCount={milestoneCount}
+            autoGenerate={milestonesAutoGenerate}
             onDone={() => {
               setMilestonesModalOpen(false);
+              setMilestonesAutoGenerate(false);
               void refetch();
             }}
           />
