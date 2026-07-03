@@ -377,30 +377,6 @@ export function CommunityCampaignDetail({
           </div>
         </div>
 
-        {/* ── Invite / share actions ── */}
-        <div className="mt-3 flex items-center justify-end gap-2 px-4">
-          <div className="flex items-center gap-2">
-            {campaign.telegram_link ? (
-              <a
-                href={campaign.telegram_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-3 py-1.5 text-xs font-semibold text-[#1a8cc7] hover:bg-[#2AABEE]/20 transition-colors"
-              >
-                Join Telegram
-              </a>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void handleInvite()}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              {inviteCopied ? "Link copied!" : "Invite friends"}
-            </button>
-          </div>
-        </div>
-
         {/* Join community nudge — shown when authenticated but not yet a community member */}
         {authenticated && !isCommunityMember && onJoinCommunity ? (
           <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-4 py-3">
@@ -933,6 +909,28 @@ export function CommunityCampaignDetail({
 
           </>
         )}
+
+        {/* ── Invite / share actions — before leaderboard ── */}
+        <div className="mt-6 flex items-center justify-center gap-3 px-4">
+          {campaign.telegram_link ? (
+            <a
+              href={campaign.telegram_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-4 py-2 text-xs font-semibold text-[#1a8cc7] hover:bg-[#2AABEE]/20 transition-colors"
+            >
+              Join Telegram
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void handleInvite()}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            {inviteCopied ? "Link copied!" : "Invite friends"}
+          </button>
+        </div>
 
         {/* ── Leaderboard (always last) ── */}
         <section ref={leaderboardRef} className="mt-8 px-4">
