@@ -547,90 +547,81 @@ export function CommunityCampaignDetail({
               ) : null}
             </section>
 
-            {/* What you're playing for — collapsible, below milestones */}
+            {/* Rewards + proof info — always visible, single card */}
             <section className="mt-4 px-4">
-              <button
-                type="button"
-                onClick={() => setDetailsOpen((v) => !v)}
-                className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-card px-4 py-3 text-sm font-bold text-foreground"
-              >
-                What you&apos;re playing for
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground transition-transform",
-                    detailsOpen && "rotate-180",
-                  )}
-                />
-              </button>
-              {detailsOpen ? (
-                <div className="mt-2 space-y-3">
-                  {campaign.description ? (
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {campaign.description}
-                    </p>
-                  ) : null}
-                  <div className="rounded-2xl border border-border/60 bg-card p-4">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5 text-foreground">
-                          <Star className="h-3.5 w-3.5 text-delulu-blue" />
-                          Complete a milestone
-                        </span>
-                        <span className="font-bold text-delulu-blue">+1,000 pts</span>
-                      </div>
-                      {isPaidJoin ? (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-1.5 text-foreground">
-                            <Trophy className="h-3.5 w-3.5 text-emerald-600" />
-                            Rank in the top {topN}
-                          </span>
-                          <span className="font-bold text-emerald-700">
-                            Split the forfeit pool{totalPrizePool > 0 ? ` · ${totalPrizePool} G$` : ""}
-                          </span>
-                        </div>
-                      ) : null}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5 text-foreground">
-                          <Target className="h-3.5 w-3.5 text-[#9a7b0a]" />
-                          Stay consistent
-                        </span>
-                        <span className="font-bold text-[#9a7b0a]">Achieve your goal</span>
-                      </div>
-                      {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                        <div className="flex items-center justify-between border-t border-border/40 pt-2 text-sm">
-                          <span className="text-muted-foreground">Miss your milestone</span>
-                          <span className="text-xs font-semibold text-orange-600">
-                            forfeit {campaign.forfeit_pct}% of your stake
-                          </span>
-                        </div>
-                      ) : null}
+              <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-4">
+                {campaign.description ? (
+                  <p className="text-sm leading-relaxed text-muted-foreground border-b border-border/40 pb-3">
+                    {campaign.description}
+                  </p>
+                ) : null}
+
+                {/* What you're playing for */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <Star className="h-3.5 w-3.5 text-delulu-blue" />
+                      Complete a milestone
+                    </span>
+                    <span className="font-bold text-delulu-blue">+1,000 pts</span>
+                  </div>
+                  {isPaidJoin ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        <Trophy className="h-3.5 w-3.5 text-emerald-600" />
+                        Rank in the top {topN}
+                      </span>
+                      <span className="font-bold text-emerald-700">
+                        Split the forfeit pool{totalPrizePool > 0 ? ` · ${totalPrizePool} G$` : ""}
+                      </span>
                     </div>
-                    <p className="mt-3 text-[11px] text-muted-foreground">
-                      Points earned here count toward rewards on Delulu.
+                  ) : null}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <Target className="h-3.5 w-3.5 text-[#9a7b0a]" />
+                      Stay consistent
+                    </span>
+                    <span className="font-bold text-[#9a7b0a]">Achieve your goal</span>
+                  </div>
+                  {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
+                    <div className="flex items-center justify-between border-t border-border/40 pt-2 text-sm">
+                      <span className="text-muted-foreground">Miss your milestone</span>
+                      <span className="text-xs font-semibold text-orange-600">
+                        forfeit {campaign.forfeit_pct}% of your stake
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Submit proof — merged into same card */}
+                <div className="border-t border-border/40 pt-3 flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Submit proof</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {campaign.proof_instructions ??
+                        "Complete each milestone and upload proof to earn your points."}
                     </p>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-border/60 bg-card p-3.5">
-                      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
-                      <p className="text-sm font-bold text-foreground">Submit proof</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {campaign.proof_instructions ??
-                          "Complete each milestone and upload proof to earn your points."}
-                      </p>
-                    </div>
-                    {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                      <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-3.5">
-                        <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                          <AlertTriangle className="h-4 w-4" />
-                        </div>
-                        <p className="text-sm font-bold text-foreground">Miss your milestone</p>
-                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                          Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong>. Those amounts grow the forfeit pool for winners.
-                        </p>
-                      </div>
-                    ) : null}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Points earned here count toward rewards on Delulu.
+                </p>
+              </div>
+
+              {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
+                <div className="mt-2 rounded-2xl border border-orange-200/70 bg-orange-50/60 p-3.5 flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Miss your milestone</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      Forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> per missed milestone. Those amounts grow the forfeit pool for winners.
+                    </p>
                   </div>
                 </div>
               ) : null}

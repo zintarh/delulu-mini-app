@@ -12,6 +12,7 @@ import { usePfp } from "@/hooks/use-profile-pfp";
 import { cn } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
+import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { ProfileDeluluGrid } from "@/components/profile/profile-delulu-grid";
 import { ProfilePageActionsMenu } from "@/components/profile/profile-page-actions-menu";
 import { MainPage } from "@/components/main-app-header";
@@ -310,7 +311,14 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
       )}
 
       {activeTab === "active" && (
-        <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8">
+        <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8 space-y-6">
+          {address ? (
+            <ActiveCampaignsSection
+              address={address}
+              heading="Active campaigns"
+              showMax={10}
+            />
+          ) : null}
           <ProfileDeluluGrid
             delulus={ongoingDelulus}
             isLoading={isLoadingOngoing}

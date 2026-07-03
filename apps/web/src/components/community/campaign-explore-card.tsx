@@ -9,6 +9,7 @@ import {
   canSubmitMilestone,
   formatMilestoneOpensAt,
 } from "@/lib/community/milestone-submit-eligibility";
+import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
 export type ActiveMilestoneData = {
   milestone_id: number;
@@ -204,12 +205,17 @@ export function CampaignExploreCard({
               <span className="text-[9px] font-black uppercase tracking-widest text-delulu-blue/70">
                 {canSubmit ? "Today's milestone" : "Up next"}
               </span>
-              {countdown ? (
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <Clock className="h-2.5 w-2.5" />
-                  {countdown}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-delulu-blue">
+                  +{BASE_PROOF_POINTS.toLocaleString()} pts
                 </span>
-              ) : null}
+                {countdown ? (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Clock className="h-2.5 w-2.5" />
+                    {countdown}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="flex items-center justify-between gap-3 px-3.5 pb-3">
               <p className="min-w-0 flex-1 text-sm font-bold leading-snug text-foreground line-clamp-2">
