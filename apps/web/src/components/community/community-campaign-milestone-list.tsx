@@ -8,6 +8,11 @@ import {
   formatMilestoneOpensAt,
   getActiveMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
+import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+
+function fmtPts(n: number) {
+  return n.toLocaleString();
+}
 
 function formatCountdown(deadline: string) {
   if (!deadline) return "Pending start";
@@ -138,32 +143,44 @@ export function CommunityCampaignMilestoneList({
                   </p>
                 </div>
 
-                {isJoined && !m.completed ? (
-                  <button
-                    type="button"
-                    disabled={!canSubmit}
-                    onClick={() => onSubmitMilestone(m.milestone_id)}
-                    className={cn(
-                      "w-fit shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-opacity",
-                      isNext
-                        ? "bg-delulu-blue text-white hover:opacity-90"
-                        : "border border-border bg-background text-foreground hover:bg-muted/50",
-                      !canSubmit && "opacity-50",
-                    )}
-                  >
-                    {submitting ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        …
+                {/* Right side — points reward or submit button */}
+                {m.completed ? (
+                  <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                    +{fmtPts(BASE_PROOF_POINTS)} pts ✓
+                  </span>
+                ) : isJoined ? (
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {canSubmit || submitting ? (
+                      <>
+                        <span className="text-[10px] font-black text-delulu-blue">
+                          +{fmtPts(BASE_PROOF_POINTS)} pts
+                        </span>
+                        <button
+                          type="button"
+                          disabled={!canSubmit}
+                          onClick={() => onSubmitMilestone(m.milestone_id)}
+                          className="w-fit rounded-lg bg-delulu-blue px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                          {submitting ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              …
+                            </span>
+                          ) : (
+                            "Submit proof"
+                          )}
+                        </button>
+                      </>
+                    ) : m.is_overdue ? (
+                      <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                        −{fmtPts(BASE_PROOF_POINTS)} pts missed
                       </span>
-                    ) : canSubmit ? (
-                      "Submit proof"
-                    ) : m.start_time && new Date(m.start_time).getTime() > Date.now() ? (
-                      formatMilestoneOpensAt(m.start_time)
                     ) : (
-                      "Closed"
+                      <span className="text-[10px] font-semibold text-muted-foreground/60">
+                        +{fmtPts(BASE_PROOF_POINTS)} pts
+                      </span>
                     )}
-                  </button>
+                  </div>
                 ) : null}
               </div>
             </div>

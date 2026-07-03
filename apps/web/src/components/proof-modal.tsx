@@ -5,6 +5,7 @@ import { Camera, CheckCircle2, Copy, Loader2, X, XIcon } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
+import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
 async function fireConfetti() {
   try {
@@ -279,7 +280,7 @@ export function ProofModal({
             </div>
 
             {/* Milestone banner */}
-            <div className="mb-4 rounded-2xl bg-[#f6c324] px-4 py-3 text-center">
+            <div className="mb-4 rounded-2xl bg-[#f6c324] px-4 py-3.5 text-center">
               <p className="text-[13px] font-black text-[#1a1a19]">
                 🏆 {milestoneLabel} done!
               </p>
@@ -288,6 +289,15 @@ export function ProofModal({
                   {communityName} · Campaign
                 </p>
               ) : null}
+              {/* Points earned — loud and unmissable */}
+              <div className="mt-2.5 flex items-center justify-center gap-1.5">
+                <span className="text-2xl font-black tracking-tight text-[#1a1a19]">
+                  +{BASE_PROOF_POINTS.toLocaleString()}
+                </span>
+                <span className="rounded-full bg-[#1a1a19] px-2.5 py-0.5 text-[11px] font-black text-[#f6c324]">
+                  pts earned
+                </span>
+              </div>
             </div>
 
             {/* Progress dots */}
