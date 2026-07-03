@@ -98,16 +98,6 @@ export function CampaignExploreCard({
 
         {/* Content */}
         <div className="px-4 pt-3.5 pb-1">
-          {/* Free/Paid badge above title */}
-          <span
-            className={cn(
-              "mb-2 inline-block rounded-full px-3 py-1 text-[12px] font-black text-white",
-              campaign.isFreeToJoin !== false ? "bg-emerald-500" : "bg-orange-500",
-            )}
-          >
-            {campaign.isFreeToJoin !== false ? "Free" : "Paid"}
-          </span>
-
           <h3
             className="line-clamp-2 text-base font-black leading-snug text-foreground sm:text-lg"
             style={{ fontFamily: '"Clash Display", sans-serif' }}
@@ -160,12 +150,6 @@ export function CampaignExploreCard({
                     {campaign.participantCount} joined
                   </span>
                 ) : null}
-                {hasMilestones ? (
-                  <span className="flex items-center gap-1">
-                    <Target className="h-3 w-3" />
-                    {campaign.milestoneCount} milestones
-                  </span>
-                ) : null}
                 {totalStaked > 0 ? (
                   <span className="ml-auto font-semibold text-foreground">
                     {totalStaked} {token} staked
@@ -174,11 +158,11 @@ export function CampaignExploreCard({
               </div>
             );
           })()}
-          {/* Wins hint — always shown for non-closed campaigns */}
+          {/* Points motivator — always shown for non-closed campaigns */}
           {!isClosed ? (
-            <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Star className="h-3 w-3 shrink-0 text-delulu-blue" />
-              Complete milestones · earn points · achieve your goal
+            <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-delulu-blue">
+              <Star className="h-3 w-3 shrink-0" />
+              Complete milestones, earn points &amp; qualify for future rewards
             </p>
           ) : null}
         </div>
