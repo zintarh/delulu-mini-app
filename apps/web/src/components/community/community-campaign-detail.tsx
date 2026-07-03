@@ -156,17 +156,17 @@ function StatPill({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-xl border px-3 py-2.5 sm:min-w-[88px] sm:shrink-0",
+        "flex flex-col rounded-xl border px-2 py-2 sm:px-3 sm:py-2.5 sm:min-w-[88px] sm:shrink-0",
         accent
           ? "border-[#f6c324]/40 bg-gradient-to-br from-[#fffbeb] to-white"
           : "border-border/60 bg-card",
       )}
     >
       <div className="flex items-center gap-1 text-muted-foreground">
-        <Icon className={cn("h-3.5 w-3.5 shrink-0", accent && "text-[#9a7b0a]")} />
-        <span className="truncate text-[10px] font-semibold uppercase tracking-wide">{label}</span>
+        <Icon className={cn("h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5", accent && "text-[#9a7b0a]")} />
+        <span className="truncate text-[9px] font-semibold uppercase tracking-wide sm:text-[10px]">{label}</span>
       </div>
-      <p className={cn("mt-0.5 truncate text-sm font-black tabular-nums", accent && "text-[#9a7b0a]")}>
+      <p className={cn("mt-0.5 truncate text-xs font-black tabular-nums sm:text-sm", accent && "text-[#9a7b0a]")}>
         {value}
       </p>
     </div>
@@ -756,7 +756,7 @@ export function CommunityCampaignDetail({
 
             {/* Stats strip */}
             <div className="mt-4 px-4">
-              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
                 {showPrizePool ? (
                   <StatPill
                     icon={Trophy}
