@@ -81,6 +81,7 @@ export function CommunityCampaignPageClient() {
   const [proofStep, setProofStep] = useState<ProofStep>("idle");
   const [activeMilestoneId, setActiveMilestoneId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [joiningCommunity, setJoiningCommunity] = useState(false);
 
   const loadLeaderboard = useCallback(async () => {
     const res = await fetch(`/api/community/campaigns/${params.id}/leaderboard`);
@@ -164,6 +165,21 @@ export function CommunityCampaignPageClient() {
     setIsJoined(true);
     await Promise.all([loadCampaign(), loadLeaderboard()]);
   }, [loadCampaign, loadLeaderboard]);
+
+  const handleJoinCommunity = useCallback(async () => {
+    if (!address) return;
+    setJoiningCommunity(true);
+    try {
+      const res = await fetch(`/api/community/campaigns/${params.id}/join-community`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      if (res.ok) setIsCommunityMember(true);
+    } finally {
+      setJoiningCommunity(false);
+    }
+  }, [address, params.id]);
 
   const handleProofSubmit = async (imageUrl: string) => {
     if (!address || activeMilestoneId == null) return;
@@ -254,6 +270,8 @@ export function CommunityCampaignPageClient() {
             actionError={actionError}
             poolStats={poolStats}
             onJoin={openJoinModal}
+            onJoinCommunity={handleJoinCommunity}
+            joiningCommunity={joiningCommunity}
             onOpenProof={(milestoneId) => {
               setActiveMilestoneId(milestoneId);
               setProofSuccess(false);

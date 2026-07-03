@@ -31,6 +31,7 @@ import {
   getUpcomingMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
 export type CommunityCampaignDetailData = {
   id: string;
@@ -197,6 +198,8 @@ export function CommunityCampaignDetail({
   actionError,
   poolStats,
   onJoin,
+  onJoinCommunity,
+  joiningCommunity = false,
   onOpenProof,
   onProofOpenChange,
   onProofSubmit,
@@ -226,6 +229,8 @@ export function CommunityCampaignDetail({
   actionError: string | null;
   poolStats?: CampaignPoolStats | null;
   onJoin: () => void;
+  onJoinCommunity?: () => void;
+  joiningCommunity?: boolean;
   onOpenProof: (milestoneId: number) => void;
   onProofOpenChange: (open: boolean) => void;
   onProofSubmit: (imageUrl: string) => void;
@@ -428,6 +433,28 @@ export function CommunityCampaignDetail({
           </div>
         </div>
 
+        {/* Join community nudge — shown when authenticated but not yet a community member */}
+        {authenticated && !isCommunityMember && onJoinCommunity ? (
+          <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground">
+                Join the {communityName} community
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Get access to leaderboards, updates & more
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={joiningCommunity}
+              onClick={onJoinCommunity}
+              className="shrink-0 rounded-lg bg-delulu-blue px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {joiningCommunity ? "Joining…" : "Join"}
+            </button>
+          </div>
+        ) : null}
+
         {/* ════════════════════════════════════════════
             JOINED PATH — action-first layout
             ════════════════════════════════════════════ */}
@@ -494,7 +521,11 @@ export function CommunityCampaignDetail({
                 >
                   Milestones
                 </h2>
-                <span className="text-xs text-muted-foreground">+1,000 pts each</span>
+                {milestoneCount > 0 ? (
+                  <span className="text-xs font-semibold text-delulu-blue">
+                    {(completedCount * BASE_PROOF_POINTS).toLocaleString()} / {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                  </span>
+                ) : null}
               </div>
               <CommunityCampaignMilestoneList
                 milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
@@ -785,7 +816,11 @@ export function CommunityCampaignDetail({
                 >
                   Milestones
                 </h2>
-                <span className="text-xs text-muted-foreground">+1,000 pts each</span>
+                {milestoneCount > 0 ? (
+                  <span className="text-xs font-semibold text-delulu-blue">
+                    Earn up to {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                  </span>
+                ) : null}
               </div>
               <CommunityCampaignMilestoneList
                 milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
