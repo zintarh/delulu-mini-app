@@ -328,14 +328,6 @@ export function CommunityCampaignDetail({
 
             <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                    phaseClass,
-                  )}
-                >
-                  {phaseLabel}
-                </span>
                 {showPrizePool ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#1a1a19]">
                     <Trophy className="h-3 w-3" />
