@@ -565,6 +565,7 @@ export function CampaignDetailClient({
           </div>
 
           <CampaignMilestonesModal
+            key={milestonesAutoGenerate ? "ai" : "manual"}
             open={milestonesModalOpen}
             onOpenChange={(o) => {
               setMilestonesModalOpen(o);

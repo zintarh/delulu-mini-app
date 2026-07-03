@@ -110,7 +110,10 @@ export function CampaignMilestonesModal({
     [campaignTitle, maxDays],
   );
 
-  // Reset everything when modal opens
+  // Reset everything when modal opens or when the autoGenerate mode switches.
+  // Both open and autoGenerate are in deps because they change together in the
+  // same React batched update — adding autoGenerate prevents the stale-closure
+  // bug where the effect sees autoGenerate=false when open first becomes true.
   useEffect(() => {
     if (!open) return;
     reset();
@@ -138,7 +141,7 @@ export function CampaignMilestonesModal({
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, autoGenerate]);
 
   useEffect(() => {
     if (!isSuccess) return;
