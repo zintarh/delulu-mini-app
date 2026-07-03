@@ -29,6 +29,25 @@ Each title describes what the user should have done or achieved on that specific
 Day 1 is the start, day ${duration} is the finish. Show natural progression (early days = beginning, middle = building momentum, final days = completion/mastery).
 Return: { "titles": ["Day 1 title", "Day 2 title", ..., "Day ${count} title"] }`;
 
+// For interval-based generation: fixed checkpoint spacing, titles only.
+const INTERVAL_SYSTEM_PROMPT = `You are a practical milestone planner for community challenges.
+Given a goal and how many checkpoints to create, generate specific, action-oriented milestone titles.
+
+Rules:
+- Return only titles — durations are already determined by the interval.
+- Titles must describe what a participant should have done or achieved at that checkpoint (max 10 words each).
+- Be concrete and specific to the goal — avoid generic phrases like "Keep going" or "Stay consistent".
+- Show clear progression: early = starting/establishing, middle = building/executing, final = completing/achieving.
+
+Return ONLY valid JSON: { "titles": ["title1", "title2", ...] }`;
+
+const INTERVAL_USER_PROMPT = (goal: string, count: number, duration: number, intervalDays: number) =>
+  `Challenge goal: "${goal}" (${duration} days total, ${count} checkpoints — one every ${intervalDays} day${intervalDays > 1 ? "s" : ""})
+
+Generate ${count} milestone titles in order. Each title describes what the participant should have accomplished by that checkpoint.
+Make titles specific, action-oriented, and show clear progression from start to finish.
+Return: { "titles": ["checkpoint 1 title", ..., "checkpoint ${count} title"] }`;
+
 // For project goals: ask for titles + relative duration weights.
 const PROJECT_SYSTEM_PROMPT = `You are a practical milestone planner for project/outcome goals.
 Given a goal and duration, generate concrete checkpoints with a duration weight for each step.
@@ -73,8 +92,9 @@ function splitEven(count: number, total: number): number[] {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { goal, durationDays } = body;
+    const { goal, durationDays, intervalDays: rawInterval } = body;
     const duration = Math.max(1, Math.min(365, Number(durationDays) || 7));
+    const intervalDays = rawInterval ? Math.max(1, Math.min(duration, Number(rawInterval))) : null;
 
     if (!goal || typeof goal !== "string" || goal.trim().length < 3) {
       return errorResponse("A valid goal is required", 400);
@@ -83,67 +103,98 @@ export async function POST(req: NextRequest) {
       return errorResponse("AI service not configured", 503);
     }
 
-    const isHabit = HABIT_KEYWORDS.test(goal);
-    const count = getSmartMilestoneCount(isHabit, duration);
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: isHabit
-        ? [
-            { role: "system", content: HABIT_SYSTEM_PROMPT },
-            { role: "user", content: HABIT_USER_PROMPT(goal.trim(), count, duration) },
-          ]
-        : [
-            { role: "system", content: PROJECT_SYSTEM_PROMPT },
-            { role: "user", content: PROJECT_USER_PROMPT(goal.trim(), count, duration) },
-          ],
-      temperature: 0.6,
-      max_tokens: isHabit ? Math.max(500, count * 30) : 500,
-      response_format: { type: "json_object" },
-    });
-
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) return errorResponse("No response from AI", 502);
-
-    const parsed = JSON.parse(raw) as { titles?: string[]; milestones?: AiMilestone[] };
-
+    const effectiveGoal = goal.trim();
     let milestones: AiMilestone[];
 
-    if (isHabit) {
-      // Titles only — we assign perfectly even durations
-      const titles: string[] = (parsed.titles ?? [])
+    if (intervalDays) {
+      // Interval-controlled: we decide count and duration, AI provides titles only.
+      const count = Math.max(2, Math.floor(duration / intervalDays));
+      const lastDays = duration - (count - 1) * intervalDays;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: INTERVAL_SYSTEM_PROMPT },
+          { role: "user", content: INTERVAL_USER_PROMPT(effectiveGoal, count, duration, intervalDays) },
+        ],
+        temperature: 0.6,
+        max_tokens: Math.max(500, count * 40),
+        response_format: { type: "json_object" },
+      });
+
+      const raw = completion.choices[0]?.message?.content;
+      if (!raw) return errorResponse("No response from AI", 502);
+
+      const parsed = JSON.parse(raw) as { titles?: string[] };
+      const titles = (parsed.titles ?? [])
         .map((t) => String(t || "").slice(0, 80).trim())
         .filter(Boolean)
         .slice(0, count);
 
-      if (titles.length < 3) return errorResponse("Not enough titles from AI", 502);
+      if (titles.length < 2) return errorResponse("Not enough titles from AI", 502);
 
-      const durations = splitEven(titles.length, duration);
-      milestones = titles.map((title, i) => ({ title, days: durations[i] }));
+      milestones = titles.map((title, i) => ({
+        title,
+        days: i === titles.length - 1 ? Math.max(1, lastDays) : intervalDays,
+      }));
     } else {
-      // Project goal — use AI durations but normalize to exact total
-      const raw_milestones: AiMilestone[] = (parsed.milestones ?? [])
-        .map((m) => ({
-          title: String(m.title || "").slice(0, 80).trim(),
-          days: Math.max(1, Math.round(Number(m.days) || 1)),
-        }))
-        .filter((m) => m.title.length > 0)
-        .slice(0, count);
+      // Auto mode: detect habit vs project, let AI determine structure.
+      const isHabit = HABIT_KEYWORDS.test(effectiveGoal);
+      const count = getSmartMilestoneCount(isHabit, duration);
 
-      if (raw_milestones.length < 3) return errorResponse("Not enough milestones from AI", 502);
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: isHabit
+          ? [
+              { role: "system", content: HABIT_SYSTEM_PROMPT },
+              { role: "user", content: HABIT_USER_PROMPT(effectiveGoal, count, duration) },
+            ]
+          : [
+              { role: "system", content: PROJECT_SYSTEM_PROMPT },
+              { role: "user", content: PROJECT_USER_PROMPT(effectiveGoal, count, duration) },
+            ],
+        temperature: 0.6,
+        max_tokens: isHabit ? Math.max(500, count * 30) : 500,
+        response_format: { type: "json_object" },
+      });
 
-      // Normalize durations to sum exactly to `duration`
-      const totalRaw = raw_milestones.reduce((s, m) => s + m.days, 0);
-      let normalized = raw_milestones.map((m) =>
-        Math.max(1, Math.round((m.days / totalRaw) * duration))
-      );
-      // Fix rounding drift
-      let diff = duration - normalized.reduce((s, v) => s + v, 0);
-      for (let i = 0; diff !== 0; i = (i + 1) % normalized.length) {
-        if (diff > 0) { normalized[i]++; diff--; }
-        else if (diff < 0 && normalized[i] > 1) { normalized[i]--; diff++; }
+      const raw = completion.choices[0]?.message?.content;
+      if (!raw) return errorResponse("No response from AI", 502);
+
+      const parsed = JSON.parse(raw) as { titles?: string[]; milestones?: AiMilestone[] };
+
+      if (isHabit) {
+        const titles: string[] = (parsed.titles ?? [])
+          .map((t) => String(t || "").slice(0, 80).trim())
+          .filter(Boolean)
+          .slice(0, count);
+
+        if (titles.length < 3) return errorResponse("Not enough titles from AI", 502);
+
+        const durations = splitEven(titles.length, duration);
+        milestones = titles.map((title, i) => ({ title, days: durations[i] }));
+      } else {
+        const raw_milestones: AiMilestone[] = (parsed.milestones ?? [])
+          .map((m) => ({
+            title: String(m.title || "").slice(0, 80).trim(),
+            days: Math.max(1, Math.round(Number(m.days) || 1)),
+          }))
+          .filter((m) => m.title.length > 0)
+          .slice(0, count);
+
+        if (raw_milestones.length < 3) return errorResponse("Not enough milestones from AI", 502);
+
+        const totalRaw = raw_milestones.reduce((s, m) => s + m.days, 0);
+        let normalized = raw_milestones.map((m) =>
+          Math.max(1, Math.round((m.days / totalRaw) * duration))
+        );
+        let diff = duration - normalized.reduce((s, v) => s + v, 0);
+        for (let i = 0; diff !== 0; i = (i + 1) % normalized.length) {
+          if (diff > 0) { normalized[i]++; diff--; }
+          else if (diff < 0 && normalized[i] > 1) { normalized[i]--; diff++; }
+        }
+        milestones = raw_milestones.map((m, i) => ({ title: m.title, days: normalized[i] }));
       }
-      milestones = raw_milestones.map((m, i) => ({ title: m.title, days: normalized[i] }));
     }
 
     return jsonResponse({ milestones });
