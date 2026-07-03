@@ -126,10 +126,16 @@ export function ActiveCampaignsSection({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <p
-          className="text-[11px] font-black uppercase tracking-[0.16em] text-foreground/60"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          className="text-sm font-black uppercase tracking-[0.16em]"
+          style={{
+            fontFamily: "var(--font-manrope)",
+            background: "linear-gradient(135deg, #9a7b0a 0%, #f6c324 45%, #c8960a 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
         >
           {heading}
         </p>

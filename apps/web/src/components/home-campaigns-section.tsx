@@ -76,7 +76,7 @@ function DiscoverCampaignsSection({
   return (
     <div className="px-4 py-2">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
           You might also like
         </p>
         <Link
@@ -152,9 +152,10 @@ export function HomeCampaignsSection() {
 
   return (
     <>
-      <div className="px-4 py-2">
+      <div className="px-4 pt-4 pb-2">
         <ActiveCampaignsSection address={address} />
       </div>
+      <div className="mt-6" />
       <DiscoverCampaignsSection
         address={address}
         onJoin={openJoin}
