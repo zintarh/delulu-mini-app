@@ -148,6 +148,10 @@ export function CommunityCampaignMilestoneList({
                   <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
                     +{fmtPts(BASE_PROOF_POINTS)} pts ✓
                   </span>
+                ) : !isJoined ? (
+                  <span className="shrink-0 rounded-lg bg-delulu-blue-light px-2.5 py-1 text-[10px] font-black text-delulu-blue">
+                    +{fmtPts(BASE_PROOF_POINTS)} pts
+                  </span>
                 ) : isJoined ? (
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {canSubmit || submitting ? (
