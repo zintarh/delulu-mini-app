@@ -11,8 +11,11 @@ import { canDeleteDashboardCampaign, canEndDashboardCampaign } from "@/lib/dashb
 import {
   CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
+  LIVE_CAMERA_DURATION_MINUTES,
   type CampaignDurationDays,
   type PrizeWinnerCount,
+  type ProofType,
+  type LiveCameraDurationMinutes,
 } from "@/lib/community/campaign-types";
 import { CampaignCoverUpload } from "@/components/dashboard/campaign-cover-upload";
 import {
@@ -84,6 +87,13 @@ function CampaignSettingsForm({
   const [proofInstructions, setProofInstructions] = useState(
     campaign.proof_instructions ?? "",
   );
+  const [proofType, setProofType] = useState<ProofType>(
+    campaign.proof_type === "live_camera" ? "live_camera" : "screenshot",
+  );
+  const [liveCameraDurationMinutes, setLiveCameraDurationMinutes] =
+    useState<LiveCameraDurationMinutes>(
+      (Math.round((campaign.live_camera_duration_seconds ?? 60) / 60) as LiveCameraDurationMinutes) || 1,
+    );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,6 +103,10 @@ function CampaignSettingsForm({
     setDurationDays((campaign.duration_days as CampaignDurationDays) ?? 30);
     setPrizeWinnerCount((campaign.prize_winner_count as PrizeWinnerCount) ?? 10);
     setProofInstructions(campaign.proof_instructions ?? "");
+    setProofType(campaign.proof_type === "live_camera" ? "live_camera" : "screenshot");
+    setLiveCameraDurationMinutes(
+      (Math.round((campaign.live_camera_duration_seconds ?? 60) / 60) as LiveCameraDurationMinutes) || 1,
+    );
   }, [campaign]);
 
   const handleSave = async (e: FormEvent) => {
@@ -108,6 +122,9 @@ function CampaignSettingsForm({
               proofInstructions: proofInstructions.trim(),
               durationDays,
               prizeWinnerCount,
+              proofType,
+              liveCameraDurationMinutes:
+                proofType === "live_camera" ? liveCameraDurationMinutes : undefined,
             }
           : {}),
       });
@@ -140,6 +157,56 @@ function CampaignSettingsForm({
             />
           </DashboardField>
         ) : null}
+
+        <DashboardField label="Proof verification">
+          {canEditMetadata ? (
+            <>
+              <div className="flex gap-2">
+                {(["screenshot", "live_camera"] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setProofType(type)}
+                    className={cn(
+                      "flex-1 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
+                      proofType === type
+                        ? "border-delulu-blue bg-delulu-blue text-white"
+                        : "border-border bg-background text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    {type === "screenshot" ? "Screenshot upload" : "Live camera recording"}
+                  </button>
+                ))}
+              </div>
+              {proofType === "live_camera" ? (
+                <div className="mt-3 w-40">
+                  <DashboardField label="Recording length">
+                    <DashboardSelect
+                      value={liveCameraDurationMinutes}
+                      onChange={(e) =>
+                        setLiveCameraDurationMinutes(
+                          Number(e.target.value) as LiveCameraDurationMinutes,
+                        )
+                      }
+                    >
+                      {LIVE_CAMERA_DURATION_MINUTES.map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {minutes} minute{minutes > 1 ? "s" : ""}
+                        </option>
+                      ))}
+                    </DashboardSelect>
+                  </DashboardField>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-foreground">
+              {campaign.proof_type === "live_camera"
+                ? `Live camera recording (${Math.round((campaign.live_camera_duration_seconds ?? 60) / 60)} min)`
+                : "Screenshot upload"}
+            </p>
+          )}
+        </DashboardField>
 
         {canEditMetadata ? (
           <>
