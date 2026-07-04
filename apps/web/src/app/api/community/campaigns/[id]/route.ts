@@ -31,6 +31,7 @@ export async function GET(
       prize_winner_count, cover_image_url, created_at, updated_at,
       on_chain_challenge_id, telegram_link,
       is_free_to_join, join_token, join_amount, forfeit_pct,
+      proof_type, live_camera_duration_seconds,
       communities ( id, name, slug, description, created_by )
     `)
     .eq("id", id)
@@ -201,6 +202,9 @@ export async function GET(
       join_token: campaign.join_token ?? "G$",
       join_amount: campaign.join_amount ?? 0,
       forfeit_pct: campaign.forfeit_pct ?? 0,
+      proof_type: (campaign as { proof_type?: string }).proof_type ?? "screenshot",
+      live_camera_duration_seconds:
+        (campaign as { live_camera_duration_seconds?: number | null }).live_camera_duration_seconds ?? null,
       created_at: campaign.created_at,
       updated_at: campaign.updated_at,
       communities: communityRaw
