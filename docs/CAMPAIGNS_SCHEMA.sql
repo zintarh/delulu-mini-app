@@ -40,7 +40,7 @@ create table if not exists campaign_participants (
   points_total    integer not null default 0,
   current_streak  integer not null default 0,
   status          text not null default 'joined'
-                  check (status in ('joined', 'withdrawn')),
+                  check (status in ('joined', 'withdrawn', 'left')),
   joined_at       timestamptz not null default now(),
   unique (campaign_id, wallet_address)
 );
