@@ -26,6 +26,9 @@ export type CampaignJoinInfo = {
   participantCount?: number;
 };
 
+const JOIN_LIMIT_MESSAGE =
+  "You can only join 2 campaigns at a time. Complete your active campaigns to join another.";
+
 export function CampaignJoinModal({
   open,
   info,
@@ -34,6 +37,7 @@ export function CampaignJoinModal({
   joinError,
   insufficientBalance,
   userBalance,
+  atJoinLimit,
   onConfirm,
   onCancel,
 }: {
@@ -44,6 +48,7 @@ export function CampaignJoinModal({
   joinError?: string | null;
   insufficientBalance?: boolean;
   userBalance?: number;
+  atJoinLimit?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -149,7 +154,14 @@ export function CampaignJoinModal({
             </p>
           ) : null}
 
-          {insufficientBalance ? (
+          {atJoinLimit ? (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs font-semibold text-rose-600">
+                Campaign limit reached
+              </p>
+              <p className="mt-0.5 text-[11px] text-rose-500">{JOIN_LIMIT_MESSAGE}</p>
+            </div>
+          ) : insufficientBalance ? (
             <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
               <p className="text-xs font-semibold text-rose-600">
                 Insufficient balance
@@ -177,7 +189,7 @@ export function CampaignJoinModal({
             </button>
             <button
               type="button"
-              disabled={joining || !!insufficientBalance}
+              disabled={joining || !!insufficientBalance || !!atJoinLimit}
               onClick={onConfirm}
               className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >

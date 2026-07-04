@@ -185,20 +185,27 @@ export function CommunityCampaignPageClient() {
   const handleLeave = useCallback(async () => {
     if (!address) return;
     setLeaving(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/community/campaigns/${params.id}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ walletAddress: address }),
       });
-      if (res.ok) {
-        setIsJoined(false);
-        optimisticallyJoinedRef.current = false;
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setActionError(json.error ?? "Failed to leave campaign. Try again.");
+        return;
       }
+      setIsJoined(false);
+      optimisticallyJoinedRef.current = false;
+      void Promise.all([loadLeaderboard(), loadCampaign()]);
+    } catch {
+      setActionError("Failed to leave campaign. Try again.");
     } finally {
       setLeaving(false);
     }
-  }, [address, params.id]);
+  }, [address, params.id, loadLeaderboard, loadCampaign]);
 
   const handleProofSubmit = async (proofUrls: string[]) => {
     if (!address || activeMilestoneId == null) return;

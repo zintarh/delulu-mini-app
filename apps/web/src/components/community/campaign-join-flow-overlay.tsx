@@ -5,6 +5,9 @@ import type { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { resolveJoinTokenAddress } from "@/lib/community/join-token";
+import { useJoinedCampaignDashboard } from "@/hooks/use-user-campaign-milestones";
+
+const JOIN_LIMIT = 2;
 
 type JoinFlow = ReturnType<typeof useCampaignJoinFlow>;
 
@@ -29,6 +32,12 @@ export function CampaignJoinFlowOverlay({
   const { formatted: balanceFormatted, isLoading: isLoadingBalance } =
     useTokenBalance(tokenAddress);
 
+  const { data: joinedCampaigns } = useJoinedCampaignDashboard(address);
+  const joinedCount = (joinedCampaigns ?? []).filter(
+    (c) => c.campaign_id !== flow.pendingCampaignId,
+  ).length;
+  const atJoinLimit = joinedCount >= JOIN_LIMIT;
+
   const joinAmount = flow.joinInfo?.joinAmount ?? 0;
   const isFreeToJoin = flow.joinInfo?.isFreeToJoin ?? true;
   const insufficientBalance =
@@ -48,6 +57,7 @@ export function CampaignJoinFlowOverlay({
       joinError={flow.joinError}
       insufficientBalance={insufficientBalance}
       userBalance={isLoadingBalance ? undefined : Number(balanceFormatted)}
+      atJoinLimit={atJoinLimit}
       onConfirm={() => {
         if (!address) return;
         void flow.confirmJoin(address, {

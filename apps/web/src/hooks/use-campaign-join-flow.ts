@@ -66,7 +66,8 @@ export function useCampaignJoinFlow() {
         setPendingCampaignId(null);
         setJoinInfo(null);
       } catch (err) {
-        const raw = (err instanceof Error ? err.message : String(err)).toLowerCase();
+        const message = err instanceof Error ? err.message : String(err);
+        const raw = message.toLowerCase();
         const isUserRejection =
           raw.includes("user rejected") ||
           raw.includes("user denied") ||
@@ -83,7 +84,7 @@ export function useCampaignJoinFlow() {
             ? "Transaction cancelled."
             : isWalletError
               ? "Wallet not ready — please retry or reconnect your wallet."
-              : "Something went wrong. Please try again.",
+              : message || "Something went wrong. Please try again.",
         );
         setApprovalStep(false);
       } finally {

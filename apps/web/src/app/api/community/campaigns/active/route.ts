@@ -50,16 +50,18 @@ export async function GET(request: NextRequest) {
 
   const countMap = new Map<string, number>();
   const joinedSet = new Set<string>();
+  const leftSet = new Set<string>();
 
   if (address && campaignIds.length > 0) {
-    const { data: joinedRows } = await admin
+    const { data: participantRows } = await admin
       .from("campaign_participants")
-      .select("campaign_id")
+      .select("campaign_id, status")
       .in("campaign_id", campaignIds)
       .eq("wallet_address", address)
-      .eq("status", "joined");
-    for (const row of joinedRows ?? []) {
-      joinedSet.add(row.campaign_id);
+      .in("status", ["joined", "left"]);
+    for (const row of participantRows ?? []) {
+      if (row.status === "left") leftSet.add(row.campaign_id);
+      else joinedSet.add(row.campaign_id);
     }
   }
 
@@ -102,7 +104,9 @@ export async function GET(request: NextRequest) {
   if (address) {
     for (const challengeId of graphJoinedIds) {
       const campaignId = challengeIdToCampaignId.get(challengeId);
-      if (campaignId) joinedSet.add(campaignId);
+      // A user who explicitly left stays hidden even though the subgraph still
+      // reflects their on-chain join — there's no on-chain "leave" transaction.
+      if (campaignId && !leftSet.has(campaignId)) joinedSet.add(campaignId);
     }
   }
 

@@ -60,10 +60,26 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const onChainCampaigns = await fetchJoinedCampaignDashboardFromGraph(
+  const rawOnChainCampaigns = await fetchJoinedCampaignDashboardFromGraph(
     address,
     challengeIdToCampaign,
   );
+
+  // The subgraph reflects on-chain join state, which has no "leave" event —
+  // a user who explicitly left (campaign_participants.status = "left") should
+  // drop off this list even though they're still enrolled on-chain.
+  const onChainCampaignIds = rawOnChainCampaigns.map((c) => c.campaign_id);
+  const { data: leftRows } =
+    onChainCampaignIds.length > 0
+      ? await admin
+          .from("campaign_participants")
+          .select("campaign_id")
+          .eq("wallet_address", address)
+          .eq("status", "left")
+          .in("campaign_id", onChainCampaignIds)
+      : { data: [] };
+  const leftOnChainIds = new Set((leftRows ?? []).map((r) => r.campaign_id));
+  const onChainCampaigns = rawOnChainCampaigns.filter((c) => !leftOnChainIds.has(c.campaign_id));
 
   // ── 2. Off-chain (pre-launch) campaigns — milestones from Supabase ───────
   // Campaigns without an on_chain_challenge_id are joined via campaign_participants,

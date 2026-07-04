@@ -75,6 +75,19 @@ export async function GET(
       const joined = await isJoinedCommunityCampaignOnGraph(challengeId, address);
       isJoined = joined.joined;
       myPoints = joined.pointsTotal;
+
+      // The subgraph reflects on-chain join state, which has no "leave" event —
+      // a user who explicitly left (campaign_participants.status = "left") should
+      // stay hidden from this campaign even though they're still enrolled on-chain.
+      if (isJoined) {
+        const { data: participant } = await admin
+          .from("campaign_participants")
+          .select("status")
+          .eq("campaign_id", id)
+          .eq("wallet_address", address)
+          .maybeSingle();
+        if (participant?.status === "left") isJoined = false;
+      }
     }
   } else {
     const [participantsResult, milestonesResult] = await Promise.all([
