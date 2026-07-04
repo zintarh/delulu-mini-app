@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
-import { parseDurationDays, parsePrizeWinnerCount } from "@/lib/community/campaign-types";
+import {
+  parseDurationDays,
+  parsePrizeWinnerCount,
+  parseProofType,
+  parseLiveCameraDurationSeconds,
+} from "@/lib/community/campaign-types";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +27,8 @@ export type DashboardCampaign = {
   duration_days: number;
   prize_winner_count: number;
   cover_image_url: string | null;
+  proof_type: string;
+  live_camera_duration_seconds: number | null;
   created_at: string;
   updated_at: string;
   community?: { id: string; name: string; slug: string } | null;
@@ -46,6 +53,9 @@ function normalizeCampaign(row: Record<string, unknown>): DashboardCampaign {
     duration_days: Number(row.duration_days ?? 30),
     prize_winner_count: Number(row.prize_winner_count ?? 10),
     cover_image_url: (row.cover_image_url as string | null) ?? null,
+    proof_type: String(row.proof_type ?? "screenshot"),
+    live_camera_duration_seconds:
+      row.live_camera_duration_seconds != null ? Number(row.live_camera_duration_seconds) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     community: row.communities as DashboardCampaign["community"],
@@ -59,6 +69,7 @@ const CAMPAIGN_SELECT = `
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
   display_ends_at, duration_days, prize_winner_count, cover_image_url,
   is_free_to_join, join_token, join_amount, forfeit_pct,
+  proof_type, live_camera_duration_seconds,
   created_at, updated_at,
   communities ( id, name, slug )
 `;
@@ -114,6 +125,9 @@ export async function POST(request: NextRequest) {
   const proofInstructions = String(body.proofInstructions ?? "").trim() || null;
   const durationDays = parseDurationDays(body.durationDays);
   const prizeWinnerCount = parsePrizeWinnerCount(body.prizeWinnerCount);
+  const proofType = parseProofType(body.proofType);
+  const liveCameraDurationSeconds =
+    proofType === "live_camera" ? parseLiveCameraDurationSeconds(body.liveCameraDurationMinutes) : null;
   const coverImageUrl =
     body.coverImageUrl != null && String(body.coverImageUrl).trim()
       ? String(body.coverImageUrl).trim()
@@ -168,6 +182,8 @@ export async function POST(request: NextRequest) {
       duration_days: durationDays,
       prize_winner_count: prizeWinnerCount,
       cover_image_url: coverImageUrl,
+      proof_type: proofType,
+      live_camera_duration_seconds: liveCameraDurationSeconds,
       is_free_to_join: isFreeToJoin,
       join_token: joinToken,
       join_amount: joinAmount,

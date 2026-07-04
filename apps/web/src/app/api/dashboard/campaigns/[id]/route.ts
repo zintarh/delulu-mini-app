@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
-import { parseDurationDays, parsePrizeWinnerCount } from "@/lib/community/campaign-types";
+import {
+  parseDurationDays,
+  parsePrizeWinnerCount,
+  parseProofType,
+  parseLiveCameraDurationSeconds,
+} from "@/lib/community/campaign-types";
 import { canDeleteDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import { fetchCommunityCampaignLeaderboardFromGraph } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
@@ -15,6 +20,7 @@ const CAMPAIGN_DETAIL_SELECT = `
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
   display_ends_at, duration_days, prize_winner_count, cover_image_url,
   is_free_to_join, join_token, join_amount, forfeit_pct,
+  proof_type, live_camera_duration_seconds,
   rejection_reason, approved_at, created_at, updated_at,
   communities ( id, name, slug, member_invite_code )
 `;
@@ -107,7 +113,7 @@ export async function PATCH(
 
   const { data: existing, error: fetchError } = await admin
     .from("community_campaigns")
-    .select("id, community_id, status")
+    .select("id, community_id, status, proof_type")
     .eq("id", id)
     .maybeSingle();
 
@@ -162,12 +168,24 @@ export async function PATCH(
       updates.prize_winner_count = parsePrizeWinnerCount(body.prizeWinnerCount);
       metadataEdited = true;
     }
+    if (body.proofType !== undefined || body.liveCameraDurationMinutes !== undefined) {
+      const effectiveProofType =
+        body.proofType !== undefined ? parseProofType(body.proofType) : parseProofType(existing.proof_type);
+      updates.proof_type = effectiveProofType;
+      updates.live_camera_duration_seconds =
+        effectiveProofType === "live_camera"
+          ? parseLiveCameraDurationSeconds(body.liveCameraDurationMinutes)
+          : null;
+      metadataEdited = true;
+    }
   } else if (
     body.title !== undefined ||
     body.proofCadence !== undefined ||
     body.proofInstructions !== undefined ||
     body.durationDays !== undefined ||
-    body.prizeWinnerCount !== undefined
+    body.prizeWinnerCount !== undefined ||
+    body.proofType !== undefined ||
+    body.liveCameraDurationMinutes !== undefined
   ) {
     return NextResponse.json(
       { error: "Only draft, rejected or pending campaigns can edit metadata" },

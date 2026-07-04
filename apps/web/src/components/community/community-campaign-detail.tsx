@@ -17,11 +17,14 @@ import {
   Users,
 } from "lucide-react";
 import { ProofModal } from "@/components/proof-modal";
+import { LiveCameraProofModal } from "@/components/live-camera-proof-modal";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { cn, formatAddress } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { useUserStore } from "@/stores/useUserStore";
+import { useIsMobileDevice } from "@/lib/device";
 import {
   formatMilestoneOpensAt,
   getActiveMilestone,
@@ -36,6 +39,8 @@ export type CommunityCampaignDetailData = {
   description: string | null;
   proof_instructions: string | null;
   proof_cadence: string;
+  proof_type?: string;
+  live_camera_duration_seconds?: number | null;
   proposed_pool_amount: number;
   cover_image_url: string | null;
   status: string;
@@ -204,10 +209,11 @@ export function CommunityCampaignDetail({
   leaving?: boolean;
   onOpenProof: (milestoneId: number) => void;
   onProofOpenChange: (open: boolean) => void;
-  onProofSubmit: (imageUrl: string) => void;
+  onProofSubmit: (proofUrls: string[]) => void;
   onProofDone: () => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const isMobileDevice = useIsMobileDevice();
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -1060,29 +1066,85 @@ export function CommunityCampaignDetail({
       </main>
 
 
-      <ProofModal
-        open={proofOpen}
-        onOpenChange={onProofOpenChange}
-        onSubmit={onProofSubmit}
-        isSubmitting={proofBusy}
-        submitSuccess={proofSuccess}
-        submitError={proofError ? new Error(proofError) : null}
-        onDone={onProofDone}
-        proofInstructions={campaign.proof_instructions}
-        isOnChain={campaign.on_chain_challenge_id != null}
-        proofStep={proofStep}
-        milestoneName={activeMilestone?.label ?? null}
-        milestoneDeadline={activeMilestone?.deadline ?? null}
-        campaignTitle={campaign.title}
-        communityName={campaign.communities?.name ?? null}
-        myUsername={myUsername}
-        myAvatar={myAvatar}
-        myStreak={myStreak}
-        myPoints={myPoints}
-        milestoneIndex={activeMilestoneIndex ?? undefined}
-        milestoneCount={milestoneCount}
-        shareUrl={campaignShareUrl}
-      />
+      {campaign.proof_type === "live_camera" ? (
+        isMobileDevice ? (
+          <LiveCameraProofModal
+            open={proofOpen}
+            onOpenChange={onProofOpenChange}
+            onSubmit={onProofSubmit}
+            durationSeconds={campaign.live_camera_duration_seconds ?? 60}
+            isSubmitting={proofBusy}
+            submitSuccess={proofSuccess}
+            submitError={proofError ? new Error(proofError) : null}
+            onDone={onProofDone}
+            proofInstructions={campaign.proof_instructions}
+            isOnChain={campaign.on_chain_challenge_id != null}
+            proofStep={proofStep}
+            milestoneName={activeMilestone?.label ?? null}
+            milestoneDeadline={activeMilestone?.deadline ?? null}
+            campaignTitle={campaign.title}
+            communityName={campaign.communities?.name ?? null}
+            myUsername={myUsername}
+            myAvatar={myAvatar}
+            myStreak={myStreak}
+            myPoints={myPoints}
+            milestoneIndex={activeMilestoneIndex ?? undefined}
+            milestoneCount={milestoneCount}
+            shareUrl={campaignShareUrl}
+          />
+        ) : (
+          <ResponsiveSheet
+            open={proofOpen}
+            onOpenChange={(next) => {
+              if (!next) onProofDone();
+              onProofOpenChange(next);
+            }}
+            title="Use your phone"
+            sheetClassName="rounded-t-3xl pb-14"
+            modalClassName="max-w-sm"
+          >
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                This campaign requires a live camera recording. Open this page on your phone to submit proof.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onProofOpenChange(false);
+                  onProofDone();
+                }}
+                className="mt-2 h-11 w-full rounded-full border border-border bg-background text-sm font-bold text-foreground transition-colors hover:bg-muted"
+              >
+                Got it
+              </button>
+            </div>
+          </ResponsiveSheet>
+        )
+      ) : (
+        <ProofModal
+          open={proofOpen}
+          onOpenChange={onProofOpenChange}
+          onSubmit={(url) => onProofSubmit([url])}
+          isSubmitting={proofBusy}
+          submitSuccess={proofSuccess}
+          submitError={proofError ? new Error(proofError) : null}
+          onDone={onProofDone}
+          proofInstructions={campaign.proof_instructions}
+          isOnChain={campaign.on_chain_challenge_id != null}
+          proofStep={proofStep}
+          milestoneName={activeMilestone?.label ?? null}
+          milestoneDeadline={activeMilestone?.deadline ?? null}
+          campaignTitle={campaign.title}
+          communityName={campaign.communities?.name ?? null}
+          myUsername={myUsername}
+          myAvatar={myAvatar}
+          myStreak={myStreak}
+          myPoints={myPoints}
+          milestoneIndex={activeMilestoneIndex ?? undefined}
+          milestoneCount={milestoneCount}
+          shareUrl={campaignShareUrl}
+        />
+      )}
     </>
   );
 }

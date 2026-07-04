@@ -18,6 +18,8 @@ export type DashboardCampaign = {
   duration_days: number;
   prize_winner_count: number;
   cover_image_url: string | null;
+  proof_type: string;
+  live_camera_duration_seconds: number | null;
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
@@ -92,6 +94,8 @@ export function useCreateCampaign(communityId: string) {
       durationDays?: number;
       prizeWinnerCount?: number;
       coverImageUrl?: string | null;
+      proofType?: "screenshot" | "live_camera";
+      liveCameraDurationMinutes?: number;
       submit?: boolean;
       isFreeToJoin?: boolean;
       joinToken?: string;
@@ -194,6 +198,8 @@ export function useUpdateCampaign(id: string) {
       durationDays?: number;
       prizeWinnerCount?: number;
       coverImageUrl?: string | null;
+      proofType?: "screenshot" | "live_camera";
+      liveCameraDurationMinutes?: number;
     }) => {
       const res = await fetch(`/api/dashboard/campaigns/${id}`, {
         method: "PATCH",

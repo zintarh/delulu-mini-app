@@ -6,8 +6,11 @@ import { cn } from "@/lib/utils";
 import {
   CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
+  LIVE_CAMERA_DURATION_MINUTES,
   type CampaignDurationDays,
   type PrizeWinnerCount,
+  type ProofType,
+  type LiveCameraDurationMinutes,
 } from "@/lib/community/campaign-types";
 import { CampaignCoverUpload } from "@/components/dashboard/campaign-cover-upload";
 import {
@@ -42,6 +45,9 @@ export function CreateCampaignModal({
   const [cadence, setCadence] = useState<"daily" | "weekly">("daily");
   const [durationDays, setDurationDays] = useState<CampaignDurationDays>(30);
   const [prizeWinnerCount, setPrizeWinnerCount] = useState<PrizeWinnerCount>(10);
+  const [proofType, setProofType] = useState<ProofType>("screenshot");
+  const [liveCameraDurationMinutes, setLiveCameraDurationMinutes] =
+    useState<LiveCameraDurationMinutes>(1);
 
   // Telegram
   const [telegramLink, setTelegramLink] = useState("");
@@ -57,6 +63,7 @@ export function CreateCampaignModal({
   const reset = () => {
     setTitle(""); setDescription(""); setCoverImageUrl(null); setProofInstructions("");
     setCadence("daily"); setDurationDays(30); setPrizeWinnerCount(10);
+    setProofType("screenshot"); setLiveCameraDurationMinutes(1);
     setIsFree(true); setJoinToken("G$"); setJoinAmount(""); setForfeitPct(0);
     setTelegramLink("");
     setError(null);
@@ -75,6 +82,8 @@ export function CreateCampaignModal({
         durationDays,
         prizeWinnerCount,
         coverImageUrl,
+        proofType,
+        liveCameraDurationMinutes: proofType === "live_camera" ? liveCameraDurationMinutes : undefined,
         submit: forApproval,
         isFreeToJoin: isFree,
         joinToken: isFree ? undefined : joinToken,
@@ -163,6 +172,44 @@ export function CreateCampaignModal({
             onChange={(e) => setProofInstructions(e.target.value)}
             placeholder="Upload a screenshot of your step count or fitness app."
           />
+        </DashboardField>
+
+        <DashboardField label="Proof type">
+          <div className="flex gap-2">
+            {(["screenshot", "live_camera"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setProofType(type)}
+                className={cn(
+                  "flex-1 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
+                  proofType === type
+                    ? "border-delulu-blue bg-delulu-blue text-white"
+                    : "border-border bg-background text-foreground hover:bg-muted/50",
+                )}
+              >
+                {type === "screenshot" ? "Screenshot upload" : "Live camera recording"}
+              </button>
+            ))}
+          </div>
+          {proofType === "live_camera" ? (
+            <div className="mt-3 w-40">
+              <DashboardField label="Recording length">
+                <DashboardSelect
+                  value={liveCameraDurationMinutes}
+                  onChange={(e) =>
+                    setLiveCameraDurationMinutes(Number(e.target.value) as LiveCameraDurationMinutes)
+                  }
+                >
+                  {LIVE_CAMERA_DURATION_MINUTES.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {minutes} minute{minutes > 1 ? "s" : ""}
+                    </option>
+                  ))}
+                </DashboardSelect>
+              </DashboardField>
+            </div>
+          ) : null}
         </DashboardField>
 
         <DashboardField label="Telegram group link (optional)">

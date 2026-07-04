@@ -49,7 +49,7 @@ type ProofStep = "ai-verifying" | "wallet-sign" | "confirming";
 export async function submitCommunityProofWithWallet(input: {
   campaignId: string;
   walletAddress: string;
-  proofUrl: string;
+  proofUrls: string[];
   milestoneId: number;
   submitOnChain: (
     challengeId: number | bigint,
@@ -64,7 +64,7 @@ export async function submitCommunityProofWithWallet(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       walletAddress: input.walletAddress,
-      proofUrl: input.proofUrl,
+      proofUrls: input.proofUrls,
       milestoneId: input.milestoneId,
     }),
   });
@@ -75,7 +75,8 @@ export async function submitCommunityProofWithWallet(input: {
 
   if (json.requiresOnChain && json.challengeId != null) {
     input.onStepChange?.("wallet-sign");
-    await input.submitOnChain(json.challengeId, json.milestoneId, input.proofUrl);
+    const canonicalProofUrl = json.proofUrl ?? input.proofUrls[0];
+    await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
     input.onStepChange?.("confirming");
     await waitForMilestoneCompletionInGraph(
       json.challengeId,

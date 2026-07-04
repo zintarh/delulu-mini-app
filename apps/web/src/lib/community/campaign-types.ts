@@ -4,6 +4,23 @@ export type PrizeWinnerCount = (typeof PRIZE_WINNER_COUNTS)[number];
 export const CAMPAIGN_DURATION_OPTIONS = [7, 14, 30, 60] as const;
 export type CampaignDurationDays = (typeof CAMPAIGN_DURATION_OPTIONS)[number];
 
+export const PROOF_TYPES = ["screenshot", "live_camera"] as const;
+export type ProofType = (typeof PROOF_TYPES)[number];
+
+export const LIVE_CAMERA_DURATION_MINUTES = [1, 2, 3, 4, 5] as const;
+export type LiveCameraDurationMinutes = (typeof LIVE_CAMERA_DURATION_MINUTES)[number];
+
+export function parseProofType(value: unknown): ProofType {
+  return value === "live_camera" ? "live_camera" : "screenshot";
+}
+
+// Accepts minutes (1-5); returns seconds, defaulting to 60 (1 minute) for invalid input.
+export function parseLiveCameraDurationSeconds(value: unknown): number {
+  const n = Number(value);
+  const minutes = (LIVE_CAMERA_DURATION_MINUTES as readonly number[]).includes(n) ? n : 1;
+  return minutes * 60;
+}
+
 export const PARTICIPATING_STATUSES = ["approved", "active"] as const;
 export type ParticipatingCampaignStatus = (typeof PARTICIPATING_STATUSES)[number];
 
@@ -56,6 +73,8 @@ export type CommunityCampaignFeedItem = {
   join_amount?: number | null;
   forfeit_pct?: number | null;
   proof_instructions?: string | null;
+  proof_type?: string;
+  live_camera_duration_seconds?: number | null;
   myStreak?: number;
   myPoints?: number;
   milestone_count?: number;

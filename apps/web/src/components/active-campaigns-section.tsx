@@ -95,7 +95,7 @@ export function ActiveCampaignsSection({
       await submitCommunityProofWithWallet({
         campaignId: activeProof.campaignId,
         walletAddress: address,
-        proofUrl: imageUrl,
+        proofUrls: [imageUrl],
         milestoneId: activeProof.milestoneId,
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
       });

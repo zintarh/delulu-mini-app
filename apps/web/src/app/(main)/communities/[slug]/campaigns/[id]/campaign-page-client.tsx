@@ -200,7 +200,7 @@ export function CommunityCampaignPageClient() {
     }
   }, [address, params.id]);
 
-  const handleProofSubmit = async (imageUrl: string) => {
+  const handleProofSubmit = async (proofUrls: string[]) => {
     if (!address || activeMilestoneId == null) return;
     setProofBusy(true);
     setProofError(null);
@@ -209,7 +209,7 @@ export function CommunityCampaignPageClient() {
       const result = await submitCommunityProofWithWallet({
         campaignId: params.id,
         walletAddress: address,
-        proofUrl: imageUrl,
+        proofUrls,
         milestoneId: activeMilestoneId,
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
         onStepChange: setProofStep,

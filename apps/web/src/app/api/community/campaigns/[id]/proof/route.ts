@@ -18,20 +18,24 @@ export async function POST(
   const { id: campaignId } = await params;
   const body = await request.json().catch(() => ({}));
   const walletAddress = String(body.walletAddress ?? "").trim().toLowerCase();
-  const proofUrl = String(body.proofUrl ?? "").trim();
+  const proofUrls = Array.isArray(body.proofUrls)
+    ? body.proofUrls.map((u: unknown) => String(u).trim()).filter(Boolean)
+    : [];
   const milestoneIdRaw = body.milestoneId;
   const milestoneId =
     milestoneIdRaw != null && milestoneIdRaw !== "" ? Number(milestoneIdRaw) : null;
 
   if (!walletAddress) return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
-  if (!proofUrl) return NextResponse.json({ error: "proofUrl is required" }, { status: 400 });
+  if (proofUrls.length === 0) return NextResponse.json({ error: "proofUrls is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, community_id, status, title, proof_instructions, proof_cadence, display_ends_at, on_chain_challenge_id")
+    .select(
+      "id, community_id, status, title, proof_instructions, proof_cadence, display_ends_at, on_chain_challenge_id, proof_type",
+    )
     .eq("id", campaignId)
     .maybeSingle();
 
@@ -77,10 +81,21 @@ export async function POST(
     );
   }
 
+  const isLiveCamera = campaign.proof_type === "live_camera";
+  if (isLiveCamera && proofUrls.length < 2) {
+    return NextResponse.json(
+      { error: "At least 2 frames are required for live camera proof." },
+      { status: 400 },
+    );
+  }
+  if (!isLiveCamera && proofUrls.length !== 1) {
+    return NextResponse.json({ error: "Exactly one proof image is required." }, { status: 400 });
+  }
+
   let verdict;
   try {
     verdict = await verifyImageProof({
-      imageUrl: proofUrl,
+      imageUrl: isLiveCamera ? proofUrls : proofUrls[0],
       goal: campaign.title,
       milestone: milestone.label,
     });
@@ -104,5 +119,6 @@ export async function POST(
     challengeId,
     milestoneId,
     reason: verdict.reason,
+    proofUrl: proofUrls[0],
   });
 }

@@ -35,12 +35,13 @@ Tone: second person, one sentence only. Never mention AI or technical systems.
 Return ONLY valid JSON:
 {"verified": true | false, "reason": "one sentence"}`;
 
-function userPrompt(goal: string, milestone?: string) {
+function userPrompt(goal: string, milestone?: string, imageCount = 1) {
   const lines: string[] = [`Goal: "${goal}"`];
   if (milestone && milestone !== goal) lines.push(`Current step: "${milestone}"`);
+  const subject = imageCount > 1 ? "these images (frames from a short recording)" : "this image";
   lines.push(
     "",
-    "Look at this image. Is there any connection — even loose or indirect — between what you see and this goal?",
+    `Look at ${subject}. Is there any connection — even loose or indirect — between what you see and this goal?`,
     "",
     'Return exactly: {"verified": true | false, "reason": "one sentence in second person"}',
   );
@@ -57,13 +58,16 @@ async function toDataUri(url: string): Promise<string> {
 }
 
 export async function verifyImageProof(input: {
-  imageUrl: string;
+  imageUrl: string | string[];
   goal: string;
   milestone?: string;
 }): Promise<VerifyImageProofResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("AI service not configured");
   }
+
+  const urls = Array.isArray(input.imageUrl) ? input.imageUrl : [input.imageUrl];
+  if (urls.length === 0) throw new Error("At least one image is required");
 
   const rawGoal = input.goal.trim();
   const rawMilestone = (input.milestone ?? "").trim();
@@ -79,7 +83,7 @@ export async function verifyImageProof(input: {
   if (!goal) throw new Error("A valid goal description is required");
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const imagePayload = await toDataUri(input.imageUrl);
+  const imagePayloads = await Promise.all(urls.map((url) => toDataUri(url)));
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -88,8 +92,11 @@ export async function verifyImageProof(input: {
       {
         role: "user",
         content: [
-          { type: "image_url", image_url: { url: imagePayload, detail: "auto" } },
-          { type: "text", text: userPrompt(goal, readableMilestone || undefined) },
+          ...imagePayloads.map((payload) => ({
+            type: "image_url" as const,
+            image_url: { url: payload, detail: "auto" as const },
+          })),
+          { type: "text", text: userPrompt(goal, readableMilestone || undefined, imagePayloads.length) },
         ],
       },
     ],
