@@ -87,7 +87,7 @@ export function CampaignMilestonesModal({
         goal: goal || campaignTitle,
         durationDays: maxDays,
       };
-      if (intervalDays && intervalDays > 1) body.intervalDays = intervalDays;
+      if (intervalDays) body.intervalDays = intervalDays;
 
       const res = await fetch("/api/ai/milestones", {
         method: "POST",
