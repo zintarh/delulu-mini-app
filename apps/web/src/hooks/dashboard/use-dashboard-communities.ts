@@ -90,6 +90,56 @@ export function useCreateCommunity() {
   });
 }
 
+export function useUpdateCommunity(communityId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { name?: string; description?: string }) => {
+      const res = await fetch(`/api/dashboard/communities/${communityId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? "Failed to update community");
+      }
+      return normalizeCommunity(json.community);
+    },
+    onSuccess: (community) => {
+      queryClient.setQueryData<DashboardCommunity[]>(
+        dashboardCommunityKeys.list(),
+        (current) => current?.map((c) => (c.id === community.id ? community : c)) ?? current,
+      );
+      void queryClient.invalidateQueries({ queryKey: dashboardCommunityKeys.list() });
+    },
+  });
+}
+
+export function useDeleteCommunity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (communityId: string) => {
+      const res = await fetch(`/api/dashboard/communities/${communityId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? "Failed to delete community");
+      }
+      return communityId;
+    },
+    onSuccess: (communityId) => {
+      queryClient.setQueryData<DashboardCommunity[]>(
+        dashboardCommunityKeys.list(),
+        (current) => current?.filter((c) => c.id !== communityId) ?? current,
+      );
+      void queryClient.invalidateQueries({ queryKey: dashboardCommunityKeys.list() });
+    },
+  });
+}
+
 export function useInviteSubAdmin(communityId: string) {
   return useMutation({
     mutationFn: async (email: string) => {

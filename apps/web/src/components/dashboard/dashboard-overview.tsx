@@ -299,19 +299,6 @@ export function DashboardOverview() {
               <span className="text-xs font-bold text-delulu-blue">Open →</span>
             </Link>
           ) : null}
-          {(platform?.campaigns.pendingApproval ?? 0) > 0 ? (
-            <Link
-              href="/dashboard/approvals"
-              className="flex items-center justify-between rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-foreground hover:bg-violet-50/80 sm:col-span-2"
-            >
-              <span className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-violet-600" />
-                {platform!.campaigns.pendingApproval} campaign
-                {platform!.campaigns.pendingApproval === 1 ? "" : "s"} awaiting approval
-              </span>
-              <span className="text-xs font-bold text-violet-700">Approvals →</span>
-            </Link>
-          ) : null}
         </div>
       )}
 
@@ -499,8 +486,6 @@ export function DashboardOverview() {
             badge={stats.pendingMilestones}
           />
           <DashboardNavCard href="/dashboard/markets" icon={Target} label="Goals" />
-          <DashboardNavCard href="/dashboard/approvals" icon={Clock} label="Approvals" badge={platform?.campaigns.pendingApproval} />
-          <DashboardNavCard href="/dashboard/funding" icon={Wallet} label="Funding" />
           <DashboardNavCard href="/dashboard/broadcasts" icon={Megaphone} label="Broadcasts" />
           <DashboardNavCard href="/dashboard/users" icon={Users} label="Users" />
           <DashboardNavCard

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Copy,
   UserPlus,
@@ -15,6 +16,8 @@ import {
   X,
   Wallet,
   ExternalLink,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { CommunityMembersPanel } from "@/components/dashboard/community-members-panel";
 import { buildSignInWithCommunityUrl } from "@/lib/auth-redirect";
@@ -45,6 +48,8 @@ import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-moda
 import { ApproveCampaignModal } from "@/components/dashboard/approve-campaign-modal";
 import { RejectCampaignModal } from "@/components/dashboard/reject-campaign-modal";
 import { FundCampaignModal } from "@/components/dashboard/fund-campaign-modal";
+import { EditCommunityModal } from "@/components/dashboard/edit-community-modal";
+import { DeleteCommunityModal } from "@/components/dashboard/delete-community-modal";
 import { useDashboardCampaigns, type DashboardCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { isCampaignParticipatable } from "@/lib/community/campaign-types";
 
@@ -174,7 +179,7 @@ function ActionButtons({
 }
 
 export function CommunityDetailClient({
-  community,
+  community: initialCommunity,
   memberStats,
   isPlatformAdmin,
   communityId,
@@ -184,6 +189,8 @@ export function CommunityDetailClient({
   isPlatformAdmin: boolean;
   communityId: string;
 }) {
+  const router = useRouter();
+  const [community, setCommunity] = useState<Community>(initialCommunity);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HubTab>("campaigns");
@@ -191,6 +198,8 @@ export function CommunityDetailClient({
   const [approveTarget, setApproveTarget] = useState<DashboardCampaign | null>(null);
   const [rejectTarget, setRejectTarget] = useState<{ id: string; title: string } | null>(null);
   const [fundTarget, setFundTarget] = useState<DashboardCampaign | null>(null);
+  const [editCommunityOpen, setEditCommunityOpen] = useState(false);
+  const [deleteCommunityOpen, setDeleteCommunityOpen] = useState(false);
 
   const { show } = useDashboardToast();
   const { data: campaigns = [], isLoading, refetch } = useDashboardCampaigns({ communityId });
@@ -247,10 +256,22 @@ export function CommunityDetailClient({
             Create campaign
           </DashboardPrimaryButton>
           {isPlatformAdmin ? (
-            <DashboardPrimaryButton onClick={() => setInviteOpen(true)}>
-              <UserPlus className="h-4 w-4" />
-              Invite
-            </DashboardPrimaryButton>
+            <>
+              <DashboardPrimaryButton onClick={() => setInviteOpen(true)}>
+                <UserPlus className="h-4 w-4" />
+                Invite
+              </DashboardPrimaryButton>
+              <DashboardIconButton title="Edit community" onClick={() => setEditCommunityOpen(true)}>
+                <Pencil className="h-4 w-4" />
+              </DashboardIconButton>
+              <DashboardIconButton
+                title="Delete community"
+                onClick={() => setDeleteCommunityOpen(true)}
+                className="text-red-500 hover:border-red-200 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </DashboardIconButton>
+            </>
           ) : null}
         </div>
       </div>
@@ -411,6 +432,28 @@ export function CommunityDetailClient({
           communityId={communityId}
           onSuccess={(email) => show(`Invite sent to ${email}`)}
         />
+      ) : null}
+
+      {isPlatformAdmin ? (
+        <>
+          <EditCommunityModal
+            open={editCommunityOpen}
+            onOpenChange={setEditCommunityOpen}
+            community={community}
+            onSuccess={(updated) => {
+              setCommunity((current) => ({ ...current, name: updated.name, description: updated.description }));
+              show("Community updated");
+            }}
+          />
+
+          <DeleteCommunityModal
+            open={deleteCommunityOpen}
+            onOpenChange={setDeleteCommunityOpen}
+            communityId={community.id}
+            name={community.name}
+            onDeleted={() => router.push("/dashboard/communities")}
+          />
+        </>
       ) : null}
     </DashboardPage>
   );

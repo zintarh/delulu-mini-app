@@ -33,7 +33,6 @@ export const dashboardCampaignKeys = {
   list: (filters?: { communityId?: string; status?: string }) =>
     [...dashboardCampaignKeys.all, "list", filters ?? {}] as const,
   detail: (id: string) => [...dashboardCampaignKeys.all, "detail", id] as const,
-  fundingQueue: () => [...dashboardCampaignKeys.all, "funding-queue"] as const,
 };
 
 async function parseError(res: Response) {
@@ -51,19 +50,6 @@ export function useDashboardCampaigns(filters?: { communityId?: string; status?:
     queryKey: dashboardCampaignKeys.list(filters),
     queryFn: async () => {
       const res = await fetch(`/api/dashboard/campaigns${qs ? `?${qs}` : ""}`);
-      if (!res.ok) await parseError(res);
-      const json = await res.json();
-      return (json.campaigns ?? []) as DashboardCampaign[];
-    },
-    staleTime: 20_000,
-  });
-}
-
-export function useFundingQueue() {
-  return useQuery({
-    queryKey: dashboardCampaignKeys.fundingQueue(),
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard/campaigns/funding-queue");
       if (!res.ok) await parseError(res);
       const json = await res.json();
       return (json.campaigns ?? []) as DashboardCampaign[];

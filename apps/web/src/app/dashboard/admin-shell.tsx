@@ -22,12 +22,9 @@ import {
   Bell,
   Mail,
   Building2,
-  CheckCircle,
-  Wallet,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import type { GlobalRole } from "@/lib/dashboard/authorize-types";
-import { isPlatformAdminRole } from "@/lib/dashboard/authorize-types";
 import { DashboardToastProvider } from "@/components/dashboard/dashboard-toast";
 
 const BASE = "/dashboard";
@@ -87,14 +84,12 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
   if (pathname.startsWith(`${BASE}/communities`)) return "Communities";
-  if (pathname.startsWith(`${BASE}/approvals`)) return "Approvals";
-  if (pathname.startsWith(`${BASE}/funding`)) return "Funding";
   return "Dashboard";
 }
 
 export function AdminShell({
   children,
-  staffRole,
+  staffRole: _staffRole,
   communityIds: _communityIds,
 }: {
   children: React.ReactNode;
@@ -106,7 +101,6 @@ export function AdminShell({
   const { isAdmin } = useIsAdmin();
   const { milestones: pendingMilestones } = usePendingMilestones();
   const router = useRouter();
-  const isPlatformAdmin = isPlatformAdminRole(staffRole ?? null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
@@ -163,25 +157,6 @@ export function AdminShell({
             active={pathname.startsWith(`${BASE}/communities`)}
             onNavigate={closeMobile}
           />
-          {isPlatformAdmin ? (
-            <>
-              <NavItem
-                icon={CheckCircle}
-                label="Approvals"
-                href={`${BASE}/approvals`}
-                active={pathname.startsWith(`${BASE}/approvals`)}
-                onNavigate={closeMobile}
-              />
-              <NavItem
-                icon={Wallet}
-                label="Funding"
-                href={`${BASE}/funding`}
-                active={pathname.startsWith(`${BASE}/funding`)}
-                onNavigate={closeMobile}
-              />
-            </>
-          ) : null}
-
           <NavSection label="Goals" />
           <NavItem
             icon={ShieldCheck}
