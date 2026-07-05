@@ -16,15 +16,13 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { ProofModal } from "@/components/proof-modal";
-import { LiveCameraProofModal } from "@/components/live-camera-proof-modal";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { SubmitProofModal } from "@/components/submit-proof-modal";
+import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { cn, formatAddress } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { useUserStore } from "@/stores/useUserStore";
-import { useIsMobileDevice } from "@/lib/device";
 import {
   formatMilestoneOpensAt,
   getActiveMilestone,
@@ -68,6 +66,8 @@ export type CampaignPoolStats = {
   isPaidOnChain: boolean;
   joinAmountOnChain: number;
 };
+
+const LEADERBOARD_PAGE_SIZE = 20;
 
 export type CampaignLeaderboardRow = {
   rank: number;
@@ -149,6 +149,11 @@ export function CommunityCampaignDetail({
   campaign,
   communitySlug,
   leaderboard,
+  leaderboardPage = 0,
+  hasMoreLeaderboard = false,
+  loadingLeaderboardPage = false,
+  onPrevLeaderboardPage,
+  onNextLeaderboardPage,
   participantCount,
   isJoined,
   isCommunityMember,
@@ -182,6 +187,11 @@ export function CommunityCampaignDetail({
   campaign: CommunityCampaignDetailData;
   communitySlug: string;
   leaderboard: CampaignLeaderboardRow[];
+  leaderboardPage?: number;
+  hasMoreLeaderboard?: boolean;
+  loadingLeaderboardPage?: boolean;
+  onPrevLeaderboardPage?: () => void;
+  onNextLeaderboardPage?: () => void;
   participantCount: number;
   isJoined: boolean;
   isCommunityMember: boolean;
@@ -213,7 +223,6 @@ export function CommunityCampaignDetail({
   onProofDone: () => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const isMobileDevice = useIsMobileDevice();
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -572,13 +581,13 @@ export function CommunityCampaignDetail({
                   ) : null}
                 </div>
 
-                {/* Submit proof — merged into same card */}
+                {/* Upload proof — merged into same card */}
                 <div className="border-t border-border/40 pt-3 flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
                     <Sparkles className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-foreground">Submit proof</p>
+                    <p className="text-sm font-bold text-foreground">Upload proof</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       {campaign.proof_instructions ??
                         "Complete each milestone and upload proof to earn your points."}
@@ -708,14 +717,7 @@ export function CommunityCampaignDetail({
                       : `${participantCount} joined · ${daysLeft}d left`}
                   </p>
                 </div>
-                {!authenticated ? (
-                  <Link
-                    href="/sign-in"
-                    className="inline-flex items-center justify-center rounded-xl bg-delulu-blue px-6 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] hover:bg-delulu-blue/90"
-                  >
-                    Sign in to join
-                  </Link>
-                ) : canJoin ? (
+                {canJoin ? (
                   <JoinButton
                     joining={joining}
                     canJoin={canJoin}
@@ -893,7 +895,7 @@ export function CommunityCampaignDetail({
                   </div>
                   <p className="text-sm font-bold text-foreground">Earn points</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Submit proof for each milestone and earn points. Points count toward rewards on Delulu.
+                    Upload proof for each milestone and earn points. Points count toward rewards on Delulu.
                   </p>
                 </div>
                 {/* 2 — Achieve goal */}
@@ -916,12 +918,12 @@ export function CommunityCampaignDetail({
                     Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
                   </p>
                 </div>
-                {/* 4 — Submit proof */}
+                {/* 4 — Upload proof */}
                 <div className="rounded-2xl border border-border/60 bg-card p-3.5">
                   <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
                     <Sparkles className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-bold text-foreground">Submit proof</p>
+                  <p className="text-sm font-bold text-foreground">Upload proof</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {campaign.proof_instructions ??
                       "Complete each milestone and upload proof to earn your points."}
@@ -993,7 +995,7 @@ export function CommunityCampaignDetail({
               <p className="mt-1 text-xs text-muted-foreground">
                 Be the first to join and claim the top spot.
               </p>
-              {!isJoined && authenticated && canJoin ? (
+              {!isJoined && canJoin ? (
                 <div className="mt-4 flex justify-center">
                   <JoinButton joining={joining} canJoin={canJoin} onJoin={onJoin} />
                 </div>
@@ -1053,6 +1055,20 @@ export function CommunityCampaignDetail({
             </ul>
           )}
 
+          {leaderboard.length > 0 ? (
+            <LeaderboardPagination
+              page={leaderboardPage}
+              rangeStart={leaderboardPage * LEADERBOARD_PAGE_SIZE + 1}
+              rangeEnd={leaderboardPage * LEADERBOARD_PAGE_SIZE + leaderboard.length}
+              hasNextPage={hasMoreLeaderboard}
+              onPrev={() => onPrevLeaderboardPage?.()}
+              onNext={() => onNextLeaderboardPage?.()}
+            />
+          ) : null}
+          {loadingLeaderboardPage ? (
+            <p className="mt-2 text-center text-xs text-muted-foreground">Loading…</p>
+          ) : null}
+
           {showClaimNote ? (
             <p className="mt-3 rounded-xl border border-[#f6c324]/40 bg-[#fffbeb] px-3.5 py-2.5 text-xs text-[#9a7b0a]">
               You&apos;re in the prize zone. Join{" "}
@@ -1066,85 +1082,31 @@ export function CommunityCampaignDetail({
       </main>
 
 
-      {campaign.proof_type === "live_camera" ? (
-        isMobileDevice ? (
-          <LiveCameraProofModal
-            open={proofOpen}
-            onOpenChange={onProofOpenChange}
-            onSubmit={onProofSubmit}
-            durationSeconds={campaign.live_camera_duration_seconds ?? 60}
-            isSubmitting={proofBusy}
-            submitSuccess={proofSuccess}
-            submitError={proofError ? new Error(proofError) : null}
-            onDone={onProofDone}
-            proofInstructions={campaign.proof_instructions}
-            isOnChain={campaign.on_chain_challenge_id != null}
-            proofStep={proofStep}
-            milestoneName={activeMilestone?.label ?? null}
-            milestoneDeadline={activeMilestone?.deadline ?? null}
-            campaignTitle={campaign.title}
-            communityName={campaign.communities?.name ?? null}
-            myUsername={myUsername}
-            myAvatar={myAvatar}
-            myStreak={myStreak}
-            myPoints={myPoints}
-            milestoneIndex={activeMilestoneIndex ?? undefined}
-            milestoneCount={milestoneCount}
-            shareUrl={campaignShareUrl}
-          />
-        ) : (
-          <ResponsiveSheet
-            open={proofOpen}
-            onOpenChange={(next) => {
-              if (!next) onProofDone();
-              onProofOpenChange(next);
-            }}
-            title="Use your phone"
-            sheetClassName="rounded-t-3xl pb-14"
-            modalClassName="max-w-sm"
-          >
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                This campaign requires a live camera recording. Open this page on your phone to submit proof.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  onProofOpenChange(false);
-                  onProofDone();
-                }}
-                className="mt-2 h-11 w-full rounded-full border border-border bg-background text-sm font-bold text-foreground transition-colors hover:bg-muted"
-              >
-                Got it
-              </button>
-            </div>
-          </ResponsiveSheet>
-        )
-      ) : (
-        <ProofModal
-          open={proofOpen}
-          onOpenChange={onProofOpenChange}
-          onSubmit={(url) => onProofSubmit([url])}
-          isSubmitting={proofBusy}
-          submitSuccess={proofSuccess}
-          submitError={proofError ? new Error(proofError) : null}
-          onDone={onProofDone}
-          proofInstructions={campaign.proof_instructions}
-          isOnChain={campaign.on_chain_challenge_id != null}
-          proofStep={proofStep}
-          milestoneName={activeMilestone?.label ?? null}
-          milestoneDeadline={activeMilestone?.deadline ?? null}
-          campaignTitle={campaign.title}
-          communityName={campaign.communities?.name ?? null}
-          myUsername={myUsername}
-          myAvatar={myAvatar}
-          myStreak={myStreak}
-          myPoints={myPoints}
-          milestoneIndex={activeMilestoneIndex ?? undefined}
-          milestoneCount={milestoneCount}
-          shareUrl={campaignShareUrl}
-        />
-      )}
+      <SubmitProofModal
+        open={proofOpen}
+        onOpenChange={onProofOpenChange}
+        onSubmit={onProofSubmit}
+        proofType={campaign.proof_type}
+        liveCameraDurationSeconds={campaign.live_camera_duration_seconds}
+        isSubmitting={proofBusy}
+        submitSuccess={proofSuccess}
+        submitError={proofError ? new Error(proofError) : null}
+        onDone={onProofDone}
+        proofInstructions={campaign.proof_instructions}
+        isOnChain={campaign.on_chain_challenge_id != null}
+        proofStep={proofStep}
+        milestoneName={activeMilestone?.label ?? null}
+        milestoneDeadline={activeMilestone?.deadline ?? null}
+        campaignTitle={campaign.title}
+        communityName={campaign.communities?.name ?? null}
+        myUsername={myUsername}
+        myAvatar={myAvatar}
+        myStreak={myStreak}
+        myPoints={myPoints}
+        milestoneIndex={activeMilestoneIndex ?? undefined}
+        milestoneCount={milestoneCount}
+        shareUrl={campaignShareUrl}
+      />
     </>
   );
 }

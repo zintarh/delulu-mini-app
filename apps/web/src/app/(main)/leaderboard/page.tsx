@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
-import { useDeluluLeaderboard } from "@/hooks/graph/useDeluluLeaderboard";
+import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
-import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
-import { cn, formatGAmount, formatGAmountInt } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,14 +21,15 @@ import {
   Users,
 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
+import { HomeTop10Banner } from "@/components/home-top10-banner";
+import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 
-import type { DeluluLeaderboardEntry } from "@/hooks/graph/useDeluluLeaderboard";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PAGE_SIZE = 10;
 
-type Tab = "campaign" | "dreamers";
+type Tab = "monthly" | "global";
 
 /** Dreamer leaderboard points — sourced from Delulu-v3.sol `userDeluluPoints`. */
 const DREAMER_POINTS = {
@@ -46,62 +45,8 @@ const DREAMERS_CLIMB_TIPS = [
   `Each tip on your delulu adds ${DREAMER_POINTS.perTipToCreator.toLocaleString()} pts to you as creator`,
 ] as const;
 
-function formatCampaignEnd(endDate: Date | null): string {
-  if (!endDate) return "Loading campaign…";
-  return `Ends ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`;
-}
-
-function tileGradient(addr: string) {
-  const hex = addr.replace("0x", "").toLowerCase();
-  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  return `linear-gradient(140deg, hsl(${h1},50%,25%) 0%, hsl(${h2},55%,15%) 100%)`;
-}
-
 function formatAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
-}
-
-function formatCampaignName(entry: DeluluLeaderboardEntry) {
-  if (entry.creatorUsername) return `@${entry.creatorUsername}`;
-  return formatAddr(entry.creatorAddress);
-}
-
-function formatTitle(entry: DeluluLeaderboardEntry) {
-  if (entry.titleLoading) return null;
-  const text = entry.title?.trim() || `Delulu #${entry.onChainId}`;
-  return text.length > 48 ? `${text.slice(0, 48)}…` : text;
-}
-
-function TitleLine({
-  entry,
-  truncate = false,
-}: {
-  entry: DeluluLeaderboardEntry;
-  truncate?: boolean;
-}) {
-  const label = formatTitle(entry);
-  if (entry.titleLoading) {
-    return (
-      <span
-        className={cn(
-          "inline-block h-4 animate-pulse rounded-md bg-muted",
-          truncate ? "w-32 max-w-full" : "w-3/4 max-w-[200px]",
-        )}
-        aria-hidden
-      />
-    );
-  }
-  return (
-    <span
-      className={cn(
-        "text-sm font-bold text-foreground",
-        truncate ? "block truncate font-semibold" : "line-clamp-2 leading-snug",
-      )}
-    >
-      {label}
-    </span>
-  );
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -179,49 +124,6 @@ function HeadCell({
   );
 }
 
-function Pagination({
-  page,
-  rangeStart,
-  rangeEnd,
-  total,
-  hasNextPage,
-  onPrev,
-  onNext,
-}: {
-  page: number;
-  rangeStart: number;
-  rangeEnd: number;
-  total?: number | string | null;
-  hasNextPage: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between pt-6">
-      <button
-        type="button"
-        disabled={page === 0}
-        onClick={onPrev}
-        className="rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Previous
-      </button>
-      <span className="text-sm tabular-nums text-muted-foreground">
-        {rangeStart}–{rangeEnd}
-        {total != null ? ` of ${total}` : hasNextPage ? "+" : ""}
-      </span>
-      <button
-        type="button"
-        disabled={!hasNextPage}
-        onClick={onNext}
-        className="rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Next
-      </button>
-    </div>
-  );
-}
-
 function SkeletonRows() {
   return (
     <TableShell>
@@ -266,13 +168,13 @@ function ErrorState({
   );
 }
 
-function CampaignEmptyState() {
+function MonthlyEmptyState() {
   return (
     <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 py-16 pb-20 text-center">
       <Trophy className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
-      <p className="text-sm text-muted-foreground">No entries on the board this campaign yet.</p>
+      <p className="text-sm text-muted-foreground">No one has joined a campaign this month yet.</p>
       <Link
-        href="/campaigns"
+        href="/explore?tab=campaigns"
         className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
       >
         Join campaign
@@ -364,8 +266,7 @@ function LeaderboardStatsRow({
   isRankLoading,
   authenticated,
   totalDreamers,
-  weeklyCampaignCount,
-  campaignEndDate,
+  monthlyParticipantCount,
 }: {
   activeTab: Tab;
   formattedGAmount: string | null;
@@ -376,8 +277,7 @@ function LeaderboardStatsRow({
   isRankLoading: boolean;
   authenticated: boolean;
   totalDreamers: number | string | null;
-  weeklyCampaignCount: number;
-  campaignEndDate: Date | null;
+  monthlyParticipantCount: number;
 }) {
   return (
     <div className="mb-8 grid gap-3 sm:grid-cols-3">
@@ -450,22 +350,22 @@ function LeaderboardStatsRow({
       />
 
       <StatCard
-        label={activeTab === "campaign" ? "Campaign" : "Dreamers"}
+        label={activeTab === "monthly" ? "This month" : "Global"}
         value={
           <p className="text-2xl font-black tabular-nums text-foreground lg:text-3xl">
-            {activeTab === "campaign" ? weeklyCampaignCount : totalDreamers ?? "—"}
+            {activeTab === "monthly" ? monthlyParticipantCount : totalDreamers ?? "—"}
           </p>
         }
         detail={
-          activeTab === "campaign"
-            ? formatCampaignEnd(campaignEndDate)
+          activeTab === "monthly"
+            ? "Wallets earning campaign points this month"
             : "Wallets ranked by total points"
         }
         footer={
-          activeTab === "campaign" ? (
+          activeTab === "monthly" ? (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              2-week campaign
+              Resets next month
             </span>
           ) : null
         }
@@ -483,7 +383,7 @@ function LeaderboardAside({
 }) {
   return (
     <aside className="hidden space-y-4 lg:block">
-      {activeTab === "dreamers" && (
+      {activeTab === "global" && (
         <div className="rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6">
           <h2 className="text-sm font-bold text-foreground">How to climb</h2>
           <ul className="mt-4 space-y-3">
@@ -508,10 +408,10 @@ function LeaderboardAside({
         </div>
       )}
 
-      {activeTab === "campaign" && (
+      {activeTab === "monthly" && (
         <div className="rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6">
           <Link
-            href="/campaigns"
+            href="/explore?tab=campaigns"
             className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
           >
             Join campaign
@@ -547,64 +447,6 @@ function LeaderboardAside({
         </div>
       </div>
     </aside>
-  );
-}
-
-function CampaignPodium({ entries }: { entries: DeluluLeaderboardEntry[] }) {
-  const top = entries.slice(0, 3);
-  if (top.length < 3) return null;
-
-  const order = [top[1], top[0], top[2]];
-
-  return (
-    <div className="mb-8 hidden gap-3 lg:grid lg:grid-cols-3">
-      {order.map((entry, i) => {
-        const rank = i === 0 ? 2 : i === 1 ? 1 : 3;
-        const isFirst = rank === 1;
-        return (
-          <Link
-            key={entry.id}
-            href={`/delulu/${entry.id}`}
-            className={cn(
-              "group flex flex-col rounded-2xl border border-border/60 bg-secondary/50 p-5 pb-8 transition-colors hover:bg-secondary",
-              isFirst && "lg:-mt-2 lg:border-delulu-yellow-reserved/30 lg:bg-delulu-yellow-reserved/10",
-            )}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <RankBadge rank={rank} />
-              <span className="text-xs font-bold tabular-nums text-delulu-yellow-reserved">
-                {entry.points.toLocaleString()} pts
-              </span>
-            </div>
-            <div
-              className={cn(
-                "relative mb-3 w-full overflow-hidden rounded-xl",
-                isFirst ? "aspect-[4/3]" : "aspect-[5/4]",
-              )}
-              style={{ background: tileGradient(entry.creatorAddress) }}
-            >
-              {normalizeDeluluImageSrc(entry.bgImageUrl) && (
-                <Image
-                  src={normalizeDeluluImageSrc(entry.bgImageUrl)!}
-                  alt=""
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 33vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                  loading="lazy"
-                />
-              )}
-            </div>
-            <TitleLine entry={entry} />
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {formatCampaignName(entry)}
-            </p>
-            <p className="mt-3 pb-1 text-sm font-semibold tabular-nums text-foreground">
-              {formatGAmountInt(entry.totalG)} G$
-            </p>
-          </Link>
-        );
-      })}
-    </div>
   );
 }
 
@@ -663,119 +505,92 @@ function DreamersPodium({
   );
 }
 
-function CampaignLeaderboard() {
+function MonthlyLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, allEntries, hasNextPage, isLoading, error, refetch } =
-    useDeluluLeaderboard(PAGE_SIZE, page);
+  const { entries, hasNextPage, isLoading, totalCount, error, refetch } =
+    useMonthlyCampaignLeaderboard(page, address);
+
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
 
-  const myEntry = address
-    ? (allEntries.find((e) => e.creatorAddress.toLowerCase() === address.toLowerCase()) ?? null)
-    : null;
-  const myRank = myEntry ? allEntries.indexOf(myEntry) + 1 : null;
-  const isOnCurrentPage =
-    !!address &&
-    entries.some((e) => e.creatorAddress.toLowerCase() === address.toLowerCase());
-  const showPinnedMe = myEntry && myRank && !isOnCurrentPage;
+  const allAddresses = [
+    ...entries.map((e) => e.wallet_address.toLowerCase()),
+    ...(address ? [address.toLowerCase()] : []),
+  ];
+  const pfpMap = usePfps(allAddresses);
 
-  if (isLoading) return <SkeletonRows />;
+  if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
   if (entries.length === 0) {
-    return <CampaignEmptyState />;
+    return <MonthlyEmptyState />;
   }
-
-  const listEntries = entries.filter(
-    (entry) =>
-      !showPinnedMe || entry.creatorAddress.toLowerCase() !== address!.toLowerCase(),
-  );
 
   return (
     <div>
-      {page === 0 && <CampaignPodium entries={entries} />}
+      {page === 0 && (
+        <DreamersPodium
+          entries={entries.map((e) => ({
+            address: e.wallet_address,
+            username: e.username,
+            points: e.points_total,
+            rank: e.rank,
+          }))}
+          pfpMap={pfpMap}
+        />
+      )}
 
       <TableShell>
         <TableHead>
           <HeadCell className="w-8 shrink-0">#</HeadCell>
-          <HeadCell className="w-11 shrink-0">{""}</HeadCell>
-          <HeadCell className="min-w-0 flex-1">Delulu</HeadCell>
-          <HeadCell className="w-16 text-right">G$</HeadCell>
-          <HeadCell className="w-14 shrink-0 text-right">Pts</HeadCell>
+          <HeadCell className="w-10 shrink-0">{""}</HeadCell>
+          <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
+          <HeadCell className="w-20 text-right">Points</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
-          {showPinnedMe && (
-            <Link
-              href={`/delulu/${myEntry!.id}`}
-              className="flex items-center gap-3 bg-delulu-yellow-reserved/10 px-4 py-3.5 transition-colors hover:bg-delulu-yellow-reserved/15"
-            >
-              <RankBadge rank={myRank!} />
-              <div
-                className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl"
-                style={{ background: tileGradient(myEntry!.creatorAddress) }}
-              >
-                {normalizeDeluluImageSrc(myEntry!.bgImageUrl) && (
-                  <Image src={normalizeDeluluImageSrc(myEntry!.bgImageUrl)!} alt="" fill sizes="44px" className="object-cover" loading="lazy" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <TitleLine entry={myEntry!} truncate />
-                  <YouBadge />
-                </div>
-                <p className="truncate text-xs text-muted-foreground">
-                  {formatCampaignName(myEntry!)}
-                </p>
-              </div>
-              <span className="w-16 shrink-0 text-right text-sm font-semibold tabular-nums">
-                {formatGAmountInt(myEntry!.totalG)}
-              </span>
-              <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">
-                {myEntry!.points.toLocaleString()}
-              </span>
-            </Link>
-          )}
-
-          {listEntries.map((entry, idx) => {
-            const rank = rangeStart + idx;
+          {entries.map((entry) => {
+            const isMe =
+              !!address && entry.wallet_address.toLowerCase() === address.toLowerCase();
+            const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
             return (
-              <Link
-                key={entry.id}
-                href={`/delulu/${entry.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60"
+              <div
+                key={entry.wallet_address}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60",
+                  isMe && "bg-delulu-yellow-reserved/10",
+                )}
               >
-                <RankBadge rank={rank} />
-                <div
-                  className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl"
-                  style={{ background: tileGradient(entry.creatorAddress) }}
-                >
-                  {normalizeDeluluImageSrc(entry.bgImageUrl) && (
-                    <Image src={normalizeDeluluImageSrc(entry.bgImageUrl)!} alt="" fill sizes="44px" className="object-cover" loading="lazy" />
-                  )}
-                </div>
+                <RankBadge rank={entry.rank} />
+                <UserAvatar
+                  address={entry.wallet_address}
+                  username={entry.username}
+                  pfpUrl={pfpMap[entry.wallet_address.toLowerCase()]}
+                  size={44}
+                />
                 <div className="min-w-0 flex-1">
-                  <TitleLine entry={entry} truncate />
-                  <p className="truncate text-xs text-muted-foreground">
-                    {formatCampaignName(entry)}
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                    {isMe && <YouBadge />}
+                  </div>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {formatAddr(entry.wallet_address)}
                   </p>
                 </div>
-                <span className="w-16 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">
-                  {formatGAmountInt(entry.totalG)}
+                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                  {entry.points_total.toLocaleString()}
                 </span>
-                <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">
-                  {entry.points.toLocaleString()}
-                </span>
-              </Link>
+              </div>
             );
           })}
         </div>
       </TableShell>
 
-      <Pagination
+      <LeaderboardPagination
         page={page}
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
+        total={totalCount ?? undefined}
         hasNextPage={hasNextPage}
         onPrev={() => setPage((p) => Math.max(0, p - 1))}
         onNext={() => setPage((p) => p + 1)}
@@ -910,7 +725,7 @@ function DreamersLeaderboard({
         </div>
       </TableShell>
 
-      <Pagination
+      <LeaderboardPagination
         page={page}
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
@@ -932,7 +747,7 @@ function LeaderboardTabs({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {(["dreamers", "campaign"] as Tab[]).map((tab) => (
+      {(["monthly", "global"] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"
@@ -944,12 +759,12 @@ function LeaderboardTabs({
               : "bg-secondary text-muted-foreground hover:text-foreground",
           )}
         >
-          {tab === "dreamers" ? (
-            <Users className="h-4 w-4" strokeWidth={2} />
-          ) : (
+          {tab === "monthly" ? (
             <Trophy className="h-4 w-4" strokeWidth={2} />
+          ) : (
+            <Users className="h-4 w-4" strokeWidth={2} />
           )}
-          {tab === "dreamers" ? "Dreamers" : "Weekly campaigns"}
+          {tab === "monthly" ? "This month" : "Global"}
         </button>
       ))}
     </div>
@@ -957,7 +772,7 @@ function LeaderboardTabs({
 }
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("dreamers");
+  const [activeTab, setActiveTab] = useState<Tab>("monthly");
   const { address, authenticated } = useAuth();
   const { navigateToCreate } = useNavigateToCreate();
   const handleCreateClick = () => void navigateToCreate();
@@ -967,9 +782,9 @@ export default function LeaderboardPage() {
   const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
 
   const subtitle =
-    activeTab === "campaign"
-      ? "Campaign delulus ranked by points earned"
-      : "Rank higher by verifying milestones on your delulus";
+    activeTab === "monthly"
+      ? "Campaign points earned by everyone participating this month"
+      : "All-time points, accumulated across everything";
 
   return (
     <MainPage>
@@ -1022,18 +837,22 @@ function LeaderboardContent({
   authenticated: boolean;
 }) {
   const { address } = useAuth();
-  
+
   // These hooks are now inside the Suspense boundary, so the page renders without waiting
   const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
     useGoodDollarTotalSupply();
   const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
-  const { allEntries: weeklyCampaigns, campaignEndDate } = useDeluluLeaderboard(PAGE_SIZE, 0);
+  const { totalCount: monthlyParticipantCount } = useMonthlyCampaignLeaderboard(0, address);
 
   const formattedGAmount =
     typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
+      <div className="mb-6">
+        <HomeTop10Banner />
+      </div>
+
       <LeaderboardStatsRow
         activeTab={activeTab}
         formattedGAmount={formattedGAmount}
@@ -1044,14 +863,13 @@ function LeaderboardContent({
         isRankLoading={isRankLoading}
         authenticated={authenticated}
         totalDreamers={totalCount}
-        weeklyCampaignCount={weeklyCampaigns.length}
-        campaignEndDate={campaignEndDate}
+        monthlyParticipantCount={monthlyParticipantCount ?? 0}
       />
 
-      {activeTab === "campaign" ? (
+      {activeTab === "monthly" ? (
         <div className="mb-6 lg:hidden">
           <Link
-            href="/campaigns"
+            href="/explore?tab=campaigns"
             className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background"
           >
             Join campaign
@@ -1077,8 +895,8 @@ function LeaderboardContent({
 
       <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-8">
         <div className="min-w-0">
-          {activeTab === "campaign" ? (
-            <CampaignLeaderboard />
+          {activeTab === "monthly" ? (
+            <MonthlyLeaderboard />
           ) : (
             <DreamersLeaderboard onCreateClick={handleCreateClick} />
           )}

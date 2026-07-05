@@ -38,7 +38,7 @@ export default function HomePage() {
 
   return (
     <MainPage>
-      <div className="mx-auto w-full max-w-2xl xl:max-w-3xl lg:pt-6">
+      <div className="mx-auto w-full max-w-4xl xl:max-w-6xl  lg:pt-6">
         <HomeDashboard onCreateClick={() => void navigateToCreate()} />
       </div>
     </MainPage>

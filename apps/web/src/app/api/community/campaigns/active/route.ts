@@ -10,14 +10,22 @@ import {
 } from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
+// "participants" sort re-ranks the most recent MAX_CANDIDATES campaigns by
+// join count — it can't be combined with cursor pagination since participant
+// counts aren't stored on the row and are only known after fetching.
+const MAX_CANDIDATES = 50;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address")?.trim().toLowerCase() ?? null;
   const cursor = searchParams.get("cursor") ?? null;
   const limit = Math.min(Number(searchParams.get("limit") ?? "20"), 50);
+  const sort = searchParams.get("sort") === "recent" ? "recent" : "participants";
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
+
+  const fetchLimit = sort === "participants" ? MAX_CANDIDATES : limit + 1;
 
   let query = admin
     .from("community_campaigns")
@@ -30,21 +38,20 @@ export async function GET(request: NextRequest) {
     `)
     .in("status", ["approved", "active"])
     .order("created_at", { ascending: false })
-    .limit(limit + 1);
+    .limit(fetchLimit);
 
-  if (cursor) {
+  if (sort === "recent" && cursor) {
     query = query.lt("created_at", cursor);
   }
 
   const { data: rows, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const hasMore = (rows?.length ?? 0) > limit;
-  const campaigns = (rows ?? []).slice(0, limit);
-  const nextCursor = hasMore ? campaigns[campaigns.length - 1]?.created_at ?? null : null;
+  const hasMore = sort === "recent" && (rows?.length ?? 0) > limit;
+  const candidates = sort === "recent" ? (rows ?? []).slice(0, limit) : (rows ?? []);
 
-  const campaignIds = campaigns.map((c) => c.id);
-  const onChainIds = campaigns
+  const candidateIds = candidates.map((c) => c.id);
+  const onChainIds = candidates
     .map((c) => c.on_chain_challenge_id)
     .filter(isValidOnChainChallengeId);
 
@@ -52,11 +59,11 @@ export async function GET(request: NextRequest) {
   const joinedSet = new Set<string>();
   const leftSet = new Set<string>();
 
-  if (address && campaignIds.length > 0) {
+  if (address && candidateIds.length > 0) {
     const { data: participantRows } = await admin
       .from("campaign_participants")
       .select("campaign_id, status")
-      .in("campaign_id", campaignIds)
+      .in("campaign_id", candidateIds)
       .eq("wallet_address", address)
       .in("status", ["joined", "left"]);
     for (const row of participantRows ?? []) {
@@ -66,14 +73,14 @@ export async function GET(request: NextRequest) {
   }
 
   const challengeIdToCampaignId = new Map<number, string>();
-  for (const c of campaigns) {
+  for (const c of candidates) {
     if (isValidOnChainChallengeId(c.on_chain_challenge_id)) {
       challengeIdToCampaignId.set(c.on_chain_challenge_id, c.id);
     }
   }
 
-  const legacyIds = campaignIds.filter(
-    (id) => !campaigns.find((c) => c.id === id && isValidOnChainChallengeId(c.on_chain_challenge_id)),
+  const legacyIds = candidateIds.filter(
+    (id) => !candidates.find((c) => c.id === id && isValidOnChainChallengeId(c.on_chain_challenge_id)),
   );
 
   const [batchStats, legacyCountRows, graphJoinedIds, dbMilestoneCounts] = await Promise.all([
@@ -89,7 +96,7 @@ export async function GET(request: NextRequest) {
     address && onChainIds.length > 0
       ? fetchJoinedChallengeIdsFromGraph(address, onChainIds)
       : Promise.resolve(new Set<number>()),
-    fetchDbMilestoneCounts(admin, campaignIds),
+    fetchDbMilestoneCounts(admin, candidateIds),
   ]);
 
   for (const [challengeId, stats] of batchStats) {
@@ -110,20 +117,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const milestoneCounts = campaigns.map((c) => {
+  const milestoneCounts = candidates.map((c) => {
     const dbCount = dbMilestoneCounts.get(c.id) ?? 0;
     if (!isValidOnChainChallengeId(c.on_chain_challenge_id)) return dbCount;
     const graphCount = batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0;
     return mergeMilestoneCount(dbCount, graphCount);
   });
 
-  const graphMilestoneCounts = campaigns.map((c) =>
-    isValidOnChainChallengeId(c.on_chain_challenge_id)
-      ? (batchStats.get(c.on_chain_challenge_id)?.milestoneCount ?? 0)
-      : 0,
-  );
-
-  const result = campaigns.map((c, index) => {
+  let result = candidates.map((c, index) => {
     const community = Array.isArray(c.communities) ? c.communities[0] : c.communities;
     return {
       id: c.id,
@@ -153,15 +154,28 @@ export async function GET(request: NextRequest) {
       community: community
         ? { id: community.id, name: community.name, slug: community.slug }
         : null,
+      _createdAt: c.created_at,
     };
   });
+
+  let nextCursor: string | null = null;
+  if (sort === "participants") {
+    result = result
+      .slice()
+      .sort((a, b) => b.participantCount - a.participantCount || (b._createdAt > a._createdAt ? 1 : -1))
+      .slice(0, limit);
+  } else if (hasMore) {
+    nextCursor = candidates[candidates.length - 1]?.created_at ?? null;
+  }
+
+  const campaigns = result.map(({ _createdAt, ...rest }) => rest);
 
   const cacheControl = address
     ? "private, no-store"
     : "public, s-maxage=60, stale-while-revalidate=120";
 
   return NextResponse.json(
-    { campaigns: result, nextCursor },
+    { campaigns, nextCursor },
     { headers: { "Cache-Control": cacheControl } },
   );
 }

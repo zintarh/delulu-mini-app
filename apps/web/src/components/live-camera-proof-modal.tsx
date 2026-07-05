@@ -262,7 +262,7 @@ export function LiveCameraProofModal({
         if (!next) onDone?.();
         onOpenChange(next);
       }}
-      title="Submit proof"
+      title="Upload proof"
       hideTitleVisually
       sheetClassName="rounded-t-3xl pb-14"
       modalClassName="max-w-lg"
@@ -297,7 +297,7 @@ export function LiveCameraProofModal({
               className="text-xl font-black tracking-tight text-foreground"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
-              Submit proof
+              Upload proof
             </h2>
             {milestoneDeadline ? (
               <p className="mt-0.5 text-[11px] text-muted-foreground">

@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
     Math.max(1, Number(searchParams.get("limit") ?? defaultLimit) || defaultLimit),
   );
   const cursor = searchParams.get("cursor");
+  const sort = searchParams.get("sort") === "recent" ? "recent" : "participants";
 
   if (!address) {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
@@ -196,6 +197,19 @@ export async function GET(request: NextRequest) {
       const graphCount = batchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0;
       return graphCount > 0;
     });
+
+    if (sort === "participants") {
+      joinable.sort((a, b) => {
+        const ap = isValidOnChainChallengeId(a.on_chain_challenge_id)
+          ? (batchStats.get(a.on_chain_challenge_id)?.participantCount ?? 0)
+          : 0;
+        const bp = isValidOnChainChallengeId(b.on_chain_challenge_id)
+          ? (batchStats.get(b.on_chain_challenge_id)?.participantCount ?? 0)
+          : 0;
+        return bp - ap || (b.created_at > a.created_at ? 1 : -1);
+      });
+    }
+
     page = joinable.slice(0, limit);
   } else {
     page = filtered.slice(0, limit);

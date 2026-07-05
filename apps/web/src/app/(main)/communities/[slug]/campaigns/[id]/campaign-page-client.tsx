@@ -15,6 +15,7 @@ import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-fl
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { MainPage } from "@/components/main-app-header";
 
 function CommunityCampaignDetailSkeleton() {
@@ -53,11 +54,15 @@ export function CommunityCampaignPageClient() {
   const params = useParams<{ slug: string; id: string }>();
   const { address, authenticated } = useAuth();
   const joinFlow = useCampaignJoinFlow();
+  const { requireAuth } = useRedirectToSignIn();
   const { submitCommunityCampaignMilestoneProofAndWait } =
     useSubmitCommunityMilestoneProofOnChain();
 
   const [campaign, setCampaign] = useState<CommunityCampaignDetailData | null>(null);
   const [leaderboard, setLeaderboard] = useState<CampaignLeaderboardRow[]>([]);
+  const [leaderboardPage, setLeaderboardPage] = useState(0);
+  const [leaderboardHasMore, setLeaderboardHasMore] = useState(false);
+  const [loadingLeaderboardPage, setLoadingLeaderboardPage] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
   const [isJoined, setIsJoined] = useState(false);
   const [isCommunityMember, setIsCommunityMember] = useState(false);
@@ -84,16 +89,38 @@ export function CommunityCampaignPageClient() {
   const [joiningCommunity, setJoiningCommunity] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
-  const loadLeaderboard = useCallback(async () => {
-    const res = await fetch(`/api/community/campaigns/${params.id}/leaderboard`);
-    const json = await res.json();
-    const rows = (json.leaderboard ?? []) as CampaignLeaderboardRow[];
-    setLeaderboard(rows);
-    if (address) {
-      const me = rows.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase());
-      if (me) setMyPoints(me.points_total);
-    }
-  }, [params.id, address]);
+  const fetchLeaderboardPage = useCallback(
+    async (page: number) => {
+      const res = await fetch(`/api/community/campaigns/${params.id}/leaderboard?page=${page}`);
+      const json = await res.json();
+      const rows = (json.leaderboard ?? []) as CampaignLeaderboardRow[];
+      setLeaderboard(rows);
+      setLeaderboardPage(page);
+      setLeaderboardHasMore(Boolean(json.hasMore));
+      if (address) {
+        const me = rows.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase());
+        if (me) setMyPoints(me.points_total);
+      }
+    },
+    [params.id, address],
+  );
+
+  const loadLeaderboard = useCallback(
+    () => fetchLeaderboardPage(0),
+    [fetchLeaderboardPage],
+  );
+
+  const goToLeaderboardPage = useCallback(
+    async (page: number) => {
+      setLoadingLeaderboardPage(true);
+      try {
+        await fetchLeaderboardPage(page);
+      } finally {
+        setLoadingLeaderboardPage(false);
+      }
+    },
+    [fetchLeaderboardPage],
+  );
 
   const loadCampaign = useCallback(async () => {
     const qs = address ? `?address=${encodeURIComponent(address)}` : "";
@@ -137,28 +164,30 @@ export function CommunityCampaignPageClient() {
 
   const openJoinModal = useCallback(() => {
     if (!campaign) return;
-    setActionError(null);
-    joinFlow.openJoinModal(params.id, {
-      title: campaign.title,
-      community: campaign.communities ? { name: campaign.communities.name } : null,
-      duration_days: campaign.duration_days,
-      milestone_count: milestoneCount,
-      is_free_to_join: campaign.is_free_to_join,
-      join_token: campaign.join_token,
-      join_amount: campaign.join_amount,
-      forfeit_pct: campaign.forfeit_pct,
-      proposed_pool_amount: campaign.proposed_pool_amount,
-      prize_winner_count: campaign.prize_winner_count,
-      proof_cadence: campaign.proof_cadence,
-      proof_instructions: campaign.proof_instructions,
-      status: campaign.status,
-      display_ends_at: campaign.display_ends_at,
-      funded_pool_amount: poolStats?.fundedPoolAmount,
-      total_participant_stakes: poolStats?.totalParticipantStakes,
-      total_prize_pool_amount: poolStats?.totalPrizePoolAmount,
-      participant_count: participantCount,
+    requireAuth(() => {
+      setActionError(null);
+      joinFlow.openJoinModal(params.id, {
+        title: campaign.title,
+        community: campaign.communities ? { name: campaign.communities.name } : null,
+        duration_days: campaign.duration_days,
+        milestone_count: milestoneCount,
+        is_free_to_join: campaign.is_free_to_join,
+        join_token: campaign.join_token,
+        join_amount: campaign.join_amount,
+        forfeit_pct: campaign.forfeit_pct,
+        proposed_pool_amount: campaign.proposed_pool_amount,
+        prize_winner_count: campaign.prize_winner_count,
+        proof_cadence: campaign.proof_cadence,
+        proof_instructions: campaign.proof_instructions,
+        status: campaign.status,
+        display_ends_at: campaign.display_ends_at,
+        funded_pool_amount: poolStats?.fundedPoolAmount,
+        total_participant_stakes: poolStats?.totalParticipantStakes,
+        total_prize_pool_amount: poolStats?.totalPrizePoolAmount,
+        participant_count: participantCount,
+      });
     });
-  }, [campaign, joinFlow, milestoneCount, params.id, participantCount, poolStats]);
+  }, [campaign, joinFlow, milestoneCount, params.id, participantCount, poolStats, requireAuth]);
 
   const handleJoined = useCallback(async () => {
     // Mark joined optimistically so loadCampaign can't reset it
@@ -275,6 +304,11 @@ export function CommunityCampaignPageClient() {
             campaign={campaign}
             communitySlug={communitySlug}
             leaderboard={leaderboard}
+            leaderboardPage={leaderboardPage}
+            hasMoreLeaderboard={leaderboardHasMore}
+            loadingLeaderboardPage={loadingLeaderboardPage}
+            onPrevLeaderboardPage={() => void goToLeaderboardPage(Math.max(0, leaderboardPage - 1))}
+            onNextLeaderboardPage={() => void goToLeaderboardPage(leaderboardPage + 1)}
             participantCount={participantCount}
             isJoined={isJoined}
             isCommunityMember={isCommunityMember}

@@ -3,54 +3,20 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { ProofModal } from "@/components/proof-modal";
-import {
-  CampaignExploreCard,
-  CampaignExploreCardSkeleton,
-  type CampaignExploreCardData,
-} from "@/components/community/campaign-explore-card";
+import { SubmitProofModal } from "@/components/submit-proof-modal";
+import { MissionCard, MissionCardSkeleton } from "@/components/community/mission-card";
 import {
   joinedDashboardKeys,
   useJoinedCampaignDashboard,
-  type JoinedDashboardCampaign,
 } from "@/hooks/use-user-campaign-milestones";
 import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
-import {
-  canSubmitMilestone,
-  getActiveMilestone,
-} from "@/lib/community/milestone-submit-eligibility";
-
-export function dashboardCampaignToCardData(c: JoinedDashboardCampaign): CampaignExploreCardData {
-  const activeMilestone = getActiveMilestone(c.next_milestones) ?? c.next_milestones[0] ?? null;
-  return {
-    id: c.campaign_id,
-    title: c.title,
-    community: c.community,
-    coverImageUrl: c.cover_image_url,
-    displayEndsAt: c.display_ends_at,
-    durationDays: c.duration_days,
-    milestoneCount: c.milestone_count,
-    proposedPoolAmount: 0,
-    status: "active",
-    participantCount: 0,
-    isJoined: true,
-    activeMilestone: activeMilestone
-      ? {
-          milestone_id: activeMilestone.milestone_id,
-          label: activeMilestone.label,
-          deadline: activeMilestone.deadline ?? null,
-          start_time: activeMilestone.start_time ?? null,
-          is_overdue: activeMilestone.is_overdue,
-        }
-      : null,
-  };
-}
+import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility";
 
 /**
  * Shows joined community campaigns as explore cards with inline active milestone
- * and a Submit proof button. Used on the home feed and profile Active tab.
+ * and a Upload proof button. Used on the home feed and profile Active tab.
  */
 export function ActiveCampaignsSection({
   address,
@@ -79,6 +45,8 @@ export function ActiveCampaignsSection({
     milestoneId: number;
     campaignTitle?: string;
     communitySlug?: string;
+    proofType?: string;
+    liveCameraDurationSeconds?: number | null;
   } | null>(null);
 
   const invalidate = useCallback(() => {
@@ -87,7 +55,7 @@ export function ActiveCampaignsSection({
     void queryClient.invalidateQueries({ queryKey: ["explore", "campaigns"] });
   }, [address, queryClient]);
 
-  const handleProofSubmit = async (imageUrl: string) => {
+  const handleProofSubmit = async (proofUrls: string[]) => {
     if (!activeProof) return;
     setProofBusy(true);
     setProofError(null);
@@ -95,7 +63,7 @@ export function ActiveCampaignsSection({
       await submitCommunityProofWithWallet({
         campaignId: activeProof.campaignId,
         walletAddress: address,
-        proofUrls: [imageUrl],
+        proofUrls,
         milestoneId: activeProof.milestoneId,
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
       });
@@ -110,9 +78,9 @@ export function ActiveCampaignsSection({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {[1, 2].map((i) => (
-          <CampaignExploreCardSkeleton key={i} />
+          <MissionCardSkeleton key={i} />
         ))}
       </div>
     );
@@ -128,14 +96,8 @@ export function ActiveCampaignsSection({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p
-          className="text-sm font-black uppercase tracking-[0.16em]"
-          style={{
-            fontFamily: "var(--font-manrope)",
-            background: "linear-gradient(135deg, #9a7b0a 0%, #f6c324 45%, #c8960a 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40"
+          style={{ fontFamily: "var(--font-manrope)" }}
         >
           {heading}
         </p>
@@ -149,24 +111,34 @@ export function ActiveCampaignsSection({
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {visible.map((c) => {
           const activeMilestone = getActiveMilestone(c.next_milestones) ?? c.next_milestones[0];
+          if (!activeMilestone) return null;
           return (
-            <CampaignExploreCard
+            <MissionCard
               key={c.campaign_id}
-              campaign={dashboardCampaignToCardData(c)}
-              joining={false}
-              onJoin={() => {}}
+              href={`/communities/${c.community.slug}/campaigns/${c.campaign_id}`}
+              title={c.title}
+              coverImageUrl={c.cover_image_url}
+              milestone={activeMilestone}
+              milestoneIndex={activeMilestone.milestone_id + 1}
+              milestoneCount={c.milestone_count}
+              isFreeToJoin={c.is_free_to_join}
+              joinAmount={c.join_amount}
+              joinToken={c.join_token}
+              forfeitPct={c.forfeit_pct}
+              participantCount={c.participant_count}
               proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
-              onSubmitMilestone={() => {
-                if (!activeMilestone || !canSubmitMilestone(activeMilestone)) return;
+              onSubmitProof={() => {
                 setActiveProof({
                   campaignId: c.campaign_id,
                   challengeId: c.challenge_id,
                   milestoneId: activeMilestone.milestone_id,
                   campaignTitle: c.title,
                   communitySlug: c.community.slug,
+                  proofType: c.proof_type,
+                  liveCameraDurationSeconds: c.live_camera_duration_seconds,
                 });
                 setProofSuccess(false);
                 setProofError(null);
@@ -186,10 +158,12 @@ export function ActiveCampaignsSection({
         </Link>
       )}
 
-      <ProofModal
+      <SubmitProofModal
         open={proofOpen}
         onOpenChange={setProofOpen}
         onSubmit={handleProofSubmit}
+        proofType={activeProof?.proofType}
+        liveCameraDurationSeconds={activeProof?.liveCameraDurationSeconds}
         isSubmitting={proofBusy}
         submitSuccess={proofSuccess}
         submitError={proofError ? new Error(proofError) : null}

@@ -4,16 +4,20 @@ import { useEffect } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { CampaignExploreCardData } from "@/components/community/campaign-explore-card";
 
+export type ExploreCampaignsSort = "participants" | "recent";
+
 export const exploreCampaignKeys = {
-  active: (address?: string) => ["explore", "campaigns", "active", address ?? ""] as const,
+  active: (address?: string, sort: ExploreCampaignsSort = "participants") =>
+    ["explore", "campaigns", "active", address ?? "", sort] as const,
   all: ["explore", "campaigns"] as const,
 };
 
 async function fetchActivePage(
   address?: string,
+  sort: ExploreCampaignsSort = "participants",
   cursor?: string,
 ): Promise<{ campaigns: CampaignExploreCardData[]; nextCursor: string | null }> {
-  const params = new URLSearchParams({ limit: "20" });
+  const params = new URLSearchParams({ limit: "20", sort });
   if (cursor) params.set("cursor", cursor);
   if (address) params.set("address", address);
 
@@ -22,7 +26,10 @@ async function fetchActivePage(
   return res.json();
 }
 
-export function useExploreCampaigns(address?: string) {
+export function useExploreCampaigns(
+  address?: string,
+  sort: ExploreCampaignsSort = "participants",
+) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -38,8 +45,8 @@ export function useExploreCampaigns(address?: string) {
   }, [queryClient]);
 
   return useInfiniteQuery({
-    queryKey: exploreCampaignKeys.active(address),
-    queryFn: ({ pageParam }) => fetchActivePage(address, pageParam as string | undefined),
+    queryKey: exploreCampaignKeys.active(address, sort),
+    queryFn: ({ pageParam }) => fetchActivePage(address, sort, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 60 * 1000,

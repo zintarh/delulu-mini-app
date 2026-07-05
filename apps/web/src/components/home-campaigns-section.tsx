@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
 import {
   CampaignExploreCard,
   CampaignExploreCardSkeleton,
@@ -12,14 +13,25 @@ import {
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import type { CommunityCampaignFeedItem } from "@/lib/community/campaign-types";
-import {
-  homeCampaignKeys,
-  useHomeCampaignsFeed,
-} from "@/hooks/use-home-campaigns-feed";
+import { homeCampaignKeys, useHomeCampaignsFeed } from "@/hooks/use-home-campaigns-feed";
+import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
 import { joinedDashboardKeys } from "@/hooks/use-user-campaign-milestones";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { useAuth } from "@/hooks/use-auth";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
+
+function ExploreLink() {
+  return (
+    <Link
+      href="/explore?tab=campaigns"
+      className="flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 py-1 pl-2.5 pr-2 text-[10px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+    >
+      Explore
+      <ArrowRight className="h-3 w-3" />
+    </Link>
+  );
+}
 
 function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardData {
   return {
@@ -57,8 +69,8 @@ function DiscoverCampaignsSection({
   onJoin: (campaign: CommunityCampaignFeedItem) => void;
   joiningId: string | null;
 }) {
-  const { data, isLoading } = useHomeCampaignsFeed("ongoing", address);
-  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 5);
+  const { data, isLoading } = useHomeCampaignsFeed("ongoing", address, "participants");
+  const campaigns = data?.pages.flatMap((p) => p.campaigns) ?? [];
 
   if (isLoading) {
     return (
@@ -74,20 +86,15 @@ function DiscoverCampaignsSection({
   if (campaigns.length === 0) return null; // nothing new to discover — don't show empty section
 
   return (
-    <div className="px-4 py-2">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="px-4 py-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
           You might also like
         </p>
-        <Link
-          href="/explore?tab=campaigns"
-          className="text-[11px] font-semibold text-delulu-blue hover:underline"
-        >
-          See all →
-        </Link>
+        <ExploreLink />
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
@@ -101,11 +108,79 @@ function DiscoverCampaignsSection({
   );
 }
 
+function GuestDiscoverCampaignsSection() {
+  const joinFlow = useCampaignJoinFlow();
+  const { requireAuth } = useRedirectToSignIn();
+  const { data, isLoading } = useExploreCampaigns(undefined, "participants");
+  const campaigns = data?.pages.flatMap((p) => p.campaigns) ?? [];
+
+  const openJoin = useCallback(
+    (campaign: CampaignExploreCardData) => {
+      requireAuth(() => {
+        joinFlow.openJoinModal(campaign.id, {
+          title: campaign.title,
+          community: campaign.community ? { name: campaign.community.name } : null,
+          durationDays: campaign.durationDays,
+          milestoneCount: campaign.milestoneCount,
+          isFreeToJoin: campaign.isFreeToJoin,
+          joinToken: campaign.joinToken,
+          joinAmount: campaign.joinAmount,
+          forfeitPct: campaign.forfeitPct,
+          proposedPoolAmount: campaign.proposedPoolAmount,
+          prizeWinnerCount: campaign.prizeWinnerCount,
+          proofCadence: campaign.proofCadence,
+          proofInstructions: campaign.proofInstructions,
+          status: campaign.status,
+        });
+      });
+    },
+    [joinFlow, requireAuth],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="px-4 py-2 space-y-3">
+        <div className="h-4 w-36 animate-pulse rounded-lg bg-muted" />
+        {[1, 2].map((i) => (
+          <CampaignExploreCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (campaigns.length === 0) return null;
+
+  return (
+    <div className="px-4 py-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+          Discover campaigns
+        </p>
+        <ExploreLink />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {campaigns.map((c) => (
+          <CampaignExploreCard
+            key={c.id}
+            campaign={c}
+            joining={joinFlow.pendingCampaignId === c.id && joinFlow.joining}
+            onJoin={() => openJoin(c)}
+          />
+        ))}
+      </div>
+
+      <CampaignJoinFlowOverlay flow={joinFlow} onJoined={() => {}} />
+    </div>
+  );
+}
+
 export function HomeCampaignsSection() {
   const { address } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const joinFlow = useCampaignJoinFlow();
+  const { requireAuth } = useRedirectToSignIn();
   const pendingJoinRef = useRef<CommunityCampaignFeedItem | null>(null);
 
   const invalidateFeeds = useCallback(() => {
@@ -116,24 +191,26 @@ export function HomeCampaignsSection() {
 
   const openJoin = useCallback(
     (campaign: CommunityCampaignFeedItem) => {
-      pendingJoinRef.current = campaign;
-      joinFlow.openJoinModal(campaign.id, {
-        title: campaign.title,
-        community: { name: campaign.community.name },
-        duration_days: campaign.duration_days,
-        milestone_count: campaign.milestone_count,
-        is_free_to_join: campaign.is_free_to_join,
-        join_token: campaign.join_token,
-        join_amount: campaign.join_amount,
-        forfeit_pct: campaign.forfeit_pct,
-        proposed_pool_amount: campaign.proposed_pool_amount,
-        prize_winner_count: campaign.prize_winner_count,
-        proof_cadence: campaign.proof_cadence,
-        proof_instructions: campaign.proof_instructions,
-        status: campaign.status,
+      requireAuth(() => {
+        pendingJoinRef.current = campaign;
+        joinFlow.openJoinModal(campaign.id, {
+          title: campaign.title,
+          community: { name: campaign.community.name },
+          duration_days: campaign.duration_days,
+          milestone_count: campaign.milestone_count,
+          is_free_to_join: campaign.is_free_to_join,
+          join_token: campaign.join_token,
+          join_amount: campaign.join_amount,
+          forfeit_pct: campaign.forfeit_pct,
+          proposed_pool_amount: campaign.proposed_pool_amount,
+          prize_winner_count: campaign.prize_winner_count,
+          proof_cadence: campaign.proof_cadence,
+          proof_instructions: campaign.proof_instructions,
+          status: campaign.status,
+        });
       });
     },
-    [joinFlow],
+    [joinFlow, requireAuth],
   );
 
   const handleJoined = useCallback(
@@ -148,14 +225,18 @@ export function HomeCampaignsSection() {
     [invalidateFeeds, router],
   );
 
-  if (!address) return null;
+  if (!address) {
+    return <GuestDiscoverCampaignsSection />;
+  }
 
   return (
     <>
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-6 pb-2">
         <ActiveCampaignsSection address={address} />
       </div>
-      <div className="mt-6" />
+
+      <div className="mt-10" />
+
       <DiscoverCampaignsSection
         address={address}
         onJoin={openJoin}
@@ -163,11 +244,19 @@ export function HomeCampaignsSection() {
           joinFlow.joining ? joinFlow.pendingCampaignId : null
         }
       />
+
+
+
+
       <CampaignJoinFlowOverlay
         flow={joinFlow}
         address={address}
         onJoined={handleJoined}
       />
+
+
+
+
     </>
   );
 }

@@ -7,20 +7,27 @@ import type {
   HomeCampaignFeedSection,
 } from "@/lib/community/campaign-types";
 
+export type HomeCampaignsFeedSort = "participants" | "recent";
+
 export const homeCampaignKeys = {
-  feed: (section: HomeCampaignFeedSection, address: string) =>
-    ["home", "campaigns", section, address] as const,
+  feed: (
+    section: HomeCampaignFeedSection,
+    address: string,
+    sort: HomeCampaignsFeedSort = "participants",
+  ) => ["home", "campaigns", section, address, sort] as const,
 };
 
 async function fetchFeedPage(
   section: HomeCampaignFeedSection,
   address: string,
+  sort: HomeCampaignsFeedSort,
   cursor?: string,
 ): Promise<{ campaigns: CommunityCampaignFeedItem[]; nextCursor: string | null }> {
   const params = new URLSearchParams({
     address,
     section,
-    limit: section === "ongoing" ? "5" : "4",
+    sort,
+    limit: section === "ongoing" ? "20" : "4",
   });
   if (cursor) params.set("cursor", cursor);
 
@@ -36,6 +43,7 @@ async function fetchFeedPage(
 export function useHomeCampaignsFeed(
   section: HomeCampaignFeedSection,
   address: string | undefined,
+  sort: HomeCampaignsFeedSort = "participants",
 ) {
   const queryClient = useQueryClient();
 
@@ -52,8 +60,9 @@ export function useHomeCampaignsFeed(
   }, [queryClient]);
 
   return useInfiniteQuery({
-    queryKey: homeCampaignKeys.feed(section, address ?? ""),
-    queryFn: ({ pageParam }) => fetchFeedPage(section, address!, pageParam as string | undefined),
+    queryKey: homeCampaignKeys.feed(section, address ?? "", sort),
+    queryFn: ({ pageParam }) =>
+      fetchFeedPage(section, address!, sort, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(address),

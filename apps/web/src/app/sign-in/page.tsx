@@ -122,25 +122,41 @@ export default function SignInPage() {
         const ok = await establishWalletSession(address, web3authProvider as {
           request: (args: { method: string; params: unknown[] }) => Promise<string>;
         });
-        if (!ok) { setFaucetState("error"); return; }
+        if (!ok) {
+          console.error("[sign-in] establishWalletSession failed (web3auth)");
+          setFaucetState("error");
+          return;
+        }
       } else if (privyWallet) {
         const ethProvider = await privyWallet.getEthereumProvider();
         const ok = await establishWalletSession(privyWallet.address as `0x${string}`, {
           request: (args: { method: string; params: unknown[] }) =>
             ethProvider.request(args) as Promise<string>,
         });
-        if (!ok) { setFaucetState("error"); return; }
+        if (!ok) {
+          console.error("[sign-in] establishWalletSession failed (privy)");
+          setFaucetState("error");
+          return;
+        }
       }
 
       const r = await fetch("/api/faucet/claim", { method: "POST" });
 
-      if (!r.ok) { setFaucetState("error"); return; }
+      if (!r.ok) {
+        const body = await r.json().catch(() => null);
+        console.error("[sign-in] /api/faucet/claim failed:", r.status, body);
+        setFaucetState("error");
+        return;
+      }
       const data = (await r.json()) as { success: boolean; reason?: string };
       setFaucetState(data.success ? "claimed" : "rejected");
       if (!data.success) setFaucetReason(data.reason ?? null);
     };
 
-    run().catch(() => setFaucetState("error"));
+    run().catch((err) => {
+      console.error("[sign-in] faucet auto-claim effect threw:", err);
+      setFaucetState("error");
+    });
   }, [authenticated, routeState, address, web3authProvider, privyWallets]);
 
 
@@ -366,7 +382,7 @@ export default function SignInPage() {
   // ── Sign-in form ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-2">
+    <div className="min-h-screen bg-gradient-to-b from-delulu-blue-light to-white lg:grid lg:grid-cols-2">
       {/* Left panel — desktop only */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:bg-[#1a1a19] lg:p-12">
         <img src="/bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" aria-hidden />
@@ -387,7 +403,7 @@ export default function SignInPage() {
 
       {/* Right panel — form */}
       <div className="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-16">
-        <div className="mx-auto w-full max-w-[400px]">
+        <div className="mx-auto w-full max-w-[400px] text-center">
           <div className="mb-8 flex flex-col items-center lg:hidden">
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
           </div>
@@ -417,7 +433,7 @@ export default function SignInPage() {
           <form
             noValidate
             onSubmit={(e) => void handleSubmit(e)}
-            className="mt-8 flex flex-col gap-3"
+            className="mt-8 flex flex-col gap-4 pb-4 text-left"
           >
             <div>
               <div
@@ -460,7 +476,7 @@ export default function SignInPage() {
               type="submit"
               disabled={isAnyPending || (!isInitialized && !privyReady) || !isValidEmail(email)}
               className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a19] bg-[#f6c324] py-3.5 text-[15px] font-extrabold text-[#1a1a19]",
+                "flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#1a1a19] bg-delulu-yellow py-3.5 text-[15px] font-extrabold text-[#1a1a19]",
                 "shadow-[3px_3px_0px_0px_#1a1a19] transition-all hover:translate-x-[1px] hover:translate-y-[1px]",
                 "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-[3px_3px_0px_0px_#1a1a19] disabled:translate-x-0 disabled:translate-y-0",
               )}
@@ -488,7 +504,7 @@ export default function SignInPage() {
               type="button"
               onClick={() => void handleWalletConnect()}
               disabled={isAnyPending || !isInitialized}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background py-3.5 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background py-3.5 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLaunchingWalletProvider ? (
                 <><Loader2 className="h-5 w-5 animate-spin" /> Opening wallet options…</>

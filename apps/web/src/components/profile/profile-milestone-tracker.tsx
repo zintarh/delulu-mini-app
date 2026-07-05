@@ -33,7 +33,7 @@ function stepStatusLabel(status: MilestoneStepStatus) {
     case "completed":
       return "Done";
     case "due":
-      return "Submit proof";
+      return "Upload proof";
     case "review":
       return "In review";
     case "upcoming":
@@ -397,7 +397,7 @@ function TimelineStepRow({
             )}
             style={{ fontFamily: "var(--font-manrope)" }}
           >
-            Submit proof
+            Upload proof
           </button>
         ) : null}
       </div>

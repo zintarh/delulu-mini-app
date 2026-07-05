@@ -3,24 +3,29 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import {
   fetchCommunityCampaignLeaderboardFromGraph,
   fetchCommunityCampaignParticipantCountFromGraph,
-  isJoinedCommunityCampaignOnGraph,
 } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 20;
+
 async function supabaseLeaderboard(
   admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   campaignId: string,
   communityId: string,
+  page: number,
 ) {
-  const { data, error } = await admin
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, error, count } = await admin
     .from("campaign_participants")
-    .select("wallet_address, points_total, current_streak, joined_at")
+    .select("wallet_address, points_total, current_streak, joined_at", { count: "exact" })
     .eq("campaign_id", campaignId)
     .eq("status", "joined")
     .order("points_total", { ascending: false })
-    .limit(100);
+    .range(from, to);
 
   if (error) throw new Error(error.message);
 
@@ -40,21 +45,26 @@ async function supabaseLeaderboard(
     }
   }
 
-  return (data ?? []).map((row, index) => ({
-    rank: index + 1,
+  const leaderboard = (data ?? []).map((row, index) => ({
+    rank: from + index + 1,
     wallet_address: row.wallet_address,
     points_total: row.points_total,
     current_streak: row.current_streak,
     joined_at: row.joined_at,
     is_community_member: memberWallets.has(row.wallet_address.toLowerCase()),
   }));
+
+  const hasMore = count != null ? to + 1 < count : leaderboard.length === PAGE_SIZE;
+
+  return { leaderboard, hasMore };
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const page = Math.max(0, Number(request.nextUrl.searchParams.get("page") ?? "0") || 0);
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
@@ -77,22 +87,32 @@ export async function GET(
       (members ?? []).map((m) => m.wallet_address.toLowerCase()),
     );
 
-    const leaderboard = await enrichLeaderboardWithUsernames(
-      admin,
-      await fetchCommunityCampaignLeaderboardFromGraph(
-        campaign.on_chain_challenge_id,
-        memberWallets,
+    const [leaderboard, totalCount] = await Promise.all([
+      enrichLeaderboardWithUsernames(
+        admin,
+        await fetchCommunityCampaignLeaderboardFromGraph(
+          campaign.on_chain_challenge_id,
+          memberWallets,
+          page,
+          PAGE_SIZE,
+        ),
       ),
-    );
-    return NextResponse.json({ leaderboard });
+      fetchCommunityCampaignParticipantCountFromGraph(campaign.on_chain_challenge_id),
+    ]);
+
+    const hasMore = (page + 1) * PAGE_SIZE < totalCount;
+    return NextResponse.json({ leaderboard, hasMore });
   }
 
   try {
-    const leaderboard = await enrichLeaderboardWithUsernames(
+    const { leaderboard, hasMore } = await supabaseLeaderboard(
       admin,
-      await supabaseLeaderboard(admin, id, campaign.community_id),
+      id,
+      campaign.community_id,
+      page,
     );
-    return NextResponse.json({ leaderboard });
+    const enriched = await enrichLeaderboardWithUsernames(admin, leaderboard);
+    return NextResponse.json({ leaderboard: enriched, hasMore });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to load leaderboard" },

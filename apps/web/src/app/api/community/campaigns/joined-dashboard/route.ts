@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
     .from("community_campaigns")
     .select(`
       id, title, cover_image_url, display_ends_at, duration_days, on_chain_challenge_id,
+      proof_type, live_camera_duration_seconds,
+      is_free_to_join, join_token, join_amount, forfeit_pct,
       communities ( name, slug )
     `)
     .in("status", [...PARTICIPATING_STATUSES])
@@ -38,6 +40,12 @@ export async function GET(request: NextRequest) {
       cover_image_url: string | null;
       display_ends_at: string | null;
       duration_days: number;
+      proof_type: string;
+      live_camera_duration_seconds: number | null;
+      is_free_to_join: boolean;
+      join_token: string;
+      join_amount: number;
+      forfeit_pct: number;
     }
   >();
 
@@ -57,6 +65,14 @@ export async function GET(request: NextRequest) {
       cover_image_url: (raw as { cover_image_url: string | null }).cover_image_url,
       display_ends_at: endsAt,
       duration_days: Number((raw as { duration_days: number }).duration_days ?? 30),
+      proof_type: String((raw as { proof_type?: string }).proof_type ?? "screenshot"),
+      live_camera_duration_seconds:
+        (raw as { live_camera_duration_seconds?: number | null }).live_camera_duration_seconds ??
+        null,
+      is_free_to_join: (raw as { is_free_to_join?: boolean | null }).is_free_to_join !== false,
+      join_token: (raw as { join_token?: string | null }).join_token ?? "G$",
+      join_amount: Number((raw as { join_amount?: number | null }).join_amount ?? 0),
+      forfeit_pct: Number((raw as { forfeit_pct?: number | null }).forfeit_pct ?? 0),
     });
   }
 
@@ -101,6 +117,8 @@ export async function GET(request: NextRequest) {
       .from("community_campaigns")
       .select(`
         id, title, cover_image_url, display_ends_at, duration_days, proof_cadence,
+        proof_type, live_camera_duration_seconds,
+        is_free_to_join, join_token, join_amount, forfeit_pct,
         communities ( name, slug )
       `)
       .in("status", [...PARTICIPATING_STATUSES])
@@ -137,13 +155,20 @@ export async function GET(request: NextRequest) {
     completedMap.get(cid)!.add(mid);
   }
 
-  // Fetch all milestones for these campaigns in one query
+  // Fetch all milestones + total participant counts for these campaigns in one round-trip
   const offChainIds = activeOffChainRows.map((r) => (r as { id: string }).id);
-  const { data: milestoneRows } = await admin
-    .from("campaign_milestones")
-    .select("campaign_id, title, order_index")
-    .in("campaign_id", offChainIds)
-    .order("order_index", { ascending: true });
+  const [{ data: milestoneRows }, { data: allParticipantRows }] = await Promise.all([
+    admin
+      .from("campaign_milestones")
+      .select("campaign_id, title, order_index")
+      .in("campaign_id", offChainIds)
+      .order("order_index", { ascending: true }),
+    admin
+      .from("campaign_participants")
+      .select("campaign_id")
+      .in("campaign_id", offChainIds)
+      .eq("status", "joined"),
+  ]);
 
   const milestonesByCampaign = new Map<string, { title: string; order_index: number }[]>();
   for (const m of milestoneRows ?? []) {
@@ -153,6 +178,12 @@ export async function GET(request: NextRequest) {
       title: (m as { title: string }).title,
       order_index: Number((m as { order_index: number }).order_index ?? 0),
     });
+  }
+
+  const participantCountByCampaign = new Map<string, number>();
+  for (const p of allParticipantRows ?? []) {
+    const cid = (p as { campaign_id: string }).campaign_id;
+    participantCountByCampaign.set(cid, (participantCountByCampaign.get(cid) ?? 0) + 1);
   }
 
   const offChainCampaigns = activeOffChainRows.map((raw) => {
@@ -187,6 +218,15 @@ export async function GET(request: NextRequest) {
       cover_image_url: (raw as { cover_image_url: string | null }).cover_image_url,
       display_ends_at: (raw as { display_ends_at: string | null }).display_ends_at,
       duration_days: Number((raw as { duration_days: number }).duration_days ?? 30),
+      proof_type: String((raw as { proof_type?: string }).proof_type ?? "screenshot"),
+      live_camera_duration_seconds:
+        (raw as { live_camera_duration_seconds?: number | null }).live_camera_duration_seconds ??
+        null,
+      is_free_to_join: (raw as { is_free_to_join?: boolean | null }).is_free_to_join !== false,
+      join_token: (raw as { join_token?: string | null }).join_token ?? "G$",
+      join_amount: Number((raw as { join_amount?: number | null }).join_amount ?? 0),
+      forfeit_pct: Number((raw as { forfeit_pct?: number | null }).forfeit_pct ?? 0),
+      participant_count: participantCountByCampaign.get(cid) ?? 0,
       milestone_count: allMilestones.length,
       completed_count: completedSet.size,
       next_milestones: nextMilestones,

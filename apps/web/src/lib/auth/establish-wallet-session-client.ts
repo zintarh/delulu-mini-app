@@ -1,5 +1,15 @@
 import { buildWalletAuthMessage } from "@/lib/auth/wallet-auth-message";
 
+function isUserRejectionError(err: unknown): boolean {
+  const raw = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    raw.includes("user rejected") ||
+    raw.includes("user denied") ||
+    raw.includes("rejected the request") ||
+    raw.includes("request rejected")
+  );
+}
+
 type SignProvider = {
   request: (args: { method: string; params: unknown[] }) => Promise<string>;
 };
@@ -43,6 +53,10 @@ async function postWalletSession(
     credentials: "include",
     body: JSON.stringify({ address, message, signature }),
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    console.error("[establishWalletSession] POST /api/auth/wallet-session failed:", res.status, body);
+  }
   return res.ok;
 }
 
@@ -91,9 +105,16 @@ export async function establishWalletSession(
             method: "personal_sign",
             params: [message, address],
           });
-        } catch {
-          signDeclinedAddresses.add(normalized);
+        } catch (err) {
           pendingAuth = null;
+          // Only treat this as a deliberate decline (and stop re-prompting) when the
+          // wallet/provider actually says so — anything else (RPC hiccup, provider not
+          // ready yet, etc.) should be retryable, not silently blocked forever.
+          if (isUserRejectionError(err)) {
+            signDeclinedAddresses.add(normalized);
+          } else {
+            console.error("[establishWalletSession] personal_sign failed:", err);
+          }
           return false;
         }
         pendingAuth = { address: normalized, message, signature };
@@ -107,7 +128,8 @@ export async function establishWalletSession(
       }
 
       return false;
-    } catch {
+    } catch (err) {
+      console.error("[establishWalletSession] unexpected failure:", err);
       return false;
     }
   };

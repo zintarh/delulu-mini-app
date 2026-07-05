@@ -73,7 +73,7 @@ export function CampaignExploreCard({
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-2xl transition-shadow hover:shadow-md">
       {/* Image header */}
       <Link href={href} className="block">
         <div className="relative aspect-[16/9] sm:aspect-[3/1] overflow-hidden bg-delulu-blue-light/40">
@@ -123,39 +123,8 @@ export function CampaignExploreCard({
             {campaign.title}
           </h3>
 
-          {campaign.description ? (
-            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-              {campaign.description}
-            </p>
-          ) : null}
-
-          {/* Stakes strip — only for paid campaigns */}
-          {campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0 ? (() => {
-            const token = campaign.joinToken ?? "G$";
-            const forfeitAmt = (campaign.forfeitPct ?? 0) > 0
-              ? Math.round((campaign.joinAmount ?? 0) * (campaign.forfeitPct ?? 0) / 100)
-              : 0;
-            return (
-              <div className="mt-2.5 rounded-xl border border-orange-200/70 bg-orange-50/60 px-3 py-2 space-y-1">
-                {forfeitAmt > 0 ? (
-                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-orange-700">
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    Miss your milestone — forfeit {campaign.forfeitPct}% of your stake
-                  </p>
-                ) : null}
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
-                  <Trophy className="h-3 w-3 shrink-0" />
-                  Top {campaign.prizeWinnerCount ?? 0} split the forfeit pool
-                </p>
-              </div>
-            );
-          })() : null}
-
           {(() => {
-            const token = campaign.joinToken ?? "G$";
-            const totalStaked = campaign.isFreeToJoin === false
-              ? (campaign.joinAmount ?? 0) * campaign.participantCount
-              : 0;
+        
             return (
               <div className="mt-2.5 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -168,14 +137,44 @@ export function CampaignExploreCard({
                     {campaign.participantCount} joined
                   </span>
                 ) : null}
-                {totalStaked > 0 ? (
-                  <span className="ml-auto font-semibold text-foreground">
-                    {totalStaked} {token} staked
-                  </span>
-                ) : null}
+            
               </div>
             );
           })()}
+
+          {/* Stakes strip — only for paid campaigns */}
+          {campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0 ? (() => {
+            const forfeitAmt = (campaign.forfeitPct ?? 0) > 0
+              ? Math.round((campaign.joinAmount ?? 0) * (campaign.forfeitPct ?? 0) / 100)
+              : 0;
+
+              const token = campaign.joinToken ?? "G$";
+              const totalStaked = campaign.isFreeToJoin === false
+                ? (campaign.joinAmount ?? 0) * campaign.participantCount
+                : 0;
+            return (
+              <div className="mt-2.5 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-3 py-2 space-y-1">
+                {forfeitAmt > 0 ? (
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    Miss your milestone — forfeit {campaign.forfeitPct}% of your stake
+                  </p>
+                ) : null}
+               <div className="flex justify-between items-center">
+               <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                  <Trophy className="h-3 w-3 shrink-0" />
+                  Top {campaign.prizeWinnerCount ?? 0} split the forfeit pool
+                </p>
+
+                {/* <p className="flex items-center font-extrabold gap-1.5 text-[14px]  text-foreground">
+                  {totalStaked} {token} <span className="text-[11px] font-normal">staked</span> 
+                </p> */}
+               </div>
+              </div>
+            );
+          })() : null}
+
+         
           {/* Points motivator — only for non-joined, non-closed campaigns */}
           {!isClosed && !campaign.isJoined ? (
             <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-delulu-blue">
@@ -234,7 +233,7 @@ export function CampaignExploreCard({
                       <Loader2 className="h-3 w-3 animate-spin" />…
                     </span>
                   ) : (
-                    "Submit proof"
+                    "Upload proof"
                   )}
                 </button>
               ) : (
@@ -252,8 +251,9 @@ export function CampaignExploreCard({
         );
       })() : null}
 
-      {/* CTA row */}
-      <div className="flex items-center gap-2 px-4 pb-4 pt-3">
+      {/* CTA row — pinned to the bottom regardless of how much content is above it,
+          so Join buttons line up across cards in the same grid row */}
+      <div className="mt-auto flex items-center gap-2 px-4 pb-4 pt-3">
         <div className="flex-1">
           {isClosed ? (
             <div className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground">
@@ -271,7 +271,7 @@ export function CampaignExploreCard({
               type="button"
               disabled={joining}
               onClick={onJoin}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-delulu-blue text-sm font-bold text-white shadow-[0_2px_12px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-60"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-delulu-blue text-sm font-bold text-white shadow-[0_2px_12px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-60"
             >
               {joining ? (
                 <>

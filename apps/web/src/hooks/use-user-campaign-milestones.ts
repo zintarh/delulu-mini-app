@@ -11,6 +11,13 @@ export type JoinedDashboardCampaign = {
   cover_image_url: string | null;
   display_ends_at: string | null;
   duration_days: number;
+  proof_type: string;
+  live_camera_duration_seconds: number | null;
+  is_free_to_join: boolean;
+  join_token: string;
+  join_amount: number;
+  forfeit_pct: number;
+  participant_count: number;
   milestone_count: number;
   completed_count: number;
   next_milestones: CommunityCampaignMilestoneRow[];

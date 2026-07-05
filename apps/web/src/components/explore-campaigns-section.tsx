@@ -12,10 +12,12 @@ import {
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 
 export function ExploreCampaignsSection({ address }: { address?: string }) {
   const router = useRouter();
   const joinFlow = useCampaignJoinFlow();
+  const { requireAuth } = useRedirectToSignIn();
   const {
     data,
     isLoading,
@@ -47,23 +49,25 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
 
   const openJoin = useCallback(
     (campaign: CampaignExploreCardData) => {
-      joinFlow.openJoinModal(campaign.id, {
-        title: campaign.title,
-        community: campaign.community ? { name: campaign.community.name } : null,
-        durationDays: campaign.durationDays,
-        milestoneCount: campaign.milestoneCount,
-        isFreeToJoin: campaign.isFreeToJoin,
-        joinToken: campaign.joinToken,
-        joinAmount: campaign.joinAmount,
-        forfeitPct: campaign.forfeitPct,
-        proposedPoolAmount: campaign.proposedPoolAmount,
-        prizeWinnerCount: campaign.prizeWinnerCount,
-        proofCadence: campaign.proofCadence,
-        proofInstructions: campaign.proofInstructions,
-        status: campaign.status,
+      requireAuth(() => {
+        joinFlow.openJoinModal(campaign.id, {
+          title: campaign.title,
+          community: campaign.community ? { name: campaign.community.name } : null,
+          durationDays: campaign.durationDays,
+          milestoneCount: campaign.milestoneCount,
+          isFreeToJoin: campaign.isFreeToJoin,
+          joinToken: campaign.joinToken,
+          joinAmount: campaign.joinAmount,
+          forfeitPct: campaign.forfeitPct,
+          proposedPoolAmount: campaign.proposedPoolAmount,
+          prizeWinnerCount: campaign.prizeWinnerCount,
+          proofCadence: campaign.proofCadence,
+          proofInstructions: campaign.proofInstructions,
+          status: campaign.status,
+        });
       });
     },
-    [joinFlow],
+    [joinFlow, requireAuth],
   );
 
   const handleJoined = useCallback(

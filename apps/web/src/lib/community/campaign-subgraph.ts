@@ -76,9 +76,10 @@ function sleep(ms: number) {
 }
 
 const LEADERBOARD_QUERY = `
-  query CommunityCampaignLeaderboard($challengeId: BigInt!, $first: Int!) {
+  query CommunityCampaignLeaderboard($challengeId: BigInt!, $first: Int!, $skip: Int!) {
     communityCampaignParticipants(
       first: $first
+      skip: $skip
       orderBy: pointsTotal
       orderDirection: desc
       where: { challengeId: $challengeId }
@@ -180,6 +181,67 @@ const JOINED_PARTICIPANTS_QUERY = `
   }
 `;
 
+const MONTHLY_CAMPAIGN_PARTICIPANTS_QUERY = `
+  query MonthlyCampaignParticipants($since: BigInt!) {
+    communityCampaignParticipants(
+      where: { joinedAt_gte: $since }
+      first: 1000
+      orderBy: pointsTotal
+      orderDirection: desc
+    ) {
+      participantAddress
+      pointsTotal
+      participant {
+        username
+      }
+    }
+  }
+`;
+
+export type MonthlyCampaignPointsRow = {
+  wallet_address: string;
+  points_total: number;
+  username: string | null;
+};
+
+/**
+ * Every on-chain community-campaign participation joined since `sinceUnixSeconds`,
+ * summed per wallet (a wallet may have joined more than one campaign this month).
+ */
+export async function fetchMonthlyCampaignPointsFromGraph(
+  sinceUnixSeconds: number,
+): Promise<MonthlyCampaignPointsRow[]> {
+  try {
+    const data = await fetchSubgraph<{
+      communityCampaignParticipants: Array<{
+        participantAddress: string;
+        pointsTotal: string;
+        participant: { username: string | null } | null;
+      }>;
+    }>(MONTHLY_CAMPAIGN_PARTICIPANTS_QUERY, { since: sinceUnixSeconds.toString() });
+
+    const byWallet = new Map<string, { points: number; username: string | null }>();
+    for (const row of data.communityCampaignParticipants ?? []) {
+      const wallet = row.participantAddress.toLowerCase();
+      const existing = byWallet.get(wallet);
+      const points = Number(row.pointsTotal ?? "0");
+      if (existing) {
+        existing.points += points;
+      } else {
+        byWallet.set(wallet, { points, username: row.participant?.username ?? null });
+      }
+    }
+
+    return Array.from(byWallet.entries()).map(([wallet_address, v]) => ({
+      wallet_address,
+      points_total: v.points,
+      username: v.username,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 const BATCH_PARTICIPANT_COUNTS_QUERY = `
   query BatchParticipantCounts($challengeIds: [BigInt!]!) {
     communityCampaignParticipants(
@@ -235,16 +297,22 @@ const BATCH_MILESTONE_COMPLETIONS_QUERY = `
 export async function fetchCommunityCampaignLeaderboardFromGraph(
   challengeId: number,
   memberWallets: Set<string>,
+  page: number = 0,
+  pageSize: number = 20,
 ): Promise<CommunityCampaignLeaderboardRow[]> {
   try {
     const data = await fetchSubgraph<{
       communityCampaignParticipants: SubgraphParticipant[];
-    }>(LEADERBOARD_QUERY, { challengeId: challengeId.toString(), first: 100 });
+    }>(LEADERBOARD_QUERY, {
+      challengeId: challengeId.toString(),
+      first: pageSize,
+      skip: page * pageSize,
+    });
 
     return (data.communityCampaignParticipants ?? []).map((row, index) => {
       const wallet = row.participantAddress.toLowerCase();
       return {
-        rank: index + 1,
+        rank: page * pageSize + index + 1,
         wallet_address: wallet,
         username: row.participant?.username ?? null,
         points_total: Number(row.pointsTotal),
@@ -478,7 +546,20 @@ async function fetchBatchCampaignMilestones(
 
 export async function fetchJoinedCampaignDashboardFromGraph(
   walletAddress: string,
-  challengeIdToCampaign: Map<number, { id: string; title: string; community: { name: string; slug: string }; cover_image_url: string | null; display_ends_at: string | null; duration_days: number }>,
+  challengeIdToCampaign: Map<number, {
+    id: string;
+    title: string;
+    community: { name: string; slug: string };
+    cover_image_url: string | null;
+    display_ends_at: string | null;
+    duration_days: number;
+    proof_type: string;
+    live_camera_duration_seconds: number | null;
+    is_free_to_join: boolean;
+    join_token: string;
+    join_amount: number;
+    forfeit_pct: number;
+  }>,
 ): Promise<
   Array<
     JoinedCampaignDashboardRow & {
@@ -488,6 +569,13 @@ export async function fetchJoinedCampaignDashboardFromGraph(
       cover_image_url: string | null;
       display_ends_at: string | null;
       duration_days: number;
+      proof_type: string;
+      live_camera_duration_seconds: number | null;
+      is_free_to_join: boolean;
+      join_token: string;
+      join_amount: number;
+      forfeit_pct: number;
+      participant_count: number;
     }
   >
 > {
@@ -504,7 +592,10 @@ export async function fetchJoinedCampaignDashboardFromGraph(
       .map((p) => Number(p.challengeId))
       .filter((cid) => challengeIdToCampaign.has(cid));
 
-    const batchedMilestones = await fetchBatchCampaignMilestones(relevantChallengeIds, walletAddress);
+    const [batchedMilestones, batchStats] = await Promise.all([
+      fetchBatchCampaignMilestones(relevantChallengeIds, walletAddress),
+      fetchBatchCampaignStats(relevantChallengeIds),
+    ]);
 
     const rows = participants.map((p) => {
       const challengeId = Number(p.challengeId);
@@ -523,6 +614,13 @@ export async function fetchJoinedCampaignDashboardFromGraph(
         cover_image_url: meta.cover_image_url,
         display_ends_at: meta.display_ends_at,
         duration_days: meta.duration_days,
+        proof_type: meta.proof_type,
+        live_camera_duration_seconds: meta.live_camera_duration_seconds,
+        is_free_to_join: meta.is_free_to_join,
+        join_token: meta.join_token,
+        join_amount: meta.join_amount,
+        forfeit_pct: meta.forfeit_pct,
+        participant_count: batchStats.get(challengeId)?.participantCount ?? 0,
         milestone_count: milestones.length,
         completed_count: completedCount,
         next_milestones,

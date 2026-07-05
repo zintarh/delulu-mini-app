@@ -171,7 +171,7 @@ export function CommunityCampaignMilestoneList({
                               …
                             </span>
                           ) : (
-                            "Submit proof"
+                            "Upload proof"
                           )}
                         </button>
                       </>
