@@ -139,12 +139,12 @@ export function CampaignExploreCard({
                       <AvatarStack
                         participants={campaign.participantAvatars}
                         total={campaign.participantCount}
-                        size={18}
+                        size={20}
                       />
                     ) : (
                       <Users className="h-3 w-3" />
                     )}
-                    {campaign.participantCount} joined
+                  joined
                   </span>
                 ) : null}
             

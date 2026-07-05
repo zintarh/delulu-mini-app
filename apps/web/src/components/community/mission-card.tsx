@@ -10,7 +10,10 @@ import {
 } from "@/lib/community/milestone-submit-eligibility";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
-import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
+import {
+  AvatarStack,
+  type AvatarStackParticipant,
+} from "@/components/ui/avatar-stack";
 
 export interface MissionCardProps {
   href: string;
@@ -30,7 +33,9 @@ export interface MissionCardProps {
   participantAvatars?: AvatarStackParticipant[];
 }
 
-function countdownLabel(deadline: string | null): { text: string; urgent: boolean } | null {
+function countdownLabel(
+  deadline: string | null,
+): { text: string; urgent: boolean } | null {
   if (!deadline) return null;
   const ms = new Date(deadline).getTime() - Date.now();
   if (ms <= 0) return { text: "Overdue", urgent: true };
@@ -123,7 +128,13 @@ export function MissionCard({
         <Link href={href} className="relative shrink-0">
           <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
             {coverImageUrl ? (
-              <Image src={coverImageUrl} alt="" fill className="object-cover" unoptimized />
+              <Image
+                src={coverImageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                unoptimized
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <Target className="h-7 w-7 text-delulu-blue/40" />
@@ -151,12 +162,16 @@ export function MissionCard({
           {participantCount > 1 ? (
             <div className="mt-1 flex items-center gap-1.5">
               {participantAvatars && participantAvatars.length > 0 ? (
-                <AvatarStack participants={participantAvatars} total={participantCount} size={18} />
+                <AvatarStack
+                  participants={participantAvatars}
+                  total={participantCount}
+                  size={20}
+                />
               ) : (
                 <Users className="h-3 w-3 shrink-0 text-foreground" />
               )}
               <p className="truncate text-[11px] font-medium text-foreground">
-                {participantCount} people are in this together
+                people are in this together
               </p>
             </div>
           ) : null}
@@ -173,8 +188,8 @@ export function MissionCard({
         ) : null}
 
         <span className="flex items-center gap-1 font-semibold text-delulu-blue">
-          <Star className="h-3 w-3 fill-delulu-blue" />
-          +{BASE_PROOF_POINTS.toLocaleString()} pts
+          <Star className="h-3 w-3 fill-delulu-blue" />+
+          {BASE_PROOF_POINTS.toLocaleString()} pts
         </span>
 
         {atRisk ? (
