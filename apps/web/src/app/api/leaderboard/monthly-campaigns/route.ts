@@ -15,6 +15,7 @@ function startOfCurrentMonthUnixSeconds(): number {
 
 export async function GET(request: NextRequest) {
   const page = Math.max(0, Number(request.nextUrl.searchParams.get("page") ?? "0") || 0);
+  const address = request.nextUrl.searchParams.get("address")?.trim().toLowerCase() || null;
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
@@ -69,9 +70,16 @@ export async function GET(request: NextRequest) {
     username: row.username,
   }));
 
+  let myEntry: { rank: number; points_total: number } | null = null;
+  if (address) {
+    const idx = enriched.findIndex((row) => row.wallet_address.toLowerCase() === address);
+    if (idx !== -1) myEntry = { rank: idx + 1, points_total: enriched[idx].points_total };
+  }
+
   return NextResponse.json({
     leaderboard: pageRows,
     hasMore: from + PAGE_SIZE < totalCount,
     totalCount,
+    myEntry,
   });
 }

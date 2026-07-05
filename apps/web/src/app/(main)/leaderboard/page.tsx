@@ -333,8 +333,12 @@ function LeaderboardStatsRow({
           !authenticated
             ? "Sign in to track your rank"
             : myPoints != null
-              ? `${myPoints.toLocaleString()} dreamer points`
-              : "Earn points by verifying milestones and receiving tips on your delulus"
+              ? activeTab === "monthly"
+                ? `${myPoints.toLocaleString()} campaign points this month`
+                : `${myPoints.toLocaleString()} dreamer points`
+              : activeTab === "monthly"
+                ? "Join a campaign this month to earn points"
+                : "Earn points by verifying milestones and receiving tips on your delulus"
         }
         footer={
           !authenticated ? (
@@ -841,8 +845,16 @@ function LeaderboardContent({
   // These hooks are now inside the Suspense boundary, so the page renders without waiting
   const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
     useGoodDollarTotalSupply();
-  const { myRankEntry, totalCount, isRankLoading } = useAllUsersLeaderboard(0, address);
-  const { totalCount: monthlyParticipantCount } = useMonthlyCampaignLeaderboard(0, address);
+  const { myRankEntry: globalRankEntry, totalCount, isRankLoading: isGlobalRankLoading } =
+    useAllUsersLeaderboard(0, address);
+  const {
+    totalCount: monthlyParticipantCount,
+    myRankEntry: monthlyRankEntry,
+    isLoading: isMonthlyRankLoading,
+  } = useMonthlyCampaignLeaderboard(0, address);
+
+  const activeRankEntry = activeTab === "monthly" ? monthlyRankEntry : globalRankEntry;
+  const isRankLoading = activeTab === "monthly" ? isMonthlyRankLoading : isGlobalRankLoading;
 
   const formattedGAmount =
     typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
@@ -858,8 +870,8 @@ function LeaderboardContent({
         formattedGAmount={formattedGAmount}
         isLoadingGSupply={isLoadingGSupply}
         celoscanContractUrl={celoscanContractUrl}
-        myRank={myRankEntry?.rank ?? null}
-        myPoints={myRankEntry?.points ?? null}
+        myRank={activeRankEntry?.rank ?? null}
+        myPoints={activeRankEntry?.points ?? null}
         isRankLoading={isRankLoading}
         authenticated={authenticated}
         totalDreamers={totalCount}
