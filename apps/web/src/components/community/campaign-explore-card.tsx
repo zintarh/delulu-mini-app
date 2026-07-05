@@ -10,6 +10,7 @@ import {
   formatMilestoneOpensAt,
 } from "@/lib/community/milestone-submit-eligibility";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
 
 export type ActiveMilestoneData = {
   milestone_id: number;
@@ -29,6 +30,7 @@ export type CampaignExploreCardData = {
   displayEndsAt: string | null;
   status: string;
   participantCount: number;
+  participantAvatars?: AvatarStackParticipant[];
   milestoneCount: number;
   canJoin?: boolean;
   isOnChain?: boolean;
@@ -132,8 +134,16 @@ export function CampaignExploreCard({
                   {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
                 </span>
                 {campaign.participantCount > 0 ? (
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
+                  <span className="flex items-center gap-1.5">
+                    {campaign.participantAvatars && campaign.participantAvatars.length > 0 ? (
+                      <AvatarStack
+                        participants={campaign.participantAvatars}
+                        total={campaign.participantCount}
+                        size={18}
+                      />
+                    ) : (
+                      <Users className="h-3 w-3" />
+                    )}
                     {campaign.participantCount} joined
                   </span>
                 ) : null}

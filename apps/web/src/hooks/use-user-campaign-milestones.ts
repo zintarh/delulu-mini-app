@@ -18,6 +18,7 @@ export type JoinedDashboardCampaign = {
   join_amount: number;
   forfeit_pct: number;
   participant_count: number;
+  participant_avatars?: { address: string; username: string | null; pfpUrl: string | null }[];
   milestone_count: number;
   completed_count: number;
   next_milestones: CommunityCampaignMilestoneRow[];

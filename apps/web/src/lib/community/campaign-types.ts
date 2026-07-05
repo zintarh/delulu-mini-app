@@ -80,6 +80,7 @@ export type CommunityCampaignFeedItem = {
   milestone_count?: number;
   can_join?: boolean;
   participant_count?: number;
+  participant_avatars?: { address: string; username: string | null; pfpUrl: string | null }[];
   telegram_link?: string | null;
 };
 

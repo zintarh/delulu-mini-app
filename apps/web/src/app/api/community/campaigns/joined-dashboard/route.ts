@@ -5,6 +5,10 @@ import {
   getDashboardNextMilestones,
 } from "@/lib/community/milestone-submit-eligibility";
 import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
+import {
+  fetchCampaignParticipantAvatars,
+  type ParticipantAvatar,
+} from "@/lib/community/campaign-participant-avatars";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
@@ -97,6 +101,19 @@ export async function GET(request: NextRequest) {
   const leftOnChainIds = new Set((leftRows ?? []).map((r) => r.campaign_id));
   const onChainCampaigns = rawOnChainCampaigns.filter((c) => !leftOnChainIds.has(c.campaign_id));
 
+  async function withParticipantAvatars<T extends { campaign_id: string }>(
+    campaigns: T[],
+  ): Promise<Array<T & { participant_avatars: ParticipantAvatar[] }>> {
+    const avatarsByCampaign = await fetchCampaignParticipantAvatars(
+      admin!,
+      campaigns.map((c) => c.campaign_id),
+    );
+    return campaigns.map((c) => ({
+      ...c,
+      participant_avatars: avatarsByCampaign.get(c.campaign_id) ?? [],
+    }));
+  }
+
   // ── 2. Off-chain (pre-launch) campaigns — milestones from Supabase ───────
   // Campaigns without an on_chain_challenge_id are joined via campaign_participants,
   // not tracked on The Graph, so the section above misses them entirely.
@@ -109,7 +126,7 @@ export async function GET(request: NextRequest) {
   const joinedIds = (participantRows ?? []).map((p) => p.campaign_id);
 
   if (joinedIds.length === 0) {
-    return NextResponse.json({ campaigns: onChainCampaigns });
+    return NextResponse.json({ campaigns: await withParticipantAvatars(onChainCampaigns) });
   }
 
   const [offChainCampaignResult, approvedProofsResult] = await Promise.all([
@@ -139,7 +156,7 @@ export async function GET(request: NextRequest) {
   );
 
   if (activeOffChainRows.length === 0) {
-    return NextResponse.json({ campaigns: onChainCampaigns });
+    return NextResponse.json({ campaigns: await withParticipantAvatars(onChainCampaigns) });
   }
 
   // Map approved proofs: campaignId → Set of completed milestone order_indices
@@ -233,5 +250,7 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ campaigns: [...onChainCampaigns, ...offChainCampaigns] });
+  return NextResponse.json({
+    campaigns: await withParticipantAvatars([...onChainCampaigns, ...offChainCampaigns]),
+  });
 }

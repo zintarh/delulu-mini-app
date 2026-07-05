@@ -129,6 +129,7 @@ export function ActiveCampaignsSection({
               joinToken={c.join_token}
               forfeitPct={c.forfeit_pct}
               participantCount={c.participant_count}
+              participantAvatars={c.participant_avatars}
               proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
               onSubmitProof={() => {
                 setActiveProof({

@@ -16,6 +16,7 @@ import {
   isValidOnChainChallengeId,
   mergeMilestoneCount,
 } from "@/lib/community/campaign-milestone-counts";
+import { fetchCampaignParticipantAvatars } from "@/lib/community/campaign-participant-avatars";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
@@ -63,6 +64,7 @@ function toFeedItem(
   milestoneCount = 0,
   canJoin = false,
   participantCount = 0,
+  participantAvatars: CommunityCampaignFeedItem["participant_avatars"] = [],
 ): CommunityCampaignFeedItem {
   const community = row.communities ?? { id: row.community_id, name: "Community", slug: "" };
   return {
@@ -88,6 +90,7 @@ function toFeedItem(
     proof_instructions: row.proof_instructions ?? null,
     telegram_link: row.telegram_link ?? null,
     participant_count: participantCount,
+    participant_avatars: participantAvatars,
     ...(joined && participantData
       ? { myStreak: participantData.streak, myPoints: participantData.points }
       : {}),
@@ -247,6 +250,11 @@ export async function GET(request: NextRequest) {
     if (campaignId) pageCountMap.set(campaignId, stats.participantCount);
   }
 
+  const avatarsByCampaign = await fetchCampaignParticipantAvatars(
+    admin,
+    page.map((row) => row.id),
+  );
+
   const campaigns = page.map((row, i) => {
     const isJoined = joinedCampaignIds.has(row.id);
     const graphCount = graphMilestoneCounts[i] ?? 0;
@@ -261,6 +269,7 @@ export async function GET(request: NextRequest) {
       count,
       canJoin,
       pageCountMap.get(row.id) ?? 0,
+      avatarsByCampaign.get(row.id) ?? [],
     );
   });
 

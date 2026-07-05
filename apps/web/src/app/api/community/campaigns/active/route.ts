@@ -8,6 +8,7 @@ import {
   isValidOnChainChallengeId,
   mergeMilestoneCount,
 } from "@/lib/community/campaign-milestone-counts";
+import { fetchCampaignParticipantAvatars } from "@/lib/community/campaign-participant-avatars";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 // "participants" sort re-ranks the most recent MAX_CANDIDATES campaigns by
@@ -168,7 +169,15 @@ export async function GET(request: NextRequest) {
     nextCursor = candidates[candidates.length - 1]?.created_at ?? null;
   }
 
-  const campaigns = result.map(({ _createdAt, ...rest }) => rest);
+  const avatarsByCampaign = await fetchCampaignParticipantAvatars(
+    admin,
+    result.map((c) => c.id),
+  );
+
+  const campaigns = result.map(({ _createdAt, ...rest }) => ({
+    ...rest,
+    participantAvatars: avatarsByCampaign.get(rest.id) ?? [],
+  }));
 
   const cacheControl = address
     ? "private, no-store"

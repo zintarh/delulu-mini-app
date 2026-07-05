@@ -10,6 +10,7 @@ import {
 } from "@/lib/community/milestone-submit-eligibility";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
+import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
 
 export interface MissionCardProps {
   href: string;
@@ -26,6 +27,7 @@ export interface MissionCardProps {
   joinToken: string;
   forfeitPct: number;
   participantCount: number;
+  participantAvatars?: AvatarStackParticipant[];
 }
 
 function countdownLabel(deadline: string | null): { text: string; urgent: boolean } | null {
@@ -105,6 +107,7 @@ export function MissionCard({
   joinToken,
   forfeitPct,
   participantCount,
+  participantAvatars,
 }: MissionCardProps) {
   const canSubmit = canSubmitMilestone(milestone);
   const waitLabel = milestone.start_time
@@ -146,10 +149,16 @@ export function MissionCard({
           </p> */}
 
           {participantCount > 1 ? (
-            <p className="mt-1 flex items-center gap-1 truncate text-[11px] font- text-foreground">
-              <Users className="h-3 w-3 shrink-0" />
-              {participantCount} people are in this together
-            </p>
+            <div className="mt-1 flex items-center gap-1.5">
+              {participantAvatars && participantAvatars.length > 0 ? (
+                <AvatarStack participants={participantAvatars} total={participantCount} size={18} />
+              ) : (
+                <Users className="h-3 w-3 shrink-0 text-foreground" />
+              )}
+              <p className="truncate text-[11px] font-medium text-foreground">
+                {participantCount} people are in this together
+              </p>
+            </div>
           ) : null}
         </Link>
       </div>

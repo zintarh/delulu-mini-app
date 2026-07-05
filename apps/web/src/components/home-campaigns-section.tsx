@@ -43,6 +43,7 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
     displayEndsAt: c.display_ends_at,
     status: c.status,
     participantCount: c.participant_count ?? 0,
+    participantAvatars: c.participant_avatars ?? [],
     milestoneCount: c.milestone_count ?? 0,
     canJoin: c.can_join ?? false,
     isOnChain: isValidOnChainChallengeId(c.on_chain_challenge_id ?? null),
