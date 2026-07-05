@@ -127,7 +127,6 @@ export function HomeFeatureCarousel() {
                 card.bgClassName,
               )}
             >
-              {/* Ambient highlight */}
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{ background: card.glow }}
