@@ -33,6 +33,7 @@ export function usePostAuthRoute() {
 
   const [routeState, setRouteState] = useState<PostAuthRouteState>("idle");
   const hasRedirectedRef = useRef(false);
+  const lastAddressRef = useRef<string | null>(null);
 
   useEffect(() => {
     const community = searchParams.get("community");
@@ -48,10 +49,15 @@ export function usePostAuthRoute() {
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
 
-  const { data: celoBalance, isLoading: isBalanceLoading, refetch: refetchBalance } = useBalance({
+  const {
+    data: celoBalance,
+    isLoading: isBalanceLoading,
+    isFetching: isBalanceFetching,
+    refetch: refetchBalance,
+  } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
-    query: { enabled: !!authenticated && !!address },
+    query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
 
   const hasProfile = typeof username === "string" && username.trim().length > 0;
@@ -63,12 +69,18 @@ export function usePostAuthRoute() {
   );
 
   useEffect(() => {
+    const normalizedAddress = address?.toLowerCase() ?? null;
+    if (normalizedAddress !== lastAddressRef.current) {
+      lastAddressRef.current = normalizedAddress;
+      hasRedirectedRef.current = false;
+    }
+
     if (!isReady || !authenticated || !address) {
       setRouteState("idle");
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || isBalanceLoading) {
+    if (isFetchingUsername || isBalanceLoading || isBalanceFetching) {
       setRouteState("loading");
       return;
     }
@@ -106,10 +118,12 @@ export function usePostAuthRoute() {
     address,
     isFetchingUsername,
     isBalanceLoading,
+    isBalanceFetching,
     hasProfile,
     hasGas,
     router,
     redirectTarget,
+    address,
   ]);
 
   return {
@@ -118,6 +132,6 @@ export function usePostAuthRoute() {
     hasGas,
     address: address ?? "",
     refetchBalance,
-    isCheckingAccount: isFetchingUsername || isBalanceLoading,
+    isCheckingAccount: isFetchingUsername || isBalanceLoading || isBalanceFetching,
   };
 }

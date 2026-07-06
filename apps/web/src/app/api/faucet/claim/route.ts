@@ -5,7 +5,7 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { runFaucetAgent } from "@/lib/ai/faucet-agent";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   // 1. Auth — address comes from session cookie only (cannot be spoofed by client)

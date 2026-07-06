@@ -39,7 +39,7 @@ export function getFaucetAddress(): `0x${string}` {
   return getFaucetAccount().address;
 }
 
-/** Sends CELO from the faucet wallet. Returns the transaction hash. */
+/** Sends CELO from the faucet wallet. Returns the hash after the tx is confirmed. */
 export async function sendCelo(
   to: `0x${string}`,
   amountCelo: string,
@@ -47,13 +47,23 @@ export async function sendCelo(
   const account = getFaucetAccount();
   const rpc = getRpcUrl();
   console.log("[send-celo] sending", amountCelo, "CELO from", account.address, "to", to, "via RPC:", rpc);
-  const client = createWalletClient({
+  const publicClient = createPublicClient({ chain: celo, transport: http(rpc) });
+  const walletClient = createWalletClient({
     account,
     chain: celo,
     transport: http(rpc),
   });
-  const hash = await client.sendTransaction({ to, value: parseEther(amountCelo) });
+  const hash = await walletClient.sendTransaction({ to, value: parseEther(amountCelo) });
   console.log("[send-celo] tx submitted:", hash);
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash,
+    confirmations: 1,
+    timeout: 45_000,
+  });
+  if (receipt.status !== "success") {
+    throw new Error("CELO transfer transaction reverted");
+  }
+  console.log("[send-celo] tx confirmed:", hash);
   return hash;
 }
 

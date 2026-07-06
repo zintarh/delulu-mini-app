@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useBalance } from "wagmi";
+import { parseEther } from "viem";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useSetProfile } from "@/hooks/use-set-profile";
@@ -10,7 +11,7 @@ import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { Loader2, ArrowRight, Camera, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
-import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import {
   consumeCommunityReferral,
   consumeSignInRedirect,
@@ -19,6 +20,8 @@ import {
 import { getEmailValidationMessage } from "@/lib/email-validation";
 
 type WizardStep = "profile" | "community";
+
+const MIN_GAS_WEI = parseEther("0.01");
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -53,6 +56,19 @@ export default function WelcomePage() {
   useEffect(() => {
     if (isReady && !authenticated) router.replace("/sign-in");
   }, [isReady, authenticated, router]);
+
+  const { data: celoBalance, isLoading: isBalanceLoading, isFetching: isBalanceFetching } = useBalance({
+    address,
+    chainId: CELO_MAINNET_ID,
+    query: { enabled: !!address && authenticated, staleTime: 0, gcTime: 0 },
+  });
+  const hasGas = (celoBalance?.value ?? 0n) >= MIN_GAS_WEI;
+
+  useEffect(() => {
+    if (!isReady || !authenticated || !address) return;
+    if (isBalanceLoading || isBalanceFetching) return;
+    if (!hasGas) router.replace("/sign-in");
+  }, [address, authenticated, hasGas, isBalanceFetching, isBalanceLoading, isReady, router]);
 
   const { data: existingUsername, isFetching: isCheckingProfile } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,

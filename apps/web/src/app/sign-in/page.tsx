@@ -50,9 +50,6 @@ export default function SignInPage() {
   const [faucetState, setFaucetState] = useState<FaucetState>("idle");
   const [faucetReason, setFaucetReason] = useState<string | null>(null);
   const faucetCalledRef = useRef(false);
-  // Rejection reasons the user can act on (show blocking card).
-  // Everything else auto-redirects after 2s.
-  const ACTIONABLE_REASONS = new Set(["already_received_wallet", "already_received_email", "ip_rate_exceeded", "insufficient_faucet_funds"]);
 
   // Dropped-tx watchdog: if we've been in "claimed" for 3 minutes with no
   // CELO arriving, the transaction was likely dropped on-chain. Show the
@@ -168,19 +165,10 @@ export default function SignInPage() {
   // Gas polling — detects when CELO lands and advances to /welcome
   useEffect(() => {
     if (routeState !== "needs_gas") return;
-    const id = setInterval(() => void refetchBalance(), 10000);
+    const intervalMs = faucetState === "claimed" ? 3000 : 10000;
+    const id = setInterval(() => void refetchBalance(), intervalMs);
     return () => clearInterval(id);
-  }, [routeState, refetchBalance]);
-
-  // Redirect silently after 2s for non-actionable faucet rejections only.
-  // "error" and "tx_timeout" now show blocking cards so users are never stuck.
-  useEffect(() => {
-    const isActionableRejection = faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
-    const isNonActionableRejection = faucetState === "rejected" && !isActionableRejection;
-    if (!isNonActionableRejection) return;
-    const t = setTimeout(() => router.replace("/welcome"), 2000);
-    return () => clearTimeout(t);
-  }, [faucetState, faucetReason, router]);
+  }, [routeState, refetchBalance, faucetState]);
 
 
 
@@ -265,21 +253,14 @@ export default function SignInPage() {
   }
 
   if (authenticated && routeState === "needs_gas") {
-    // "error" and "tx_timeout" are now actionable — show blocking cards.
-    // Only non-actionable rejections keep the spinner + silent redirect.
-    const isActionableRejection =
-      faucetState === "rejected" && ACTIONABLE_REASONS.has(faucetReason ?? "");
-    const isNonActionableRejection = faucetState === "rejected" && !isActionableRejection;
     const showSpinner =
-      faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed" || isNonActionableRejection;
+      faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed";
 
     if (showSpinner) {
       const label =
         faucetState === "claimed"
           ? "Gas sent! Waiting for confirmation…"
-          : isNonActionableRejection
-            ? "Getting you started…"
-            : "Getting your gas… this takes a few seconds";
+          : "Getting your gas… this takes a few seconds";
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
           <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
@@ -291,10 +272,7 @@ export default function SignInPage() {
       );
     }
 
-    // Blocking card — all actionable states land here:
-    // - rejected (known reason): already_received, ip_limit, faucet_empty
-    // - error: faucet API returned 500 (retry makes sense)
-    // - tx_timeout: gas was "sent" but never confirmed after 3 min (tx likely dropped)
+    // Blocking card — never redirect to /welcome without confirmed gas.
     const isAlreadyReceived =
       faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
     const isIpLimit = faucetReason === "ip_rate_exceeded";
