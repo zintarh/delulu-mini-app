@@ -1,10 +1,11 @@
 "use client";
 
-import { useWriteContract } from "wagmi";
-import { createWalletClient, custom, type Abi } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
+import { createWalletClient, custom, type Abi, type EIP1193Provider } from "viem";
 import { celo } from "wagmi/chains";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { useState, useCallback } from "react";
+import { useWallets } from "@privy-io/react-auth";
 import { useNoGas } from "@/contexts/no-gas-context";
 import { isInsufficientGasError } from "@/lib/contract-error";
 
@@ -28,12 +29,30 @@ export function useUnifiedWriteContract() {
     isPending: wagmiIsPending,
     reset: wagmiReset,
   } = useWriteContract();
+  const { isConnected: wagmiIsConnected } = useAccount();
+  const { wallets: privyWallets } = useWallets();
 
   const { trigger: triggerNoGas } = useNoGas();
 
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const signDirect = useCallback(
+    async (provider: EIP1193Provider, params: WriteContractParams) => {
+      const walletClient = createWalletClient({
+        chain: celo,
+        transport: custom(provider),
+      });
+      const [account] = await walletClient.getAddresses();
+      return walletClient.writeContract({
+        ...(params as Parameters<typeof walletClient.writeContract>[0]),
+        account,
+        chain: celo,
+      });
+    },
+    []
+  );
 
   const writeContractAsync = useCallback(
     async (params: WriteContractParams): Promise<`0x${string}`> => {
@@ -43,16 +62,7 @@ export function useUnifiedWriteContract() {
       if (w3aProvider) {
         setIsPending(true);
         try {
-          const walletClient = createWalletClient({
-            chain: celo,
-            transport: custom(w3aProvider),
-          });
-          const [account] = await walletClient.getAddresses();
-          const txHash = await walletClient.writeContract({
-            ...(params as Parameters<typeof walletClient.writeContract>[0]),
-            account,
-            chain: celo,
-          });
+          const txHash = await signDirect(w3aProvider, params);
           setHash(txHash);
           return txHash;
         } catch (err) {
@@ -63,7 +73,7 @@ export function useUnifiedWriteContract() {
         } finally {
           setIsPending(false);
         }
-      } else {
+      } else if (wagmiIsConnected) {
         setIsPending(true);
         try {
           const txHash = await wagmiWriteAsync({
@@ -80,9 +90,34 @@ export function useUnifiedWriteContract() {
         } finally {
           setIsPending(false);
         }
+      } else {
+        // No live wagmi connection and no bridged provider (e.g. a wallet
+        // connected through Privy's own "wallet" login, which wagmi never
+        // registers a connector for). Sign directly against that wallet's
+        // EIP-1193 provider instead of handing off to wagmi's writeContract,
+        // which throws inside @wagmi/core when there's no real connection.
+        setIsPending(true);
+        try {
+          const privyProvider = (await privyWallets[0]
+            ?.getEthereumProvider()
+            .catch(() => null)) as EIP1193Provider | null;
+          if (!privyProvider) {
+            throw new Error("No wallet connected. Please reconnect your wallet and try again.");
+          }
+          const txHash = await signDirect(privyProvider, params);
+          setHash(txHash);
+          return txHash;
+        } catch (err) {
+          const e = err instanceof Error ? err : new Error(String(err));
+          setError(e);
+          if (isInsufficientGasError(e)) triggerNoGas();
+          throw e;
+        } finally {
+          setIsPending(false);
+        }
       }
     },
-    [wagmiWriteAsync]
+    [wagmiWriteAsync, wagmiIsConnected, privyWallets, signDirect, triggerNoGas]
   );
 
   const writeContract = useCallback(

@@ -104,9 +104,7 @@ export default function SignInPage() {
     if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
     if (!address) return;
 
-    const privyWallet = privyWallets.find(
-      (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
-    );
+    const privyWallet = privyWallets[0];
 
     // Wait until whichever provider is active has loaded
     if (!web3authProvider && !privyWallet) return;

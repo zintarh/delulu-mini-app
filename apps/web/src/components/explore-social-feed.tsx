@@ -2,11 +2,11 @@
 
 import { LazyExplorePinCard } from "@/components/lazy-explore-pin-card";
 import { SocialFeedCardSkeleton } from "@/components/delulu-skeleton";
-import type { FormattedDelulu } from "@/lib/types";
+import type { FormattedDeluluFeed } from "@/hooks/graph/useAllDelulus";
 import { cn } from "@/lib/utils";
 
 interface ExploreSocialFeedProps {
-  delulus: FormattedDelulu[];
+  delulus: FormattedDeluluFeed[];
   isLoading?: boolean;
   nowMs?: number;
   creatorPfps: Record<string, string | null | undefined>;
@@ -52,6 +52,8 @@ export function ExploreSocialFeed({
             nowMs={nowMs}
             imagePriority={index < 6}
             creatorPfpUrl={creatorPfps[delusion.creator.toLowerCase()]}
+            feedMilestones={delusion.feedMilestones}
+            totalMilestoneCount={delusion.totalMilestoneCount}
           />
         );
       })}

@@ -4,7 +4,8 @@
  * Establishes the httpOnly wallet session for Privy-authenticated users
  * and wires the Privy EIP-1193 provider into the shared web3auth-bridge
  * so that useUnifiedWriteContract can sign transactions for Privy users
- * (wagmi has no Privy connector, so we reuse the same EIP-1193 path).
+ * (wagmi has no Privy connector — for embedded *or* externally-connected
+ * wallets — so we reuse the same EIP-1193 path for all of them).
  */
 
 import { useEffect, useRef } from "react";
@@ -24,9 +25,11 @@ export function PrivyWalletSessionBootstrap() {
   useEffect(() => {
     if (!authenticated || wallets.length === 0) return;
 
-    const privyWallet = wallets.find(
-      (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
-    );
+    // Any Privy-connected wallet — embedded ("privy"/"privy-v2") or an
+    // externally-connected one (MetaMask, WalletConnect, etc. via Privy's
+    // "wallet" login method) — needs this bridge, since wagmi never
+    // registers a connector for wallets connected through Privy.
+    const privyWallet = wallets[0];
     if (!privyWallet) return;
     if (establishedRef.current === privyWallet.address) return;
 

@@ -263,7 +263,7 @@ export function CampaignMilestonesModal({
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     {step === "config"
-                      ? "Generate milestones with AI"
+                      ? "Generate milestones"
                       : isInitialPublish
                         ? "Publish milestones on-chain"
                         : "Campaign milestones"}
@@ -360,14 +360,14 @@ export function CampaignMilestonesModal({
                       setLoadError(null);
                       void generateWithAi(campaignTitle)
                         .catch(() => {
-                          setLoadError("AI generation failed. Edit milestones manually.");
+                          setLoadError("Milestone generation failed. Edit milestones manually.");
                           setMilestones([{ title: "", days: maxDays }]);
                         })
                         .finally(() => setIsLoading(false));
                     }}
                     className="mb-3 text-xs font-semibold text-delulu-blue hover:underline"
                   >
-                    {isInitialPublish ? "Generate with AI" : "Regenerate with AI"}
+                    {isInitialPublish ? "Generate milestones" : "Regenerate milestones"}
                   </button>
                 ) : null}
 

@@ -47,10 +47,9 @@ export function useUnifiedWalletClient() {
     };
   }, [web3authConnected, web3authProvider]);
 
-  // Resolve Privy embedded wallet provider
-  const privyWallet = wallets.find(
-    (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
-  );
+  // Resolve Privy wallet provider — embedded or externally connected via
+  // Privy's "wallet" login method (wagmi has no connector for either).
+  const privyWallet = wallets[0];
   useEffect(() => {
     if (!privyWallet) {
       setPrivyProvider(null);

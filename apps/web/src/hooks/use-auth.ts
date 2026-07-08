@@ -71,10 +71,11 @@ export function useAuth(): UseAuthReturn {
       .catch(() => setWeb3authAddress(undefined));
   }, [web3authConnected, web3Auth]);
 
-  // Privy embedded wallet address — match both "privy" (v1) and "privy-v2"
-  const privyAddress = wallets.find(
-    (w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2",
-  )?.address as `0x${string}` | undefined;
+  // Privy wallet address — embedded ("privy"/"privy-v2") or an externally
+  // connected wallet linked via Privy's "wallet" login method. Wagmi never
+  // registers a connector for either, so we read the address straight from
+  // Privy's own wallet list.
+  const privyAddress = wallets[0]?.address as `0x${string}` | undefined;
 
   // Persist provider hint in localStorage for eager auth loading on return visits
   useEffect(() => {

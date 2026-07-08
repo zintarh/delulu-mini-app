@@ -4,16 +4,32 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useBalance, useChainId, useWaitForTransactionReceipt } from "wagmi";
+import { DollarSign } from "lucide-react";
 import type { FormattedDelulu } from "@/lib/types";
+import type { FeedMilestone } from "@/hooks/graph/useAllDelulus";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import { cn, formatGAmount } from "@/lib/utils";
 import {
   formatUsdEquivalent,
+  getDefaultTipAmount,
   getTokenSymbol,
+  parseTokenAmount,
 } from "@/lib/token-amounts";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getPinCardAspectClassFromId } from "@/lib/pin-card-aspect";
+import { useAuth } from "@/hooks/use-auth";
+import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
+import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
+import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useApolloClient } from "@apollo/client/react";
+import { isDeluluCreator } from "@/lib/delulu-utils";
+import { DELULU_ABI } from "@/lib/abi";
+import { getDeluluContractAddress } from "@/lib/constant";
+import { refetchDeluluData } from "@/lib/graph/refetch-utils";
+import { DeluluTipModal } from "@/components/delulu-detail/delulu-tip-modal";
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -56,6 +72,8 @@ export interface ExplorePinCardProps {
   nowMs?: number;
   creatorPfpUrl?: string | null | undefined;
   imagePriority?: boolean;
+  feedMilestones?: FeedMilestone[];
+  totalMilestoneCount?: number;
 }
 
 export function ExplorePinCard({
@@ -65,8 +83,17 @@ export function ExplorePinCard({
   nowMs,
   creatorPfpUrl,
   imagePriority = false,
+  feedMilestones,
+  totalMilestoneCount,
 }: ExplorePinCardProps) {
   const router = useRouter();
+  const apolloClient = useApolloClient();
+  const { address, authenticated } = useAuth();
+  const { redirectToSignIn } = useRedirectToSignIn();
+  const { ensureWhitelisted, isChecking: isCheckingWhitelist } =
+    useRequireGoodDollarWhitelist();
+  const isCreator = isDeluluCreator(address, delusion);
+  const chainId = useChainId();
   const legacyStakeTotal = delusion.totalBelieverStake + delusion.totalDoubterStake;
   const totalReceived = delusion.totalSupportCollected ?? 0;
   const fallbackReceived = (delusion.creatorStake ?? 0) + legacyStakeTotal;
@@ -124,6 +151,114 @@ export function ExplorePinCard({
 
   const handleWarm = () => {
     router.prefetch(href);
+  };
+
+  const totalCount = totalMilestoneCount ?? feedMilestones?.length ?? 0;
+  const verifiedCount = feedMilestones?.filter((m) => m.isVerified).length ?? 0;
+  const milestoneProgressPct =
+    totalCount > 0 ? Math.min(100, Math.round((verifiedCount / totalCount) * 100)) : 0;
+
+  const showTipButton = !isEnded && !isCreator;
+  const effectiveTokenAddress = delusion.tokenAddress;
+
+  const [showTipModal, setShowTipModal] = useState(false);
+  const [tipAmountInput, setTipAmountInput] = useState(() =>
+    String(getDefaultTipAmount(effectiveTokenAddress)),
+  );
+  const [tipError, setTipError] = useState<string | null>(null);
+
+  const {
+    writeContract: writeTipMilestone,
+    data: tipHash,
+    isPending: isTippingMilestone,
+  } = useUnifiedWriteContract();
+  const { isLoading: isConfirmingTipMilestone, isSuccess: isTipSuccess } =
+    useWaitForTransactionReceipt({ hash: tipHash });
+
+  const { formatted: gBalanceFormatted, isLoading: isLoadingGBalance } =
+    useTokenBalance(effectiveTokenAddress);
+  const walletBalanceNum = Number(gBalanceFormatted ?? "0");
+  const walletBalanceLabel = Number.isFinite(walletBalanceNum)
+    ? walletBalanceNum.toFixed(2)
+    : "0.00";
+
+  const { data: celoBalance } = useBalance({
+    address: address as `0x${string}` | undefined,
+    query: { enabled: !!address },
+  });
+  const celoBalanceNum = celoBalance ? Number(celoBalance.formatted) : null;
+  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.001;
+
+  const toUsd = (amount: number | null | undefined) =>
+    formatUsdEquivalent(amount ?? 0, effectiveTokenAddress, gDollarUsdPrice);
+
+  useEffect(() => {
+    if (!isTipSuccess) return;
+    setShowTipModal(false);
+    refetchDeluluData(apolloClient, delusion.onChainId ?? delusion.id);
+    if (address && delusion.creator) {
+      fetch("/api/notifications/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipperAddress: address,
+          creatorAddress: delusion.creator,
+          deluluId: delusion.id,
+          amount: tipAmountInput || null,
+          tokenSymbol,
+        }),
+      }).catch(() => {});
+    }
+    setTipAmountInput(String(getDefaultTipAmount(effectiveTokenAddress)));
+    setTipError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTipSuccess]);
+
+  const handleOpenTip = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!authenticated) {
+      redirectToSignIn(href);
+      return;
+    }
+    setTipAmountInput(String(getDefaultTipAmount(effectiveTokenAddress)));
+    setTipError(null);
+    setShowTipModal(true);
+  };
+
+  const handleSubmitTip = async () => {
+    const allowed = await ensureWhitelisted("tip", effectiveTokenAddress);
+    if (!allowed) return;
+
+    const amountNum = Number(tipAmountInput);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      setTipError("Enter a valid tip amount greater than 0.");
+      return;
+    }
+    if (amountNum > walletBalanceNum) {
+      setTipError(
+        `Insufficient balance. You have ${walletBalanceLabel} ${tokenSymbol} available.`,
+      );
+      return;
+    }
+    let amountWei: bigint;
+    try {
+      amountWei = parseTokenAmount(tipAmountInput, effectiveTokenAddress);
+    } catch {
+      setTipError("Tip amount format is invalid.");
+      return;
+    }
+    if (amountWei <= 0n) {
+      setTipError("Enter a valid tip amount greater than 0.");
+      return;
+    }
+    setTipError(null);
+    writeTipMilestone({
+      address: getDeluluContractAddress(chainId),
+      abi: DELULU_ABI,
+      functionName: "tipMilestone",
+      args: [BigInt(delusion.onChainId ?? delusion.id), 0n, amountWei],
+    });
   };
 
   return (
@@ -200,6 +335,34 @@ export function ExplorePinCard({
           )}
         </Link>
 
+        {totalCount > 0 ? (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-muted-foreground">
+                Milestones
+              </span>
+              <span className="font-black tabular-nums text-foreground">
+                {verifiedCount}/{totalCount}
+              </span>
+            </div>
+            <div
+              className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={milestoneProgressPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${verifiedCount} of ${totalCount} milestones completed`}
+            >
+              <div
+                className="h-full rounded-full bg-delulu-blue transition-all duration-500"
+                style={{
+                  width: `${milestoneProgressPct > 0 ? Math.max(milestoneProgressPct, 4) : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-3 flex items-center gap-2.5">
           <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border/50">
             <UserAvatar
@@ -230,8 +393,51 @@ export function ExplorePinCard({
               </p>
             )}
           </div>
+          {showTipButton ? (
+            <button
+              type="button"
+              onClick={handleOpenTip}
+              disabled={isCheckingWhitelist}
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-delulu-blue px-3 text-xs font-bold text-white transition-colors hover:bg-delulu-blue/90 active:scale-[0.97] disabled:opacity-60"
+            >
+              <DollarSign className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Tip
+            </button>
+          ) : null}
         </div>
       </div>
+
+      <DeluluTipModal
+        open={showTipModal}
+        onOpenChange={(open) => {
+          setShowTipModal(open);
+          if (open) {
+            setTipAmountInput(String(getDefaultTipAmount(effectiveTokenAddress)));
+          }
+          if (!open) setTipError(null);
+        }}
+        tokenSymbol={tokenSymbol}
+        tipAmountInput={tipAmountInput}
+        onTipAmountChange={(value) => {
+          setTipAmountInput(value);
+          if (tipError) setTipError(null);
+        }}
+        walletBalanceNum={walletBalanceNum}
+        walletBalanceLabel={walletBalanceLabel}
+        isLoadingBalance={isLoadingGBalance}
+        toUsd={toUsd}
+        marketToken={effectiveTokenAddress}
+        hasNoGas={hasNoGas}
+        tipError={tipError}
+        isTipping={isTippingMilestone}
+        isConfirming={isConfirmingTipMilestone}
+        onMax={() => {
+          setTipAmountInput(String(Math.max(0, walletBalanceNum)));
+          if (tipError) setTipError(null);
+        }}
+        onQuickTip={(amount) => setTipAmountInput(String(amount))}
+        onSubmit={handleSubmitTip}
+      />
     </article>
   );
 }
