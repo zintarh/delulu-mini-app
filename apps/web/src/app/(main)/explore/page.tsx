@@ -426,6 +426,7 @@ export default function ExplorePage() {
                     {campaignResults.map((c) => (
                       <CampaignExploreCard
                         key={c.id}
+                        className="shadow-sm hover:shadow-md"
                         campaign={{
                           id: c.id,
                           title: c.title,

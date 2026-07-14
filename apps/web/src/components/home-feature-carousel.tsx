@@ -55,15 +55,17 @@ const CARDS: FeatureCard[] = [
     eyebrow: "Every daily claim",
     headline: (
       <>
-        100 <span className="text-[0.55em] font-black align-top">pts</span>
+        100 <span className="text-[0.55em] text-white/90  align-top">pts</span>
       </>
     ),
     body: "Claim your G$ each day, earn points on top.",
     icon: Coins,
     bgClassName: "bg-[#244F1A]",
-    accentClassName: "bg-black/10 text-foreground",
+    accentClassName: "bg-black/10 text-white/90",
     glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.25) 0%, transparent 60%)",
+    light: true,
   },
+  
   {
     id: "neuroscience",
     eyebrow: "Why it works",

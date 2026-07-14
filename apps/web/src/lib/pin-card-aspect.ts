@@ -1,7 +1,7 @@
 /** Deterministic aspect ratios for explore / masonry pin cards. */
 const PIN_CARD_ASPECTS = [
-  "aspect-[4/5]",
-  "aspect-[5/6]",
+  "aspect-[6/7]",
+  "aspect-[10/11]",
   "aspect-[7/8]",
   "aspect-[9/10]",
   "aspect-square",

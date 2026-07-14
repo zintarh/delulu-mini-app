@@ -58,12 +58,14 @@ export function CampaignExploreCard({
   onJoin,
   onSubmitMilestone,
   proofBusy,
+  className,
 }: {
   campaign: CampaignExploreCardData;
   joining: boolean;
   onJoin: () => void;
   onSubmitMilestone?: () => void;
   proofBusy?: boolean;
+  className?: string;
 }) {
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
@@ -75,7 +77,12 @@ export function CampaignExploreCard({
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+    <article
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
+        className,
+      )}
+    >
       {/* Image header */}
       <Link href={href} className="block">
         <div className="relative aspect-[16/9] sm:aspect-[3/1] overflow-hidden bg-delulu-blue-light/40">
