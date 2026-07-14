@@ -95,7 +95,7 @@ function DiscoverCampaignsSection({
         <ExploreLink />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}

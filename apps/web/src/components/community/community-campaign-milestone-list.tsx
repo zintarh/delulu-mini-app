@@ -62,12 +62,12 @@ export function CommunityCampaignMilestoneList({
 }) {
   if (milestones.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] to-white px-5 py-8 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f6c324]/25 text-[#9a7b0a]">
-          <Sparkles className="h-5 w-5" />
+      <div className="relative overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] to-white px-6 py-10 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f6c324]/25 text-[#9a7b0a]">
+          <Sparkles className="h-6 w-6" />
         </div>
-        <p className="text-sm font-bold text-foreground">Milestones coming soon</p>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="text-base font-bold text-foreground">Milestones coming soon</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           The host is setting up checkpoints. You&apos;ll be able to join once they&apos;re live.
         </p>
       </div>
@@ -92,7 +92,7 @@ export function CommunityCampaignMilestoneList({
         const submitting = proofBusy && activeMilestoneId === m.milestone_id;
 
         return (
-          <li key={m.milestone_id} className="relative flex gap-4 pb-5 last:pb-0">
+          <li key={m.milestone_id} className="relative flex gap-5 pb-6 last:pb-0">
             {!isLast ? (
               <span
                 className={cn(
@@ -105,7 +105,7 @@ export function CommunityCampaignMilestoneList({
 
             <div
               className={cn(
-                "relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black",
+                "relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-black",
                 m.completed
                   ? "border-emerald-500 bg-emerald-500 text-white"
                   : isNext
@@ -113,61 +113,61 @@ export function CommunityCampaignMilestoneList({
                     : "border-border bg-background text-muted-foreground",
               )}
             >
-              {m.completed ? <Check className="h-4 w-4" strokeWidth={3} /> : index + 1}
+              {m.completed ? <Check className="h-5 w-5" strokeWidth={3} /> : index + 1}
             </div>
 
             <div
               className={cn(
-                "min-w-0 flex-1 rounded-2xl border px-3.5 py-3 transition-colors",
+                "min-w-0 flex-1 rounded-2xl border px-4 py-3.5 transition-colors",
                 isNext && !m.completed
                   ? "border-delulu-blue/40 bg-delulu-blue-light/50 shadow-sm"
                   : "border-border/60 bg-card",
               )}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-2.5">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-bold leading-snug text-foreground">{m.label}</p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <p className="text-base font-bold leading-snug text-foreground">{m.label}</p>
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                        "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide",
                         meta.ring,
                       )}
                     >
                       {meta.label}
                     </span>
                   </div>
-                  <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3 shrink-0" />
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
                     {formatCountdown(m.deadline)}
                   </p>
                 </div>
 
                 {/* Right side — points reward or submit button */}
                 {m.completed ? (
-                  <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                  <span className="shrink-0 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-black text-emerald-700">
                     +{fmtPts(BASE_PROOF_POINTS)} pts ✓
                   </span>
                 ) : !isJoined ? (
-                  <span className="shrink-0 rounded-lg bg-delulu-blue-light px-2.5 py-1 text-[10px] font-black text-delulu-blue">
+                  <span className="shrink-0 rounded-lg bg-delulu-blue-light px-3 py-1.5 text-[11px] font-black text-delulu-blue">
                     +{fmtPts(BASE_PROOF_POINTS)} pts
                   </span>
                 ) : isJoined ? (
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {canSubmit || submitting ? (
                       <>
-                        <span className="text-[10px] font-black text-delulu-blue">
+                        <span className="text-[11px] font-black text-delulu-blue">
                           +{fmtPts(BASE_PROOF_POINTS)} pts
                         </span>
                         <button
                           type="button"
                           disabled={!canSubmit}
                           onClick={() => onSubmitMilestone(m.milestone_id)}
-                          className="w-fit rounded-lg bg-delulu-blue px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
+                          className="w-fit rounded-lg bg-delulu-blue px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
                         >
                           {submitting ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                            <span className="inline-flex items-center gap-1.5">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               …
                             </span>
                           ) : (
@@ -176,11 +176,11 @@ export function CommunityCampaignMilestoneList({
                         </button>
                       </>
                     ) : m.is_overdue ? (
-                      <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                      <span className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-sm font-semibold text-muted-foreground">
                         −{fmtPts(BASE_PROOF_POINTS)} pts missed
                       </span>
                     ) : (
-                      <span className="text-[10px] font-semibold text-muted-foreground/60">
+                      <span className="text-[11px] font-semibold text-muted-foreground/60">
                         +{fmtPts(BASE_PROOF_POINTS)} pts
                       </span>
                     )}

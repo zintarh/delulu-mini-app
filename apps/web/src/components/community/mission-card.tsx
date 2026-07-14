@@ -123,16 +123,16 @@ export function MissionCard({
   const atRisk = hasStake && forfeitPct > 0 && Boolean(countdown?.urgent);
 
   return (
-    <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
-      <div className="flex items-start gap-3.5">
+    <div className="group rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start gap-4">
         <Link href={href} className="relative shrink-0">
-          <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
+          <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
             {coverImageUrl ? (
               <Image
                 src={coverImageUrl}
                 alt=""
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
                 unoptimized
               />
             ) : (
@@ -147,11 +147,11 @@ export function MissionCard({
         </Link>
 
         <Link href={href} className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50">
+          <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground/50">
             {title}
           </p>
 
-          <p className="mt-1 truncate text-base font-bold leading-snug text-foreground">
+          <p className="mt-1.5 truncate text-lg font-bold leading-snug text-foreground">
             {milestone.label}
           </p>
 
@@ -160,7 +160,7 @@ export function MissionCard({
           </p> */}
 
           {participantCount > 1 ? (
-            <div className="mt-1 flex items-center gap-1.5">
+            <div className="mt-2 flex items-center gap-1.5">
               {participantAvatars && participantAvatars.length > 0 ? (
                 <AvatarStack
                   participants={participantAvatars}
@@ -168,9 +168,9 @@ export function MissionCard({
                   size={20}
                 />
               ) : (
-                <Users className="h-3 w-3 shrink-0 text-foreground" />
+                <Users className="h-3.5 w-3.5 shrink-0 text-foreground" />
               )}
-              <p className="truncate text-[11px] font-medium text-foreground">
+              <p className="truncate text-xs font-medium text-foreground">
                 people are in this together
               </p>
             </div>
@@ -179,16 +179,16 @@ export function MissionCard({
       </div>
 
       {/* Motivation strip — the reward, the urgency, what's at stake */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border/40 pt-3 text-[11px]">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-border/40 pt-4 text-xs">
         {countdown ? (
           <span className="flex items-center gap-1 font-semibold text-muted-foreground">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3.5 w-3.5" />
             {countdown.text}
           </span>
         ) : null}
 
         <span className="flex items-center gap-1 font-semibold text-delulu-blue">
-          <Star className="h-3 w-3 fill-delulu-blue" />+
+          <Star className="h-3.5 w-3.5 fill-delulu-blue" />+
           {BASE_PROOF_POINTS.toLocaleString()} pts
         </span>
 
@@ -207,9 +207,9 @@ export function MissionCard({
           disabled={!canSubmit || proofBusy}
           onClick={onSubmitProof}
           className={cn(
-            "ml-auto shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-colors",
+            "ml-auto shrink-0 rounded-full px-5 py-2.5 text-sm font-bold transition-transform",
             canSubmit
-              ? "bg-delulu-blue text-white hover:opacity-90 disabled:opacity-50"
+              ? "bg-foreground text-background hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
               : "bg-muted text-muted-foreground",
           )}
         >
@@ -228,18 +228,18 @@ export function MissionCard({
 
 export function MissionCardSkeleton() {
   return (
-    <div className="animate-pulse rounded-3xl border border-border/60 bg-card p-4">
-      <div className="flex items-start gap-3.5">
-        <div className="h-20 w-20 shrink-0 rounded-2xl bg-muted" />
-        <div className="min-w-0 flex-1 space-y-2 pt-1">
+    <div className="animate-pulse rounded-3xl border border-border/60 bg-card p-5">
+      <div className="flex items-start gap-4">
+        <div className="h-24 w-24 shrink-0 rounded-2xl bg-muted" />
+        <div className="min-w-0 flex-1 space-y-2.5 pt-1">
           <div className="h-4 w-16 rounded-full bg-muted" />
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-3 w-1/2 rounded bg-muted/70" />
+          <div className="h-5 w-3/4 rounded bg-muted" />
+          <div className="h-3.5 w-1/2 rounded bg-muted/70" />
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
-        <div className="h-2.5 w-24 rounded bg-muted/70" />
-        <div className="h-8 w-24 shrink-0 rounded-full bg-muted" />
+      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
+        <div className="h-3 w-24 rounded bg-muted/70" />
+        <div className="h-9 w-28 shrink-0 rounded-full bg-muted" />
       </div>
     </div>
   );

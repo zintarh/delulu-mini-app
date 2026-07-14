@@ -242,16 +242,16 @@ function StatCard({
   return (
     <div
       className={cn(
-        "flex min-h-[132px] flex-col rounded-2xl border border-border/60 p-5 pb-6",
+        "flex min-h-[104px] flex-col rounded-2xl border border-border/60 p-3.5 pb-4",
         accent ? "bg-delulu-yellow-reserved/10 border-delulu-yellow-reserved/25" : "bg-secondary/50",
       )}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <div className="mt-2 flex-1">{value}</div>
-      {detail && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{detail}</p>}
-      {footer && <div className="mt-3 pt-1">{footer}</div>}
+      <div className="mt-1.5 flex-1">{value}</div>
+      {detail && <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">{detail}</p>}
+      {footer && <div className="mt-2 pt-0.5">{footer}</div>}
     </div>
   );
 }
@@ -286,18 +286,18 @@ function LeaderboardStatsRow({
         accent
         value={
           isLoadingGSupply ? (
-            <div className="h-9 w-28 animate-pulse rounded-lg bg-secondary" />
+            <div className="h-7 w-24 animate-pulse rounded-lg bg-secondary" />
           ) : formattedGAmount ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background">
-                <img src="/gooddollar-logo.png" alt="" className="h-7 w-7 object-contain" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background">
+                <img src="/gooddollar-logo.png" alt="" className="h-5 w-5 object-contain" />
               </div>
-              <p className="text-2xl font-black tabular-nums tracking-tight text-foreground lg:text-3xl">
+              <p className="text-lg font-black tabular-nums tracking-tight text-foreground lg:text-xl">
                 {formattedGAmount}
               </p>
             </div>
           ) : (
-            <p className="text-2xl font-black text-muted-foreground">—</p>
+            <p className="text-lg font-black text-muted-foreground">—</p>
           )
         }
         detail="Total G$ supply on Celo"
@@ -320,13 +320,13 @@ function LeaderboardStatsRow({
         label="Your position"
         value={
           !authenticated ? (
-            <p className="text-xl font-bold text-foreground">—</p>
+            <p className="text-base font-bold text-foreground">—</p>
           ) : isRankLoading ? (
-            <div className="h-9 w-20 animate-pulse rounded-lg bg-secondary" />
+            <div className="h-7 w-16 animate-pulse rounded-lg bg-secondary" />
           ) : myRank ? (
-            <p className="text-2xl font-black tabular-nums text-foreground lg:text-3xl">#{myRank}</p>
+            <p className="text-lg font-black tabular-nums text-foreground lg:text-xl">#{myRank}</p>
           ) : (
-            <p className="text-xl font-bold text-muted-foreground">Unranked</p>
+            <p className="text-base font-bold text-muted-foreground">Unranked</p>
           )
         }
         detail={
@@ -356,7 +356,7 @@ function LeaderboardStatsRow({
       <StatCard
         label={activeTab === "monthly" ? "This month" : "Global"}
         value={
-          <p className="text-2xl font-black tabular-nums text-foreground lg:text-3xl">
+          <p className="text-lg font-black tabular-nums text-foreground lg:text-xl">
             {activeTab === "monthly" ? monthlyParticipantCount : totalDreamers ?? "—"}
           </p>
         }
@@ -411,45 +411,6 @@ function LeaderboardAside({
           </button>
         </div>
       )}
-
-      {activeTab === "monthly" && (
-        <div className="rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6">
-          <Link
-            href="/explore?tab=campaigns"
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-          >
-            Join campaign
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-border/60 bg-background p-5 pb-6">
-        <h2 className="text-sm font-bold text-foreground">Explore</h2>
-        <div className="mt-4 space-y-2">
-          <Link
-            href="/"
-            className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
-            Home feed
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-          <Link
-            href="/explore"
-            className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
-            Search delulus
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-          <Link
-            href="/profile"
-            className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
-            Your profile
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </div>
-      </div>
     </aside>
   );
 }
@@ -484,24 +445,24 @@ function DreamersPodium({
           <div
             key={entry.address}
             className={cn(
-              "flex flex-col items-center rounded-2xl border border-border/60 bg-secondary/50 px-5 pt-5 pb-9 text-center",
+              "flex flex-col items-center rounded-2xl border border-border/60 bg-secondary/50 px-4 pt-4 pb-6 text-center",
               isFirst && "lg:-mt-2 lg:border-delulu-yellow-reserved/30 lg:bg-delulu-yellow-reserved/10",
             )}
           >
             <RankBadge rank={rank} />
-            <div className="mt-3">
+            <div className="mt-2.5">
               <UserAvatar
                 address={entry.address}
                 username={entry.username}
                 pfpUrl={pfpMap[entry.address.toLowerCase()]}
-                size={isFirst ? 56 : 48}
+                size={isFirst ? 44 : 38}
               />
             </div>
-            <p className="mt-3 max-w-full truncate text-sm font-bold text-foreground">{name}</p>
-            <p className="mt-3 text-2xl font-black tabular-nums text-foreground">{entry.points}</p>
-            <p className="mt-1 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mt-2.5 max-w-full truncate text-xs font-bold text-foreground">{name}</p>
+            <p className="mt-2 text-lg font-black tabular-nums text-foreground">{entry.points}</p>
+            {/* <p className="mt-0.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               points
-            </p>
+            </p> */}
           </div>
         );
       })}
@@ -905,7 +866,7 @@ function LeaderboardContent({
         </div>
       )}
 
-      <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-8">
+      <div className="">
         <div className="min-w-0">
           {activeTab === "monthly" ? (
             <MonthlyLeaderboard />
@@ -913,10 +874,10 @@ function LeaderboardContent({
             <DreamersLeaderboard onCreateClick={handleCreateClick} />
           )}
         </div>
-        <LeaderboardAside
+        {/* <LeaderboardAside
           activeTab={activeTab}
           onCreateClick={handleCreateClick}
-        />
+        /> */}
       </div>
     </div>
   );

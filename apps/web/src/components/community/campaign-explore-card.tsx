@@ -75,7 +75,7 @@ export function CampaignExploreCard({
   const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-2xl transition-shadow hover:shadow-md">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       {/* Image header */}
       <Link href={href} className="block">
         <div className="relative aspect-[16/9] sm:aspect-[3/1] overflow-hidden bg-delulu-blue-light/40">
@@ -99,7 +99,7 @@ export function CampaignExploreCard({
           {/* Prize badge top-right */}
           {funded && poolAmount > 0 ? (
             <div className="absolute right-3 top-3">
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-black text-black">
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#D1E822] px-2.5 py-1 text-[11px] font-black text-[#244E1A]">
                 <Trophy className="h-3 w-3" />
                 {poolAmount} G$
               </span>
@@ -117,20 +117,20 @@ export function CampaignExploreCard({
         </div>
 
         {/* Content */}
-        <div className="px-4 pt-3.5 pb-1">
+        <div className="px-5 pt-5 pb-2">
           <h3
-            className="line-clamp-2 text-base font-black leading-snug text-foreground sm:text-lg"
+            className="line-clamp-2 text-lg font-black leading-snug text-foreground sm:text-xl"
             style={{ fontFamily: '"Clash Display", sans-serif' }}
           >
             {campaign.title}
           </h3>
 
           {(() => {
-        
+
             return (
-              <div className="mt-2.5 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3.5 w-3.5" />
                   {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
                 </span>
                 {campaign.participantCount > 0 ? (
@@ -142,12 +142,12 @@ export function CampaignExploreCard({
                         size={20}
                       />
                     ) : (
-                      <Users className="h-3 w-3" />
+                      <Users className="h-3.5 w-3.5" />
                     )}
                   joined
                   </span>
                 ) : null}
-            
+
               </div>
             );
           })()}
@@ -163,32 +163,32 @@ export function CampaignExploreCard({
                 ? (campaign.joinAmount ?? 0) * campaign.participantCount
                 : 0;
             return (
-              <div className="mt-2.5 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-3 py-2 space-y-1">
+              <div className="mt-3 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-3.5 py-2.5 space-y-1.5">
                 {forfeitAmt > 0 ? (
-                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     Miss your milestone — forfeit {campaign.forfeitPct}% of your stake
                   </p>
                 ) : null}
                <div className="flex justify-between items-center">
-               <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-                  <Trophy className="h-3 w-3 shrink-0" />
+               <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Trophy className="h-3.5 w-3.5 shrink-0" />
                   Top {campaign.prizeWinnerCount ?? 0} split the forfeit pool
                 </p>
 
                 {/* <p className="flex items-center font-extrabold gap-1.5 text-[14px]  text-foreground">
-                  {totalStaked} {token} <span className="text-[11px] font-normal">staked</span> 
+                  {totalStaked} {token} <span className="text-[11px] font-normal">staked</span>
                 </p> */}
                </div>
               </div>
             );
           })() : null}
 
-         
+
           {/* Points motivator — only for non-joined, non-closed campaigns */}
           {!isClosed && !campaign.isJoined ? (
-            <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-delulu-blue">
-              <Star className="h-3 w-3 shrink-0" />
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-delulu-blue">
+              <Star className="h-3.5 w-3.5 shrink-0" />
               Complete milestones, earn points &amp; qualify for rewards
             </p>
           ) : null}
@@ -209,26 +209,26 @@ export function CampaignExploreCard({
           return `${Math.ceil(ms / 3600000)}h left`;
         })();
         return (
-          <div className="mx-4 mb-3 overflow-hidden rounded-xl border border-delulu-blue/30 bg-delulu-blue-light/40">
-            <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1">
-              <span className="text-[9px] font-black uppercase tracking-widest text-delulu-blue/70">
+          <div className="mx-5 mb-4 overflow-hidden rounded-xl border border-delulu-blue/30 bg-delulu-blue-light/40">
+            <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-delulu-blue/70">
                 {canSubmit ? "Today's milestone" : "Up next"}
               </span>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-[10px] font-black text-delulu-blue">
-                  <Star className="h-3 w-3 fill-delulu-blue text-delulu-blue" />
+                <span className="flex items-center gap-1 text-xs font-black text-delulu-blue">
+                  <Star className="h-3.5 w-3.5 fill-delulu-blue text-delulu-blue" />
                   +{BASE_PROOF_POINTS.toLocaleString()} pts
                 </span>
                 {countdown ? (
-                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <Clock className="h-2.5 w-2.5" />
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
                     {countdown}
                   </span>
                 ) : null}
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3 px-3.5 pb-3">
-              <p className="min-w-0 flex-1 text-sm font-bold leading-snug text-foreground line-clamp-2">
+            <div className="flex items-center justify-between gap-3 px-4 pb-4">
+              <p className="min-w-0 flex-1 text-base font-bold leading-snug text-foreground line-clamp-2">
                 {m.label}
               </p>
               {canSubmit ? (
@@ -236,24 +236,24 @@ export function CampaignExploreCard({
                   type="button"
                   disabled={proofBusy}
                   onClick={onSubmitMilestone}
-                  className="shrink-0 rounded-lg bg-delulu-blue px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_1px_8px_rgba(37,99,235,0.25)] hover:opacity-90 disabled:opacity-50"
+                  className="shrink-0 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background transition-transform hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
                 >
                   {proofBusy ? (
                     <span className="inline-flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />…
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />…
                     </span>
                   ) : (
                     "Upload proof"
                   )}
                 </button>
               ) : (
-                <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                <span className="shrink-0 rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
                   {waitLabel}
                 </span>
               )}
             </div>
-            <div className="border-t border-delulu-blue/15 px-3.5 py-1.5">
-              <Link href={href} className="text-[10px] font-semibold text-delulu-blue/70 hover:text-delulu-blue">
+            <div className="border-t border-delulu-blue/15 px-4 py-2">
+              <Link href={href} className="text-xs font-semibold text-delulu-blue/70 hover:text-delulu-blue">
                 See all milestones →
               </Link>
             </div>
@@ -263,16 +263,16 @@ export function CampaignExploreCard({
 
       {/* CTA row — pinned to the bottom regardless of how much content is above it,
           so Join buttons line up across cards in the same grid row */}
-      <div className="mt-auto flex items-center gap-2 px-4 pb-4 pt-3">
+      <div className="mt-auto flex items-center gap-2 px-5 pb-5 pt-4">
         <div className="flex-1">
           {isClosed ? (
-            <div className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground">
+            <div className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-base font-semibold text-muted-foreground">
               Campaign ended
             </div>
           ) : campaign.isJoined ? (
             <Link
               href={href}
-              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-sm font-bold text-foreground hover:bg-muted/60"
+              className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-base font-bold text-foreground transition-colors hover:bg-muted/60"
             >
               {campaign.activeMilestone ? "View campaign →" : "Joined · View →"}
             </Link>
@@ -281,7 +281,7 @@ export function CampaignExploreCard({
               type="button"
               disabled={joining}
               onClick={onJoin}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-delulu-blue text-sm font-bold text-white shadow-[0_2px_12px_rgba(37,99,235,0.3)] hover:bg-delulu-blue/90 disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground text-base font-bold text-background transition-transform hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
             >
               {joining ? (
                 <>
@@ -297,21 +297,21 @@ export function CampaignExploreCard({
           ) : isOnChain ? (
             <Link
               href={href}
-              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+              className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-base font-semibold text-muted-foreground"
             >
               Finalizing on-chain…
             </Link>
           ) : hasMilestones ? (
             <Link
               href={href}
-              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+              className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-base font-semibold text-muted-foreground"
             >
               Pending on-chain registration
             </Link>
           ) : (
             <Link
               href={href}
-              className="flex h-10 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-sm font-semibold text-muted-foreground"
+              className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 text-base font-semibold text-muted-foreground"
             >
               Milestones coming soon
             </Link>
@@ -325,14 +325,22 @@ export function CampaignExploreCard({
 
 export function CampaignExploreCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-border/60 bg-card", className)}>
-      <div className="animate-pulse">
-        <div className="aspect-[16/9] sm:aspect-[3/1] bg-muted" />
-        <div className="p-4 space-y-2.5">
-          <div className="h-5 w-3/4 rounded-lg bg-muted" />
-          <div className="h-4 w-1/2 rounded-lg bg-muted/80" />
-          <div className="h-10 w-full rounded-xl bg-muted mt-4" />
+    <div className={cn("flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-sm", className)}>
+      <div className="relative aspect-[16/9] animate-pulse bg-muted sm:aspect-[3/1]">
+        <div className="absolute right-3 top-3 h-6 w-16 rounded-full bg-background/60" />
+      </div>
+
+      <div className="animate-pulse px-5 pt-5 pb-2">
+        <div className="h-6 w-3/4 rounded-lg bg-muted" />
+        <div className="mt-3 flex items-center gap-3">
+          <div className="h-4 w-16 rounded-lg bg-muted/80" />
+          <div className="h-4 w-20 rounded-lg bg-muted/80" />
         </div>
+        <div className="mt-3 h-4 w-2/3 rounded-lg bg-muted/60" />
+      </div>
+
+      <div className="mt-auto animate-pulse px-5 pb-5 pt-4">
+        <div className="h-12 w-full rounded-full bg-muted" />
       </div>
     </div>
   );

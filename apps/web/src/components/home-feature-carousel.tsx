@@ -15,9 +15,11 @@ type FeatureCard = {
   accentClassName: string;
   glow: string;
   action?: { label: string; href: string };
+  /** White text on a dark card background instead of the default foreground/muted colors. */
+  light?: boolean;
 };
 
-const AUTOPLAY_MS = 7000;
+const AUTOPLAY_MS = 20000;
 
 // Ordered deliberately: the action card leads (what to do next), then the
 // tangible incentives for doing it, then the emotional "why" as a closer.
@@ -28,10 +30,11 @@ const CARDS: FeatureCard[] = [
     headline: "Shape your future",
     body: "Join a campaign and start shaping your future.",
     icon: Compass,
-    bgClassName: "bg-delulu-blue-light/60",
-    accentClassName: "bg-delulu-blue/12 text-delulu-blue",
-    glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(37,99,235,0.14) 0%, transparent 60%)",
+    bgClassName: "bg-[#071593]",
+    accentClassName: "bg-white/15 text-white",
+    glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
     action: { label: "Start now", href: "/explore?tab=campaigns" },
+    light: true,
   },
   {
     id: "milestone-points",
@@ -43,9 +46,9 @@ const CARDS: FeatureCard[] = [
     ),
     body: "Complete a milestone, bank the points instantly.",
     icon: Trophy,
-    bgClassName: "bg-[#eef1ff]",
-    accentClassName: "bg-indigo-500/12 text-indigo-600",
-    glow: "radial-gradient(ellipse 100% 80% at 0% 0%, rgba(99,102,241,0.16) 0%, transparent 60%)",
+    bgClassName: "bg-[#E9C0E9]",
+    accentClassName: "bg-black/10 text-foreground",
+    glow: "radial-gradient(ellipse 100% 80% at 0% 0%, rgba(255,255,255,0.25) 0%, transparent 60%)",
   },
   {
     id: "daily-claim-points",
@@ -57,9 +60,9 @@ const CARDS: FeatureCard[] = [
     ),
     body: "Claim your G$ each day, earn points on top.",
     icon: Coins,
-    bgClassName: "bg-[#fdf6e3]",
-    accentClassName: "bg-amber-500/15 text-amber-600",
-    glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(246,195,36,0.2) 0%, transparent 60%)",
+    bgClassName: "bg-[#244F1A]",
+    accentClassName: "bg-black/10 text-foreground",
+    glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.25) 0%, transparent 60%)",
   },
   {
     id: "neuroscience",
@@ -67,9 +70,10 @@ const CARDS: FeatureCard[] = [
     headline: "Small wins rewire the brain",
     body: "Every proof you submit strengthens the habit loop — that's neuroscience, not luck.",
     icon: Sparkles,
-    bgClassName: "bg-[#f5f0ff]",
-    accentClassName: "bg-violet-500/12 text-violet-600",
-    glow: "radial-gradient(ellipse 100% 80% at 50% 0%, rgba(168,85,247,0.16) 0%, transparent 60%)",
+    bgClassName: "bg-[#70764E]",
+    accentClassName: "bg-white/15 text-white",
+    glow: "radial-gradient(ellipse 100% 80% at 50% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
+    light: true,
   },
 ];
 
@@ -123,7 +127,7 @@ export function HomeFeatureCarousel() {
             <div
               key={card.id}
               className={cn(
-                "relative w-full shrink-0 snap-center overflow-hidden rounded-3xl px-5 py-6 sm:w-[380px]",
+                "group relative w-full shrink-0 snap-start overflow-hidden rounded-3xl px-5 py-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)]",
                 card.bgClassName,
               )}
             >
@@ -135,14 +139,17 @@ export function HomeFeatureCarousel() {
               <div className="relative flex h-full min-h-[168px] flex-col">
                 <div className="flex items-center justify-between">
                   <p
-                    className="text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground/70"
+                    className={cn(
+                      "text-[9px] font-black uppercase tracking-[0.22em]",
+                      card.light ? "text-white/70" : "text-muted-foreground/70",
+                    )}
                     style={{ fontFamily: "var(--font-manrope)" }}
                   >
                     {card.eyebrow}
                   </p>
                   <div
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-xl",
+                      "flex h-8 w-8 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6",
                       card.accentClassName,
                     )}
                   >
@@ -151,20 +158,33 @@ export function HomeFeatureCarousel() {
                 </div>
 
                 <p
-                  className="mt-3 text-[26px] font-black leading-[1.1] tracking-tight text-foreground"
+                  className={cn(
+                    "mt-3 text-[26px] font-black leading-[1.1] tracking-tight",
+                    card.light ? "text-white" : "text-foreground",
+                  )}
                   style={{ fontFamily: '"Clash Display", sans-serif' }}
                 >
                   {card.headline}
                 </p>
 
-                <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
+                <p
+                  className={cn(
+                    "mt-2 text-[12.5px] leading-snug",
+                    card.light ? "text-white/85" : "text-muted-foreground",
+                  )}
+                >
                   {card.body}
                 </p>
 
                 {card.action ? (
                   <Link
                     href={card.action.href}
-                    className="mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full bg-delulu-blue px-4 py-2 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
+                    className={cn(
+                      "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-4 py-2 text-[12px] font-black transition-transform hover:scale-[1.04] active:scale-[0.97]",
+                      card.light
+                        ? "bg-white text-foreground"
+                        : "bg-delulu-blue text-white",
+                    )}
                   >
                     {card.action.label} →
                   </Link>
@@ -186,8 +206,8 @@ export function HomeFeatureCarousel() {
               scrollToIndex(i);
             }}
             className={cn(
-              "h-1.5 rounded-full transition-all",
-              active === i ? "w-5 bg-delulu-blue" : "w-1.5 bg-border",
+              "h-1.5 rounded-full transition-all duration-300 hover:scale-125",
+              active === i ? "w-5 bg-delulu-blue" : "w-1.5 bg-border hover:bg-delulu-blue/50",
             )}
           />
         ))}
