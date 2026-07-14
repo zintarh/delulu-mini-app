@@ -3,6 +3,7 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 export type LeaderboardRowWithWallet = {
   wallet_address: string;
   username?: string | null;
+  pfp_url?: string | null;
 };
 
 export async function enrichLeaderboardWithUsernames<
@@ -10,24 +11,28 @@ export async function enrichLeaderboardWithUsernames<
 >(
   admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   rows: T[],
-): Promise<Array<T & { username: string | null }>> {
+): Promise<Array<T & { username: string | null; pfp_url: string | null }>> {
   if (rows.length === 0) return [];
 
   const wallets = [...new Set(rows.map((r) => r.wallet_address.toLowerCase()))];
   const { data: profiles } = await admin
     .from("profiles")
-    .select("address, username")
+    .select("address, username, pfp_url")
     .in("address", wallets);
 
-  const usernameMap = new Map(
-    (profiles ?? []).map((p) => [p.address.toLowerCase(), p.username]),
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [p.address.toLowerCase(), p]),
   );
 
   return rows.map((row) => ({
     ...row,
     username:
       row.username ??
-      usernameMap.get(row.wallet_address.toLowerCase()) ??
+      profileMap.get(row.wallet_address.toLowerCase())?.username ??
+      null,
+    pfp_url:
+      row.pfp_url ??
+      profileMap.get(row.wallet_address.toLowerCase())?.pfp_url ??
       null,
   }));
 }

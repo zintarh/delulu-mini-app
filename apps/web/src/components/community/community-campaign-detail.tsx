@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { CommunityCampaignMilestoneList } from "@/components/community/community-campaign-milestone-list";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { cn, formatAddress } from "@/lib/utils";
@@ -73,6 +74,7 @@ export type CampaignLeaderboardRow = {
   rank: number;
   wallet_address: string;
   username?: string | null;
+  pfp_url?: string | null;
   points_total: number;
   is_community_member: boolean;
 };
@@ -1025,6 +1027,12 @@ export function CommunityCampaignDetail({
                           </span>
                         )}
                       </span>
+                      <UserAvatar
+                        address={row.wallet_address}
+                        username={row.username}
+                        pfpUrl={row.pfp_url ?? null}
+                        size={32}
+                      />
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="truncate text-sm font-semibold">

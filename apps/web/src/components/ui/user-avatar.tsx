@@ -1,16 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
-// Deterministic hue from any string — no external request needed
-function hueFromString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) & 0xffffff;
-  }
-  return h % 360;
-}
+// Neutral fallback circle — same for every user, regardless of address/username.
+const FALLBACK_BG = "#e5e7eb";
+const FALLBACK_FG = "#6b7280";
 
 function initials(address: string, username?: string | null): string {
   if (username) return username.slice(0, 2).toUpperCase();
@@ -30,7 +24,7 @@ interface UserAvatarProps {
 /**
  * Shared avatar component used everywhere.
  * - pfpUrl === undefined  → pulsing skeleton (data still loading)
- * - pfpUrl === null       → coloured initials circle (no pfp set)
+ * - pfpUrl === null       → neutral initials circle (no pfp set)
  * - pfpUrl === string     → real image; falls back to initials on error
  *
  * Zero external requests for the fallback — initials are rendered with CSS.
@@ -42,10 +36,7 @@ export function UserAvatar({
   size = 32,
   className,
 }: UserAvatarProps) {
-  const seed = username || address;
-  const hue = useMemo(() => hueFromString(seed), [seed]);
-  const letters = useMemo(() => initials(address, username), [address, username]);
-
+  const letters = initials(address, username);
 
   const sizeClass = `shrink-0 rounded-full overflow-hidden`;
   const style = { width: size, height: size, minWidth: size };
@@ -66,8 +57,8 @@ export function UserAvatar({
       className={cn(sizeClass, "flex items-center justify-center font-bold select-none", className)}
       style={{
         ...style,
-        background: `hsl(${hue},45%,30%)`,
-        color: `hsl(${hue},70%,85%)`,
+        background: FALLBACK_BG,
+        color: FALLBACK_FG,
         fontSize: Math.max(9, Math.floor(size * 0.36)),
       }}
     >
@@ -89,7 +80,7 @@ export function UserAvatar({
           e.currentTarget.remove();
           el.style.cssText = `
             width:${size}px;height:${size}px;min-width:${size}px;
-            background:hsl(${hue},45%,30%);color:hsl(${hue},70%,85%);
+            background:${FALLBACK_BG};color:${FALLBACK_FG};
             border-radius:9999px;display:flex;align-items:center;
             justify-content:center;font-weight:700;font-size:${Math.max(9, Math.floor(size * 0.36))}px;
             user-select:none;overflow:hidden;flex-shrink:0;
