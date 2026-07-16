@@ -103,7 +103,7 @@ export function RelatedDelulusSection({
 
       <div className="mt-6 flex justify-center sm:mt-7 lg:justify-start">
         <Link
-          href="/explore"
+          href="/goals"
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[#efefef] px-6 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-[#e2e2e2] active:scale-[0.98]"
         >
           Explore more

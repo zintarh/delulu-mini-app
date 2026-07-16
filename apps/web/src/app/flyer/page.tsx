@@ -237,7 +237,7 @@ export default function FlyerPage() {
 
         {/* ── CTA ── */}
         <Link
-          href="/explore?tab=campaigns"
+          href="/explore"
           className="mt-8 flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-black"
           style={{
             background: "#f6c324",

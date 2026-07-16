@@ -208,7 +208,7 @@ export default function JoinedCampaignsPage() {
             Browse campaigns and join one to get started.
           </p>
           <Link
-            href="/explore?tab=campaigns"
+            href="/explore"
             className="mt-4 inline-block text-sm font-semibold text-delulu-blue hover:underline"
           >
             Browse campaigns →

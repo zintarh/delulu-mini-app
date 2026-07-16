@@ -174,7 +174,7 @@ function MonthlyEmptyState() {
       <Trophy className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
       <p className="text-sm text-muted-foreground">No one has joined a campaign this month yet.</p>
       <Link
-        href="/explore?tab=campaigns"
+        href="/explore"
         className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
       >
         Join campaign
@@ -842,7 +842,7 @@ function LeaderboardContent({
       {activeTab === "monthly" ? (
         <div className="mb-6 lg:hidden">
           <Link
-            href="/explore?tab=campaigns"
+            href="/explore"
             className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background"
           >
             Join campaign

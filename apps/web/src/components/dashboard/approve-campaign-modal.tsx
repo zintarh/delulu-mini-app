@@ -43,6 +43,9 @@ const STEP_LABEL: Record<DeployStep, string> = {
   error: "",
 };
 
+const RETRY_IDLE_LABEL =
+  "This campaign was approved but never finished deploying on-chain. You'll need to sign one wallet transaction to finish deployment.";
+
 export function ApproveCampaignModal({
   open,
   onOpenChange,
@@ -61,6 +64,11 @@ export function ApproveCampaignModal({
   const [step, setStep] = useState<DeployStep>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  // A campaign can already be approved (content_hash set) but never made it
+  // on-chain if the deploy step failed or was abandoned mid-flow — resume
+  // straight into deployment instead of re-running the DB approve step.
+  const isRetryDeploy = campaign?.status !== "pending_approval";
+
   useEffect(() => {
     if (!open || !campaign) {
       setStep("idle");
@@ -72,9 +80,12 @@ export function ApproveCampaignModal({
     if (!campaign) return;
     setError(null);
     try {
-      setStep("approving");
-      const json = await approve.mutateAsync(campaign.id);
-      const contentHash = json.campaign?.content_hash as string | undefined;
+      let contentHash = campaign.content_hash ?? undefined;
+      if (!isRetryDeploy) {
+        setStep("approving");
+        const json = await approve.mutateAsync(campaign.id);
+        contentHash = json.campaign?.content_hash as string | undefined;
+      }
       if (!contentHash) {
         throw new Error("Campaign content hash missing after approval");
       }
@@ -130,13 +141,13 @@ export function ApproveCampaignModal({
     <DashboardModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Approve & deploy"
+      title={isRetryDeploy ? "Deploy on-chain" : "Approve & deploy"}
       description={campaign?.title}
     >
       <div className="space-y-4 pt-2 text-sm">
         {step !== "done" ? (
           <p className="text-muted-foreground">
-            {STEP_LABEL[step === "error" ? "idle" : step]}
+            {step === "idle" && isRetryDeploy ? RETRY_IDLE_LABEL : STEP_LABEL[step === "error" ? "idle" : step]}
           </p>
         ) : (
           <p className="font-semibold text-emerald-700">
@@ -153,7 +164,7 @@ export function ApproveCampaignModal({
             onClick={() => void handleApprove()}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {busy ? "Working…" : "Approve & deploy"}
+            {busy ? "Working…" : isRetryDeploy ? "Deploy on-chain" : "Approve & deploy"}
           </DashboardPrimaryButton>
         ) : null}
       </div>

@@ -126,7 +126,7 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
 
       <div className="px-4 pb-4 pt-2">
         <Link
-          href="/explore?tab=campaigns"
+          href="/explore"
           onMouseEnter={prefetchExploreOnIntent}
           onTouchStart={prefetchExploreOnIntent}
           className="flex items-center justify-center gap-2 rounded-xl border border-border/50 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"

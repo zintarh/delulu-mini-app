@@ -24,7 +24,7 @@ import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-co
 function ExploreLink() {
   return (
     <Link
-      href="/explore?tab=campaigns"
+      href="/explore"
       className="flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 py-1 pl-2.5 pr-2 text-[10px] font-semibold text-foreground transition-colors hover:bg-muted/70"
     >
       Explore

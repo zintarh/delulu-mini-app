@@ -36,7 +36,7 @@ export function isNavHrefActive(pathname: string, href: string) {
 const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: "/", action: "home" },
   { icon: Plus, label: "Create", action: "create" },
-  { icon: Compass, label: "Explore", href: "/explore", action: "explore" },
+  { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
 ];
 
 /** Desktop left sidebar */

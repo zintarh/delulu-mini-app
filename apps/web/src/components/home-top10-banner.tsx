@@ -34,7 +34,7 @@ export function HomeTop10Banner() {
 
         <div className=" hidden sm:flex justify-end">
           <Link
-            href="/explore?tab=campaigns"
+            href="/explore"
             className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
           >
             Join a campaign →
@@ -44,7 +44,7 @@ export function HomeTop10Banner() {
 
       <div className=" sm:hidden flex justify-end mt-2">
         <Link
-          href="/explore?tab=campaigns"
+          href="/explore"
           className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
         >
           Join a campaign →

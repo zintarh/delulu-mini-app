@@ -33,7 +33,7 @@ const CARDS: FeatureCard[] = [
     bgClassName: "bg-[#071593]",
     accentClassName: "bg-white/15 text-white",
     glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
-    action: { label: "Start now", href: "/explore?tab=campaigns" },
+    action: { label: "Start now", href: "/explore" },
     light: true,
   },
   {

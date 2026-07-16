@@ -26,8 +26,8 @@ export function PullToRefresh() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onExplore = pathname === "/explore";
-    // PWA everywhere; also enable on explore in the mobile browser (nested scroll).
+    const onExplore = pathname === "/explore" || pathname === "/goals";
+    // PWA everywhere; also enable on explore/goals in the mobile browser (nested scroll).
     if (!isStandalonePwa() && !onExplore) return;
     // Disable pull-to-refresh on single delulu pages.
     if (pathname?.startsWith("/delulu/")) return;

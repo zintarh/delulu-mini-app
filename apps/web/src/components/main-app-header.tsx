@@ -22,7 +22,7 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: true, wideSearch: false };
   }
 
-  if (pathname.startsWith("/explore")) {
+  if (pathname.startsWith("/explore") || pathname.startsWith("/goals")) {
     return { mobile: true, desktop: true, wideSearch: true };
   }
 
@@ -33,6 +33,7 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
 export function usesNestedScroll(pathname: string): boolean {
   return (
     pathname.startsWith("/explore") ||
+    pathname.startsWith("/goals") ||
     pathname.startsWith("/board") ||
     /^\/delulu\/[^/]+$/.test(pathname)
   );

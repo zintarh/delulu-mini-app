@@ -47,6 +47,7 @@ import {
 import { useEndCommunityChallenge } from "@/hooks/use-community-campaign-onchain";
 import { CampaignMilestonesModal } from "@/components/dashboard/campaign-milestones-modal";
 import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
+import { ApproveCampaignModal } from "@/components/dashboard/approve-campaign-modal";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 
 function formatAddress(addr: string) {
@@ -306,6 +307,7 @@ export function CampaignDetailClient({
   const [submitPending, setSubmitPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
@@ -626,6 +628,21 @@ export function CampaignDetailClient({
                       </DashboardPrimaryButton>
                     </div>
                   ) : null}
+                  {isPlatformAdmin &&
+                  ["approved", "active"].includes(campaign.status) &&
+                  campaign.on_chain_challenge_id == null ? (
+                    <div>
+                      <p className="mb-2 text-xs text-amber-700">
+                        This campaign was approved but never finished deploying on-chain.
+                      </p>
+                      <DashboardPrimaryButton
+                        className="w-full"
+                        onClick={() => setDeployModalOpen(true)}
+                      >
+                        Deploy on-chain
+                      </DashboardPrimaryButton>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </DashboardPanel>
@@ -705,6 +722,16 @@ export function CampaignDetailClient({
         campaignId={campaignId}
         title={campaign.title}
         onDeleted={() => router.push(`/dashboard/communities/${communityId}`)}
+      />
+
+      <ApproveCampaignModal
+        open={deployModalOpen}
+        onOpenChange={setDeployModalOpen}
+        campaign={campaign}
+        onSuccess={() => {
+          setDeployModalOpen(false);
+          void refetch();
+        }}
       />
     </DashboardPage>
   );

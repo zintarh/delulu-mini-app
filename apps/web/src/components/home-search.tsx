@@ -96,7 +96,7 @@ export function HomeSearch({
     const q = query.trim();
     if (q.length >= 2) {
       setOpen(false);
-      router.push(`/explore?tab=campaigns&q=${encodeURIComponent(q)}`);
+      router.push(`/explore?q=${encodeURIComponent(q)}`);
     } else if (results.length > 0 && results[0]) {
       openCampaign(results[0]);
     }
