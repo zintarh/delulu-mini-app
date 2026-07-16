@@ -20,7 +20,7 @@ const CAMPAIGN_DETAIL_SELECT = `
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
   display_ends_at, duration_days, prize_winner_count, cover_image_url,
   is_free_to_join, join_token, join_amount, forfeit_pct,
-  proof_type, live_camera_duration_seconds,
+  proof_type, live_camera_duration_seconds, is_hidden,
   rejection_reason, approved_at, created_at, updated_at,
   communities ( id, name, slug, member_invite_code )
 `;
@@ -128,12 +128,21 @@ export async function PATCH(
   const canEditMetadata = EDITABLE_STATUSES.has(existing.status);
   const canEditCover = existing.status !== "ended";
 
-  if (!canEditCover && !canEditMetadata) {
+  // Hiding is a visibility-only toggle — allowed regardless of status/edit-lock state.
+  if (
+    !canEditCover &&
+    !canEditMetadata &&
+    body.isHidden === undefined
+  ) {
     return NextResponse.json({ error: "Campaign cannot be edited" }, { status: 400 });
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   let metadataEdited = false;
+
+  if (body.isHidden !== undefined) {
+    updates.is_hidden = Boolean(body.isHidden);
+  }
 
   if (body.coverImageUrl !== undefined) {
     if (!canEditCover) {

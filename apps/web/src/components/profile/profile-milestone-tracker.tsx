@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Clock,
   Hourglass,
-  Loader2,
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -573,30 +572,17 @@ export function DeluluJourneyCard({
 export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolean }) {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-label="Loading milestones"
       className={cn(
         "mx-auto max-w-2xl space-y-4 xl:max-w-3xl",
         compact ? "px-4 pb-4" : "max-w-xl space-y-5 px-4 py-6",
       )}
     >
-      {compact ? null : (
-        <div
-          className="flex flex-col items-center justify-center gap-3 py-8"
-          role="status"
-          aria-live="polite"
-          aria-label="Loading milestones"
-        >
-          <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
-          <p
-            className="text-sm font-semibold text-muted-foreground"
-            style={{ fontFamily: "var(--font-manrope)" }}
-          >
-            Loading milestones…
-          </p>
-        </div>
-      )}
       <div
         className={cn(
-          "animate-pulse rounded-xl bg-muted/80",
+          "animate-pulse rounded-xl bg-muted",
           compact ? "h-10" : "h-36 rounded-3xl",
         )}
       />
@@ -604,7 +590,7 @@ export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolea
         <div
           key={i}
           className={cn(
-            "animate-pulse rounded-xl bg-muted/60",
+            "animate-pulse rounded-xl border border-border bg-muted",
             compact ? "h-32" : "h-56 rounded-3xl",
           )}
         />

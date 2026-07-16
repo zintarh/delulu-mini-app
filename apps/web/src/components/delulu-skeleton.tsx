@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import { PIN_CARD_ASPECTS } from "@/lib/pin-card-aspect";
+import { MissionCardSkeleton } from "@/components/community/mission-card";
+import { CampaignExploreCardSkeleton } from "@/components/community/campaign-explore-card";
 
 export function SocialFeedCardSkeleton({
   className,
@@ -36,41 +38,64 @@ export function SocialFeedCardSkeleton({
   );
 }
 
-/** Loading placeholder for the logged-out home screen. */
+/** Placeholder for the feature carousel — mirrors a single full-bleed HomeFeatureCarousel card. */
+function HomeFeatureCarouselSkeleton() {
+  return (
+    <div className="flex gap-3 overflow-hidden">
+      <div className="h-[168px] w-full shrink-0 animate-pulse rounded-3xl bg-muted sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)]" />
+      <div className="hidden h-[168px] w-[calc((100%-0.75rem)/2)] shrink-0 animate-pulse rounded-3xl border border-border bg-muted sm:block lg:w-[calc((100%-1.5rem)/3)]" />
+      <div className="hidden h-[168px] w-[calc((100%-1.5rem)/3)] shrink-0 animate-pulse rounded-3xl border border-border bg-muted lg:block" />
+    </div>
+  );
+}
+
+/** Placeholder for the Top 10 banner. */
+function HomeTop10BannerSkeleton() {
+  return <div className="h-[104px] w-full animate-pulse rounded-2xl bg-muted sm:h-[92px]" />;
+}
+
+/** Placeholder for the greeting header + points/streak chips. */
+function HomeHeaderSkeleton() {
+  return (
+    <header className="px-4 pt-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="h-7 w-14 animate-pulse rounded-full bg-muted" />
+          <div className="h-7 w-14 animate-pulse rounded-full border border-border bg-muted" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/** Loading placeholder for the logged-out home screen — mirrors the actual guest home feed layout. */
 export function HomeGuestSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn(
-        "mx-auto w-full max-w-2xl px-4 py-10 text-center xl:max-w-3xl lg:py-14",
-        className,
-      )}
+      className={cn("mx-auto w-full max-w-2xl xl:max-w-3xl", className)}
       role="status"
       aria-label="Loading"
     >
-      <div className="animate-pulse rounded-2xl border border-border/40 bg-muted/30 px-3.5 py-3">
-        <div className="flex gap-3">
-          <div className="h-8 w-8 shrink-0 rounded-xl bg-muted" />
-          <div className="min-w-0 flex-1 space-y-2 text-left">
-            <div className="h-2.5 w-24 rounded bg-muted" />
-            <div className="h-3.5 w-full rounded bg-muted" />
-            <div className="h-3.5 w-[85%] rounded bg-muted" />
-          </div>
+      <HomeHeaderSkeleton />
+      <div className="mb-4 mt-3 px-4">
+        <HomeFeatureCarouselSkeleton />
+      </div>
+      <div className="mb-4 px-4">
+        <HomeTop10BannerSkeleton />
+      </div>
+      <div className="px-4 py-4">
+        <div className="mb-3 h-3 w-32 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <CampaignExploreCardSkeleton />
+          <CampaignExploreCardSkeleton className="hidden md:flex" />
         </div>
-      </div>
-      <div className="mx-auto mt-8 h-8 w-56 animate-pulse rounded-lg bg-muted" />
-      <div className="mx-auto mt-3 max-w-sm space-y-2">
-        <div className="h-4 w-full animate-pulse rounded bg-muted" />
-        <div className="mx-auto h-4 w-[90%] animate-pulse rounded bg-muted" />
-      </div>
-      <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
-        <div className="h-12 w-full animate-pulse rounded-full bg-muted sm:w-32" />
-        <div className="h-12 w-full animate-pulse rounded-full bg-muted/70 sm:w-44" />
       </div>
     </div>
   );
 }
 
-/** Loading placeholder for the signed-in home dashboard while auth restores. */
+/** Loading placeholder for the signed-in home dashboard — mirrors the actual home feed layout. */
 export function HomeSignedInSkeleton({ className }: { className?: string }) {
   return (
     <div
@@ -78,37 +103,24 @@ export function HomeSignedInSkeleton({ className }: { className?: string }) {
       role="status"
       aria-label="Loading dashboard"
     >
-      <header className="px-4 pt-1">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3 w-28 animate-pulse rounded bg-muted" />
-            <div className="h-7 w-44 animate-pulse rounded-lg bg-muted" />
-          </div>
-          <div className="h-[4.25rem] w-24 shrink-0 animate-pulse rounded-2xl bg-muted" />
-        </div>
-      </header>
-      <div className="mb-4 mt-3 space-y-2.5 px-4">
-        <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-muted" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3.5 w-3/4 rounded bg-muted" />
-            <div className="h-2.5 w-1/2 rounded bg-muted/80" />
-          </div>
-          <div className="h-7 w-16 shrink-0 rounded-lg bg-muted" />
-        </div>
-        <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-muted" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3.5 w-3/4 rounded bg-muted" />
-            <div className="h-2.5 w-1/2 rounded bg-muted/80" />
-          </div>
-          <div className="h-7 w-16 shrink-0 rounded-lg bg-muted" />
-        </div>
+      <HomeHeaderSkeleton />
+      <div className="mb-4 mt-3 px-4">
+        <HomeFeatureCarouselSkeleton />
       </div>
-      <div className="space-y-3 px-4 pb-4">
-        <div className="h-10 animate-pulse rounded-xl bg-muted/60" />
-        <div className="h-32 animate-pulse rounded-xl bg-muted/50" />
-        <div className="h-32 animate-pulse rounded-xl bg-muted/40" />
+      <div className="mb-4 px-4">
+        <HomeTop10BannerSkeleton />
+      </div>
+      <div className="px-4 pt-6 pb-2">
+        <div className="mb-4 h-3 w-28 animate-pulse rounded bg-muted" />
+        <MissionCardSkeleton />
+      </div>
+      <div className="mt-10" />
+      <div className="px-4 py-4">
+        <div className="mb-3 h-3 w-32 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <CampaignExploreCardSkeleton />
+          <CampaignExploreCardSkeleton className="hidden lg:flex" />
+        </div>
       </div>
     </div>
   );

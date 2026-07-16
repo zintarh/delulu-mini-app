@@ -85,7 +85,7 @@ export function CampaignExploreCard({
     >
       {/* Image header */}
       <Link href={href} className="block">
-        <div className="relative aspect-[16/9] sm:aspect-[3/1] overflow-hidden bg-delulu-blue-light/40">
+        <div className="relative aspect-[4/3] sm:aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
           {campaign.coverImageUrl ? (
             <Image
               src={campaign.coverImageUrl}
@@ -136,7 +136,12 @@ export function CampaignExploreCard({
 
             return (
               <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "flex items-center gap-1",
+                    !isClosed && left <= 3 && "animate-pulse font-semibold text-amber-600",
+                  )}
+                >
                   <Clock className="h-3.5 w-3.5" />
                   {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
                 </span>
@@ -332,18 +337,18 @@ export function CampaignExploreCard({
 
 export function CampaignExploreCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-sm", className)}>
-      <div className="relative aspect-[16/9] animate-pulse bg-muted sm:aspect-[3/1]">
-        <div className="absolute right-3 top-3 h-6 w-16 rounded-full bg-background/60" />
+    <div className={cn("flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm", className)}>
+      <div className="relative aspect-[4/3] animate-pulse bg-muted sm:aspect-[2/1]">
+        <div className="absolute right-3 top-3 h-6 w-16 rounded-full bg-background" />
       </div>
 
       <div className="animate-pulse px-5 pt-5 pb-2">
         <div className="h-6 w-3/4 rounded-lg bg-muted" />
         <div className="mt-3 flex items-center gap-3">
-          <div className="h-4 w-16 rounded-lg bg-muted/80" />
-          <div className="h-4 w-20 rounded-lg bg-muted/80" />
+          <div className="h-4 w-16 rounded-lg bg-muted" />
+          <div className="h-4 w-20 rounded-lg bg-muted" />
         </div>
-        <div className="mt-3 h-4 w-2/3 rounded-lg bg-muted/60" />
+        <div className="mt-3 h-4 w-2/3 rounded-lg bg-muted" />
       </div>
 
       <div className="mt-auto animate-pulse px-5 pb-5 pt-4">

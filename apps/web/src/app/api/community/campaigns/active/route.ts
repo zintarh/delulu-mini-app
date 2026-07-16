@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCampaignEndedByDate } from "@/lib/community/campaign-types";
 import {
   fetchBatchCampaignStats,
   fetchJoinedChallengeIdsFromGraph,
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       communities ( id, name, slug )
     `)
     .in("status", ["approved", "active"])
+    .eq("is_hidden", false)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
 
@@ -48,8 +50,10 @@ export async function GET(request: NextRequest) {
   const { data: rows, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const hasMore = sort === "recent" && (rows?.length ?? 0) > limit;
-  const candidates = sort === "recent" ? (rows ?? []).slice(0, limit) : (rows ?? []);
+  const activeRows = (rows ?? []).filter((row) => !isCampaignEndedByDate(row.display_ends_at));
+
+  const hasMore = sort === "recent" && activeRows.length > limit;
+  const candidates = sort === "recent" ? activeRows.slice(0, limit) : activeRows;
 
   const candidateIds = candidates.map((c) => c.id);
   const onChainIds = candidates

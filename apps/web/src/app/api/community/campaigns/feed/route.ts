@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
     .from("community_campaigns")
     .select(CAMPAIGN_FEED_SELECT)
     .in("status", ["approved", "active"])
+    .eq("is_hidden", false)
     .order("created_at", { ascending: false })
     .limit(FETCH_BATCH);
 

@@ -28,9 +28,17 @@ const primaryButtonClass = cn(
 
 interface ClaimPanelContentProps {
   onClose: () => void;
+  /** Hide the close button — used when this is a mandatory onboarding step with nowhere to close back to. */
+  showCloseButton?: boolean;
+  /** Fired once GoodDollar identity verification is confirmed, regardless of claim outcome. */
+  onWhitelisted?: () => void;
 }
 
-export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
+export function ClaimPanelContent({
+  onClose,
+  showCloseButton = true,
+  onWhitelisted,
+}: ClaimPanelContentProps) {
   const { address, isReady } = useAuth();
   const { redirectToSignIn, authenticated } = useRedirectToSignIn();
   const { whitelistIntent, clearWhitelistIntent } = useClaimPanel();
@@ -121,6 +129,7 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
     stopVerifying();
 
     const status = await refreshStatus();
+    if (status.isWhitelisted) onWhitelisted?.();
     if (
       status.isWhitelisted &&
       !status.hasClaimed &&
@@ -140,14 +149,16 @@ export function ClaimPanelContent({ onClose }: ClaimPanelContentProps) {
         >
           Claim G$
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
-          aria-label="Close claim"
-        >
-          <X className="w-6 h-6" strokeWidth={1.75} />
-        </button>
+        {showCloseButton ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
+            aria-label="Close claim"
+          >
+            <X className="w-6 h-6" strokeWidth={1.75} />
+          </button>
+        ) : null}
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8">

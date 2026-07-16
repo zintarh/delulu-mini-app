@@ -20,6 +20,7 @@ export type DashboardCampaign = {
   cover_image_url: string | null;
   proof_type: string;
   live_camera_duration_seconds: number | null;
+  is_hidden: boolean;
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
@@ -158,6 +159,26 @@ export function useRejectCampaign() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: dashboardCampaignKeys.all });
+    },
+  });
+}
+
+export function useToggleCampaignHidden() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isHidden }: { id: string; isHidden: boolean }) => {
+      const res = await fetch(`/api/dashboard/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isHidden }),
+      });
+      if (!res.ok) await parseError(res);
+      return res.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardCampaignKeys.all });
+      void queryClient.invalidateQueries({ queryKey: exploreCampaignKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["home", "campaigns"] });
     },
   });
 }

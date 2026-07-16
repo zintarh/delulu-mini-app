@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       "id, title, description, cover_image_url, display_ends_at, duration_days, is_free_to_join, communities ( name, slug )",
     )
     .neq("status", "draft")
+    .eq("is_hidden", false)
     .or(`title.ilike.${pattern},description.ilike.${pattern}`)
     .order("created_at", { ascending: false })
     .limit(MAX_RESULTS);

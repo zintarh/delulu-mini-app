@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseCommunityCampaignJoinedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  CAMPAIGN_JOIN_LIMIT,
+  countActiveJoinedCampaigns,
+} from "@/lib/community/campaign-join-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -36,21 +40,14 @@ export async function POST(
     return NextResponse.json({ error: "Campaign is not registered on-chain" }, { status: 400 });
   }
 
-  // ── 2-campaign join limit (double-check at confirm time) ───────────────
-  const { count: activeCount } = await admin
-    .from("campaign_participants")
-    .select(
-      `id, community_campaigns!inner(status, display_ends_at)`,
-      { count: "exact", head: true },
-    )
-    .eq("wallet_address", walletAddress)
-    .eq("status", "joined")
-    .in("community_campaigns.status", ["active", "approved", "open"])
-    .neq("campaign_id", campaignId);
+  // ── join limit (double-check at confirm time; ended campaigns free up a slot) ──
+  const activeCount = await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
 
-  if ((activeCount ?? 0) >= 2) {
+  if (activeCount >= CAMPAIGN_JOIN_LIMIT) {
     return NextResponse.json(
-      { error: "You can only join 2 campaigns at a time. Complete your active campaigns to join another." },
+      {
+        error: `You can only join ${CAMPAIGN_JOIN_LIMIT} campaigns at a time. Complete or wait for your active campaigns to end to join another.`,
+      },
       { status: 403 },
     );
   }

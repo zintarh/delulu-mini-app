@@ -7,6 +7,7 @@ import { parseEther } from "viem";
 import { DELULU_ABI } from "@/lib/abi";
 import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import {
   consumeSignInRedirect,
   peekCommunityReferral,
@@ -24,9 +25,11 @@ export type PostAuthRouteState =
   | "idle"
   | "redirecting_home"
   | "redirecting_welcome"
+  | "needs_ubi_claim"
   | "needs_gas";
 
-export function usePostAuthRoute() {
+export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
+  const skipUbiGate = options?.skipUbiGate ?? false;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authenticated, isReady, address } = useAuth();
@@ -63,6 +66,12 @@ export function usePostAuthRoute() {
   const hasProfile = typeof username === "string" && username.trim().length > 0;
   const hasGas = (celoBalance?.value ?? 0n) >= MIN_GAS_WEI;
 
+  const {
+    isWhitelisted,
+    isInitialized: isGoodDollarInitialized,
+    refreshStatus: refreshGoodDollarStatus,
+  } = useGoodDollarClaim();
+
   const redirectTarget = useMemo(
     () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/",
     [searchParams],
@@ -80,7 +89,7 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || isBalanceLoading || isBalanceFetching) {
+    if (isFetchingUsername || isBalanceLoading || isBalanceFetching || !isGoodDollarInitialized) {
       setRouteState("loading");
       return;
     }
@@ -103,6 +112,11 @@ export function usePostAuthRoute() {
       return;
     }
 
+    if (!isWhitelisted && !skipUbiGate) {
+      setRouteState("needs_ubi_claim");
+      return;
+    }
+
     if (!hasGas) {
       setRouteState("needs_gas");
       return;
@@ -119,6 +133,9 @@ export function usePostAuthRoute() {
     isFetchingUsername,
     isBalanceLoading,
     isBalanceFetching,
+    isGoodDollarInitialized,
+    isWhitelisted,
+    skipUbiGate,
     hasProfile,
     hasGas,
     router,
@@ -130,8 +147,11 @@ export function usePostAuthRoute() {
     routeState,
     hasProfile,
     hasGas,
+    isWhitelisted,
+    refreshGoodDollarStatus,
     address: address ?? "",
     refetchBalance,
-    isCheckingAccount: isFetchingUsername || isBalanceLoading || isBalanceFetching,
+    isCheckingAccount:
+      isFetchingUsername || isBalanceLoading || isBalanceFetching || !isGoodDollarInitialized,
   };
 }

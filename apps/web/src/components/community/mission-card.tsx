@@ -228,17 +228,17 @@ export function MissionCard({
 
 export function MissionCardSkeleton() {
   return (
-    <div className="animate-pulse rounded-3xl border border-border/60 bg-card p-5">
+    <div className="animate-pulse rounded-3xl border border-border bg-card p-5">
       <div className="flex items-start gap-4">
         <div className="h-24 w-24 shrink-0 rounded-2xl bg-muted" />
         <div className="min-w-0 flex-1 space-y-2.5 pt-1">
           <div className="h-4 w-16 rounded-full bg-muted" />
           <div className="h-5 w-3/4 rounded bg-muted" />
-          <div className="h-3.5 w-1/2 rounded bg-muted/70" />
+          <div className="h-3.5 w-1/3 rounded bg-muted" />
         </div>
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
-        <div className="h-3 w-24 rounded bg-muted/70" />
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+        <div className="h-3 w-24 rounded bg-muted" />
         <div className="h-9 w-28 shrink-0 rounded-full bg-muted" />
       </div>
     </div>

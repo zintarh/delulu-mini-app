@@ -304,6 +304,15 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
     <div ref={scrollContainerRef}>
       {activeTab === "milestones" && (
         <div className="pb-24 lg:pb-8">
+          {address ? (
+            <div className="mx-auto max-w-xl px-4 pt-6">
+              <ActiveCampaignsSection
+                address={address}
+                heading="Active campaigns"
+                showMax={10}
+              />
+            </div>
+          ) : null}
           <OngoingMilestonesSection
             onCreateClick={() => void navigateToCreate()}
           />
@@ -312,13 +321,6 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
 
       {activeTab === "active" && (
         <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8 space-y-6">
-          {address ? (
-            <ActiveCampaignsSection
-              address={address}
-              heading="Active campaigns"
-              showMax={10}
-            />
-          ) : null}
           <ProfileDeluluGrid
             delulus={ongoingDelulus}
             isLoading={isLoadingOngoing}

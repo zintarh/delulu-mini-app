@@ -22,6 +22,7 @@ import {
   Bell,
   Mail,
   Building2,
+  Flag,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import type { GlobalRole } from "@/lib/dashboard/authorize-types";
@@ -84,6 +85,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
   if (pathname.startsWith(`${BASE}/communities`)) return "Communities";
+  if (pathname.startsWith(`${BASE}/campaigns`)) return "Campaigns";
   return "Dashboard";
 }
 
@@ -155,6 +157,13 @@ export function AdminShell({
             label="Communities"
             href={`${BASE}/communities`}
             active={pathname.startsWith(`${BASE}/communities`)}
+            onNavigate={closeMobile}
+          />
+          <NavItem
+            icon={Flag}
+            label="Campaigns"
+            href={`${BASE}/campaigns`}
+            active={pathname.startsWith(`${BASE}/campaigns`)}
             onNavigate={closeMobile}
           />
           <NavSection label="Goals" />

@@ -3,6 +3,10 @@ import {
   isCampaignEndedByDate,
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
+import {
+  CAMPAIGN_JOIN_LIMIT,
+  countActiveJoinedCampaigns,
+} from "@/lib/community/campaign-join-limit";
 import { fetchCommunityCampaignMilestoneCountFromGraph } from "@/lib/community/campaign-subgraph";
 import { fetchCampaignOnchainEconomics } from "@/lib/community/campaign-onchain-economics";
 import {
@@ -34,13 +38,16 @@ export async function POST(
     .from("community_campaigns")
     .select(`
       id, community_id, status, title, display_ends_at, on_chain_challenge_id,
-      is_free_to_join, join_amount, join_token,
+      is_free_to_join, join_amount, join_token, is_hidden,
       communities ( id, name, slug, status )
     `)
     .eq("id", campaignId)
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (campaign.is_hidden) {
+    return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
+  }
   if (!isCampaignParticipatable(campaign.status)) {
     return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
   }
@@ -48,21 +55,14 @@ export async function POST(
     return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
   }
 
-  // ── 2-campaign join limit ──────────────────────────────────────────────
-  const { count: activeCount } = await admin
-    .from("campaign_participants")
-    .select(
-      `id, community_campaigns!inner(status, display_ends_at)`,
-      { count: "exact", head: true },
-    )
-    .eq("wallet_address", walletAddress)
-    .eq("status", "joined")
-    .in("community_campaigns.status", ["active", "approved", "open"])
-    .neq("campaign_id", campaignId);
+  // ── join limit (ended campaigns free up a slot) ────────────────────────
+  const activeCount = await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
 
-  if ((activeCount ?? 0) >= 2) {
+  if (activeCount >= CAMPAIGN_JOIN_LIMIT) {
     return NextResponse.json(
-      { error: "You can only join 2 campaigns at a time. Complete your active campaigns to join another." },
+      {
+        error: `You can only join ${CAMPAIGN_JOIN_LIMIT} campaigns at a time. Complete or wait for your active campaigns to end to join another.`,
+      },
       { status: 403 },
     );
   }

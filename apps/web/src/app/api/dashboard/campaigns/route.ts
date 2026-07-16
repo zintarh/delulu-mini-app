@@ -29,6 +29,7 @@ export type DashboardCampaign = {
   cover_image_url: string | null;
   proof_type: string;
   live_camera_duration_seconds: number | null;
+  is_hidden: boolean;
   created_at: string;
   updated_at: string;
   community?: { id: string; name: string; slug: string } | null;
@@ -56,6 +57,7 @@ function normalizeCampaign(row: Record<string, unknown>): DashboardCampaign {
     proof_type: String(row.proof_type ?? "screenshot"),
     live_camera_duration_seconds:
       row.live_camera_duration_seconds != null ? Number(row.live_camera_duration_seconds) : null,
+    is_hidden: Boolean(row.is_hidden),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     community: row.communities as DashboardCampaign["community"],
@@ -69,7 +71,7 @@ const CAMPAIGN_SELECT = `
   content_hash, proposed_pool_amount, on_chain_challenge_id, status,
   display_ends_at, duration_days, prize_winner_count, cover_image_url,
   is_free_to_join, join_token, join_amount, forfeit_pct,
-  proof_type, live_camera_duration_seconds,
+  proof_type, live_camera_duration_seconds, is_hidden,
   created_at, updated_at,
   communities ( id, name, slug )
 `;

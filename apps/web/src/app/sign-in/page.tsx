@@ -10,6 +10,7 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
+import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,9 @@ export default function SignInPage() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
 
-  const { routeState, address, refetchBalance, isCheckingAccount } = usePostAuthRoute();
+  const [skippedUbiClaim, setSkippedUbiClaim] = useState(false);
+  const { routeState, address, refetchBalance, isCheckingAccount, refreshGoodDollarStatus } =
+    usePostAuthRoute({ skipUbiGate: skippedUbiClaim });
 
   // Faucet state — auto-triggered when routeState === "needs_gas"
   type FaucetState = "idle" | "claiming" | "claimed" | "rejected" | "error" | "tx_timeout";
@@ -245,6 +248,42 @@ export default function SignInPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           {label}
+        </div>
+      </div>
+    );
+  }
+
+  if (authenticated && routeState === "needs_ubi_claim") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-delulu-blue-light to-white p-6">
+        <div className="w-full max-w-md space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
+            <div>
+              <h2 className="text-xl font-black tracking-tight text-foreground" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+                Claim your first Good Dollars
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Verify your identity to claim free G$ — then we&apos;ll set up your profile.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col rounded-3xl border border-border/80 bg-card shadow-lg overflow-hidden">
+            <ClaimPanelContent
+              onClose={() => {}}
+              showCloseButton={false}
+              onWhitelisted={() => void refreshGoodDollarStatus()}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSkippedUbiClaim(true)}
+            className="mx-auto block py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Skip for now
+          </button>
         </div>
       </div>
     );
