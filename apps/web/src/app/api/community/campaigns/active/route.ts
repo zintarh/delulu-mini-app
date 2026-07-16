@@ -17,12 +17,24 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 // counts aren't stored on the row and are only known after fetching.
 const MAX_CANDIDATES = 50;
 
+// Campaigns this close to ending sink to the bottom of the ranked list —
+// promoting a nearly-over campaign discourages new joins.
+const ENDING_SOON_DAYS = 3;
+
+function daysLeft(displayEndsAt: string | null): number {
+  if (!displayEndsAt) return Infinity;
+  return Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address")?.trim().toLowerCase() ?? null;
   const cursor = searchParams.get("cursor") ?? null;
   const limit = Math.min(Number(searchParams.get("limit") ?? "20"), 50);
   const sort = searchParams.get("sort") === "recent" ? "recent" : "participants";
+  const durationDaysParam = Number(searchParams.get("durationDays"));
+  const durationFilter = [7, 14, 30, 60].includes(durationDaysParam) ? durationDaysParam : null;
+  const endingSoonFilter = searchParams.get("endingSoon") === "true";
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
@@ -42,6 +54,12 @@ export async function GET(request: NextRequest) {
     .eq("is_hidden", false)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
+
+  if (durationFilter) query = query.eq("duration_days", durationFilter);
+  if (endingSoonFilter) {
+    const cutoff = new Date(Date.now() + ENDING_SOON_DAYS * 86400000).toISOString();
+    query = query.lte("display_ends_at", cutoff);
+  }
 
   if (sort === "recent" && cursor) {
     query = query.lt("created_at", cursor);
@@ -167,7 +185,16 @@ export async function GET(request: NextRequest) {
   if (sort === "participants") {
     result = result
       .slice()
-      .sort((a, b) => b.participantCount - a.participantCount || (b._createdAt > a._createdAt ? 1 : -1))
+      .sort((a, b) => {
+        // Explicitly browsing "ending soon" — soonest-to-end first is the
+        // whole point, so skip the usual participant-count ranking.
+        if (endingSoonFilter) return daysLeft(a.displayEndsAt) - daysLeft(b.displayEndsAt);
+
+        const aEndingSoon = daysLeft(a.displayEndsAt) <= ENDING_SOON_DAYS;
+        const bEndingSoon = daysLeft(b.displayEndsAt) <= ENDING_SOON_DAYS;
+        if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
+        return b.participantCount - a.participantCount || (b._createdAt > a._createdAt ? 1 : -1);
+      })
       .slice(0, limit);
   } else if (hasMore) {
     nextCursor = candidates[candidates.length - 1]?.created_at ?? null;

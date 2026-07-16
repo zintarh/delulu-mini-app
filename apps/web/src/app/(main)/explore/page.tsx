@@ -121,7 +121,8 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className=" max-w-4xl xl:max-w-6xl ">
+                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {campaignResults.map((c) => (
                     <CampaignExploreCard
                       key={c.id}
@@ -148,6 +149,8 @@ export default function CampaignsPage() {
                     />
                   ))}
                 </div>
+                </div>
+               
               )}
             </>
           )}

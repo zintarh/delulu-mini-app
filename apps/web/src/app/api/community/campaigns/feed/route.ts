@@ -27,6 +27,15 @@ const ONGOING_HOME_LIMIT = 5;
 const MAX_LIMIT = 20;
 const FETCH_BATCH = 40;
 
+// Campaigns this close to ending sink to the bottom of the ranked list —
+// promoting a nearly-over campaign on the home feed discourages new joins.
+const ENDING_SOON_DAYS = 3;
+
+function daysLeft(displayEndsAt: string | null): number {
+  if (!displayEndsAt) return Infinity;
+  return Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000);
+}
+
 const CAMPAIGN_FEED_SELECT = `
   id, title, status, proposed_pool_amount, proof_cadence, duration_days,
   prize_winner_count, cover_image_url, display_ends_at, created_at, community_id,
@@ -204,6 +213,10 @@ export async function GET(request: NextRequest) {
 
     if (sort === "participants") {
       joinable.sort((a, b) => {
+        const aEndingSoon = daysLeft(a.display_ends_at) <= ENDING_SOON_DAYS;
+        const bEndingSoon = daysLeft(b.display_ends_at) <= ENDING_SOON_DAYS;
+        if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
+
         const ap = isValidOnChainChallengeId(a.on_chain_challenge_id)
           ? (batchStats.get(a.on_chain_challenge_id)?.participantCount ?? 0)
           : 0;

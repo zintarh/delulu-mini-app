@@ -629,11 +629,12 @@ export function CampaignDetailClient({
                     </div>
                   ) : null}
                   {isPlatformAdmin &&
-                  ["approved", "active"].includes(campaign.status) &&
-                  campaign.on_chain_challenge_id == null ? (
+                  campaign.content_hash &&
+                  campaign.on_chain_challenge_id == null &&
+                  !["draft", "rejected"].includes(campaign.status) ? (
                     <div>
                       <p className="mb-2 text-xs text-amber-700">
-                        This campaign was approved but never finished deploying on-chain.
+                        Campaign content is prepared but it never finished deploying on-chain.
                       </p>
                       <DashboardPrimaryButton
                         className="w-full"

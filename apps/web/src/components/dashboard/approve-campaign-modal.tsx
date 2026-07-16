@@ -44,7 +44,7 @@ const STEP_LABEL: Record<DeployStep, string> = {
 };
 
 const RETRY_IDLE_LABEL =
-  "This campaign was approved but never finished deploying on-chain. You'll need to sign one wallet transaction to finish deployment.";
+  "Campaign content is already prepared — it just never finished deploying on-chain. You'll need to sign one wallet transaction to finish deployment.";
 
 export function ApproveCampaignModal({
   open,
@@ -64,10 +64,11 @@ export function ApproveCampaignModal({
   const [step, setStep] = useState<DeployStep>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // A campaign can already be approved (content_hash set) but never made it
-  // on-chain if the deploy step failed or was abandoned mid-flow — resume
-  // straight into deployment instead of re-running the DB approve step.
-  const isRetryDeploy = campaign?.status !== "pending_approval";
+  // Content prep (and the IPFS upload it entails) may have already succeeded
+  // on a prior attempt even if the on-chain deploy step then failed — resume
+  // straight into deployment using the existing hash instead of re-running
+  // (and re-uploading for) the DB approve step.
+  const isRetryDeploy = Boolean(campaign?.content_hash);
 
   useEffect(() => {
     if (!open || !campaign) {

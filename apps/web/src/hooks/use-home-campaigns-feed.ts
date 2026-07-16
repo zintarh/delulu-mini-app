@@ -27,7 +27,7 @@ async function fetchFeedPage(
     address,
     section,
     sort,
-    limit: section === "ongoing" ? "20" : "4",
+    limit: section === "ongoing" ? "5" : "4",
   });
   if (cursor) params.set("cursor", cursor);
 

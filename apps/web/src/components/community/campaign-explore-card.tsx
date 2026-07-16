@@ -85,7 +85,7 @@ export function CampaignExploreCard({
     >
       {/* Image header */}
       <Link href={href} className="block">
-        <div className="relative aspect-[4/3] sm:aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
+        <div className="relative aspect-[3/2] sm:aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
           {campaign.coverImageUrl ? (
             <Image
               src={campaign.coverImageUrl}
@@ -124,9 +124,9 @@ export function CampaignExploreCard({
         </div>
 
         {/* Content */}
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-4 pt-4 pb-2 sm:px-5 sm:pt-5">
           <h3
-            className="line-clamp-2 text-lg font-black leading-snug text-foreground sm:text-xl"
+            className="line-clamp-2 text-base font-black leading-snug text-foreground sm:text-xl"
             style={{ fontFamily: '"Clash Display", sans-serif' }}
           >
             {campaign.title}
@@ -135,7 +135,7 @@ export function CampaignExploreCard({
           {(() => {
 
             return (
-              <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="mt-2.5 flex items-center gap-3 text-sm text-muted-foreground">
                 <span
                   className={cn(
                     "flex items-center gap-1",
@@ -175,7 +175,7 @@ export function CampaignExploreCard({
                 ? (campaign.joinAmount ?? 0) * campaign.participantCount
                 : 0;
             return (
-              <div className="mt-3 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-3.5 py-2.5 space-y-1.5">
+              <div className="mt-2.5 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-3.5 py-2.5 space-y-1.5">
                 {forfeitAmt > 0 ? (
                   <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -199,7 +199,7 @@ export function CampaignExploreCard({
 
           {/* Points motivator — only for non-joined, non-closed campaigns */}
           {!isClosed && !campaign.isJoined ? (
-            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-delulu-blue">
+            <p className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-delulu-blue">
               <Star className="h-3.5 w-3.5 shrink-0" />
               Complete milestones, earn points &amp; qualify for rewards
             </p>
@@ -338,17 +338,17 @@ export function CampaignExploreCard({
 export function CampaignExploreCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm", className)}>
-      <div className="relative aspect-[4/3] animate-pulse bg-muted sm:aspect-[2/1]">
+      <div className="relative aspect-[3/2] animate-pulse bg-muted sm:aspect-[2/1]">
         <div className="absolute right-3 top-3 h-6 w-16 rounded-full bg-background" />
       </div>
 
-      <div className="animate-pulse px-5 pt-5 pb-2">
-        <div className="h-6 w-3/4 rounded-lg bg-muted" />
-        <div className="mt-3 flex items-center gap-3">
+      <div className="animate-pulse px-4 pt-4 pb-2 sm:px-5 sm:pt-5">
+        <div className="h-5 w-3/4 rounded-lg bg-muted sm:h-6" />
+        <div className="mt-2.5 flex items-center gap-3">
           <div className="h-4 w-16 rounded-lg bg-muted" />
           <div className="h-4 w-20 rounded-lg bg-muted" />
         </div>
-        <div className="mt-3 h-4 w-2/3 rounded-lg bg-muted" />
+        <div className="mt-2.5 h-4 w-2/3 rounded-lg bg-muted" />
       </div>
 
       <div className="mt-auto animate-pulse px-5 pb-5 pt-4">

@@ -29,7 +29,9 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, status, content_hash, on_chain_challenge_id")
+    .select(
+      "id, title, description, status, content_hash, on_chain_challenge_id, proposed_by, community_id, communities(name)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -64,6 +66,8 @@ export async function POST(
     .update({
       status: "approved",
       on_chain_challenge_id: Number(challengeId),
+      approved_by: session.userId,
+      approved_at: now,
       updated_at: now,
     })
     .eq("id", id)
@@ -77,10 +81,45 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Campaign is only truly "approved" once it's live on-chain — log both facts
+  // together here rather than at the earlier content-prep step.
+  await logCampaignEvent(id, "approved", session.userId, { content_hash: campaign.content_hash });
   await logCampaignEvent(id, "on_chain_created", session.userId, {
     tx_hash: txHash,
     on_chain_challenge_id: Number(challengeId),
   });
+
+  if (campaign.proposed_by) {
+    const { data: proposer } = await admin
+      .from("staff_users")
+      .select("email")
+      .eq("id", campaign.proposed_by)
+      .maybeSingle();
+
+    const communityName =
+      (campaign.communities as { name?: string } | null)?.name ?? "your community";
+    const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard/communities/${campaign.community_id}/campaigns/${id}`;
+
+    if (proposer?.email) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL ?? "noreply@delulu.app",
+          to: proposer.email,
+          subject: `Campaign approved: ${campaign.title}`,
+          html: `
+            <p>Your campaign <strong>${campaign.title}</strong> for ${communityName} was approved and deployed on-chain.</p>
+            <p>Once milestones are added on-chain, members will be able to join and compete. A platform admin can fund the prize pool separately — points and the leaderboard go live when the first member joins.</p>
+            <p><a href="${dashboardUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View campaign</a></p>
+          `,
+        });
+        await logCampaignEvent(id, "approved_notified", session.userId);
+      } catch {
+        // non-fatal
+      }
+    }
+  }
 
   return NextResponse.json({ campaign: data });
 }
