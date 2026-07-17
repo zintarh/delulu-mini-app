@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Copy, Loader2, Mail, Wallet } from "lucide-react";
+import { AlertTriangle, Check, Copy, Loader2, Mail, Wallet, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
@@ -45,6 +45,7 @@ export default function SignInPage() {
   const [copiedAddress, setCopiedAddress] = useState(false);
 
   const [skippedUbiClaim, setSkippedUbiClaim] = useState(false);
+  const [showSkipGasToast, setShowSkipGasToast] = useState(false);
   const { routeState, address, refetchBalance, isCheckingAccount, refreshGoodDollarStatus } =
     usePostAuthRoute({ skipUbiGate: skippedUbiClaim });
 
@@ -62,6 +63,12 @@ export default function SignInPage() {
     const t = setTimeout(() => setFaucetState("tx_timeout"), 3 * 60 * 1000);
     return () => clearTimeout(t);
   }, [faucetState]);
+
+  useEffect(() => {
+    if (!showSkipGasToast) return;
+    const t = setTimeout(() => setShowSkipGasToast(false), 5000);
+    return () => clearTimeout(t);
+  }, [showSkipGasToast]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -264,7 +271,7 @@ export default function SignInPage() {
                 Claim your first Good Dollars
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Verify your identity to claim free G$ — then we&apos;ll set up your profile.
+                Verify your identity to claim free G$ — then we&apos;ll set up your profile. Takes just a couple of minutes.
               </p>
             </div>
           </div>
@@ -279,12 +286,40 @@ export default function SignInPage() {
 
           <button
             type="button"
-            onClick={() => setSkippedUbiClaim(true)}
+            onClick={() => {
+              setShowSkipGasToast(true);
+              setSkippedUbiClaim(true);
+            }}
             className="mx-auto block py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             Skip for now
           </button>
         </div>
+
+        {showSkipGasToast ? (
+          <div
+            role="status"
+            className={cn(
+              "fixed bottom-6 left-1/2 z-[120] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
+              "animate-in fade-in slide-in-from-bottom-2 duration-300",
+            )}
+          >
+            <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/12 px-4 py-3 shadow-lg backdrop-blur-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <p className="flex-1 text-sm font-medium text-foreground">
+                By skipping, you&apos;ll need to get gas (CELO) yourself to sponsor your on-chain transactions.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowSkipGasToast(false)}
+                className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-black/5"
+                aria-label="Dismiss"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
