@@ -311,16 +311,17 @@ export function DeluluDetailPinCard({
                     type="button"
                     onClick={handleTipClick}
                     disabled={tipDisabled}
+                    aria-label={userAddress ? "Tip" : "Sign in to tip"}
+                    title={userAddress ? "Tip" : "Sign in to tip"}
                     className={cn(
-                      "inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold text-white transition-all duration-150",
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-all duration-150",
                       "bg-delulu-charcoal shadow-[0_4px_14px_rgba(0,0,0,0.35)]",
                       "hover:shadow-[0_6px_18px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 hover:bg-delulu-charcoal/90",
                       "active:shadow-[0_2px_8px_rgba(0,0,0,0.25)] active:scale-[0.97]",
                       tipDisabled && "cursor-not-allowed opacity-50",
                     )}
                   >
-                    <DollarSign className="h-3.5 w-3.5" strokeWidth={2.5} />
-                    {userAddress ? "Tip" : "Sign in"}
+                    <DollarSign className="h-4 w-4" strokeWidth={2.5} />
                   </button>
                 ) : null}
                 {isCreator && (
