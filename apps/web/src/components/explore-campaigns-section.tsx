@@ -109,7 +109,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
   const selectedDurationLabel = DURATION_OPTIONS.find((o) => o.value === durationFilter)?.label;
 
   const filterBar = (
-    <div className="mb-4 flex items-center gap-2.5 overflow-x-auto scrollbar-hide">
+    <div className="mb-4 flex items-center justify-between gap-2.5 overflow-x-auto scrollbar-hide">
       <Select.Root
         value={durationFilter}
         onValueChange={(value) => {

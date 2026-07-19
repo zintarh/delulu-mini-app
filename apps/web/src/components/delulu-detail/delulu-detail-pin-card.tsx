@@ -399,7 +399,7 @@ export function DeluluDetailPinCard({
             ) : null}
 
             <div>
-              <h1 className="text-lg font-black leading-snug text-foreground sm:text-xl">
+              <h1 className="text-base font-black leading-snug text-foreground sm:text-xl">
                 {title}
               </h1>
               {description ? (

@@ -415,7 +415,7 @@ function CreatorMilestonesList({
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <p
                     className={cn(
-                      "font-semibold text-xs md:text-sm",
+                      "font-semibold text-sm",
                       isUpcoming ? "text-muted-foreground" : "text-foreground",
                     )}
                   >

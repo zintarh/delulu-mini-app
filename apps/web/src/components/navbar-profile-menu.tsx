@@ -8,9 +8,7 @@ import { Check, ChevronDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
-import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useClaimAvailability } from "@/hooks/use-claim-availability";
-import { useUserStreak } from "@/hooks/useUserStreak";
 import { useLogoutSheetOptional } from "@/contexts/logout-sheet-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePfp } from "@/hooks/use-profile-pfp";
@@ -91,10 +89,7 @@ export function NavbarProfileMenu({
   const router = useRouter();
   const { authenticated, address, email: authEmail } = useAuth();
   const user = useUserStore((s) => s.user);
-  const { isOpen: notificationsOpen, toggle: toggleNotifications } =
-    useNotificationsPanel();
   const { availability, showProfileClaim, openClaim } = useClaimAvailability();
-  const { currentStreak } = useUserStreak(address ?? undefined);
   const logoutSheet = useLogoutSheetOptional();
   const [open, setOpen] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -233,18 +228,6 @@ export function NavbarProfileMenu({
               <div>
                 <SectionLabel>Your account</SectionLabel>
                 <div className="mt-2 flex flex-col">
-                  <MenuAction
-                    className={cn(
-                      "px-1 lg:hidden",
-                      notificationsOpen && "bg-delulu-blue-light text-delulu-blue",
-                    )}
-                    onClick={() => {
-                      close();
-                      toggleNotifications();
-                    }}
-                  >
-                    Notifications
-                  </MenuAction>
                   {showProfileClaim ? (
                     <MenuAction
                       className="px-1"
@@ -266,16 +249,6 @@ export function NavbarProfileMenu({
                   ) : null}
                   <MenuAction href="/leaderboard" className="px-1" onClick={close}>
                     Leaderboard
-                  </MenuAction>
-                  <MenuAction href="/streaks" className="px-1" onClick={close}>
-                    <span className="flex items-center gap-2">
-                      Streaks & rewards
-                      {currentStreak > 0 ? (
-                        <span className="text-xs font-bold tabular-nums text-[#f6c324]">
-                          {currentStreak}d
-                        </span>
-                      ) : null}
-                    </span>
                   </MenuAction>
                   <MenuAction href="/settings" className="px-1" onClick={close}>
                     Settings

@@ -5,14 +5,18 @@ import { useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Award,
   ArrowLeft,
   Check,
+  ChevronRight,
+  Coins,
   Copy,
+  Flame,
   LogOut,
   Mail,
   Send,
+  Target,
   Trophy,
-  User as UserIcon,
   Wallet,
 } from "lucide-react";
 
@@ -21,15 +25,20 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { usePfp } from "@/hooks/use-profile-pfp";
 
 import { AddEmailSheet } from "@/components/add-email-sheet";
 import { useLogoutSheet } from "@/contexts/logout-sheet-context";
 import { TokenBadge } from "@/components/token-badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { MainPage } from "@/components/main-app-header";
 
 import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn, formatAddress } from "@/lib/utils";
+
+const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
+const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -42,6 +51,7 @@ export default function SettingsPage() {
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || user?.username || null;
   const email = user?.email ?? null;
+  const pfpUrl = usePfp(address) ?? user?.pfpUrl ?? null;
 
   const {
     totalDelulus,
@@ -70,7 +80,8 @@ export default function SettingsPage() {
         <div className="h-5 w-24 animate-pulse rounded-md bg-muted/60" />
       </div>
       <div className="px-4 pt-5 space-y-7">
-        {Array.from({ length: 4 }).map((_, i) => (
+        <div className="h-24 w-full animate-pulse rounded-3xl bg-muted/40" />
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="space-y-2">
             <div className="h-3 w-16 animate-pulse rounded bg-muted/40" />
             <div className="h-14 w-full animate-pulse rounded-2xl bg-muted/40" />
@@ -100,110 +111,87 @@ export default function SettingsPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1
-              className="text-lg font-bold"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
-            >
-              Settings
-            </h1>
+            <h1 className="text-lg font-bold">Settings</h1>
           </div>
 
           {address && (
-            <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-7">
-              {/* Account */}
-              <section>
-                <SectionLabel>Account</SectionLabel>
-                <div className="mt-2 rounded-2xl bg-muted/20 overflow-hidden flex divide-x divide-border/40">
-                  {/* Username */}
-                  <div className="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
-                      <UserIcon className="w-3.5 h-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
-                        Username
-                      </p>
-                      <p className="text-xs font-medium text-foreground truncate">{displayUsername ?? "—"}</p>
-                    </div>
+            <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
+              {/* Profile card */}
+              <section className="rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
+                <div className="flex items-center gap-3.5">
+                  <UserAvatar
+                    address={address}
+                    username={displayUsername}
+                    pfpUrl={pfpUrl}
+                    size={60}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-lg font-black leading-tight text-foreground"
+                      style={CLASH_DISPLAY}
+                    >
+                      {displayUsername ?? formatAddress(address)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCopyAddress}
+                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label="Copy wallet address"
+                    >
+                      <Wallet className="h-3 w-3 shrink-0" />
+                      {formatAddress(address)}
+                      {copied ? (
+                        <Check className="h-3 w-3 shrink-0 text-[#35d07f]" />
+                      ) : (
+                        <Copy className="h-3 w-3 shrink-0" />
+                      )}
+                    </button>
                   </div>
-                  {/* Email */}
+                </div>
+
+                <div className="mt-3.5 border-t border-border/40 pt-3.5">
                   {email ? (
-                    <div className="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
-                        <Mail className="w-3.5 h-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
-                          Email
-                        </p>
-                        <p className="text-xs font-medium text-foreground truncate">{email}</p>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{email}</span>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setAddEmailSheetOpen(true)}
-                      className="flex-1 flex items-center gap-2 px-3 py-3 hover:bg-muted/40 transition-colors text-left min-w-0"
+                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-[#35d07f] transition-colors hover:bg-[#35d07f]/5"
                     >
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
-                        <Mail className="w-3.5 h-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
-                          Email
-                        </p>
-                        <p className="text-xs font-medium text-[#35d07f] truncate">+ Add email</p>
-                      </div>
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      Add email
                     </button>
                   )}
-                  {/* Wallet */}
-                  <button
-                    type="button"
-                    onClick={handleCopyAddress}
-                    className="flex-1 flex items-center gap-2 px-3 py-3 hover:bg-muted/40 transition-colors text-left min-w-0"
-                    aria-label="Copy wallet address"
-                  >
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/60 text-muted-foreground shrink-0">
-                      <Wallet className="w-3.5 h-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
-                        Wallet
-                      </p>
-                      <p className="text-xs font-mono text-foreground truncate">{formatAddress(address)}</p>
-                    </div>
-                    {copied
-                      ? <Check className="w-3 h-3 text-[#35d07f] shrink-0" />
-                      : <Copy className="w-3 h-3 text-muted-foreground shrink-0" />
-                    }
-                  </button>
                 </div>
               </section>
 
               {/* Stats */}
               <section>
                 <SectionLabel>Stats</SectionLabel>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
                   <StatCard
+                    icon={<Target className="h-4 w-4" />}
                     label="Delulus created"
                     value={isLoadingStats ? "—" : String(totalDelulus)}
                   />
                   <StatCard
+                    icon={<Flame className="h-4 w-4" />}
                     label="Active stakes"
                     value={isLoadingStats ? "—" : String(activeStakes)}
                   />
                   <StatCard
+                    icon={<Coins className="h-4 w-4" />}
                     label="Total staked"
-                    value={
-                      isLoadingStats ? "—" : totalStaked.toFixed(2)
-                    }
+                    value={isLoadingStats ? "—" : totalStaked.toFixed(2)}
                     suffix="G$"
                   />
                   <StatCard
+                    icon={<Award className="h-4 w-4" />}
                     label="Total claimed"
-                    value={
-                      isLoadingStats ? "—" : totalClaimed.toFixed(2)
-                    }
+                    value={isLoadingStats ? "—" : totalClaimed.toFixed(2)}
                     suffix="G$"
                   />
                 </div>
@@ -212,28 +200,28 @@ export default function SettingsPage() {
               {/* Wallet balances */}
               <section>
                 <SectionLabel>Balances</SectionLabel>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
+                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                  <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5 flex items-center gap-2.5">
                     <img
                       src="/celo.png"
                       alt=""
-                      className="w-7 h-7 rounded-full shrink-0"
+                      className="w-8 h-8 rounded-full shrink-0"
                     />
                     <div className="min-w-0">
                       <p
                         className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={{ fontFamily: "var(--font-manrope)" }}
+                        style={MANROPE}
                       >
                         Celo
                       </p>
-                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
+                      <p className="text-base font-bold tabular-nums truncate text-foreground">
                         {!isCeloLoading && celoBalance
                           ? parseFloat(celoBalance.formatted).toFixed(3)
                           : "—"}
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-muted/25 px-3 py-3 flex items-center gap-2.5">
+                  <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5 flex items-center gap-2.5">
                     <TokenBadge
                       tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
                       size="sm"
@@ -242,11 +230,11 @@ export default function SettingsPage() {
                     <div className="min-w-0">
                       <p
                         className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={{ fontFamily: "var(--font-manrope)" }}
+                        style={MANROPE}
                       >
                         G$
                       </p>
-                      <p className="text-sm font-bold tabular-nums truncate text-foreground">
+                      <p className="text-base font-bold tabular-nums truncate text-foreground">
                         {!isBalanceLoading
                           ? parseFloat(gDollarBalance).toFixed(2)
                           : "—"}
@@ -259,7 +247,7 @@ export default function SettingsPage() {
               {/* More */}
               <section>
                 <SectionLabel>More</SectionLabel>
-                <div className="mt-2 rounded-2xl bg-muted/20 divide-y divide-border/40 overflow-hidden">
+                <div className="mt-2.5 rounded-2xl border border-border/50 bg-card divide-y divide-border/40 overflow-hidden">
                   <LinkRow
                     icon={
                       <img
@@ -294,7 +282,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={openLogoutSheet}
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-border bg-secondary text-rose-500 hover:bg-secondary/80 text-sm font-bold transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  style={MANROPE}
                 >
                   <LogOut className="w-4 h-4" />
                   Sign out
@@ -317,67 +305,36 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
       className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-      style={{ fontFamily: "var(--font-manrope)" }}
+      style={MANROPE}
     >
       {children}
     </p>
   );
 }
 
-function Row({
-  icon,
-  label,
-  value,
-  valueClassName,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  valueClassName?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted/60 text-muted-foreground">
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          {label}
-        </p>
-        <p
-          className={cn(
-            "text-sm font-medium text-foreground truncate",
-            valueClassName,
-          )}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function StatCard({
+  icon,
   label,
   value,
   suffix,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: string;
   suffix?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-muted/25 px-3 py-3">
+    <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5">
+      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted/60 text-muted-foreground">
+        {icon}
+      </span>
       <p
-        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-        style={{ fontFamily: "var(--font-manrope)" }}
+        className="mt-2.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+        style={MANROPE}
       >
         {label}
       </p>
-      <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground leading-none">
+      <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground leading-none">
         {value}
         {suffix && (
           <span className="ml-1 text-xs text-muted-foreground font-semibold">
@@ -395,52 +352,41 @@ function LinkRow({
   description,
   href,
   external = false,
-  accent = false,
 }: {
   icon: React.ReactNode;
   title: string;
   description?: string;
   href: string;
   external?: boolean;
-  accent?: boolean;
 }) {
   const inner = (
     <>
-      <span
-        className={cn(
-          "inline-flex items-center justify-center w-7 h-7 rounded-full",
-          accent
-            ? "bg-[#f6c324]/15 text-[#f6c324]"
-            : "bg-muted/60 text-muted-foreground",
-        )}
-      >
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground">
         {icon}
       </span>
       <div className="flex-1 min-w-0">
         <p
-          className={cn(
-            "text-sm font-semibold truncate",
-            accent ? "text-[#f6c324]" : "text-foreground",
-          )}
-          style={{ fontFamily: "var(--font-manrope)" }}
+          className="text-sm font-semibold truncate text-foreground"
+          style={MANROPE}
         >
           {title}
         </p>
         {description && (
           <p
             className="text-xs text-muted-foreground truncate"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={MANROPE}
           >
             {description}
           </p>
         )}
       </div>
-      <span className="text-muted-foreground/60">—</span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
     </>
   );
 
-  const className =
-    "w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors";
+  const className = cn(
+    "w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors",
+  );
 
   if (external) {
     return (

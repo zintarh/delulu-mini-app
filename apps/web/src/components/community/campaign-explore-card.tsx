@@ -85,7 +85,7 @@ export function CampaignExploreCard({
     >
       {/* Image header */}
       <Link href={href} className="block">
-        <div className="relative aspect-[3/2] sm:aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
+        <div className="relative aspect-[16/9] sm:aspect-[2/1] overflow-hidden bg-delulu-blue-light/40">
           {campaign.coverImageUrl ? (
             <Image
               src={campaign.coverImageUrl}
@@ -127,7 +127,6 @@ export function CampaignExploreCard({
         <div className="px-4 pt-4 pb-2 sm:px-5 sm:pt-5">
           <h3
             className="line-clamp-2 text-base font-black leading-snug text-foreground sm:text-xl"
-            style={{ fontFamily: '"Clash Display", sans-serif' }}
           >
             {campaign.title}
           </h3>
@@ -293,7 +292,7 @@ export function CampaignExploreCard({
               type="button"
               disabled={joining}
               onClick={onJoin}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground text-base font-bold text-background transition-transform hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground text-sm font-bold text-background transition-transform hover:opacity-90 active:scale-[0.98] disabled:opacity-60 sm:text-base"
             >
               {joining ? (
                 <>
