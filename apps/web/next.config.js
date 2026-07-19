@@ -36,6 +36,23 @@ const nextConfig = {
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
+      {
+        // Next.js hardcodes crossOrigin="use-credentials" on the
+        // <link rel="manifest"> tag whenever a manifest.ts route is used
+        // (see next/dist/lib/metadata/generate/basic.js). A credentialed
+        // request can never accept a wildcard Access-Control-Allow-Origin —
+        // the browser silently drops the manifest fetch, which breaks PWA
+        // installability (mobile Chrome enforces this strictly; desktop is
+        // more lenient, which is why "Add to Home Screen" can work on
+        // desktop but never fire on mobile). Override the general "*" rule
+        // above with a same-origin, credentials-compatible response for
+        // this one path.
+        source: "/manifest.webmanifest",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://www.staydelulu.xyz" },
+          { key: "Access-Control-Allow-Credentials", value: "true" },
+        ],
+      },
     ];
   },
   async redirects() {
