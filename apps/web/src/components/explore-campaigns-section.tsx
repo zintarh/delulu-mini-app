@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Target } from "lucide-react";
+import * as Select from "@radix-ui/react-select";
+import { Check, Loader2, SlidersHorizontal, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CampaignExploreCard,
@@ -14,28 +15,33 @@ import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useExploreCampaigns, type ExploreCampaignsSort } from "@/hooks/use-explore-campaigns";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 
-type FilterPill = "all" | "ending_soon" | "7" | "14" | "30" | "newest";
+type DurationFilter = "all" | "7" | "14" | "30" | "60" | "ended";
 
-const FILTER_PILLS: { id: FilterPill; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "ending_soon", label: "Ending soon" },
-  { id: "7", label: "7 days" },
-  { id: "14", label: "14 days" },
-  { id: "30", label: "30 days" },
-  { id: "newest", label: "Newest" },
+const DURATION_OPTIONS: { value: DurationFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "7", label: "7 days" },
+  { value: "14", label: "14 days" },
+  { value: "30", label: "30 days" },
+  { value: "60", label: "60 days" },
+  { value: "ended", label: "Ended" },
 ];
 
 export function ExploreCampaignsSection({ address }: { address?: string }) {
   const router = useRouter();
   const joinFlow = useCampaignJoinFlow();
   const { requireAuth } = useRedirectToSignIn();
-  const [activeFilter, setActiveFilter] = useState<FilterPill>("all");
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
+  const [endingSoon, setEndingSoon] = useState(false);
 
-  const sort: ExploreCampaignsSort = activeFilter === "newest" ? "recent" : "participants";
-  const durationDays = ["7", "14", "30"].includes(activeFilter)
-    ? (Number(activeFilter) as 7 | 14 | 30)
+  // Default view (and every duration filter) shows the newest campaigns
+  // first. "Ending soon" is the one case that intentionally overrides that
+  // with soonest-to-end ranking (handled server-side under "participants" sort).
+  const sort: ExploreCampaignsSort = endingSoon ? "participants" : "recent";
+  const durationDays = ["7", "14", "30", "60"].includes(durationFilter)
+    ? (Number(durationFilter) as 7 | 14 | 30 | 60)
     : undefined;
-  const endingSoon = activeFilter === "ending_soon";
+  const ended = durationFilter === "ended";
+  const isDefaultView = durationFilter === "all" && !endingSoon;
 
   const {
     data,
@@ -46,7 +52,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     error,
     refetch,
     isRefetching,
-  } = useExploreCampaigns(address, sort, { durationDays, endingSoon });
+  } = useExploreCampaigns(address, sort, { durationDays, endingSoon, ended });
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const campaigns = data?.pages.flatMap((page) => page.campaigns) ?? [];
@@ -100,23 +106,69 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     [campaigns, refetch, router],
   );
 
+  const selectedDurationLabel = DURATION_OPTIONS.find((o) => o.value === durationFilter)?.label;
+
   const filterBar = (
-    <div className="mb-4 flex gap-2 overflow-x-auto scrollbar-hide">
-      {FILTER_PILLS.map((pill) => (
-        <button
-          key={pill.id}
-          type="button"
-          onClick={() => setActiveFilter(pill.id)}
+    <div className="mb-4 flex items-center gap-2.5 overflow-x-auto scrollbar-hide">
+      <Select.Root
+        value={durationFilter}
+        onValueChange={(value) => {
+          const next = value as DurationFilter;
+          setDurationFilter(next);
+          // "Ending soon" only makes sense for still-active campaigns.
+          if (next === "ended") setEndingSoon(false);
+        }}
+      >
+        <Select.Trigger
+          aria-label="Filter by duration"
           className={cn(
-            "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors",
-            activeFilter === pill.id
+            "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-colors outline-none",
+            durationFilter !== "all"
               ? "border-foreground bg-foreground text-background"
               : "border-border text-muted-foreground hover:text-foreground",
           )}
         >
-          {pill.label}
-        </button>
-      ))}
+          <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+          {durationFilter !== "all" ? selectedDurationLabel : null}
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Content
+            position="popper"
+            sideOffset={6}
+            className="z-50 overflow-hidden rounded-xl border border-border bg-background shadow-lg"
+          >
+            <Select.Viewport className="p-1">
+              {DURATION_OPTIONS.map((opt) => (
+                <Select.Item
+                  key={opt.value}
+                  value={opt.value}
+                  className="flex cursor-pointer items-center justify-between gap-6 rounded-lg px-3 py-2 text-sm font-semibold text-foreground outline-none data-[highlighted]:bg-muted"
+                >
+                  <Select.ItemText>{opt.label}</Select.ItemText>
+                  <Select.ItemIndicator>
+                    <Check className="h-3.5 w-3.5" />
+                  </Select.ItemIndicator>
+                </Select.Item>
+              ))}
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+
+      <button
+        type="button"
+        onClick={() => setEndingSoon((v) => !v)}
+        disabled={durationFilter === "ended"}
+        className={cn(
+          "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-colors",
+          "disabled:cursor-not-allowed disabled:opacity-40",
+          endingSoon
+            ? "border-foreground bg-foreground text-background"
+            : "border-border text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Ending soon
+      </button>
     </div>
   );
 
@@ -159,7 +211,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <Target className="h-10 w-10 text-muted-foreground/30" />
           <p className="text-sm text-muted-foreground">
-            {activeFilter === "all" ? "No active campaigns yet" : "No campaigns match this filter"}
+            {isDefaultView ? "No active campaigns yet" : "No campaigns match this filter"}
           </p>
         </div>
       </div>

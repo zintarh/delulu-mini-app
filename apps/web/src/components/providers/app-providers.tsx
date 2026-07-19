@@ -25,6 +25,10 @@ const PullToRefresh = dynamic(
   () => import("@/components/pwa/PullToRefresh").then((m) => m.PullToRefresh),
   { ssr: false },
 );
+const InstallPrompt = dynamic(
+  () => import("@/components/pwa/InstallPrompt").then((m) => m.InstallPrompt),
+  { ssr: false },
+);
 const EmailCaptureGate = dynamic(
   () =>
     import("@/components/email-capture-gate").then((m) => m.EmailCaptureGate),
@@ -58,6 +62,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                 <NotificationCountProvider>
                   <ServiceWorkerRegister />
                   <PullToRefresh />
+                  <InstallPrompt />
                   <EmailCaptureGate />
                   {children}
                 </NotificationCountProvider>

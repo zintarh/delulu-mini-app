@@ -247,7 +247,6 @@ function ProfileHeader({
         <div className="text-center">
           <h1
             className="text-2xl font-bold leading-tight capitalize"
-            style={{ fontFamily: '"Clash Display", sans-serif' }}
           >
             {displayUsername || formatAddress(address)}
           </h1>
@@ -314,6 +313,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
             </div>
           ) : null}
           <OngoingMilestonesSection
+            address={address}
             onCreateClick={() => void navigateToCreate()}
           />
         </div>

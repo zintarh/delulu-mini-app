@@ -83,6 +83,18 @@ export async function submitCommunityProofWithWallet(input: {
       input.walletAddress,
       json.milestoneId,
     );
+
+    // Best-effort fan-out to other campaign members — must never fail the
+    // submitter's own proof flow, so this is fire-and-forget.
+    fetch(`/api/community/campaigns/${input.campaignId}/notify-proof`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletAddress: input.walletAddress,
+        milestoneId: json.milestoneId,
+      }),
+    }).catch(() => {});
+
     return { verified: true as const, onChain: true };
   }
 

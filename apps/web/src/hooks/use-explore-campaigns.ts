@@ -9,6 +9,7 @@ export type ExploreCampaignsSort = "participants" | "recent";
 export type ExploreCampaignsFilters = {
   durationDays?: 7 | 14 | 30 | 60;
   endingSoon?: boolean;
+  ended?: boolean;
 };
 
 export const exploreCampaignKeys = {
@@ -25,6 +26,7 @@ export const exploreCampaignKeys = {
       sort,
       filters?.durationDays ?? null,
       filters?.endingSoon ?? false,
+      filters?.ended ?? false,
     ] as const,
   all: ["explore", "campaigns"] as const,
 };
@@ -40,6 +42,7 @@ async function fetchActivePage(
   if (address) params.set("address", address);
   if (filters?.durationDays) params.set("durationDays", String(filters.durationDays));
   if (filters?.endingSoon) params.set("endingSoon", "true");
+  if (filters?.ended) params.set("status", "ended");
 
   const res = await fetch(`/api/community/campaigns/active?${params}`);
   if (!res.ok) throw new Error("Failed to load campaigns");

@@ -31,10 +31,16 @@ export async function GET(request: NextRequest) {
   const address = searchParams.get("address")?.trim().toLowerCase() ?? null;
   const cursor = searchParams.get("cursor") ?? null;
   const limit = Math.min(Number(searchParams.get("limit") ?? "20"), 50);
-  const sort = searchParams.get("sort") === "recent" ? "recent" : "participants";
+  const requestedSort = searchParams.get("sort") === "recent" ? "recent" : "participants";
   const durationDaysParam = Number(searchParams.get("durationDays"));
   const durationFilter = [7, 14, 30, 60].includes(durationDaysParam) ? durationDaysParam : null;
-  const endingSoonFilter = searchParams.get("endingSoon") === "true";
+  const endedFilter = searchParams.get("status") === "ended";
+  // "Ending soon" (still active, close to its deadline) and "ended" (already
+  // over) are mutually exclusive views — ended wins if both are somehow set.
+  const endingSoonFilter = !endedFilter && searchParams.get("endingSoon") === "true";
+  // Ended campaigns have nothing left to rank by participant momentum or
+  // ending-soon urgency — always browse them newest-ended-first.
+  const sort = endedFilter ? "recent" : requestedSort;
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
@@ -68,7 +74,9 @@ export async function GET(request: NextRequest) {
   const { data: rows, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const activeRows = (rows ?? []).filter((row) => !isCampaignEndedByDate(row.display_ends_at));
+  const activeRows = (rows ?? []).filter((row) =>
+    endedFilter ? isCampaignEndedByDate(row.display_ends_at) : !isCampaignEndedByDate(row.display_ends_at),
+  );
 
   const hasMore = sort === "recent" && activeRows.length > limit;
   const candidates = sort === "recent" ? activeRows.slice(0, limit) : activeRows;

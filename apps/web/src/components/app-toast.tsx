@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, X } from "lucide-react";
 import { APP_TOAST_EVENT } from "@/lib/celebrate";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,11 @@ type ToastState = { message: string } | null;
 /** Global success/info toast for the main app (listens to `delulu:app-toast`). */
 export function AppToast() {
   const [toast, setToast] = useState<ToastState>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onToast = (event: Event) => {
@@ -27,13 +33,17 @@ export function AppToast() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  if (!toast) return null;
+  if (!toast || !mounted) return null;
 
-  return (
+  // Portaled straight to <body> — the main layout wraps children in an
+  // `overflow-hidden` container, and if any sheet/drawer elsewhere applies a
+  // transform to an ancestor, `position: fixed` descendants get re-contained
+  // and clipped by that overflow, hiding the toast behind the bottom nav.
+  return createPortal(
     <div
       role="status"
       className={cn(
-        "fixed bottom-24 left-1/2 z-[120] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
+        "fixed bottom-24 left-1/2 z-[200] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
         "lg:bottom-6 lg:left-1/2",
         "animate-in fade-in slide-in-from-bottom-2 duration-300",
       )}
@@ -50,6 +60,7 @@ export function AppToast() {
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

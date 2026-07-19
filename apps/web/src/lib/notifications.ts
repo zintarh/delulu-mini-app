@@ -8,7 +8,10 @@ export type NotificationType =
   | "like"
   | "comment"
   | "tip"
-  | "system";
+  | "system"
+  | "campaign_milestone_due"
+  | "campaign_ending"
+  | "campaign_proof_submitted";
 
 export interface CreateNotificationInput {
   recipientAddress: string;
