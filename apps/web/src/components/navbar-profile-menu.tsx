@@ -8,10 +8,11 @@ import { Check, ChevronDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
-import { useClaimAvailability } from "@/hooks/use-claim-availability";
 import { useLogoutSheetOptional } from "@/contexts/logout-sheet-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePfp } from "@/hooks/use-profile-pfp";
+import { TransferSheet } from "@/components/transfer-sheet";
+import { AddEmailSheet } from "@/components/add-email-sheet";
 
 const DEFAULT_AVATAR = "/user-avatar.jpg";
 
@@ -89,10 +90,11 @@ export function NavbarProfileMenu({
   const router = useRouter();
   const { authenticated, address, email: authEmail } = useAuth();
   const user = useUserStore((s) => s.user);
-  const { availability, showProfileClaim, openClaim } = useClaimAvailability();
   const logoutSheet = useLogoutSheetOptional();
   const [open, setOpen] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [addEmailOpen, setAddEmailOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -220,33 +222,31 @@ export function NavbarProfileMenu({
                     aria-hidden
                   />
                 </div>
-                <MenuAction href="/profile" className="mt-2 px-1" onClick={close}>
-                  View profile
-                </MenuAction>
               </div>
 
               <div>
                 <SectionLabel>Your account</SectionLabel>
                 <div className="mt-2 flex flex-col">
-                  {showProfileClaim ? (
+                  {!accountEmail ? (
                     <MenuAction
                       className="px-1"
                       onClick={() => {
                         close();
-                        openClaim();
+                        setAddEmailOpen(true);
                       }}
                     >
-                      <span className="flex items-center gap-2">
-                        Claim G$
-                        {availability === "claimable" ? (
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full bg-[#f6c324]"
-                            aria-hidden
-                          />
-                        ) : null}
-                      </span>
+                      Add email
                     </MenuAction>
                   ) : null}
+                  <MenuAction
+                    className="px-1"
+                    onClick={() => {
+                      close();
+                      setTransferOpen(true);
+                    }}
+                  >
+                    Transfer
+                  </MenuAction>
                   <MenuAction href="/leaderboard" className="px-1" onClick={close}>
                     Leaderboard
                   </MenuAction>
@@ -308,6 +308,9 @@ export function NavbarProfileMenu({
           )}
         </div>
       )}
+
+      <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} />
+      <AddEmailSheet open={addEmailOpen} onOpenChange={setAddEmailOpen} />
     </div>
   );
 }

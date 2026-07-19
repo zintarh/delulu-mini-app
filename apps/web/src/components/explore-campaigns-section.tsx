@@ -31,17 +31,14 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
   const joinFlow = useCampaignJoinFlow();
   const { requireAuth } = useRedirectToSignIn();
   const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
-  const [endingSoon, setEndingSoon] = useState(false);
 
-  // Default view (and every duration filter) shows the newest campaigns
-  // first. "Ending soon" is the one case that intentionally overrides that
-  // with soonest-to-end ranking (handled server-side under "participants" sort).
-  const sort: ExploreCampaignsSort = endingSoon ? "participants" : "recent";
+  // Default view (and every duration filter) shows the newest campaigns first.
+  const sort: ExploreCampaignsSort = "recent";
   const durationDays = ["7", "14", "30", "60"].includes(durationFilter)
     ? (Number(durationFilter) as 7 | 14 | 30 | 60)
     : undefined;
   const ended = durationFilter === "ended";
-  const isDefaultView = durationFilter === "all" && !endingSoon;
+  const isDefaultView = durationFilter === "all";
 
   const {
     data,
@@ -52,7 +49,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     error,
     refetch,
     isRefetching,
-  } = useExploreCampaigns(address, sort, { durationDays, endingSoon, ended });
+  } = useExploreCampaigns(address, sort, { durationDays, ended });
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const campaigns = data?.pages.flatMap((page) => page.campaigns) ?? [];
@@ -109,15 +106,10 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
   const selectedDurationLabel = DURATION_OPTIONS.find((o) => o.value === durationFilter)?.label;
 
   const filterBar = (
-    <div className="mb-4 flex items-center justify-between gap-2.5 overflow-x-auto scrollbar-hide">
+    <div className="mb-4 flex items-center justify-end gap-2.5 overflow-x-auto scrollbar-hide">
       <Select.Root
         value={durationFilter}
-        onValueChange={(value) => {
-          const next = value as DurationFilter;
-          setDurationFilter(next);
-          // "Ending soon" only makes sense for still-active campaigns.
-          if (next === "ended") setEndingSoon(false);
-        }}
+        onValueChange={(value) => setDurationFilter(value as DurationFilter)}
       >
         <Select.Trigger
           aria-label="Filter by duration"
@@ -154,21 +146,6 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
           </Select.Content>
         </Select.Portal>
       </Select.Root>
-
-      <button
-        type="button"
-        onClick={() => setEndingSoon((v) => !v)}
-        disabled={durationFilter === "ended"}
-        className={cn(
-          "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-colors",
-          "disabled:cursor-not-allowed disabled:opacity-40",
-          endingSoon
-            ? "border-foreground bg-foreground text-background"
-            : "border-border text-muted-foreground hover:text-foreground",
-        )}
-      >
-        Ending soon
-      </button>
     </div>
   );
 

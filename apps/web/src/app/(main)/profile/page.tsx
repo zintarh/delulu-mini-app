@@ -14,10 +14,7 @@ import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { ProfileDeluluGrid } from "@/components/profile/profile-delulu-grid";
-import { ProfilePageActionsMenu } from "@/components/profile/profile-page-actions-menu";
 import { MainPage } from "@/components/main-app-header";
-import { TransferSheet } from "@/components/transfer-sheet";
-import { AddEmailSheet } from "@/components/add-email-sheet";
 
 type TabType = "milestones" | "active" | "ended";
 
@@ -34,8 +31,6 @@ export default function ProfilePage() {
   const { navigateToCreate } = useNavigateToCreate();
 
   const [activeTab, setActiveTab] = useState<TabType>("milestones");
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [addEmailOpen, setAddEmailOpen] = useState(false);
   const [uploadToast, setUploadToast] = useState<{
     type: "success" | "error";
     message: string;
@@ -72,12 +67,10 @@ export default function ProfilePage() {
 
   return (
     <MainPage>
-      <ProfileHeader 
-        address={address} 
-        uploadToast={uploadToast} 
+      <ProfileHeader
+        address={address}
+        uploadToast={uploadToast}
         setUploadToast={setUploadToast}
-        setTransferOpen={setTransferOpen}
-        setAddEmailOpen={setAddEmailOpen}
       />
 
       <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
@@ -105,9 +98,6 @@ export default function ProfilePage() {
         <ProfileContent activeTab={activeTab} address={address} />
       </Suspense>
 
-      <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} />
-      <AddEmailSheet open={addEmailOpen} onOpenChange={setAddEmailOpen} />
-
       {uploadToast && (
         <div className="fixed bottom-24 left-1/2 z-[120] -translate-x-1/2">
           <div
@@ -126,18 +116,14 @@ export default function ProfilePage() {
   );
 }
 
-function ProfileHeader({ 
-  address, 
-  uploadToast, 
+function ProfileHeader({
+  address,
+  uploadToast,
   setUploadToast,
-  setTransferOpen,
-  setAddEmailOpen,
 }: {
   address: string | null | undefined;
   uploadToast: { type: "success" | "error"; message: string } | null;
   setUploadToast: (toast: { type: "success" | "error"; message: string } | null) => void;
-  setTransferOpen: (open: boolean) => void;
-  setAddEmailOpen: (open: boolean) => void;
 }) {
   const { user, updateProfile } = useUserStore();
   const [copied, setCopied] = useState(false);
@@ -147,7 +133,6 @@ function ProfileHeader({
   const displayUsername = contractUsername || null;
   const pfpFromSupabase = usePfp(address);
   const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
-  const email = user?.email ?? null;
 
   const handlePfpFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -186,15 +171,6 @@ function ProfileHeader({
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(120%_60%_at_50%_0%,rgba(252,255,82,0.06),transparent_70%)]"
-      />
-
-      <ProfilePageActionsMenu
-        className="absolute right-4 top-6"
-        address={address}
-        displayUsername={displayUsername}
-        email={email}
-        onTransfer={() => setTransferOpen(true)}
-        onAddEmail={() => setAddEmailOpen(true)}
       />
 
       <div className="flex flex-col items-center gap-3">
