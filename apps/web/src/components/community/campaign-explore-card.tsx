@@ -155,7 +155,7 @@ export function CampaignExploreCard({
             ) : null}
           </div>
           {!isClosed ? (
-            <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+            <span className="shrink-0 rounded-full bg-black px-2.5 py-1 text-[11px] font-bold text-white">
               {stakeLabel}
             </span>
           ) : null}
