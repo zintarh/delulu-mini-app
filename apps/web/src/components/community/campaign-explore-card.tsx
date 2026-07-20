@@ -74,7 +74,7 @@ export function CampaignExploreCard({
     <Link
       href={href}
       className={cn(
-        "group relative block aspect-[4/3] overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:aspect-[4/5]",
+        "group relative block aspect-[1/1] overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:aspect-[4/5]",
         className,
       )}
     >
@@ -96,7 +96,7 @@ export function CampaignExploreCard({
       )}
 
       {/* Bottom scrim so the overlaid text stays legible without hiding the image */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/5" />
 
       {/* Joined badge, top-left */}
       {campaign.isJoined ? (
@@ -126,7 +126,7 @@ export function CampaignExploreCard({
           {campaign.title}
         </h3>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="mt-4 flex items-center justify-between gap-2 sm:mt-2">
           <div className="flex items-center gap-3 text-xs font-semibold text-white/85">
             <span
               className={cn(
@@ -169,7 +169,7 @@ export function CampaignExploreCardSkeleton({ className }: { className?: string 
   return (
     <div
       className={cn(
-        "relative aspect-[4/3] animate-pulse overflow-hidden rounded-2xl bg-muted sm:aspect-[4/5]",
+        "relative aspect-[1/1] animate-pulse overflow-hidden rounded-2xl bg-muted sm:aspect-[4/5]",
         className,
       )}
     >

@@ -126,7 +126,7 @@ function JoinButton({
       className={cn(
         "rounded-xl font-bold transition-all active:scale-[0.98]",
         canJoin
-          ? "bg-delulu-blue text-white shadow-[0_4px_14px_rgba(37,99,235,0.35)] hover:bg-delulu-blue/90"
+          ? "bg-black text-white shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:bg-black/90"
           : "bg-muted text-muted-foreground",
         size === "large" ? "px-7 py-4 text-base" : "px-6 py-3 text-base",
         className,
