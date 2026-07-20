@@ -1,6 +1,32 @@
 "use client";
 
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  LinearScale,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Tooltip,
+  type ChartData,
+  type ChartOptions,
+  type Plugin,
+} from "chart.js";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { cn } from "@/lib/utils";
+
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Filler,
+  Tooltip,
+);
 
 export type ChartDatum = { label: string; value: number; color?: string };
 
@@ -13,6 +39,10 @@ const DEFAULT_COLORS = [
   "#06b6d4",
   "#64748b",
 ];
+
+function colorFor(d: ChartDatum, i: number) {
+  return d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+}
 
 export function DashboardChartCard({
   title,
@@ -45,64 +75,70 @@ export function DashboardChartCard({
 
 export function DashboardBarChart({
   data,
-  height = 160,
+  height = 200,
 }: {
   data: ChartDatum[];
   height?: number;
 }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
-  const barWidth = Math.min(48, Math.floor(280 / Math.max(data.length, 1)));
+  const chartData: ChartData<"bar"> = {
+    labels: data.map((d) => d.label),
+    datasets: [
+      {
+        data: data.map((d) => d.value),
+        backgroundColor: data.map((d, i) => colorFor(d, i)),
+        borderRadius: 6,
+        maxBarThickness: 40,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"bar"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: { enabled: true },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10 }, color: "#6b7280" },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0, font: { size: 10 }, color: "#6b7280" },
+        grid: { color: "#f0f0eb" },
+      },
+    },
+  };
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${data.length * (barWidth + 12) + 8} ${height + 28}`}
-        className="w-full min-w-[280px]"
-        role="img"
-        aria-label="Bar chart"
-      >
-        {data.map((d, i) => {
-          const barH = (d.value / max) * (height - 8);
-          const x = i * (barWidth + 12) + 4;
-          const y = height - barH;
-          return (
-            <g key={d.label}>
-              <rect
-                x={x}
-                y={y}
-                width={barWidth}
-                height={barH}
-                rx={6}
-                fill={d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length]}
-                opacity={0.9}
-              />
-              {d.value > 0 ? (
-                <text
-                  x={x + barWidth / 2}
-                  y={y - 4}
-                  textAnchor="middle"
-                  className="fill-foreground text-[10px] font-semibold"
-                  style={{ fontSize: 10 }}
-                >
-                  {d.value}
-                </text>
-              ) : null}
-              <text
-                x={x + barWidth / 2}
-                y={height + 18}
-                textAnchor="middle"
-                className="fill-muted-foreground"
-                style={{ fontSize: 9 }}
-              >
-                {d.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+    <div style={{ height }}>
+      <Bar data={chartData} options={options} aria-label="Bar chart" role="img" />
     </div>
   );
 }
+
+const centerTextPlugin: Plugin<"doughnut"> = {
+  id: "centerText",
+  afterDraw(chart) {
+    const total = (chart.options.plugins as any)?.centerText?.total;
+    if (total == null) return;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const cx = (chartArea.left + chartArea.right) / 2;
+    const cy = (chartArea.top + chartArea.bottom) / 2;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#1a1a19";
+    ctx.font = "700 18px Inter, sans-serif";
+    ctx.fillText(String(total), cx, cy - 6);
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "400 9px Inter, sans-serif";
+    ctx.fillText("total", cx, cy + 12);
+    ctx.restore();
+  },
+};
 
 export function DashboardDonutChart({
   data,
@@ -112,10 +148,6 @@ export function DashboardDonutChart({
   size?: number;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size * 0.38;
-  const stroke = size * 0.14;
 
   if (total === 0) {
     return (
@@ -129,68 +161,43 @@ export function DashboardDonutChart({
     );
   }
 
-  let offset = 0;
-  const segments = data
-    .filter((d) => d.value > 0)
-    .map((d, i) => {
-      const pct = d.value / total;
-      const dash = pct * 2 * Math.PI * r;
-      const gap = 2 * Math.PI * r;
-      const segment = {
-        ...d,
-        dasharray: `${dash} ${gap}`,
-        dashoffset: -offset,
-        color: d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length],
-      };
-      offset += dash;
-      return segment;
-    });
+  const nonZero = data.filter((d) => d.value > 0);
+  const chartData: ChartData<"doughnut"> = {
+    labels: nonZero.map((d) => d.label),
+    datasets: [
+      {
+        data: nonZero.map((d) => d.value),
+        backgroundColor: nonZero.map((d, i) => colorFor(d, i)),
+        borderWidth: 0,
+        hoverOffset: 4,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"doughnut"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "72%",
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true },
+      // @ts-expect-error custom plugin option
+      centerText: { total },
+    },
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
-      <svg width={size} height={size} className="shrink-0" role="img" aria-label="Donut chart">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f0f0eb" strokeWidth={stroke} />
-        {segments.map((s) => (
-          <circle
-            key={s.label}
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={s.color}
-            strokeWidth={stroke}
-            strokeDasharray={s.dasharray}
-            strokeDashoffset={s.dashoffset}
-            transform={`rotate(-90 ${cx} ${cy})`}
-            strokeLinecap="round"
-          />
-        ))}
-        <text
-          x={cx}
-          y={cy - 4}
-          textAnchor="middle"
-          className="fill-foreground font-bold"
-          style={{ fontSize: 18 }}
-        >
-          {total}
-        </text>
-        <text
-          x={cx}
-          y={cy + 12}
-          textAnchor="middle"
-          className="fill-muted-foreground"
-          style={{ fontSize: 9 }}
-        >
-          total
-        </text>
-      </svg>
+      <div style={{ width: size, height: size }} className="shrink-0">
+        <Doughnut data={chartData} options={options} plugins={[centerTextPlugin]} />
+      </div>
       <ul className="flex flex-1 flex-col gap-2">
         {data.map((d, i) => (
           <li key={d.label} className="flex items-center justify-between gap-3 text-xs">
             <span className="flex items-center gap-2 text-muted-foreground">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length] }}
+                style={{ backgroundColor: colorFor(d, i) }}
               />
               {d.label}
             </span>
@@ -202,29 +209,43 @@ export function DashboardDonutChart({
   );
 }
 
-export function DashboardHorizontalBars({ data }: { data: ChartDatum[] }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
+export function DashboardHorizontalBars({ data, height }: { data: ChartDatum[]; height?: number }) {
+  const chartData: ChartData<"bar"> = {
+    labels: data.map((d) => d.label),
+    datasets: [
+      {
+        data: data.map((d) => d.value),
+        backgroundColor: data.map((d, i) => colorFor(d, i)),
+        borderRadius: 6,
+        maxBarThickness: 18,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"bar"> = {
+    indexAxis: "y" as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: { enabled: true },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { precision: 0, font: { size: 10 }, color: "#6b7280" },
+        grid: { color: "#f0f0eb" },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { size: 11 }, color: "#1a1a19" },
+      },
+    },
+  };
 
   return (
-    <ul className="space-y-3">
-      {data.map((d, i) => (
-        <li key={d.label}>
-          <div className="mb-1 flex items-center justify-between text-xs">
-            <span className="font-medium text-foreground">{d.label}</span>
-            <span className="tabular-nums text-muted-foreground">{d.value}</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-[#f0f0eb]">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${(d.value / max) * 100}%`,
-                backgroundColor: d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length],
-              }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div style={{ height: height ?? Math.max(120, data.length * 34) }}>
+      <Bar data={chartData} options={options} aria-label="Horizontal bar chart" role="img" />
+    </div>
   );
 }
 
@@ -238,26 +259,36 @@ export function DashboardSparkline({
   height?: number;
 }) {
   if (data.length < 2) return null;
-  const max = Math.max(...data, 1);
-  const width = 120;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - (v / max) * (height - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(" ");
+
+  const chartData: ChartData<"line"> = {
+    labels: data.map((_, i) => i),
+    datasets: [
+      {
+        data,
+        borderColor: color,
+        backgroundColor: `${color}22`,
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.35,
+        fill: true,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { tooltip: { enabled: false } },
+    scales: {
+      x: { display: false },
+      y: { display: false },
+    },
+    elements: { line: { borderCapStyle: "round" } },
+  };
 
   return (
-    <svg width={width} height={height} className="opacity-80" aria-hidden>
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        points={points}
-      />
-    </svg>
+    <div style={{ width: 120, height }} className="opacity-90">
+      <Line data={chartData} options={options} aria-hidden />
+    </div>
   );
 }

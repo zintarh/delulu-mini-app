@@ -126,7 +126,7 @@ importers:
         version: 3.2.0(graphql@16.12.0)
       '@privy-io/react-auth':
         specifier: ^3.14.1
-        version: 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76)
+        version: 3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.1)(zod@3.25.76)
       '@radix-ui/react-dialog':
         specifier: ^1.0.5
         version: 1.1.15(@types/react-dom@18.3.7)(@types/react@18.3.27)(react-dom@18.3.1)(react@18.3.1)
@@ -169,6 +169,9 @@ importers:
       canvas-confetti:
         specifier: ^1.9.3
         version: 1.9.4
+      chart.js:
+        specifier: ^4.5.1
+        version: 4.5.1
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -198,10 +201,13 @@ importers:
         version: 14.2.35(@babel/core@7.29.0)(react-dom@18.3.1)(react@18.3.1)
       openai:
         specifier: ^6.34.0
-        version: 6.34.0(ws@8.19.0)(zod@3.25.76)
+        version: 6.34.0(ws@8.20.1)(zod@3.25.76)
       react:
         specifier: ^18.2.0
         version: 18.3.1
+      react-chartjs-2:
+        specifier: ^5.3.1
+        version: 5.3.1(chart.js@4.5.1)(react@18.3.1)
       react-day-picker:
         specifier: ^9.11.3
         version: 9.11.3(react@18.3.1)
@@ -225,7 +231,7 @@ importers:
         version: 2.40.4(typescript@5.9.3)(zod@3.25.76)
       wagmi:
         specifier: ^2.14.12
-        version: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76)
+        version: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.20.1)(zod@3.25.76)
       web-push:
         specifier: ^3.6.7
         version: 3.6.7
@@ -1024,10 +1030,10 @@ packages:
       - zod
     dev: false
 
-  /@base-org/account@2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.19.0)(zod@3.25.76):
+  /@base-org/account@2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-A4Umpi8B9/pqR78D1Yoze4xHyQaujioVRqqO3d6xuDFw9VRtjg6tK3bPlwE0aW+nVH/ntllCpPa2PbI8Rnjcug==}
     dependencies:
-      '@coinbase/cdp-sdk': 1.38.6(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@coinbase/cdp-sdk': 1.38.6(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@noble/hashes': 1.4.0
       clsx: 1.2.1
       eventemitter3: 5.0.1
@@ -1069,12 +1075,12 @@ packages:
     resolution: {integrity: sha512-+u78X4ljCleLy1okQMtYLTXGLHdFQcwai822xu3oHRTviKEIVkQTMNhCmbYTCiP24thY6AbH9g+c6p2LNU0pnA==}
     dev: false
 
-  /@coinbase/cdp-sdk@1.38.6(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0):
+  /@coinbase/cdp-sdk@1.38.6(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-l9gGGZqhCryuD3nfqB4Y+i8kfBtsnPJoKB5jxx5lKgXhVJw7/BPhgscKkVhP81115Srq3bFegD1IBwUkJ0JFMw==}
     dependencies:
       '@solana-program/system': 0.8.1(@solana/kit@3.0.3)
       '@solana-program/token': 0.6.0(@solana/kit@3.0.3)
-      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@solana/web3.js': 1.98.4(typescript@5.9.3)
       abitype: 1.0.6(typescript@5.9.3)(zod@3.25.76)
       axios: 1.13.2(debug@4.4.3)
@@ -1948,7 +1954,7 @@ packages:
       lz-string: 1.5.0
       tsup: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       viem: 2.40.4(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.20.1)(zod@3.25.76)
     transitivePeerDependencies:
       - '@microsoft/api-extractor'
       - '@swc/core'
@@ -1969,7 +1975,7 @@ packages:
       lz-string: 1.5.0
       tsup: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       viem: 2.40.4(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.20.1)(zod@3.25.76)
     transitivePeerDependencies:
       - '@microsoft/api-extractor'
       - '@swc/core'
@@ -3184,6 +3190,10 @@ packages:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
     dev: true
+
+  /@kurkle/color@0.3.4:
+    resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
+    dev: false
 
   /@leichtgewicht/ip-codec@2.0.5:
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
@@ -4721,7 +4731,7 @@ packages:
     resolution: {integrity: sha512-kkxzZ5TFseqnZRDVhBR1Si9mTHc1jW+hLSbYviauK80enJOGsOGmxeeC/U0t0kLZGLpn0Jj5v5lNS2bmQ4as/Q==}
     dev: false
 
-  /@privy-io/react-auth@3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)(zod@3.25.76):
+  /@privy-io/react-auth@3.14.1(@solana/kit@3.0.3)(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-1lBzoG8kXgsEhUedhsLnV7iZajMQ6R4R3nw7rEgBGFaXx+37tVQlvBV6mV368T1SqRDSAeFpyp1Ujh7Obx/GQg==}
     peerDependencies:
       '@abstract-foundation/agw-client': ^1.0.0
@@ -4764,7 +4774,7 @@ packages:
       '@privy-io/urls': 0.0.3
       '@scure/base': 1.2.6
       '@simplewebauthn/browser': 13.3.0
-      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@tanstack/react-virtual': 3.14.4(react-dom@18.3.1)(react@18.3.1)
       '@wallet-standard/app': 1.1.0
       '@walletconnect/ethereum-provider': 2.22.4(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
@@ -4787,7 +4797,7 @@ packages:
       tinycolor2: 1.6.0
       uuid: 9.0.1
       viem: 2.54.0(typescript@5.9.3)(zod@3.25.76)
-      x402: 0.7.3(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)
+      x402: 0.7.3(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.1)
       zustand: 5.0.9(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -7011,7 +7021,7 @@ packages:
     peerDependencies:
       '@solana/kit': ^3.0
     dependencies:
-      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
     dev: false
 
   /@solana-program/token-2022@0.6.1(@solana/kit@5.5.1)(@solana/sysvars@5.5.1):
@@ -7029,7 +7039,7 @@ packages:
     peerDependencies:
       '@solana/kit': ^3.0
     dependencies:
-      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/kit': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
     dev: false
 
   /@solana-program/token@0.9.0(@solana/kit@5.5.1):
@@ -7483,7 +7493,7 @@ packages:
       - fastestsmallesttextencoderdecoder
     dev: false
 
-  /@solana/kit@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0):
+  /@solana/kit@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-CEEhCDmkvztd1zbgADsEQhmj9GyWOOGeW1hZD+gtwbBSF5YN1uofS/pex5MIh/VIqKRj+A2UnYWI1V+9+q/lyQ==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
@@ -7501,11 +7511,11 @@ packages:
       '@solana/rpc': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/rpc-parsed-types': 3.0.3(typescript@5.9.3)
       '@solana/rpc-spec-types': 3.0.3(typescript@5.9.3)
-      '@solana/rpc-subscriptions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/rpc-subscriptions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@solana/rpc-types': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/signers': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/sysvars': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      '@solana/transaction-confirmation': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/transaction-confirmation': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@solana/transaction-messages': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/transactions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       typescript: 5.9.3
@@ -7845,7 +7855,7 @@ packages:
       - fastestsmallesttextencoderdecoder
     dev: false
 
-  /@solana/rpc-subscriptions-channel-websocket@3.0.3(typescript@5.9.3)(ws@8.19.0):
+  /@solana/rpc-subscriptions-channel-websocket@3.0.3(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-zUzUlb8Cwnw+SHlsLrSqyBRtOJKGc+FvSNJo/vWAkLShoV0wUDMPv7VvhTngJx3B/3ANfrOZ4i08i9QfYPAvpQ==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
@@ -7857,7 +7867,7 @@ packages:
       '@solana/rpc-subscriptions-spec': 3.0.3(typescript@5.9.3)
       '@solana/subscribable': 3.0.3(typescript@5.9.3)
       typescript: 5.9.3
-      ws: 8.19.0
+      ws: 8.20.1
     dev: false
 
   /@solana/rpc-subscriptions-channel-websocket@5.5.1(typescript@5.9.3):
@@ -7909,7 +7919,7 @@ packages:
       typescript: 5.9.3
     dev: false
 
-  /@solana/rpc-subscriptions@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0):
+  /@solana/rpc-subscriptions@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-LRvz6NaqvtsYFd32KwZ+rwYQ9XCs+DWjV8BvBLsJpt9/NWSuHf/7Sy/vvP6qtKxut692H/TMvHnC4iulg0WmiQ==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
@@ -7921,7 +7931,7 @@ packages:
       '@solana/promises': 3.0.3(typescript@5.9.3)
       '@solana/rpc-spec-types': 3.0.3(typescript@5.9.3)
       '@solana/rpc-subscriptions-api': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      '@solana/rpc-subscriptions-channel-websocket': 3.0.3(typescript@5.9.3)(ws@8.19.0)
+      '@solana/rpc-subscriptions-channel-websocket': 3.0.3(typescript@5.9.3)(ws@8.20.1)
       '@solana/rpc-subscriptions-spec': 3.0.3(typescript@5.9.3)
       '@solana/rpc-transformers': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/rpc-types': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
@@ -8201,7 +8211,7 @@ packages:
       - fastestsmallesttextencoderdecoder
     dev: false
 
-  /@solana/transaction-confirmation@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0):
+  /@solana/transaction-confirmation@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-dXx0OLtR95LMuARgi2dDQlL1QYmk56DOou5q9wKymmeV3JTvfDExeWXnOgjRBBq/dEfj4ugN1aZuTaS18UirFw==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
@@ -8213,7 +8223,7 @@ packages:
       '@solana/keys': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/promises': 3.0.3(typescript@5.9.3)
       '@solana/rpc': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      '@solana/rpc-subscriptions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.19.0)
+      '@solana/rpc-subscriptions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.1)
       '@solana/rpc-types': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/transaction-messages': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/transactions': 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
@@ -9501,7 +9511,7 @@ packages:
       satori: 0.16.0
     dev: false
 
-  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.40.4)(wagmi@2.19.5)(ws@8.19.0)(zod@3.25.76):
+  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.40.4)(wagmi@2.19.5)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-2NfkbqhNWdjfibb4abRMrn7u6rPjEGolMfApXss6HCDVt9AW2oVC6k8Q5FouzpJezElxLJSagWz9FW1zaRlanA==}
     peerDependencies:
       '@wagmi/core': 2.22.1
@@ -9511,7 +9521,7 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@base-org/account': 2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.19.0)(zod@3.25.76)
+      '@base-org/account': 2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.20.1)(zod@3.25.76)
       '@coinbase/wallet-sdk': 4.3.6(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76)
       '@gemini-wallet/core': 0.3.2(viem@2.40.4)
       '@metamask/sdk': 0.33.1
@@ -9563,7 +9573,7 @@ packages:
       - zod
     dev: false
 
-  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.54.0)(wagmi@2.19.5)(ws@8.19.0)(zod@3.25.76):
+  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.54.0)(wagmi@2.19.5)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-2NfkbqhNWdjfibb4abRMrn7u6rPjEGolMfApXss6HCDVt9AW2oVC6k8Q5FouzpJezElxLJSagWz9FW1zaRlanA==}
     peerDependencies:
       '@wagmi/core': 2.22.1
@@ -9573,7 +9583,7 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@base-org/account': 2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.19.0)(zod@3.25.76)
+      '@base-org/account': 2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(ws@8.20.1)(zod@3.25.76)
       '@coinbase/wallet-sdk': 4.3.6(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76)
       '@gemini-wallet/core': 0.3.2(viem@2.54.0)
       '@metamask/sdk': 0.33.1
@@ -12479,6 +12489,13 @@ packages:
 
   /charenc@0.0.2:
     resolution: {integrity: sha512-yrLQ/yVUFXkzg7EDQsPieE/53+0RlaWTs+wBrvW36cyilJ2SaDWfl4Yj7MtLTXleV9uEKefbAGUPv2/iWSooRA==}
+
+  /chart.js@4.5.1:
+    resolution: {integrity: sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==}
+    engines: {pnpm: '>=8'}
+    dependencies:
+      '@kurkle/color': 0.3.4
+    dev: false
 
   /check-error@1.0.3:
     resolution: {integrity: sha512-iKEoDYaRmd1mxM90a2OEfWhjsjPpYPuQ+lMYsoxB126+t8fw7ySEO48nmDg5COTjxDI65/Y2OWpeEHk3ZOe8zg==}
@@ -17479,7 +17496,7 @@ packages:
       wsl-utils: 0.1.0
     dev: false
 
-  /openai@6.34.0(ws@8.19.0)(zod@3.25.76):
+  /openai@6.34.0(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-yEr2jdGf4tVFYG6ohmr3pF6VJuveP0EA/sS8TBx+4Eq5NT10alu5zg2dmxMXMgqpihRDQlFGpRt2XwsGj+Fyxw==}
     hasBin: true
     peerDependencies:
@@ -17491,7 +17508,7 @@ packages:
       zod:
         optional: true
     dependencies:
-      ws: 8.19.0
+      ws: 8.20.1
       zod: 3.25.76
     dev: false
 
@@ -18212,7 +18229,7 @@ packages:
       react: 18.3.1
       typescript: 5.9.3
       viem: 2.40.4(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.20.1)(zod@3.25.76)
       zod: 4.1.13
       zustand: 5.0.9(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -18262,7 +18279,7 @@ packages:
       react: 18.3.1
       typescript: 5.9.3
       viem: 2.54.0(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.19.0)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.20.1)(zod@3.25.76)
       zod: 4.1.13
       zustand: 5.0.9(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -18622,6 +18639,16 @@ packages:
       react-dom: 18.3.1(react@18.3.1)
       react-stately: 3.48.0(react@18.3.1)
       use-sync-external-store: 1.6.0(react@18.3.1)
+    dev: false
+
+  /react-chartjs-2@5.3.1(chart.js@4.5.1)(react@18.3.1):
+    resolution: {integrity: sha512-h5IPXKg9EXpjoBzUfyWJvllMjG2mQ4EiuHQFhms/AjUm0XSZHhyRy2xVmLXHKrtcdrPO4mnGqRtYoD0vp95A0A==}
+    peerDependencies:
+      chart.js: ^4.1.1
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      chart.js: 4.5.1
+      react: 18.3.1
     dev: false
 
   /react-day-picker@9.11.3(react@18.3.1):
@@ -21407,7 +21434,7 @@ packages:
     hasBin: true
     dev: true
 
-  /wagmi@2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.19.0)(zod@3.25.76):
+  /wagmi@2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.40.4)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-RQUfKMv6U+EcSNNGiPbdkDtJwtuFxZWLmvDiQmjjBgkuPulUwDJsKhi7gjynzJdsx2yDqhHCXkKsbbfbIsHfcQ==}
     peerDependencies:
       '@tanstack/react-query': '>=5.0.0'
@@ -21419,7 +21446,7 @@ packages:
         optional: true
     dependencies:
       '@tanstack/react-query': 5.90.16(react@18.3.1)
-      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.40.4)(wagmi@2.19.5)(ws@8.19.0)(zod@3.25.76)
+      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.40.4)(wagmi@2.19.5)(ws@8.20.1)(zod@3.25.76)
       '@wagmi/core': 2.22.1(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.40.4)
       react: 18.3.1
       typescript: 5.9.3
@@ -21462,7 +21489,7 @@ packages:
       - zod
     dev: false
 
-  /wagmi@2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.19.0)(zod@3.25.76):
+  /wagmi@2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.20.1)(zod@3.25.76):
     resolution: {integrity: sha512-RQUfKMv6U+EcSNNGiPbdkDtJwtuFxZWLmvDiQmjjBgkuPulUwDJsKhi7gjynzJdsx2yDqhHCXkKsbbfbIsHfcQ==}
     peerDependencies:
       '@tanstack/react-query': '>=5.0.0'
@@ -21474,7 +21501,7 @@ packages:
         optional: true
     dependencies:
       '@tanstack/react-query': 5.90.16(react@18.3.1)
-      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.54.0)(wagmi@2.19.5)(ws@8.19.0)(zod@3.25.76)
+      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.54.0)(wagmi@2.19.5)(ws@8.20.1)(zod@3.25.76)
       '@wagmi/core': 2.22.1(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.54.0)
       react: 18.3.1
       typescript: 5.9.3
@@ -21904,7 +21931,7 @@ packages:
       is-wsl: 3.1.1
     dev: false
 
-  /x402@0.7.3(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0):
+  /x402@0.7.3(@solana/sysvars@5.5.1)(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.1):
     resolution: {integrity: sha512-8CIZsdMTOn52PjMH/ErVke9ebeZ7ErwiZ5FL3tN3Wny7Ynxs3LkuB/0q7IoccRLdVXA7f2lueYBJ2iDrElhXnA==}
     dependencies:
       '@scure/base': 1.2.6
@@ -21918,7 +21945,7 @@ packages:
       '@wallet-standard/base': 1.1.0
       '@wallet-standard/features': 1.1.0
       viem: 2.54.0(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.19.0)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/react-query@5.90.16)(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.54.0)(ws@8.20.1)(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
       - '@azure/app-configuration'

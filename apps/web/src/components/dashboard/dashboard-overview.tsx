@@ -2,12 +2,10 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import {
   ShieldCheck,
   Megaphone,
   Users,
-  Clock,
   Building2,
   Target,
   TrendingUp,
@@ -15,7 +13,6 @@ import {
   AlertTriangle,
   UserPlus,
   Wallet,
-  ChevronRight,
 } from "lucide-react";
 import { useAdminDelulus, usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import { useDashboardOverview } from "@/hooks/dashboard/use-dashboard-overview";
@@ -196,17 +193,6 @@ export function DashboardOverview() {
       }));
   }, [platform]);
 
-  const needsResolution = useMemo(() => {
-    const now = new Date();
-    return delulus
-      .filter(
-        (d) => d.stakingDeadline && d.stakingDeadline <= now && !d.isResolved && !d.isCancelled,
-      )
-      .slice(0, 5);
-  }, [delulus]);
-
-  const recentPending = pendingMilestones.slice(0, 5);
-
   const isLoading = loadingDelulus || loadingMilestones;
 
   return (
@@ -374,104 +360,6 @@ export function DashboardOverview() {
               </>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#e8e8e3] bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#f0f0eb] px-4 py-3">
-            <h3 className="text-sm font-bold text-foreground">Pending milestones</h3>
-            <Link
-              href="/dashboard/milestones"
-              className="text-xs font-semibold text-delulu-blue hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          {loadingMilestones ? (
-            <div className="p-4">
-              <div className="h-20 animate-pulse rounded-lg bg-muted" />
-            </div>
-          ) : recentPending.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-muted-foreground">
-              No milestones waiting for review
-            </p>
-          ) : (
-            <ul className="divide-y divide-[#f0f0eb]">
-              {recentPending.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    href="/dashboard/milestones"
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#f9f8f4]"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                      <ShieldCheck className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {m.delulu.creator.username ?? `Goal #${m.delulu.onChainId}`}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Milestone {m.milestoneId}
-                        {m.submittedAt
-                          ? ` · ${formatDistanceToNow(m.submittedAt, { addSuffix: true })}`
-                          : ""}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-[#e8e8e3] bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#f0f0eb] px-4 py-3">
-            <h3 className="text-sm font-bold text-foreground">Needs resolution</h3>
-            <Link
-              href="/dashboard/markets"
-              className="text-xs font-semibold text-delulu-blue hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          {loadingDelulus ? (
-            <div className="p-4">
-              <div className="h-20 animate-pulse rounded-lg bg-muted" />
-            </div>
-          ) : needsResolution.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-muted-foreground">
-              All caught up — no unresolved goals
-            </p>
-          ) : (
-            <ul className="divide-y divide-[#f0f0eb]">
-              {needsResolution.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    href="/dashboard/markets"
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#f9f8f4]"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
-                      <Clock className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {d.content?.slice(0, 80) || d.username || `Goal #${d.onChainId ?? d.id}`}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {d.username ?? d.creator.slice(0, 10)}…
-                        {d.stakingDeadline
-                          ? ` · ended ${formatDistanceToNow(d.stakingDeadline, { addSuffix: true })}`
-                          : ""}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
 
