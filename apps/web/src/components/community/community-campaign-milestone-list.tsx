@@ -127,7 +127,7 @@ export function CommunityCampaignMilestoneList({
               <div className="flex items-start justify-between gap-2.5">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <p className="text-base font-bold leading-snug text-foreground">{m.label}</p>
+                    <p className="text-base font-bold leading-snug text-foreground lg:text-sm">{m.label}</p>
                     <span
                       className={cn(
                         "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide",
