@@ -286,7 +286,7 @@ export default function SignInPage() {
 
             <button
               type="submit"
-              disabled={isAnyPending || (!isInitialized && !privyReady) || !isValidEmail(email)}
+              disabled={isAnyPending || !isInitialized || !privyReady || !isValidEmail(email)}
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#1a1a19] bg-delulu-yellow py-3.5 text-[15px] font-extrabold text-[#1a1a19]",
                 "shadow-[3px_3px_0px_0px_#1a1a19] transition-all hover:translate-x-[1px] hover:translate-y-[1px]",

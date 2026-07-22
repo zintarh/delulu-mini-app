@@ -126,10 +126,16 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
     const interval = setInterval(() => {
       checkClaimStatus().catch(() => {});
+      // Retry whitelist status too — a transient RPC/network failure during
+      // the one-time initial check would otherwise mislabel an already
+      // whitelisted wallet as unverified for the rest of the session.
+      if (!isWhitelisted) {
+        checkWhitelisted().then(setIsWhitelisted).catch(() => {});
+      }
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [isLoading, address, checkClaimStatus]);
+  }, [isLoading, address, checkClaimStatus, checkWhitelisted, isWhitelisted]);
 
   useEffect(() => {
     if (!isVerifying) {
