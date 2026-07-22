@@ -28,7 +28,6 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
       <div className="flex items-center justify-between gap-3">
         <h1
           className="min-w-0 truncate text-2xl font-black leading-tight tracking-tight text-foreground sm:text-3xl"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
         >
           Hi, {name}
         </h1>

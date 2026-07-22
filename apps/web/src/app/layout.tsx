@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Manrope, Gloria_Hallelujah } from "next/font/google";
+import { Manrope, Gloria_Hallelujah } from "next/font/google";
 import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -76,7 +70,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.className} ${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
+        className={`${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >
         <ProvidersShell>{children}</ProvidersShell>
       </body>

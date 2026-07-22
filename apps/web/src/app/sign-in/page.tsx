@@ -1,29 +1,26 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Check, Copy, Loader2, Mail, Wallet, X } from "lucide-react";
+import { Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { TG_GROUP_URL } from "@/components/get-gas-modal";
+import { usePrivy } from "@privy-io/react-auth";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
-import { establishWalletSession } from "@/lib/auth/establish-wallet-session-client";
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { authenticated } = useAuth();
-  const { isInitialized, provider: web3authProvider } = useWeb3Auth();
+  const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
   const { login: privyLogin, ready: privyReady } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
 
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
   const [referralCode, setReferralCode] = useState<string | null>(communityCode);
@@ -42,33 +39,10 @@ export default function SignInPage() {
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] = useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
-  const [copiedAddress, setCopiedAddress] = useState(false);
 
   const [skippedUbiClaim, setSkippedUbiClaim] = useState(false);
-  const [showSkipGasToast, setShowSkipGasToast] = useState(false);
-  const { routeState, address, refetchBalance, isCheckingAccount, refreshGoodDollarStatus } =
+  const { routeState, address, isCheckingAccount, refreshGoodDollarStatus } =
     usePostAuthRoute({ skipUbiGate: skippedUbiClaim });
-
-  // Faucet state — auto-triggered when routeState === "needs_gas"
-  type FaucetState = "idle" | "claiming" | "claimed" | "rejected" | "error" | "tx_timeout";
-  const [faucetState, setFaucetState] = useState<FaucetState>("idle");
-  const [faucetReason, setFaucetReason] = useState<string | null>(null);
-  const faucetCalledRef = useRef(false);
-
-  // Dropped-tx watchdog: if we've been in "claimed" for 3 minutes with no
-  // CELO arriving, the transaction was likely dropped on-chain. Show the
-  // blocking card so the user can reach out via Telegram instead of waiting forever.
-  useEffect(() => {
-    if (faucetState !== "claimed") return;
-    const t = setTimeout(() => setFaucetState("tx_timeout"), 3 * 60 * 1000);
-    return () => clearTimeout(t);
-  }, [faucetState]);
-
-  useEffect(() => {
-    if (!showSkipGasToast) return;
-    const t = setTimeout(() => setShowSkipGasToast(false), 5000);
-    return () => clearTimeout(t);
-  }, [showSkipGasToast]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -101,85 +75,6 @@ export default function SignInPage() {
     })();
     return () => { cancelled = true; };
   }, [referralCode]);
-
-  // Auto-claim faucet when needs_gas — fires once per page load.
-  // Web3Auth: uses web3authProvider directly.
-  // Privy: finds the embedded wallet from useWallets() and gets its EIP-1193 provider.
-  // In both cases, establishWalletSession() deduplicates with WalletSessionBootstrap
-  // so no extra signing prompt is shown when the session is already in-flight.
-
-
-  
-  useEffect(() => {
-    if (!authenticated || routeState !== "needs_gas" || faucetCalledRef.current) return;
-    if (!address) return;
-
-    const privyWallet = privyWallets[0];
-
-    // Wait until whichever provider is active has loaded
-    if (!web3authProvider && !privyWallet) return;
-
-    faucetCalledRef.current = true;
-    setFaucetState("claiming");
-
-    const run = async () => {
-      if (web3authProvider) {
-        const ok = await establishWalletSession(address, web3authProvider as {
-          request: (args: { method: string; params: unknown[] }) => Promise<string>;
-        });
-        if (!ok) {
-          console.error("[sign-in] establishWalletSession failed (web3auth)");
-          setFaucetState("error");
-          return;
-        }
-      } else if (privyWallet) {
-        const ethProvider = await privyWallet.getEthereumProvider();
-        const ok = await establishWalletSession(privyWallet.address as `0x${string}`, {
-          request: (args: { method: string; params: unknown[] }) =>
-            ethProvider.request(args) as Promise<string>,
-        });
-        if (!ok) {
-          console.error("[sign-in] establishWalletSession failed (privy)");
-          setFaucetState("error");
-          return;
-        }
-      }
-
-      const r = await fetch("/api/faucet/claim", { method: "POST" });
-
-      if (!r.ok) {
-        const body = await r.json().catch(() => null);
-        console.error("[sign-in] /api/faucet/claim failed:", r.status, body);
-        setFaucetState("error");
-        return;
-      }
-      const data = (await r.json()) as { success: boolean; reason?: string };
-      setFaucetState(data.success ? "claimed" : "rejected");
-      if (!data.success) setFaucetReason(data.reason ?? null);
-    };
-
-    run().catch((err) => {
-      console.error("[sign-in] faucet auto-claim effect threw:", err);
-      setFaucetState("error");
-    });
-  }, [authenticated, routeState, address, web3authProvider, privyWallets]);
-
-
-
-
-
-
-
-  // Gas polling — detects when CELO lands and advances to /welcome
-  useEffect(() => {
-    if (routeState !== "needs_gas") return;
-    const intervalMs = faucetState === "claimed" ? 3000 : 10000;
-    const id = setInterval(() => void refetchBalance(), intervalMs);
-    return () => clearInterval(id);
-  }, [routeState, refetchBalance, faucetState]);
-
-
-
 
   const triggerEmailAuth = async (targetEmail: string) => {
     if (!isInitialized) {
@@ -267,7 +162,7 @@ export default function SignInPage() {
           <div className="flex flex-col items-center gap-3 text-center">
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
             <div>
-              <h2 className="text-xl font-black tracking-tight text-foreground" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+              <h2 className="text-xl font-black tracking-tight text-foreground">
                 Claim your first Good Dollars
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
@@ -286,143 +181,10 @@ export default function SignInPage() {
 
           <button
             type="button"
-            onClick={() => {
-              setShowSkipGasToast(true);
-              setSkippedUbiClaim(true);
-            }}
+            onClick={() => setSkippedUbiClaim(true)}
             className="mx-auto block py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             Skip for now
-          </button>
-        </div>
-
-        {showSkipGasToast ? (
-          <div
-            role="status"
-            className={cn(
-              "fixed bottom-6 left-1/2 z-[120] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
-              "animate-in fade-in slide-in-from-bottom-2 duration-300",
-            )}
-          >
-            <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/12 px-4 py-3 shadow-lg backdrop-blur-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <p className="flex-1 text-sm font-medium text-foreground">
-                By skipping, you&apos;ll need to get gas (CELO) yourself to sponsor your on-chain transactions.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowSkipGasToast(false)}
-                className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-black/5"
-                aria-label="Dismiss"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (authenticated && routeState === "needs_gas") {
-    const showSpinner =
-      faucetState === "idle" || faucetState === "claiming" || faucetState === "claimed";
-
-    if (showSpinner) {
-      const label =
-        faucetState === "claimed"
-          ? "Gas sent! Waiting for confirmation…"
-          : "Getting your gas… this takes a few seconds";
-      return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
-          <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {label}
-          </div>
-        </div>
-      );
-    }
-
-    // Blocking card — never redirect to /welcome without confirmed gas.
-    const isAlreadyReceived =
-      faucetReason === "already_received_wallet" || faucetReason === "already_received_email";
-    const isIpLimit = faucetReason === "ip_rate_exceeded";
-    const isFaucetEmpty = faucetReason === "insufficient_faucet_funds";
-    const isTxTimeout = faucetState === "tx_timeout";
-    const isServerError = faucetState === "error";
-
-    const title = isAlreadyReceived
-      ? "Gas already received"
-      : isIpLimit
-        ? "Daily limit reached"
-        : isFaucetEmpty
-          ? "Faucet being refilled"
-          : isTxTimeout
-            ? "Transaction taking too long"
-            : "Something went wrong";
-
-    const description = isAlreadyReceived
-      ? "This address or email has already been funded. Join our Telegram if you need more CELO."
-      : isIpLimit
-        ? "We limit faucet requests per network to prevent abuse. Try again tomorrow or join Telegram."
-        : isFaucetEmpty
-          ? "Our gas faucet is temporarily empty. Join our Telegram group and we'll send you CELO manually so you can complete setup."
-          : isTxTimeout
-            ? "Your gas transaction was submitted but hasn't confirmed after 3 minutes — it may have been dropped. Copy your address and message us on Telegram so we can send it manually."
-            : "We hit an error while getting your gas. You can try again or reach out on Telegram for help.";
-
-    const shortAddress = address
-      ? `${address.slice(0, 6)}…${address.slice(-4)}`
-      : null;
-
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md space-y-5 rounded-3xl border border-border/80 bg-card p-6 shadow-lg">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
-          </div>
-
-          {shortAddress && (
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(address);
-                setCopiedAddress(true);
-                setTimeout(() => setCopiedAddress(false), 2000);
-              }}
-              className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm transition-colors hover:bg-muted/70"
-            >
-              <span className="font-mono text-xs text-muted-foreground">{shortAddress}</span>
-              <span className={cn("flex items-center gap-1.5 text-xs font-semibold", copiedAddress ? "text-emerald-600" : "text-foreground")}>
-                {copiedAddress ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copiedAddress ? "Copied!" : "Copy address"}
-              </span>
-            </button>
-          )}
-
-          <a href={TG_GROUP_URL} target="_blank" rel="noreferrer"
-            className="flex w-full items-center justify-center rounded-2xl border border-foreground/90 bg-foreground py-3 text-sm font-semibold text-background shadow-sm transition-opacity hover:opacity-90"
-          >
-            Join Telegram group
-          </a>
-          {isServerError && (
-            <button
-              type="button"
-              onClick={() => {
-                faucetCalledRef.current = false;
-                setFaucetState("idle");
-              }}
-              className="w-full rounded-2xl border border-border py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
-            >
-              Try again
-            </button>
-          )}
-          <button type="button" onClick={() => void refetchBalance()}
-            className="w-full py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            I have gas — check again
           </button>
         </div>
       </div>
@@ -442,7 +204,7 @@ export default function SignInPage() {
           <span className="text-lg font-black text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>Delulu</span>
         </div>
         <div className="relative z-10 max-w-md">
-          <h1 className="text-4xl font-black leading-tight text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+          <h1 className="text-4xl font-black leading-tight text-white">
             Make your wildest dreams real.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-white/70">
@@ -458,7 +220,7 @@ export default function SignInPage() {
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
           </div>
 
-          <h2 className="text-2xl font-black tracking-tight text-foreground" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+          <h2 className="text-2xl font-black tracking-tight text-foreground">
             Sign in or create account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -564,6 +326,24 @@ export default function SignInPage() {
             </button>
 
             {routeError ? <p className="text-center text-sm text-destructive">{routeError}</p> : null}
+
+            {searchParams.get("privyTest") === "1" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRouteError(null);
+                  try {
+                    privyLogin();
+                  } catch {
+                    setRouteError("Couldn't open Privy sign in. Try again.");
+                  }
+                }}
+                disabled={isAnyPending || !privyReady}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-amber-500/60 bg-amber-500/10 py-3 text-[13px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Test: Sign in with Privy
+              </button>
+            ) : null}
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">

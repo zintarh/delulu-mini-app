@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useBalance, useReadContract } from "wagmi";
-import { parseEther } from "viem";
+import { useReadContract } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
-import { CELO_MAINNET_ID, DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import {
@@ -17,16 +16,12 @@ import {
   safeRedirectPath,
 } from "@/lib/auth-redirect";
 
-/** Minimum CELO balance required before onboarding (profile tx). */
-const MIN_GAS_WEI = parseEther("0.01");
-
 export type PostAuthRouteState =
   | "loading"
   | "idle"
   | "redirecting_home"
   | "redirecting_welcome"
-  | "needs_ubi_claim"
-  | "needs_gas";
+  | "needs_ubi_claim";
 
 export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
   const skipUbiGate = options?.skipUbiGate ?? false;
@@ -52,19 +47,7 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
 
-  const {
-    data: celoBalance,
-    isLoading: isBalanceLoading,
-    isFetching: isBalanceFetching,
-    refetch: refetchBalance,
-  } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
-  });
-
   const hasProfile = typeof username === "string" && username.trim().length > 0;
-  const hasGas = (celoBalance?.value ?? 0n) >= MIN_GAS_WEI;
 
   const {
     isWhitelisted,
@@ -89,7 +72,7 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || isBalanceLoading || isBalanceFetching || !isGoodDollarInitialized) {
+    if (isFetchingUsername || !isGoodDollarInitialized) {
       setRouteState("loading");
       return;
     }
@@ -117,11 +100,6 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
       return;
     }
 
-    if (!hasGas) {
-      setRouteState("needs_gas");
-      return;
-    }
-
     if (hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
     setRouteState("redirecting_welcome");
@@ -131,13 +109,10 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
     authenticated,
     address,
     isFetchingUsername,
-    isBalanceLoading,
-    isBalanceFetching,
     isGoodDollarInitialized,
     isWhitelisted,
     skipUbiGate,
     hasProfile,
-    hasGas,
     router,
     redirectTarget,
     address,
@@ -146,12 +121,9 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
   return {
     routeState,
     hasProfile,
-    hasGas,
     isWhitelisted,
     refreshGoodDollarStatus,
     address: address ?? "",
-    refetchBalance,
-    isCheckingAccount:
-      isFetchingUsername || isBalanceLoading || isBalanceFetching || !isGoodDollarInitialized,
+    isCheckingAccount: isFetchingUsername || !isGoodDollarInitialized,
   };
 }

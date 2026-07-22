@@ -187,7 +187,6 @@ export default function JoinedCampaignsPage() {
       <div className="px-4 pt-6 pb-4">
         <h1
           className="text-2xl font-black text-foreground"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
         >
           My campaigns
         </h1>

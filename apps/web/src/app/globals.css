@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Link Sans Product (self-hosted) — used for all body text and titles */
+@font-face {
+  font-family: "Link Sans Product";
+  src: url("/fonts/Product Sans Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Link Sans Product";
+  src: url("/fonts/Product Sans Bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Link Sans Product";
+  src: url("/fonts/Product Sans Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Link Sans Product";
+  src: url("/fonts/Product Sans Bold Italic.ttf") format("truetype");
+  font-weight: 700 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* Reduce native rubber-band overscroll in PWA */
 html,
 body {
@@ -93,6 +123,55 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Global typography — unlayered so it wins over next/font's injected classes */
+body {
+  font-family:
+    "Link Sans v2.2 Variable",
+    "Link Sans Product",
+    -apple-system,
+    "system-ui",
+    "Segoe UI",
+    Roboto,
+    Ubuntu,
+    "Helvetica Neue",
+    Oxygen,
+    Cantarell,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 24px;
+  color: rgb(0, 0, 0);
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family:
+    "Link Sans Product",
+    -apple-system,
+    "system-ui",
+    "Segoe UI",
+    Roboto,
+    Ubuntu,
+    "Helvetica Neue",
+    Oxygen,
+    Cantarell,
+    sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 24px;
+  color: rgba(4, 4, 3, 0.898);
 }
 
 /* Custom color utilities for Tailwind */

@@ -75,11 +75,12 @@ function DiscoverCampaignsSection({
 
   if (isLoading) {
     return (
-      <div className="px-4 py-2 space-y-3">
-        <div className="h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        {[1, 2].map((i) => (
-          <CampaignExploreCardSkeleton key={i} />
-        ))}
+      <div className="px-4 py-4">
+        <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <CampaignExploreCardSkeleton />
+          <CampaignExploreCardSkeleton className="hidden lg:flex" />
+        </div>
       </div>
     );
   }
@@ -140,11 +141,12 @@ function GuestDiscoverCampaignsSection() {
 
   if (isLoading) {
     return (
-      <div className="px-4 py-2 space-y-3">
-        <div className="h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        {[1, 2].map((i) => (
-          <CampaignExploreCardSkeleton key={i} />
-        ))}
+      <div className="px-4 py-2">
+        <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <CampaignExploreCardSkeleton />
+          <CampaignExploreCardSkeleton className="hidden md:flex" />
+        </div>
       </div>
     );
   }

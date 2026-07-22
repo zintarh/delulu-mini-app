@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronLeft,
+  Coins,
   Flame,
   Loader2,
   Share2,
@@ -314,7 +315,7 @@ export function CommunityCampaignDetail({
 
   return (
     <>
-      <main className="mx-auto max-w-2xl pb-28">
+      <main className="mx-auto max-w-2xl pb-28 lg:max-w-4xl">
 
         {/* ── Back nav + Hero ── */}
         <div className="relative px-5 pt-2.5">
@@ -367,7 +368,6 @@ export function CommunityCampaignDetail({
               </div>
               <h1
                 className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 {campaign.title}
               </h1>
@@ -390,28 +390,6 @@ export function CommunityCampaignDetail({
             </div>
           </div>
         </div>
-
-        {/* Join community nudge — shown when authenticated but not yet a community member */}
-        {authenticated && !isCommunityMember && onJoinCommunity ? (
-          <div className="mx-5 mt-4 flex items-center justify-between gap-4 rounded-xl border border-delulu-blue/25 bg-delulu-blue-light/30 px-5 py-3.5">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">
-                Join the {communityName} community
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Get access to leaderboards, updates & more
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={joiningCommunity}
-              onClick={onJoinCommunity}
-              className="shrink-0 rounded-lg bg-delulu-blue px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {joiningCommunity ? "Joining…" : "Join"}
-            </button>
-          </div>
-        ) : null}
 
         {/* ════════════════════════════════════════════
             JOINED PATH — action-first layout
@@ -504,44 +482,45 @@ export function CommunityCampaignDetail({
 
             {/* ── MILESTONES — front and centre ── */}
             <section className="mt-6 px-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h2
-                  className="text-lg font-black text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                >
-                  Milestones
-                </h2>
-                {milestoneCount > 0 ? (
-                  <span className="text-sm font-semibold text-delulu-blue">
-                    {(completedCount * BASE_PROOF_POINTS).toLocaleString()} / {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
-                  </span>
+              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2
+                    className="text-lg font-black text-foreground"
+                  >
+                    Milestones
+                  </h2>
+                  {milestoneCount > 0 ? (
+                    <span className="text-sm font-semibold text-delulu-blue">
+                      {(completedCount * BASE_PROOF_POINTS).toLocaleString()} / {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                    </span>
+                  ) : null}
+                </div>
+                <CommunityCampaignMilestoneList
+                  milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
+                  isJoined={isJoined}
+                  proofBusy={proofBusy}
+                  activeMilestoneId={activeMilestoneId}
+                  onSubmitMilestone={onOpenProof}
+                />
+                {milestones.length > MILESTONES_PREVIEW ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMilestones((v) => !v)}
+                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-delulu-blue/20 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    {showAllMilestones
+                      ? "Show less"
+                      : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
+                  </button>
                 ) : null}
               </div>
-              <CommunityCampaignMilestoneList
-                milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
-                isJoined={isJoined}
-                proofBusy={proofBusy}
-                activeMilestoneId={activeMilestoneId}
-                onSubmitMilestone={onOpenProof}
-              />
-              {milestones.length > MILESTONES_PREVIEW ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAllMilestones((v) => !v)}
-                  className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  {showAllMilestones
-                    ? "Show less"
-                    : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
-                </button>
-              ) : null}
             </section>
 
             {/* Rewards + proof info — always visible, single card */}
             <section className="mt-5 px-5">
-              <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
+              <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-6 space-y-5">
                 {campaign.description ? (
-                  <p className="text-base leading-relaxed text-muted-foreground border-b border-border/40 pb-4">
+                  <p className="text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4">
                     {campaign.description}
                   </p>
                 ) : null}
@@ -573,19 +552,11 @@ export function CommunityCampaignDetail({
                     </span>
                     <span className="font-bold text-[#9a7b0a]">Achieve your goal</span>
                   </div>
-                  {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                    <div className="flex items-center justify-between border-t border-border/40 pt-2.5 text-base">
-                      <span className="text-muted-foreground">Miss your milestone</span>
-                      <span className="text-sm font-semibold text-orange-600">
-                        forfeit {campaign.forfeit_pct}% of your stake
-                      </span>
-                    </div>
-                  ) : null}
                 </div>
 
                 {/* Upload proof — merged into same card */}
-                <div className="border-t border-border/40 pt-4 flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
+                <div className="border-t border-[#f6c324]/20 pt-4 flex items-start gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div>
@@ -622,92 +593,8 @@ export function CommunityCampaignDetail({
               NON-JOINED PATH — discovery layout
               ════════════════════════════════════════════ */
           <>
-            {showPrizePool ? (
-              <section className="mx-5 mt-5 rounded-2xl border border-[#f6c324]/35 bg-[#fffbeb]/80 p-6">
-                <div className="flex items-center gap-2.5">
-                  <Trophy className="h-5 w-5 text-[#9a7b0a]" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#9a7b0a]">
-                    Prize pool
-                  </h2>
-                </div>
-                <div className="mt-4 space-y-2.5">
-                  {fundedPool > 0 ? (
-                    <div className="flex items-center justify-between text-base">
-                      <span className="text-muted-foreground">Host funded</span>
-                      <span className="font-bold text-foreground">{fundedPool} G$</span>
-                    </div>
-                  ) : null}
-                  {participantStakes > 0 ? (
-                    <div className="flex items-center justify-between text-base">
-                      <span className="text-muted-foreground">
-                        Participant stakes ({participantCount} joined)
-                      </span>
-                      <span className="font-bold text-foreground">
-                        {participantStakes} {stakeToken}
-                      </span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between border-t border-[#f6c324]/25 pt-2.5 text-base">
-                    <span className="font-semibold text-foreground">Total pool</span>
-                    <span className="font-black text-foreground">
-                      {participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
-                        ? `${fundedPool} G$ + ${participantStakes} ${stakeToken}`
-                        : `${totalPrizePool} G$`}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
-                  </p>
-                </div>
-              </section>
-            ) : null}
-
-            {/* Stakes & Rewards card — only for paid campaigns */}
-            {isPaidJoin && joinStakeAmount > 0 ? (
-              <section className="mx-5 mt-5 rounded-2xl border border-orange-200/70 bg-orange-50/60 p-6">
-                <div className="mb-4 flex items-center gap-2.5">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-orange-700">
-                    Stakes &amp; Rewards
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-base">
-                    <span className="text-muted-foreground">Your stake to join</span>
-                    <span className="font-bold text-foreground">
-                      {joinStakeAmount} {stakeToken}
-                    </span>
-                  </div>
-                  {(campaign.forfeit_pct ?? 0) > 0 ? (
-                    <div className="flex items-center justify-between text-base">
-                      <span className="text-muted-foreground">Miss a milestone</span>
-                      <span className="font-bold text-orange-600">
-                        −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)}{" "}
-                        {stakeToken} ({campaign.forfeit_pct}% forfeited)
-                      </span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between border-t border-orange-200/60 pt-3 text-base">
-                    <span className="text-muted-foreground">If you win</span>
-                    <span className="font-bold text-emerald-700">
-                      Top {topN} split the forfeit pool
-                    </span>
-                  </div>
-                  {totalPrizePool > 0 ? (
-                    <div className="flex items-center justify-between text-base">
-                      <span className="text-muted-foreground">Current pool</span>
-                      <span className="font-bold text-foreground">{totalPrizePool} G$</span>
-                    </div>
-                  ) : null}
-                </div>
-                <p className="mt-4 text-xs leading-relaxed text-orange-700/70">
-                  Forfeited stakes from missed milestones are added to the prize pool — winners earn more when others slip up.
-                </p>
-              </section>
-            ) : null}
-
             {/* Action card — simplified for non-joined */}
-            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-border/60 bg-card p-6 shadow-lg">
+            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-6 shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -741,9 +628,6 @@ export function CommunityCampaignDetail({
             <div className="mt-5 px-5">
               {showPrizePool ? (() => {
                 const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
-                const forfeitPerMiss = isPaidJoin && (campaign.forfeit_pct ?? 0) > 0
-                  ? Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)
-                  : 0;
                 return (
                   <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
                     {/* Header */}
@@ -793,27 +677,14 @@ export function CommunityCampaignDetail({
                       </div>
                     </div>
 
-                    {/* Forfeit rule — only for paid campaigns */}
-                    {forfeitPerMiss > 0 ? (
-                      <div className="border-t border-[#f6c324]/20 bg-orange-50/60 px-5 py-3">
-                        <p className="text-xs leading-relaxed text-orange-700">
-                          <span className="font-black">Forfeit rule · </span>
-                          Miss a milestone → −{forfeitPerMiss} {stakeToken} ({campaign.forfeit_pct}% of stake) added straight to the prize pool. Winners earn more when others slip up.
-                        </p>
-                      </div>
-                    ) : isPaidJoin && joinStakeAmount > 0 ? (
-                      <div className="border-t border-[#f6c324]/20 px-5 py-3">
-                        <p className="text-xs text-[#9a7b0a]/70">
-                          Stake <span className="font-bold text-foreground">{joinStakeAmount} {stakeToken}</span> to join · top {topN} on the leaderboard split the pool.
-                        </p>
-                      </div>
-                    ) : (
+                    {/* Stakes & Rewards card above already explains the forfeit rule for paid campaigns */}
+                    {!isPaidJoin ? (
                       <div className="border-t border-[#f6c324]/20 px-5 py-3">
                         <p className="text-xs text-[#9a7b0a]/70">
                           Top {topN} on the leaderboard share the prize pool.
                         </p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })() : (
@@ -849,39 +720,117 @@ export function CommunityCampaignDetail({
               )}
             </div>
 
+            {/* Stakes & Rewards — cost & payout mechanics, styled to match the Prize Pool card */}
+            {isPaidJoin && joinStakeAmount > 0 ? (
+              <div className="mt-5 px-5">
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                  <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
+                    <Coins className="h-5 w-5 text-muted-foreground" />
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                      Stakes &amp; Rewards
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-px bg-border/40 sm:grid-cols-4">
+                    <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
+                      <p
+                        className="text-xl font-black tabular-nums text-foreground sm:text-2xl"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        {joinStakeAmount}
+                        <span className="ml-1 text-xs font-bold text-muted-foreground">{stakeToken}</span>
+                      </p>
+                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Your stake
+                      </p>
+                    </div>
+
+                    {(campaign.forfeit_pct ?? 0) > 0 ? (
+                      <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
+                        <p
+                          className="text-xl font-black tabular-nums text-orange-600 sm:text-2xl"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)}
+                          <span className="ml-1 text-xs font-bold text-orange-600/70">{stakeToken}</span>
+                        </p>
+                        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Miss a milestone ({campaign.forfeit_pct}%)
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
+                      <p
+                        className="text-xl font-black text-emerald-700 sm:text-2xl"
+                        style={{ fontFamily: '"Clash Display", sans-serif' }}
+                      >
+                        Top {topN}
+                      </p>
+                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        If you win
+                      </p>
+                    </div>
+
+                    {totalPrizePool > 0 ? (
+                      <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
+                        <p
+                          className="text-xl font-black tabular-nums text-[#9a7b0a] sm:text-2xl"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          {totalPrizePool}
+                          <span className="ml-1 text-xs font-bold text-[#9a7b0a]/70">G$</span>
+                        </p>
+                        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Current pool
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="border-t border-[#f6c324]/20 bg-orange-50/60 px-5 py-3">
+                    <p className="text-xs leading-relaxed text-orange-700">
+                      Forfeited stakes from missed milestones are added to the prize pool — winners earn more when others slip up.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
             <section className="mt-8 px-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h2
-                  className="text-lg font-black text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                >
-                  Milestones
-                </h2>
-                {milestoneCount > 0 ? (
-                  <span className="text-sm font-semibold text-delulu-blue">
-                    Earn up to {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
-                  </span>
+              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2
+                    className="text-lg font-black text-foreground"
+                  >
+                    Milestones
+                  </h2>
+                  {milestoneCount > 0 ? (
+                    <span className="text-sm font-semibold text-delulu-blue">
+                      Earn up to {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                    </span>
+                  ) : null}
+                </div>
+                <CommunityCampaignMilestoneList
+                  milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
+                  isJoined={false}
+                  proofBusy={proofBusy}
+                  activeMilestoneId={activeMilestoneId}
+                  onSubmitMilestone={onOpenProof}
+                />
+                {milestones.length > MILESTONES_PREVIEW ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMilestones((v) => !v)}
+                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-delulu-blue/20 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    {showAllMilestones
+                      ? "Show less"
+                      : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
+                  </button>
                 ) : null}
               </div>
-              <CommunityCampaignMilestoneList
-                milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
-                isJoined={false}
-                proofBusy={proofBusy}
-                activeMilestoneId={activeMilestoneId}
-                onSubmitMilestone={onOpenProof}
-              />
-              {milestones.length > MILESTONES_PREVIEW ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAllMilestones((v) => !v)}
-                  className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  {showAllMilestones
-                    ? "Show less"
-                    : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
-                </button>
-              ) : null}
             </section>
 
             {/* How it works */}
@@ -901,8 +850,8 @@ export function CommunityCampaignDetail({
                   </p>
                 </div>
                 {/* 2 — Achieve goal */}
-                <div className="rounded-2xl border border-border/60 bg-card p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
                     <Target className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Achieve your goal</p>
@@ -910,19 +859,21 @@ export function CommunityCampaignDetail({
                     Stay consistent, build the habit, and actually accomplish what you set out to do.
                   </p>
                 </div>
-                {/* 3 — Win the forfeit pool */}
-                <div className="rounded-2xl border border-border/60 bg-card p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
-                    <Trophy className="h-5 w-5" />
+                {/* 3 — Win the forfeit pool (paid campaigns already see this in Stakes & Rewards above) */}
+                {!isPaidJoin ? (
+                  <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-5">
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
+                      <Trophy className="h-5 w-5" />
+                    </div>
+                    <p className="text-base font-bold text-foreground">Win the forfeit pool</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                      Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
+                    </p>
                   </div>
-                  <p className="text-base font-bold text-foreground">Win the forfeit pool</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
-                  </p>
-                </div>
+                ) : null}
                 {/* 4 — Upload proof */}
-                <div className="rounded-2xl border border-border/60 bg-card p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#fffbeb] text-[#9a7b0a]">
+                <div className="rounded-2xl border border-[#E9C0E9]/50 bg-[#E9C0E9]/15 p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#E9C0E9]/40 text-[#8a3f8a]">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Upload proof</p>
@@ -931,18 +882,6 @@ export function CommunityCampaignDetail({
                       "Complete each milestone and upload proof to earn your points."}
                   </p>
                 </div>
-                {/* 5 — Risk reminder last, paid campaigns only */}
-                {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                  <div className="rounded-2xl border border-orange-200/70 bg-orange-50/60 p-5 sm:col-span-2">
-                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                      <AlertTriangle className="h-5 w-5" />
-                    </div>
-                    <p className="text-base font-bold text-foreground">Miss your milestone</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                      Miss your milestone and forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> ({Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)} {stakeToken} per miss). Those amounts grow the forfeit pool — consistent players earn more.
-                    </p>
-                  </div>
-                ) : null}
               </div>
             </section>
 
@@ -973,11 +912,11 @@ export function CommunityCampaignDetail({
 
         {/* ── Leaderboard (always last) ── */}
         <section ref={leaderboardRef} className="mt-10 px-5">
+          <div className="rounded-3xl border border-emerald-500/15 bg-emerald-500/6 p-5">
           <div className="mb-4 flex items-center justify-between gap-2.5">
             <div>
               <h2
                 className="flex items-center gap-2.5 text-lg font-black text-foreground"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 <Trophy className="h-5 w-5 text-delulu-blue" />
                 Leaderboard
@@ -1076,6 +1015,7 @@ export function CommunityCampaignDetail({
           {loadingLeaderboardPage ? (
             <p className="mt-2.5 text-center text-sm text-muted-foreground">Loading…</p>
           ) : null}
+          </div>
 
           {showClaimNote ? (
             <p className="mt-4 rounded-xl border border-[#f6c324]/40 bg-[#fffbeb] px-4 py-3 text-sm text-[#9a7b0a]">

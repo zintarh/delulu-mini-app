@@ -71,7 +71,7 @@ export function EditDeluluSheet({
       <Modal open={open} onOpenChange={onOpenChange}>
         <ModalContent className="max-w-md bg-secondary border-border/70 shadow-2xl">
           <ModalHeader>
-            <ModalTitle style={{ fontFamily: '"Clash Display", sans-serif' }}>
+            <ModalTitle>
               {mode === "hide" ? "Delete" : "Update"}
             </ModalTitle>
           </ModalHeader>

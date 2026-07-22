@@ -73,7 +73,7 @@ function HomeHeaderSkeleton() {
 export function HomeGuestSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("mx-auto w-full max-w-2xl xl:max-w-3xl", className)}
+      className={cn("mx-auto w-full max-w-4xl xl:max-w-6xl", className)}
       role="status"
       aria-label="Loading"
     >

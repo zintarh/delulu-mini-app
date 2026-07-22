@@ -303,7 +303,6 @@ export default function GoalsPage() {
               <header className="mb-4">
                 <h1
                   className="text-lg font-black tracking-tight text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
                 >
                   {q ? `Results for "${q}"` : pageTitle}
                 </h1>

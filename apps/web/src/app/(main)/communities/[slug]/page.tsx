@@ -111,7 +111,6 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
         <div className="p-4">
           <h3
             className="line-clamp-2 text-base font-black leading-snug text-foreground"
-            style={{ fontFamily: '"Clash Display", sans-serif' }}
           >
             {campaign.title}
           </h3>
@@ -211,7 +210,6 @@ export default function CommunityHubPage() {
           <div>
             <h1
               className="text-xl font-black text-foreground"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
               {community.name}
             </h1>

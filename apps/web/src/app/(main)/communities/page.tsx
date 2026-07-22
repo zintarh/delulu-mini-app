@@ -63,7 +63,6 @@ export default function CommunitiesPage() {
       <div className="mb-6">
         <h1
           className="text-2xl font-black tracking-tight text-foreground"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
         >
           Communities
         </h1>

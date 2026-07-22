@@ -217,7 +217,6 @@ export function ProofModal({
             ) : null}
             <h2
               className="text-xl font-black tracking-tight text-foreground"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
               Upload proof
             </h2>

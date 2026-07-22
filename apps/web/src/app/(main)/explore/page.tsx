@@ -21,27 +21,38 @@ export default function CampaignsPage() {
   const q = searchParams.get("q")?.trim() ?? "";
   const isSearchMode = !!q;
 
-  const [campaignResults, setCampaignResults] = useState<CampaignSearchResult[]>([]);
+  const [campaignResults, setCampaignResults] = useState<
+    CampaignSearchResult[]
+  >([]);
   const [isCampaignSearching, setIsCampaignSearching] = useState(false);
   const [campaignSearchError, setCampaignSearchError] = useState(false);
 
-  const fetchCampaignResults = useCallback(async (signal?: AbortSignal) => {
-    if (!q) { setCampaignResults([]); return; }
-    setIsCampaignSearching(true);
-    setCampaignSearchError(false);
-    try {
-      const res = await fetch(`/api/search/campaigns?q=${encodeURIComponent(q)}`, { signal });
-      if (!res.ok) throw new Error("search failed");
-      const data = await res.json();
-      setCampaignResults(data.results ?? []);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setCampaignSearchError(true);
-      setCampaignResults([]);
-    } finally {
-      setIsCampaignSearching(false);
-    }
-  }, [q]);
+  const fetchCampaignResults = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!q) {
+        setCampaignResults([]);
+        return;
+      }
+      setIsCampaignSearching(true);
+      setCampaignSearchError(false);
+      try {
+        const res = await fetch(
+          `/api/search/campaigns?q=${encodeURIComponent(q)}`,
+          { signal },
+        );
+        if (!res.ok) throw new Error("search failed");
+        const data = await res.json();
+        setCampaignResults(data.results ?? []);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setCampaignSearchError(true);
+        setCampaignResults([]);
+      } finally {
+        setIsCampaignSearching(false);
+      }
+    },
+    [q],
+  );
 
   useEffect(() => {
     if (!isSearchMode) return;
@@ -54,12 +65,14 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     const onPullRefresh = (event: Event) => {
-      const path = (event as CustomEvent<{ pathname?: string }>).detail?.pathname;
+      const path = (event as CustomEvent<{ pathname?: string }>).detail
+        ?.pathname;
       if (path !== "/explore") return;
       if (isSearchMode) void fetchCampaignResults();
     };
     window.addEventListener("delulu:pull-refresh", onPullRefresh);
-    return () => window.removeEventListener("delulu:pull-refresh", onPullRefresh);
+    return () =>
+      window.removeEventListener("delulu:pull-refresh", onPullRefresh);
   }, [isSearchMode, fetchCampaignResults]);
 
   return (
@@ -88,7 +101,6 @@ export default function CampaignsPage() {
               <header className="mb-4">
                 <h1
                   className="text-lg font-black tracking-tight text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
                 >
                   {`Results for "${q}"`}
                 </h1>
@@ -115,42 +127,51 @@ export default function CampaignsPage() {
               ) : campaignResults.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <Search className="h-10 w-10 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">No campaigns found</p>
-                  <Link href="/explore" className="text-sm font-semibold text-delulu-blue">
+                  <p className="text-sm text-muted-foreground">
+                    No campaigns found
+                  </p>
+                  <Link
+                    href="/explore"
+                    className="text-sm font-semibold text-delulu-blue"
+                  >
                     Browse all campaigns
                   </Link>
                 </div>
               ) : (
                 <div className=" max-w-4xl xl:max-w-6xl ">
-                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {campaignResults.map((c) => (
-                    <CampaignExploreCard
-                      key={c.id}
-                      className="shadow-sm hover:shadow-md"
-                      campaign={{
-                        id: c.id,
-                        title: c.title,
-                        description: c.description,
-                        proposedPoolAmount: 0,
-                        durationDays: c.duration_days,
-                        coverImageUrl: c.cover_image_url,
-                        displayEndsAt: c.display_ends_at,
-                        status: "active",
-                        participantCount: 0,
-                        milestoneCount: 0,
-                        isJoined: false,
-                        isFreeToJoin: c.is_free_to_join,
-                        community: { name: c.community_name, slug: c.community_slug },
-                      }}
-                      joining={false}
-                      onJoin={() => {
-                        router.push(`/communities/${c.community_slug}/campaigns/${c.id}`);
-                      }}
-                    />
-                  ))}
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {campaignResults.map((c) => (
+                      <CampaignExploreCard
+                        key={c.id}
+                        className="shadow-sm hover:shadow-md"
+                        campaign={{
+                          id: c.id,
+                          title: c.title,
+                          description: c.description,
+                          proposedPoolAmount: 0,
+                          durationDays: c.duration_days,
+                          coverImageUrl: c.cover_image_url,
+                          displayEndsAt: c.display_ends_at,
+                          status: "active",
+                          participantCount: 0,
+                          milestoneCount: 0,
+                          isJoined: false,
+                          isFreeToJoin: c.is_free_to_join,
+                          community: {
+                            name: c.community_name,
+                            slug: c.community_slug,
+                          },
+                        }}
+                        joining={false}
+                        onJoin={() => {
+                          router.push(
+                            `/communities/${c.community_slug}/campaigns/${c.id}`,
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                </div>
-               
               )}
             </>
           )}

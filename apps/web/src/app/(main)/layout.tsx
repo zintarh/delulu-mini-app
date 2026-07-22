@@ -36,6 +36,10 @@ const AppToast = dynamic(
   () => import("@/components/app-toast").then((m) => m.AppToast),
   { ssr: false },
 );
+const NoGasBanner = dynamic(
+  () => import("@/components/no-gas-banner").then((m) => m.NoGasBanner),
+  { ssr: false },
+);
 
 const NotificationsPanel = dynamic(
   () =>
@@ -79,6 +83,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <ClaimPanel />
           <WhitelistRedirectToast />
           <AppToast />
+          <NoGasBanner />
 
           <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
             <MainAppHeader />

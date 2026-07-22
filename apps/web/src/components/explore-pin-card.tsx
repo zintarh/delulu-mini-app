@@ -328,7 +328,6 @@ export function ExplorePinCard({
           ) : (
             <h3
               className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-foreground transition-colors group-hover/pin:text-delulu-charcoal/80 sm:text-lg"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
               {headline}
             </h3>

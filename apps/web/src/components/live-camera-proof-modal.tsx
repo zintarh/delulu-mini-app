@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, RefreshCw, Video, VideoOff } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Loader2, RefreshCw, VideoOff, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { getContractErrorDisplay } from "@/lib/contract-error";
@@ -21,6 +22,7 @@ type CaptureStep =
   | "idle"
   | "requesting-permission"
   | "permission-denied"
+  | "previewing"
   | "recording"
   | "processing"
   | "uploading"
@@ -95,6 +97,7 @@ export function LiveCameraProofModal({
   const frameIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const framesRef = useRef<Blob[]>([]);
   const stoppingRef = useRef(false);
+  const previewRequestIdRef = useRef(0);
 
   const busy = isSubmitting || captureStep === "processing" || captureStep === "uploading";
   const activeStepLabel =
@@ -123,6 +126,7 @@ export function LiveCameraProofModal({
   }, []);
 
   const resetCapture = useCallback(() => {
+    previewRequestIdRef.current += 1;
     clearTimers();
     releaseStream();
     framesRef.current = [];
@@ -211,7 +215,9 @@ export function LiveCameraProofModal({
     void uploadFrames();
   }, [clearTimers, sampleFrame, releaseStream, uploadFrames]);
 
-  const startRecording = useCallback(async () => {
+  const startPreview = useCallback(async () => {
+    if (streamRef.current) return;
+    const requestId = ++previewRequestIdRef.current;
     setCaptureStep("requesting-permission");
     setUploadError(null);
     try {
@@ -219,32 +225,46 @@ export function LiveCameraProofModal({
         video: { facingMode: "environment" },
         audio: false,
       });
+      if (requestId !== previewRequestIdRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => {});
       }
-
-      framesRef.current = [];
-      stoppingRef.current = false;
-      startedAtRef.current = Date.now();
-      setRemainingSeconds(durationSeconds);
-      setCaptureStep("recording");
-
-      const frameCount = frameCountFor(durationSeconds);
-      const frameIntervalMs = (durationSeconds * 1000) / frameCount;
-      frameIntervalRef.current = setInterval(() => void sampleFrame(), frameIntervalMs);
-
-      countdownIntervalRef.current = setInterval(() => {
-        const elapsedMs = Date.now() - startedAtRef.current;
-        const remaining = Math.max(0, durationSeconds - elapsedMs / 1000);
-        setRemainingSeconds(Math.ceil(remaining));
-        if (remaining <= 0) void stopRecording();
-      }, 250);
+      setCaptureStep("previewing");
     } catch {
+      if (requestId !== previewRequestIdRef.current) return;
       setCaptureStep("permission-denied");
     }
-  }, [durationSeconds, sampleFrame, stopRecording]);
+  }, []);
+
+  useEffect(() => {
+    if (open && captureStep === "idle") void startPreview();
+  }, [open, captureStep, startPreview]);
+
+  const beginCapture = useCallback(() => {
+    if (!streamRef.current || captureStep !== "previewing") return;
+
+    framesRef.current = [];
+    stoppingRef.current = false;
+    startedAtRef.current = Date.now();
+    setRemainingSeconds(durationSeconds);
+    setCaptureStep("recording");
+
+    const frameCount = frameCountFor(durationSeconds);
+    const frameIntervalMs = (durationSeconds * 1000) / frameCount;
+    frameIntervalRef.current = setInterval(() => void sampleFrame(), frameIntervalMs);
+
+    countdownIntervalRef.current = setInterval(() => {
+      const elapsedMs = Date.now() - startedAtRef.current;
+      const remaining = Math.max(0, durationSeconds - elapsedMs / 1000);
+      setRemainingSeconds(Math.ceil(remaining));
+      if (remaining <= 0) void stopRecording();
+    }, 250);
+  }, [captureStep, durationSeconds, sampleFrame, stopRecording]);
 
   const elapsedSeconds = durationSeconds - remainingSeconds;
   const canStopManually = captureStep === "recording" && elapsedSeconds >= MIN_STOP_SECONDS;
@@ -255,23 +275,22 @@ export function LiveCameraProofModal({
     onDone?.();
   };
 
-  return (
-    <ResponsiveSheet
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) onDone?.();
-        onOpenChange(next);
-      }}
-      title="Upload proof"
-      hideTitleVisually
-      sheetClassName="rounded-t-3xl pb-14"
-      modalClassName="max-w-lg"
-    >
-      <div className="-mt-1 mb-5 flex justify-center lg:hidden">
-        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
-      </div>
-
-      {submitSuccess ? (
+  if (submitSuccess) {
+    return (
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onDone?.();
+          onOpenChange(next);
+        }}
+        title="Upload proof"
+        hideTitleVisually
+        sheetClassName="rounded-t-3xl pb-14"
+        modalClassName="max-w-lg"
+      >
+        <div className="-mt-1 mb-5 flex justify-center lg:hidden">
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
+        </div>
         <ProofSuccessCard
           campaignTitle={campaignTitle}
           communityName={communityName}
@@ -285,165 +304,203 @@ export function LiveCameraProofModal({
           shareUrl={shareUrl}
           onDone={handleClose}
         />
-      ) : (
-        <div className="space-y-4">
-          <div>
-            {milestoneName ? (
-              <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {milestoneName}
-              </p>
-            ) : null}
-            <h2
-              className="text-xl font-black tracking-tight text-foreground"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
-            >
-              Upload proof
-            </h2>
-            {milestoneDeadline ? (
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Due{" "}
-                {new Date(milestoneDeadline).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-            ) : null}
-            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-              {proofInstructions ?? `Record yourself for up to ${durationLabel} to prove it.`}
-            </p>
-          </div>
+      </ResponsiveSheet>
+    );
+  }
 
-          {displayError && !busy ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3">
-              <p className="text-sm font-bold text-destructive">Couldn&apos;t submit</p>
-              <p className="mt-0.5 text-xs text-destructive/80">{displayError}</p>
+  return (
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onDone?.();
+        onOpenChange(next);
+      }}
+    >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-black data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-[#0d0d0d] text-white focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          onEscapeKeyDown={(e) => {
+            if (busy) e.preventDefault();
+          }}
+        >
+          <DialogPrimitive.Title asChild>
+            <h2 className="sr-only">
+              {milestoneName ? `Upload proof — ${milestoneName}` : "Upload proof"}
+            </h2>
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            {proofInstructions ?? `Record yourself for up to ${durationLabel} to prove it.`}
+          </DialogPrimitive.Description>
+
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            autoPlay
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover",
+              captureStep === "previewing" || captureStep === "recording" ? "" : "hidden",
+            )}
+          />
+          <canvas ref={canvasRef} className="hidden" />
+
+          {captureStep === "idle" || captureStep === "requesting-permission" ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-white/70" />
+              <p className="text-sm text-white/60">Starting camera…</p>
             </div>
           ) : null}
 
-          <div className="relative overflow-hidden rounded-2xl bg-black">
-            <div className="aspect-[4/3]">
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                autoPlay
-                className={cn(
-                  "h-full w-full object-cover",
-                  captureStep === "idle" || captureStep === "permission-denied" ? "hidden" : "",
-                )}
-              />
-              <canvas ref={canvasRef} className="hidden" />
-
-              {captureStep === "idle" ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-[#0d0d0d]">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-                    <Video className="h-7 w-7 text-white/70" strokeWidth={1.75} />
-                  </div>
-                  <p className="px-6 text-center text-sm text-white/70">
-                    Up to {durationLabel} — start when ready
-                  </p>
-                </div>
-              ) : null}
-
-              {captureStep === "permission-denied" ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[#0d0d0d] px-6 text-center">
-                  <VideoOff className="h-8 w-8 text-white/70" strokeWidth={1.75} />
-                  <p className="text-sm text-white/70">
-                    Camera access was denied. Enable camera permissions for this site and try again.
-                  </p>
-                </div>
-              ) : null}
+          {captureStep === "permission-denied" ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+              <VideoOff className="h-8 w-8 text-white/70" strokeWidth={1.75} />
+              <p className="text-sm text-white/70">
+                Camera access was denied. Enable camera permissions for this site and try again.
+              </p>
             </div>
+          ) : null}
+
+          <div
+            className="absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-black/75 via-black/30 to-transparent px-4 pb-10"
+            style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                {milestoneName ? (
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">
+                    {milestoneName}
+                  </p>
+                ) : null}
+                <p className="text-sm font-black text-white">Upload proof</p>
+                {milestoneDeadline ? (
+                  <p className="text-[11px] text-white/50">
+                    Due{" "}
+                    {new Date(milestoneDeadline).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                ) : null}
+              </div>
+              <DialogPrimitive.Close
+                aria-label="Close"
+                disabled={busy}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25 disabled:opacity-40"
+              >
+                <X className="h-4 w-4" />
+              </DialogPrimitive.Close>
+            </div>
+            <p className="mt-1 text-[13px] leading-relaxed text-white/70">
+              {proofInstructions ?? `Record yourself for up to ${durationLabel} to prove it.`}
+            </p>
+
+            {displayError && !busy ? (
+              <div className="mt-2 rounded-2xl border border-destructive/40 bg-destructive/25 px-3.5 py-2.5 backdrop-blur-md">
+                <p className="text-xs font-bold text-white">Couldn&apos;t submit</p>
+                <p className="mt-0.5 text-[11px] text-white/80">{displayError}</p>
+              </div>
+            ) : null}
 
             {captureStep === "recording" ? (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between p-4">
+              <div className="mt-2 flex justify-center">
                 <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
                   ● Recording
                 </span>
-                <span className="rounded-full bg-black/60 px-4 py-2 text-2xl font-black tabular-nums text-white backdrop-blur-sm">
-                  {remainingSeconds}s
-                </span>
               </div>
             ) : null}
+          </div>
 
-            {busy ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[3px]">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
-                <p className="text-sm font-bold text-white">{activeStepLabel}</p>
-                {isSubmitting && proofStep === "wallet-sign" ? (
-                  <p className="text-xs text-white/60">Open your wallet app</p>
-                ) : null}
-              </div>
+          {busy ? (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-[3px]">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <p className="text-sm font-bold text-white">{activeStepLabel}</p>
+              {isSubmitting && proofStep === "wallet-sign" ? (
+                <p className="text-xs text-white/60">Open your wallet app</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {captureStep === "upload-error" ? (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/75 px-6 text-center backdrop-blur-[3px]">
+              <p className="text-sm font-bold text-white">Couldn&apos;t upload your recording</p>
+              {uploadError ? <p className="text-xs text-white/70">{uploadError}</p> : null}
+              <button
+                type="button"
+                onClick={() => void uploadFrames()}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#1a1a19]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry upload
+              </button>
+            </div>
+          ) : null}
+
+          <div
+            className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-4 pt-12"
+            style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+          >
+            {captureStep === "recording" ? (
+              <span className="rounded-full bg-black/60 px-4 py-2 text-2xl font-black tabular-nums text-white backdrop-blur-sm">
+                {remainingSeconds}s
+              </span>
             ) : null}
 
-            {captureStep === "upload-error" ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-6 text-center backdrop-blur-[3px]">
-                <p className="text-sm font-bold text-white">Couldn&apos;t upload your recording</p>
-                {uploadError ? <p className="text-xs text-white/70">{uploadError}</p> : null}
+            <div className="flex w-full gap-2.5">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={busy}
+                className="h-12 flex-1 rounded-full border border-white/25 bg-white/10 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/20 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+
+              {captureStep === "recording" ? (
                 <button
                   type="button"
-                  onClick={() => void uploadFrames()}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#1a1a19]"
+                  onClick={() => void stopRecording()}
+                  disabled={!canStopManually}
+                  className={cn(
+                    "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
+                    canStopManually
+                      ? "bg-delulu-blue text-white hover:opacity-90"
+                      : "cursor-not-allowed bg-white/15 text-white/40",
+                  )}
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Retry upload
+                  Stop early
                 </button>
-              </div>
-            ) : null}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    captureStep === "permission-denied" ? void startPreview() : beginCapture()
+                  }
+                  disabled={busy || captureStep !== "previewing"}
+                  className={cn(
+                    "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
+                    busy || captureStep !== "previewing"
+                      ? "cursor-not-allowed bg-white/15 text-white/40"
+                      : "bg-delulu-blue text-white hover:opacity-90",
+                  )}
+                >
+                  {captureStep === "idle" || captureStep === "requesting-permission" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Starting camera…
+                    </>
+                  ) : captureStep === "permission-denied" ? (
+                    "Try again"
+                  ) : (
+                    "Start recording"
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-
-          <div className="flex gap-2.5 pt-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={busy}
-              className="h-12 flex-1 rounded-full border border-border bg-background text-sm font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-40"
-            >
-              Cancel
-            </button>
-
-            {captureStep === "recording" ? (
-              <button
-                type="button"
-                onClick={() => void stopRecording()}
-                disabled={!canStopManually}
-                className={cn(
-                  "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
-                  canStopManually
-                    ? "bg-delulu-blue text-white hover:opacity-90"
-                    : "cursor-not-allowed bg-muted text-muted-foreground",
-                )}
-              >
-                Stop early
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void startRecording()}
-                disabled={busy || captureStep === "requesting-permission" || captureStep === "upload-error"}
-                className={cn(
-                  "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
-                  busy || captureStep === "requesting-permission" || captureStep === "upload-error"
-                    ? "cursor-not-allowed bg-muted text-muted-foreground"
-                    : "bg-delulu-blue text-white hover:opacity-90",
-                )}
-              >
-                {captureStep === "requesting-permission" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Requesting camera…
-                  </>
-                ) : captureStep === "permission-denied" ? (
-                  "Try again"
-                ) : (
-                  "Start recording"
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </ResponsiveSheet>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

@@ -292,7 +292,7 @@ export function CommunityCampaignPageClient() {
 
   return (
     <MainPage>
-      <div className="mx-auto w-full max-w-2xl xl:max-w-3xl lg:pt-6">
+      <div className="mx-auto w-full max-w-2xl lg:max-w-4xl lg:pt-6">
         {loading ? (
           <CommunityCampaignDetailSkeleton />
         ) : !campaign ? (

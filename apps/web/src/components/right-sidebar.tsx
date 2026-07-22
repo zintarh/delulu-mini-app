@@ -33,7 +33,9 @@ export function RightSidebar() {
   const { entries: topEntries, isLoading: isLeaderboardLoading } =
     useDeluluLeaderboard(6, 0);
 
-  const leaderboardAddresses = topEntries.map((e) => e.creatorAddress.toLowerCase());
+  const leaderboardAddresses = topEntries.map((e) =>
+    e.creatorAddress.toLowerCase(),
+  );
   const pfpMap = usePfps(leaderboardAddresses);
 
   const router = useRouter();
@@ -112,12 +114,10 @@ export function RightSidebar() {
     };
   }, []);
 
-
   const hasQuery = searchQuery.trim().length > 0;
 
   return (
     <aside className="h-screen sticky top-0 px-5 py-4 overflow-y-auto scrollbar-hide bg-background border-l border-border text-foreground">
-
       {/* ── Search bar ── */}
       <div className="mb-6">
         <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
@@ -152,7 +152,9 @@ export function RightSidebar() {
           {/* Result count + indexing indicator */}
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] text-muted-foreground/60 uppercase tracking-widest">
-              {hasSearched ? `${results.length} result${results.length !== 1 ? "s" : ""}` : "Searching…"}
+              {hasSearched
+                ? `${results.length} result${results.length !== 1 ? "s" : ""}`
+                : "Searching…"}
             </span>
             {isIndexBuilding && totalCount > 0 && (
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
@@ -193,7 +195,10 @@ export function RightSidebar() {
                           src={d.bgImageUrl}
                           alt=""
                           className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
                         />
                       )}
                     </div>
@@ -201,7 +206,9 @@ export function RightSidebar() {
                       <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">
                         {d.content || "Untitled"}
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{handle}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {handle}
+                      </p>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
                   </button>
@@ -249,10 +256,7 @@ export function RightSidebar() {
           {/* ── Leaderboard ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2
-                className="text-sm font-semibold text-foreground"
-                style={{ fontFamily: "'Clash Display', sans-serif" }}
-              >
+              <h2 className="text-sm font-semibold text-foreground">
                 Leaderboard
               </h2>
               <button
@@ -269,7 +273,10 @@ export function RightSidebar() {
               {isLeaderboardLoading ? (
                 <>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div key={`lb-skel-${i}`} className="flex items-center gap-2.5 px-2 py-2 rounded-xl animate-pulse">
+                    <div
+                      key={`lb-skel-${i}`}
+                      className="flex items-center gap-2.5 px-2 py-2 rounded-xl animate-pulse"
+                    >
                       <div className="w-6 h-6 rounded-full bg-muted shrink-0" />
                       <div className="w-7 h-7 rounded-full bg-muted shrink-0" />
                       <div className="flex-1 space-y-1.5">
@@ -290,7 +297,11 @@ export function RightSidebar() {
                     ? null
                     : entry.title?.trim() || `Delulu #${entry.onChainId}`;
                   const headline =
-                    raw == null ? null : raw.length > 32 ? `${raw.slice(0, 32)}…` : raw;
+                    raw == null
+                      ? null
+                      : raw.length > 32
+                        ? `${raw.slice(0, 32)}…`
+                        : raw;
                   const pfpEntry = pfpMap[entry.creatorAddress.toLowerCase()];
 
                   return (
@@ -302,7 +313,12 @@ export function RightSidebar() {
                     >
                       {/* Rank number — uniform style */}
                       <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] text-muted-foreground/25 tabular-nums" style={{ fontFamily: "'Clash Display', sans-serif" }}>{rank}</span>
+                        <span
+                          className="text-[10px] text-muted-foreground/25 tabular-nums"
+                          style={{ fontFamily: "'Clash Display', sans-serif" }}
+                        >
+                          {rank}
+                        </span>
                       </div>
 
                       <UserAvatar
@@ -327,21 +343,32 @@ export function RightSidebar() {
                           </p>
                         )}
                         {/* L3: creator handle */}
-                        <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5" style={{ fontFamily: "var(--font-manrope)" }}>
+                        <p
+                          className="text-[10px] text-muted-foreground/60 truncate mt-0.5"
+                          style={{ fontFamily: "var(--font-manrope)" }}
+                        >
                           {handle}
                         </p>
                       </div>
 
                       {/* G$ in circulation for this delulu */}
-                      <span className="shrink-0 text-[11px] font-semibold text-foreground tabular-nums" style={{ fontFamily: "var(--font-manrope)" }}>
+                      <span
+                        className="shrink-0 text-[11px] font-semibold text-foreground tabular-nums"
+                        style={{ fontFamily: "var(--font-manrope)" }}
+                      >
                         {formatGAmountInt(entry.totalG)}
-                        <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">G$</span>
+                        <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">
+                          G$
+                        </span>
                       </span>
                     </button>
                   );
                 })
               ) : (
-                <p className="py-6 text-center text-[11px] text-muted-foreground/50" style={{ fontFamily: "var(--font-manrope)" }}>
+                <p
+                  className="py-6 text-center text-[11px] text-muted-foreground/50"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                >
                   No entries this campaign yet.
                 </p>
               )}

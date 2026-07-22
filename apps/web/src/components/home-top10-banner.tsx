@@ -29,6 +29,9 @@ export function HomeTop10Banner() {
               Join a campaign, earn up to 30,000 points, and climb the
               leaderboard for your shot at the pool.
             </p>
+            <p className="mt-1 text-[10px] sm:text-xs font-bold leading-snug text-[#244E1A]/70">
+              Ends Friday — leaderboard resets Friday for the next campaign.
+            </p>
           </div>
         </div>
 
