@@ -104,10 +104,14 @@ export default function SettingsPage() {
     totalStaked,
     totalClaimed,
     isLoading: isLoadingStats,
+    error: statsError,
   } = useGraphUserStats(address);
 
-  const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
-    useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const {
+    formatted: gDollarBalance,
+    isLoading: isBalanceLoading,
+    error: gdBalanceError,
+  } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
@@ -220,23 +224,23 @@ export default function SettingsPage() {
                   <StatCard
                     icon={<Target className="h-4 w-4" />}
                     label="Delulus created"
-                    value={isLoadingStats ? "—" : String(totalDelulus)}
+                    value={isLoadingStats || statsError ? "—" : String(totalDelulus)}
                   />
                   <StatCard
                     icon={<Flame className="h-4 w-4" />}
                     label="Active stakes"
-                    value={isLoadingStats ? "—" : String(activeStakes)}
+                    value={isLoadingStats || statsError ? "—" : String(activeStakes)}
                   />
                   <StatCard
                     icon={<Coins className="h-4 w-4" />}
                     label="Total staked"
-                    value={isLoadingStats ? "—" : totalStaked.toFixed(2)}
+                    value={isLoadingStats || statsError ? "—" : totalStaked.toFixed(2)}
                     suffix="G$"
                   />
                   <StatCard
                     icon={<Award className="h-4 w-4" />}
                     label="Total claimed"
-                    value={isLoadingStats ? "—" : totalClaimed.toFixed(2)}
+                    value={isLoadingStats || statsError ? "—" : totalClaimed.toFixed(2)}
                     suffix="G$"
                   />
                 </div>
@@ -280,7 +284,7 @@ export default function SettingsPage() {
                         G$
                       </p>
                       <p className="text-base font-bold tabular-nums truncate text-foreground">
-                        {!isBalanceLoading
+                        {!isBalanceLoading && !gdBalanceError
                           ? parseFloat(gDollarBalance).toFixed(2)
                           : "—"}
                       </p>
@@ -293,6 +297,12 @@ export default function SettingsPage() {
               <section>
                 <SectionLabel>More</SectionLabel>
                 <div className="mt-2.5 rounded-2xl border border-border/50 bg-card divide-y divide-border/40 overflow-hidden">
+                  <LinkRow
+                    icon={<Wallet className="w-4 h-4" />}
+                    title="Wallet"
+                    description="Balance, earnings, and transactions"
+                    href="/wallet"
+                  />
                   <LinkRow
                     icon={
                       <img

@@ -25,6 +25,9 @@ const ALL_USERS_QUERY = gql`
       delulus(first: 100) {
         id
       }
+      claims(first: 200) {
+        amount
+      }
     }
   }
 `;
@@ -45,6 +48,7 @@ export interface UserLeaderboardEntry {
   username: string | null;
   points: number;
   totalStaked: number;
+  totalClaimed: number;
   deluluCount: number;
 }
 
@@ -76,12 +80,14 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     if (!data?.users) return [];
     return data.users.map((u: any, i: number): UserLeaderboardEntry => {
       const delulus: any[] = u.delulus ?? [];
+      const claims: any[] = u.claims ?? [];
       return {
         rank: page * PAGE_SIZE + i + 1,
         address: u.id,
         username: u.username ?? null,
         points: Number(u.deluluPoints ?? "0"),
         totalStaked: weiToNumber(u.totalStaked),
+        totalClaimed: claims.reduce((sum, c) => sum + weiToNumber(c.amount), 0),
         deluluCount: delulus.length,
       };
     });

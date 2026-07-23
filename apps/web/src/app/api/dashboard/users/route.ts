@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { readAdminSession } from "@/lib/admin-session";
+import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 
 const PAGE_SIZE = 20;
 
+const ADDRESS_RE = /^0x[a-f0-9]{40}$/;
+
+async function requirePlatformAdminSession() {
+  const session = await readAdminSession();
+  if (!session) {
+    return { session: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  if (!isPlatformAdminRole(session.staffRole)) {
+    return { session: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { session, error: null };
+}
+
 export async function GET(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
@@ -128,13 +146,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
 
   const address = request.nextUrl.searchParams.get("address")?.trim().toLowerCase();
-  if (!address || !/^0x[a-f0-9]{40}$/.test(address)) {
+  if (!address || !ADDRESS_RE.test(address)) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
@@ -145,4 +166,42 @@ export async function DELETE(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, address });
+}
+
+export async function PATCH(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const address = typeof body?.address === "string" ? body.address.trim().toLowerCase() : "";
+  const username = typeof body?.username === "string" ? body.username.trim() : "";
+
+  if (!address || !ADDRESS_RE.test(address)) {
+    return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+  }
+  if (!username || username.length > 32) {
+    return NextResponse.json({ error: "Username must be 1-32 characters" }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ username })
+    .eq("address", address)
+    .select("address, username")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin/users] rename supabase error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, address: data.address, username: data.username });
 }

@@ -76,7 +76,7 @@ export function DeluluClaimSection({
 
         <div className="flex items-center justify-end">
           {isClaimed || isClaimSuccess ? (
-            <div className="h-11 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm font-semibold flex items-center justify-center">
+            <div className="h-11 px-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 text-sm font-bold flex items-center justify-center">
               Claimed
             </div>
           ) : (
@@ -85,11 +85,13 @@ export function DeluluClaimSection({
               onClick={onClaim}
               disabled={isClaiming || isClaimConfirming || !canAttemptClaim}
               className={cn(
-                "w-fit px-6 h-11 rounded-xl border-2 text-sm font-black",
+                "w-fit px-6 h-11 rounded-full text-sm font-black",
                 "flex items-center justify-center gap-2",
-                "transition-all duration-200 active:translate-y-px",
+                "transition-all active:scale-[0.98]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "border-[#1d3b2f] bg-delulu-yellow-reserved text-black shadow-[2px_2px_0px_0px_#0b1f15] hover:brightness-95",
+                canAttemptClaim
+                  ? "bg-delulu-yellow-reserved text-delulu-charcoal hover:brightness-95"
+                  : "bg-muted text-muted-foreground",
               )}
             >
               {(isClaiming || isClaimConfirming) && (
@@ -110,7 +112,7 @@ export function DeluluClaimSection({
       </div>
 
       {claimError ? (
-        <div className="mt-3 flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-2.5 py-2">
+        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3">
           <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-destructive font-medium leading-snug">
             {(claimError as { shortMessage?: string; message?: string })

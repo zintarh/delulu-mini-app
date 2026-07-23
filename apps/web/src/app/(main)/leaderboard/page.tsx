@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
+import { useClaimsTotalsByAddresses } from "@/hooks/graph/useClaimsTotalsByAddresses";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
@@ -484,6 +485,7 @@ function MonthlyLeaderboard() {
     ...(address ? [address.toLowerCase()] : []),
   ];
   const pfpMap = usePfps(allAddresses);
+  const { totalsByAddress: claimedMap } = useClaimsTotalsByAddresses(allAddresses);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
@@ -510,7 +512,8 @@ function MonthlyLeaderboard() {
           <HeadCell className="w-8 shrink-0">#</HeadCell>
           <HeadCell className="w-10 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-20 text-right">Points</HeadCell>
+          <HeadCell className="w-16 text-right">Points</HeadCell>
+          <HeadCell className="w-20 text-right">Earned</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -518,6 +521,7 @@ function MonthlyLeaderboard() {
             const isMe =
               !!address && entry.wallet_address.toLowerCase() === address.toLowerCase();
             const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
+            const totalClaimed = claimedMap[entry.wallet_address.toLowerCase()] ?? 0;
             return (
               <div
                 key={entry.wallet_address}
@@ -542,8 +546,11 @@ function MonthlyLeaderboard() {
                     {formatAddr(entry.wallet_address)}
                   </p>
                 </div>
-                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
                   {entry.points_total.toLocaleString()}
+                </span>
+                <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
+                  {totalClaimed > 0 ? `${formatGAmount(totalClaimed)} G$` : "—"}
                 </span>
               </div>
             );
@@ -590,6 +597,7 @@ function DreamersLeaderboard({
     ...(address ? [address.toLowerCase()] : []),
   ];
   const pfpMap = usePfps(allAddresses);
+  const { totalsByAddress: claimedMap } = useClaimsTotalsByAddresses(allAddresses);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
@@ -631,7 +639,8 @@ function DreamersLeaderboard({
           <HeadCell className="w-8 shrink-0">#</HeadCell>
           <HeadCell className="w-10 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-20 text-right">Points</HeadCell>
+          <HeadCell className="w-16 text-right">Points</HeadCell>
+          <HeadCell className="w-20 text-right">Earned</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -655,8 +664,17 @@ function DreamersLeaderboard({
                 </div>
                 <p className="font-mono text-xs text-muted-foreground">{formatAddr(address!)}</p>
               </div>
-              <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+              <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
                 {myRankEntry!.points}
+              </span>
+              <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
+                {(() => {
+                  const myTotalClaimed =
+                    myPageEntry?.totalClaimed ?? claimedMap[address!.toLowerCase()];
+                  return myTotalClaimed && myTotalClaimed > 0
+                    ? `${formatGAmount(myTotalClaimed)} G$`
+                    : "—";
+                })()}
               </span>
             </div>
           )}
@@ -681,8 +699,11 @@ function DreamersLeaderboard({
                     {formatAddr(entry.address)}
                   </p>
                 </div>
-                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
                   {entry.points > 0 ? entry.points : "—"}
+                </span>
+                <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
+                  {entry.totalClaimed > 0 ? `${formatGAmount(entry.totalClaimed)} G$` : "—"}
                 </span>
               </div>
             );

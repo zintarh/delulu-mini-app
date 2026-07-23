@@ -25,7 +25,7 @@ import {
   Flag,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
-import type { GlobalRole } from "@/lib/dashboard/authorize-types";
+import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
 import { DashboardToastProvider } from "@/components/dashboard/dashboard-toast";
 
 const BASE = "/dashboard";
@@ -91,7 +91,7 @@ function pageTitle(pathname: string): string {
 
 export function AdminShell({
   children,
-  staffRole: _staffRole,
+  staffRole,
   communityIds: _communityIds,
 }: {
   children: React.ReactNode;
@@ -103,6 +103,7 @@ export function AdminShell({
   const { isAdmin } = useIsAdmin();
   const { milestones: pendingMilestones } = usePendingMilestones();
   const router = useRouter();
+  const isPlatformAdmin = isPlatformAdminRole(staffRole ?? null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
@@ -183,30 +184,34 @@ export function AdminShell({
             onNavigate={closeMobile}
           />
 
-          <NavSection label="Outreach" />
-          <NavItem
-            icon={Megaphone}
-            label="Broadcasts"
-            href={`${BASE}/broadcasts`}
-            active={pathname.startsWith(`${BASE}/broadcasts`)}
-            onNavigate={closeMobile}
-          />
-          <NavItem
-            icon={Mail}
-            label="Email"
-            href={`${BASE}/send-email`}
-            active={pathname.startsWith(`${BASE}/send-email`)}
-            onNavigate={closeMobile}
-          />
+          {isPlatformAdmin ? (
+            <>
+              <NavSection label="Outreach" />
+              <NavItem
+                icon={Megaphone}
+                label="Broadcasts"
+                href={`${BASE}/broadcasts`}
+                active={pathname.startsWith(`${BASE}/broadcasts`)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={Mail}
+                label="Email"
+                href={`${BASE}/send-email`}
+                active={pathname.startsWith(`${BASE}/send-email`)}
+                onNavigate={closeMobile}
+              />
 
-          <NavSection label="People" />
-          <NavItem
-            icon={Users}
-            label="Users"
-            href={`${BASE}/users`}
-            active={pathname.startsWith(`${BASE}/users`)}
-            onNavigate={closeMobile}
-          />
+              <NavSection label="People" />
+              <NavItem
+                icon={Users}
+                label="Users"
+                href={`${BASE}/users`}
+                active={pathname.startsWith(`${BASE}/users`)}
+                onNavigate={closeMobile}
+              />
+            </>
+          ) : null}
         </nav>
 
         <div className="shrink-0 space-y-2 border-t border-[#e8e8e3] p-3">

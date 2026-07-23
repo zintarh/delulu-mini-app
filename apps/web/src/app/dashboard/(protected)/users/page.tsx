@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
   Loader2,
   Search,
@@ -11,6 +10,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 import {
@@ -61,8 +61,6 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 ];
 
 export default function AdminUsersPage() {
-  const { isLoading: isAdminLoading } = useIsAdmin();
-
   const [search, setSearch] = useState("");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [customDate, setCustomDate] = useState("");
@@ -73,6 +71,9 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const [editingAddress, setEditingAddress] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingAddress, setSavingAddress] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -137,13 +138,46 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (isAdminLoading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const handleStartEdit = (targetAddress: string, currentUsername: string | null) => {
+    setEditingAddress(targetAddress);
+    setEditValue(currentUsername ?? "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAddress(null);
+    setEditValue("");
+  };
+
+  const handleSaveUsername = async (targetAddress: string) => {
+    const username = editValue.trim();
+    if (!username) return;
+
+    setSavingAddress(targetAddress);
+    setError(null);
+    try {
+      const res = await fetch("/api/dashboard/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: targetAddress, username }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? `Rename failed: ${res.status}`);
+      }
+      // Only clear the edit box if it still belongs to this row — the admin may
+      // have already moved on to editing a different row while this save was in flight.
+      setEditingAddress((current) => {
+        if (current !== targetAddress) return current;
+        setEditValue("");
+        return null;
+      });
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename user");
+    } finally {
+      setSavingAddress(null);
+    }
+  };
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
@@ -256,9 +290,58 @@ export default function AdminUsersPage() {
                       </div>
                     </DashboardTableCell>
                     <DashboardTableCell>
-                      {hasTableCellValue(u.username) ? (
-                        <span className="font-semibold text-foreground">@{u.username}</span>
-                      ) : null}
+                      {editingAddress === u.address ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void handleSaveUsername(u.address);
+                              if (e.key === "Escape") handleCancelEdit();
+                            }}
+                            autoFocus
+                            maxLength={32}
+                            className="w-32 rounded-lg border border-border bg-white px-2 py-1 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveUsername(u.address)}
+                            disabled={savingAddress === u.address || !editValue.trim()}
+                            className="text-delulu-blue hover:opacity-80 disabled:opacity-40"
+                            title="Save"
+                          >
+                            {savingAddress === u.address ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            disabled={savingAddress === u.address}
+                            className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+                            title="Cancel"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {hasTableCellValue(u.username) ? (
+                            <span className="font-semibold text-foreground">@{u.username}</span>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(u.address, u.username)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Rename user"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </DashboardTableCell>
                     <DashboardTableCell className="max-w-[200px] truncate text-foreground">
                       {u.email}

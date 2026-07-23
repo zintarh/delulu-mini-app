@@ -19,9 +19,9 @@ const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow
 });
 
 const primaryButtonClass = cn(
-  "w-full py-4 rounded-xl text-sm font-bold transition-all",
-  "bg-delulu-yellow-reserved text-primary",
-  "hover:brightness-95 active:scale-[0.99]",
+  "w-full py-4 rounded-full text-sm font-black transition-all",
+  "bg-delulu-yellow-reserved text-delulu-charcoal",
+  "hover:brightness-95 active:scale-[0.98]",
   "disabled:opacity-45 disabled:cursor-not-allowed",
   "flex items-center justify-center gap-2",
 );
@@ -229,7 +229,7 @@ export function ClaimPanelContent({
           <button
             type="button"
             onClick={() => redirectToSignIn()}
-            className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
+            className="w-full py-3.5 rounded-full bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
           >
             {SIGN_IN_BUTTON_LABEL}
           </button>

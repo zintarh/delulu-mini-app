@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Compass, Flame, Star } from "lucide-react";
+import { Coins, Compass, Star } from "lucide-react";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
@@ -11,17 +11,17 @@ import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { HomeClaimNudge } from "@/components/home-claim-nudge";
 import { HomeCampaignsSection } from "@/components/home-campaigns-section";
 import { useUserStore } from "@/stores/useUserStore";
-import { useUserStreak } from "@/hooks/useUserStreak";
+import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
-import { cn } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 function HomeDashboardHeader({ address }: { address: string | undefined }) {
   const user = useUserStore((s) => s.user);
-  const { currentStreak } = useUserStreak(address);
+  const { totalClaimed, isLoading: earnedLoading, error: earnedError } = useGraphUserStats(address);
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address);
   const name = user?.username || user?.displayName || "there";
-  const hasStreak = currentStreak > 0;
+  const hasEarned = totalClaimed > 0;
 
   return (
     <header className="px-4 pt-1">
@@ -40,27 +40,28 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
             </span>
           </div>
 
-          <div
+          <Link
+            href="/wallet"
             className={cn(
-              "flex items-center gap-1 rounded-full px-2.5 py-1.5 shadow-sm",
-              hasStreak ? "bg-orange-500/10" : "bg-muted",
+              "flex items-center gap-1 rounded-full px-2.5 py-1.5 shadow-sm transition-opacity active:opacity-70",
+              hasEarned ? "bg-emerald-500/10" : "bg-muted",
             )}
           >
-            <Flame
+            <Coins
               className={cn(
                 "h-3.5 w-3.5",
-                hasStreak ? "fill-orange-500 text-orange-500" : "text-muted-foreground",
+                hasEarned ? "text-emerald-600" : "text-muted-foreground",
               )}
             />
             <span
               className={cn(
                 "text-xs font-black tabular-nums",
-                hasStreak ? "text-orange-600" : "text-muted-foreground",
+                hasEarned ? "text-emerald-600" : "text-muted-foreground",
               )}
             >
-              {currentStreak}
+              {earnedLoading || earnedError ? "—" : `${formatGAmount(totalClaimed)} G$`}
             </span>
-          </div>
+          </Link>
         </div>
       </div>
     </header>

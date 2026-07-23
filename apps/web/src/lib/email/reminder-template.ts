@@ -1,3 +1,5 @@
+import { escapeMarketingHtml } from "@/lib/marketing-email-template";
+
 export interface ReminderEmailData {
   username: string;
   goalTitle: string;
@@ -30,31 +32,37 @@ export function reminderEmailHtml(data: ReminderEmailData): string {
   } = data;
   const finalCtaUrl = ctaUrl ?? pendingHabits[0]?.ctaUrl ?? appUrl;
   const finalManageUrl = manageUrl ?? `${appUrl}/profile`;
-  const finalCtaLabel = ctaLabel ?? "Submit proof";
+  const finalCtaLabel = escapeMarketingHtml(ctaLabel ?? "Submit proof");
+  const safeUsername = escapeMarketingHtml(username);
+  const safeGoalTitle = escapeMarketingHtml(goalTitle);
 
   const habitRows = pendingHabits
     .slice(0, 3)
-    .map(
-      (h) => `
+    .map((h) => {
+      const safeTitle = escapeMarketingHtml(h.title);
+      const safeMilestoneTitle = h.milestoneTitle ? escapeMarketingHtml(h.milestoneTitle) : null;
+      const safeContext = h.context ? escapeMarketingHtml(h.context) : null;
+      const safeTimeLeftText = h.timeLeftText ? escapeMarketingHtml(h.timeLeftText) : null;
+      return `
       <tr>
         <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; color: #111827;">
           <div>
             <div style="flex: 1; min-width: 0;">
-              <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 700;">${h.title}</p>
+              <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 700;">${safeTitle}</p>
               ${
-                h.milestoneTitle
+                safeMilestoneTitle
                   ? `<p style="margin: 5px 0 0; font-size: 12px; color: #4b5563; line-height: 1.5;">
-                      Milestone: ${h.milestoneTitle}
+                      Milestone: ${safeMilestoneTitle}
                     </p>`
-                  : h.context
-                    ? `<p style="margin: 5px 0 0; font-size: 12px; color: #4b5563; line-height: 1.5;">${h.context}</p>`
+                  : safeContext
+                    ? `<p style="margin: 5px 0 0; font-size: 12px; color: #4b5563; line-height: 1.5;">${safeContext}</p>`
                     : ""
               }
               ${
-                h.timeLeftText
+                safeTimeLeftText
                   ? `<p style="margin: 6px 0 0; font-size: 12px; line-height: 1.4;">
                       <span style="display: inline-block; background: #fff8b8; color: #1f2937; border: 1px solid #f2de5a; padding: 2px 8px; border-radius: 999px; font-weight: 700;">
-                        ${h.timeLeftText}
+                        ${safeTimeLeftText}
                       </span>
                     </p>`
                   : ""
@@ -62,8 +70,8 @@ export function reminderEmailHtml(data: ReminderEmailData): string {
             </div>
           </div>
         </td>
-      </tr>`
-    )
+      </tr>`;
+    })
     .join("");
 
   const streakBadge =
@@ -99,7 +107,7 @@ export function reminderEmailHtml(data: ReminderEmailData): string {
             <td style="padding: 32px;">
 
               <h1 style="margin: 0 0 4px; font-size: 25px; font-weight: 900; color: #111827; line-height: 1.2;">
-                Hey ${username} 💛
+                Hey ${safeUsername} 💛
               </h1>
               <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #111827; line-height: 1.2;">
                 Your milestone is waiting
@@ -110,7 +118,7 @@ export function reminderEmailHtml(data: ReminderEmailData): string {
                 Show up, submit proof, and keep your momentum moving.
               </p>
               <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.6;">
-                <strong style="color: #111827;">${goalTitle}</strong>
+                <strong style="color: #111827;">${safeGoalTitle}</strong>
               </p>
 
               ${streakBadge}

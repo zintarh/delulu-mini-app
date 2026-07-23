@@ -48,7 +48,7 @@ export function CampaignRefundPanel({
     return (
       <div
         className={cn(
-          "rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3",
+          "rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3",
           className,
         )}
       >
@@ -67,7 +67,7 @@ export function CampaignRefundPanel({
   return (
     <div
       className={cn(
-        "rounded-xl border-2 border-amber-500/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-4",
+        "rounded-2xl border border-amber-500/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-4",
         className,
       )}
     >
@@ -98,9 +98,9 @@ export function CampaignRefundPanel({
           onClick={onRefund}
           disabled={isPending}
           className={cn(
-            "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-delulu-charcoal",
-            "bg-delulu-yellow-reserved px-5 py-2.5 text-sm font-bold text-delulu-charcoal",
-            "shadow-[2px_2px_0px_0px_#1a1a19] transition-all hover:brightness-95",
+            "inline-flex shrink-0 items-center justify-center gap-2 rounded-full",
+            "bg-delulu-yellow-reserved px-5 py-2.5 text-sm font-black text-delulu-charcoal",
+            "transition-all active:scale-[0.98] hover:brightness-95",
             "disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
@@ -113,7 +113,9 @@ export function CampaignRefundPanel({
         </button>
       </div>
       {errorMessage ? (
-        <p className="mt-3 text-xs font-medium text-destructive">{errorMessage}</p>
+        <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3">
+          <p className="text-xs font-medium text-destructive">{errorMessage}</p>
+        </div>
       ) : null}
     </div>
   );

@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { readAdminSession } from "@/lib/admin-session";
+import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
+import { escapeMarketingHtml } from "@/lib/marketing-email-template";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function requirePlatformAdminSession() {
+  const session = await readAdminSession();
+  if (!session) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  if (!isPlatformAdminRole(session.staffRole)) {
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { error: null };
+}
 
 interface BroadcastBody {
   addresses: string[];
@@ -29,13 +43,15 @@ function broadcastEmailHtml({
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/\n/g, "<br />");
+  const safeUsername = escapeMarketingHtml(username);
+  const safeSubject = escapeMarketingHtml(subject);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${subject}</title>
+  <title>${safeSubject}</title>
 </head>
 <body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 16px;">
@@ -58,7 +74,7 @@ function broadcastEmailHtml({
           <tr>
             <td style="padding:32px;">
               <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#111827;line-height:1.2;">
-                Hey ${username} 👋
+                Hey ${safeUsername} 👋
               </h1>
               <div style="margin:20px 0;font-size:15px;color:#374151;line-height:1.75;">
                 ${safeMessage}
@@ -116,6 +132,9 @@ function broadcastEmailText({
 }
 
 export async function POST(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
@@ -192,6 +211,9 @@ export async function POST(request: NextRequest) {
 
 // GET: dry-run — returns how many addresses have real emails (no sends)
 export async function GET(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });

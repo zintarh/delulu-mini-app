@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { readAdminSession } from "@/lib/admin-session";
+import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import {
   buildMarketingEmailDocumentHtml,
   buildMarketingEmailText,
@@ -9,8 +11,22 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+async function requirePlatformAdminSession() {
+  const session = await readAdminSession();
+  if (!session) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  if (!isPlatformAdminRole(session.staffRole)) {
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { error: null };
+}
+
 // GET: return all users with real email addresses (no pagination)
 export async function GET() {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
@@ -35,6 +51,9 @@ export async function GET() {
 
 // POST: send email to a list of email addresses
 export async function POST(request: NextRequest) {
+  const { error: authError } = await requirePlatformAdminSession();
+  if (authError) return authError;
+
   let body: { emails: string[]; subject: string; message: string };
   try {
     body = await request.json();

@@ -44,6 +44,7 @@ export function useGraphUserStats(overrideAddress?: string) {
     variables: { id: userId },
     skip,
     fetchPolicy: "cache-and-network",
+    errorPolicy: "all",
   });
 
   const stats: UserStats = useMemo(() => {
@@ -77,7 +78,7 @@ export function useGraphUserStats(overrideAddress?: string) {
 
   return {
     ...stats,
-    isLoading: loading,
+    isLoading: loading && !data,
     error: error ?? null,
     refetch,
   };
