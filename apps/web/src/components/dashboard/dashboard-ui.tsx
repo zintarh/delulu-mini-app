@@ -306,14 +306,19 @@ export function DashboardTableLoading() {
 export function DashboardTableEmptyState({
   icon: Icon,
   title,
+  description,
 }: {
-  icon: React.ElementType;
+  icon?: React.ElementType;
   title: string;
+  description?: string;
 }) {
   return (
     <div className="flex flex-col items-center gap-2 py-20">
-      <Icon className="h-9 w-9 text-muted-foreground/25" />
+      {Icon ? <Icon className="h-9 w-9 text-muted-foreground/25" /> : null}
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      {description ? (
+        <p className="max-w-sm text-center text-xs text-muted-foreground/70">{description}</p>
+      ) : null}
     </div>
   );
 }
