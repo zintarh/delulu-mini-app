@@ -1,23 +1,18 @@
 /** Active delulu campaign length (leaderboard + weekly board). */
-export const CAMPAIGN_DURATION_SEC = 14 * 24 * 60 * 60;
+const CAMPAIGN_DURATION_SEC = 14 * 24 * 60 * 60;
 
 /**
  * First Tuesday 00:00 UTC of a biweekly cadence. Override with
  * `NEXT_PUBLIC_CAMPAIGN_EPOCH` (ISO 8601) to align with a launch date.
  * Default: 2026-05-12 (periods May 12–26, May 26–Jun 9, …).
  */
-export function getCampaignEpochUtc(): Date {
+function getCampaignEpochUtc(): Date {
   const raw = process.env.NEXT_PUBLIC_CAMPAIGN_EPOCH?.trim();
   const parsed = raw ? new Date(raw) : new Date(Date.UTC(2026, 4, 12));
   if (Number.isNaN(parsed.getTime())) {
     return new Date(Date.UTC(2026, 4, 12));
   }
   return snapToTuesdayUtc(parsed);
-}
-
-/** Tuesday = 2 (UTC). */
-export function getMostRecentTuesdayUtc(from: Date = new Date()): Date {
-  return snapToTuesdayUtc(from);
 }
 
 function snapToTuesdayUtc(from: Date): Date {

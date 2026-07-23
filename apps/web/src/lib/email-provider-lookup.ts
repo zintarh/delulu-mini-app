@@ -19,11 +19,6 @@ export function peekCachedEmailCheck(email: string): EmailCheckResult | undefine
   return CACHE.get(normalizeEmail(email));
 }
 
-/** Clear cache entry when testing — not exported for production use. */
-export function clearEmailCheckCache(): void {
-  CACHE.clear();
-}
-
 export async function lookupEmailProvider(
   email: string,
   signal?: AbortSignal,

@@ -97,49 +97,6 @@ function MilestoneSegmentBar({
   );
 }
 
-/** Slim one-line summary for the home dashboard */
-export function MilestoneTrackerSummaryBar({
-  summary,
-}: {
-  summary: MilestoneTrackerSummary;
-}) {
-  const pct = progressPct(summary.completedMilestones, summary.totalMilestones);
-  const hasDue = summary.dueNow > 0;
-
-  return (
-    <div className="rounded-xl border border-border/40 bg-card px-3 py-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <p
-          className="text-xs font-semibold text-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          {hasDue
-            ? `${summary.dueNow} ${summary.dueNow === 1 ? "milestone needs" : "milestones need"} proof`
-            : "You're caught up"}
-        </p>
-        <p
-          className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          {summary.completedMilestones}/{summary.totalMilestones} · {pct}%
-        </p>
-      </div>
-      <div
-        className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted"
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className="h-full rounded-full bg-delulu-blue transition-all duration-500"
-          style={{ width: `${pct > 0 ? Math.max(pct, 4) : 0}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function MilestoneTrackerHero({
   summary,
   compact = false,

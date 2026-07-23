@@ -1,9 +1,6 @@
 import { isAdminUser } from "@/lib/admin-auth";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
-import {
-  createSupabaseServerClient,
-  getSupabaseAuthUser,
-} from "@/lib/supabase/server";
+import { getSupabaseAuthUser } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import type { GlobalRole } from "@/lib/dashboard/authorize-types";
 
@@ -16,11 +13,6 @@ export type AdminSessionPayload = {
   /** Community IDs assigned to this staff member (empty for platform_admin). */
   communityIds: string[];
 };
-
-/** @deprecated Use isSupabaseAuthConfigured */
-export function isOpsAuthConfigured() {
-  return isSupabaseAuthConfigured();
-}
 
 export function isAdminAuthConfigured() {
   return isSupabaseAuthConfigured();
@@ -68,10 +60,4 @@ export async function readAdminSession(): Promise<AdminSessionPayload | null> {
     staffRole: null,
     communityIds: [],
   };
-}
-
-export async function clearAdminSession() {
-  if (!isSupabaseAuthConfigured()) return;
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
 }

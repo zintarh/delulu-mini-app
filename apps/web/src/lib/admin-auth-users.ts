@@ -2,7 +2,7 @@ import { parseAdminAllowlist } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 /** Look up a Supabase Auth user by email (service role). */
-export async function findAuthUserByEmail(email: string) {
+async function findAuthUserByEmail(email: string) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 

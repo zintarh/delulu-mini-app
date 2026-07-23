@@ -32,10 +32,6 @@ export function isCampaignFunded(status: string): boolean {
   return status === "active";
 }
 
-export function canClaimCampaignPrize(isCommunityMember: boolean): boolean {
-  return isCommunityMember;
-}
-
 export type HomeCampaignFeedSection = "joined" | "ongoing";
 
 export function parseHomeCampaignFeedSection(value: string | null): HomeCampaignFeedSection {

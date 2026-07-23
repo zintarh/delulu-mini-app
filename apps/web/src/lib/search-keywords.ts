@@ -38,12 +38,3 @@ export function recordSearchKeyword(term: string) {
   entries.sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed);
   writeStore(entries);
 }
-
-/** Top recent / frequent keywords for suggestions. */
-export function getPopularSearchKeywords(limit = 5): string[] {
-  const entries = readStore();
-  return entries
-    .sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed)
-    .slice(0, limit)
-    .map((e) => e.term);
-}

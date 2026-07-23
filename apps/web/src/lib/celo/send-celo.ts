@@ -34,11 +34,6 @@ export async function getFaucetBalance(): Promise<number> {
   return balance;
 }
 
-/** Returns the faucet wallet's address (for display/logging). */
-export function getFaucetAddress(): `0x${string}` {
-  return getFaucetAccount().address;
-}
-
 /** Sends CELO from the faucet wallet. Returns the hash after the tx is confirmed. */
 export async function sendCelo(
   to: `0x${string}`,

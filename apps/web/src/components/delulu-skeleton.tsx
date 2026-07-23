@@ -126,17 +126,6 @@ export function HomeSignedInSkeleton({ className }: { className?: string }) {
   );
 }
 
-export function HotDeluluSkeleton() {
-  return (
-    <div className="relative h-[200px] w-full shrink-0 overflow-hidden rounded-3xl bg-muted p-5">
-      <div className="animate-pulse space-y-3">
-        <div className="h-5 w-full rounded bg-black/20" />
-        <div className="h-9 w-full rounded-full bg-black/20" />
-      </div>
-    </div>
-  );
-}
-
 export function DeluluCardSkeleton({
   className = "",
   compact = false,

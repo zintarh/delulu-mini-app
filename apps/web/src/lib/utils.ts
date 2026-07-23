@@ -5,19 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatTimeRemaining(deadline: Date): string {
-  const now = new Date();
-  const diff = deadline.getTime() - now.getTime();
-  if (diff <= 0) return "Ended";
-  const minutes = Math.floor(diff / (1000 * 60));
-  if (minutes <= 0) return "Ended";
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  return `${minutes}m`;
-}
-
 export function formatAddress(address: string): string {
   if (!address) return "";
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -102,17 +89,4 @@ export function formatGAmount(value: number): string {
   if (value >= 0.01) return value.toFixed(2);
   if (value > 0) return value.toFixed(4);
   return "0";
-}
-
-export function getCountryFlag(countryCode: string | undefined | null): string {
-  if (!countryCode || countryCode.length !== 2) {
-    return countryCode || "";
-  }
-
-  const codePoints = countryCode
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-
-  return String.fromCodePoint(...codePoints);
 }

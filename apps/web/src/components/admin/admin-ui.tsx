@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,83 +9,6 @@ export const adminPillActive =
 
 export const adminPillInactive =
   "border-border bg-white text-foreground hover:bg-muted";
-
-export function AdminPageHeader({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-        {description ? (
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {action}
-    </div>
-  );
-}
-
-export function AdminKpiCard({
-  label,
-  value,
-  icon: Icon,
-  accent = "blue",
-  isLoading,
-}: {
-  label: string;
-  value: number;
-  icon: React.ElementType;
-  accent?: "blue" | "neutral" | "warning";
-  isLoading?: boolean;
-}) {
-  const border = {
-    blue: "border-l-delulu-blue",
-    neutral: "border-l-border",
-    warning: "border-l-destructive",
-  };
-  const iconColor = {
-    blue: "text-delulu-blue bg-delulu-blue-light",
-    neutral: "text-muted-foreground bg-muted/60",
-    warning: "text-destructive bg-destructive/10",
-  };
-
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-border border-l-4 bg-white px-5 py-5 shadow-sm",
-        border[accent],
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            {label}
-          </p>
-          {isLoading ? (
-            <div className="mt-2 h-8 w-12 rounded bg-muted animate-pulse" />
-          ) : (
-            <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">{value}</p>
-          )}
-        </div>
-        <div
-          className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-xl",
-            iconColor[accent],
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function AdminKpiStrip({
   icon: Icon,
@@ -98,71 +20,6 @@ export function AdminKpiStrip({
   return (
     <div className="mb-6 inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 shadow-sm">
       <Icon className="h-4 w-4 text-delulu-blue" />
-      {children}
-    </div>
-  );
-}
-
-export function AdminQuickLink({
-  href,
-  icon: Icon,
-  label,
-  description,
-  badge,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  description: string;
-  badge?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-4 rounded-xl border border-border bg-white px-5 py-4 shadow-sm hover:border-delulu-blue-border hover:bg-delulu-blue-light/40 transition-colors"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-foreground">{label}</p>
-          {badge !== undefined && badge > 0 ? (
-            <span className="inline-flex min-w-[20px] items-center justify-center rounded-full bg-delulu-blue px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
-              {badge}
-            </span>
-          ) : null}
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">{description}</p>
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:translate-x-0.5 group-hover:text-delulu-blue transition-all" />
-    </Link>
-  );
-}
-
-export function AdminAlertBanner({
-  href,
-  message,
-  actionLabel = "Review →",
-}: {
-  href: string;
-  message: string;
-  actionLabel?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="mb-6 flex items-center justify-between rounded-xl border border-delulu-blue-border bg-delulu-blue-light px-4 py-3 hover:bg-delulu-blue-light/80 transition-colors"
-    >
-      <p className="text-sm font-semibold text-foreground">{message}</p>
-      <span className="text-xs font-bold text-delulu-blue">{actionLabel}</span>
-    </Link>
-  );
-}
-
-export function AdminTableCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
       {children}
     </div>
   );

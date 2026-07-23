@@ -115,17 +115,3 @@ export function formatUsdEquivalent(
   }
   return null;
 }
-
-/** Display label for a token amount — USD equivalent when known, else raw token. */
-export function formatTokenAmountWithUsd(
-  amount: number,
-  tokenAddress: string | undefined | null,
-  gDollarUsdPrice: number | null | undefined,
-): { usdLabel: string | null; tokenLabel: string } {
-  const symbol = getTokenSymbol(tokenAddress);
-  const usdLabel = formatUsdEquivalent(amount, tokenAddress, gDollarUsdPrice);
-  return {
-    usdLabel,
-    tokenLabel: `${amount.toLocaleString(undefined, { maximumFractionDigits: amount >= 100 ? 0 : 2 })} ${symbol}`,
-  };
-}

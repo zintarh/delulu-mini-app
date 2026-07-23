@@ -7,8 +7,8 @@ import {
 // Constants
 export const MAX_DELULU_LENGTH = 140;
 export const IPFS_UPLOAD_TIMEOUT = 30000; // 30 seconds
-export const ALLOWANCE_CHECK_RETRIES = 3;
-export const ALLOWANCE_CHECK_DELAY = 500; // milliseconds
+const ALLOWANCE_CHECK_RETRIES = 3;
+const ALLOWANCE_CHECK_DELAY = 500; // milliseconds
 
 // Types
 export interface ValidationErrors {
@@ -118,11 +118,6 @@ export function validateDeluluInputs(
 }
 
 // Stake amount helpers
-export function clampStakeValue(val: number, tokenAddress?: string | null): number {
-  if (val <= 0) return 0;
-  return Math.max(val, getMinStakeWhole(tokenAddress));
-}
-
 export function calculateMaxStakeValue(
   cusdBalance: { formatted: string } | undefined
 ): number {
@@ -268,11 +263,4 @@ export function getProgressStep(
 
 export function getDefaultImageUrl(): string {
   return "/templates/t0.png";
-}
-
-export function getOrigin(): string {
-  if (typeof window !== "undefined" && window.location.origin) {
-    return window.location.origin;
-  }
-  return "";
 }

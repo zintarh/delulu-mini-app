@@ -12,22 +12,6 @@ export function hasStoredAuthSession(): boolean {
   }
 }
 
-/**
- * Routes that must have wallet/auth SDKs before first paint.
- */
-export function isAuthEagerRoute(pathname: string): boolean {
-  if (pathname.startsWith("/sign-in")) return true;
-  if (pathname.startsWith("/welcome")) return true;
-  if (pathname === "/board" || pathname.startsWith("/board/")) return true;
-  if (pathname.startsWith("/daily-claim")) return true;
-  if (pathname.startsWith("/wrap")) return true;
-  return false;
-}
-
-export function shouldLoadAuthEagerly(pathname: string): boolean {
-  return isAuthEagerRoute(pathname) || hasStoredAuthSession();
-}
-
 /** Preload the heavy auth provider chunk (e.g. before navigation to sign-in). */
 export function preloadAuthProviders(): void {
   if (typeof window === "undefined") return;

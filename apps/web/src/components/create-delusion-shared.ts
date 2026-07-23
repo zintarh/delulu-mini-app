@@ -1,14 +1,3 @@
-import {
-  BookOpen,
-  Briefcase,
-  DollarSign,
-  Heart,
-  Target,
-  Users,
-  Brain,
-  type LucideIcon,
-} from "lucide-react";
-
 export interface SideEffectHabit {
   id: string;
   title: string;
@@ -27,22 +16,6 @@ export interface SideEffectHabit {
 }
 
 export const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
-
-export const CATEGORY_ICONS: Record<SideEffectHabit["category"], LucideIcon> = {
-  finance: DollarSign,
-  health: Heart,
-  career: Briefcase,
-  education: BookOpen,
-  social: Users,
-  mindset: Brain,
-  other: Target,
-};
-
-export const PRIORITY_COLOR = {
-  high: "bg-rose-500",
-  medium: "bg-amber-400",
-  low: "bg-sky-400",
-} as const;
 
 export const TEMPLATES = [
   { id: 1, name: "New Job", image: "/templates/t0.png", fontWeight: "700" },

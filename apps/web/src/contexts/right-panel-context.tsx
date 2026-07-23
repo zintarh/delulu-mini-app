@@ -130,6 +130,3 @@ export function useClaimPanel() {
     toggle: toggleClaim,
   };
 }
-
-/** @deprecated Use RightPanelProvider */
-export const NotificationsPanelProvider = RightPanelProvider;

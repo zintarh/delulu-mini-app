@@ -300,14 +300,6 @@ export function scheduleBatchResolveIPFS(
 }
 
 /**
- * Check if a contentHash has already been resolved and cached.
- */
-export function isContentCached(contentHash: string): boolean {
-  hydratePersistentCache();
-  return metadataCache.has(contentHash);
-}
-
-/**
  * Get cached metadata synchronously (returns undefined if not cached).
  */
 export function getCachedContent(

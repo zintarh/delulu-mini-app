@@ -155,11 +155,6 @@ export function useSubmitCommunityMilestoneProofOnChain() {
   };
 }
 
-/** @deprecated Use useSubmitCommunityMilestoneProofOnChain */
-export function useSubmitCommunityProofOnChain() {
-  return useSubmitCommunityMilestoneProofOnChain();
-}
-
 export function useEndCommunityChallenge() {
   const chainId = useChainId();
   const { writeContractAsync, data: hash, isPending, error, reset } =

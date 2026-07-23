@@ -667,18 +667,3 @@ export async function waitForMilestoneCompletionInGraph(
   }
   return false;
 }
-
-/** Poll subgraph until participant appears (post-join indexing lag). */
-export async function waitForJoinInGraph(
-  walletAddress: string,
-  challengeIds: number[],
-  { attempts = 10, delayMs = 2000 } = {},
-): Promise<boolean> {
-  if (challengeIds.length === 0) return false;
-  for (let i = 0; i < attempts; i++) {
-    const joined = await fetchJoinedChallengeIdsFromGraph(walletAddress, challengeIds, true);
-    if (joined.size > 0) return true;
-    if (i < attempts - 1) await sleep(delayMs);
-  }
-  return false;
-}
