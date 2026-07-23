@@ -7,7 +7,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
-import { canDeleteDashboardCampaign, canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
+import {
+  canDeleteDashboardCampaign,
+  canEndDashboardCampaign,
+  canPublishDashboardPayouts,
+} from "@/lib/dashboard/campaign-constants";
 import {
   CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
@@ -303,9 +307,14 @@ export function CampaignDetailClient({
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
   const [milestoneCount, setMilestoneCount] = useState(0);
   const [endStep, setEndStep] = useState<
-    "idle" | "signing" | "confirming" | "publishing" | "done" | "error"
+    "idle" | "signing" | "confirming" | "done" | "error"
   >("idle");
   const [endError, setEndError] = useState<string | null>(null);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [publishStep, setPublishStep] = useState<
+    "idle" | "building" | "signing" | "confirming" | "done" | "error"
+  >("idle");
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [submitPending, setSubmitPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -336,38 +345,63 @@ export function CampaignDetailClient({
         throw new Error((json as { error?: string }).error ?? "Failed to confirm end");
       }
 
-      const payout = (json as {
-        payout?: { merkleRoot?: string; totalClaimableWei?: string } | null;
-      }).payout;
-
-      if (payout?.merkleRoot && payout.totalClaimableWei) {
-        setEndStep("publishing");
-        const rootHash = await setCommunityPayoutRootAndWait({
-          challengeId: campaign.on_chain_challenge_id,
-          merkleRoot: payout.merkleRoot as `0x${string}`,
-          totalClaimableWei: BigInt(payout.totalClaimableWei),
-        });
-        const pubRes = await fetch(
-          `/api/dashboard/campaigns/${campaignId}/confirm-payout-root`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ txHash: rootHash, merkleRoot: payout.merkleRoot }),
-          },
-        );
-        if (!pubRes.ok) {
-          const pubJson = await pubRes.json().catch(() => ({}));
-          throw new Error(
-            (pubJson as { error?: string }).error ?? "Failed to confirm payout root",
-          );
-        }
-      }
-
       setEndStep("done");
       void refetch();
     } catch (err) {
       setEndStep("error");
       setEndError(err instanceof Error ? err.message : "Failed to end campaign");
+    }
+  };
+
+  // Deliberately a separate action from ending, triggered whenever the admin is
+  // ready — gives participants a real window to call claimCommunityJoinStake
+  // first. Any stake they forfeit for missed milestones lands in poolAmount,
+  // and rebuilding the snapshot right before publishing (rather than
+  // immediately at end) is what lets that actually reach winners.
+  const handlePublishPayouts = async () => {
+    if (campaign?.on_chain_challenge_id == null) return;
+    setPublishStep("building");
+    setPublishError(null);
+    try {
+      const buildRes = await fetch(
+        `/api/dashboard/campaigns/${campaignId}/build-payout-snapshot`,
+        { method: "POST" },
+      );
+      const buildJson = await buildRes.json().catch(() => ({}));
+      if (!buildRes.ok) {
+        throw new Error((buildJson as { error?: string }).error ?? "Failed to build payout snapshot");
+      }
+      const { merkleRoot, totalClaimableWei } = buildJson as {
+        merkleRoot: string;
+        totalClaimableWei: string;
+      };
+
+      setPublishStep("signing");
+      const rootHash = await setCommunityPayoutRootAndWait({
+        challengeId: campaign.on_chain_challenge_id,
+        merkleRoot: merkleRoot as `0x${string}`,
+        totalClaimableWei: BigInt(totalClaimableWei),
+      });
+
+      setPublishStep("confirming");
+      const pubRes = await fetch(
+        `/api/dashboard/campaigns/${campaignId}/confirm-payout-root`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txHash: rootHash, merkleRoot }),
+        },
+      );
+      if (!pubRes.ok) {
+        const pubJson = await pubRes.json().catch(() => ({}));
+        throw new Error((pubJson as { error?: string }).error ?? "Failed to confirm payout root");
+      }
+
+      setPublishStep("done");
+      void refetch();
+    } catch (err) {
+      setPublishStep("error");
+      setPublishError(err instanceof Error ? err.message : "Failed to publish payouts");
     }
   };
 
@@ -416,6 +450,11 @@ export function CampaignDetailClient({
   const timelineIndex = TIMELINE.indexOf(campaign.status as (typeof TIMELINE)[number]);
   const canDelete = canDeleteDashboardCampaign(campaign.status);
   const canEnd = canEndDashboardCampaign(campaign.status, campaign.on_chain_challenge_id);
+  const canPublish = canPublishDashboardPayouts(
+    campaign.status,
+    campaign.on_chain_challenge_id,
+    campaign.payout_published_at,
+  );
 
   return (
     <DashboardPage>
@@ -450,49 +489,75 @@ export function CampaignDetailClient({
       <DashboardModal
         open={endModalOpen}
         onOpenChange={(o: boolean) => {
-          if (
-            !isEndingOnChain &&
-            !isPublishingRoot &&
-            endStep !== "confirming" &&
-            endStep !== "publishing"
-          ) {
+          if (!isEndingOnChain && endStep !== "confirming") {
             setEndModalOpen(o);
           }
         }}
         title="End campaign"
-        description={`This will permanently close "${campaign.title}" on-chain, then publish winner payouts so prize-zone participants can claim.`}
+        description={`This will permanently close "${campaign.title}" on-chain. Participants will have a window to reclaim their join stake before you publish winner payouts separately.`}
       >
         <div className="space-y-4 pt-2 text-sm">
           {endStep === "done" ? (
             <p className="font-semibold text-emerald-700">
-              Campaign ended. Winner payouts are live — participants in the prize zone can claim.
+              Campaign ended. Participants can now reclaim their stake — publish payouts whenever
+              you&apos;re ready from the Settings tab.
             </p>
           ) : null}
           {endError ? <p className="text-xs text-destructive">{endError}</p> : null}
           {endStep !== "done" ? (
             <DashboardPrimaryButton
               className="w-full bg-red-600 hover:bg-red-700"
-              disabled={
-                isEndingOnChain ||
-                isPublishingRoot ||
-                endStep === "signing" ||
-                endStep === "confirming" ||
-                endStep === "publishing"
-              }
+              disabled={isEndingOnChain || endStep === "signing" || endStep === "confirming"}
               onClick={() => void handleEndCampaign()}
             >
-              {isEndingOnChain ||
-              isPublishingRoot ||
-              endStep === "signing" ||
-              endStep === "confirming" ||
-              endStep === "publishing" ? (
+              {isEndingOnChain || endStep === "signing" || endStep === "confirming" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              {endStep === "publishing"
-                ? "Publishing payouts…"
-                : endStep === "confirming"
+              {endStep === "confirming" ? "Confirming…" : "Confirm end campaign"}
+            </DashboardPrimaryButton>
+          ) : null}
+        </div>
+      </DashboardModal>
+
+      <DashboardModal
+        open={publishModalOpen}
+        onOpenChange={(o: boolean) => {
+          if (!isPublishingRoot && publishStep !== "building" && publishStep !== "confirming") {
+            setPublishModalOpen(o);
+          }
+        }}
+        title="Publish winner payouts"
+        description={`This locks in the current prize pool for "${campaign.title}" (including any stake forfeited by participants who missed milestones) and publishes it on-chain so winners can claim. This can't be undone.`}
+      >
+        <div className="space-y-4 pt-2 text-sm">
+          {publishStep === "done" ? (
+            <p className="font-semibold text-emerald-700">
+              Payouts published — winners in the prize zone can now claim.
+            </p>
+          ) : null}
+          {publishError ? <p className="text-xs text-destructive">{publishError}</p> : null}
+          {publishStep !== "done" ? (
+            <DashboardPrimaryButton
+              className="w-full"
+              disabled={
+                isPublishingRoot ||
+                publishStep === "building" ||
+                publishStep === "signing" ||
+                publishStep === "confirming"
+              }
+              onClick={() => void handlePublishPayouts()}
+            >
+              {isPublishingRoot ||
+              publishStep === "building" ||
+              publishStep === "signing" ||
+              publishStep === "confirming" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+              {publishStep === "building"
+                ? "Building payout snapshot…"
+                : publishStep === "confirming"
                   ? "Confirming…"
-                  : "Confirm end campaign"}
+                  : "Publish payouts"}
             </DashboardPrimaryButton>
           ) : null}
         </div>
@@ -553,6 +618,32 @@ export function CampaignDetailClient({
                 >
                   <StopCircle className="h-3.5 w-3.5" />
                   End campaign
+                </button>
+              </div>
+            </DashboardPanel>
+          ) : null}
+          {canPublish ? (
+            <DashboardPanel>
+              <div className="space-y-3 p-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Publish winner payouts</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Campaign has ended. Consider waiting to give participants a window to reclaim
+                    their join stake first — any amount forfeited for missed milestones grows the
+                    pool winners split. Publishing locks in the pool at whatever it is right now.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPublishModalOpen(true);
+                    setPublishStep("idle");
+                    setPublishError(null);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-delulu-blue/30 bg-delulu-blue-light px-3 py-1.5 text-xs font-semibold text-delulu-blue hover:opacity-90 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Publish payouts
                 </button>
               </div>
             </DashboardPanel>

@@ -22,6 +22,7 @@ const CAMPAIGN_DETAIL_SELECT = `
   is_free_to_join, join_token, join_amount, forfeit_pct,
   proof_type, live_camera_duration_seconds, is_hidden,
   rejection_reason, approved_at, created_at, updated_at,
+  payout_merkle_root, payout_published_at, payout_total_claimable_wei,
   communities ( id, name, slug, member_invite_code )
 `;
 

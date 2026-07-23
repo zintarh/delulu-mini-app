@@ -3,11 +3,12 @@
   "chainId": 42220,
   "contract": "CommunityMarketV1",
   "proxy": "0xE652E0cA7DACb6489928C6801D83356a016DcfE1",
-  "implementation": "0x3A77AC2305F4098cc94Cbd2431986f34C0f19786",
+  "implementation": "0xA6Ff05a06293E3c8984bd8409E8E029342294909",
   "address": "0xE652E0cA7DACb6489928C6801D83356a016DcfE1",
   "startBlock": 70315658,
   "currency": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
   "owner": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
   "deployedAt": "2026-06-23",
-  "upgradeable": "uups"
+  "upgradeable": "uups",
+  "upgradedAt": "2026-07-23"
 }

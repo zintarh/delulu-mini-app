@@ -1,43 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, formatUnits, http } from "viem";
-import { celo } from "viem/chains";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseCommunityChallengeEndedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
-import { getCommunityMarketV1Address, DELULU_CHAIN_ID } from "@/lib/constant";
-import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import {
   buildWinnerPayoutSnapshot,
   persistPayoutSnapshot,
+  readOnChainPoolAmountHuman,
 } from "@/lib/community/build-payout-snapshot";
 
 export const dynamic = "force-dynamic";
-
-const publicClient = createPublicClient({
-  chain: celo,
-  transport: http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org"),
-});
-
-/**
- * Live on-chain poolAmount, not the DB's proposed_pool_amount — the pool grows
- * after creation via fundCommunityChallenge and, since the forfeit feature, via
- * forfeited stake from claimCommunityJoinStake. Snapshotting off the DB field
- * would silently exclude any of that from what winners can actually claim.
- */
-async function readOnChainPoolAmountHuman(challengeId: number): Promise<number> {
-  const contract = getCommunityMarketV1Address(DELULU_CHAIN_ID);
-  const result = await publicClient.readContract({
-    address: contract,
-    abi: COMMUNITY_CAMPAIGN_ABI,
-    functionName: "campaigns",
-    args: [BigInt(challengeId)],
-  });
-  const poolAmountWei = (result as readonly unknown[])[1] as bigint;
-  return Number(formatUnits(poolAmountWei, 18));
-}
 
 export async function POST(
   request: NextRequest,

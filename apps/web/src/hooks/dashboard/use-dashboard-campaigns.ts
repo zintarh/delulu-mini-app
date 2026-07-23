@@ -28,6 +28,9 @@ export type DashboardCampaign = {
   join_token?: string | null;
   join_amount?: number | null;
   forfeit_pct?: number | null;
+  payout_merkle_root?: string | null;
+  payout_published_at?: string | null;
+  payout_total_claimable_wei?: string | null;
   community?: { id: string; name: string; slug: string } | null;
 };
 

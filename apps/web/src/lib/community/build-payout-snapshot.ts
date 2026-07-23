@@ -1,9 +1,36 @@
-import { parseUnits, type Address, type Hex, getAddress } from "viem";
+import { createPublicClient, formatUnits, http, parseUnits, type Address, type Hex, getAddress } from "viem";
+import { celo } from "viem/chains";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildMerkleTreeFromLeaves,
   communityPayoutLeaf,
 } from "@/lib/community/merkle-payout";
+import { getCommunityMarketV1Address, DELULU_CHAIN_ID } from "@/lib/constant";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
+
+const publicClient = createPublicClient({
+  chain: celo,
+  transport: http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org"),
+});
+
+/**
+ * Live on-chain poolAmount, not a DB snapshot of it — the pool grows after
+ * creation via fundCommunityChallenge and, since the forfeit feature, via
+ * forfeited stake from claimCommunityJoinStake. Building a payout snapshot
+ * off a stale DB field would silently exclude any of that from what winners
+ * can actually claim.
+ */
+export async function readOnChainPoolAmountHuman(challengeId: number): Promise<number> {
+  const contract = getCommunityMarketV1Address(DELULU_CHAIN_ID);
+  const result = await publicClient.readContract({
+    address: contract,
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    functionName: "campaigns",
+    args: [BigInt(challengeId)],
+  });
+  const poolAmountWei = (result as readonly unknown[])[1] as bigint;
+  return Number(formatUnits(poolAmountWei, 18));
+}
 
 export type PayoutWinnerRow = {
   wallet_address: string;
