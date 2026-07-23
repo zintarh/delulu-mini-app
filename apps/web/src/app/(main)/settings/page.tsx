@@ -33,6 +33,7 @@ import {
 import { useUserStore } from "@/stores/useUserStore";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
+import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { usePfp } from "@/hooks/use-profile-pfp";
 
@@ -102,10 +103,10 @@ export default function SettingsPage() {
     totalDelulus,
     activeStakes,
     totalStaked,
-    totalClaimed,
     isLoading: isLoadingStats,
     error: statsError,
   } = useGraphUserStats(address);
+  const { totalEarned, isLoading: isLoadingEarned } = useUserEarnedTotal(address);
 
   const {
     formatted: gDollarBalance,
@@ -240,7 +241,7 @@ export default function SettingsPage() {
                   <StatCard
                     icon={<Award className="h-4 w-4" />}
                     label="Total claimed"
-                    value={isLoadingStats || statsError ? "—" : totalClaimed.toFixed(2)}
+                    value={isLoadingEarned ? "—" : totalEarned.toFixed(2)}
                     suffix="G$"
                   />
                 </div>

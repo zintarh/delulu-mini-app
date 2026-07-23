@@ -19,8 +19,8 @@ import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useCeloPrice } from "@/hooks/use-celo-price";
-import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
 import { useGraphUserClaims, type GraphClaim } from "@/hooks/graph/useGraphUserClaims";
+import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useClaimPanel } from "@/contexts/right-panel-context";
 import { TokenBadge } from "@/components/token-badge";
 import { TransferSheet } from "@/components/transfer-sheet";
@@ -54,10 +54,9 @@ export default function WalletPage() {
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
 
   const {
-    totalClaimed,
+    totalEarned,
     isLoading: isLoadingStats,
-    error: statsError,
-  } = useGraphUserStats(address);
+  } = useUserEarnedTotal(address);
   const { claims, isLoading: isLoadingClaims, error: claimsError } = useGraphUserClaims(address);
 
   const {
@@ -187,7 +186,7 @@ export default function WalletPage() {
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5">
                 <Award className="h-3.5 w-3.5 text-emerald-600" />
                 <span className="text-xs font-bold text-emerald-600">
-                  {isLoadingStats || statsError ? "—" : formatGAmount(totalClaimed)} G$ earned
+                  {isLoadingStats ? "—" : formatGAmount(totalEarned)} G$ earned
                   all-time
                 </span>
               </div>

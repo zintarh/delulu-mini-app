@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { formatUnits } from "viem";
 import { useAuth } from "@/hooks/use-auth";
 import {
   checkGoodDollarWhitelisted,
@@ -203,6 +204,12 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
     try {
       setIsClaiming(true);
+      // Capture entitlement before claim — SDK clears it after a successful claim.
+      const amountGd =
+        entitlement != null && entitlement > BigInt(0)
+          ? Number(formatUnits(entitlement, 18))
+          : 0;
+
       await claimSDKInstance.claim();
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -211,7 +218,10 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({
+          address,
+          amount: Number.isFinite(amountGd) ? amountGd : 0,
+        }),
       }).catch(() => {});
 
       await checkClaimStatus();

@@ -11,17 +11,17 @@ import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { HomeClaimNudge } from "@/components/home-claim-nudge";
 import { HomeCampaignsSection } from "@/components/home-campaigns-section";
 import { useUserStore } from "@/stores/useUserStore";
-import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
+import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 import { cn, formatGAmount } from "@/lib/utils";
 import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 function HomeDashboardHeader({ address }: { address: string | undefined }) {
   const user = useUserStore((s) => s.user);
-  const { totalClaimed, isLoading: earnedLoading, error: earnedError } = useGraphUserStats(address);
+  const { totalEarned, isLoading: earnedLoading } = useUserEarnedTotal(address);
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address);
   const name = user?.username || user?.displayName || "there";
-  const hasEarned = totalClaimed > 0;
+  const hasEarned = totalEarned > 0;
 
   return (
     <header className="px-4 pt-1">
@@ -59,7 +59,7 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
                 hasEarned ? "text-emerald-600" : "text-muted-foreground",
               )}
             >
-              {earnedLoading || earnedError ? "—" : `${formatGAmount(totalClaimed)} G$`}
+              {earnedLoading ? "—" : `${formatGAmount(totalEarned)} G$`}
             </span>
           </Link>
         </div>

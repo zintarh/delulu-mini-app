@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useClaimsTotalsByAddresses } from "@/hooks/graph/useClaimsTotalsByAddresses";
+import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
@@ -485,7 +485,7 @@ function MonthlyLeaderboard() {
     ...(address ? [address.toLowerCase()] : []),
   ];
   const pfpMap = usePfps(allAddresses);
-  const { totalsByAddress: claimedMap } = useClaimsTotalsByAddresses(allAddresses);
+  const { totalsByAddress: claimedMap } = useEarnedTotalsByAddresses(allAddresses);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
@@ -550,7 +550,7 @@ function MonthlyLeaderboard() {
                   {entry.points_total.toLocaleString()}
                 </span>
                 <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {totalClaimed > 0 ? `${formatGAmount(totalClaimed)} G$` : "—"}
+                  {`${formatGAmount(totalClaimed)} G$`}
                 </span>
               </div>
             );
@@ -597,7 +597,7 @@ function DreamersLeaderboard({
     ...(address ? [address.toLowerCase()] : []),
   ];
   const pfpMap = usePfps(allAddresses);
-  const { totalsByAddress: claimedMap } = useClaimsTotalsByAddresses(allAddresses);
+  const { totalsByAddress: claimedMap } = useEarnedTotalsByAddresses(allAddresses);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
@@ -668,19 +668,16 @@ function DreamersLeaderboard({
                 {myRankEntry!.points}
               </span>
               <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                {(() => {
-                  const myTotalClaimed =
-                    myPageEntry?.totalClaimed ?? claimedMap[address!.toLowerCase()];
-                  return myTotalClaimed && myTotalClaimed > 0
-                    ? `${formatGAmount(myTotalClaimed)} G$`
-                    : "—";
-                })()}
+                {`${formatGAmount(
+                  claimedMap[address!.toLowerCase()] ?? myPageEntry?.totalClaimed ?? 0,
+                )} G$`}
               </span>
             </div>
           )}
 
           {listEntries.map((entry) => {
             const name = entry.username ? `@${entry.username}` : formatAddr(entry.address);
+            const totalClaimed = claimedMap[entry.address.toLowerCase()] ?? entry.totalClaimed ?? 0;
             return (
               <div
                 key={entry.address}
@@ -703,7 +700,7 @@ function DreamersLeaderboard({
                   {entry.points > 0 ? entry.points : "—"}
                 </span>
                 <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {entry.totalClaimed > 0 ? `${formatGAmount(entry.totalClaimed)} G$` : "—"}
+                  {`${formatGAmount(totalClaimed)} G$`}
                 </span>
               </div>
             );

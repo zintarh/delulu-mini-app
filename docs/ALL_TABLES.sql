@@ -20,6 +20,12 @@ create table if not exists public.profiles (
 alter table public.profiles
   add column if not exists auth_provider text not null default 'privy';
 
+alter table public.profiles
+  add column if not exists claim_count int not null default 0;
+
+alter table public.profiles
+  add column if not exists total_claimed_gd numeric(24, 8) not null default 0;
+
 
 -- ── delulu_metadata ─────────────────────────────────────────
 create table if not exists public.delulu_metadata (
