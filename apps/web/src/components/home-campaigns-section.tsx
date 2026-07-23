@@ -71,7 +71,7 @@ function DiscoverCampaignsSection({
   joiningId: string | null;
 }) {
   const { data, isLoading } = useHomeCampaignsFeed("ongoing", address, "participants");
-  const campaigns = data?.pages.flatMap((p) => p.campaigns) ?? [];
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 6);
 
   if (isLoading) {
     return (
@@ -114,7 +114,7 @@ function GuestDiscoverCampaignsSection() {
   const joinFlow = useCampaignJoinFlow();
   const { requireAuth } = useRedirectToSignIn();
   const { data, isLoading } = useExploreCampaigns(undefined, "participants");
-  const campaigns = data?.pages.flatMap((p) => p.campaigns) ?? [];
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 6);
 
   const openJoin = useCallback(
     (campaign: CampaignExploreCardData) => {

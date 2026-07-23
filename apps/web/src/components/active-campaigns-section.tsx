@@ -39,6 +39,9 @@ export function ActiveCampaignsSection({
   const [proofBusy, setProofBusy] = useState(false);
   const [proofError, setProofError] = useState<string | null>(null);
   const [proofSuccess, setProofSuccess] = useState(false);
+  const [proofStep, setProofStep] = useState<
+    "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming"
+  >("idle");
   const [activeProof, setActiveProof] = useState<{
     campaignId: string;
     challengeId: number;
@@ -59,6 +62,7 @@ export function ActiveCampaignsSection({
     if (!activeProof) return;
     setProofBusy(true);
     setProofError(null);
+    setProofStep("ai-verifying");
     try {
       await submitCommunityProofWithWallet({
         campaignId: activeProof.campaignId,
@@ -66,11 +70,13 @@ export function ActiveCampaignsSection({
         proofUrls,
         milestoneId: activeProof.milestoneId,
         submitOnChain: submitCommunityCampaignMilestoneProofAndWait,
+        onStepChange: setProofStep,
       });
       setProofSuccess(true);
       invalidate();
     } catch (err) {
       setProofError(err instanceof Error ? err.message : "Proof failed");
+      setProofStep("idle");
     } finally {
       setProofBusy(false);
     }
@@ -143,6 +149,7 @@ export function ActiveCampaignsSection({
                 });
                 setProofSuccess(false);
                 setProofError(null);
+                setProofStep("idle");
                 setProofOpen(true);
               }}
             />
@@ -168,6 +175,7 @@ export function ActiveCampaignsSection({
         isSubmitting={proofBusy}
         submitSuccess={proofSuccess}
         submitError={proofError ? new Error(proofError) : null}
+        proofStep={proofStep}
         onDone={() => {
           setProofOpen(false);
           setProofSuccess(false);

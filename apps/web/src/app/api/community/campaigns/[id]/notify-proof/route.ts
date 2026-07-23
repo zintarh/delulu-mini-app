@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
+import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,13 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, title")
+    .select("id, title, communities ( slug )")
     .eq("id", campaignId)
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+
+  const communitySlug = unwrapRelation(campaign.communities)?.slug ?? null;
 
   const { data: participants } = await admin
     .from("campaign_participants")
@@ -61,7 +64,9 @@ export async function POST(
   const result = await notifyManyRecipients(admin, recipients, {
     title: "New proof submitted",
     body: `${username} just submitted proof in ${campaign.title}.`,
-    url: `/community/campaigns/${campaignId}`,
+    url: communitySlug
+      ? `/communities/${communitySlug}/campaigns/${campaignId}`
+      : "/explore",
     type: "campaign_proof_submitted",
     message: `**${username}** just submitted proof in **${campaign.title}**.`,
     actorAddress: walletAddress,

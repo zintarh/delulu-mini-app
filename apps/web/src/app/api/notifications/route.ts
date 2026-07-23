@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 const LIMIT = 50;
 
@@ -15,6 +19,12 @@ function validAddress(addr: string | null | undefined): addr is string {
 export async function GET(req: NextRequest) {
   const address = req.nextUrl.searchParams.get("address")?.toLowerCase();
   if (!validAddress(address)) return errorResponse("Valid address required", 400);
+
+  try {
+    requireAuthenticatedWallet(req, address);
+  } catch (err) {
+    return walletAuthErrorResponse(err);
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return errorResponse("Database not configured", 500);
@@ -38,6 +48,12 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const address = (body?.address as string | undefined)?.toLowerCase();
   if (!validAddress(address)) return errorResponse("Valid address required", 400);
+
+  try {
+    requireAuthenticatedWallet(req, address);
+  } catch (err) {
+    return walletAuthErrorResponse(err);
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return errorResponse("Database not configured", 500);

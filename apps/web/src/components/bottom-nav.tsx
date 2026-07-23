@@ -36,7 +36,7 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const isHomeRoute = segment === null && path === "/";
 
   useEffect(() => {
-    ["/", "/board", "/explore", "/profile"].forEach((href) => router.prefetch(href));
+    ["/", "/wallet", "/explore", "/profile"].forEach((href) => router.prefetch(href));
     const schedule = () => {
       prefetchCreateDelusionContent();
       prefetchCreateManifestStep();

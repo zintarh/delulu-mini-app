@@ -51,21 +51,34 @@ export async function POST(request: NextRequest) {
     const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
     const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    const bucketError = await ensureBucket(supabase, bucket);
-    if (bucketError) {
-      return NextResponse.json(
-        { error: bucketError.message || "Failed to initialize storage" },
-        { status: 500 },
-      );
-    }
+    const uploadOptions = {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    };
 
-    const { error: uploadError } = await supabase.storage
+    // Prefer direct upload — listing buckets on every frame was a major hang source.
+    let { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        contentType: file.type,
-        upsert: false,
-      });
+      .upload(filePath, file, uploadOptions);
+
+    if (uploadError) {
+      const msg = String(uploadError.message || "").toLowerCase();
+      const missingBucket =
+        msg.includes("bucket") && (msg.includes("not found") || msg.includes("does not exist"));
+      if (missingBucket) {
+        const bucketError = await ensureBucket(supabase, bucket);
+        if (bucketError) {
+          return NextResponse.json(
+            { error: bucketError.message || "Failed to initialize storage" },
+            { status: 500 },
+          );
+        }
+        ({ error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(filePath, file, uploadOptions));
+      }
+    }
 
     if (uploadError) {
       return NextResponse.json(

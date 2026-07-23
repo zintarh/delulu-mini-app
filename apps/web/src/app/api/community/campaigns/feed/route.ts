@@ -22,8 +22,8 @@ import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
 export const dynamic = "force-dynamic"; // address-specific, cannot be CDN-cached
 
-const DEFAULT_LIMIT = 4;
-const ONGOING_HOME_LIMIT = 5;
+const DEFAULT_LIMIT = 6;
+const ONGOING_HOME_LIMIT = 6;
 const MAX_LIMIT = 20;
 const FETCH_BATCH = 40;
 

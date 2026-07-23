@@ -1,9 +1,9 @@
 import {
   Compass,
   Home,
-  Plus,
   Trophy,
   User,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,7 +17,8 @@ export type MainNavItem = {
     | "create"
     | "explore"
     | "leaderboard"
-    | "profile";
+    | "profile"
+    | "wallet";
 };
 
 /** Normalize for comparisons; never use startsWith("/") — every path starts with "/". */
@@ -35,9 +36,17 @@ export function isNavHrefActive(pathname: string, href: string) {
 
 const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: "/", action: "home" },
-  { icon: Plus, label: "Create", action: "create" },
   { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
 ];
+
+export function getWalletNavItem(): MainNavItem {
+  return {
+    icon: Wallet,
+    label: "Wallet",
+    href: "/wallet",
+    action: "wallet",
+  };
+}
 
 /** Desktop left sidebar */
 export function getMainNavItems(authenticated: boolean): MainNavItem[] {
@@ -61,9 +70,9 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav */
+/** Mobile bottom nav — Wallet immediately before Profile */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [...coreNavItems(), getProfileNavItem(authenticated)];
+  return [...coreNavItems(), getWalletNavItem(), getProfileNavItem(authenticated)];
 }
 
 export function isMainNavItemActive(
@@ -84,6 +93,11 @@ export function isMainNavItemActive(
       return options.notificationsOpen;
     case "create":
       return isNavHrefActive(path, "/board");
+    case "wallet":
+      return (
+        options.layoutSegment === "wallet" ||
+        isNavHrefActive(path, "/wallet")
+      );
     case "explore":
       return (
         options.layoutSegment === "explore" ||

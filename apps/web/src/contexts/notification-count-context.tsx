@@ -51,8 +51,17 @@ export function NotificationCountProvider({ children }: { children: React.ReactN
     }
     void fetchCount();
     intervalRef.current = setInterval(fetchCount, 30_000);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void fetchCount();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
   }, [address, authenticated, fetchCount]);
 

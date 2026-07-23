@@ -10,6 +10,7 @@ import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-co
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(
   request: NextRequest,

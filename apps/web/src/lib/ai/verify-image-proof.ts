@@ -82,7 +82,7 @@ export async function verifyImageProof(input: {
 
   if (!goal) throw new Error("A valid goal description is required");
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 60_000 });
   const imagePayloads = await Promise.all(urls.map((url) => toDataUri(url)));
 
   const completion = await openai.chat.completions.create({

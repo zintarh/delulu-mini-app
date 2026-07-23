@@ -78,11 +78,15 @@ export async function submitCommunityProofWithWallet(input: {
     const canonicalProofUrl = json.proofUrl ?? input.proofUrls[0];
     await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
     input.onStepChange?.("confirming");
-    await waitForMilestoneCompletionInGraph(
+    // Subgraph indexing can take up to ~30s and the caller already treats
+    // milestone completion as optimistic (updates the UI before the indexer
+    // catches up), so don't block the user on it — let it finish in the
+    // background instead of sitting on a spinner for no correctness benefit.
+    void waitForMilestoneCompletionInGraph(
       json.challengeId,
       input.walletAddress,
       json.milestoneId,
-    );
+    ).catch(() => {});
 
     // Best-effort fan-out to other campaign members — must never fail the
     // submitter's own proof flow, so this is fire-and-forget.
@@ -93,7 +97,9 @@ export async function submitCommunityProofWithWallet(input: {
         walletAddress: input.walletAddress,
         milestoneId: json.milestoneId,
       }),
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error("[notify-proof] fan-out request failed:", err);
+    });
 
     return { verified: true as const, onChain: true };
   }

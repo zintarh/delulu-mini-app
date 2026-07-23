@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Loader2, RefreshCw, VideoOff, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -24,14 +24,16 @@ type CaptureStep =
   | "permission-denied"
   | "previewing"
   | "recording"
+  | "ready"
   | "processing"
   | "uploading"
+  | "submitting"
   | "upload-error";
 
 interface LiveCameraProofModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (frameUrls: string[]) => void;
+  onSubmit: (frameUrls: string[]) => void | Promise<void>;
   durationSeconds: number;
   isSubmitting?: boolean;
   submitSuccess?: boolean;
@@ -55,11 +57,17 @@ interface LiveCameraProofModalProps {
 
 const MIN_FRAMES = 4;
 const MAX_FRAMES = 8;
-const MIN_STOP_SECONDS = 10;
 const MAX_FRAME_WIDTH = 960;
+const FRAME_UPLOAD_TIMEOUT_MS = 30_000;
 
 function frameCountFor(durationSeconds: number) {
   return Math.min(MAX_FRAMES, Math.max(MIN_FRAMES, Math.round(durationSeconds / 12)));
+}
+
+function frameIntervalMsFor(durationSeconds: number, targetFrames: number) {
+  // Spread frames across the recording window, but keep them dense enough
+  // that a typical session finishes capturing before the timer runs out.
+  return Math.min((durationSeconds * 1000) / targetFrames, 2500);
 }
 
 export function LiveCameraProofModal({
@@ -85,8 +93,11 @@ export function LiveCameraProofModal({
   milestoneCount,
   shareUrl,
 }: LiveCameraProofModalProps) {
+  const targetFrames = useMemo(() => frameCountFor(durationSeconds), [durationSeconds]);
+
   const [captureStep, setCaptureStep] = useState<CaptureStep>("idle");
   const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds);
+  const [capturedCount, setCapturedCount] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -96,10 +107,21 @@ export function LiveCameraProofModal({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const frameIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const framesRef = useRef<Blob[]>([]);
-  const stoppingRef = useRef(false);
+  const uploadTasksRef = useRef<Promise<{ i: number; url: string }>[]>([]);
+  const uploadControllersRef = useRef<AbortController[]>([]);
+  const finishingRef = useRef(false);
   const previewRequestIdRef = useRef(0);
+  const targetFramesRef = useRef(targetFrames);
 
-  const busy = isSubmitting || captureStep === "processing" || captureStep === "uploading";
+  useEffect(() => {
+    targetFramesRef.current = targetFrames;
+  }, [targetFrames]);
+
+  const busy =
+    isSubmitting ||
+    captureStep === "processing" ||
+    captureStep === "uploading" ||
+    captureStep === "submitting";
   const activeStepLabel =
     captureStep === "processing"
       ? "Processing…"
@@ -108,9 +130,14 @@ export function LiveCameraProofModal({
         : STEP_LABEL[proofStep];
 
   const displayError =
-    captureStep !== "upload-error"
-      ? (submitError ? getContractErrorDisplay(submitError).message : null)
-      : null;
+    captureStep === "upload-error"
+      ? null
+      : submitError && !busy
+        ? getContractErrorDisplay(submitError).message
+        : null;
+
+  const progressPct = Math.min(100, Math.round((capturedCount / targetFrames) * 100));
+  const framesReady = capturedCount >= targetFrames;
 
   const clearTimers = useCallback(() => {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -125,36 +152,89 @@ export function LiveCameraProofModal({
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
+  const abortPendingUploads = useCallback(() => {
+    uploadControllersRef.current.forEach((c) => c.abort());
+    uploadControllersRef.current = [];
+  }, []);
+
   const resetCapture = useCallback(() => {
     previewRequestIdRef.current += 1;
     clearTimers();
     releaseStream();
+    abortPendingUploads();
     framesRef.current = [];
-    stoppingRef.current = false;
+    uploadTasksRef.current = [];
+    finishingRef.current = false;
     setCaptureStep("idle");
     setRemainingSeconds(durationSeconds);
+    setCapturedCount(0);
     setUploadError(null);
-  }, [clearTimers, releaseStream, durationSeconds]);
+  }, [clearTimers, releaseStream, abortPendingUploads, durationSeconds]);
 
   useEffect(() => {
     if (!open) resetCapture();
   }, [open, resetCapture]);
 
-  // Always release the camera on unmount, regardless of open state.
+  useEffect(() => {
+    if (isSubmitting || submitSuccess) return;
+    if (!submitError) return;
+    if (captureStep !== "submitting" && captureStep !== "uploading") return;
+    setCaptureStep("upload-error");
+    setUploadError(getContractErrorDisplay(submitError).message);
+  }, [isSubmitting, submitSuccess, submitError, captureStep]);
+
   useEffect(() => {
     return () => {
       clearTimers();
       releaseStream();
+      abortPendingUploads();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sampleFrame = useCallback((): Promise<void> => {
+  const uploadOneFrame = useCallback(async (blob: Blob, i: number, signal?: AbortSignal) => {
+    const formData = new FormData();
+    formData.append("file", new File([blob], `frame-${i}.jpg`, { type: "image/jpeg" }));
+    const timeout = AbortSignal.timeout(FRAME_UPLOAD_TIMEOUT_MS);
+    const combined =
+      signal && typeof AbortSignal.any === "function"
+        ? AbortSignal.any([signal, timeout])
+        : timeout;
+    const res = await fetch("/api/ipfs/upload-image", {
+      method: "POST",
+      body: formData,
+      signal: combined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Upload failed");
+    }
+    const { url } = await res.json();
+    return { i, url: url as string };
+  }, []);
+
+  const startFrameUpload = useCallback(
+    (blob: Blob, i: number) => {
+      const controller = new AbortController();
+      uploadControllersRef.current.push(controller);
+      const task = uploadOneFrame(blob, i, controller.signal);
+      task.catch(() => {});
+      return task;
+    },
+    [uploadOneFrame],
+  );
+
+  const sampleFrame = useCallback((): Promise<number> => {
     return new Promise((resolve) => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       if (!video || !canvas || video.videoWidth === 0) {
-        resolve();
+        resolve(framesRef.current.length);
+        return;
+      }
+      // Don't overshoot the target once we're done capturing.
+      if (framesRef.current.length >= targetFramesRef.current) {
+        resolve(framesRef.current.length);
         return;
       }
       const scale = Math.min(1, MAX_FRAME_WIDTH / video.videoWidth);
@@ -162,58 +242,72 @@ export function LiveCameraProofModal({
       canvas.height = Math.round(video.videoHeight * scale);
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        resolve();
+        resolve(framesRef.current.length);
         return;
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(
         (blob) => {
-          if (blob) framesRef.current.push(blob);
-          resolve();
+          if (blob && framesRef.current.length < targetFramesRef.current) {
+            const i = framesRef.current.length;
+            framesRef.current.push(blob);
+            uploadTasksRef.current.push(startFrameUpload(blob, i));
+            setCapturedCount(framesRef.current.length);
+          }
+          resolve(framesRef.current.length);
         },
         "image/jpeg",
         0.75,
       );
     });
-  }, []);
+  }, [startFrameUpload]);
+
+  const finishCapturing = useCallback(async () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    clearTimers();
+
+    // Fill any remaining frames while the camera is still live.
+    while (framesRef.current.length < targetFramesRef.current && streamRef.current) {
+      await sampleFrame();
+      if (framesRef.current.length < targetFramesRef.current) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+    }
+
+    setCapturedCount(framesRef.current.length);
+    setCaptureStep("ready");
+  }, [clearTimers, sampleFrame]);
 
   const uploadFrames = useCallback(async () => {
+    clearTimers();
+    releaseStream();
     setCaptureStep("uploading");
     setUploadError(null);
     try {
-      if (framesRef.current.length === 0) {
-        throw new Error("No frames were captured. Try recording again.");
+      if (uploadTasksRef.current.length < MIN_FRAMES) {
+        throw new Error(`Need at least ${MIN_FRAMES} frames. Record again.`);
       }
-      const uploaded = await Promise.all(
-        framesRef.current.map(async (blob, i) => {
-          const formData = new FormData();
-          formData.append("file", new File([blob], `frame-${i}.jpg`, { type: "image/jpeg" }));
-          const res = await fetch("/api/ipfs/upload-image", { method: "POST", body: formData });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "Upload failed");
-          }
-          const { url } = await res.json();
-          return { i, url: url as string };
-        }),
-      );
+      const uploaded = await Promise.all(uploadTasksRef.current);
       uploaded.sort((a, b) => a.i - b.i);
-      onSubmit(uploaded.map((f) => f.url));
+      setCaptureStep("submitting");
+      await onSubmit(uploaded.map((f) => f.url));
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setCaptureStep("upload-error");
+        setUploadError("Upload timed out. Check your connection and try again.");
+        return;
+      }
       setCaptureStep("upload-error");
       setUploadError(err instanceof Error ? err.message : "Failed to upload. Try again.");
     }
-  }, [onSubmit]);
+  }, [clearTimers, releaseStream, onSubmit]);
 
-  const stopRecording = useCallback(async () => {
-    if (stoppingRef.current) return;
-    stoppingRef.current = true;
-    clearTimers();
-    await sampleFrame();
-    releaseStream();
-    setCaptureStep("processing");
+  const retryUpload = useCallback(() => {
+    abortPendingUploads();
+    uploadTasksRef.current = framesRef.current.map((blob, i) => startFrameUpload(blob, i));
     void uploadFrames();
-  }, [clearTimers, sampleFrame, releaseStream, uploadFrames]);
+  }, [startFrameUpload, uploadFrames, abortPendingUploads]);
 
   const startPreview = useCallback(async () => {
     if (streamRef.current) return;
@@ -248,32 +342,46 @@ export function LiveCameraProofModal({
   const beginCapture = useCallback(() => {
     if (!streamRef.current || captureStep !== "previewing") return;
 
+    abortPendingUploads();
     framesRef.current = [];
-    stoppingRef.current = false;
+    uploadTasksRef.current = [];
+    finishingRef.current = false;
     startedAtRef.current = Date.now();
     setRemainingSeconds(durationSeconds);
+    setCapturedCount(0);
     setCaptureStep("recording");
 
-    const frameCount = frameCountFor(durationSeconds);
-    const frameIntervalMs = (durationSeconds * 1000) / frameCount;
-    frameIntervalRef.current = setInterval(() => void sampleFrame(), frameIntervalMs);
+    void sampleFrame().then((count) => {
+      if (count >= targetFramesRef.current) void finishCapturing();
+    });
+
+    const frameIntervalMs = frameIntervalMsFor(durationSeconds, targetFramesRef.current);
+    frameIntervalRef.current = setInterval(() => {
+      void sampleFrame().then((count) => {
+        if (count >= targetFramesRef.current) void finishCapturing();
+      });
+    }, frameIntervalMs);
 
     countdownIntervalRef.current = setInterval(() => {
       const elapsedMs = Date.now() - startedAtRef.current;
       const remaining = Math.max(0, durationSeconds - elapsedMs / 1000);
       setRemainingSeconds(Math.ceil(remaining));
-      if (remaining <= 0) void stopRecording();
+      if (remaining <= 0) void finishCapturing();
     }, 250);
-  }, [captureStep, durationSeconds, sampleFrame, stopRecording]);
+  }, [captureStep, durationSeconds, sampleFrame, finishCapturing, abortPendingUploads]);
 
-  const elapsedSeconds = durationSeconds - remainingSeconds;
-  const canStopManually = captureStep === "recording" && elapsedSeconds >= MIN_STOP_SECONDS;
-  const durationLabel = `${Math.round(durationSeconds / 60)} minute${durationSeconds > 60 ? "s" : ""}`;
+  const durationLabel =
+    durationSeconds >= 60
+      ? `${Math.round(durationSeconds / 60)} minute${durationSeconds >= 120 ? "s" : ""}`
+      : `${durationSeconds} seconds`;
 
   const handleClose = () => {
     onOpenChange(false);
     onDone?.();
   };
+
+  const showCamera =
+    captureStep === "previewing" || captureStep === "recording" || captureStep === "ready";
 
   if (submitSuccess) {
     return (
@@ -330,7 +438,8 @@ export function LiveCameraProofModal({
             </h2>
           </DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            {proofInstructions ?? `Record yourself for up to ${durationLabel} to prove it.`}
+            {proofInstructions ??
+              `Record yourself until ${targetFrames} proof frames are captured.`}
           </DialogPrimitive.Description>
 
           <video
@@ -338,10 +447,7 @@ export function LiveCameraProofModal({
             muted
             playsInline
             autoPlay
-            className={cn(
-              "absolute inset-0 h-full w-full object-cover",
-              captureStep === "previewing" || captureStep === "recording" ? "" : "hidden",
-            )}
+            className={cn("absolute inset-0 h-full w-full object-cover", showCamera ? "" : "hidden")}
           />
           <canvas ref={canvasRef} className="hidden" />
 
@@ -393,21 +499,26 @@ export function LiveCameraProofModal({
               </DialogPrimitive.Close>
             </div>
             <p className="mt-1 text-[13px] leading-relaxed text-white/70">
-              {proofInstructions ?? `Record yourself for up to ${durationLabel} to prove it.`}
+              {proofInstructions ??
+                `Keep the camera on your activity until ${targetFrames} frames are captured.`}
             </p>
+
+            {captureStep === "previewing" || captureStep === "recording" || captureStep === "ready" ? (
+              <div className="mt-3 rounded-2xl border border-white/15 bg-black/45 px-3.5 py-2.5 backdrop-blur-md">
+                <p className="text-[11px] font-bold text-white/90">
+                  {targetFrames} frames required
+                </p>
+                <p className="mt-0.5 text-[11px] text-white/60">
+                  Stay in frame while we capture them (~{durationLabel} max). Upload unlocks when
+                  all frames are ready.
+                </p>
+              </div>
+            ) : null}
 
             {displayError && !busy ? (
               <div className="mt-2 rounded-2xl border border-destructive/40 bg-destructive/25 px-3.5 py-2.5 backdrop-blur-md">
                 <p className="text-xs font-bold text-white">Couldn&apos;t submit</p>
                 <p className="mt-0.5 text-[11px] text-white/80">{displayError}</p>
-              </div>
-            ) : null}
-
-            {captureStep === "recording" ? (
-              <div className="mt-2 flex justify-center">
-                <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
-                  ● Recording
-                </span>
               </div>
             ) : null}
           </div>
@@ -428,7 +539,7 @@ export function LiveCameraProofModal({
               {uploadError ? <p className="text-xs text-white/70">{uploadError}</p> : null}
               <button
                 type="button"
-                onClick={() => void uploadFrames()}
+                onClick={retryUpload}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#1a1a19]"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -441,10 +552,37 @@ export function LiveCameraProofModal({
             className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-4 pt-12"
             style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
           >
-            {captureStep === "recording" ? (
-              <span className="rounded-full bg-black/60 px-4 py-2 text-2xl font-black tabular-nums text-white backdrop-blur-sm">
-                {remainingSeconds}s
-              </span>
+            {captureStep === "recording" || captureStep === "ready" ? (
+              <div className="w-full space-y-2">
+                <div className="flex items-center justify-between gap-3 text-xs font-bold text-white">
+                  <span>
+                    {framesReady
+                      ? "All frames ready"
+                      : `Capturing ${capturedCount} of ${targetFrames} frames`}
+                  </span>
+                  {captureStep === "recording" ? (
+                    <span className="tabular-nums text-white/70">{remainingSeconds}s left</span>
+                  ) : (
+                    <span className="text-emerald-300">Ready to upload</span>
+                  )}
+                </div>
+                <div
+                  className="h-2.5 w-full overflow-hidden rounded-full bg-white/15"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={targetFrames}
+                  aria-valuenow={capturedCount}
+                  aria-label="Frame capture progress"
+                >
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-[width] duration-300 ease-out",
+                      framesReady ? "bg-emerald-400" : "bg-delulu-blue",
+                    )}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
             ) : null}
 
             <div className="flex w-full gap-2.5">
@@ -460,16 +598,19 @@ export function LiveCameraProofModal({
               {captureStep === "recording" ? (
                 <button
                   type="button"
-                  onClick={() => void stopRecording()}
-                  disabled={!canStopManually}
-                  className={cn(
-                    "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
-                    canStopManually
-                      ? "bg-delulu-blue text-white hover:opacity-90"
-                      : "cursor-not-allowed bg-white/15 text-white/40",
-                  )}
+                  disabled
+                  className="flex h-12 flex-[2] cursor-not-allowed items-center justify-center gap-2 rounded-full bg-white/15 text-sm font-black text-white/40"
                 >
-                  Stop early
+                  Capturing frames…
+                </button>
+              ) : captureStep === "ready" ? (
+                <button
+                  type="button"
+                  onClick={() => void uploadFrames()}
+                  disabled={busy || !framesReady}
+                  className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-full bg-delulu-blue text-sm font-black text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
+                >
+                  Upload proof
                 </button>
               ) : (
                 <button

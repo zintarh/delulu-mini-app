@@ -13,6 +13,7 @@ import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib
 import {
   getMainNavItems,
   getProfileNavItem,
+  getWalletNavItem,
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
@@ -57,7 +58,7 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const { unreadCount } = useNotificationCount();
 
   useEffect(() => {
-    ["/", "/board", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
+    ["/", "/wallet", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
     const schedule = () => {
       prefetchCreateDelusionContent();
       prefetchCreateManifestStep();
@@ -80,7 +81,13 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const path = normalizePathname(pathname ?? "");
   const isHomeRoute = segment === null && path === "/";
   const navItems = getMainNavItems(authenticated);
+  const walletItem = getWalletNavItem();
   const profileItem = getProfileNavItem(authenticated);
+  const walletActive = isMainNavItemActive(walletItem, path, {
+    isHomeRoute,
+    notificationsOpen,
+    layoutSegment: segment,
+  });
   const profileActive = isMainNavItemActive(profileItem, path, {
     isHomeRoute,
     notificationsOpen,
@@ -206,32 +213,48 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
         })}
       </nav>
 
-      <div className="group relative mt-auto pt-4">
-        {profileItem.href ? (
+      <div className="mt-auto flex flex-col items-center gap-4 pt-4">
+        <div className="group relative">
           <Link
-            href={profileItem.href}
-            className={itemCls(profileActive)}
-            aria-label={profileItem.label}
-            aria-current={profileActive ? "page" : undefined}
+            href={walletItem.href!}
+            className={itemCls(walletActive)}
+            aria-label={walletItem.label}
+            aria-current={walletActive ? "page" : undefined}
             onClick={() => closePanels()}
-            onMouseEnter={() => router.prefetch(profileItem.href!)}
+            onMouseEnter={() => router.prefetch(walletItem.href!)}
           >
-            <NavIcon icon={profileItem.icon} active={profileActive} />
+            <NavIcon icon={walletItem.icon} active={walletActive} />
           </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              preloadAuthProviders();
-              router.push("/sign-in");
-            }}
-            className={itemCls(profileActive)}
-            aria-label={profileItem.label}
-          >
-            <NavIcon icon={profileItem.icon} active={profileActive} />
-          </button>
-        )}
-        <Tooltip label={profileItem.label} />
+          <Tooltip label={walletItem.label} />
+        </div>
+
+        <div className="group relative">
+          {profileItem.href ? (
+            <Link
+              href={profileItem.href}
+              className={itemCls(profileActive)}
+              aria-label={profileItem.label}
+              aria-current={profileActive ? "page" : undefined}
+              onClick={() => closePanels()}
+              onMouseEnter={() => router.prefetch(profileItem.href!)}
+            >
+              <NavIcon icon={profileItem.icon} active={profileActive} />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                preloadAuthProviders();
+                router.push("/sign-in");
+              }}
+              className={itemCls(profileActive)}
+              aria-label={profileItem.label}
+            >
+              <NavIcon icon={profileItem.icon} active={profileActive} />
+            </button>
+          )}
+          <Tooltip label={profileItem.label} />
+        </div>
       </div>
     </aside>
   );
