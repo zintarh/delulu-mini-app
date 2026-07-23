@@ -7,11 +7,14 @@ import Link from "next/link";
 import {
   Award,
   ArrowLeft,
+  Bell,
+  BellOff,
   Check,
   ChevronRight,
   Coins,
   Copy,
   Flame,
+  Loader2,
   LogOut,
   Mail,
   Send,
@@ -21,6 +24,12 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
+import {
+  getPushSupportState,
+  subscribeToWebPush,
+  unsubscribeWebPush,
+  type PushSupportState,
+} from "@/lib/web-push-client";
 import { useUserStore } from "@/stores/useUserStore";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
@@ -47,6 +56,42 @@ export default function SettingsPage() {
   const { openLogoutSheet } = useLogoutSheet();
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pushState, setPushState] = useState<PushSupportState | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPushSupportState()
+      .then((s) => { if (!cancelled) setPushState(s); })
+      .catch(() => { if (!cancelled) setPushState({ state: "unsupported" }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (!address || !pushState || pushState.state === "unsupported" || pushBusy) return;
+    if (pushState.state === "needs_permission" && pushState.permission === "denied") {
+      setPushError(
+        "Notifications are blocked for this site in your browser settings. Enable them there, then try again.",
+      );
+      return;
+    }
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      const isSubscribed = pushState.state === "ready" && pushState.subscribed;
+      if (isSubscribed) {
+        await unsubscribeWebPush(address);
+      } else {
+        await subscribeToWebPush(address);
+      }
+      setPushState(await getPushSupportState());
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : "Couldn't update push notifications.");
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || user?.username || null;
@@ -59,7 +104,7 @@ export default function SettingsPage() {
     totalStaked,
     totalClaimed,
     isLoading: isLoadingStats,
-  } = useGraphUserStats();
+  } = useGraphUserStats(address);
 
   const { formatted: gDollarBalance, isLoading: isBalanceLoading } =
     useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
@@ -275,6 +320,56 @@ export default function SettingsPage() {
                   />
                 </div>
               </section>
+
+              {/* Notifications */}
+              {pushState && pushState.state !== "unsupported" ? (
+                <section>
+                  <SectionLabel>Notifications</SectionLabel>
+                  <div className="mt-2.5 rounded-2xl border border-border/50 bg-card p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                        {pushState.state === "ready" && pushState.subscribed ? (
+                          <Bell className="w-4 h-4" />
+                        ) : (
+                          <BellOff className="w-4 h-4" />
+                        )}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground" style={MANROPE}>
+                          Push notifications
+                        </p>
+                        <p className="text-xs text-muted-foreground" style={MANROPE}>
+                          {pushState.state === "ready" && pushState.subscribed
+                            ? "You'll get notified about campaign activity."
+                            : "Get notified when campaign members submit proof."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleTogglePush()}
+                        disabled={pushBusy}
+                        className={cn(
+                          "shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-60",
+                          pushState.state === "ready" && pushState.subscribed
+                            ? "border border-border bg-secondary text-foreground hover:bg-secondary/80"
+                            : "bg-[#35d07f] text-white hover:bg-[#35d07f]/90",
+                        )}
+                      >
+                        {pushBusy ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : pushState.state === "ready" && pushState.subscribed ? (
+                          "Turn off"
+                        ) : (
+                          "Enable"
+                        )}
+                      </button>
+                    </div>
+                    {pushError ? (
+                      <p className="mt-2.5 text-xs text-destructive">{pushError}</p>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
 
               {/* Sign out */}
               <section>

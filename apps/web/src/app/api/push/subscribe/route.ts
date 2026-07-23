@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +19,12 @@ export async function POST(req: NextRequest) {
     }
     if (!endpoint || !p256dh || !auth) {
       return errorResponse("Valid push subscription required", 400);
+    }
+
+    try {
+      requireAuthenticatedWallet(req, address);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
     }
 
     const supabase = getSupabaseAdmin();

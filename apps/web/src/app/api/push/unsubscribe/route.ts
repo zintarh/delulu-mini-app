@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import {
+  requireAuthenticatedWallet,
+  walletAuthErrorResponse,
+} from "@/lib/auth/wallet-session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +14,12 @@ export async function POST(req: NextRequest) {
 
     if (!address || !address.startsWith("0x") || address.length !== 42) {
       return errorResponse("Valid address required", 400);
+    }
+
+    try {
+      requireAuthenticatedWallet(req, address);
+    } catch (err) {
+      return walletAuthErrorResponse(err);
     }
 
     const supabase = getSupabaseAdmin();

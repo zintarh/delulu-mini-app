@@ -28,13 +28,21 @@ const defaultStats: UserStats = {
   totalBets: 0,
 };
 
-export function useGraphUserStats() {
-  const { address, isConnected } = useAccount();
+/**
+ * `overrideAddress` bypasses the wagmi-connected account — required for Privy-authenticated
+ * users, since wagmi has no Privy connector and `useAccount()` never reports them as connected
+ * (see privy-wallet-session-bootstrap.tsx). Callers that already have the user's address from
+ * `useAuth()` (which handles all auth providers) should always pass it explicitly.
+ */
+export function useGraphUserStats(overrideAddress?: string) {
+  const { address: connectedAddress, isConnected } = useAccount();
+  const address = overrideAddress ?? connectedAddress;
   const userId = address?.toLowerCase() ?? "";
+  const skip = overrideAddress ? !userId : !isConnected || !userId;
 
   const { data, loading, error, refetch } = useQuery<GetUserQuery, GetUserQueryVariables>(GetUserDocument, {
     variables: { id: userId },
-    skip: !isConnected || !userId,
+    skip,
     fetchPolicy: "cache-and-network",
   });
 

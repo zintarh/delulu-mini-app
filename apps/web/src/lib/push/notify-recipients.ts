@@ -4,6 +4,18 @@ import { createNotification, type NotificationType } from "@/lib/notifications";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
+let vapidConfigured = false;
+function ensureVapidConfigured(): boolean {
+  if (vapidConfigured) return true;
+  const subject = process.env.VAPID_SUBJECT || "mailto:admin@staydelulu.xyz";
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !priv) return false;
+  webpush.setVapidDetails(subject, pub, priv);
+  vapidConfigured = true;
+  return true;
+}
+
 export type NotifyRecipientInput = {
   supabase: SupabaseAdmin;
   recipientAddress: string;
@@ -37,28 +49,42 @@ export async function sendPushAndNotification(
   }
 
   try {
-    const { data: sub } = await supabase
+    // Send to every active subscription for this address, not just the most
+    // recent — a user can have push enabled on more than one device/browser.
+    const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("endpoint,p256dh,auth")
       .eq("address", address)
-      .is("disabled_at", null)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .is("disabled_at", null);
 
-    if (sub) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          JSON.stringify({ title: input.title, body: input.body, url: input.url }),
-        );
-      } catch (err) {
-        console.error("[notify-recipients] push send failed:", {
-          address,
-          eventKey,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
+    if (subs && subs.length > 0 && ensureVapidConfigured()) {
+      await Promise.allSettled(
+        subs.map(async (sub) => {
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              JSON.stringify({ title: input.title, body: input.body, url: input.url }),
+            );
+          } catch (err) {
+            const statusCode = (err as { statusCode?: number } | undefined)?.statusCode;
+            // 404/410 means the push service revoked this endpoint (e.g. app
+            // uninstalled, browser data cleared) — it will never succeed
+            // again, so disable it instead of retrying forever.
+            if (statusCode === 404 || statusCode === 410) {
+              await supabase
+                .from("push_subscriptions")
+                .update({ disabled_at: new Date().toISOString() })
+                .eq("endpoint", sub.endpoint);
+            }
+            console.error("[notify-recipients] push send failed:", {
+              address,
+              eventKey,
+              statusCode,
+              message: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }),
+      );
     }
 
     await createNotification({
