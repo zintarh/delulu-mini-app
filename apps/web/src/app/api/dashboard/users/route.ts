@@ -42,7 +42,16 @@ export async function GET(request: NextRequest) {
 
   if (searchQuery.trim()) {
     const term = searchQuery.trim();
-    query = query.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
+    const termLower = term.toLowerCase();
+    if (ADDRESS_RE.test(termLower)) {
+      query = query.eq("address", termLower);
+    } else if (termLower.startsWith("0x") && termLower.length >= 6) {
+      query = query.or(
+        `username.ilike.%${term}%,email.ilike.%${term}%,address.ilike.%${termLower}%`,
+      );
+    } else {
+      query = query.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
+    }
   }
 
   if (dateFilter === "today") {
@@ -85,7 +94,16 @@ export async function GET(request: NextRequest) {
 
     if (searchQuery.trim()) {
       const term = searchQuery.trim();
-      fallbackQuery = fallbackQuery.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
+      const termLower = term.toLowerCase();
+      if (ADDRESS_RE.test(termLower)) {
+        fallbackQuery = fallbackQuery.eq("address", termLower);
+      } else if (termLower.startsWith("0x") && termLower.length >= 6) {
+        fallbackQuery = fallbackQuery.or(
+          `username.ilike.%${term}%,email.ilike.%${term}%,address.ilike.%${termLower}%`,
+        );
+      } else {
+        fallbackQuery = fallbackQuery.or(`username.ilike.%${term}%,email.ilike.%${term}%`);
+      }
     }
     if (dateFilter === "today") {
       const start = new Date();

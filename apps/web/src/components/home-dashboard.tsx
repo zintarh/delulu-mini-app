@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Coins, Compass, Star } from "lucide-react";
+import { Coins, Star } from "lucide-react";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
@@ -13,8 +13,8 @@ import { HomeCampaignsSection } from "@/components/home-campaigns-section";
 import { useUserStore } from "@/stores/useUserStore";
 import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
-import { cn, formatGAmount } from "@/lib/utils";
-import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
+import { cn } from "@/lib/utils";
+import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
 
 function HomeDashboardHeader({ address }: { address: string | undefined }) {
   const user = useUserStore((s) => s.user);
@@ -41,7 +41,7 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
           </div>
 
           <Link
-            href="/wallet"
+            href="/rewards"
             className={cn(
               "flex items-center gap-1 rounded-full px-2.5 py-1.5 shadow-sm transition-opacity active:opacity-70",
               hasEarned ? "bg-emerald-500/10" : "bg-muted",
@@ -59,7 +59,7 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
                 hasEarned ? "text-emerald-600" : "text-muted-foreground",
               )}
             >
-              {earnedLoading ? "—" : `${formatGAmount(totalEarned)} G$`}
+              {earnedLoading ? "—" : formatEarnedUsdt(totalEarned)}
             </span>
           </Link>
         </div>
@@ -121,20 +121,6 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
         hideWhenEmpty
         onCreateClick={onCreateClick}
       /> */}
-
-
-
-      <div className="px-4 pb-4 pt-2">
-        <Link
-          href="/explore"
-          onMouseEnter={prefetchExploreOnIntent}
-          onTouchStart={prefetchExploreOnIntent}
-          className="flex items-center justify-center gap-2 rounded-xl border border-border/50 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-        >
-          <Compass className="h-3.5 w-3.5" />
-          Explore
-        </Link>
-      </div>
     </div>
   );
 }

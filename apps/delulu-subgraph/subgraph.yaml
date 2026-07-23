@@ -123,6 +123,8 @@ dataSources:
           handler: handleCMv1ChallengeFunded
         - event: CommunityChallengeEnded(indexed uint256,uint256)
           handler: handleCMv1ChallengeEnded
+        - event: CommunityJoinStakeClaimed(indexed uint256,indexed address,address,uint256)
+          handler: handleCMv1JoinStakeClaimed
       file: ./src/community-market-v1.ts
 
   - kind: ethereum

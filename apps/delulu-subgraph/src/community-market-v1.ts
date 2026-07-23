@@ -7,6 +7,7 @@ import {
   CommunityCampaignMilestoneProofSubmitted as CommunityCampaignMilestoneProofSubmittedEvent,
   CommunityChallengeFunded as CommunityChallengeFundedEvent,
   CommunityChallengeEnded as CommunityChallengeEndedEvent,
+  CommunityJoinStakeClaimed as CommunityJoinStakeClaimedEvent,
   CommunityMarketV1 as CommunityMarketV1Contract,
 } from "../generated/CommunityMarketV1/CommunityMarketV1"
 import {
@@ -202,4 +203,13 @@ export function handleCMv1ChallengeEnded(event: CommunityChallengeEndedEvent): v
   challenge.endedAt = event.params.endedAt
   challenge.active  = false
   challenge.save()
+}
+
+export function handleCMv1JoinStakeClaimed(event: CommunityJoinStakeClaimedEvent): void {
+  let participant = CommunityCampaignParticipant.load(
+    cmParticipantId(event.params.campaignId, event.params.participant)
+  )
+  if (participant == null) return
+  participant.stakeAmount = BigInt.fromI32(0)
+  participant.save()
 }

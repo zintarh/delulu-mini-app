@@ -3,9 +3,9 @@ export function DeluluPageLoading() {
     <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background pb-20 lg:pb-8">
       <div className="lg:hidden sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
         <div className="flex items-center gap-2 px-4 py-3">
+          <div className="h-8 w-8 shrink-0 rounded-md bg-muted animate-pulse" />
+          <div className="flex-1" />
           <div className="h-9 w-9 shrink-0 rounded-full bg-muted animate-pulse" />
-          <div className="mx-auto h-4 w-24 rounded bg-muted animate-pulse" />
-          <div className="h-9 w-16 shrink-0 rounded-full bg-muted animate-pulse" />
         </div>
       </div>
       <div className="w-full space-y-6 px-3 py-5 pt-3 lg:px-6 lg:pt-6">

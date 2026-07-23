@@ -137,4 +137,50 @@ describe("CommunityMarketV1", function () {
     ]);
     expect(pointsAfter).to.equal(pointsBefore);
   });
+
+  it("lets paid joiners reclaim stake after campaign ends", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    const joinAmount = parseEther("50");
+    await market.write.setCommunityCampaignEconomics(
+      [0n, true, currency.address, joinAmount, 0],
+      { account: creator.account },
+    );
+    await currency.write.approve([market.address, joinAmount], {
+      account: participant.account,
+    });
+    await market.write.joinCommunityCampaign([0n], {
+      account: participant.account,
+    });
+
+    const stakeBefore = await market.read.participantStake([
+      0n,
+      participant.account.address,
+    ]);
+    expect(stakeBefore).to.equal(joinAmount);
+
+    await assertRevert(
+      market.write.claimCommunityJoinStake([0n], { account: participant.account }),
+      /CampaignNotEnded/,
+    );
+
+    await market.write.endCommunityChallenge([0n], { account: creator.account });
+
+    const balBefore = await currency.read.balanceOf([participant.account.address]);
+    await market.write.claimCommunityJoinStake([0n], { account: participant.account });
+    const balAfter = await currency.read.balanceOf([participant.account.address]);
+    expect(balAfter - balBefore).to.equal(joinAmount);
+
+    const stakeAfter = await market.read.participantStake([
+      0n,
+      participant.account.address,
+    ]);
+    expect(stakeAfter).to.equal(0n);
+
+    await assertRevert(
+      market.write.claimCommunityJoinStake([0n], { account: participant.account }),
+      /NoStakeToClaim/,
+    );
+  });
 });

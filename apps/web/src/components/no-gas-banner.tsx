@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 /** Persistent low-key banner shown across the app for as long as the user has no gas. */
 export function NoGasBanner() {
-  const { hasGas, isLoading } = useHasGas();
+  const { isLowGas, isLoading } = useHasGas();
   const { trigger } = useNoGas();
   const [mounted, setMounted] = useState(false);
 
@@ -17,7 +17,7 @@ export function NoGasBanner() {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading || hasGas) return null;
+  if (!mounted || isLoading || !isLowGas) return null;
 
   // Portaled to <body> — the main layout's overflow-hidden container clips
   // `position: fixed` descendants otherwise (same issue AppToast works around).

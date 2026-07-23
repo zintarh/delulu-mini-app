@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -18,6 +18,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { formatUnits } from "viem";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -33,6 +34,7 @@ import {
 } from "@/lib/community/milestone-submit-eligibility";
 import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { useClaimCommunityCampaignReward } from "@/hooks/use-community-campaign-onchain";
 
 export type CommunityCampaignDetailData = {
   id: string;
@@ -230,6 +232,22 @@ export function CommunityCampaignDetail({
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [claimInfo, setClaimInfo] = useState<{
+    eligible: boolean;
+    alreadyClaimed?: boolean;
+    amountWei?: string;
+    proof?: `0x${string}`[];
+    onChainChallengeId?: number;
+    reason?: string;
+  } | null>(null);
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimSuccess, setClaimSuccess] = useState(false);
+  const {
+    claimCommunityCampaignRewardAndWait,
+    errorMessage: claimTxError,
+    reset: resetClaimTx,
+  } = useClaimCommunityCampaignReward();
 
   const { user } = useUserStore();
   const myUsername = user?.username ?? null;
@@ -242,6 +260,63 @@ export function CommunityCampaignDetail({
     activeMilestoneId != null
       ? milestones.findIndex((m) => m.milestone_id === activeMilestoneId)
       : null;
+
+  useEffect(() => {
+    if (!address || campaign.status !== "ended") {
+      setClaimInfo(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/community/campaigns/${campaign.id}/claim?address=${encodeURIComponent(address)}`,
+        );
+        const json = await res.json().catch(() => ({}));
+        if (!cancelled) setClaimInfo(json);
+      } catch {
+        if (!cancelled) setClaimInfo(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address, campaign.id, campaign.status, claimSuccess]);
+
+  const handleClaimReward = useCallback(async () => {
+    if (!address || !claimInfo?.eligible || !claimInfo.amountWei || !claimInfo.proof) return;
+    if (claimInfo.onChainChallengeId == null) return;
+    setClaimBusy(true);
+    setClaimError(null);
+    resetClaimTx();
+    try {
+      const txHash = await claimCommunityCampaignRewardAndWait({
+        challengeId: claimInfo.onChainChallengeId,
+        amountWei: BigInt(claimInfo.amountWei),
+        proof: claimInfo.proof,
+      });
+      await fetch(`/api/community/campaigns/${campaign.id}/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, txHash }),
+      });
+      setClaimSuccess(true);
+    } catch (err) {
+      setClaimError(
+        claimTxError ||
+          (err instanceof Error ? err.message : "Claim failed. Please try again."),
+      );
+    } finally {
+      setClaimBusy(false);
+    }
+  }, [
+    address,
+    campaign.id,
+    claimInfo,
+    claimCommunityCampaignRewardAndWait,
+    claimTxError,
+    resetClaimTx,
+  ]);
 
   const handleInvite = useCallback(async () => {
     const url = `${window.location.origin}/communities/${communitySlug}/campaigns/${campaign.id}`;
@@ -275,6 +350,17 @@ export function CommunityCampaignDetail({
     : undefined;
   const inPrizeZone = myLeaderboardRow ? myLeaderboardRow.rank <= topN : false;
   const showClaimNote = inPrizeZone && isJoined && !isCommunityMember && funded;
+  const claimAmountLabel =
+    claimInfo?.amountWei != null
+      ? `${Number(formatUnits(BigInt(claimInfo.amountWei), 18)).toLocaleString(undefined, {
+          maximumFractionDigits: 2,
+        })} G$`
+      : null;
+  const canClaimReward =
+    campaign.status === "ended" &&
+    !!claimInfo?.eligible &&
+    !claimInfo.alreadyClaimed &&
+    !claimSuccess;
 
   const completedCount = milestones.filter((m) => m.completed).length;
 
@@ -288,7 +374,8 @@ export function CommunityCampaignDetail({
   );
   const focusMilestone = activeMilestone ?? upcomingMilestone;
 
-  const isClosed = isCampaignEndedByDate(campaign.display_ends_at);
+  const isClosed =
+    campaign.status === "ended" || isCampaignEndedByDate(campaign.display_ends_at);
 
   const campaignPhase = useMemo(() => {
     if (isClosed) return "closed" as const;
@@ -1020,13 +1107,50 @@ export function CommunityCampaignDetail({
           ) : null}
           </div>
 
-          {showClaimNote ? (
+          {canClaimReward ? (
+            <div className="mt-4 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
+              <p className="text-sm font-semibold text-emerald-800">
+                You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleClaimReward()}
+                disabled={claimBusy}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-delulu-charcoal py-3 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {claimBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {claimBusy ? "Claiming…" : "Claim reward"}
+              </button>
+              {claimError ? (
+                <p className="text-xs text-destructive">{claimError}</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {claimSuccess || claimInfo?.alreadyClaimed ? (
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800">
+              Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
+            </p>
+          ) : null}
+
+          {showClaimNote && !canClaimReward && !claimSuccess ? (
             <p className="mt-4 rounded-xl border border-[#f6c324]/40 bg-[#fffbeb] px-4 py-3 text-sm text-[#9a7b0a]">
               You&apos;re in the prize zone. Join{" "}
               <Link href={`/communities/${communitySlug}`} className="font-bold underline">
                 {communityName}
               </Link>{" "}
-              before claiming when payouts go live.
+              so you can claim when this campaign ends.
+            </p>
+          ) : null}
+
+          {campaign.status === "ended" &&
+          inPrizeZone &&
+          claimInfo &&
+          !claimInfo.eligible &&
+          !claimInfo.alreadyClaimed &&
+          !claimSuccess ? (
+            <p className="mt-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              {claimInfo.reason ?? "Payouts are not available yet."}
             </p>
           ) : null}
         </section>

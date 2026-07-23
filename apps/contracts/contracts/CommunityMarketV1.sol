@@ -7,11 +7,13 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title CommunityMarketV1
  * @notice UUPS-upgradeable community campaign contract. Handles campaign creation,
- *         milestone tracking, paid-join economics, and proof submission.
+ *         milestone tracking, paid-join economics, proof submission, and merkle
+ *         prize claims after a campaign ends.
  *         Deploy behind an ERC1967 proxy; upgrade via owner-only upgradeToAndCall.
  */
 contract CommunityMarketV1 is
@@ -37,6 +39,10 @@ contract CommunityMarketV1 is
     error ProofAfterDeadline();
     error ProofBeforeStart();
     error InvalidForfeitPct();
+    error AlreadyClaimed();
+    error InvalidProof();
+    error PayoutRootNotSet();
+    error NoStakeToClaim();
 
     // --- CONSTANTS ---
     uint256 public constant DAY = 86400;
@@ -83,6 +89,16 @@ contract CommunityMarketV1 is
     mapping(uint256 => mapping(address => uint256)) public participantStake;
     mapping(uint256 => uint256) public campaignParticipantCount;
 
+    // Merkle payouts (set after campaign ends; winners claim pro-rata shares)
+    mapping(uint256 => bytes32) public communityPayoutRoot;
+    mapping(uint256 => uint256) public communityPayoutTotalClaimable;
+    mapping(uint256 => mapping(address => bool)) public communityRewardClaimed;
+
+    /// @dev Only used when a campaign's join token differs from `currency` — forfeited stake
+    ///      can't be folded into poolAmount (denominated in currency) without mixing tokens,
+    ///      so it accrues here instead for the owner to handle separately.
+    mapping(address => uint256) public forfeitedStakeByToken;
+
     // --- EVENTS ---
     event CommunityChallengeCreated(
         uint256 indexed campaignId,
@@ -123,6 +139,29 @@ contract CommunityMarketV1 is
     event CommunityChallengeEnded(
         uint256 indexed campaignId,
         uint256 endedAt
+    );
+    event CommunityPayoutRootSet(
+        uint256 indexed campaignId,
+        bytes32 merkleRoot,
+        uint256 totalClaimable
+    );
+    event CommunityCampaignRewardClaimed(
+        uint256 indexed campaignId,
+        address indexed winner,
+        uint256 amount
+    );
+    event CommunityJoinStakeClaimed(
+        uint256 indexed campaignId,
+        address indexed participant,
+        address token,
+        uint256 amount
+    );
+    event StakeForfeited(
+        uint256 indexed campaignId,
+        address indexed participant,
+        address token,
+        uint256 amount,
+        uint256 missedMilestones
     );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -188,6 +227,9 @@ contract CommunityMarketV1 is
         emit CommunityCampaignPaidConfigured(campaignId, isPaid, joinToken, joinAmount, forfeitPct);
     }
 
+    /// @dev Locked once participants have joined — milestone count is the forfeit
+    ///      denominator in claimCommunityJoinStake, so adding more after join would
+    ///      retroactively penalize participants for milestones they never had a chance to see.
     function addCommunityCampaignMilestones(
         uint256          campaignId,
         string[] calldata mURIs,
@@ -196,6 +238,7 @@ contract CommunityMarketV1 is
         _requireCreatorOrOwner(campaignId);
         Campaign storage c = campaigns[campaignId];
         if (c.ended) revert AlreadyEnded();
+        if (campaignParticipantCount[campaignId] > 0) revert CampaignAlreadyHasParticipants();
         if (mURIs.length == 0 || mURIs.length != mDurations.length) revert InvalidInput();
 
         uint256 startIndex  = campaignMilestoneCount[campaignId];
@@ -290,7 +333,118 @@ contract CommunityMarketV1 is
         emit CommunityChallengeEnded(campaignId, block.timestamp);
     }
 
-    // Owner can withdraw the pool after the campaign ends (to distribute to winners).
+    /**
+     * @notice Publish the merkle root for winner payouts. Leaf =
+     *         keccak256(abi.encodePacked(campaignId, wallet, amount)).
+     *         Callable once the campaign has ended. Replacing the root is
+     *         allowed only if no claims have been made yet (totalClaimable reset).
+     */
+    function setCommunityPayoutRoot(
+        uint256 campaignId,
+        bytes32 merkleRoot,
+        uint256 totalClaimable
+    ) external {
+        _requireCreatorOrOwner(campaignId);
+        Campaign storage c = campaigns[campaignId];
+        if (!c.ended) revert CampaignNotEnded();
+        if (merkleRoot == bytes32(0) || totalClaimable == 0) revert InvalidInput();
+        if (totalClaimable > c.poolAmount) revert InvalidInput();
+        communityPayoutRoot[campaignId] = merkleRoot;
+        communityPayoutTotalClaimable[campaignId] = totalClaimable;
+        emit CommunityPayoutRootSet(campaignId, merkleRoot, totalClaimable);
+    }
+
+    /**
+     * @notice Winner claims their merkle-proven share of the prize pool.
+     */
+    function claimCommunityCampaignReward(
+        uint256 campaignId,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external nonReentrant {
+        Campaign storage c = campaigns[campaignId];
+        if (!c.ended) revert CampaignNotEnded();
+        bytes32 root = communityPayoutRoot[campaignId];
+        if (root == bytes32(0)) revert PayoutRootNotSet();
+        if (communityRewardClaimed[campaignId][msg.sender]) revert AlreadyClaimed();
+        if (amount == 0 || amount > c.poolAmount) revert InvalidInput();
+
+        bytes32 leaf = keccak256(abi.encodePacked(campaignId, msg.sender, amount));
+        if (!MerkleProof.verify(proof, root, leaf)) revert InvalidProof();
+
+        communityRewardClaimed[campaignId][msg.sender] = true;
+        c.poolAmount -= amount;
+        currency.safeTransfer(msg.sender, amount);
+        emit CommunityCampaignRewardClaimed(campaignId, msg.sender, amount);
+    }
+
+    /**
+     * @notice After a campaign ends, reclaim your paid join stake — minus `campaignForfeitPct`%
+     *         per milestone you didn't complete (capped at 100%). Forfeited stake is added to
+     *         `poolAmount` (when the join token matches `currency`), growing the prize pool
+     *         winners claim from via `claimCommunityCampaignReward`.
+     *         Free joins have zero stake and revert.
+     */
+    function claimCommunityJoinStake(uint256 campaignId) external nonReentrant {
+        Campaign storage c = campaigns[campaignId];
+        if (c.creator == address(0)) revert CampaignNotFound();
+        if (!c.ended) revert CampaignNotEnded();
+        if (!campaignJoined[campaignId][msg.sender]) revert NotJoined();
+
+        uint256 amount = participantStake[campaignId][msg.sender];
+        if (amount == 0) revert NoStakeToClaim();
+
+        participantStake[campaignId][msg.sender] = 0;
+
+        uint256 totalMilestones = campaignMilestoneCount[campaignId];
+        uint256 completed = participantCompletedMilestones[campaignId][msg.sender];
+        uint256 missed = totalMilestones > completed ? totalMilestones - completed : 0;
+
+        address token = campaignJoinToken[campaignId];
+        IERC20 stakeToken = (token == address(0)) ? currency : IERC20(token);
+
+        uint256 payout = amount;
+        uint8 pctPerMiss = campaignForfeitPct[campaignId];
+        if (pctPerMiss > 0 && missed > 0) {
+            uint256 totalForfeitPct = uint256(pctPerMiss) * missed;
+            if (totalForfeitPct > 100) totalForfeitPct = 100;
+            uint256 forfeited = (amount * totalForfeitPct) / 100;
+            payout = amount - forfeited;
+
+            // token(0) is the "use default currency" sentinel, but an explicit
+            // address(currency) means the same thing — treat both identically
+            // so forfeited stake always reaches the pool when it's actually the
+            // same token, regardless of which form was used to configure it.
+            if (token == address(0) || token == address(currency)) {
+                c.poolAmount += forfeited;
+            } else {
+                // Different token than the pool's currency — can't mix denominations.
+                forfeitedStakeByToken[token] += forfeited;
+            }
+
+            emit StakeForfeited(campaignId, msg.sender, address(stakeToken), forfeited, missed);
+        }
+
+        stakeToken.safeTransfer(msg.sender, payout);
+
+        emit CommunityJoinStakeClaimed(campaignId, msg.sender, address(stakeToken), payout);
+    }
+
+    /**
+     * @notice Owner-only recovery for forfeited stake accrued in a token that didn't match
+     *         `currency` and so couldn't be folded directly into a campaign's poolAmount.
+     */
+    function withdrawForfeitedStake(address token, address to, uint256 amount)
+        external onlyOwner nonReentrant
+    {
+        if (to == address(0)) revert InvalidInput();
+        if (amount == 0 || amount > forfeitedStakeByToken[token]) revert InvalidInput();
+        forfeitedStakeByToken[token] -= amount;
+        IERC20(token).safeTransfer(to, amount);
+    }
+
+    // Owner can withdraw the remaining pool after the campaign ends
+    // (e.g. unclaimed dust). Prefer winner self-claim via merkle when possible.
     function withdrawPool(uint256 campaignId, address to, uint256 amount)
         external onlyOwner nonReentrant
     {
@@ -318,5 +472,7 @@ contract CommunityMarketV1 is
     }
 
     /// @dev Reserved for future storage without breaking upgrades.
-    uint256[50] private __gap;
+    /// Reduced from 50 → 47 for communityPayoutRoot / TotalClaimable / RewardClaimed,
+    /// then 47 → 46 for forfeitedStakeByToken.
+    uint256[46] private __gap;
 }

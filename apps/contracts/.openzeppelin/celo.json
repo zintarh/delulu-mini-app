@@ -4,6 +4,10 @@
     {
       "address": "0x7692199630F3865160fB1Fa496961251fA15aFEa",
       "kind": "uups"
+    },
+    {
+      "address": "0xE652E0cA7DACb6489928C6801D83356a016DcfE1",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -2220,6 +2224,436 @@
               "slot": "0"
             }
           ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "0a9850a786eca7906353f11fc665f86d0b0b1bc33c67aa950d83af82cc7950c7": {
+      "address": "0x3A77AC2305F4098cc94Cbd2431986f34C0f19786",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "currency",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC20)2208",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:54"
+          },
+          {
+            "label": "nextCampaignId",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:55"
+          },
+          {
+            "label": "campaigns",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_struct(Campaign)4352_storage)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:68"
+          },
+          {
+            "label": "campaignMilestoneCount",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:71"
+          },
+          {
+            "label": "campaignMilestoneURI",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:72"
+          },
+          {
+            "label": "campaignMilestoneStartTime",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:73"
+          },
+          {
+            "label": "campaignMilestoneDeadline",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:74"
+          },
+          {
+            "label": "campaignJoined",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:77"
+          },
+          {
+            "label": "participantPoints",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:78"
+          },
+          {
+            "label": "participantCompletedMilestones",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:79"
+          },
+          {
+            "label": "participantLastProofAt",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:80"
+          },
+          {
+            "label": "participantStreak",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:81"
+          },
+          {
+            "label": "milestoneCompleted",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_mapping(t_address,t_bool)))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:82"
+          },
+          {
+            "label": "campaignIsPaid",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:85"
+          },
+          {
+            "label": "campaignJoinToken",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:86"
+          },
+          {
+            "label": "campaignJoinAmount",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:87"
+          },
+          {
+            "label": "campaignForfeitPct",
+            "offset": 0,
+            "slot": "16",
+            "type": "t_mapping(t_uint256,t_uint8)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:88"
+          },
+          {
+            "label": "participantStake",
+            "offset": 0,
+            "slot": "17",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:89"
+          },
+          {
+            "label": "campaignParticipantCount",
+            "offset": 0,
+            "slot": "18",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:90"
+          },
+          {
+            "label": "communityPayoutRoot",
+            "offset": 0,
+            "slot": "19",
+            "type": "t_mapping(t_uint256,t_bytes32)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:93"
+          },
+          {
+            "label": "communityPayoutTotalClaimable",
+            "offset": 0,
+            "slot": "20",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:94"
+          },
+          {
+            "label": "communityRewardClaimed",
+            "offset": 0,
+            "slot": "21",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:95"
+          },
+          {
+            "label": "forfeitedStakeByToken",
+            "offset": 0,
+            "slot": "22",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:100"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "23",
+            "type": "t_array(t_uint256)46_storage",
+            "contract": "CommunityMarketV1",
+            "src": "contracts/CommunityMarketV1.sol:470"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)46_storage": {
+            "label": "uint256[46]",
+            "numberOfBytes": "1472"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)2208": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bytes32)": {
+            "label": "mapping(uint256 => bytes32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint256 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_mapping(t_address,t_bool)))": {
+            "label": "mapping(uint256 => mapping(uint256 => mapping(address => bool)))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_string_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => string))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))": {
+            "label": "mapping(uint256 => mapping(uint256 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Campaign)4352_storage)": {
+            "label": "mapping(uint256 => struct CommunityMarketV1.Campaign)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint8)": {
+            "label": "mapping(uint256 => uint8)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Campaign)4352_storage": {
+            "label": "struct CommunityMarketV1.Campaign",
+            "members": [
+              {
+                "label": "contentHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "poolAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "duration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "proofIntervalSeconds",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "active",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "ended",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "5"
+              },
+              {
+                "label": "creator",
+                "type": "t_address",
+                "offset": 2,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
           "erc7201:openzeppelin.storage.ReentrancyGuard": [
             {
               "contract": "ReentrancyGuardUpgradeable",

@@ -18,6 +18,7 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useUserPosition } from "@/hooks/use-user-position";
 import { useClaimWinnings } from "@/hooks/use-claim-winnings";
 import { useUserClaimableAmount } from "@/hooks/use-user-claimable-amount";
+import { recordAppEarned } from "@/lib/record-app-earned";
 import { useGraphDelulu, useGraphDeluluStakes } from "@/hooks/graph";
 import { useChallenges } from "@/hooks/use-challenges";
 import { useJoinChallenge } from "@/hooks/use-join-challenge";
@@ -106,6 +107,7 @@ import { cn } from "@/lib/utils";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import {
   DELULU_CHAIN_ID,
+  GOODDOLLAR_ADDRESSES,
   getDeluluContractAddress,
 } from "@/lib/constant";
 import {
@@ -227,6 +229,7 @@ export default function DeluluPage() {
 
   const {
     claim,
+    hash: claimHash,
     isPending: isClaiming,
     isConfirming: isClaimConfirming,
     isSuccess: isClaimSuccess,
@@ -249,6 +252,7 @@ export default function DeluluPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastClaimedAmount, setLastClaimedAmount] = useState<number | null>(null);
   const pendingClaimAmountRef = useRef<number | null>(null);
+  const recordedClaimTxRef = useRef<string | null>(null);
 
   const shareUrl =
     typeof window !== "undefined"
@@ -423,7 +427,7 @@ export default function DeluluPage() {
     ? walletBalanceNum.toFixed(2)
     : "0.00";
   const celoBalanceNum = celoBalance ? Number(celoBalance.formatted) : null;
-  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.001;
+  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.01;
 
   const toUsd = (amount: number | null | undefined): string | null => {
     if (!amount || !Number.isFinite(amount) || amount <= 0) return null;
@@ -840,25 +844,44 @@ export default function DeluluPage() {
   };
 
   useEffect(() => {
-    if (isClaimSuccess) {
-      setLastClaimedAmount(pendingClaimAmountRef.current ?? claimableAmount);
-      refetchAfterClaim(apolloClient, queryClient, deluluId);
-      (async () => {
-        try {
-          const confettiModule = await import("canvas-confetti");
-          const confetti = (confettiModule as any).default || confettiModule;
-          if (typeof confetti === "function") {
-            confetti({
-              particleCount: 90,
-              spread: 70,
-              origin: { y: 0.5 },
-              colors: ["#f6c324", "#22C55E", "#1F2937"],
-            });
-          }
-        } catch {}
-      })();
+    if (!isClaimSuccess) return;
+    const claimed = pendingClaimAmountRef.current ?? claimableAmount;
+    setLastClaimedAmount(claimed);
+    const recordKey = claimHash ?? `success-${deluluId}-${claimed}`;
+    if (claimed > 0 && address && recordedClaimTxRef.current !== recordKey) {
+      recordedClaimTxRef.current = recordKey;
+      recordAppEarned({
+        address,
+        amount: claimed,
+        tokenAddress: marketToken ?? GOODDOLLAR_ADDRESSES.mainnet,
+        kind: "reward",
+      });
     }
-  }, [isClaimSuccess, deluluId, apolloClient, queryClient]);
+    refetchAfterClaim(apolloClient, queryClient, deluluId);
+    (async () => {
+      try {
+        const confettiModule = await import("canvas-confetti");
+        const confetti = (confettiModule as any).default || confettiModule;
+        if (typeof confetti === "function") {
+          confetti({
+            particleCount: 90,
+            spread: 70,
+            origin: { y: 0.5 },
+            colors: ["#f6c324", "#22C55E", "#1F2937"],
+          });
+        }
+      } catch {}
+    })();
+  }, [
+    isClaimSuccess,
+    claimHash,
+    deluluId,
+    apolloClient,
+    queryClient,
+    claimableAmount,
+    address,
+    marketToken,
+  ]);
 
   const displayedClaimAmount =
     isClaimed || isClaimSuccess
@@ -1086,14 +1109,6 @@ export default function DeluluPage() {
     <>
       <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background pb-20 lg:pb-8">
         <DeluluDetailHeader
-          onBack={() => router.back()}
-          title={
-            deluluTitle
-              ? deluluTitle.length > 48
-                ? `${deluluTitle.slice(0, 48)}…`
-                : deluluTitle
-              : "Delulu"
-          }
           shareSlot={
             <DeluluShareMenu
               shareUrl={shareUrl}

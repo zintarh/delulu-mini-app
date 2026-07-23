@@ -80,6 +80,7 @@ function DiscoverCampaignsSection({
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <CampaignExploreCardSkeleton />
           <CampaignExploreCardSkeleton className="hidden lg:flex" />
+          <CampaignExploreCardSkeleton className="hidden lg:flex" />
         </div>
       </div>
     );
@@ -145,6 +146,7 @@ function GuestDiscoverCampaignsSection() {
         <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <CampaignExploreCardSkeleton />
+          <CampaignExploreCardSkeleton className="hidden md:flex" />
           <CampaignExploreCardSkeleton className="hidden md:flex" />
         </div>
       </div>

@@ -26,6 +26,9 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists total_claimed_gd numeric(24, 8) not null default 0;
 
+alter table public.profiles
+  add column if not exists total_earned_usdt numeric(24, 8) not null default 0;
+
 
 -- ── delulu_metadata ─────────────────────────────────────────
 create table if not exists public.delulu_metadata (

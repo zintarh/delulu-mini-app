@@ -9,7 +9,6 @@ import {
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
@@ -59,7 +58,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
 function MainLayoutShell({ children }: { children: React.ReactNode }) {
   const { authenticated } = useAuth();
-  const { navigateToCreate } = useNavigateToCreate();
   const router = useRouter();
 
   const handleProfileClick = () => {
@@ -74,7 +72,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
       <LogoutSheetProvider>
       <div className="h-screen overflow-hidden">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24">
-          <LeftSidebar onCreateClick={navigateToCreate} />
+          <LeftSidebar />
         </div>
 
         <div className="flex h-screen lg:pl-24">
@@ -91,10 +89,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <BottomNav
-          onProfileClick={handleProfileClick}
-          onCreateClick={navigateToCreate}
-        />
+        <BottomNav onProfileClick={handleProfileClick} />
       </div>
       </LogoutSheetProvider>
   );

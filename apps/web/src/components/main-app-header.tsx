@@ -22,6 +22,11 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: true, wideSearch: false };
   }
 
+  // Forfeit create flow owns its own back / Next header.
+  if (pathname.startsWith("/forfeit")) {
+    return { mobile: false, desktop: false, wideSearch: false };
+  }
+
   if (pathname.startsWith("/explore") || pathname.startsWith("/goals")) {
     return { mobile: true, desktop: true, wideSearch: true };
   }
@@ -35,6 +40,7 @@ export function usesNestedScroll(pathname: string): boolean {
     pathname.startsWith("/explore") ||
     pathname.startsWith("/goals") ||
     pathname.startsWith("/board") ||
+    pathname.startsWith("/forfeit") ||
     /^\/delulu\/[^/]+$/.test(pathname)
   );
 }

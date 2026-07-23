@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
-import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
   getMobileBottomNavItems,
   isMainNavItemActive,
@@ -19,10 +18,9 @@ import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 interface BottomNavProps {
   /** @deprecated Profile is not in main nav; kept for existing callers */
   onProfileClick?: () => void;
-  onCreateClick?: () => void;
 }
 
-export function BottomNav({ onCreateClick }: BottomNavProps) {
+export function BottomNav(_props: BottomNavProps = {}) {
   const pathname = usePathname();
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
@@ -36,10 +34,10 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
   const isHomeRoute = segment === null && path === "/";
 
   useEffect(() => {
-    ["/", "/wallet", "/explore", "/profile"].forEach((href) => router.prefetch(href));
+    ["/", "/rewards", "/explore", "/forfeit", "/profile"].forEach((href) =>
+      router.prefetch(href),
+    );
     const schedule = () => {
-      prefetchCreateDelusionContent();
-      prefetchCreateManifestStep();
       prefetchExploreOnIntent();
     };
     if (typeof window.requestIdleCallback === "function") {
@@ -49,12 +47,6 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
     const timer = window.setTimeout(schedule, 1500);
     return () => window.clearTimeout(timer);
   }, [router]);
-
-  const prefetchCreate = () => {
-    router.prefetch("/board");
-    prefetchCreateDelusionContent();
-    prefetchCreateManifestStep();
-  };
 
   const activeOptions = {
     isHomeRoute,
@@ -107,26 +99,6 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
               isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted",
             );
 
-            if (item.action === "create" && onCreateClick) {
-              return (
-                <button
-                  key={item.action}
-                  type="button"
-                  onClick={() => {
-                    closePanels();
-                    void onCreateClick();
-                  }}
-                  onMouseEnter={prefetchCreate}
-                  onTouchStart={prefetchCreate}
-                  className={itemClass}
-                  aria-label={item.label}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  {content}
-                </button>
-              );
-            }
-
             if (item.href) {
               return (
                 <Link
@@ -135,12 +107,10 @@ export function BottomNav({ onCreateClick }: BottomNavProps) {
                   onClick={() => closePanels()}
                   onMouseEnter={() => {
                     router.prefetch(item.href!);
-                    if (item.action === "create") prefetchCreate();
                     if (item.action === "explore") prefetchExploreOnIntent();
                   }}
                   onTouchStart={() => {
                     router.prefetch(item.href!);
-                    if (item.action === "create") prefetchCreate();
                     if (item.action === "explore") prefetchExploreOnIntent();
                   }}
                   className={itemClass}

@@ -9,11 +9,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
-import { prefetchCreateManifestStep, prefetchCreateDelusionContent } from "@/lib/prefetch-create-manifest";
 import {
   getMainNavItems,
   getProfileNavItem,
-  getWalletNavItem,
+  getRewardsNavItem,
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
@@ -41,11 +40,7 @@ function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) 
   );
 }
 
-interface LeftSidebarProps {
-  onCreateClick?: () => void | Promise<void>;
-}
-
-export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
+export function LeftSidebar() {
   const pathname = usePathname();
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
@@ -58,10 +53,10 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
   const { unreadCount } = useNotificationCount();
 
   useEffect(() => {
-    ["/", "/wallet", "/explore", "/profile", "/leaderboard"].forEach((href) => router.prefetch(href));
+    ["/", "/rewards", "/explore", "/forfeit", "/profile", "/leaderboard"].forEach(
+      (href) => router.prefetch(href),
+    );
     const schedule = () => {
-      prefetchCreateDelusionContent();
-      prefetchCreateManifestStep();
       prefetchExploreOnIntent();
     };
     if (typeof window.requestIdleCallback === "function") {
@@ -72,18 +67,12 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
     return () => window.clearTimeout(timer);
   }, [router]);
 
-  const prefetchCreate = () => {
-    router.prefetch("/board");
-    prefetchCreateDelusionContent();
-    prefetchCreateManifestStep();
-  };
-
   const path = normalizePathname(pathname ?? "");
   const isHomeRoute = segment === null && path === "/";
   const navItems = getMainNavItems(authenticated);
-  const walletItem = getWalletNavItem();
+  const rewardsItem = getRewardsNavItem();
   const profileItem = getProfileNavItem(authenticated);
-  const walletActive = isMainNavItemActive(walletItem, path, {
+  const rewardsActive = isMainNavItemActive(rewardsItem, path, {
     isHomeRoute,
     notificationsOpen,
     layoutSegment: segment,
@@ -142,21 +131,7 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
 
           return (
             <div key={action} className="group relative">
-              {action === "create" && onCreateClick ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    closePanels();
-                    void onCreateClick();
-                  }}
-                  onMouseEnter={prefetchCreate}
-                  className={itemCls(active)}
-                  aria-label={label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <NavIcon icon={icon} active={active} />
-                </button>
-              ) : href ? (
+              {href ? (
                 <Link
                   href={href}
                   className={itemCls(active)}
@@ -178,7 +153,6 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
                 <button
                   type="button"
                   onClick={handlePanelAction}
-                  onMouseEnter={action === "create" ? prefetchCreate : undefined}
                   className={itemCls(active)}
                   aria-label={label}
                   aria-expanded={
@@ -216,16 +190,16 @@ export function LeftSidebar({ onCreateClick }: LeftSidebarProps = {}) {
       <div className="mt-auto flex flex-col items-center gap-4 pt-4">
         <div className="group relative">
           <Link
-            href={walletItem.href!}
-            className={itemCls(walletActive)}
-            aria-label={walletItem.label}
-            aria-current={walletActive ? "page" : undefined}
+            href={rewardsItem.href!}
+            className={itemCls(rewardsActive)}
+            aria-label={rewardsItem.label}
+            aria-current={rewardsActive ? "page" : undefined}
             onClick={() => closePanels()}
-            onMouseEnter={() => router.prefetch(walletItem.href!)}
+            onMouseEnter={() => router.prefetch(rewardsItem.href!)}
           >
-            <NavIcon icon={walletItem.icon} active={walletActive} />
+            <NavIcon icon={rewardsItem.icon} active={rewardsActive} />
           </Link>
-          <Tooltip label={walletItem.label} />
+          <Tooltip label={rewardsItem.label} />
         </div>
 
         <div className="group relative">

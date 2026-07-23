@@ -1,32 +1,35 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { MainDesktopHeader } from "@/components/main-desktop-header";
 
 interface DeluluDetailHeaderProps {
-  onBack: () => void;
-  shareSlot: React.ReactNode;
+  shareSlot?: React.ReactNode;
   title?: string;
 }
 
 export function DeluluDetailHeader({
-  onBack,
   shareSlot,
-  title,
 }: DeluluDetailHeaderProps) {
   return (
     <>
-      <div className="lg:hidden sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
+      <div className="lg:hidden sticky top-0 z-30 bg-background/95 backdrop-blur-md">
         <div className="flex items-center gap-2 px-4 py-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            aria-label="Back"
+          <Link
+            href="/"
+            className="outline-none focus-visible:ring-2 focus-visible:ring-ring rounded flex items-center shrink-0"
+            aria-label="Delulu home"
           >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+            <Image
+              src="/favicon_io/favicon-32x32.png"
+              alt="Delulu"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0"
+            />
+          </Link>
           <div className="flex-1" />
           <div className="flex shrink-0 items-center gap-0.5">
             {shareSlot}

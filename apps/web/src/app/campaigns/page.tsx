@@ -85,10 +85,7 @@ export default function ChallengesPage() {
         </div>
       </div>
 
-      <BottomNav
-        onProfileClick={handleProfileClick}
-        onCreateClick={handleCreateClick}
-      />
+      <BottomNav onProfileClick={handleProfileClick} />
 
       <CreateChallengeSheet
         open={showCreateChallengeSheet}

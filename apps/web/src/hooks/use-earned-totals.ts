@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useClaimsTotalsByAddresses } from "@/hooks/graph/useClaimsTotalsByAddresses";
 
-async function fetchProfileClaimedGd(
+async function fetchProfileEarnedUsdt(
   addresses: string[],
 ): Promise<Record<string, number>> {
   if (addresses.length === 0) return {};
@@ -22,8 +21,9 @@ async function fetchProfileClaimedGd(
 }
 
 /**
- * Earned G$ = on-chain delulu reward claims (subgraph / wallet activity)
- *          + G$ claimed through the app (profiles.total_claimed_gd).
+ * Earned = USDT-equivalent of everything received via the app
+ * (UBI + delulu rewards in G$/USDT/cUSD/…; CELO excluded).
+ * Stored on profiles.total_earned_usdt at claim time.
  */
 export function useEarnedTotalsByAddresses(addresses: string[]) {
   const ids = useMemo(
@@ -32,53 +32,32 @@ export function useEarnedTotalsByAddresses(addresses: string[]) {
   );
   const idsKey = ids.join(",");
 
-  const { totalsByAddress: subgraphTotals, isLoading: subgraphLoading } =
-    useClaimsTotalsByAddresses(ids);
-
-  const [profileTotals, setProfileTotals] = useState<Record<string, number>>({});
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [totalsByAddress, setTotalsByAddress] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (ids.length === 0) {
-      setProfileTotals({});
+      setTotalsByAddress({});
       return;
     }
     let cancelled = false;
-    setProfileLoading(true);
-    fetchProfileClaimedGd(ids)
+    setIsLoading(true);
+    fetchProfileEarnedUsdt(ids)
       .then((totals) => {
-        if (!cancelled) setProfileTotals(totals);
+        if (!cancelled) setTotalsByAddress(totals);
       })
       .finally(() => {
-        if (!cancelled) setProfileLoading(false);
+        if (!cancelled) setIsLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, [idsKey, ids]);
 
-  const totalsByAddress = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const id of ids) {
-      map[id] = (subgraphTotals[id] ?? 0) + (profileTotals[id] ?? 0);
-    }
-    // Include any extra keys from either source (defensive).
-    for (const [id, amount] of Object.entries(subgraphTotals)) {
-      if (map[id] == null) map[id] = amount + (profileTotals[id] ?? 0);
-    }
-    for (const [id, amount] of Object.entries(profileTotals)) {
-      if (map[id] == null) map[id] = amount + (subgraphTotals[id] ?? 0);
-    }
-    return map;
-  }, [ids, subgraphTotals, profileTotals]);
-
-  return {
-    totalsByAddress,
-    isLoading: subgraphLoading || profileLoading,
-  };
+  return { totalsByAddress, isLoading };
 }
 
-/** Single-wallet earned total for wallet / home / settings. */
+/** Single-wallet earned total (USDT) for wallet / home / settings. */
 export function useUserEarnedTotal(address: string | undefined) {
   const addresses = useMemo(() => (address ? [address] : []), [address]);
   const { totalsByAddress, isLoading } = useEarnedTotalsByAddresses(addresses);
@@ -86,4 +65,16 @@ export function useUserEarnedTotal(address: string | undefined) {
     ? (totalsByAddress[address.toLowerCase()] ?? 0)
     : 0;
   return { totalEarned, isLoading };
+}
+
+/** Format earned USDT for compact UI (e.g. leaderboard). */
+export function formatEarnedUsdt(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return "$0";
+  if (amount >= 1000) {
+    return `$${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  }
+  return `$${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

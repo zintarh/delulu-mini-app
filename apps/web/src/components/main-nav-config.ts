@@ -1,9 +1,10 @@
 import {
   Compass,
+  Flame,
+  Gift,
   Home,
   Trophy,
   User,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -14,11 +15,11 @@ export type MainNavItem = {
   action:
     | "home"
     | "notifications"
-    | "create"
+    | "forfeit"
     | "explore"
     | "leaderboard"
     | "profile"
-    | "wallet";
+    | "rewards";
 };
 
 /** Normalize for comparisons; never use startsWith("/") — every path starts with "/". */
@@ -37,19 +38,25 @@ export function isNavHrefActive(pathname: string, href: string) {
 const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: "/", action: "home" },
   { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
+  { icon: Flame, label: "Forfeit", href: "/forfeit", action: "forfeit" },
 ];
 
-export function getWalletNavItem(): MainNavItem {
+export function getRewardsNavItem(): MainNavItem {
   return {
-    icon: Wallet,
-    label: "Wallet",
-    href: "/wallet",
-    action: "wallet",
+    icon: Gift,
+    label: "Rewards",
+    href: "/rewards",
+    action: "rewards",
   };
 }
 
+/** @deprecated Use getRewardsNavItem */
+export function getWalletNavItem(): MainNavItem {
+  return getRewardsNavItem();
+}
+
 /** Desktop left sidebar */
-export function getMainNavItems(authenticated: boolean): MainNavItem[] {
+export function getMainNavItems(_authenticated: boolean): MainNavItem[] {
   return [
     ...coreNavItems(),
     {
@@ -70,9 +77,9 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav — Wallet immediately before Profile */
+/** Mobile bottom nav — Rewards immediately before Profile */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [...coreNavItems(), getWalletNavItem(), getProfileNavItem(authenticated)];
+  return [...coreNavItems(), getRewardsNavItem(), getProfileNavItem(authenticated)];
 }
 
 export function isMainNavItemActive(
@@ -91,11 +98,16 @@ export function isMainNavItemActive(
       return options.isHomeRoute && !options.notificationsOpen;
     case "notifications":
       return options.notificationsOpen;
-    case "create":
-      return isNavHrefActive(path, "/board");
-    case "wallet":
+    case "forfeit":
       return (
+        options.layoutSegment === "forfeit" ||
+        isNavHrefActive(path, "/forfeit")
+      );
+    case "rewards":
+      return (
+        options.layoutSegment === "rewards" ||
         options.layoutSegment === "wallet" ||
+        isNavHrefActive(path, "/rewards") ||
         isNavHrefActive(path, "/wallet")
       );
     case "explore":

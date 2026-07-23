@@ -7,6 +7,8 @@ import {
   checkGoodDollarWhitelisted,
   useClaimSDK,
 } from "@/hooks/use-claim-sdk";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { recordAppEarned } from "@/lib/record-app-earned";
 
 export interface RefreshStatusResult {
   isWhitelisted: boolean;
@@ -214,15 +216,12 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      fetch("/api/profile/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          address,
-          amount: Number.isFinite(amountGd) ? amountGd : 0,
-        }),
-      }).catch(() => {});
+      recordAppEarned({
+        address,
+        amount: Number.isFinite(amountGd) ? amountGd : 0,
+        tokenAddress: GOODDOLLAR_ADDRESSES.mainnet,
+        kind: "ubi",
+      });
 
       await checkClaimStatus();
 

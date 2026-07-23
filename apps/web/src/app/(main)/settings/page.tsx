@@ -5,20 +5,16 @@ import { useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Award,
   ArrowLeft,
   Bell,
   BellOff,
   Check,
   ChevronRight,
-  Coins,
   Copy,
-  Flame,
   Loader2,
   LogOut,
   Mail,
   Send,
-  Target,
   Trophy,
   Wallet,
 } from "lucide-react";
@@ -32,8 +28,6 @@ import {
 } from "@/lib/web-push-client";
 import { useUserStore } from "@/stores/useUserStore";
 import { useTokenBalance } from "@/hooks/use-token-balance";
-import { useGraphUserStats } from "@/hooks/graph/useGraphUserStats";
-import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { usePfp } from "@/hooks/use-profile-pfp";
 
@@ -98,15 +92,6 @@ export default function SettingsPage() {
   const displayUsername = contractUsername || user?.username || null;
   const email = user?.email ?? null;
   const pfpUrl = usePfp(address) ?? user?.pfpUrl ?? null;
-
-  const {
-    totalDelulus,
-    activeStakes,
-    totalStaked,
-    isLoading: isLoadingStats,
-    error: statsError,
-  } = useGraphUserStats(address);
-  const { totalEarned, isLoading: isLoadingEarned } = useUserEarnedTotal(address);
 
   const {
     formatted: gDollarBalance,
@@ -218,35 +203,6 @@ export default function SettingsPage() {
                 </div>
               </section>
 
-              {/* Stats */}
-              <section>
-                <SectionLabel>Stats</SectionLabel>
-                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                  <StatCard
-                    icon={<Target className="h-4 w-4" />}
-                    label="Delulus created"
-                    value={isLoadingStats || statsError ? "—" : String(totalDelulus)}
-                  />
-                  <StatCard
-                    icon={<Flame className="h-4 w-4" />}
-                    label="Active stakes"
-                    value={isLoadingStats || statsError ? "—" : String(activeStakes)}
-                  />
-                  <StatCard
-                    icon={<Coins className="h-4 w-4" />}
-                    label="Total staked"
-                    value={isLoadingStats || statsError ? "—" : totalStaked.toFixed(2)}
-                    suffix="G$"
-                  />
-                  <StatCard
-                    icon={<Award className="h-4 w-4" />}
-                    label="Total claimed"
-                    value={isLoadingEarned ? "—" : totalEarned.toFixed(2)}
-                    suffix="G$"
-                  />
-                </div>
-              </section>
-
               {/* Wallet balances */}
               <section>
                 <SectionLabel>Balances</SectionLabel>
@@ -300,9 +256,9 @@ export default function SettingsPage() {
                 <div className="mt-2.5 rounded-2xl border border-border/50 bg-card divide-y divide-border/40 overflow-hidden">
                   <LinkRow
                     icon={<Wallet className="w-4 h-4" />}
-                    title="Wallet"
-                    description="Balance, earnings, and transactions"
-                    href="/wallet"
+                    title="Rewards"
+                    description="Balance, claims, and earnings"
+                    href="/rewards"
                   />
                   <LinkRow
                     icon={
@@ -415,40 +371,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     >
       {children}
     </p>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  suffix,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  suffix?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5">
-      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted/60 text-muted-foreground">
-        {icon}
-      </span>
-      <p
-        className="mt-2.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-        style={MANROPE}
-      >
-        {label}
-      </p>
-      <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground leading-none">
-        {value}
-        {suffix && (
-          <span className="ml-1 text-xs text-muted-foreground font-semibold">
-            {suffix}
-          </span>
-        )}
-      </p>
-    </div>
   );
 }
 

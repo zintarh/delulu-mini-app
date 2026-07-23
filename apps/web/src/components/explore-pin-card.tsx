@@ -187,7 +187,7 @@ export function ExplorePinCard({
     query: { enabled: !!address },
   });
   const celoBalanceNum = celoBalance ? Number(celoBalance.formatted) : null;
-  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.001;
+  const hasNoGas = celoBalanceNum !== null && celoBalanceNum < 0.01;
 
   const toUsd = (amount: number | null | undefined) =>
     formatUsdEquivalent(amount ?? 0, effectiveTokenAddress, gDollarUsdPrice);

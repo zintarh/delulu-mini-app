@@ -82,6 +82,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith(`${BASE}/broadcasts`)) return "Broadcasts";
   if (pathname.startsWith(`${BASE}/send-email`)) return "Email";
   if (pathname.startsWith(`${BASE}/users`)) return "Users";
+  if (pathname.startsWith(`${BASE}/leaderboard`)) return "Leaderboard";
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
   if (pathname.startsWith(`${BASE}/communities`)) return "Communities";
@@ -208,6 +209,13 @@ export function AdminShell({
                 label="Users"
                 href={`${BASE}/users`}
                 active={pathname.startsWith(`${BASE}/users`)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={Trophy}
+                label="Leaderboard"
+                href={`${BASE}/leaderboard`}
+                active={pathname.startsWith(`${BASE}/leaderboard`)}
                 onNavigate={closeMobile}
               />
             </>

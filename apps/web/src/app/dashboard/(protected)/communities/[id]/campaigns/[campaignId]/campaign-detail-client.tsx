@@ -44,7 +44,7 @@ import {
   useUpdateCampaign,
   type DashboardCampaign,
 } from "@/hooks/dashboard/use-dashboard-campaigns";
-import { useEndCommunityChallenge } from "@/hooks/use-community-campaign-onchain";
+import { useEndCommunityChallenge, useSetCommunityPayoutRoot } from "@/hooks/use-community-campaign-onchain";
 import { CampaignMilestonesModal } from "@/components/dashboard/campaign-milestones-modal";
 import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
 import { ApproveCampaignModal } from "@/components/dashboard/approve-campaign-modal";
@@ -302,7 +302,9 @@ export function CampaignDetailClient({
   const [milestonesAutoGenerate, setMilestonesAutoGenerate] = useState(false);
   const [milestones, setMilestones] = useState<CommunityCampaignMilestoneRow[]>([]);
   const [milestoneCount, setMilestoneCount] = useState(0);
-  const [endStep, setEndStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
+  const [endStep, setEndStep] = useState<
+    "idle" | "signing" | "confirming" | "publishing" | "done" | "error"
+  >("idle");
   const [endError, setEndError] = useState<string | null>(null);
   const [submitPending, setSubmitPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -314,6 +316,8 @@ export function CampaignDetailClient({
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
   const { endCommunityChallenge, isPending: isEndingOnChain } = useEndCommunityChallenge();
+  const { setCommunityPayoutRootAndWait, isPending: isPublishingRoot } =
+    useSetCommunityPayoutRoot();
 
   const handleEndCampaign = async () => {
     if (campaign?.on_chain_challenge_id == null) return;
@@ -327,10 +331,38 @@ export function CampaignDetailClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ txHash: hash }),
       });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
         throw new Error((json as { error?: string }).error ?? "Failed to confirm end");
       }
+
+      const payout = (json as {
+        payout?: { merkleRoot?: string; totalClaimableWei?: string } | null;
+      }).payout;
+
+      if (payout?.merkleRoot && payout.totalClaimableWei) {
+        setEndStep("publishing");
+        const rootHash = await setCommunityPayoutRootAndWait({
+          challengeId: campaign.on_chain_challenge_id,
+          merkleRoot: payout.merkleRoot as `0x${string}`,
+          totalClaimableWei: BigInt(payout.totalClaimableWei),
+        });
+        const pubRes = await fetch(
+          `/api/dashboard/campaigns/${campaignId}/confirm-payout-root`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ txHash: rootHash, merkleRoot: payout.merkleRoot }),
+          },
+        );
+        if (!pubRes.ok) {
+          const pubJson = await pubRes.json().catch(() => ({}));
+          throw new Error(
+            (pubJson as { error?: string }).error ?? "Failed to confirm payout root",
+          );
+        }
+      }
+
       setEndStep("done");
       void refetch();
     } catch (err) {
@@ -417,25 +449,50 @@ export function CampaignDetailClient({
 
       <DashboardModal
         open={endModalOpen}
-        onOpenChange={(o: boolean) => { if (!isEndingOnChain && endStep !== "confirming") setEndModalOpen(o); }}
+        onOpenChange={(o: boolean) => {
+          if (
+            !isEndingOnChain &&
+            !isPublishingRoot &&
+            endStep !== "confirming" &&
+            endStep !== "publishing"
+          ) {
+            setEndModalOpen(o);
+          }
+        }}
         title="End campaign"
-        description={`This will permanently close "${campaign.title}" on-chain. Participants will no longer be able to submit proofs.`}
+        description={`This will permanently close "${campaign.title}" on-chain, then publish winner payouts so prize-zone participants can claim.`}
       >
         <div className="space-y-4 pt-2 text-sm">
           {endStep === "done" ? (
-            <p className="font-semibold text-emerald-700">Campaign ended successfully.</p>
+            <p className="font-semibold text-emerald-700">
+              Campaign ended. Winner payouts are live — participants in the prize zone can claim.
+            </p>
           ) : null}
           {endError ? <p className="text-xs text-destructive">{endError}</p> : null}
           {endStep !== "done" ? (
             <DashboardPrimaryButton
               className="w-full bg-red-600 hover:bg-red-700"
-              disabled={isEndingOnChain || endStep === "signing" || endStep === "confirming"}
+              disabled={
+                isEndingOnChain ||
+                isPublishingRoot ||
+                endStep === "signing" ||
+                endStep === "confirming" ||
+                endStep === "publishing"
+              }
               onClick={() => void handleEndCampaign()}
             >
-              {isEndingOnChain || endStep === "signing" || endStep === "confirming" ? (
+              {isEndingOnChain ||
+              isPublishingRoot ||
+              endStep === "signing" ||
+              endStep === "confirming" ||
+              endStep === "publishing" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              {endStep === "confirming" ? "Confirming…" : "Confirm end campaign"}
+              {endStep === "publishing"
+                ? "Publishing payouts…"
+                : endStep === "confirming"
+                  ? "Confirming…"
+                  : "Confirm end campaign"}
             </DashboardPrimaryButton>
           ) : null}
         </div>

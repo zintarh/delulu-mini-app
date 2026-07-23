@@ -1,0 +1,13 @@
+{
+  "network": "celo",
+  "chainId": 42220,
+  "contract": "RewardVault",
+  "proxy": "0xFE5a411b47F88198038EcE3177C19Ea043398c02",
+  "implementation": "0x628D7B7350BbaF8F47EFa0E8b0480807a8A880d6",
+  "address": "0xFE5a411b47F88198038EcE3177C19Ea043398c02",
+  "startBlock": 72927299,
+  "owner": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
+  "rewarder": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
+  "deployedAt": "2026-07-23",
+  "upgradeable": "uups"
+}

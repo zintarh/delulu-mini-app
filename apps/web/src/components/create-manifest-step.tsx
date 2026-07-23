@@ -21,14 +21,13 @@ import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { GOODDOLLAR_ADDRESSES, TOKEN_LOGOS, isGoodDollarToken } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { formatUsdEquivalent, getMinStakeWhole, getTokenSymbol } from "@/lib/token-amounts";
-import { useBalance } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { useNoGas } from "@/contexts/no-gas-context";
+import { useHasGas } from "@/hooks/use-has-gas";
 import { cn } from "@/lib/utils";
-import { CELO_MAINNET_ID } from "@/lib/constant";
 import { useUserStore } from "@/stores/useUserStore";
 import { type GatekeeperConfig } from "@/lib/ipfs";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
@@ -128,6 +127,7 @@ export function CreateManifestStep({
   const router = useRouter();
   const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
   const { trigger: triggerNoGas } = useNoGas();
+  const { isLowGas, isLoading: isGasLoading, balanceKnown } = useHasGas();
   const { user } = useUserStore();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const apolloClient = useApolloClient();
@@ -169,12 +169,6 @@ export function CreateManifestStep({
   const [errorMessage, setErrorMessage] = useState("");
   const [showNewUserGdModal, setShowNewUserGdModal] = useState(false);
   const [isNewUserSession, setIsNewUserSession] = useState(false);
-
-  const { data: celoBalance } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!address },
-  });
 
   const {
     createDelulu,
@@ -471,11 +465,10 @@ export function CreateManifestStep({
     const allowed = await ensureWhitelisted("create", selectedToken);
     if (!allowed) return;
 
-    const nativeBalance =
-      celoBalance && Number(celoBalance.formatted) > 0
-        ? Number(celoBalance.formatted)
-        : 0;
-    if (nativeBalance < 0.005) {
+    // Only block when CELO is confirmed below 0.01 — never on loading/unknown.
+    if (isGasLoading || !balanceKnown) {
+      // Balance still resolving; let the write path surface a real gas error if needed.
+    } else if (isLowGas) {
       triggerNoGas();
       return;
     }

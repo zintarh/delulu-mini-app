@@ -5,17 +5,26 @@ import {
   requireAuthenticatedWallet,
   walletAuthErrorResponse,
 } from "@/lib/auth/wallet-session";
+import {
+  DEFAULT_EARNED_TOKEN,
+  tokenAmountToUsdt,
+} from "@/lib/earned-usdt";
 
-const MAX_CLAIM_AMOUNT_GD = 1_000_000;
+const MAX_TOKEN_AMOUNT = 1_000_000;
+const MAX_USDT_AMOUNT = 1_000_000;
 
-function parseClaimAmount(raw: unknown): number {
+function parsePositiveAmount(raw: unknown, max: number): number {
   if (raw == null) return 0;
   const n = typeof raw === "number" ? raw : Number(raw);
   if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.min(n, MAX_CLAIM_AMOUNT_GD);
+  return Math.min(n, max);
 }
 
-/** GET — batch fetch total_claimed_gd for leaderboard / wallet earned. */
+function parseKind(raw: unknown): "ubi" | "reward" {
+  return raw === "ubi" ? "ubi" : "reward";
+}
+
+/** GET — batch fetch total_earned_usdt for leaderboard / wallet. */
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
@@ -39,11 +48,28 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("address, total_claimed_gd")
+      .select("address, total_earned_usdt")
       .in("address", addresses);
 
-    // Column may not exist until migration is applied — treat as all zeros.
     if (error) {
+      // Fall back to legacy total_claimed_gd if new column not migrated yet.
+      if (/total_earned_usdt/i.test(error.message)) {
+        const legacy = await supabase
+          .from("profiles")
+          .select("address, total_claimed_gd")
+          .in("address", addresses);
+        if (legacy.error) {
+          console.warn("[profile/claim] batch get:", legacy.error.message);
+          return NextResponse.json({ totals: {} });
+        }
+        const totals: Record<string, number> = {};
+        for (const row of legacy.data ?? []) {
+          const addr = String(row.address).toLowerCase();
+          const amount = Number(row.total_claimed_gd);
+          totals[addr] = Number.isFinite(amount) ? amount : 0;
+        }
+        return NextResponse.json({ totals });
+      }
       console.warn("[profile/claim] batch get:", error.message);
       return NextResponse.json({ totals: {} });
     }
@@ -51,7 +77,7 @@ export async function GET(request: NextRequest) {
     const totals: Record<string, number> = {};
     for (const row of data ?? []) {
       const addr = String(row.address).toLowerCase();
-      const amount = Number(row.total_claimed_gd);
+      const amount = Number(row.total_earned_usdt);
       totals[addr] = Number.isFinite(amount) ? amount : 0;
     }
 
@@ -65,7 +91,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("[profile/claim] batch get error:", error);
-    return NextResponse.json({ error: "Failed to fetch claimed totals" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch earned totals" }, { status: 500 });
   }
 }
 
@@ -77,7 +103,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "address is required" }, { status: 400 });
     }
 
-    const amountGd = parseClaimAmount(body.amount);
+    const kind = parseKind(body.kind);
+    const tokenAddress =
+      typeof body.tokenAddress === "string" && body.tokenAddress.startsWith("0x")
+        ? body.tokenAddress
+        : DEFAULT_EARNED_TOKEN;
+
+    // Prefer explicit USDT amount from client; otherwise convert token amount.
+    let amountUsdt = parsePositiveAmount(body.amountUsdt, MAX_USDT_AMOUNT);
+    if (amountUsdt <= 0) {
+      const tokenAmount = parsePositiveAmount(body.amount, MAX_TOKEN_AMOUNT);
+      amountUsdt = await tokenAmountToUsdt(tokenAmount, tokenAddress);
+      amountUsdt = Math.min(amountUsdt, MAX_USDT_AMOUNT);
+    }
+
     const normalizedAddress = address.toLowerCase();
     try {
       requireAuthenticatedWallet(request, normalizedAddress);
@@ -93,27 +132,42 @@ export async function POST(request: NextRequest) {
     let existing: {
       address: string;
       claim_count: number | null;
+      total_earned_usdt?: number | string | null;
       total_claimed_gd?: number | string | null;
     } | null = null;
-    let supportsClaimedGd = true;
+    let earnedColumn: "total_earned_usdt" | "total_claimed_gd" | null =
+      "total_earned_usdt";
 
     {
       const { data, error: selectError } = await supabase
         .from("profiles")
-        .select("address, claim_count, total_claimed_gd")
+        .select("address, claim_count, total_earned_usdt")
         .ilike("address", normalizedAddress)
         .maybeSingle();
       if (selectError) {
-        // Migration not applied yet — fall back to claim_count only.
-        if (/total_claimed_gd/i.test(selectError.message)) {
-          supportsClaimedGd = false;
+        if (/total_earned_usdt/i.test(selectError.message)) {
           const fallback = await supabase
             .from("profiles")
-            .select("address, claim_count")
+            .select("address, claim_count, total_claimed_gd")
             .ilike("address", normalizedAddress)
             .maybeSingle();
-          if (fallback.error) throw fallback.error;
-          existing = fallback.data;
+          if (fallback.error) {
+            if (/total_claimed_gd/i.test(fallback.error.message)) {
+              earnedColumn = null;
+              const bare = await supabase
+                .from("profiles")
+                .select("address, claim_count")
+                .ilike("address", normalizedAddress)
+                .maybeSingle();
+              if (bare.error) throw bare.error;
+              existing = bare.data;
+            } else {
+              throw fallback.error;
+            }
+          } else {
+            earnedColumn = "total_claimed_gd";
+            existing = fallback.data;
+          }
         } else {
           throw selectError;
         }
@@ -122,16 +176,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const nextCount = (existing?.claim_count ?? 0) + 1;
-    const prevClaimed = Number(existing?.total_claimed_gd);
-    const nextClaimedGd =
-      (Number.isFinite(prevClaimed) ? prevClaimed : 0) + amountGd;
+    const nextCount =
+      kind === "ubi" ? (existing?.claim_count ?? 0) + 1 : (existing?.claim_count ?? 0);
 
-    const basePayload = {
-      claim_count: nextCount,
+    const prevEarnedRaw =
+      earnedColumn === "total_earned_usdt"
+        ? existing?.total_earned_usdt
+        : earnedColumn === "total_claimed_gd"
+          ? existing?.total_claimed_gd
+          : 0;
+    const prevEarned = Number(prevEarnedRaw);
+    const nextEarned =
+      (Number.isFinite(prevEarned) ? prevEarned : 0) + amountUsdt;
+
+    const basePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
-      ...(supportsClaimedGd ? { total_claimed_gd: nextClaimedGd } : {}),
     };
+    if (kind === "ubi") {
+      basePayload.claim_count = nextCount;
+    }
+    if (earnedColumn && amountUsdt > 0) {
+      basePayload[earnedColumn] = nextEarned;
+    }
 
     if (existing) {
       const { error: updateError } = await supabase
@@ -143,28 +209,32 @@ export async function POST(request: NextRequest) {
       const { error: insertError } = await supabase.from("profiles").insert({
         address: normalizedAddress,
         email: `${normalizedAddress}@wallet.local`,
-        ...basePayload,
+        claim_count: kind === "ubi" ? nextCount : 0,
+        ...(earnedColumn && amountUsdt > 0 ? { [earnedColumn]: nextEarned } : {}),
+        updated_at: new Date().toISOString(),
       });
       if (insertError) throw insertError;
     }
 
     let communityLogOk = true;
-    try {
-      await logCommunityMemberDailyClaim(supabase, normalizedAddress);
-    } catch (claimLogErr) {
-      communityLogOk = false;
-      console.error("[profile/claim] community claim log error:", claimLogErr);
+    if (kind === "ubi") {
+      try {
+        await logCommunityMemberDailyClaim(supabase, normalizedAddress);
+      } catch (claimLogErr) {
+        communityLogOk = false;
+        console.error("[profile/claim] community claim log error:", claimLogErr);
+      }
     }
 
     return NextResponse.json({
       success: true,
       claim_count: nextCount,
-      total_claimed_gd: supportsClaimedGd ? nextClaimedGd : undefined,
-      amount_recorded: amountGd,
+      total_earned_usdt: earnedColumn ? nextEarned : undefined,
+      amount_usdt_recorded: amountUsdt,
       community_log_ok: communityLogOk,
     });
   } catch (error) {
     console.error("[profile/claim] increment error:", error);
-    return NextResponse.json({ error: "Failed to increment claim count" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to record earned amount" }, { status: 500 });
   }
 }

@@ -145,10 +145,7 @@ export default function ChallengeDetailPage() {
         </div>
       </div>
 
-      <BottomNav
-        onProfileClick={handleProfileClick}
-        onCreateClick={handleCreateClick}
-      />
+      <BottomNav onProfileClick={handleProfileClick} />
     </div>
   );
 }

@@ -41,6 +41,19 @@ export function getCommunityMarketV1Address(chainId?: number): `0x${string}` {
   return addr as `0x${string}`;
 }
 
+/** Admin-granted, user-claimed reward vault — separate from the Delulu proxy and its treasury/stakes. */
+export const REWARD_VAULT_ADDRESSES = {
+  mainnet: process.env.NEXT_PUBLIC_REWARD_VAULT_MAINNET || "",
+  sepolia: process.env.NEXT_PUBLIC_REWARD_VAULT_SEPOLIA || "",
+} as const;
+
+export function getRewardVaultAddress(chainId?: number): `0x${string}` {
+  const addr =
+    chainId === CELO_SEPOLIA_ID ? REWARD_VAULT_ADDRESSES.sepolia : REWARD_VAULT_ADDRESSES.mainnet;
+  if (!addr) throw new Error("RewardVault address not configured. Set NEXT_PUBLIC_REWARD_VAULT_MAINNET.");
+  return addr as `0x${string}`;
+}
+
 
 
 export const CUSD_ADDRESSES = {

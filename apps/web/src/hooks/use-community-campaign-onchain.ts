@@ -199,6 +199,204 @@ export function useEndCommunityChallenge() {
   };
 }
 
+export function useSetCommunityPayoutRoot() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, data: hash, isPending, error, reset } =
+    useUnifiedWriteContract();
+
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
+  const setCommunityPayoutRoot = async (input: {
+    challengeId: number | bigint;
+    merkleRoot: `0x${string}`;
+    totalClaimableWei: bigint;
+  }) => {
+    return writeContractAsync({
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
+      functionName: "setCommunityPayoutRoot",
+      args: [
+        BigInt(input.challengeId),
+        input.merkleRoot,
+        input.totalClaimableWei,
+      ],
+    });
+  };
+
+  const setCommunityPayoutRootAndWait = async (
+    input: Parameters<typeof setCommunityPayoutRoot>[0],
+  ) => {
+    const txHash = await setCommunityPayoutRoot(input);
+    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
+  };
+
+  return {
+    setCommunityPayoutRoot,
+    setCommunityPayoutRootAndWait,
+    hash,
+    isPending: isPending || isConfirming,
+    isSuccess,
+    isError: !!error || !!receiptError,
+    reset,
+  };
+}
+
+export function useClaimCommunityCampaignReward() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, data: hash, isPending, error, reset } =
+    useUnifiedWriteContract();
+
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
+  const claimCommunityCampaignReward = async (input: {
+    challengeId: number | bigint;
+    amountWei: bigint;
+    proof: `0x${string}`[];
+  }) => {
+    return writeContractAsync({
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
+      functionName: "claimCommunityCampaignReward",
+      args: [BigInt(input.challengeId), input.amountWei, input.proof],
+    });
+  };
+
+  const claimCommunityCampaignRewardAndWait = async (
+    input: Parameters<typeof claimCommunityCampaignReward>[0],
+  ) => {
+    const txHash = await claimCommunityCampaignReward(input);
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") {
+        throw new Error("Claim transaction failed on-chain");
+      }
+    }
+    return txHash;
+  };
+
+  const isError = !!error || !!receiptError;
+  let errorMessage: string | null = null;
+  if (error || receiptError) {
+    try {
+      const err = error || receiptError;
+      if (err && typeof err === "object" && "data" in err) {
+        const decoded = decodeErrorResult({
+          abi: COMMUNITY_CAMPAIGN_ABI,
+          data: err.data as `0x${string}`,
+        });
+        errorMessage =
+          decoded.errorName === "AlreadyClaimed"
+            ? "You already claimed this reward."
+            : decoded.errorName === "InvalidProof"
+              ? "Invalid claim proof."
+              : decoded.errorName === "PayoutRootNotSet"
+                ? "Payouts are not live yet."
+                : decoded.errorName === "NoStakeToClaim"
+                  ? "No join stake to reclaim."
+                  : decoded.errorName === "CampaignNotEnded"
+                    ? "Campaign has not ended yet."
+                    : decoded.errorName || "Transaction failed";
+      } else if (err && typeof err === "object" && "message" in err) {
+        errorMessage = formatOnChainError(err.message as string);
+      }
+    } catch {
+      errorMessage = formatOnChainError(error?.message || receiptError?.message || "");
+    }
+  }
+
+  return {
+    claimCommunityCampaignReward,
+    claimCommunityCampaignRewardAndWait,
+    hash,
+    isPending: isPending || isConfirming,
+    isSuccess,
+    isError,
+    errorMessage,
+    reset,
+  };
+}
+
+export function useClaimCommunityJoinStake() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, data: hash, isPending, error, reset } =
+    useUnifiedWriteContract();
+
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
+  const claimCommunityJoinStake = async (challengeId: number | bigint) => {
+    return writeContractAsync({
+      address: getCommunityMarketV1Address(chainId),
+      abi: COMMUNITY_CAMPAIGN_ABI,
+      functionName: "claimCommunityJoinStake",
+      args: [BigInt(challengeId)],
+    });
+  };
+
+  const claimCommunityJoinStakeAndWait = async (challengeId: number | bigint) => {
+    const txHash = await claimCommunityJoinStake(challengeId);
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") {
+        throw new Error("Stake reclaim transaction failed on-chain");
+      }
+    }
+    return txHash;
+  };
+
+  const isError = !!error || !!receiptError;
+  let errorMessage: string | null = null;
+  if (error || receiptError) {
+    try {
+      const err = error || receiptError;
+      if (err && typeof err === "object" && "data" in err) {
+        const decoded = decodeErrorResult({
+          abi: COMMUNITY_CAMPAIGN_ABI,
+          data: err.data as `0x${string}`,
+        });
+        errorMessage =
+          decoded.errorName === "NoStakeToClaim"
+            ? "No join stake to reclaim."
+            : decoded.errorName === "CampaignNotEnded"
+              ? "Campaign has not ended yet."
+              : decoded.errorName === "NotJoined"
+                ? "You did not join this campaign."
+                : decoded.errorName || "Transaction failed";
+      } else if (err && typeof err === "object" && "message" in err) {
+        errorMessage = formatOnChainError(err.message as string);
+      }
+    } catch {
+      errorMessage = formatOnChainError(error?.message || receiptError?.message || "");
+    }
+  }
+
+  return {
+    claimCommunityJoinStake,
+    claimCommunityJoinStakeAndWait,
+    hash,
+    isPending: isPending || isConfirming,
+    isSuccess,
+    isError,
+    errorMessage,
+    reset,
+  };
+}
+
 export function useSetCommunityCampaignEconomics() {
   const chainId = useChainId();
   const publicClient = usePublicClient();

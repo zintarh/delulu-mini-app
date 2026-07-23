@@ -1,12 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createPublicClient, formatUnits, http } from "viem";
+import { celo } from "viem/chains";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import { parseCommunityChallengeEndedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
+import { getCommunityMarketV1Address, DELULU_CHAIN_ID } from "@/lib/constant";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
+import {
+  buildWinnerPayoutSnapshot,
+  persistPayoutSnapshot,
+} from "@/lib/community/build-payout-snapshot";
 
 export const dynamic = "force-dynamic";
+
+const publicClient = createPublicClient({
+  chain: celo,
+  transport: http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org"),
+});
+
+/**
+ * Live on-chain poolAmount, not the DB's proposed_pool_amount — the pool grows
+ * after creation via fundCommunityChallenge and, since the forfeit feature, via
+ * forfeited stake from claimCommunityJoinStake. Snapshotting off the DB field
+ * would silently exclude any of that from what winners can actually claim.
+ */
+async function readOnChainPoolAmountHuman(challengeId: number): Promise<number> {
+  const contract = getCommunityMarketV1Address(DELULU_CHAIN_ID);
+  const result = await publicClient.readContract({
+    address: contract,
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    functionName: "campaigns",
+    args: [BigInt(challengeId)],
+  });
+  const poolAmountWei = (result as readonly unknown[])[1] as bigint;
+  return Number(formatUnits(poolAmountWei, 18));
+}
 
 export async function POST(
   request: NextRequest,
@@ -27,7 +58,9 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, community_id, status, on_chain_challenge_id")
+    .select(
+      "id, community_id, status, on_chain_challenge_id, proposed_pool_amount, prize_winner_count, payout_merkle_root",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -44,35 +77,107 @@ export async function POST(
   if (!canEndDashboardCampaign(campaign.status, campaign.on_chain_challenge_id)) {
     return NextResponse.json({ error: "Campaign cannot be ended in its current state." }, { status: 400 });
   }
-  if (campaign.status === "ended") {
-    return NextResponse.json({ campaign: { id: campaign.id, status: "ended" } });
+
+  if (campaign.status !== "ended") {
+    let parsed;
+    try {
+      parsed = await parseCommunityChallengeEndedFromTx(txHash);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Failed to read transaction" },
+        { status: 400 },
+      );
+    }
+
+    if (!parsed || Number(parsed.challengeId) !== campaign.on_chain_challenge_id) {
+      return NextResponse.json({ error: "CommunityChallengeEnded event not found." }, { status: 400 });
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await admin
+      .from("community_campaigns")
+      .update({ status: "ended", ended_at: now, ended_by: session.userId, updated_at: now })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await logCampaignEvent(id, "ended", session.userId, { tx_hash: txHash });
   }
 
-  let parsed;
-  try {
-    parsed = await parseCommunityChallengeEndedFromTx(txHash);
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to read transaction" },
-      { status: 400 },
-    );
-  }
+  let payout: {
+    merkleRoot: string;
+    totalClaimableWei: string;
+    winnerCount: number;
+  } | null = null;
 
-  if (!parsed || Number(parsed.challengeId) !== campaign.on_chain_challenge_id) {
-    return NextResponse.json({ error: "CommunityChallengeEnded event not found." }, { status: 400 });
-  }
-
-  const now = new Date().toISOString();
-  const { data, error } = await admin
+  const { data: fresh } = await admin
     .from("community_campaigns")
-    .update({ status: "ended", ended_at: now, ended_by: session.userId, updated_at: now })
+    .select("payout_merkle_root, payout_total_claimable_wei")
     .eq("id", id)
-    .select("id, status")
+    .maybeSingle();
+
+  if (!fresh?.payout_merkle_root) {
+    const { data: participants } = await admin
+      .from("campaign_participants")
+      .select("wallet_address, points_total")
+      .eq("campaign_id", id)
+      .order("points_total", { ascending: false });
+
+    try {
+      let poolAmountHuman: number;
+      try {
+        poolAmountHuman = await readOnChainPoolAmountHuman(campaign.on_chain_challenge_id);
+      } catch (err) {
+        console.warn(
+          "[confirm-end] on-chain poolAmount read failed, falling back to proposed_pool_amount:",
+          err instanceof Error ? err.message : err,
+        );
+        poolAmountHuman = Number(campaign.proposed_pool_amount ?? 0);
+      }
+
+      const snapshot = buildWinnerPayoutSnapshot({
+        campaignIdOnChain: campaign.on_chain_challenge_id,
+        prizeWinnerCount: Number(campaign.prize_winner_count ?? 10),
+        poolAmountHuman,
+        leaderboard: (participants ?? []).map((p) => ({
+          wallet_address: p.wallet_address,
+          points_total: Number(p.points_total ?? 0),
+        })),
+      });
+      await persistPayoutSnapshot(admin, id, snapshot);
+      payout = {
+        merkleRoot: snapshot.merkleRoot,
+        totalClaimableWei: snapshot.totalClaimableWei,
+        winnerCount: snapshot.winners.length,
+      };
+      await logCampaignEvent(id, "payout_snapshot", session.userId, {
+        merkle_root: snapshot.merkleRoot,
+        winner_count: snapshot.winners.length,
+      });
+    } catch (err) {
+      payout = null;
+      console.warn(
+        "[confirm-end] payout snapshot skipped:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  } else {
+    payout = {
+      merkleRoot: fresh.payout_merkle_root,
+      totalClaimableWei: fresh.payout_total_claimable_wei ?? "0",
+      winnerCount: 0,
+    };
+  }
+
+  const { data } = await admin
+    .from("community_campaigns")
+    .select(
+      "id, status, payout_merkle_root, payout_total_claimable_wei, on_chain_challenge_id, payout_published_at",
+    )
+    .eq("id", id)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  await logCampaignEvent(id, "ended", session.userId, { tx_hash: txHash });
-
-  return NextResponse.json({ campaign: data });
+  return NextResponse.json({
+    campaign: data,
+    payout,
+  });
 }

@@ -11,6 +11,7 @@ import {
   Check,
   ExternalLink,
   Pencil,
+  Gift,
 } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 import {
@@ -18,6 +19,8 @@ import {
   AdminKpiStrip,
   AdminPagination,
 } from "@/components/admin/admin-ui";
+import { RewardUserModal } from "@/components/admin/reward-user-modal";
+import { useDashboardToast } from "@/components/dashboard/dashboard-toast";
 import {
   DashboardPage,
   DashboardPageHeader,
@@ -74,6 +77,8 @@ export default function AdminUsersPage() {
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [savingAddress, setSavingAddress] = useState<string | null>(null);
+  const [rewardAddress, setRewardAddress] = useState<string | null>(null);
+  const { show: showToast } = useDashboardToast();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -368,19 +373,29 @@ export default function AdminUsersPage() {
                       </span>
                     </DashboardTableCell>
                     <DashboardTableCell align="right">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUser(u.address)}
-                        disabled={deletingAddress === u.address}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {deletingAddress === u.address ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3.5 h-3.5" />
-                        )}
-                        Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setRewardAddress(u.address)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-delulu-blue/30 px-2.5 py-1.5 text-xs font-semibold text-delulu-blue hover:bg-delulu-blue-light transition-colors"
+                        >
+                          <Gift className="w-3.5 h-3.5" />
+                          Reward
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(u.address)}
+                          disabled={deletingAddress === u.address}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deletingAddress === u.address ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </DashboardTableCell>
                   </DashboardTableRow>
                 ))}
@@ -390,6 +405,14 @@ export default function AdminUsersPage() {
           </>
         )}
       </DashboardTableCard>
+
+      {rewardAddress ? (
+        <RewardUserModal
+          userAddress={rewardAddress}
+          onClose={() => setRewardAddress(null)}
+          onSuccess={(message) => showToast(message)}
+        />
+      ) : null}
     </DashboardPage>
   );
 }

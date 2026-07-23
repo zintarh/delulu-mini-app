@@ -11,6 +11,7 @@ import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
+import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
 import {
   ArrowLeft,
   ArrowRight,
@@ -550,7 +551,7 @@ function MonthlyLeaderboard() {
                   {entry.points_total.toLocaleString()}
                 </span>
                 <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {`${formatGAmount(totalClaimed)} G$`}
+                  {formatEarnedUsdt(totalClaimed)}
                 </span>
               </div>
             );
@@ -668,16 +669,16 @@ function DreamersLeaderboard({
                 {myRankEntry!.points}
               </span>
               <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                {`${formatGAmount(
-                  claimedMap[address!.toLowerCase()] ?? myPageEntry?.totalClaimed ?? 0,
-                )} G$`}
+                {formatEarnedUsdt(
+                  claimedMap[address!.toLowerCase()] ?? 0,
+                )}
               </span>
             </div>
           )}
 
           {listEntries.map((entry) => {
             const name = entry.username ? `@${entry.username}` : formatAddr(entry.address);
-            const totalClaimed = claimedMap[entry.address.toLowerCase()] ?? entry.totalClaimed ?? 0;
+            const totalClaimed = claimedMap[entry.address.toLowerCase()] ?? 0;
             return (
               <div
                 key={entry.address}
@@ -700,7 +701,7 @@ function DreamersLeaderboard({
                   {entry.points > 0 ? entry.points : "—"}
                 </span>
                 <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {`${formatGAmount(totalClaimed)} G$`}
+                  {formatEarnedUsdt(totalClaimed)}
                 </span>
               </div>
             );
