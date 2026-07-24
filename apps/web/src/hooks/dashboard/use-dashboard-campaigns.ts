@@ -64,6 +64,65 @@ export function useDashboardCampaigns(filters?: { communityId?: string; status?:
   });
 }
 
+export type DashboardCampaignsPage = {
+  campaigns: DashboardCampaign[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** Paginated + searchable campaign list, for the /dashboard/campaigns table. */
+export function useDashboardCampaignsPaginated(filters: {
+  query?: string;
+  status?: string;
+  page: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters.query) params.set("query", filters.query);
+  if (filters.status) params.set("status", filters.status);
+  params.set("page", String(filters.page));
+
+  return useQuery({
+    queryKey: [...dashboardCampaignKeys.all, "paginated", filters] as const,
+    queryFn: async () => {
+      const res = await fetch(`/api/dashboard/campaigns?${params.toString()}`);
+      if (!res.ok) await parseError(res);
+      const json = await res.json();
+      return json as DashboardCampaignsPage;
+    },
+    staleTime: 20_000,
+  });
+}
+
+export type CampaignOnchainStatus = {
+  needsFunding: boolean;
+  poolAmountWei: string;
+  totalStakedWei: string;
+  economicsDrift: boolean;
+  economicsStillFixable: boolean;
+};
+
+/**
+ * On-chain health check (unfunded pools, paid-economics drift, accumulated
+ * participant stake) for a set of campaigns. Pass the current page's ids to
+ * scope the RPC/DB work; omit to check every deployed campaign.
+ */
+export function useDashboardCampaignsOnchainStatus(ids?: string[]) {
+  const idsKey = ids?.slice().sort().join(",") ?? "";
+  return useQuery({
+    queryKey: [...dashboardCampaignKeys.all, "onchain-status", idsKey] as const,
+    queryFn: async () => {
+      const qs = ids?.length ? `?ids=${encodeURIComponent(ids.join(","))}` : "";
+      const res = await fetch(`/api/dashboard/campaigns/onchain-status${qs}`);
+      if (!res.ok) await parseError(res);
+      const json = await res.json();
+      return (json.statuses ?? {}) as Record<string, CampaignOnchainStatus>;
+    },
+    enabled: ids == null || ids.length > 0,
+    staleTime: 30_000,
+  });
+}
+
 export function useDashboardCampaign(id: string) {
   return useQuery({
     queryKey: dashboardCampaignKeys.detail(id),

@@ -12,6 +12,8 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 20;
+
 export type DashboardCampaign = {
   id: string;
   community_id: string;
@@ -76,7 +78,7 @@ const CAMPAIGN_SELECT = `
   communities ( id, name, slug )
 `;
 
-// GET — list campaigns (optional filters: communityId, status)
+// GET — paginated campaign list (optional filters: communityId, status, query)
 export async function GET(request: NextRequest) {
   const session = await readAdminSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -84,6 +86,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const communityId = searchParams.get("communityId");
   const status = searchParams.get("status");
+  const searchQuery = searchParams.get("query")?.trim() ?? "";
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
@@ -92,7 +96,7 @@ export async function GET(request: NextRequest) {
 
   let query = admin
     .from("community_campaigns")
-    .select(CAMPAIGN_SELECT)
+    .select(CAMPAIGN_SELECT, { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (communityId) {
@@ -101,17 +105,24 @@ export async function GET(request: NextRequest) {
     }
     query = query.eq("community_id", communityId);
   } else if (!isPlatformAdmin) {
-    if (session.communityIds.length === 0) return NextResponse.json({ campaigns: [] });
+    if (session.communityIds.length === 0) {
+      return NextResponse.json({ campaigns: [], total: 0, page: 1, pageSize: PAGE_SIZE });
+    }
     query = query.in("community_id", session.communityIds);
   }
 
   if (status) query = query.eq("status", status);
+  if (searchQuery) query = query.ilike("title", `%${searchQuery}%`);
 
-  const { data, error } = await query;
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const campaigns = (data ?? []).map((row) => normalizeCampaign(row as Record<string, unknown>));
-  return NextResponse.json({ campaigns });
+  return NextResponse.json({ campaigns, total: count ?? campaigns.length, page, pageSize: PAGE_SIZE });
 }
 
 // POST — create draft campaign
