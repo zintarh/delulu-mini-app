@@ -29,6 +29,7 @@ const GET_USER_WRAP = gql`
       creatorStake
       points
       milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+        id
         milestoneId
         isSubmitted
         isVerified

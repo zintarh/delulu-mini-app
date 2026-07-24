@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
-import { Gift, Loader2, Sparkles, Trophy, Wallet } from "lucide-react";
+import { Check, Gift, Loader2, Sparkles, Trophy, Wallet } from "lucide-react";
 import {
   useClaimCommunityCampaignReward,
   useClaimCommunityJoinStake,
@@ -62,10 +62,12 @@ function formatStakeDisplay(amountWei: string, tokenAddress: string) {
 function CampaignClaimRow({
   item,
   address,
+  isClaimed,
   onClaimed,
 }: {
   item: ClaimableItem;
   address: string;
+  isClaimed: boolean;
   onClaimed: (campaignId: string) => void;
 }) {
   const {
@@ -139,27 +141,36 @@ function CampaignClaimRow({
         ) : null}
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
-      <button
-        type="button"
-        onClick={() => void handleClaim()}
-        disabled={busy}
-        className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-delulu-charcoal px-3.5 py-2 text-xs font-bold text-white",
-          "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
-        )}
-      >
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Gift className="h-3.5 w-3.5" />}
-        Claim
-      </button>
+      {isClaimed ? (
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600">
+          <Check className="h-3.5 w-3.5" />
+          Claimed
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void handleClaim()}
+          disabled={busy}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-delulu-charcoal px-3.5 py-2 text-xs font-bold text-white",
+            "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Gift className="h-3.5 w-3.5" />}
+          Claim
+        </button>
+      )}
     </div>
   );
 }
 
 function StakeReclaimRow({
   item,
+  isClaimed,
   onClaimed,
 }: {
   item: ReclaimableStakeItem;
+  isClaimed: boolean;
   onClaimed: (campaignId: string) => void;
 }) {
   const {
@@ -218,18 +229,25 @@ function StakeReclaimRow({
         ) : null}
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
-      <button
-        type="button"
-        onClick={() => void handleClaim()}
-        disabled={busy}
-        className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-delulu-charcoal px-3.5 py-2 text-xs font-bold text-white",
-          "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
-        )}
-      >
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
-        Reclaim
-      </button>
+      {isClaimed ? (
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600">
+          <Check className="h-3.5 w-3.5" />
+          Reclaimed
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void handleClaim()}
+          disabled={busy}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-delulu-charcoal px-3.5 py-2 text-xs font-bold text-white",
+            "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
+          Reclaim
+        </button>
+      )}
     </div>
   );
 }
@@ -237,6 +255,7 @@ function StakeReclaimRow({
 export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
   const [prizeItems, setPrizeItems] = useState<ClaimableItem[]>([]);
   const [stakeItems, setStakeItems] = useState<ReclaimableStakeItem[]>([]);
+  const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -336,8 +355,9 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
                 <StakeReclaimRow
                   key={`stake-${item.campaignId}`}
                   item={item}
+                  isClaimed={claimedIds.has(`stake-${item.campaignId}`)}
                   onClaimed={(id) =>
-                    setStakeItems((prev) => prev.filter((i) => i.campaignId !== id))
+                    setClaimedIds((prev) => new Set(prev).add(`stake-${id}`))
                   }
                 />
               ))}
@@ -358,8 +378,9 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
                   key={`prize-${item.campaignId}`}
                   item={item}
                   address={address}
+                  isClaimed={claimedIds.has(`prize-${item.campaignId}`)}
                   onClaimed={(id) =>
-                    setPrizeItems((prev) => prev.filter((i) => i.campaignId !== id))
+                    setClaimedIds((prev) => new Set(prev).add(`prize-${id}`))
                   }
                 />
               ))}

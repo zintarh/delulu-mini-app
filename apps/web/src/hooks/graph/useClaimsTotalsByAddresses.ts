@@ -10,6 +10,7 @@ const CLAIMS_BY_ADDRESSES_QUERY = gql`
     users(where: { id_in: $ids }, first: 1000) {
       id
       claims(first: 200) {
+        id
         amount
       }
     }

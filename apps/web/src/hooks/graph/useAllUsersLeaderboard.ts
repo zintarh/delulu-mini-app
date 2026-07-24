@@ -26,6 +26,7 @@ const ALL_USERS_QUERY = gql`
         id
       }
       claims(first: 200) {
+        id
         amount
       }
     }

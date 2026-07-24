@@ -31,6 +31,7 @@ const DELULU_LEADERBOARD_QUERY = gql`
       points
       createdAt
       milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+        id
         isVerified
         pointsEarned
       }

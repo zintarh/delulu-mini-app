@@ -31,9 +31,11 @@ const CHALLENGE_LEADERBOARD_QUERY = gql`
       challengeId
       points
       creator {
+        id
         username
       }
       milestones(first: 50, orderBy: milestoneId, orderDirection: asc) {
+        id
         isVerified
         pointsEarned
       }

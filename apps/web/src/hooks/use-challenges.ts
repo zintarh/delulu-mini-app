@@ -14,6 +14,7 @@ const GET_CHALLENGES = gql`
       orderBy: createdAt
       orderDirection: desc
     ) {
+      id
       challengeId
       contentHash
       poolAmount

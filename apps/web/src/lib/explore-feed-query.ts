@@ -31,6 +31,7 @@ export const GET_DELULUS_FEED = gql`
       isCancelled
       milestoneCount
       milestones(first: 15, orderBy: milestoneId, orderDirection: asc) {
+        id
         milestoneId
         milestoneURI
         deadline
