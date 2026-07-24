@@ -237,7 +237,7 @@ export function HomeCampaignsSection() {
   return (
     <>
       <div className="px-4 pt-6 pb-2">
-        <ActiveCampaignsSection address={address} />
+        <ActiveCampaignsSection address={address} heading="Campaigns" />
       </div>
 
       <div className="mt-10" />

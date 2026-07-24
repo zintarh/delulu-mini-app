@@ -557,10 +557,8 @@ export function MilestoneTrackerSkeleton({ compact = false }: { compact?: boolea
 }
 
 export function MilestoneTrackerEmpty({
-  onCreateClick,
   compact = false,
 }: {
-  onCreateClick?: () => void;
   compact?: boolean;
 }) {
   return (
@@ -583,18 +581,8 @@ export function MilestoneTrackerEmpty({
         className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground"
         style={{ fontFamily: "var(--font-manrope)" }}
       >
-        Add milestones when you create a delulu — they&apos;ll show up here with progress and proof reminders.
+        Milestones from your delulus will show up here with progress and proof reminders.
       </p>
-      {onCreateClick ? (
-        <button
-          type="button"
-          onClick={onCreateClick}
-          className="mt-8 rounded-full bg-delulu-blue px-7 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-delulu-blue/90 active:scale-[0.98]"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          Create a delulu
-        </button>
-      ) : null}
     </div>
   );
 }

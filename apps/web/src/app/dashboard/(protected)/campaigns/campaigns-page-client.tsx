@@ -7,7 +7,6 @@ import { formatUnits } from "viem";
 import { AlertTriangle, Eye, EyeOff, ExternalLink, Megaphone, Search, X } from "lucide-react";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -21,6 +20,10 @@ import {
   StatusChip,
   useDashboardToast,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  COMMUNITIES_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 import { AdminPagination } from "@/components/admin/admin-ui";
 import {
   useDashboardCampaignsPaginated,
@@ -66,7 +69,10 @@ export function CampaignsPageClient() {
 
   return (
     <DashboardPage>
-      <DashboardPageHeader title="Campaigns" />
+      <DashboardSectionTabs items={COMMUNITIES_SECTION_TABS} />
+      <p className="mb-5 text-sm text-muted-foreground">
+        All campaigns across communities. Open a row to manage funding, milestones, and payouts.
+      </p>
 
       <div className="mb-5 w-full sm:w-72">
         <div className="relative">

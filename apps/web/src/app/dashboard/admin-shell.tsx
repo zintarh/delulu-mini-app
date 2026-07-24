@@ -7,22 +7,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
-import { CreateChallengeSheet } from "@/components/create-challenge-sheet";
 import {
   LayoutDashboard,
-  ShieldCheck,
   Target,
   Megaphone,
   Users,
-  Trophy,
   LogIn,
   LogOut,
   User,
   Menu,
   Bell,
-  Mail,
   Building2,
-  Flag,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
@@ -77,17 +72,63 @@ function NavItem({
 
 function pageTitle(pathname: string): string {
   if (pathname === BASE) return "Home";
-  if (pathname.startsWith(`${BASE}/milestones`)) return "Milestones";
-  if (pathname.startsWith(`${BASE}/markets`)) return "Goals";
-  if (pathname.startsWith(`${BASE}/broadcasts`)) return "Broadcasts";
-  if (pathname.startsWith(`${BASE}/send-email`)) return "Email";
-  if (pathname.startsWith(`${BASE}/users`)) return "Users";
-  if (pathname.startsWith(`${BASE}/leaderboard`)) return "Leaderboard";
+  if (
+    pathname.startsWith(`${BASE}/markets`) ||
+    pathname.startsWith(`${BASE}/milestones`)
+  ) {
+    return "Goals";
+  }
+  if (
+    pathname.startsWith(`${BASE}/broadcasts`) ||
+    pathname.startsWith(`${BASE}/send-email`)
+  ) {
+    return "Outreach";
+  }
+  if (
+    pathname.startsWith(`${BASE}/users`) ||
+    pathname.startsWith(`${BASE}/leaderboard`) ||
+    pathname.startsWith(`${BASE}/rewards`)
+  ) {
+    return "People";
+  }
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
-  if (pathname.startsWith(`${BASE}/communities`)) return "Communities";
-  if (pathname.startsWith(`${BASE}/campaigns`)) return "Campaigns";
+  if (
+    pathname.startsWith(`${BASE}/communities`) ||
+    pathname.startsWith(`${BASE}/campaigns`)
+  ) {
+    return "Communities";
+  }
   return "Dashboard";
+}
+
+function isGoalsPath(pathname: string) {
+  return (
+    pathname.startsWith(`${BASE}/markets`) ||
+    pathname.startsWith(`${BASE}/milestones`)
+  );
+}
+
+function isOutreachPath(pathname: string) {
+  return (
+    pathname.startsWith(`${BASE}/broadcasts`) ||
+    pathname.startsWith(`${BASE}/send-email`)
+  );
+}
+
+function isPeoplePath(pathname: string) {
+  return (
+    pathname.startsWith(`${BASE}/users`) ||
+    pathname.startsWith(`${BASE}/leaderboard`) ||
+    pathname.startsWith(`${BASE}/rewards`)
+  );
+}
+
+function isCommunitiesPath(pathname: string) {
+  return (
+    pathname.startsWith(`${BASE}/communities`) ||
+    pathname.startsWith(`${BASE}/campaigns`)
+  );
 }
 
 export function AdminShell({
@@ -108,7 +149,6 @@ export function AdminShell({
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginSheet, setShowLoginSheet] = useState(false);
-  const [showCreateChallengeSheet, setShowCreateChallengeSheet] = useState(false);
 
   const handleLogout = async () => {
     await fetch("/api/dashboard/auth/logout", { method: "POST" });
@@ -144,7 +184,7 @@ export function AdminShell({
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3">
-          <NavSection label="Overview" />
+          <NavSection label="Menu" />
           <NavItem
             icon={LayoutDashboard}
             label="Home"
@@ -152,70 +192,36 @@ export function AdminShell({
             active={pathname === BASE}
             onNavigate={closeMobile}
           />
-
-          <NavSection label="Communities" />
           <NavItem
             icon={Building2}
             label="Communities"
             href={`${BASE}/communities`}
-            active={pathname.startsWith(`${BASE}/communities`)}
-            onNavigate={closeMobile}
-          />
-          <NavItem
-            icon={Flag}
-            label="Campaigns"
-            href={`${BASE}/campaigns`}
-            active={pathname.startsWith(`${BASE}/campaigns`)}
-            onNavigate={closeMobile}
-          />
-          <NavSection label="Goals" />
-          <NavItem
-            icon={ShieldCheck}
-            label="Milestones"
-            href={`${BASE}/milestones`}
-            active={pathname.startsWith(`${BASE}/milestones`)}
-            badge={pendingCount}
+            active={isCommunitiesPath(pathname)}
             onNavigate={closeMobile}
           />
           <NavItem
             icon={Target}
             label="Goals"
             href={`${BASE}/markets`}
-            active={pathname.startsWith(`${BASE}/markets`)}
+            active={isGoalsPath(pathname)}
+            badge={pendingCount}
             onNavigate={closeMobile}
           />
 
           {isPlatformAdmin ? (
             <>
-              <NavSection label="Outreach" />
               <NavItem
                 icon={Megaphone}
-                label="Broadcasts"
+                label="Outreach"
                 href={`${BASE}/broadcasts`}
-                active={pathname.startsWith(`${BASE}/broadcasts`)}
+                active={isOutreachPath(pathname)}
                 onNavigate={closeMobile}
               />
-              <NavItem
-                icon={Mail}
-                label="Email"
-                href={`${BASE}/send-email`}
-                active={pathname.startsWith(`${BASE}/send-email`)}
-                onNavigate={closeMobile}
-              />
-
-              <NavSection label="People" />
               <NavItem
                 icon={Users}
-                label="Users"
+                label="People"
                 href={`${BASE}/users`}
-                active={pathname.startsWith(`${BASE}/users`)}
-                onNavigate={closeMobile}
-              />
-              <NavItem
-                icon={Trophy}
-                label="Leaderboard"
-                href={`${BASE}/leaderboard`}
-                active={pathname.startsWith(`${BASE}/leaderboard`)}
+                active={isPeoplePath(pathname)}
                 onNavigate={closeMobile}
               />
             </>
@@ -237,7 +243,7 @@ export function AdminShell({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -263,21 +269,12 @@ export function AdminShell({
               <Link
                 href={`${BASE}/milestones`}
                 className="relative flex items-center justify-center rounded-xl p-2 text-muted-foreground hover:bg-muted/60"
-                title={`${pendingCount} pending`}
+                title={`${pendingCount} pending milestone reviews`}
               >
                 <Bell className="h-5 w-5" />
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-delulu-blue" />
               </Link>
             ) : null}
-
-            <button
-              type="button"
-              onClick={() => setShowCreateChallengeSheet(true)}
-              className="hidden items-center gap-1.5 rounded-xl bg-delulu-blue px-3 py-2 text-xs font-bold text-white hover:bg-delulu-blue/90 sm:inline-flex"
-            >
-              <Trophy className="h-3.5 w-3.5" />
-              Challenge
-            </button>
 
             {isConnected && address ? (
               <Link
@@ -306,7 +303,6 @@ export function AdminShell({
       </div>
 
       <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
-      <CreateChallengeSheet open={showCreateChallengeSheet} onOpenChange={setShowCreateChallengeSheet} />
     </div>
   );
 }

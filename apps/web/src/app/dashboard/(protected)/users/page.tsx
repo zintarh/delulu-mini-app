@@ -23,7 +23,6 @@ import { RewardUserModal } from "@/components/admin/reward-user-modal";
 import { useDashboardToast } from "@/components/dashboard/dashboard-toast";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -36,6 +35,10 @@ import {
   DashboardTableCell,
   hasTableCellValue,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  PEOPLE_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 
 interface UserRow {
   address: string;
@@ -186,8 +189,10 @@ export default function AdminUsersPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
-
-      <DashboardPageHeader title="Users" />
+      <DashboardSectionTabs items={PEOPLE_SECTION_TABS} />
+      <p className="mb-5 text-sm text-muted-foreground">
+        Search users, manage profiles, and send claimable rewards.
+      </p>
 
       {data && (
         <AdminKpiStrip icon={Users}>

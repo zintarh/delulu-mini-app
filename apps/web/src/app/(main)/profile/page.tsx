@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { useGraphUserDelulus } from "@/hooks/graph";
@@ -28,7 +27,6 @@ export default function ProfilePage() {
   const { isConnected, address, isReady } = useAuth();
   const { user, updateProfile } = useUserStore();
   const router = useRouter();
-  const { navigateToCreate } = useNavigateToCreate();
 
   const [activeTab, setActiveTab] = useState<TabType>("milestones");
   const [uploadToast, setUploadToast] = useState<{
@@ -244,8 +242,6 @@ function ProfileHeader({
 }
 
 function ProfileContent({ activeTab, address }: { activeTab: TabType; address: string | null | undefined }) {
-  const { navigateToCreate } = useNavigateToCreate();
-
   const {
     delulus: ongoingDelulus,
     isLoading: isLoadingOngoing,
@@ -288,10 +284,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
               />
             </div>
           ) : null}
-          <OngoingMilestonesSection
-            address={address}
-            onCreateClick={() => void navigateToCreate()}
-          />
+          <OngoingMilestonesSection address={address} />
         </div>
       )}
 
@@ -312,19 +305,11 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
                   No active delulu
                 </p>
                 <p
-                  className="mb-5 text-sm text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                   style={{ fontFamily: "var(--font-manrope)" }}
                 >
-                  Start manifesting something new.
+                  Your active delulus will appear here.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => void navigateToCreate()}
-                  className="rounded-full bg-[#FCFF52] px-6 py-2.5 text-sm font-bold text-[#1a1a19] shadow-[3px_3px_0px_0px_#1a1a19] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#1a1a19] active:shadow-none"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  Create a delulu
-                </button>
               </div>
             }
           />

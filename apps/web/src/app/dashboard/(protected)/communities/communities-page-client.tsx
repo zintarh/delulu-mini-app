@@ -5,15 +5,18 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Building2, Plus, Users, Loader2 } from "lucide-react";
 import {
   DashboardPage,
-  DashboardPageHeader,
+  DashboardPrimaryButton,
   DashboardCardGrid,
   DashboardCard,
   DashboardCardAvatar,
   DashboardEmpty,
-  DashboardPrimaryButton,
   StatusChip,
   useDashboardToast,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  COMMUNITIES_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 import { CreateCommunityModal } from "@/components/dashboard/create-community-modal";
 import {
   useDashboardCommunities,
@@ -50,17 +53,20 @@ export function CommunitiesPageClient({
 
   return (
     <DashboardPage>
-      <DashboardPageHeader
-        title="Communities"
-        action={
-          isPlatformAdmin ? (
-            <DashboardPrimaryButton onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New
-            </DashboardPrimaryButton>
-          ) : undefined
-        }
-      />
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <DashboardSectionTabs items={COMMUNITIES_SECTION_TABS} className="mb-3" />
+          <p className="text-sm text-muted-foreground">
+            Manage communities. Create campaigns from inside a community.
+          </p>
+        </div>
+        {isPlatformAdmin ? (
+          <DashboardPrimaryButton onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New
+          </DashboardPrimaryButton>
+        ) : null}
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-20">

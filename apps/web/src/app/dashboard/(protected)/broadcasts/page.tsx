@@ -21,7 +21,6 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -34,6 +33,10 @@ import {
   DashboardTableCell,
   hasTableCellValue,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  OUTREACH_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 
 const PAGE_SIZE = 20;
 
@@ -101,21 +104,24 @@ export default function AdminBroadcastsPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
-      <DashboardPageHeader
-        title="Broadcasts"
-        action={
-          <AdminPrimaryButton
-            onClick={() => setSheetOpen(true)}
-            disabled={isLoading || eligibleDelulus.length === 0}
-            className="shrink-0 rounded-xl"
-          >
-            <Send className="h-4 w-4" />
-            {selectedAddresses.size > 0
-              ? `Send (${selectedAddresses.size})`
-              : "Send"}
-          </AdminPrimaryButton>
-        }
-      />
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <DashboardSectionTabs items={OUTREACH_SECTION_TABS} className="mb-3" />
+          <p className="text-sm text-muted-foreground">
+            Email creators whose goals are missing milestones.
+          </p>
+        </div>
+        <AdminPrimaryButton
+          onClick={() => setSheetOpen(true)}
+          disabled={isLoading || eligibleDelulus.length === 0}
+          className="shrink-0 rounded-xl"
+        >
+          <Send className="h-4 w-4" />
+          {selectedAddresses.size > 0
+            ? `Send (${selectedAddresses.size})`
+            : "Send"}
+        </AdminPrimaryButton>
+      </div>
 
       {!isLoading && (
         <div className="mb-5 flex flex-wrap items-center gap-3">

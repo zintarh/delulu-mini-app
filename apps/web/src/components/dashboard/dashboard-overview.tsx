@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
-  Megaphone,
   Users,
   Building2,
   Target,
@@ -20,8 +19,6 @@ import type { FormattedDelulu } from "@/lib/types";
 import {
   DashboardPage,
   DashboardStatGrid,
-  DashboardNavCard,
-  DashboardCardGrid,
 } from "@/components/dashboard/dashboard-ui";
 import {
   DashboardBarChart,
@@ -197,15 +194,10 @@ export function DashboardOverview() {
 
   return (
     <DashboardPage className="max-w-7xl">
-      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">Overview</h2>
-          <p className="text-sm text-muted-foreground">
-            Platform health, goals activity, and items that need attention.
-          </p>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Goals data from subgraph · Communities from database
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-foreground">Home</h2>
+        <p className="text-sm text-muted-foreground">
+          Platform health and items that need attention.
         </p>
       </div>
 
@@ -361,28 +353,6 @@ export function DashboardOverview() {
             )}
           </div>
         </div>
-      </div>
-
-      <div>
-        <h3 className="mb-3 text-sm font-bold text-foreground">Quick links</h3>
-        <DashboardCardGrid className="sm:grid-cols-2 lg:grid-cols-4">
-          <DashboardNavCard href="/dashboard/communities" icon={Building2} label="Communities" />
-          <DashboardNavCard
-            href="/dashboard/milestones"
-            icon={ShieldCheck}
-            label="Milestones"
-            badge={stats.pendingMilestones}
-          />
-          <DashboardNavCard href="/dashboard/markets" icon={Target} label="Goals" />
-          <DashboardNavCard href="/dashboard/broadcasts" icon={Megaphone} label="Broadcasts" />
-          <DashboardNavCard href="/dashboard/users" icon={Users} label="Users" />
-          <DashboardNavCard
-            href="/dashboard/markets"
-            icon={AlertTriangle}
-            label="Needs resolution"
-            badge={stats.endedUnresolved}
-          />
-        </DashboardCardGrid>
       </div>
     </DashboardPage>
   );

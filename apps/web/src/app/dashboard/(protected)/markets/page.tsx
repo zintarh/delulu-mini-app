@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useAdminDelulus } from "@/hooks/graph/useAdminDashboard";
+import { useAdminDelulus, usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import {
   Target,
   Search,
@@ -18,7 +18,6 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -31,6 +30,10 @@ import {
   DashboardTableCell,
   hasTableCellValue,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  goalsSectionTabs,
+} from "@/components/dashboard/dashboard-section-tabs";
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +48,7 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
 
 export default function AdminMarketsPage() {
   const { delulus, isLoading } = useAdminDelulus();
+  const { milestones: pendingMilestones } = usePendingMilestones();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
@@ -77,7 +81,10 @@ export default function AdminMarketsPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
-      <DashboardPageHeader title="Goals" />
+      <DashboardSectionTabs items={goalsSectionTabs(pendingMilestones.length)} />
+      <p className="mb-5 text-sm text-muted-foreground">
+        Browse on-chain goals and jump to ones that need resolution.
+      </p>
 
       {!isLoading && (
         <AdminKpiStrip icon={Target}>

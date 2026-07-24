@@ -40,7 +40,6 @@ function useNow() {
 }
 
 interface OngoingMilestonesSectionProps {
-  onCreateClick?: () => void;
   /** Tighter layout for the home dashboard */
   variant?: "default" | "home";
   /** When true on home variant, render nothing instead of empty state */
@@ -56,7 +55,6 @@ interface OngoingMilestonesSectionProps {
 }
 
 export function OngoingMilestonesSection({
-  onCreateClick,
   variant = "default",
   hideWhenEmpty = false,
   address,
@@ -159,12 +157,7 @@ export function OngoingMilestonesSection({
     // also claim there are no milestones when there are.
     if (hasActiveCampaignMilestones) return null;
     if (variant === "home" && hideWhenEmpty) return null;
-    return (
-      <MilestoneTrackerEmpty
-        onCreateClick={onCreateClick}
-        compact={variant === "home"}
-      />
-    );
+    return <MilestoneTrackerEmpty compact={variant === "home"} />;
   }
 
   const activeMilestone = milestones.find((m) => m.key === activeMilestoneKey) ?? null;

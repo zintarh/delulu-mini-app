@@ -25,7 +25,6 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -38,6 +37,10 @@ import {
   DashboardTableCell,
   hasTableCellValue,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  OUTREACH_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -368,7 +371,10 @@ export default function AdminSendEmailPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7 pb-24">
-      <DashboardPageHeader title="Email" />
+      <DashboardSectionTabs items={OUTREACH_SECTION_TABS} />
+      <p className="mb-5 text-sm text-muted-foreground">
+        Compose a custom email to selected users.
+      </p>
 
       {/* Result banner */}
       {result && (

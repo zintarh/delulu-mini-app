@@ -12,7 +12,6 @@ import { RewardUserModal } from "@/components/admin/reward-user-modal";
 import { useDashboardToast } from "@/components/dashboard/dashboard-toast";
 import {
   DashboardPage,
-  DashboardPageHeader,
   DashboardTableCard,
   DashboardTableLoading,
   DashboardTableEmptyState,
@@ -24,6 +23,10 @@ import {
   DashboardTableRow,
   DashboardTableCell,
 } from "@/components/dashboard/dashboard-ui";
+import {
+  DashboardSectionTabs,
+  PEOPLE_SECTION_TABS,
+} from "@/components/dashboard/dashboard-section-tabs";
 
 type LeaderboardRow = {
   rank: number;
@@ -134,8 +137,8 @@ export default function AdminLeaderboardPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
-      <DashboardPageHeader title="Leaderboard" />
-      <p className="-mt-4 mb-6 text-sm text-muted-foreground">
+      <DashboardSectionTabs items={PEOPLE_SECTION_TABS} />
+      <p className="mb-5 text-sm text-muted-foreground">
         Top campaign performers this month — search anyone and send a claimable reward.
       </p>
 
