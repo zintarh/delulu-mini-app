@@ -10,6 +10,7 @@ import {
   mergeMilestoneCount,
 } from "@/lib/community/campaign-milestone-counts";
 import { fetchCampaignParticipantAvatars } from "@/lib/community/campaign-participant-avatars";
+import { isPaidJoinCampaign } from "@/lib/community/campaign-join-info";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 // "participants" sort re-ranks the most recent MAX_CANDIDATES campaigns by
@@ -194,6 +195,10 @@ export async function GET(request: NextRequest) {
     result = result
       .slice()
       .sort((a, b) => {
+        const aPaid = isPaidJoinCampaign(a);
+        const bPaid = isPaidJoinCampaign(b);
+        if (aPaid !== bPaid) return aPaid ? -1 : 1;
+
         // Explicitly browsing "ending soon" — soonest-to-end first is the
         // whole point, so skip the usual participant-count ranking.
         if (endingSoonFilter) return daysLeft(a.displayEndsAt) - daysLeft(b.displayEndsAt);
@@ -204,8 +209,18 @@ export async function GET(request: NextRequest) {
         return b.participantCount - a.participantCount || (b._createdAt > a._createdAt ? 1 : -1);
       })
       .slice(0, limit);
-  } else if (hasMore) {
-    nextCursor = candidates[candidates.length - 1]?.created_at ?? null;
+  } else {
+    result = result
+      .slice()
+      .sort((a, b) => {
+        const aPaid = isPaidJoinCampaign(a);
+        const bPaid = isPaidJoinCampaign(b);
+        if (aPaid !== bPaid) return aPaid ? -1 : 1;
+        return b._createdAt > a._createdAt ? 1 : -1;
+      });
+    if (hasMore) {
+      nextCursor = candidates[candidates.length - 1]?.created_at ?? null;
+    }
   }
 
   const avatarsByCampaign = await fetchCampaignParticipantAvatars(

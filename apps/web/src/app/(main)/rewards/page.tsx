@@ -34,6 +34,7 @@ import {
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
+import { fireConfetti } from "@/lib/celebrate";
 
 const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -238,7 +239,9 @@ export default function RewardsPage() {
                   disabled={!hasAdminPending || isClaimingAdmin}
                   onClick={() => {
                     setSendOpen(false);
-                    void claimAllAdminRewards().catch(() => undefined);
+                    void claimAllAdminRewards().then((result) => {
+                      if (result.claimedCount > 0) void fireConfetti();
+                    });
                   }}
                   className={cn(
                     "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black text-white transition-all",

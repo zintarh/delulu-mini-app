@@ -387,7 +387,8 @@ export function CommunityCampaignDetail({
   const myLeaderboardRow = address
     ? leaderboard.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase())
     : undefined;
-  const inPrizeZone = myLeaderboardRow ? myLeaderboardRow.rank <= topN : false;
+  const inPrizeZone =
+    isPaidJoin && myLeaderboardRow ? myLeaderboardRow.rank <= topN : false;
   const showClaimNote = inPrizeZone && isJoined && !isCommunityMember && funded;
   const claimAmountLabel =
     claimInfo?.amountWei != null
@@ -600,7 +601,9 @@ export function CommunityCampaignDetail({
                     All milestones complete 🎉
                   </p>
                   <p className="mt-1.5 text-base text-muted-foreground">
-                    {myRank ? `You're ranked #${myRank}` : "Waiting for campaign to end"}
+                    {isPaidJoin && myRank
+                      ? `You're ranked #${myRank}`
+                      : "All done — great work"}
                     {myPoints > 0 ? ` · ${myPoints} pts earned` : ""}
                   </p>
                 </div>
@@ -751,101 +754,114 @@ export function CommunityCampaignDetail({
               ) : null}
             </div>
 
-            {/* ── Reward card — replaces stats strip ── */}
-            <div className="mt-5 px-5 lg:px-3">
-              {showPrizePool ? (() => {
-                const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
-                return (
-                  <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
-                    {/* Header */}
-                    <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 px-5 py-3">
-                      <Trophy className="h-5 w-5 text-[#9a7b0a]" />
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a]">
-                        Prize Pool
+            {/* ── Reward card — prize / top-N framing is paid-only ── */}
+            {isPaidJoin || showPrizePool ? (
+              <div className="mt-5 px-5 lg:px-3">
+                {showPrizePool ? (() => {
+                  const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
+                  return (
+                    <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
+                      <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 px-5 py-3">
+                        <Trophy className="h-5 w-5 text-[#9a7b0a]" />
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a]">
+                          Prize Pool
+                        </p>
+                      </div>
+
+                      <div
+                        className={cn(
+                          "grid divide-x divide-[#f6c324]/20",
+                          isPaidJoin ? "grid-cols-3" : "grid-cols-1",
+                        )}
+                      >
+                        <div className="flex flex-col items-center px-4 py-5 text-center">
+                          <p
+                            className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                            style={{ fontFamily: '"Clash Display", sans-serif' }}
+                          >
+                            {totalPrizePool.toLocaleString()}
+                            <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
+                          </p>
+                          <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">Total pool</p>
+                        </div>
+
+                        {isPaidJoin ? (
+                          <>
+                            <div className="flex flex-col items-center px-4 py-5 text-center">
+                              <p
+                                className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              >
+                                {perWinner > 0 ? (
+                                  <>
+                                    ~{perWinner.toLocaleString()}
+                                    <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
+                                  </>
+                                ) : (
+                                  "TBD"
+                                )}
+                              </p>
+                              <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                                Per winner
+                              </p>
+                            </div>
+
+                            <div className="flex flex-col items-center px-4 py-5 text-center">
+                              <p
+                                className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              >
+                                Top {topN}
+                              </p>
+                              <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                                Winners
+                              </p>
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+
+                      {isPaidJoin ? (
+                        <div className="border-t border-[#f6c324]/20 px-5 py-3">
+                          <p className="text-xs text-[#9a7b0a]/70">
+                            Top {topN} on the leaderboard share the prize pool.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })() : (
+                  <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                    <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
+                      <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                        Leaderboard Reward
                       </p>
                     </div>
-
-                    {/* Three stat columns */}
-                    <div className="grid grid-cols-3 divide-x divide-[#f6c324]/20">
+                    <div className="grid grid-cols-2 divide-x divide-border/40">
                       <div className="flex flex-col items-center px-4 py-5 text-center">
                         <p
-                          className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          {totalPrizePool.toLocaleString()}
-                          <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
-                        </p>
-                        <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">Total pool</p>
-                      </div>
-
-                      <div className="flex flex-col items-center px-4 py-5 text-center">
-                        <p
-                          className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          {perWinner > 0 ? (
-                            <>
-                              ~{perWinner.toLocaleString()}
-                              <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
-                            </>
-                          ) : "TBD"}
-                        </p>
-                        <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">Per winner</p>
-                      </div>
-
-                      <div className="flex flex-col items-center px-4 py-5 text-center">
-                        <p
-                          className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                          className="text-3xl font-black text-foreground"
                           style={{ fontFamily: '"Clash Display", sans-serif' }}
                         >
                           Top {topN}
                         </p>
-                        <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">Winners</p>
+                        <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Winners</p>
                       </div>
-                    </div>
-
-                    {/* Stakes & Rewards card above already explains the forfeit rule for paid campaigns */}
-                    {!isPaidJoin ? (
-                      <div className="border-t border-[#f6c324]/20 px-5 py-3">
-                        <p className="text-xs text-[#9a7b0a]/70">
-                          Top {topN} on the leaderboard share the prize pool.
+                      <div className="flex flex-col items-center px-4 py-5 text-center">
+                        <p
+                          className="text-3xl font-black text-foreground"
+                          style={{ fontFamily: '"Clash Display", sans-serif' }}
+                        >
+                          Points
                         </p>
+                        <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Ranked by</p>
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })() : (
-                /* Free campaign — points-only reward card */
-                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-                  <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
-                    <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
-                      Leaderboard Reward
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 divide-x divide-border/40">
-                    <div className="flex flex-col items-center px-4 py-5 text-center">
-                      <p
-                        className="text-3xl font-black text-foreground"
-                        style={{ fontFamily: '"Clash Display", sans-serif' }}
-                      >
-                        Top {topN}
-                      </p>
-                      <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Winners</p>
-                    </div>
-                    <div className="flex flex-col items-center px-4 py-5 text-center">
-                      <p
-                        className="text-3xl font-black text-foreground"
-                        style={{ fontFamily: '"Clash Display", sans-serif' }}
-                      >
-                        Points
-                      </p>
-                      <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Ranked by</p>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Stakes & Rewards — cost & payout mechanics, styled to match the Prize Pool card */}
             {isPaidJoin && joinStakeAmount > 0 ? (
@@ -986,8 +1002,8 @@ export function CommunityCampaignDetail({
                     Stay consistent, build the habit, and actually accomplish what you set out to do.
                   </p>
                 </div>
-                {/* 3 — Win the forfeit pool (paid campaigns already see this in Stakes & Rewards above) */}
-                {!isPaidJoin ? (
+                {/* 3 — Win the forfeit pool (paid only; free campaigns have no ranking prizes) */}
+                {isPaidJoin ? (
                   <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-5">
                     <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
                       <Trophy className="h-5 w-5" />
@@ -1037,7 +1053,8 @@ export function CommunityCampaignDetail({
           </button>
         </div>
 
-        {/* ── Leaderboard (always last) ── */}
+        {/* ── Leaderboard (paid campaigns only — free has no ranking / top-N prizes) ── */}
+        {isPaidJoin ? (
         <section ref={leaderboardRef} className="mt-10 px-5 lg:px-3">
           <div className="rounded-3xl border border-emerald-500/15 bg-emerald-500/6 p-5">
           <div className="mb-4 flex items-center justify-between gap-2.5">
@@ -1191,6 +1208,7 @@ export function CommunityCampaignDetail({
             </p>
           ) : null}
         </section>
+        ) : null}
       </main>
 
 

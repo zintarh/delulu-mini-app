@@ -38,18 +38,22 @@ export function useClaimAllAdminRewards(address: `0x${string}` | undefined) {
   const isLoading = gd.isLoading || cusd.isLoading || usdt.isLoading;
 
   const claimAll = useCallback(async () => {
-    if (!address || !hasPending || isRunningRef.current) return;
+    if (!address || !hasPending || isRunningRef.current) {
+      return { claimedCount: 0, failedCount: 0 };
+    }
     isRunningRef.current = true;
     setError(null);
     setIsClaimingAll(true);
     // Claim each token independently — one token reverting (wallet rejection,
     // RPC blip) shouldn't stop the others from going through.
     const failures: string[] = [];
+    let claimedCount = 0;
     try {
       for (const row of pendingByToken) {
         if (row.pending <= 0n) continue;
         try {
           await claimReward(row.token);
+          claimedCount += 1;
         } catch (err) {
           failures.push(err instanceof Error ? err.message : "Claim failed");
         } finally {
@@ -59,8 +63,10 @@ export function useClaimAllAdminRewards(address: `0x${string}` | undefined) {
       if (failures.length > 0) {
         const message = failures.join("; ");
         setError(message);
-        throw new Error(message);
+        // Still return claimedCount so UI can celebrate partial success.
+        return { claimedCount, failedCount: failures.length };
       }
+      return { claimedCount, failedCount: 0 };
     } finally {
       setIsClaimingAll(false);
       isRunningRef.current = false;

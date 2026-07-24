@@ -207,7 +207,16 @@ export function useDepositReward() {
           args: [userAddress, tokenAddress, amountWei, rewardId],
         });
         await awaitMinedSuccess(publicClient, txHash, "Deposit transaction failed on-chain");
-        return txHash;
+        return {
+          txHash,
+          amountWei: amountWei.toString(),
+          rewardId,
+          vaultAddress: vault,
+          senderAddress: adminAddress,
+          tokenAddress,
+          userAddress,
+          amount: roundedAmount,
+        };
       } finally {
         setStep("idle");
         isRunningRef.current = false;

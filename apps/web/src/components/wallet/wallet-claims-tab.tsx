@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-community-campaign-onchain";
 import { getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount } from "@/lib/utils";
+import { fireConfetti } from "@/lib/celebrate";
 
 type ClaimableItem = {
   campaignId: string;
@@ -101,6 +102,7 @@ function CampaignClaimRow({
         );
       }
       onClaimed(item.campaignId);
+      void fireConfetti();
     } catch (err) {
       setError(
         claimTxError ||
@@ -188,6 +190,7 @@ function StakeReclaimRow({
     try {
       await claimCommunityJoinStakeAndWait(item.onChainChallengeId);
       onClaimed(item.campaignId);
+      void fireConfetti();
     } catch (err) {
       setError(
         claimTxError ||

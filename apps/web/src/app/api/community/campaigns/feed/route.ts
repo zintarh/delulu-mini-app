@@ -17,6 +17,7 @@ import {
   mergeMilestoneCount,
 } from "@/lib/community/campaign-milestone-counts";
 import { fetchCampaignParticipantAvatars } from "@/lib/community/campaign-participant-avatars";
+import { isPaidJoinCampaign } from "@/lib/community/campaign-join-info";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
@@ -213,6 +214,10 @@ export async function GET(request: NextRequest) {
 
     if (sort === "participants") {
       joinable.sort((a, b) => {
+        const aPaid = isPaidJoinCampaign(a);
+        const bPaid = isPaidJoinCampaign(b);
+        if (aPaid !== bPaid) return aPaid ? -1 : 1;
+
         const aEndingSoon = daysLeft(a.display_ends_at) <= ENDING_SOON_DAYS;
         const bEndingSoon = daysLeft(b.display_ends_at) <= ENDING_SOON_DAYS;
         if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
@@ -224,6 +229,13 @@ export async function GET(request: NextRequest) {
           ? (batchStats.get(b.on_chain_challenge_id)?.participantCount ?? 0)
           : 0;
         return bp - ap || (b.created_at > a.created_at ? 1 : -1);
+      });
+    } else {
+      joinable.sort((a, b) => {
+        const aPaid = isPaidJoinCampaign(a);
+        const bPaid = isPaidJoinCampaign(b);
+        if (aPaid !== bPaid) return aPaid ? -1 : 1;
+        return b.created_at > a.created_at ? 1 : -1;
       });
     }
 

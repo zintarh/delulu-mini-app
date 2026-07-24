@@ -34,6 +34,19 @@ export type CampaignJoinSource = {
   participant_count?: number;
 };
 
+/** Paid join = not free and requires a positive stake amount. */
+export function isPaidJoinCampaign(campaign: {
+  is_free_to_join?: boolean | null;
+  isFreeToJoin?: boolean | null;
+  join_amount?: number | null;
+  joinAmount?: number | null;
+}): boolean {
+  const isFreeToJoin =
+    (campaign.is_free_to_join ?? campaign.isFreeToJoin) !== false;
+  const joinAmount = Number(campaign.join_amount ?? campaign.joinAmount ?? 0);
+  return !isFreeToJoin && joinAmount > 0;
+}
+
 export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoinInfo {
   const isFreeToJoin =
     (campaign.is_free_to_join ?? campaign.isFreeToJoin) !== false;
