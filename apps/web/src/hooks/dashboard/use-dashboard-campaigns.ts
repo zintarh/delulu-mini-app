@@ -100,6 +100,7 @@ export type CampaignOnchainStatus = {
   totalStakedWei: string;
   economicsDrift: boolean;
   economicsStillFixable: boolean;
+  needsOnchainEnd: boolean;
 };
 
 /**

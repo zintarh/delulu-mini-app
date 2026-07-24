@@ -23,6 +23,14 @@ export type CampaignOnchainStatus = {
   economicsDrift: boolean;
   /** economicsDrift && nobody has joined yet — still recoverable via setCommunityCampaignEconomics. */
   economicsStillFixable: boolean;
+  /**
+   * Campaign's on-chain time window (startTime + duration) has already
+   * passed but endCommunityChallenge was never called — display/DB status
+   * can keep showing "active"/"approved" indefinitely since nothing flips it
+   * automatically. This is what to look at to know which campaigns still
+   * need the manual "End campaign" action.
+   */
+  needsOnchainEnd: boolean;
 };
 
 /**
@@ -87,9 +95,15 @@ export async function GET(request: NextRequest) {
             : Promise.resolve(null),
         ]);
 
-        const poolAmountWei = (campaign as readonly unknown[])[1] as bigint;
+        const campaignTuple = campaign as readonly unknown[];
+        const poolAmountWei = campaignTuple[1] as bigint;
+        const startTime = campaignTuple[2] as bigint;
+        const duration = campaignTuple[3] as bigint;
+        const ended = campaignTuple[6] as boolean;
         const economicsDrift = dbWantsPaid && isPaid === false;
         const economicsStillFixable = economicsDrift && (participantCount as bigint | null) === 0n;
+        const nowSec = BigInt(Math.floor(Date.now() / 1000));
+        const needsOnchainEnd = !ended && nowSec > startTime + duration;
 
         // Sum each participant's on-chain stake — only meaningful once the
         // campaign is genuinely paid; drifted/free campaigns never collected
@@ -122,6 +136,7 @@ export async function GET(request: NextRequest) {
           totalStakedWei: totalStakedWei.toString(),
           economicsDrift,
           economicsStillFixable,
+          needsOnchainEnd,
         };
         return [c.id, status] as const;
       } catch {

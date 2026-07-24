@@ -150,7 +150,18 @@ export function CampaignsPageClient() {
                     </DashboardTableCell>
 
                     <DashboardTableCell>
-                      <StatusChip status={c.status} />
+                      <div className="flex flex-col items-start gap-1">
+                        <StatusChip status={c.status} />
+                        {health?.needsOnchainEnd ? (
+                          <span
+                            className="inline-flex w-fit items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600"
+                            title="Its time window is up on-chain but endCommunityChallenge was never called — status will keep showing this way until it's manually ended."
+                          >
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Needs ending on-chain
+                          </span>
+                        ) : null}
+                      </div>
                     </DashboardTableCell>
 
                     <DashboardTableCell>
