@@ -7,10 +7,12 @@ import {
   ArrowRight,
   CheckCircle2,
   ChevronDown,
+  ExternalLink,
   Loader2,
   XCircle,
 } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { Modal, ModalContent } from "@/components/ui/modal";
 import { TokenBadge } from "@/components/token-badge";
 import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
@@ -122,11 +124,16 @@ export function TransferSheet({
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   /** Human-unit amounts already spent until chain refetch catches up. */
   const [spentByToken, setSpentByToken] = useState<Partial<Record<TokenId, number>>>({});
+  const [result, setResult] = useState<{
+    hash: `0x${string}`;
+    amountLabel: string;
+    symbol: string;
+    to: string;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedToken =
@@ -208,7 +215,6 @@ export function TransferSheet({
     hasTokenBalance &&
     !isPending &&
     !isConfirming &&
-    !isSuccess &&
     !!walletClient;
 
   const refetchAllBalances = useCallback(async () => {
@@ -230,15 +236,30 @@ export function TransferSheet({
     });
   }, []);
 
+  const resetForm = useCallback(() => {
+    setTokenId("gdollar");
+    setRecipient("");
+    setAmount("");
+    setTxHash(undefined);
+    setTxError(null);
+    setDropdownOpen(false);
+  }, []);
+
   const handleTransfer = useCallback(async () => {
     if (!canSubmit || !address) return;
     setTxError(null);
     setTxHash(undefined);
-    setIsSuccess(false);
     setIsPending(true);
 
     const spendAmount = amountNum;
     const spendToken = tokenId;
+    const spendSymbol =
+      TRANSFER_TOKENS.find((t) => t.id === spendToken)?.symbol ?? spendToken;
+    const amountLabel = formatBalance(
+      spendAmount,
+      spendToken === "celo" ? 4 : spendToken === "gdollar" ? 2 : 2,
+    );
+    const toAddress = recipient;
     let appliedOptimistic = false;
 
     try {
@@ -247,7 +268,7 @@ export function TransferSheet({
       if (spendToken === "celo") {
         hash = await (walletClient as any).sendTransaction({
           account: address,
-          to: recipient as `0x${string}`,
+          to: toAddress as `0x${string}`,
           value: parseEther(amount),
           chain: undefined,
         });
@@ -259,7 +280,7 @@ export function TransferSheet({
           address: token.address,
           abi: ERC20_TRANSFER_ABI,
           functionName: "transfer",
-          args: [recipient as `0x${string}`, parseUnits(amount, decimals)],
+          args: [toAddress as `0x${string}`, parseUnits(amount, decimals)],
         });
       }
 
@@ -289,8 +310,17 @@ export function TransferSheet({
       }
 
       await refetchAllBalances();
-      setIsSuccess(true);
       onTransferSuccess?.();
+
+      // Close the transfer sheet and show the compact status modal.
+      resetForm();
+      onOpenChange(false);
+      setResult({
+        hash,
+        amountLabel,
+        symbol: spendSymbol,
+        to: toAddress,
+      });
     } catch (err: unknown) {
       if (appliedOptimistic) {
         rollbackSpend(spendToken, spendAmount);
@@ -317,6 +347,8 @@ export function TransferSheet({
     onTransferBroadcast,
     onTransferSuccess,
     onTransferFailed,
+    onOpenChange,
+    resetForm,
     rollbackSpend,
   ]);
 
@@ -325,16 +357,12 @@ export function TransferSheet({
     onOpenChange(false);
     setDropdownOpen(false);
     setTimeout(() => {
-      setTokenId("gdollar");
-      setRecipient("");
-      setAmount("");
-      setTxHash(undefined);
-      setTxError(null);
-      setIsSuccess(false);
+      resetForm();
     }, 300);
   };
 
   return (
+    <>
     <ResponsiveSheet
       open={open}
       onOpenChange={handleClose}
@@ -431,7 +459,6 @@ export function TransferSheet({
             value={recipient}
             onChange={(e) => setRecipient(e.target.value.trim())}
             placeholder="0x..."
-            disabled={isSuccess}
             className={cn(
               "w-full rounded-xl border bg-secondary px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !recipientValid
@@ -452,7 +479,7 @@ export function TransferSheet({
             <button
               type="button"
               onClick={() => setAmount(maxBalance)}
-              disabled={!hasTokenBalance || isSuccess}
+              disabled={!hasTokenBalance}
               className="text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
             >
               Max
@@ -465,7 +492,7 @@ export function TransferSheet({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            disabled={isSuccess || !hasTokenBalance}
+            disabled={!hasTokenBalance}
             className={cn(
               "w-full rounded-xl border bg-secondary px-4 py-3 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !amountValid
@@ -486,27 +513,6 @@ export function TransferSheet({
             </p>
           )}
         </div>
-
-        {isSuccess && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-emerald-600">
-                Transfer sent!
-              </p>
-              {txHash && (
-                <a
-                  href={`https://celoscan.io/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block truncate font-mono text-[11px] text-muted-foreground hover:underline"
-                >
-                  {txHash.slice(0, 18)}…
-                </a>
-              )}
-            </div>
-          </div>
-        )}
 
         {txError && (
           <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3">
@@ -531,11 +537,6 @@ export function TransferSheet({
               <Loader2 className="h-4 w-4 animate-spin" />
               {isPending ? "Confirm in wallet…" : "Confirming…"}
             </>
-          ) : isSuccess ? (
-            <>
-              Sent
-              <CheckCircle2 className="h-4 w-4" />
-            </>
           ) : (
             <>
               Transfer {selectedToken.symbol}
@@ -545,6 +546,67 @@ export function TransferSheet({
         </button>
       </div>
     </ResponsiveSheet>
+
+    <Modal open={!!result} onOpenChange={(v) => !v && setResult(null)}>
+      <ModalContent
+        showClose
+        className="max-w-sm w-[calc(100%-1.5rem)] p-0 overflow-hidden rounded-3xl bg-card border border-border"
+      >
+        <div className="px-6 pt-6 pb-5 space-y-4">
+          <div className="flex flex-col items-center text-center gap-3">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-500/30">
+              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+            </span>
+            <div>
+              <h2 className="text-base font-black text-foreground">Transfer sent</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {result
+                  ? `${result.amountLabel} ${result.symbol} is on its way.`
+                  : "Your transfer confirmed on-chain."}
+              </p>
+            </div>
+          </div>
+
+          {result ? (
+            <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="font-bold tabular-nums text-foreground">
+                  {result.amountLabel} {result.symbol}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">To</span>
+                <span className="font-mono text-foreground truncate max-w-[11rem]">
+                  {result.to.slice(0, 6)}…{result.to.slice(-4)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {result ? (
+            <a
+              href={`https://celoscan.io/tx/${result.hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#f6c324] text-[#1a1a19] font-black text-sm border-2 border-[#1a1a19] shadow-[2px_2px_0px_0px_#1a1a19] hover:opacity-90 active:translate-y-px transition-all"
+            >
+              View on Celoscan
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setResult(null)}
+            className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </ModalContent>
+    </Modal>
+    </>
   );
 }
 

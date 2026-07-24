@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBalance } from "wagmi";
 import {
@@ -19,7 +19,8 @@ import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useCeloPrice } from "@/hooks/use-celo-price";
-import { useGraphUserClaims, type GraphClaim } from "@/hooks/graph/useGraphUserClaims";
+import { useGraphUserClaims } from "@/hooks/graph/useGraphUserClaims";
+import { useAdminRewardGrants } from "@/hooks/use-admin-reward-grants";
 import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { TokenBadge } from "@/components/token-badge";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
@@ -34,6 +35,16 @@ import {
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
+
+type ActivityItem = {
+  id: string;
+  kind: "team_reward" | "delulu_claim";
+  title: string;
+  description: string | null;
+  amountLabel: string;
+  txHash: string;
+  createdAt: string;
+};
 
 const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -87,6 +98,47 @@ export default function RewardsPage() {
     null;
   const secondaryPending = adminPendingRows.filter((r) => r !== primaryPending);
   const { claims, isLoading: isLoadingClaims, error: claimsError } = useGraphUserClaims(address);
+  const {
+    grants: teamGrants,
+    isLoading: isLoadingGrants,
+    error: grantsError,
+  } = useAdminRewardGrants(address);
+
+  const activityItems = useMemo((): ActivityItem[] => {
+    const fromClaims: ActivityItem[] = claims.map((claim) => ({
+      id: `claim-${claim.id}`,
+      kind: "delulu_claim",
+      title: "Reward claimed",
+      description: null,
+      amountLabel: `+${formatGAmount(claim.amount)} G$`,
+      txHash: claim.txHash,
+      createdAt: claim.createdAt,
+    }));
+
+    const fromGrants: ActivityItem[] = teamGrants.map((grant) => {
+      const symbol = grant.tokenSymbol || "token";
+      const amountStr =
+        symbol === "G$"
+          ? formatGAmount(grant.amount)
+          : grant.amount.toLocaleString(undefined, { maximumFractionDigits: 4 });
+      return {
+        id: `grant-${grant.id}`,
+        kind: "team_reward",
+        title: "Reward received",
+        description: grant.reason?.trim() || null,
+        amountLabel: `+${amountStr} ${symbol}`,
+        txHash: grant.txHash,
+        createdAt: grant.createdAt,
+      };
+    });
+
+    return [...fromClaims, ...fromGrants].toSorted(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [claims, teamGrants]);
+
+  const isLoadingActivity = isLoadingClaims || isLoadingGrants;
+  const activityError = claimsError || grantsError;
 
   const {
     formatted: gDollarBalance,
@@ -400,7 +452,7 @@ export default function RewardsPage() {
           ) : (
             <section>
               <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
-                {isLoadingClaims ? (
+                {isLoadingActivity && activityItems.length === 0 ? (
                   <div className="divide-y divide-border/40">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="flex items-center gap-3 px-4 py-3.5">
@@ -413,7 +465,7 @@ export default function RewardsPage() {
                       </div>
                     ))}
                   </div>
-                ) : claimsError && claims.length === 0 ? (
+                ) : activityError && activityItems.length === 0 ? (
                   <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-destructive/10">
                       <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -423,22 +475,22 @@ export default function RewardsPage() {
                       Check your connection and try again.
                     </p>
                   </div>
-                ) : claims.length === 0 ? (
+                ) : activityItems.length === 0 ? (
                   <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60">
                       <Sparkles className="h-5 w-5 text-muted-foreground" />
                     </span>
                     <p className="text-sm font-semibold text-foreground">No transactions yet</p>
                     <p className="text-xs text-muted-foreground">
-                      Rewards you claim will show up here.
+                      Rewards you receive or claim will show up here.
                     </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-border/40">
-                    {claims.map((claim) => (
-                      <TransactionRow key={claim.id} claim={claim} />
+                    {activityItems.map((item) => (
+                      <ActivityRow key={item.id} item={item} />
                     ))}
-                    {claimsError ? (
+                    {activityError ? (
                       <p className="px-4 py-2.5 text-center text-[11px] text-muted-foreground">
                         Couldn&apos;t refresh — showing your last loaded activity.
                       </p>
@@ -518,28 +570,44 @@ function TokenListRow({
   );
 }
 
-function TransactionRow({ claim }: { claim: GraphClaim }) {
+function ActivityRow({ item }: { item: ActivityItem }) {
   return (
     <a
-      href={`https://celoscan.io/tx/${claim.txHash}`}
+      href={`https://celoscan.io/tx/${item.txHash}`}
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-        <ArrowDownToLine className="h-4 w-4" />
+      <span
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          item.kind === "team_reward"
+            ? "bg-amber-500/10 text-amber-600"
+            : "bg-emerald-500/10 text-emerald-600",
+        )}
+      >
+        {item.kind === "team_reward" ? (
+          <Gift className="h-4 w-4" />
+        ) : (
+          <ArrowDownToLine className="h-4 w-4" />
+        )}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground" style={MANROPE}>
-          Reward claimed
+          {item.title}
         </p>
-        <p className="text-xs text-muted-foreground" style={MANROPE}>
-          {formatTimeAgo(new Date(claim.createdAt))}
+        {item.description ? (
+          <p className="truncate text-xs text-muted-foreground" style={MANROPE}>
+            {item.description}
+          </p>
+        ) : null}
+        <p className="text-[11px] text-muted-foreground/80" style={MANROPE}>
+          {formatTimeAgo(new Date(item.createdAt))}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <span className="text-sm font-bold tabular-nums text-emerald-600">
-          +{formatGAmount(claim.amount)} G$
+          {item.amountLabel}
         </span>
         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50" />
       </div>
