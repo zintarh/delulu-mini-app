@@ -15,7 +15,7 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
   const safeSymbol = escapeMarketingHtml(data.tokenSymbol);
   const safeReason = data.reason ? escapeMarketingHtml(data.reason) : null;
   const appUrl = data.appUrl.replace(/\/$/, "");
-  const claimUrl = data.claimUrl;
+  const rewardsUrl = data.claimUrl;
 
   const reasonBlock = safeReason
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -23,7 +23,7 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
         <tr>
           <td style="padding: 16px 18px;">
             <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280;">
-              What this is for
+              Note from the team
             </p>
             <p style="margin: 0; font-size: 15px; font-weight: 600; color: #111827; line-height: 1.5;">
               ${safeReason}
@@ -33,16 +33,12 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
       </table>`
     : "";
 
-  const introCopy = safeReason
-    ? `You earned a reward on Delulu. It&apos;s waiting for you to claim — open Rewards and pull it into your wallet.`
-    : `Someone sent you a reward on Delulu. It&apos;s waiting for you to claim — open Rewards and pull it into your wallet.`;
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>You received a reward</title>
+  <title>Your Delulu reward is ready</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 40px 16px;">
@@ -59,15 +55,15 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
 
           <tr>
             <td style="padding: 32px;">
-              <h1 style="margin: 0 0 4px; font-size: 25px; font-weight: 900; color: #111827; line-height: 1.2;">
-                Hey ${safeUsername} 💛
+              <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 900; color: #111827; line-height: 1.25;">
+                Hi ${safeUsername},
               </h1>
-              <h2 style="margin: 0 0 16px; font-size: 22px; font-weight: 900; color: #111827; line-height: 1.2;">
-                You just got rewarded
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 800; color: #111827; line-height: 1.3;">
+                Your Delulu reward is ready
               </h2>
 
               <p style="margin: 0 0 24px; font-size: 15px; color: #374151; line-height: 1.7;">
-                ${introCopy}
+                The Delulu team added a reward to your account. You can review it anytime on your Rewards page.
               </p>
 
               ${reasonBlock}
@@ -77,7 +73,7 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
                 <tr>
                   <td style="padding: 24px; text-align: center;">
                     <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #92400e;">
-                      Ready to claim
+                      Amount
                     </p>
                     <p style="margin: 0; font-size: 32px; font-weight: 900; color: #111827; line-height: 1.2;">
                       ${safeAmount}
@@ -90,17 +86,19 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="${claimUrl}"
+                    <a href="${rewardsUrl}"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       style="display: inline-block; background-color: #f6c324; color: #1a1a19; font-size: 14px; font-weight: 900;
                         text-decoration: none; padding: 14px 28px; border-radius: 999px;">
-                      Claim your reward
+                      Claim on Delulu
                     </a>
                   </td>
                 </tr>
               </table>
 
               <p style="margin: 24px 0 0; font-size: 13px; color: #6b7280; line-height: 1.6; text-align: center;">
-                It only takes a moment — tap Claim on the Rewards page and confirm in your wallet.
+                This opens the Delulu app on your Rewards page.
               </p>
             </td>
           </tr>
@@ -124,20 +122,20 @@ export function rewardNotificationEmailHtml(data: RewardNotificationEmailData): 
 
 export function rewardNotificationEmailText(data: RewardNotificationEmailData): string {
   const lines = [
-    `Hey ${data.username},`,
+    `Hi ${data.username},`,
     "",
-    "You just got rewarded on Delulu.",
+    "Your Delulu reward is ready.",
+    "",
+    "The Delulu team added a reward to your account. You can review it on your Rewards page.",
   ];
   if (data.reason) {
-    lines.push("", `What this is for: ${data.reason}`);
+    lines.push("", `Note from the team: ${data.reason}`);
   }
   lines.push(
     "",
-    `Amount ready to claim: ${data.amountLabel} ${data.tokenSymbol}`,
+    `Amount: ${data.amountLabel} ${data.tokenSymbol}`,
     "",
-    `Claim it here: ${data.claimUrl}`,
-    "",
-    "Open Rewards, tap Claim, and confirm in your wallet.",
+    `Claim on Delulu (Rewards): ${data.claimUrl}`,
     "",
     "— Delulu",
   );

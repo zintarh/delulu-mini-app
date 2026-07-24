@@ -4,7 +4,7 @@
 
 export function normalizeMarketingAppUrl(raw: string): string {
   const t = raw.trim();
-  if (!t) return "https://delulu.app";
+  if (!t) return "https://www.staydelulu.xyz";
   if (t.startsWith("http://") || t.startsWith("https://")) return t.replace(/\/$/, "");
   return `https://${t.replace(/\/$/, "")}`;
 }

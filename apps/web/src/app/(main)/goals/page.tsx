@@ -15,6 +15,7 @@ import { FeedErrorState } from "@/components/feed-error-state";
 import type { FormattedDelulu } from "@/lib/types";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { useAuth } from "@/hooks/use-auth";
+import { MOBILE_BOTTOM_NAV_CLEARANCE } from "@/components/main-app-header";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_TITLES: Record<FeedCategoryId, string> = {
@@ -256,8 +257,8 @@ export default function GoalsPage() {
           className={cn(
             "mx-auto w-full px-4 sm:px-6 lg:px-8",
             isDiscoverMode
-              ? "max-w-[1600px] pb-20 pt-3 lg:pb-12 lg:pt-4"
-              : "max-w-[1600px] py-6 lg:py-8",
+              ? cn("max-w-[1600px] pt-3 lg:pt-4", MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-12")
+              : cn("max-w-[1600px] pt-6 lg:py-8", MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-8"),
           )}
         >
           {isDiscoverMode ? (

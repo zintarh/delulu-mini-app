@@ -45,6 +45,13 @@ export function usesNestedScroll(pathname: string): boolean {
   );
 }
 
+/**
+ * Clears the fixed mobile bottom nav (h-14) + home-indicator safe area,
+ * with extra room so the last card isn’t tucked under the bar.
+ */
+export const MOBILE_BOTTOM_NAV_CLEARANCE =
+  "pb-[calc(56px+max(env(safe-area-inset-bottom),8px)+40px)]";
+
 /** Shared mobile navbar + desktop search bar for main app routes. */
 export function MainAppHeader() {
   const pathname = usePathname() ?? "";
@@ -93,8 +100,7 @@ export function MainAppContent({ children }: { children: React.ReactNode }) {
         "min-h-0 flex-1",
         nestedScroll ? "flex flex-col overflow-hidden" : "overflow-y-auto scrollbar-hide",
         needsMobileNavOffset && "pt-[4.5rem] lg:pt-0",
-        !nestedScroll &&
-          "pb-[calc(56px+max(env(safe-area-inset-bottom),8px)+12px)] lg:pb-0",
+        !nestedScroll && cn(MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-0"),
       )}
     >
       {children}

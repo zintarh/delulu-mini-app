@@ -273,7 +273,9 @@ export async function POST(request: NextRequest) {
   }
 
   const appUrl = normalizeMarketingAppUrl(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://delulu.app",
+    process.env.NEXT_PUBLIC_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      "https://www.staydelulu.xyz",
   );
   const username =
     recipientUsername ||
