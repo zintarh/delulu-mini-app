@@ -132,7 +132,7 @@ export default function RewardsPage() {
       };
     });
 
-    return [...fromClaims, ...fromGrants].toSorted(
+    return [...fromClaims, ...fromGrants].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }, [claims, teamGrants]);
