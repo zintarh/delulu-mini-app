@@ -66,7 +66,6 @@ export function CreateChallengeSheet({
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
-    refetchAllowance,
     isLoadingAllowance,
   } = useTokenApproval(selectedToken);
 
@@ -120,19 +119,6 @@ export function CreateChallengeSheet({
       setShowErrorModal(true);
     }
   }, [isError, createErrorMessage]);
-
-  useEffect(() => {
-    if (isApprovalSuccess) {
-      const refetch = async () => {
-        await refetchAllowance();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      };
-      const timeoutId = setTimeout(() => {
-        refetch();
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isApprovalSuccess, refetchAllowance]);
 
   const currentPoolAmount =
     poolAmount[0] != null && isFinite(poolAmount[0]) ? poolAmount[0] : 100;
@@ -211,40 +197,32 @@ export function CreateChallengeSheet({
         throw new Error("Please select a valid duration");
       }
 
-      // Handle approval automatically if needed for all tokens (including G$).
-      if (needsApproval(currentPoolAmount) && !isApprovalSuccess) {
-        await approve(currentPoolAmount);
-        // Wait for approval transaction to be confirmed
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        await refetchAllowance();
-
-        // Wait a bit more for the allowance to update
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Double-check that approval succeeded
-        if (needsApproval(currentPoolAmount)) {
-          throw new Error("Token approval failed. Please try again.");
-        }
-      }
+      // Approval (a one-time max allowance, see use-token-approval.ts) and the
+      // IPFS upload don't depend on each other, so run them side by side
+      // instead of one after another. `approve()` already awaits the tx
+      // receipt internally, so if it resolves the allowance is confirmed —
+      // no need to poll or sleep afterwards.
+      const needsApprovalNow = needsApproval(currentPoolAmount) && !isApprovalSuccess;
 
       setIsUploading(true);
-
-      // Upload challenge title and description to IPFS
-      const contentHash = await uploadToIPFS(
-        challengeTitle,
-        challengeDescription || undefined,
-        undefined, // username
-        undefined, // pfpUrl
-        new Date(), // createdAt
-        undefined, // gatekeeper
-        undefined // bgImageUrl
-      );
+      const [contentHash] = await Promise.all([
+        uploadToIPFS(
+          challengeTitle,
+          challengeDescription || undefined,
+          undefined, // username
+          undefined, // pfpUrl
+          new Date(), // createdAt
+          undefined, // gatekeeper
+          undefined // bgImageUrl
+        ),
+        needsApprovalNow ? approve(currentPoolAmount) : Promise.resolve(),
+      ]);
+      setIsUploading(false);
 
       if (!contentHash || typeof contentHash !== "string") {
         throw new Error("Failed to upload campaign description to IPFS");
       }
 
-      setIsUploading(false);
       await createChallenge(contentHash, currentPoolAmount, selectedDuration);
     } catch (error) {
       setIsUploading(false);

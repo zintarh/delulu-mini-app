@@ -1,7 +1,8 @@
 "use client";
 
-import { useWaitForTransactionReceipt, useReadContract, useChainId } from "wagmi";
+import { useWaitForTransactionReceipt, useReadContract, useChainId, usePublicClient } from "wagmi";
 import { useState } from "react";
+import { maxUint256 } from "viem";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
@@ -35,6 +36,7 @@ const ERC20_ABI = [
 export function useTokenApproval(tokenAddress: string | undefined) {
   const { address } = useAuth();
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const token = tokenAddress as `0x${string}` | undefined;
   const { decimals } = useTokenMetadata(tokenAddress);
   const { writeContractAsync } = useUnifiedWriteContract();
@@ -54,11 +56,13 @@ export function useTokenApproval(tokenAddress: string | undefined) {
     query: { enabled: !!token && !!address },
   });
 
+  // Approves the max allowance once, rather than the exact amount, so a
+  // returning creator (e.g. running multiple campaigns) never has to pay for
+  // or wait on a second approval tx — `needsApproval` will already be false
+  // next time regardless of the new amount.
   const approve = async (amount: number) => {
     if (!token) throw new Error("Token address not available");
     if (!isFinite(amount) || isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
-
-    const amountWei = parseTokenAmount(amount * 1.1, token, decimals);
 
     setIsPending(true);
     try {
@@ -66,9 +70,13 @@ export function useTokenApproval(tokenAddress: string | undefined) {
         address: token,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [contractAddress, amountWei],
+        args: [contractAddress, maxUint256],
       });
       setHash(txHash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+      }
+      await refetchAllowance();
     } finally {
       setIsPending(false);
     }

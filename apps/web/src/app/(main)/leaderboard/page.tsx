@@ -23,7 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
-import { HomeTop10Banner } from "@/components/home-top10-banner";
+// import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 
 import { usePfps } from "@/hooks/use-profile-pfp";
@@ -841,9 +841,10 @@ function LeaderboardContent({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
-      <div className="mb-6">
+      {/* $100 / 30,000 points campaign ended — banner commented out */}
+      {/* <div className="mb-6">
         <HomeTop10Banner />
-      </div>
+      </div> */}
 
       <LeaderboardStatsRow
         activeTab={activeTab}
