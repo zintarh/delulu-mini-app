@@ -97,8 +97,10 @@ export async function POST(request: NextRequest) {
   if (!admin) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
+  // Local binding so nested helpers don't lose the null-narrowing.
+  const db = admin;
 
-  const { data: profile } = await admin
+  const { data: profile } = await db
     .from("profiles")
     .select("email, username")
     .ilike("address", recipientAddress)
@@ -121,19 +123,18 @@ export async function POST(request: NextRequest) {
   const selectGrantColsLegacy = "id, email_sent";
 
   async function loadGrantByTx(hash: string) {
-    const primary = await admin
+    const primary = await db
       .from("admin_reward_grants")
       .select(selectGrantCols)
       .eq("tx_hash", hash)
       .maybeSingle();
     if (primary.error && /earned_credited/i.test(primary.error.message)) {
       earnedCreditedColumnReady = false;
-      const legacy = await admin
+      return db
         .from("admin_reward_grants")
         .select(selectGrantColsLegacy)
         .eq("tx_hash", hash)
         .maybeSingle();
-      return legacy;
     }
     return primary;
   }
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
       insertPayload.earned_credited = false;
     }
 
-    const { data: inserted, error: insertError } = await admin
+    const { data: inserted, error: insertError } = await db
       .from("admin_reward_grants")
       .insert(insertPayload)
       .select(earnedCreditedColumnReady ? selectGrantCols : selectGrantColsLegacy)
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
         }
       } else if (/earned_credited/i.test(insertError.message)) {
         earnedCreditedColumnReady = false;
-        const retry = await admin
+        const retry = await db
           .from("admin_reward_grants")
           .insert({
             recipient_address: recipientAddress,
@@ -220,7 +221,7 @@ export async function POST(request: NextRequest) {
   }
 
   const grantId = grant?.id ?? null;
-  if (!grantId) {
+  if (!grantId || !grant) {
     return NextResponse.json({ error: "Failed to record reward grant" }, { status: 500 });
   }
 
@@ -229,7 +230,6 @@ export async function POST(request: NextRequest) {
   // (earned_credited = false) so re-notifies after migration can catch up.
   let earnedCreditedUsdt = 0;
   const shouldCreditEarned =
-    !!grant &&
     (!duplicate || grant.earned_credited === false) &&
     grant.earned_credited !== true;
   if (shouldCreditEarned) {
@@ -240,14 +240,18 @@ export async function POST(request: NextRequest) {
     });
     earnedCreditedUsdt = credited.creditedUsdt;
     if (credited.creditedUsdt > 0) {
-      const { error: markError } = await admin
+      const { error: markError } = await db
         .from("admin_reward_grants")
         .update({ earned_credited: true })
         .eq("id", grantId);
       if (markError && !/earned_credited/i.test(markError.message)) {
         console.error("[rewards/notify] mark earned_credited failed:", markError);
       }
-      grant = { ...grant, earned_credited: true };
+      grant = {
+        id: grant.id,
+        email_sent: grant.email_sent,
+        earned_credited: true,
+      };
     }
   }
 
@@ -291,7 +295,7 @@ export async function POST(request: NextRequest) {
       reason: reason ?? undefined,
     });
 
-    await admin
+    await db
       .from("admin_reward_grants")
       .update({ email_sent: true, email_error: null })
       .eq("id", grantId);
@@ -306,7 +310,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "send_failed";
     console.error("[rewards/notify] send failed:", err);
-    await admin
+    await db
       .from("admin_reward_grants")
       .update({ email_sent: false, email_error: message.slice(0, 500) })
       .eq("id", grantId);
