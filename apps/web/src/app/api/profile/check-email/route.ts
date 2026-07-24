@@ -20,11 +20,14 @@ export async function GET(request: NextRequest) {
 
   const normalized = normalizeEmail(email);
 
-  // Exclude wallet.local placeholders inserted by the photo-upload stub
+  // Case-insensitive match — profiles.email is a case-sensitive unique column,
+  // but two different casings of the same address (e.g. John@Gmail.com vs
+  // john@gmail.com) should still be treated as taken. Exclude wallet.local
+  // placeholders inserted by the photo-upload stub.
   let query = supabase
     .from("profiles")
     .select("address, auth_provider")
-    .eq("email", normalized)
+    .ilike("email", normalized)
     .not("email", "ilike", "%@wallet.local")
     .limit(2); // limit(2) avoids maybeSingle() throwing on duplicate rows
 

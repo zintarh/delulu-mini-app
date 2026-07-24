@@ -8,13 +8,19 @@
 create table if not exists public.profiles (
   address       text primary key,
   username      text,
-  email         text not null unique,
+  email         text not null,
   pfp_url       text,
   referral_code text,
   auth_provider text not null default 'privy',
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Case-insensitive uniqueness — see docs/migrations/20260724_profiles_email_unique_index.sql
+-- for context. A plain unique constraint on the raw column would still allow
+-- "John@Gmail.com" and "john@gmail.com" as two different rows.
+create unique index if not exists profiles_email_lower_unique_idx
+  on public.profiles (lower(email));
 
 -- add auth_provider to existing installs that ran the old migration
 alter table public.profiles

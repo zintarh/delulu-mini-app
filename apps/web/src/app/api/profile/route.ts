@@ -142,6 +142,9 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedAddress = address.toLowerCase();
+    // profiles.email is a case-sensitive unique column — normalize before every
+    // write so "John@Gmail.com" and "john@gmail.com" can't end up as two rows.
+    const normalizedEmail = email.trim().toLowerCase();
     try {
       requireAuthenticatedWallet(request, normalizedAddress);
     } catch (err) {
@@ -155,9 +158,9 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabase.from("profiles").upsert(
       {
-        address: address.toLowerCase(),
+        address: normalizedAddress,
         username: username || null,
-        email,
+        email: normalizedEmail,
         pfp_url: pfpUrl || null,
         referral_code: referralCode || null,
         auth_provider: auth_provider ?? "web3auth",

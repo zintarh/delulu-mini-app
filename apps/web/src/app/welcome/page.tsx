@@ -186,7 +186,7 @@ export default function WelcomePage() {
     savedRef.current = true;
 
     // Never store a placeholder — the form now requires a non-empty email before submit.
-    const normalizedEmail = email.trim() || `${address.toLowerCase()}@wallet.local`;
+    const normalizedEmail = email.trim().toLowerCase() || `${address.toLowerCase()}@wallet.local`;
     if (!email.trim()) {
       // Shouldn't reach here since canSubmitProfile already requires email,
       // but guard against any edge case to avoid polluting the profile row.

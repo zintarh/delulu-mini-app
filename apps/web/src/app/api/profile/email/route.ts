@@ -23,10 +23,13 @@ export async function POST(request: NextRequest) {
 
     // Use limit(1) instead of maybeSingle() — maybeSingle() throws PGRST116 when
     // multiple rows match, which surfaces as a 500. limit(1) is always safe.
+    // ilike (case-insensitive) — profiles.email is a case-sensitive unique
+    // column, but a differently-cased existing row for the same address
+    // should still count as taken.
     const { data: takenRows, error: takenErr } = await supabase
       .from("profiles")
       .select("address")
-      .eq("email", emailRaw)
+      .ilike("email", emailRaw)
       .limit(1);
 
     if (takenErr) throw takenErr;
