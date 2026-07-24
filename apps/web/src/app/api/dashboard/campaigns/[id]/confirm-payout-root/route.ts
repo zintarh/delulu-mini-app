@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
+import { parseCommunityPayoutRootSetFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Confirm that setCommunityPayoutRoot was published on-chain.
+ * Confirm that setCommunityPayoutRoot was published on-chain. Verifies the
+ * actual CommunityPayoutRootSet event in txHash rather than trusting the
+ * caller's merkleRoot string — a reverted tx that still matched the DB's
+ * already-known root would otherwise pass silently, marking payouts "live"
+ * when communityPayoutRoot was never actually set on-chain.
  * Body: { txHash, merkleRoot }
  */
 export async function POST(
@@ -18,7 +23,7 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const txHash = String(body.txHash ?? "").trim();
+  const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
   const merkleRoot = String(body.merkleRoot ?? "").trim().toLowerCase();
   if (!txHash.startsWith("0x") || !merkleRoot.startsWith("0x")) {
     return NextResponse.json({ error: "txHash and merkleRoot are required" }, { status: 400 });
@@ -30,7 +35,7 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, community_id, status, payout_merkle_root")
+    .select("id, community_id, status, on_chain_challenge_id, payout_merkle_root")
     .eq("id", id)
     .maybeSingle();
 
@@ -48,6 +53,26 @@ export async function POST(
   }
   if (campaign.payout_merkle_root.toLowerCase() !== merkleRoot) {
     return NextResponse.json({ error: "merkleRoot does not match snapshot." }, { status: 400 });
+  }
+
+  let parsed;
+  try {
+    parsed = await parseCommunityPayoutRootSetFromTx(txHash);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to read transaction" },
+      { status: 400 },
+    );
+  }
+  if (
+    !parsed ||
+    Number(parsed.challengeId) !== campaign.on_chain_challenge_id ||
+    parsed.merkleRoot.toLowerCase() !== merkleRoot
+  ) {
+    return NextResponse.json(
+      { error: "CommunityPayoutRootSet event not found for this campaign and root." },
+      { status: 400 },
+    );
   }
 
   const now = new Date().toISOString();

@@ -1,10 +1,28 @@
 "use client";
 
-import { useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
+import { useReadContract, useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
+import type { PublicClient } from "viem";
 import { decodeErrorResult } from "viem";
 import { getCommunityMarketV1Address } from "@/lib/constant";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
+
+/**
+ * Waits for a receipt and throws if the transaction actually reverted.
+ * `publicClient.waitForTransactionReceipt` resolves for *any* mined receipt,
+ * success or reverted — several `*AndWait` helpers here used to return
+ * normally on a reverted tx, so callers (and the confirm-* API routes that
+ * trust them) treated on-chain failures as success.
+ */
+async function awaitMinedSuccess(
+  publicClient: PublicClient | undefined,
+  txHash: `0x${string}`,
+  failureMessage: string,
+) {
+  if (!publicClient) return;
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") throw new Error(failureMessage);
+}
 
 function formatOnChainError(raw: string): string {
   const msg = raw.toLowerCase();
@@ -46,7 +64,7 @@ export function useJoinCommunityCampaignOnChain() {
 
   const joinCommunityCampaignAndWait = async (challengeId: number | bigint) => {
     const txHash = await joinCommunityCampaign(challengeId);
-    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    await awaitMinedSuccess(publicClient, txHash, "Join transaction failed on-chain");
     return txHash;
   };
 
@@ -119,7 +137,7 @@ export function useSubmitCommunityMilestoneProofOnChain() {
       milestoneId,
       proofLink,
     );
-    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    await awaitMinedSuccess(publicClient, txHash, "Proof submission failed on-chain");
     return txHash;
   };
 
@@ -232,7 +250,7 @@ export function useSetCommunityPayoutRoot() {
     input: Parameters<typeof setCommunityPayoutRoot>[0],
   ) => {
     const txHash = await setCommunityPayoutRoot(input);
-    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    await awaitMinedSuccess(publicClient, txHash, "Publishing payouts failed on-chain");
     return txHash;
   };
 
@@ -434,7 +452,7 @@ export function useSetCommunityCampaignEconomics() {
     input: Parameters<typeof setCommunityCampaignEconomics>[0],
   ) => {
     const txHash = await setCommunityCampaignEconomics(input);
-    if (publicClient) await publicClient.waitForTransactionReceipt({ hash: txHash });
+    await awaitMinedSuccess(publicClient, txHash, "Configuring paid economics failed on-chain");
     return txHash;
   };
 
@@ -447,4 +465,42 @@ export function useSetCommunityCampaignEconomics() {
     isError: !!error || !!receiptError,
     reset,
   };
+}
+
+/**
+ * Detects economics drift for a single campaign — DB says paid but the
+ * on-chain configuration never actually landed (see setCommunityCampaignEconomicsAndWait
+ * above; this used to fail silently for 13 of 15 paid campaigns). Only
+ * fixable while campaignParticipantCount is still 0 — the contract locks
+ * economics permanently once anyone has joined.
+ */
+export function useCampaignEconomicsStatus(
+  challengeId: number | null | undefined,
+  dbIsFreeToJoin: boolean | undefined,
+  dbJoinAmount: number | null | undefined,
+) {
+  const chainId = useChainId();
+  const dbWantsPaid = dbIsFreeToJoin === false && Number(dbJoinAmount ?? 0) > 0;
+  const enabled = challengeId != null && dbWantsPaid;
+
+  const { data: onChainIsPaid, isLoading: isLoadingPaid } = useReadContract({
+    address: enabled ? getCommunityMarketV1Address(chainId) : undefined,
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    functionName: "campaignIsPaid",
+    args: challengeId != null ? [BigInt(challengeId)] : undefined,
+    query: { enabled },
+  });
+  const { data: participantCount, isLoading: isLoadingCount } = useReadContract({
+    address: enabled ? getCommunityMarketV1Address(chainId) : undefined,
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    functionName: "campaignParticipantCount",
+    args: challengeId != null ? [BigInt(challengeId)] : undefined,
+    query: { enabled },
+  });
+
+  const isLoading = enabled && (isLoadingPaid || isLoadingCount);
+  const isDrifted = enabled && onChainIsPaid === false;
+  const isStillFixable = isDrifted && (participantCount as bigint | undefined) === 0n;
+
+  return { isLoading, isDrifted, isStillFixable, participantCount: participantCount as bigint | undefined };
 }

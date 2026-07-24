@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useChainId, usePublicClient } from "wagmi";
 import {
   DashboardModal,
   DashboardPrimaryButton,
@@ -10,8 +11,9 @@ import {
 import { useApproveCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 import { useCreateCommunityChallenge } from "@/hooks/use-create-community-challenge";
 import { useSetCommunityCampaignEconomics } from "@/hooks/use-community-campaign-onchain";
+import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import { resolveJoinTokenAddress } from "@/lib/community/join-token";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { GOODDOLLAR_ADDRESSES, getCommunityMarketV1Address } from "@/lib/constant";
 import { parseTokenAmount } from "@/lib/token-amounts";
 import type { DashboardCampaign } from "@/hooks/dashboard/use-dashboard-campaigns";
 
@@ -20,6 +22,7 @@ type DeployStep =
   | "approving"
   | "deploying_challenge"
   | "confirming_challenge"
+  | "configuring_economics"
   | "done"
   | "error";
 
@@ -39,9 +42,14 @@ const STEP_LABEL: Record<DeployStep, string> = {
   approving: "Preparing content hash…",
   deploying_challenge: "Sign the wallet transaction to create the campaign on-chain.",
   confirming_challenge: "Confirming on-chain deployment…",
+  configuring_economics:
+    "Sign the second wallet transaction to configure paid join economics. This campaign won't actually charge participants until this is confirmed.",
   done: "",
   error: "",
 };
+
+const IDLE_LABEL_PAID =
+  "This will upload campaign content to IPFS and deploy it on-chain. You'll need to sign TWO wallet transactions — one to create the campaign, and a second to configure paid join economics.";
 
 const RETRY_IDLE_LABEL =
   "Campaign content is already prepared — it just never finished deploying on-chain. You'll need to sign one wallet transaction to finish deployment.";
@@ -60,6 +68,8 @@ export function ApproveCampaignModal({
   const approve = useApproveCampaign();
   const { createCommunityChallengeAndWait } = useCreateCommunityChallenge();
   const { setCommunityCampaignEconomicsAndWait } = useSetCommunityCampaignEconomics();
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
   const { show } = useDashboardToast();
   const [step, setStep] = useState<DeployStep>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -108,18 +118,47 @@ export function ApproveCampaignModal({
       const isFreeToJoin = campaign.is_free_to_join !== false;
       const joinAmount = Number(campaign.join_amount ?? 0);
       if (!isFreeToJoin && joinAmount > 0) {
+        setStep("configuring_economics");
         const joinToken = resolveJoinTokenAddress(campaign.join_token);
         const erc20Token =
           joinToken === "0x0000000000000000000000000000000000000000"
             ? (GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`)
             : joinToken;
+        const joinAmountWei = parseTokenAmount(joinAmount, erc20Token);
         await setCommunityCampaignEconomicsAndWait({
           challengeId,
           isPaid: true,
           joinToken,
-          joinAmountWei: parseTokenAmount(joinAmount, erc20Token),
+          joinAmountWei,
           forfeitPct: Number(campaign.forfeit_pct ?? 0),
         });
+
+        // Belt-and-suspenders: confirm the on-chain state actually reflects
+        // paid economics before declaring success. This exact silent-failure
+        // mode (tx reverted, no error surfaced, campaign left free forever
+        // once anyone joins) is what broke 13 of 15 paid campaigns before
+        // setCommunityCampaignEconomicsAndWait checked receipt.status.
+        if (publicClient) {
+          const [onChainIsPaid, onChainJoinAmount] = await Promise.all([
+            publicClient.readContract({
+              address: getCommunityMarketV1Address(chainId),
+              abi: COMMUNITY_CAMPAIGN_ABI,
+              functionName: "campaignIsPaid",
+              args: [BigInt(challengeId)],
+            }),
+            publicClient.readContract({
+              address: getCommunityMarketV1Address(chainId),
+              abi: COMMUNITY_CAMPAIGN_ABI,
+              functionName: "campaignJoinAmount",
+              args: [BigInt(challengeId)],
+            }),
+          ]);
+          if (!onChainIsPaid || (onChainJoinAmount as bigint) !== joinAmountWei) {
+            throw new Error(
+              "Paid economics didn't confirm on-chain — the campaign was created but is still free to join. Retry from the campaign page before anyone joins.",
+            );
+          }
+        }
       }
 
       setStep("done");
@@ -137,6 +176,14 @@ export function ApproveCampaignModal({
     step !== "error";
 
   const canApprove = Boolean(campaign);
+  const willConfigureEconomics =
+    campaign?.is_free_to_join === false && Number(campaign?.join_amount ?? 0) > 0;
+
+  const idleLabel = isRetryDeploy
+    ? RETRY_IDLE_LABEL
+    : willConfigureEconomics
+      ? IDLE_LABEL_PAID
+      : STEP_LABEL.idle;
 
   return (
     <DashboardModal
@@ -148,7 +195,7 @@ export function ApproveCampaignModal({
       <div className="space-y-4 pt-2 text-sm">
         {step !== "done" ? (
           <p className="text-muted-foreground">
-            {step === "idle" && isRetryDeploy ? RETRY_IDLE_LABEL : STEP_LABEL[step === "error" ? "idle" : step]}
+            {step === "idle" ? idleLabel : STEP_LABEL[step === "error" ? "idle" : step]}
           </p>
         ) : (
           <p className="font-semibold text-emerald-700">

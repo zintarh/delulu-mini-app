@@ -110,6 +110,29 @@ export async function parseCommunityCampaignMilestonesAddedFromTx(
   return { challengeId: args.campaignId, milestoneCount: args.milestoneCount };
 }
 
+export async function parseCommunityPayoutRootSetFromTx(
+  txHash: `0x${string}`,
+): Promise<{ challengeId: bigint; merkleRoot: `0x${string}`; totalClaimable: bigint } | null> {
+  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+  const contract = cmv1Address();
+  const logs = parseEventLogs({
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    eventName: "CommunityPayoutRootSet",
+    logs: receipt.logs,
+  });
+  const match = logs.find(
+    (log) => log.address.toLowerCase() === contract.toLowerCase(),
+  );
+  if (!match) return null;
+  const args = match.args as {
+    campaignId?: bigint;
+    merkleRoot?: `0x${string}`;
+    totalClaimable?: bigint;
+  };
+  if (args.campaignId == null || !args.merkleRoot || args.totalClaimable == null) return null;
+  return { challengeId: args.campaignId, merkleRoot: args.merkleRoot, totalClaimable: args.totalClaimable };
+}
+
 export async function parseCommunityCampaignJoinedFromTx(
   txHash: `0x${string}`,
 ): Promise<{ challengeId: bigint; participant: string } | null> {

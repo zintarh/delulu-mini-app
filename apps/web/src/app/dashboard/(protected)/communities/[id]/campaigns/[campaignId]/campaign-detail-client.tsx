@@ -4,9 +4,12 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
+import { resolveJoinTokenAddress } from "@/lib/community/join-token";
+import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { parseTokenAmount } from "@/lib/token-amounts";
 import {
   canDeleteDashboardCampaign,
   canEndDashboardCampaign,
@@ -48,7 +51,12 @@ import {
   useUpdateCampaign,
   type DashboardCampaign,
 } from "@/hooks/dashboard/use-dashboard-campaigns";
-import { useEndCommunityChallenge, useSetCommunityPayoutRoot } from "@/hooks/use-community-campaign-onchain";
+import {
+  useEndCommunityChallenge,
+  useSetCommunityPayoutRoot,
+  useSetCommunityCampaignEconomics,
+  useCampaignEconomicsStatus,
+} from "@/hooks/use-community-campaign-onchain";
 import { CampaignMilestonesModal } from "@/components/dashboard/campaign-milestones-modal";
 import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
 import { ApproveCampaignModal } from "@/components/dashboard/approve-campaign-modal";
@@ -321,12 +329,44 @@ export function CampaignDetailClient({
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { show } = useDashboardToast();
   const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
   const { endCommunityChallenge, isPending: isEndingOnChain } = useEndCommunityChallenge();
   const { setCommunityPayoutRootAndWait, isPending: isPublishingRoot } =
     useSetCommunityPayoutRoot();
+  const { setCommunityCampaignEconomicsAndWait, isPending: isFixingEconomics } =
+    useSetCommunityCampaignEconomics();
+  const economicsStatus = useCampaignEconomicsStatus(
+    campaign?.on_chain_challenge_id ?? null,
+    campaign?.is_free_to_join,
+    campaign?.join_amount,
+  );
+  const [economicsFixError, setEconomicsFixError] = useState<string | null>(null);
+
+  const handleFixEconomics = async () => {
+    if (!campaign?.on_chain_challenge_id) return;
+    setEconomicsFixError(null);
+    try {
+      const joinToken = resolveJoinTokenAddress(campaign.join_token);
+      const erc20Token =
+        joinToken === "0x0000000000000000000000000000000000000000"
+          ? (GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`)
+          : joinToken;
+      await setCommunityCampaignEconomicsAndWait({
+        challengeId: campaign.on_chain_challenge_id,
+        isPaid: true,
+        joinToken,
+        joinAmountWei: parseTokenAmount(Number(campaign.join_amount ?? 0), erc20Token),
+        forfeitPct: Number(campaign.forfeit_pct ?? 0),
+      });
+      show("Paid economics configured — future joins will now be charged.");
+      void refetch();
+    } catch (err) {
+      setEconomicsFixError(err instanceof Error ? err.message : "Failed to configure economics");
+    }
+  };
 
   const handleEndCampaign = async () => {
     if (campaign?.on_chain_challenge_id == null) return;
@@ -645,6 +685,58 @@ export function CampaignDetailClient({
                   <Sparkles className="h-3.5 w-3.5" />
                   Publish payouts
                 </button>
+              </div>
+            </DashboardPanel>
+          ) : null}
+
+          {economicsStatus.isDrifted ? (
+            <DashboardPanel>
+              <div className="space-y-3 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Paid join was never configured on-chain
+                    </h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {economicsStatus.isStillFixable ? (
+                        <>
+                          This campaign is set up as paid, but the on-chain economics transaction
+                          never went through — nobody has been charged to join. Nobody has joined
+                          yet, so this can still be fixed.
+                        </>
+                      ) : (
+                        <>
+                          This campaign is set up as paid, but the on-chain economics transaction
+                          never went through — nobody has been charged to join.{" "}
+                          {economicsStatus.participantCount?.toString() ?? "Some"} participant
+                          {economicsStatus.participantCount === 1n ? " has" : "s have"} already
+                          joined for free, so this can never be fixed retroactively — the contract
+                          locks join economics once anyone has joined. Consider funding the prize
+                          pool directly so winners still get paid.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                {economicsFixError ? (
+                  <p className="text-xs text-destructive">{economicsFixError}</p>
+                ) : null}
+                {economicsStatus.isStillFixable ? (
+                  <button
+                    type="button"
+                    disabled={isFixingEconomics}
+                    onClick={() => void handleFixEconomics()}
+                    className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                  >
+                    {isFixingEconomics ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    )}
+                    Configure paid economics
+                  </button>
+                ) : null}
               </div>
             </DashboardPanel>
           ) : null}
