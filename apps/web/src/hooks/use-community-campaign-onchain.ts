@@ -20,7 +20,12 @@ async function awaitMinedSuccess(
   failureMessage: string,
 ) {
   if (!publicClient) return;
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash: txHash,
+    confirmations: 1,
+    timeout: 120_000,
+    pollingInterval: 1_500,
+  });
   if (receipt.status !== "success") throw new Error(failureMessage);
 }
 
@@ -175,6 +180,7 @@ export function useSubmitCommunityMilestoneProofOnChain() {
 
 export function useEndCommunityChallenge() {
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const { writeContractAsync, data: hash, isPending, error, reset } =
     useUnifiedWriteContract();
 
@@ -193,21 +199,28 @@ export function useEndCommunityChallenge() {
     });
   };
 
+  const endCommunityChallengeAndWait = async (challengeId: number | bigint) => {
+    const txHash = await endCommunityChallenge(challengeId);
+    await awaitMinedSuccess(publicClient ?? undefined, txHash, "End transaction failed on-chain");
+    return txHash;
+  };
+
   const isError = !!error || !!receiptError;
   let errorMessage: string | null = null;
   if (error || receiptError) {
     try {
       const err = error || receiptError;
       if (err && typeof err === "object" && "message" in err) {
-        errorMessage = err.message as string;
+        errorMessage = formatOnChainError(err.message as string);
       }
     } catch {
-      errorMessage = error?.message || receiptError?.message || "Transaction failed";
+      errorMessage = formatOnChainError(error?.message || receiptError?.message || "");
     }
   }
 
   return {
     endCommunityChallenge,
+    endCommunityChallengeAndWait,
     hash,
     isPending: isPending || isConfirming,
     isSuccess,

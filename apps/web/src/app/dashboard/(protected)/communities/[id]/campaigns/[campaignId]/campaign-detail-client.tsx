@@ -333,7 +333,7 @@ export function CampaignDetailClient({
   const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
-  const { endCommunityChallenge, isPending: isEndingOnChain } = useEndCommunityChallenge();
+  const { endCommunityChallengeAndWait, isPending: isEndingOnChain } = useEndCommunityChallenge();
   const { setCommunityPayoutRootAndWait, isPending: isPublishingRoot } =
     useSetCommunityPayoutRoot();
   const { setCommunityCampaignEconomicsAndWait, isPending: isFixingEconomics } =
@@ -373,8 +373,8 @@ export function CampaignDetailClient({
     setEndStep("signing");
     setEndError(null);
     try {
-      const hash = await endCommunityChallenge(campaign.on_chain_challenge_id);
       setEndStep("confirming");
+      const hash = await endCommunityChallengeAndWait(campaign.on_chain_challenge_id);
       const res = await fetch(`/api/dashboard/campaigns/${campaignId}/confirm-end`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

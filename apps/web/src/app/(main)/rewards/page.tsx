@@ -34,7 +34,6 @@ import {
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
-import { fireConfetti } from "@/lib/celebrate";
 
 const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -52,6 +51,12 @@ export default function RewardsPage() {
   const { address, isConnected, isReady } = useAuth();
   const [sendOpen, setSendOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<WalletTab>("claims");
+  const [optimisticSpend, setOptimisticSpend] = useState({
+    gdollar: 0,
+    celo: 0,
+    cusd: 0,
+    usdt: 0,
+  });
   const sessionHint = hasStoredAuthSession();
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   const {
@@ -87,21 +92,25 @@ export default function RewardsPage() {
     formatted: gDollarBalance,
     isLoading: isGdLoading,
     error: gdError,
+    refetch: refetchGd,
   } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const {
     formatted: cusdBalance,
     isLoading: isCusdLoading,
     error: cusdError,
+    refetch: refetchCusd,
   } = useTokenBalance(CUSD_ADDRESSES.mainnet);
   const {
     formatted: usdtBalance,
     isLoading: isUsdtLoading,
     error: usdtError,
+    refetch: refetchUsdt,
   } = useTokenBalance(USDT_ADDRESSES.mainnet);
   const {
     data: celoBalance,
     isLoading: isCeloLoading,
     error: celoError,
+    refetch: refetchCelo,
   } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
@@ -117,16 +126,60 @@ export default function RewardsPage() {
   const celoBalanceNum =
     !isCeloLoading && !celoError && celoBalance ? parseFloat(celoBalance.formatted) || 0 : null;
 
-  const gdUsd = gdBalanceNum != null ? toUsdAmount(gdBalanceNum, GOODDOLLAR_ADDRESSES.mainnet, gdPrice) : null;
-  const cusdUsd = cusdBalanceNum != null ? toUsdAmount(cusdBalanceNum, CUSD_ADDRESSES.mainnet, null) : null;
-  const usdtUsd = usdtBalanceNum != null ? toUsdAmount(usdtBalanceNum, USDT_ADDRESSES.mainnet, null) : null;
-  const celoUsd = celoBalanceNum != null && celoPrice != null ? celoBalanceNum * celoPrice : null;
+  const gdDisplay = Math.max(0, (gdBalanceNum ?? 0) - optimisticSpend.gdollar);
+  const cusdDisplay = Math.max(0, (cusdBalanceNum ?? 0) - optimisticSpend.cusd);
+  const usdtDisplay = Math.max(0, (usdtBalanceNum ?? 0) - optimisticSpend.usdt);
+  const celoDisplay = Math.max(0, (celoBalanceNum ?? 0) - optimisticSpend.celo);
+
+  const gdUsd = gdBalanceNum != null ? toUsdAmount(gdDisplay, GOODDOLLAR_ADDRESSES.mainnet, gdPrice) : null;
+  const cusdUsd = cusdBalanceNum != null ? toUsdAmount(cusdDisplay, CUSD_ADDRESSES.mainnet, null) : null;
+  const usdtUsd = usdtBalanceNum != null ? toUsdAmount(usdtDisplay, USDT_ADDRESSES.mainnet, null) : null;
+  const celoUsd = celoBalanceNum != null && celoPrice != null ? celoDisplay * celoPrice : null;
 
   const usdLegs = [gdUsd, cusdUsd, usdtUsd, celoUsd];
   const knownUsdLegs = usdLegs.filter((v): v is number => v != null);
   const totalUsd = knownUsdLegs.reduce((sum, v) => sum + v, 0);
   const hasAnyUsdValue = knownUsdLegs.length > 0;
   const isTotalPartial = usdLegs.some((v) => v == null);
+
+  const balancesLoaded = !isGdLoading && !isCusdLoading && !isUsdtLoading && !isCeloLoading;
+  const hasSendableBalance =
+    gdDisplay > 0 || cusdDisplay > 0 || usdtDisplay > 0 || celoDisplay > 0;
+
+  // Drop optimistic spends once RPC balances have caught up (full drain),
+  // or when the raw balance alone already reflects the spend.
+  useEffect(() => {
+    setOptimisticSpend((prev) => {
+      if (
+        prev.gdollar === 0 &&
+        prev.cusd === 0 &&
+        prev.usdt === 0 &&
+        prev.celo === 0
+      ) {
+        return prev;
+      }
+      const next = { ...prev };
+      let changed = false;
+      // If chain balance is already at/under the optimistic remainder (≈0 after full send), clear.
+      if (prev.gdollar > 0 && gdBalanceNum != null && gdBalanceNum <= 1e-9) {
+        next.gdollar = 0;
+        changed = true;
+      }
+      if (prev.cusd > 0 && cusdBalanceNum != null && cusdBalanceNum <= 1e-9) {
+        next.cusd = 0;
+        changed = true;
+      }
+      if (prev.usdt > 0 && usdtBalanceNum != null && usdtBalanceNum <= 1e-9) {
+        next.usdt = 0;
+        changed = true;
+      }
+      if (prev.celo > 0 && celoBalanceNum != null && celoBalanceNum <= 1e-9) {
+        next.celo = 0;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [gdBalanceNum, cusdBalanceNum, usdtBalanceNum, celoBalanceNum]);
 
   useEffect(() => {
     if (!sessionHint || isConnected) {
@@ -219,7 +272,7 @@ export default function RewardsPage() {
                   Balance{" "}
                   {isGdLoading || gdError
                     ? "—"
-                    : formatGAmount(parseFloat(gDollarBalance) || 0)}{" "}
+                    : formatGAmount(gdDisplay)}{" "}
                   G$
                 </span>
               </div>
@@ -239,9 +292,8 @@ export default function RewardsPage() {
                   disabled={!hasAdminPending || isClaimingAdmin}
                   onClick={() => {
                     setSendOpen(false);
-                    void claimAllAdminRewards().then((result) => {
-                      if (result.claimedCount > 0) void fireConfetti();
-                    });
+                    // Confetti fires inside claimAll on the first mined success.
+                    void claimAllAdminRewards();
                   }}
                   className={cn(
                     "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black text-white transition-all",
@@ -259,8 +311,14 @@ export default function RewardsPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={balancesLoaded && !hasSendableBalance}
                   onClick={() => setSendOpen(true)}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-border bg-background text-sm font-black text-foreground transition-all active:scale-[0.98] hover:bg-muted"
+                  className={cn(
+                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-border text-sm font-black transition-all",
+                    balancesLoaded && !hasSendableBalance
+                      ? "cursor-not-allowed bg-muted/40 text-muted-foreground"
+                      : "bg-background text-foreground active:scale-[0.98] hover:bg-muted",
+                  )}
                 >
                   <SendIcon className="h-4 w-4" />
                   Send
@@ -307,7 +365,7 @@ export default function RewardsPage() {
                     value={
                       isGdLoading || gdError
                         ? "—"
-                        : formatGAmount(parseFloat(gDollarBalance) || 0)
+                        : formatGAmount(gdDisplay)
                     }
                     usdValue={gdUsd != null ? `≈ $${gdUsd.toFixed(2)}` : null}
                   />
@@ -315,21 +373,21 @@ export default function RewardsPage() {
                     logo="/celo.png"
                     label="Celo"
                     symbol="CELO"
-                    value={celoBalanceNum != null ? celoBalanceNum.toFixed(3) : "—"}
+                    value={celoBalanceNum != null ? celoDisplay.toFixed(3) : "—"}
                     usdValue={celoUsd != null ? `≈ $${celoUsd.toFixed(2)}` : null}
                   />
                   <TokenListRow
                     tokenAddress={CUSD_ADDRESSES.mainnet}
                     label="cUSD"
                     symbol="cUSD"
-                    value={cusdBalanceNum != null ? cusdBalanceNum.toFixed(2) : "—"}
+                    value={cusdBalanceNum != null ? cusdDisplay.toFixed(2) : "—"}
                     usdValue={cusdUsd != null ? `≈ $${cusdUsd.toFixed(2)}` : null}
                   />
                   <TokenListRow
                     tokenAddress={USDT_ADDRESSES.mainnet}
                     label="Tether"
                     symbol="USDT"
-                    value={usdtBalanceNum != null ? usdtBalanceNum.toFixed(2) : "—"}
+                    value={usdtBalanceNum != null ? usdtDisplay.toFixed(2) : "—"}
                     usdValue={usdtUsd != null ? `≈ $${usdtUsd.toFixed(2)}` : null}
                   />
                 </div>
@@ -394,7 +452,28 @@ export default function RewardsPage() {
         </div>
       </MainPage>
 
-      <TransferSheet open={sendOpen} onOpenChange={setSendOpen} />
+      <TransferSheet
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        onTransferBroadcast={({ tokenId, amount }) => {
+          setOptimisticSpend((prev) => ({
+            ...prev,
+            [tokenId]: prev[tokenId] + amount,
+          }));
+        }}
+        onTransferFailed={({ tokenId, amount }) => {
+          setOptimisticSpend((prev) => ({
+            ...prev,
+            [tokenId]: Math.max(0, prev[tokenId] - amount),
+          }));
+        }}
+        onTransferSuccess={() => {
+          // Sheet already refetched shared wagmi balances; clear deltas before a
+          // parent re-render can double-subtract against the new raw values.
+          setOptimisticSpend({ gdollar: 0, celo: 0, cusd: 0, usdt: 0 });
+          void Promise.all([refetchGd(), refetchCusd(), refetchUsdt(), refetchCelo()]);
+        }}
+      />
     </>
   );
 }

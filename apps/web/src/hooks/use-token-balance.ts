@@ -15,7 +15,7 @@ export function useTokenBalance(tokenAddress: string | undefined) {
     ? getAddress(tokenAddress)
     : undefined;
 
-  const { data: balance, isLoading, error } = useBalance({
+  const { data: balance, isLoading, error, refetch } = useBalance({
     address,
     token: normalizedTokenAddress as `0x${string}` | undefined,
     chainId: CELO_MAINNET_ID,
@@ -24,11 +24,11 @@ export function useTokenBalance(tokenAddress: string | undefined) {
     },
   });
 
-
   return {
     balance,
     formatted: balance?.formatted ?? "0",
     isLoading,
     error,
+    refetch,
   };
 }

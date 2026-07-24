@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { parseEther, parseUnits, isAddress } from "viem";
-import { useBalance, useWaitForTransactionReceipt } from "wagmi";
+import { useBalance, usePublicClient } from "wagmi";
 import {
   ArrowRight,
   CheckCircle2,
@@ -75,21 +75,38 @@ const TRANSFER_TOKENS: {
 interface TransferSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Fired as soon as the tx is broadcast — use to drop UI balances immediately. */
+  onTransferBroadcast?: (info: { tokenId: TokenId; amount: number }) => void;
+  /** Fired after a transfer is mined and balances have been refetched. */
+  onTransferSuccess?: () => void;
+  /** Fired if a broadcast transfer fails confirmation — reverse optimistic spend. */
+  onTransferFailed?: (info: { tokenId: TokenId; amount: number }) => void;
 }
 
-function formatBalance(value: string | undefined, digits: number) {
-  if (!value) return "0";
-  const n = parseFloat(value);
+function formatBalance(value: string | number | undefined, digits: number) {
+  if (value === undefined || value === null) return "0";
+  const n = typeof value === "number" ? value : parseFloat(value);
   if (Number.isNaN(n)) return "0";
   return n.toFixed(digits);
 }
 
-export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
+export function TransferSheet({
+  open,
+  onOpenChange,
+  onTransferBroadcast,
+  onTransferSuccess,
+  onTransferFailed,
+}: TransferSheetProps) {
   const { address } = useAuth();
   const walletClient = useUnifiedWalletClient();
+  const publicClient = usePublicClient({ chainId: CELO_MAINNET_ID });
   const { writeContractAsync } = useUnifiedWriteContract();
 
-  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
+  const {
+    data: celoBalance,
+    isLoading: isCeloLoading,
+    refetch: refetchCelo,
+  } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
     query: { enabled: !!address },
@@ -104,17 +121,16 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  /** Human-unit amounts already spent until chain refetch catches up. */
+  const [spentByToken, setSpentByToken] = useState<Partial<Record<TokenId, number>>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedToken =
     TRANSFER_TOKENS.find((t) => t.id === tokenId) ?? TRANSFER_TOKENS[0];
-
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash: txHash,
-    chainId: CELO_MAINNET_ID,
-  });
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -127,61 +143,108 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [dropdownOpen]);
 
-  const tokenBalances: Record<
-    TokenId,
-    { formatted: string; decimals: number; isLoading: boolean }
-  > = {
+  const rawBalances: Record<TokenId, { raw: number; decimals: number; isLoading: boolean }> = {
     gdollar: {
-      formatted: gDollar.formatted,
+      raw: parseFloat(gDollar.formatted) || 0,
       decimals: gDollar.balance?.decimals ?? 18,
       isLoading: gDollar.isLoading,
     },
     celo: {
-      formatted: celoBalance?.formatted ?? "0",
+      raw: parseFloat(celoBalance?.formatted ?? "0") || 0,
       decimals: celoBalance?.decimals ?? 18,
       isLoading: isCeloLoading,
     },
     cusd: {
-      formatted: cusd.formatted,
+      raw: parseFloat(cusd.formatted) || 0,
       decimals: cusd.balance?.decimals ?? 18,
       isLoading: cusd.isLoading,
     },
     usdt: {
-      formatted: usdt.formatted,
+      raw: parseFloat(usdt.formatted) || 0,
       decimals: usdt.balance?.decimals ?? 6,
       isLoading: usdt.isLoading,
     },
   };
 
-  const selectedBalance = tokenBalances[tokenId];
-  const maxDigits = tokenId === "celo" ? 4 : tokenId === "gdollar" ? 2 : 2;
-  const maxBalance = formatBalance(selectedBalance.formatted, maxDigits);
+  const displayBalance = (id: TokenId) =>
+    Math.max(0, rawBalances[id].raw - (spentByToken[id] ?? 0));
+
+  // Once the RPC balance has dropped to cover the optimistic spend, clear it.
+  useEffect(() => {
+    setSpentByToken((prev) => {
+      const entries = Object.entries(prev) as [TokenId, number][];
+      if (entries.length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const [id, spent] of entries) {
+        if (rawBalances[id].raw <= spent + 1e-9) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // rawBalances is derived each render from these deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gDollar.formatted, cusd.formatted, usdt.formatted, celoBalance?.formatted]);
+
+  const selectedBalanceRaw = rawBalances[tokenId];
+  const selectedAvailable = displayBalance(tokenId);
+  const maxDigits = tokenId === "celo" ? 4 : 2;
+  const maxBalance = formatBalance(selectedAvailable, maxDigits);
+  const hasTokenBalance = selectedAvailable > 0;
 
   const recipientValid = recipient.length === 0 || isAddress(recipient);
   const amountNum = parseFloat(amount);
   const amountValid =
     amount.length === 0 ||
-    (!isNaN(amountNum) && amountNum > 0 && amountNum <= parseFloat(maxBalance));
+    (!isNaN(amountNum) && amountNum > 0 && amountNum <= selectedAvailable + 1e-12);
 
   const canSubmit =
     isAddress(recipient) &&
     !isNaN(amountNum) &&
     amountNum > 0 &&
-    amountNum <= parseFloat(maxBalance) &&
+    amountNum <= selectedAvailable + 1e-12 &&
+    hasTokenBalance &&
     !isPending &&
     !isConfirming &&
+    !isSuccess &&
     !!walletClient;
+
+  const refetchAllBalances = useCallback(async () => {
+    await Promise.all([
+      gDollar.refetch(),
+      cusd.refetch(),
+      usdt.refetch(),
+      refetchCelo(),
+    ]);
+  }, [gDollar.refetch, cusd.refetch, usdt.refetch, refetchCelo]);
+
+  const rollbackSpend = useCallback((id: TokenId, spendAmount: number) => {
+    setSpentByToken((prev) => {
+      const next = { ...prev };
+      const left = (next[id] ?? 0) - spendAmount;
+      if (left <= 1e-12) delete next[id];
+      else next[id] = left;
+      return next;
+    });
+  }, []);
 
   const handleTransfer = useCallback(async () => {
     if (!canSubmit || !address) return;
     setTxError(null);
     setTxHash(undefined);
+    setIsSuccess(false);
     setIsPending(true);
+
+    const spendAmount = amountNum;
+    const spendToken = tokenId;
+    let appliedOptimistic = false;
 
     try {
       let hash: `0x${string}`;
 
-      if (tokenId === "celo") {
+      if (spendToken === "celo") {
         hash = await (walletClient as any).sendTransaction({
           account: address,
           to: recipient as `0x${string}`,
@@ -189,9 +252,9 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           chain: undefined,
         });
       } else {
-        const token = TRANSFER_TOKENS.find((t) => t.id === tokenId);
+        const token = TRANSFER_TOKENS.find((t) => t.id === spendToken);
         if (!token?.address) throw new Error("Unknown token");
-        const decimals = tokenBalances[tokenId].decimals;
+        const decimals = selectedBalanceRaw.decimals;
         hash = await writeContractAsync({
           address: token.address,
           abi: ERC20_TRANSFER_ABI,
@@ -200,12 +263,44 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
         });
       }
 
+      // Reflect the spend immediately so UI can't look flush after broadcast.
+      setSpentByToken((prev) => ({
+        ...prev,
+        [spendToken]: (prev[spendToken] ?? 0) + spendAmount,
+      }));
+      appliedOptimistic = true;
+      onTransferBroadcast?.({ tokenId: spendToken, amount: spendAmount });
       setTxHash(hash);
-    } catch (err: any) {
-      const msg = err?.shortMessage ?? err?.message ?? "Transaction failed";
-      setTxError(msg);
+      setIsPending(false);
+      setIsConfirming(true);
+
+      if (!publicClient) {
+        throw new Error("No RPC client available to confirm the transfer");
+      }
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 1,
+        timeout: 120_000,
+        pollingInterval: 1_500,
+      });
+      if (receipt.status !== "success") {
+        throw new Error("Transfer failed on-chain");
+      }
+
+      await refetchAllBalances();
+      setIsSuccess(true);
+      onTransferSuccess?.();
+    } catch (err: unknown) {
+      if (appliedOptimistic) {
+        rollbackSpend(spendToken, spendAmount);
+        onTransferFailed?.({ tokenId: spendToken, amount: spendAmount });
+      }
+      const anyErr = err as { shortMessage?: string; message?: string };
+      setTxError(anyErr?.shortMessage ?? anyErr?.message ?? "Transaction failed");
     } finally {
       setIsPending(false);
+      setIsConfirming(false);
     }
   }, [
     canSubmit,
@@ -213,9 +308,16 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
     tokenId,
     recipient,
     amount,
+    amountNum,
     walletClient,
-    tokenBalances,
+    selectedBalanceRaw.decimals,
     writeContractAsync,
+    publicClient,
+    refetchAllBalances,
+    onTransferBroadcast,
+    onTransferSuccess,
+    onTransferFailed,
+    rollbackSpend,
   ]);
 
   const handleClose = () => {
@@ -228,6 +330,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
       setAmount("");
       setTxHash(undefined);
       setTxError(null);
+      setIsSuccess(false);
     }, 300);
   };
 
@@ -240,7 +343,6 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
       modalClassName="max-w-lg"
     >
       <div className="mx-auto max-w-lg space-y-5 px-4 pb-10 pt-4 lg:px-0 lg:pt-2">
-        {/* Token dropdown */}
         <div>
           <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Token
@@ -262,10 +364,10 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
                   {selectedToken.symbol}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {selectedBalance.isLoading
+                  {selectedBalanceRaw.isLoading
                     ? "…"
                     : `Balance ${formatBalance(
-                        selectedBalance.formatted,
+                        displayBalance(tokenId),
                         tokenId === "celo" ? 3 : 2,
                       )}`}
                 </p>
@@ -281,7 +383,8 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             {dropdownOpen ? (
               <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-border/50 bg-background shadow-lg">
                 {TRANSFER_TOKENS.map((t) => {
-                  const bal = tokenBalances[t.id];
+                  const bal = rawBalances[t.id];
+                  const available = displayBalance(t.id);
                   const isSelected = t.id === tokenId;
                   return (
                     <button
@@ -294,9 +397,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
                       }}
                       className={cn(
                         "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-                        isSelected
-                          ? "bg-foreground/5"
-                          : "hover:bg-muted/50",
+                        isSelected ? "bg-foreground/5" : "hover:bg-muted/50",
                       )}
                     >
                       <TokenIcon token={t} />
@@ -311,10 +412,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
                       <span className="shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
                         {bal.isLoading
                           ? "…"
-                          : formatBalance(
-                              bal.formatted,
-                              t.id === "celo" ? 3 : 2,
-                            )}
+                          : formatBalance(available, t.id === "celo" ? 3 : 2)}
                       </span>
                     </button>
                   );
@@ -324,7 +422,6 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           </div>
         </div>
 
-        {/* Recipient */}
         <div>
           <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Recipient address
@@ -334,6 +431,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             value={recipient}
             onChange={(e) => setRecipient(e.target.value.trim())}
             placeholder="0x..."
+            disabled={isSuccess}
             className={cn(
               "w-full rounded-xl border bg-secondary px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !recipientValid
@@ -346,7 +444,6 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           )}
         </div>
 
-        {/* Amount */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -355,7 +452,8 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             <button
               type="button"
               onClick={() => setAmount(maxBalance)}
-              className="text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              disabled={!hasTokenBalance || isSuccess}
+              className="text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
             >
               Max
             </button>
@@ -367,6 +465,7 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
+            disabled={isSuccess || !hasTokenBalance}
             className={cn(
               "w-full rounded-xl border bg-secondary px-4 py-3 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !amountValid
@@ -374,6 +473,11 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
                 : "border-border/40 focus:border-[#35d07f]/60 focus:ring-[#35d07f]/40",
             )}
           />
+          {!hasTokenBalance && !selectedBalanceRaw.isLoading ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              No {selectedToken.symbol} balance to send
+            </p>
+          ) : null}
           {!amountValid && amount.length > 0 && (
             <p className="mt-1 text-[11px] text-rose-500">
               {amountNum <= 0
@@ -383,7 +487,6 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           )}
         </div>
 
-        {/* Status */}
         {isSuccess && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
@@ -412,10 +515,9 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
           </div>
         )}
 
-        {/* Submit */}
         <button
           type="button"
-          onClick={handleTransfer}
+          onClick={() => void handleTransfer()}
           disabled={!canSubmit}
           className={cn(
             "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all",
@@ -428,6 +530,11 @@ export function TransferSheet({ open, onOpenChange }: TransferSheetProps) {
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               {isPending ? "Confirm in wallet…" : "Confirming…"}
+            </>
+          ) : isSuccess ? (
+            <>
+              Sent
+              <CheckCircle2 className="h-4 w-4" />
             </>
           ) : (
             <>

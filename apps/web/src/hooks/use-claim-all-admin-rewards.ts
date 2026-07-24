@@ -10,6 +10,7 @@ import {
   GOODDOLLAR_ADDRESSES,
   USDT_ADDRESSES,
 } from "@/lib/constant";
+import { fireConfetti } from "@/lib/celebrate";
 
 /** Aggregates pending admin RewardVault balances and claims them all. */
 export function useClaimAllAdminRewards(address: `0x${string}` | undefined) {
@@ -54,6 +55,8 @@ export function useClaimAllAdminRewards(address: `0x${string}` | undefined) {
         try {
           await claimReward(row.token);
           claimedCount += 1;
+          // Celebrate as soon as the first claim mines so success feels instant.
+          if (claimedCount === 1) void fireConfetti();
         } catch (err) {
           failures.push(err instanceof Error ? err.message : "Claim failed");
         } finally {

@@ -84,7 +84,12 @@ async function awaitMinedSuccess(
   failureMessage: string,
 ) {
   if (!publicClient) throw new Error("No RPC client available to confirm the transaction");
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash,
+    confirmations: 1,
+    timeout: 120_000,
+    pollingInterval: 1_500,
+  });
   if (receipt.status !== "success") throw new Error(failureMessage);
   return receipt;
 }
