@@ -129,7 +129,7 @@ function CampaignClaimRow({
         </p>
         <p className="text-xs text-muted-foreground" style={MANROPE}>
           {item.communityName ? `${item.communityName} · ` : ""}
-          Prize · Rank #{item.rank} · {formatClaimAmount(item.amountWei)} G$
+          Ended campaign win · Rank #{item.rank} · {formatClaimAmount(item.amountWei)} G$
         </p>
         {item.communitySlug ? (
           <Link
@@ -209,7 +209,7 @@ function StakeReclaimRow({
         </p>
         <p className="text-xs text-muted-foreground" style={MANROPE}>
           {item.communityName ? `${item.communityName} · ` : ""}
-          Join stake · {formatStakeDisplay(item.amountWei, item.tokenAddress)}{" "}
+          Stake reclaim · {formatStakeDisplay(item.amountWei, item.tokenAddress)}{" "}
           {item.tokenSymbol}
         </p>
         {item.missedMilestones > 0 ? (
@@ -335,7 +335,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
           </span>
           <p className="text-sm font-semibold text-foreground">Nothing to claim yet</p>
           <p className="text-xs text-muted-foreground" style={MANROPE}>
-            Ended campaign prizes and paid join stakes you can reclaim will show up here.
+            When campaigns end, prize wins and reclaimable join stakes will show up here.
           </p>
         </div>
       </div>
@@ -343,34 +343,22 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
   }
 
   return (
-    <div className="space-y-4">
-      {stakeItems.length > 0 ? (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold tracking-wide text-foreground" style={MANROPE}>
-            Join stakes
-          </h3>
-          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
-            <div className="divide-y divide-border/40">
-              {stakeItems.map((item) => (
-                <StakeReclaimRow
-                  key={`stake-${item.campaignId}`}
-                  item={item}
-                  isClaimed={claimedIds.has(`stake-${item.campaignId}`)}
-                  onClaimed={(id) =>
-                    setClaimedIds((prev) => new Set(prev).add(`stake-${id}`))
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+    <div className="space-y-5">
+      <p className="text-xs leading-relaxed text-muted-foreground" style={MANROPE}>
+        These are from <span className="font-semibold text-foreground">ended campaigns</span> —
+        prize wins you earned and join stakes you can reclaim. Team rewards to claim are above.
+      </p>
 
       {prizeItems.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-sm font-semibold tracking-wide text-foreground" style={MANROPE}>
-            Prize claims
-          </h3>
+          <div className="mb-2">
+            <h3 className="text-sm font-semibold tracking-wide text-foreground" style={MANROPE}>
+              Campaign wins
+            </h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground" style={MANROPE}>
+              Prizes from campaigns you placed in
+            </p>
+          </div>
           <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
             <div className="divide-y divide-border/40">
               {prizeItems.map((item) => (
@@ -381,6 +369,33 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
                   isClaimed={claimedIds.has(`prize-${item.campaignId}`)}
                   onClaimed={(id) =>
                     setClaimedIds((prev) => new Set(prev).add(`prize-${id}`))
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {stakeItems.length > 0 ? (
+        <div>
+          <div className="mb-2">
+            <h3 className="text-sm font-semibold tracking-wide text-foreground" style={MANROPE}>
+              Stake reclaims
+            </h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground" style={MANROPE}>
+              Join stakes returned after a campaign ended
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+            <div className="divide-y divide-border/40">
+              {stakeItems.map((item) => (
+                <StakeReclaimRow
+                  key={`stake-${item.campaignId}`}
+                  item={item}
+                  isClaimed={claimedIds.has(`stake-${item.campaignId}`)}
+                  onClaimed={(id) =>
+                    setClaimedIds((prev) => new Set(prev).add(`stake-${id}`))
                   }
                 />
               ))}

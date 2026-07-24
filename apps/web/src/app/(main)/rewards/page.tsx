@@ -6,7 +6,6 @@ import { useBalance } from "wagmi";
 import {
   AlertTriangle,
   ArrowDownToLine,
-  Award,
   ExternalLink,
   Gift,
   Loader2,
@@ -21,7 +20,6 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useCeloPrice } from "@/hooks/use-celo-price";
 import { useGraphUserClaims, type GraphClaim } from "@/hooks/graph/useGraphUserClaims";
-import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { TokenBadge } from "@/components/token-badge";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
@@ -36,7 +34,6 @@ import {
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
-import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
 
 const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -65,20 +62,24 @@ export default function RewardsPage() {
     pendingByToken: adminPendingByToken,
   } = useClaimAllAdminRewards(address);
 
-  const adminPendingSummary = adminPendingByToken
+  const adminPendingRows = adminPendingByToken
     .filter((t) => t.pending > 0n)
     .map((t) => {
       const decimals = getTokenDecimals(t.token);
       const amount = parseFloat(formatUnits(t.pending, decimals));
       const symbol = KNOWN_TOKEN_SYMBOLS[t.token.toLowerCase()] ?? "";
-      return `${amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${symbol}`;
-    })
-    .join(" + ");
-
-  const {
-    totalEarned,
-    isLoading: isLoadingStats,
-  } = useUserEarnedTotal(address);
+      return {
+        token: t.token,
+        amount,
+        symbol,
+        display: `${amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${symbol}`,
+      };
+    });
+  const primaryPending =
+    adminPendingRows.find((r) => r.token.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase()) ??
+    adminPendingRows[0] ??
+    null;
+  const secondaryPending = adminPendingRows.filter((r) => r !== primaryPending);
   const { claims, isLoading: isLoadingClaims, error: claimsError } = useGraphUserClaims(address);
 
   const {
@@ -165,7 +166,7 @@ export default function RewardsPage() {
       <MainPage>
         <div className="mx-auto w-full max-w-6xl">
         <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
-          {/* Hero balance card */}
+          {/* Hero — claimable rewards first, balance secondary */}
           <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-delulu-yellow-reserved/25 via-background to-background px-5 py-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,195,36,0.3),transparent_55%)] pointer-events-none" />
             <div className="relative">
@@ -173,43 +174,63 @@ export default function RewardsPage() {
                 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
                 style={MANROPE}
               >
-                Available balance
+                Ready to claim
               </p>
               <div className="mt-2 flex items-end gap-2">
-                <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="lg" showText={false} />
+                {primaryPending ? (
+                  <TokenBadge tokenAddress={primaryPending.token} size="lg" showText={false} />
+                ) : (
+                  <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="lg" showText={false} />
+                )}
                 <span
-                  className="text-4xl font-black tabular-nums leading-none text-foreground"
+                  className={cn(
+                    "text-4xl font-black tabular-nums leading-none",
+                    hasAdminPending ? "text-foreground" : "text-muted-foreground/70",
+                  )}
                   style={CLASH_DISPLAY}
                 >
+                  {isLoadingAdminRewards
+                    ? "—"
+                    : primaryPending
+                      ? primaryPending.amount.toLocaleString(undefined, {
+                          maximumFractionDigits: 4,
+                        })
+                      : "0"}
+                </span>
+                <span className="pb-1 text-sm font-bold text-muted-foreground">
+                  {primaryPending?.symbol ?? "G$"}
+                </span>
+              </div>
+              {secondaryPending.length > 0 ? (
+                <p className="mt-1 text-xs font-semibold text-emerald-600" style={MANROPE}>
+                  + {secondaryPending.map((r) => r.display).join(" + ")}
+                </p>
+              ) : null}
+              {!isLoadingAdminRewards && !hasAdminPending ? (
+                <p className="mt-1 text-xs text-muted-foreground" style={MANROPE}>
+                  No team rewards waiting
+                </p>
+              ) : null}
+
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5">
+                <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="sm" showText={false} />
+                <span className="text-xs font-bold text-foreground" style={MANROPE}>
+                  Balance{" "}
                   {isGdLoading || gdError
                     ? "—"
-                    : formatGAmount(parseFloat(gDollarBalance) || 0)}
+                    : formatGAmount(parseFloat(gDollarBalance) || 0)}{" "}
+                  G$
                 </span>
-                <span className="pb-1 text-sm font-bold text-muted-foreground">G$</span>
               </div>
               {gdError ? (
                 <p className="mt-1 text-[11px] font-medium text-destructive">
                   Couldn&apos;t load your balance — check your connection and try again.
                 </p>
+              ) : hasAnyUsdValue ? (
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground" style={MANROPE}>
+                  {isTotalPartial ? "≈ " : ""}${totalUsd.toFixed(2)} total across all assets
+                </p>
               ) : null}
-
-              <p className="mt-1 text-xs font-semibold text-muted-foreground" style={MANROPE}>
-                {hasAnyUsdValue ? (
-                  <>
-                    {isTotalPartial ? "≈ " : ""}${totalUsd.toFixed(2)} total across all assets
-                  </>
-                ) : (
-                  "Total across all assets unavailable"
-                )}
-              </p>
-
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5">
-                <Award className="h-3.5 w-3.5 text-emerald-600" />
-                <span className="text-xs font-bold text-emerald-600">
-                  {isLoadingStats ? "—" : formatEarnedUsdt(totalEarned)} earned
-                  all-time
-                </span>
-              </div>
 
               <div className="mt-5 flex gap-2.5">
                 <button
@@ -248,15 +269,7 @@ export default function RewardsPage() {
                 <p className="mt-2 text-[11px] text-muted-foreground" style={MANROPE}>
                   Checking for team rewards…
                 </p>
-              ) : hasAdminPending ? (
-                <p className="mt-2 text-[11px] font-semibold text-emerald-600" style={MANROPE}>
-                  {adminPendingSummary} ready to claim
-                </p>
-              ) : (
-                <p className="mt-2 text-[11px] text-muted-foreground" style={MANROPE}>
-                  No team rewards waiting
-                </p>
-              )}
+              ) : null}
             </div>
           </section>
 
