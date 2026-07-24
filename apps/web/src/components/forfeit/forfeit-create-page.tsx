@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Smartphone,
   Video,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -109,7 +108,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll send a",
     pillLabel: "photo",
     sentenceSuffix: "of",
-    placeholder: "A home-cooked salad with chicken",
+    placeholder: "Reading for 30 minutes",
   },
   {
     id: "camera",
@@ -119,7 +118,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll take a",
     pillLabel: "live photo",
     sentenceSuffix: "of",
-    placeholder: "Me at the gym finishing my workout",
+    placeholder: "Finishing a 20-minute workout",
   },
   {
     id: "timelapse",
@@ -129,7 +128,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll send a",
     pillLabel: "timelapse",
     sentenceSuffix: "of",
-    placeholder: "Me cleaning my entire kitchen",
+    placeholder: "Studying for 1 hour",
   },
   {
     id: "self",
@@ -139,7 +138,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll",
     pillLabel: "self-verify",
     sentenceSuffix: "that I did",
-    placeholder: "Read 20 pages of my book",
+    placeholder: "Read for 30 minutes",
   },
   {
     id: "gps-checkin",
@@ -149,7 +148,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll do a",
     pillLabel: "GPS check-in",
     sentenceSuffix: "at",
-    placeholder: "The library downtown",
+    placeholder: "Arriving at the gym by 7am",
     tags: ["Check-in", "Time interval"],
     comingSoon: true,
   },
@@ -161,7 +160,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll complete a",
     pillLabel: "Strava run",
     sentenceSuffix: "for",
-    placeholder: "A 5k morning run",
+    placeholder: "A 30-minute run",
     comingSoon: true,
   },
   {
@@ -172,7 +171,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     sentencePrefix: "I'll hit my",
     pillLabel: "Google Health",
     sentenceSuffix: "goal of",
-    placeholder: "10,000 steps",
+    placeholder: "8,000 steps today",
     comingSoon: true,
   },
   {
@@ -395,7 +394,7 @@ export function ForfeitCreatePage() {
   const amountLabel = `${forfeitAmount.toLocaleString()} G$`;
   const placeholder =
     mode === "repeat" && evidenceId === "photo"
-      ? "A completed page of math problems in my notebook"
+      ? "Meditate for 10 minutes"
       : evidence.placeholder;
 
   const openAmountSheet = () => {
@@ -547,20 +546,10 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-2 pt-1">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-black text-foreground" style={CLASH}>
-              Select evidence type
-            </h2>
-            <button
-              type="button"
-              onClick={() => setEvidenceOpen(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="max-h-[70vh] space-y-2.5 overflow-y-auto pb-4">
+          <h2 className="mb-4 text-lg font-black text-foreground" style={CLASH}>
+            Select evidence type
+          </h2>
+          <div className="max-h-[70vh] space-y-2.5 overflow-y-auto pb-4 scrollbar-hide">
             {EVIDENCE_TYPES.map((item) => (
               <SheetListRow
                 key={item.id}

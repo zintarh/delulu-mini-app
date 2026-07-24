@@ -151,6 +151,45 @@ function JoinButton({
 }
 
 
+/** Scale hero title down as copy gets longer so it stays in the cover area. */
+function campaignTitleClassName(title: string) {
+  const len = title.trim().length;
+  if (len > 90) {
+    return "text-lg font-black leading-snug tracking-tight text-white sm:text-xl lg:text-base";
+  }
+  if (len > 60) {
+    return "text-xl font-black leading-tight tracking-tight text-white sm:text-2xl lg:text-lg";
+  }
+  if (len > 36) {
+    return "text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-xl";
+  }
+  return "text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl lg:text-2xl";
+}
+
+/** Scale description so longer copy still reads cleanly without blowing the layout. */
+function campaignDescriptionClassName(
+  description: string,
+  variant: "hero" | "body",
+) {
+  const len = description.trim().length;
+  if (variant === "hero") {
+    if (len > 160) {
+      return "mt-2.5 line-clamp-3 text-xs leading-snug text-white/85";
+    }
+    if (len > 90) {
+      return "mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85";
+    }
+    return "mt-2.5 line-clamp-2 text-base leading-relaxed text-white/85 lg:text-sm";
+  }
+  if (len > 220) {
+    return "text-sm leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-xs";
+  }
+  if (len > 120) {
+    return "text-[15px] leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-sm";
+  }
+  return "text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-sm";
+}
+
 export function CommunityCampaignDetail({
   campaign,
   communitySlug,
@@ -454,14 +493,12 @@ export function CommunityCampaignDetail({
                   </span>
                 ) : null}
               </div>
-              <h1
-                className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl lg:text-2xl"
-              >
+              <h1 className={campaignTitleClassName(campaign.title)}>
                 {campaign.title}
               </h1>
               {/* Description only shown on hero for non-joined (evaluators need context) */}
               {!isJoined && campaign.description ? (
-                <p className="mt-2.5 line-clamp-2 text-base leading-relaxed text-white/85 lg:text-sm">
+                <p className={campaignDescriptionClassName(campaign.description, "hero")}>
                   {campaign.description}
                 </p>
               ) : null}
@@ -610,7 +647,7 @@ export function CommunityCampaignDetail({
             <section className="mt-5 px-5 lg:px-3">
               <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-6 space-y-5">
                 {campaign.description ? (
-                  <p className="text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-sm">
+                  <p className={campaignDescriptionClassName(campaign.description, "body")}>
                     {campaign.description}
                   </p>
                 ) : null}
