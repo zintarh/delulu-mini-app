@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClaimSparkline } from "@/components/dashboard/claim-sparkline";
+import { AdminPagination } from "@/components/admin/admin-ui";
 import {
   DashboardPanel,
   DashboardTableScroll,
@@ -205,27 +206,11 @@ export function CommunityMembersPanel({ communityId }: { communityId: string }) 
         )}
 
         {data && data.totalPages > 1 ? (
-          <div className="flex items-center justify-between border-t border-border px-4 py-3">
-            <button
-              type="button"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="text-xs font-semibold text-delulu-blue disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-xs text-muted-foreground">
-              Page {data.page} of {data.totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page >= data.totalPages || loading}
-              onClick={() => setPage((p) => p + 1)}
-              className="text-xs font-semibold text-delulu-blue disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <AdminPagination
+            page={data.page}
+            totalPages={data.totalPages}
+            onPage={setPage}
+          />
         ) : null}
         </DashboardPanel>
       </div>

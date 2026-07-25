@@ -25,6 +25,7 @@ import {
   type LiveCameraDurationMinutes,
 } from "@/lib/community/campaign-types";
 import { CampaignCoverUpload } from "@/components/dashboard/campaign-cover-upload";
+import { AdminPagination } from "@/components/admin/admin-ui";
 import {
   DashboardPage,
   DashboardStatGrid,
@@ -56,6 +57,7 @@ import {
   useSetCommunityPayoutRoot,
   useSetCommunityCampaignEconomics,
   useCampaignEconomicsStatus,
+  AlreadyEndedOnChainError,
 } from "@/hooks/use-community-campaign-onchain";
 import { CampaignMilestonesModal } from "@/components/dashboard/campaign-milestones-modal";
 import { DeleteCampaignModal } from "@/components/dashboard/delete-campaign-modal";
@@ -318,6 +320,7 @@ export function CampaignDetailClient({
     "idle" | "signing" | "confirming" | "done" | "error"
   >("idle");
   const [endError, setEndError] = useState<string | null>(null);
+  const [endResynced, setEndResynced] = useState(false);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [publishStep, setPublishStep] = useState<
     "idle" | "building" | "signing" | "confirming" | "done" | "error"
@@ -333,6 +336,17 @@ export function CampaignDetailClient({
   const { data, isLoading, refetch } = useDashboardCampaign(campaignId);
   const campaign = data?.campaign;
   const leaderboard = data?.leaderboard ?? [];
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const LEADERBOARD_PAGE_SIZE = 20;
+  const leaderboardTotalPages = Math.max(
+    1,
+    Math.ceil(leaderboard.length / LEADERBOARD_PAGE_SIZE),
+  );
+  const safeLeaderboardPage = Math.min(leaderboardPage, leaderboardTotalPages);
+  const paginatedLeaderboard = leaderboard.slice(
+    (safeLeaderboardPage - 1) * LEADERBOARD_PAGE_SIZE,
+    safeLeaderboardPage * LEADERBOARD_PAGE_SIZE,
+  );
   const { endCommunityChallengeAndWait, isPending: isEndingOnChain } = useEndCommunityChallenge();
   const { setCommunityPayoutRootAndWait, isPending: isPublishingRoot } =
     useSetCommunityPayoutRoot();
@@ -372,6 +386,7 @@ export function CampaignDetailClient({
     if (campaign?.on_chain_challenge_id == null) return;
     setEndStep("signing");
     setEndError(null);
+    setEndResynced(false);
     try {
       setEndStep("confirming");
       const hash = await endCommunityChallengeAndWait(campaign.on_chain_challenge_id);
@@ -388,6 +403,31 @@ export function CampaignDetailClient({
       setEndStep("done");
       void refetch();
     } catch (err) {
+      if (err instanceof AlreadyEndedOnChainError) {
+        // A previous attempt already ended this on-chain, but its DB sync
+        // never landed — no new transaction is needed, just resync status.
+        try {
+          const res = await fetch(`/api/dashboard/campaigns/${campaignId}/confirm-end`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error((json as { error?: string }).error ?? "Failed to sync end status");
+          }
+          setEndResynced(true);
+          setEndStep("done");
+          void refetch();
+          return;
+        } catch (syncErr) {
+          setEndStep("error");
+          setEndError(
+            syncErr instanceof Error ? syncErr.message : "Failed to sync already-ended status",
+          );
+          return;
+        }
+      }
       setEndStep("error");
       setEndError(err instanceof Error ? err.message : "Failed to end campaign");
     }
@@ -539,8 +579,9 @@ export function CampaignDetailClient({
         <div className="space-y-4 pt-2 text-sm">
           {endStep === "done" ? (
             <p className="font-semibold text-emerald-700">
-              Campaign ended. Participants can now reclaim their stake — publish payouts whenever
-              you&apos;re ready from the Settings tab.
+              {endResynced
+                ? "This campaign had already ended on-chain from an earlier attempt — dashboard status is now synced, no new transaction was needed."
+                : "Campaign ended. Participants can now reclaim their stake — publish payouts whenever you're ready from the Settings tab."}
             </p>
           ) : null}
           {endError ? <p className="text-xs text-destructive">{endError}</p> : null}
@@ -653,6 +694,7 @@ export function CampaignDetailClient({
                     setEndModalOpen(true);
                     setEndStep("idle");
                     setEndError(null);
+                    setEndResynced(false);
                   }}
                   className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
                 >
@@ -926,32 +968,41 @@ export function CampaignDetailClient({
                 No participants yet
               </p>
             ) : (
-              <DashboardTableScroll>
-                <DashboardTableHead>
-                  <DashboardTableHeadRow>
-                    <DashboardTableHeadCell>#</DashboardTableHeadCell>
-                    <DashboardTableHeadCell>Participant</DashboardTableHeadCell>
-                    <DashboardTableHeadCell align="right">Points</DashboardTableHeadCell>
-                  </DashboardTableHeadRow>
-                </DashboardTableHead>
-                <DashboardTableBody>
-                  {leaderboard.map((row, index) => (
-                    <DashboardTableRow key={row.wallet_address}>
-                      <DashboardTableCell>{index + 1}</DashboardTableCell>
-                      <DashboardTableCell className="text-xs">
-                        {formatLeaderboardDisplayName({
-                          username: (row as { username?: string | null }).username,
-                          walletAddress: row.wallet_address,
-                          formatAddress,
-                        })}
-                      </DashboardTableCell>
-                      <DashboardTableCell align="right" className="font-bold tabular-nums">
-                        {row.points_total}
-                      </DashboardTableCell>
-                    </DashboardTableRow>
-                  ))}
-                </DashboardTableBody>
-              </DashboardTableScroll>
+              <>
+                <DashboardTableScroll>
+                  <DashboardTableHead>
+                    <DashboardTableHeadRow>
+                      <DashboardTableHeadCell>#</DashboardTableHeadCell>
+                      <DashboardTableHeadCell>Participant</DashboardTableHeadCell>
+                      <DashboardTableHeadCell align="right">Points</DashboardTableHeadCell>
+                    </DashboardTableHeadRow>
+                  </DashboardTableHead>
+                  <DashboardTableBody>
+                    {paginatedLeaderboard.map((row, index) => (
+                      <DashboardTableRow key={row.wallet_address}>
+                        <DashboardTableCell>
+                          {(safeLeaderboardPage - 1) * LEADERBOARD_PAGE_SIZE + index + 1}
+                        </DashboardTableCell>
+                        <DashboardTableCell className="text-xs">
+                          {formatLeaderboardDisplayName({
+                            username: (row as { username?: string | null }).username,
+                            walletAddress: row.wallet_address,
+                            formatAddress,
+                          })}
+                        </DashboardTableCell>
+                        <DashboardTableCell align="right" className="font-bold tabular-nums">
+                          {row.points_total}
+                        </DashboardTableCell>
+                      </DashboardTableRow>
+                    ))}
+                  </DashboardTableBody>
+                </DashboardTableScroll>
+                <AdminPagination
+                  page={safeLeaderboardPage}
+                  totalPages={leaderboardTotalPages}
+                  onPage={setLeaderboardPage}
+                />
+              </>
             )}
           </DashboardPanel>
         </>

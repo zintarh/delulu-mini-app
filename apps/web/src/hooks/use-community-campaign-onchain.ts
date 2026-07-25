@@ -2,7 +2,7 @@
 
 import { useReadContract, useWaitForTransactionReceipt, useChainId, usePublicClient } from "wagmi";
 import type { PublicClient } from "viem";
-import { decodeErrorResult } from "viem";
+import { BaseError, ContractFunctionRevertedError, decodeErrorResult } from "viem";
 import { getCommunityMarketV1Address } from "@/lib/constant";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
@@ -27,6 +27,36 @@ async function awaitMinedSuccess(
     pollingInterval: 1_500,
   });
   if (receipt.status !== "success") throw new Error(failureMessage);
+}
+
+/** Thrown by endCommunityChallengeAndWait's preflight check so callers can
+ *  offer a DB-only resync instead of showing a plain failure. */
+export class AlreadyEndedOnChainError extends Error {
+  constructor() {
+    super("This campaign was already ended on-chain.");
+    this.name = "AlreadyEndedOnChainError";
+  }
+}
+
+function extractContractErrorName(err: unknown): string | null {
+  if (err instanceof BaseError) {
+    const revertError = err.walk((e) => e instanceof ContractFunctionRevertedError);
+    if (revertError instanceof ContractFunctionRevertedError) {
+      return revertError.data?.errorName ?? null;
+    }
+  }
+  return null;
+}
+
+function describeEndCampaignError(errorName: string | null): string {
+  switch (errorName) {
+    case "CampaignNotFound":
+      return "This campaign was not found on-chain.";
+    case "Unauthorized":
+      return "Only the campaign creator or platform owner can end this campaign.";
+    default:
+      return "Transaction failed. Please try again.";
+  }
 }
 
 function formatOnChainError(raw: string): string {
@@ -200,6 +230,25 @@ export function useEndCommunityChallenge() {
   };
 
   const endCommunityChallengeAndWait = async (challengeId: number | bigint) => {
+    // Preflight-simulate before spending gas. Wallet-side simulation doesn't
+    // always run (or surface a decoded reason) — that's how a stale "already
+    // ended" retry landed on-chain, burned gas, and reverted with an opaque
+    // "Transaction failed" instead of telling the admin what actually happened.
+    if (publicClient) {
+      try {
+        await publicClient.simulateContract({
+          address: getCommunityMarketV1Address(chainId),
+          abi: COMMUNITY_CAMPAIGN_ABI,
+          functionName: "endCommunityChallenge",
+          args: [BigInt(challengeId)],
+        });
+      } catch (err) {
+        const errorName = extractContractErrorName(err);
+        if (errorName === "AlreadyEnded") throw new AlreadyEndedOnChainError();
+        throw new Error(describeEndCampaignError(errorName));
+      }
+    }
+
     const txHash = await endCommunityChallenge(challengeId);
     await awaitMinedSuccess(publicClient ?? undefined, txHash, "End transaction failed on-chain");
     return txHash;

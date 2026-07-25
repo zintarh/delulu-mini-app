@@ -11,7 +11,8 @@ export type NotificationType =
   | "system"
   | "campaign_milestone_due"
   | "campaign_ending"
-  | "campaign_proof_submitted";
+  | "campaign_proof_submitted"
+  | "forfeit_resolved";
 
 export interface CreateNotificationInput {
   recipientAddress: string;

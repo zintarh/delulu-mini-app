@@ -13,7 +13,7 @@ export type DashboardSectionTab = {
 };
 
 /**
- * In-page subnav for collapsed dashboard sections (People, Goals, Outreach, Communities).
+ * In-page subnav for collapsed dashboard sections (People, Outreach, Communities).
  */
 export function DashboardSectionTabs({
   items,
@@ -77,18 +77,6 @@ export const PEOPLE_SECTION_TABS: DashboardSectionTab[] = [
   { href: "/dashboard/leaderboard", label: "Leaderboard", match: "/dashboard/leaderboard" },
   { href: "/dashboard/rewards", label: "Reward history", match: "/dashboard/rewards" },
 ];
-
-export function goalsSectionTabs(pendingCount = 0): DashboardSectionTab[] {
-  return [
-    { href: "/dashboard/markets", label: "All goals", match: "/dashboard/markets" },
-    {
-      href: "/dashboard/milestones",
-      label: "Pending review",
-      match: "/dashboard/milestones",
-      badge: pendingCount,
-    },
-  ];
-}
 
 export const OUTREACH_SECTION_TABS: DashboardSectionTab[] = [
   {

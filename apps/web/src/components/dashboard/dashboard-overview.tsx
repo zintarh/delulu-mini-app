@@ -6,24 +6,18 @@ import {
   ShieldCheck,
   Users,
   Building2,
-  Target,
-  TrendingUp,
-  CheckCircle2,
-  AlertTriangle,
+  Flag,
   UserPlus,
   Wallet,
 } from "lucide-react";
-import { useAdminDelulus, usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
+import { usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import { useDashboardOverview } from "@/hooks/dashboard/use-dashboard-overview";
-import type { FormattedDelulu } from "@/lib/types";
 import {
   DashboardPage,
   DashboardStatGrid,
 } from "@/components/dashboard/dashboard-ui";
 import {
-  DashboardBarChart,
   DashboardChartCard,
-  DashboardDonutChart,
   DashboardHorizontalBars,
   DashboardSparkline,
   type ChartDatum,
@@ -81,43 +75,6 @@ function EnhancedStat({
   );
 }
 
-function bucketGoalsByWeek(delulus: FormattedDelulu[], weeks = 8): ChartDatum[] {
-  const now = new Date();
-  const buckets: ChartDatum[] = [];
-
-  for (let i = weeks - 1; i >= 0; i--) {
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-    end.setDate(end.getDate() - i * 7);
-    const start = new Date(end);
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - 6);
-
-    const label = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    buckets.push({ label, value: 0 });
-  }
-
-  for (const d of delulus) {
-    const created = d.createdAt;
-    if (!created) continue;
-    const t = created.getTime();
-    for (let i = 0; i < weeks; i++) {
-      const end = new Date(now);
-      end.setHours(23, 59, 59, 999);
-      end.setDate(end.getDate() - (weeks - 1 - i) * 7);
-      const start = new Date(end);
-      start.setHours(0, 0, 0, 0);
-      start.setDate(start.getDate() - 6);
-      if (t >= start.getTime() && t <= end.getTime()) {
-        buckets[i].value += 1;
-        break;
-      }
-    }
-  }
-
-  return buckets;
-}
-
 const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   pending_approval: "Pending approval",
@@ -139,45 +96,11 @@ const CAMPAIGN_STATUS_COLORS: Record<string, string> = {
 };
 
 export function DashboardOverview() {
-  const { delulus, isLoading: loadingDelulus } = useAdminDelulus();
-  const { milestones: pendingMilestones, isLoading: loadingMilestones } = usePendingMilestones();
+  const { milestones: pendingMilestones, isLoading: loadingMilestones } =
+    usePendingMilestones();
   const { data: platform, isLoading: loadingPlatform } = useDashboardOverview();
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const active = delulus.filter((d) => !d.isResolved && !d.isCancelled).length;
-    const resolved = delulus.filter((d) => d.isResolved).length;
-    const endedUnresolved = delulus.filter(
-      (d) => d.stakingDeadline && d.stakingDeadline <= now && !d.isResolved && !d.isCancelled,
-    ).length;
-    const endingSoon = delulus.filter((d) => {
-      if (d.isResolved || d.isCancelled) return false;
-      const dl = d.resolutionDeadline?.getTime() ?? 0;
-      const week = 7 * 24 * 60 * 60 * 1000;
-      return dl > now.getTime() && dl <= now.getTime() + week;
-    }).length;
-
-    return {
-      total: delulus.length,
-      active,
-      resolved,
-      pendingMilestones: pendingMilestones.length,
-      endedUnresolved,
-      endingSoon,
-    };
-  }, [delulus, pendingMilestones]);
-
-  const weeklyGoals = useMemo(() => bucketGoalsByWeek(delulus), [delulus]);
-  const weeklyTrend = useMemo(() => weeklyGoals.map((b) => b.value), [weeklyGoals]);
-
-  const goalStatusChart = useMemo<ChartDatum[]>(
-    () => [
-      { label: "Active", value: stats.active, color: "#10b981" },
-      { label: "Resolved", value: stats.resolved, color: "#2563eb" },
-      { label: "Needs resolution", value: stats.endedUnresolved, color: "#f59e0b" },
-    ],
-    [stats],
-  );
+  const pendingCount = pendingMilestones.length;
 
   const campaignPipeline = useMemo<ChartDatum[]>(() => {
     const byStatus = platform?.campaigns.byStatus ?? {};
@@ -190,8 +113,6 @@ export function DashboardOverview() {
       }));
   }, [platform]);
 
-  const isLoading = loadingDelulus || loadingMilestones;
-
   return (
     <DashboardPage className="max-w-7xl">
       <div className="mb-6">
@@ -201,35 +122,19 @@ export function DashboardOverview() {
         </p>
       </div>
 
-      <DashboardStatGrid className="mb-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <EnhancedStat
-          label="Goals"
-          value={stats.total}
-          icon={Target}
-          trend={weeklyTrend}
-          isLoading={isLoading}
-        />
-        <EnhancedStat
-          label="Active"
-          value={stats.active}
-          sub={stats.endingSoon > 0 ? `${stats.endingSoon} ending soon` : undefined}
-          icon={TrendingUp}
-          accent="bg-emerald-50 text-emerald-600"
-          isLoading={isLoading}
-        />
-        <EnhancedStat
-          label="Resolved"
-          value={stats.resolved}
-          icon={CheckCircle2}
-          accent="bg-delulu-blue-light text-delulu-blue"
-          isLoading={isLoading}
-        />
+      <DashboardStatGrid className="mb-4 sm:grid-cols-2 lg:grid-cols-4">
         <EnhancedStat
           label="Pending review"
-          value={stats.pendingMilestones}
+          value={pendingCount}
           icon={ShieldCheck}
           accent="bg-amber-50 text-amber-600"
-          isLoading={isLoading}
+          isLoading={loadingMilestones}
+        />
+        <EnhancedStat
+          label="Campaigns"
+          value={platform?.campaigns.total ?? "—"}
+          icon={Flag}
+          isLoading={loadingPlatform}
         />
         <EnhancedStat
           label="Communities"
@@ -251,44 +156,20 @@ export function DashboardOverview() {
         />
       </DashboardStatGrid>
 
-      {(stats.pendingMilestones > 0 || stats.endedUnresolved > 0) && (
-        <div className="mb-6 grid gap-3 sm:grid-cols-2">
-          {stats.pendingMilestones > 0 ? (
-            <Link
-              href="/dashboard/milestones"
-              className="flex items-center justify-between rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm font-semibold text-foreground hover:bg-amber-50"
-            >
-              <span className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-amber-600" />
-                {stats.pendingMilestones} milestone{stats.pendingMilestones === 1 ? "" : "s"} to review
-              </span>
-              <span className="text-xs font-bold text-amber-700">Review →</span>
-            </Link>
-          ) : null}
-          {stats.endedUnresolved > 0 ? (
-            <Link
-              href="/dashboard/markets"
-              className="flex items-center justify-between rounded-2xl border border-delulu-blue-border bg-delulu-blue-light px-4 py-3 text-sm font-semibold text-foreground hover:bg-delulu-blue-light/80"
-            >
-              <span className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-delulu-blue" />
-                {stats.endedUnresolved} goal{stats.endedUnresolved === 1 ? "" : "s"} need resolution
-              </span>
-              <span className="text-xs font-bold text-delulu-blue">Open →</span>
-            </Link>
-          ) : null}
+      {pendingCount > 0 ? (
+        <div className="mb-6">
+          <Link
+            href="/dashboard/milestones"
+            className="flex items-center justify-between rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm font-semibold text-foreground hover:bg-amber-50"
+          >
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-amber-600" />
+              {pendingCount} milestone{pendingCount === 1 ? "" : "s"} to review
+            </span>
+            <span className="text-xs font-bold text-amber-700">Review →</span>
+          </Link>
         </div>
-      )}
-
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        <DashboardChartCard title="Goals created" subtitle="Last 8 weeks">
-          <DashboardBarChart data={weeklyGoals} />
-        </DashboardChartCard>
-
-        <DashboardChartCard title="Goal status" subtitle="On-chain goals breakdown">
-          <DashboardDonutChart data={goalStatusChart} />
-        </DashboardChartCard>
-      </div>
+      ) : null}
 
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         <DashboardChartCard

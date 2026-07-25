@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  isCampaignEndedByDate,
+  isCampaignExpired,
   PARTICIPATING_STATUSES,
 } from "@/lib/community/campaign-types";
 
@@ -19,7 +19,7 @@ export async function countActiveJoinedCampaigns(
   const { data } = await admin
     .from("campaign_participants")
     .select(
-      `id, community_campaigns!inner(status, display_ends_at)`,
+      `id, community_campaigns!inner(status, display_ends_at, created_at, duration_days)`,
     )
     .eq("wallet_address", walletAddress)
     .eq("status", "joined")
@@ -30,6 +30,7 @@ export async function countActiveJoinedCampaigns(
     const campaign = Array.isArray(row.community_campaigns)
       ? row.community_campaigns[0]
       : row.community_campaigns;
-    return !isCampaignEndedByDate(campaign?.display_ends_at ?? null);
+    if (!campaign) return false;
+    return !isCampaignExpired(campaign);
   }).length;
 }

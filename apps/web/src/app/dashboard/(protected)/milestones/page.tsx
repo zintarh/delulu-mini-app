@@ -30,10 +30,6 @@ import {
   DashboardTableRow,
   DashboardTableCell,
 } from "@/components/dashboard/dashboard-ui";
-import {
-  DashboardSectionTabs,
-  goalsSectionTabs,
-} from "@/components/dashboard/dashboard-section-tabs";
 
 const PAGE_SIZE = 20;
 
@@ -55,7 +51,6 @@ export default function AdminMilestonesPage() {
 
   return (
     <DashboardPage className="max-w-none px-5 sm:px-7">
-      <DashboardSectionTabs items={goalsSectionTabs(milestones.length)} />
       <p className="mb-5 text-sm text-muted-foreground">
         Verify or reject milestone proofs waiting on admin review.
       </p>

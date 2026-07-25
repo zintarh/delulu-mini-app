@@ -22,6 +22,7 @@ import {
 import { CommunityMembersPanel } from "@/components/dashboard/community-members-panel";
 import { buildSignInWithCommunityUrl } from "@/lib/auth-redirect";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/admin-ui";
 import {
   DashboardPage,
   DashboardStatGrid,
@@ -200,6 +201,9 @@ export function CommunityDetailClient({
   const [fundTarget, setFundTarget] = useState<DashboardCampaign | null>(null);
   const [editCommunityOpen, setEditCommunityOpen] = useState(false);
   const [deleteCommunityOpen, setDeleteCommunityOpen] = useState(false);
+  const [campaignPage, setCampaignPage] = useState(1);
+
+  const CAMPAIGN_PAGE_SIZE = 20;
 
   const { show } = useDashboardToast();
   const { data: campaigns = [], isLoading, refetch } = useDashboardCampaigns({ communityId });
@@ -208,6 +212,12 @@ export function CommunityDetailClient({
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
   const pendingCount = campaigns.filter((c) => c.status === "pending_approval").length;
   const approvedCount = campaigns.filter((c) => c.status === "approved").length;
+  const campaignTotalPages = Math.max(1, Math.ceil(campaigns.length / CAMPAIGN_PAGE_SIZE));
+  const safeCampaignPage = Math.min(campaignPage, campaignTotalPages);
+  const paginatedCampaigns = campaigns.slice(
+    (safeCampaignPage - 1) * CAMPAIGN_PAGE_SIZE,
+    safeCampaignPage * CAMPAIGN_PAGE_SIZE,
+  );
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(community.member_invite_code);
@@ -313,7 +323,7 @@ export function CommunityDetailClient({
                 </DashboardTableHeadRow>
               </DashboardTableHead>
               <DashboardTableBody>
-                {campaigns.map((c) => (
+                {paginatedCampaigns.map((c) => (
                   <DashboardTableRow key={c.id}>
                     {/* Title + thumbnail */}
                     <DashboardTableCell>
@@ -373,6 +383,11 @@ export function CommunityDetailClient({
                 ))}
               </DashboardTableBody>
             </DashboardTableScroll>
+            <AdminPagination
+              page={safeCampaignPage}
+              totalPages={campaignTotalPages}
+              onPage={setCampaignPage}
+            />
           </DashboardTableCard>
         )
       ) : (

@@ -2,7 +2,13 @@ import { createPublicClient, http, parseEventLogs, type TransactionReceipt } fro
 import { celo } from "viem/chains";
 import { DELULU_ABI } from "@/lib/abi";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
-import { DELULU_CHAIN_ID, getDeluluContractAddress, getCommunityMarketV1Address } from "@/lib/constant";
+import { FORFEIT_MARKET_ABI } from "@/lib/abi/forfeit-market";
+import {
+  DELULU_CHAIN_ID,
+  getDeluluContractAddress,
+  getCommunityMarketV1Address,
+  getForfeitMarketAddress,
+} from "@/lib/constant";
 
 const CELO_RPC =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ??
@@ -37,6 +43,11 @@ function proxyAddress() {
 /** Community campaign contract — used for all CommunityCampaign* events. */
 function cmv1Address() {
   return getCommunityMarketV1Address(DELULU_CHAIN_ID);
+}
+
+/** Personal forfeit-commitment contract. */
+function forfeitMarketAddress() {
+  return getForfeitMarketAddress(DELULU_CHAIN_ID);
 }
 
 export async function parseChallengeIdFromTx(txHash: `0x${string}`): Promise<bigint | null> {
@@ -114,6 +125,34 @@ export async function parseCommunityChallengeEndedFromTx(
   return { challengeId: args.campaignId, endedAt: args.endedAt };
 }
 
+/**
+ * Direct on-chain read of a challenge's `ended` flag, independent of any
+ * specific tx hash. Used as a resync fallback when a campaign was already
+ * ended by a prior transaction whose confirm-end DB sync never landed — e.g.
+ * an admin retries "End Campaign" and the retry reverts with AlreadyEnded,
+ * leaving no fresh tx to parse the CommunityChallengeEnded event from.
+ */
+export async function readCommunityChallengeEndedOnChain(challengeId: number): Promise<boolean> {
+  const campaign = await publicClient.readContract({
+    address: cmv1Address(),
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    functionName: "campaigns",
+    args: [BigInt(challengeId)],
+  });
+  // campaigns(uint256) returns (contentHash, poolAmount, startTime, duration, proofIntervalSeconds, active, ended, creator)
+  const [, , , , , , ended] = campaign as readonly [
+    string,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    boolean,
+    boolean,
+    string,
+  ];
+  return ended;
+}
+
 export async function parseCommunityCampaignMilestonesAddedFromTx(
   txHash: `0x${string}`,
 ): Promise<{ challengeId: bigint; milestoneCount: bigint } | null> {
@@ -173,4 +212,72 @@ export async function parseCommunityCampaignJoinedFromTx(
   const args = match.args as { campaignId?: bigint; participant?: string };
   if (args.campaignId == null || !args.participant) return null;
   return { challengeId: args.campaignId, participant: args.participant.toLowerCase() };
+}
+
+export async function parseForfeitCommitmentCreatedFromTx(txHash: `0x${string}`): Promise<{
+  commitmentId: bigint;
+  creator: string;
+  token: string;
+  stakeAmount: bigint;
+  firstDeadline: bigint;
+  verifier: string;
+} | null> {
+  const receipt = await waitForMinedReceipt(txHash);
+  if (receipt.status !== "success") {
+    throw new Error("Create transaction reverted on-chain");
+  }
+  const contract = forfeitMarketAddress();
+  const logs = parseEventLogs({
+    abi: FORFEIT_MARKET_ABI,
+    eventName: "CommitmentCreated",
+    logs: receipt.logs,
+  });
+  const match = logs.find((log) => log.address.toLowerCase() === contract.toLowerCase());
+  if (!match) return null;
+  const args = match.args as {
+    commitmentId?: bigint;
+    creator?: string;
+    token?: string;
+    stakeAmount?: bigint;
+    firstDeadline?: bigint;
+    verifier?: string;
+  };
+  if (
+    args.commitmentId == null ||
+    !args.creator ||
+    !args.token ||
+    args.stakeAmount == null ||
+    args.firstDeadline == null ||
+    !args.verifier
+  ) {
+    return null;
+  }
+  return {
+    commitmentId: args.commitmentId,
+    creator: args.creator.toLowerCase(),
+    token: args.token.toLowerCase(),
+    stakeAmount: args.stakeAmount,
+    firstDeadline: args.firstDeadline,
+    verifier: args.verifier.toLowerCase(),
+  };
+}
+
+export async function parseVerifierInviteAcceptedFromTx(
+  txHash: `0x${string}`,
+): Promise<{ commitmentId: bigint; verifier: string } | null> {
+  const receipt = await waitForMinedReceipt(txHash);
+  if (receipt.status !== "success") {
+    throw new Error("Accept transaction reverted on-chain");
+  }
+  const contract = forfeitMarketAddress();
+  const logs = parseEventLogs({
+    abi: FORFEIT_MARKET_ABI,
+    eventName: "VerifierInviteAccepted",
+    logs: receipt.logs,
+  });
+  const match = logs.find((log) => log.address.toLowerCase() === contract.toLowerCase());
+  if (!match) return null;
+  const args = match.args as { commitmentId?: bigint; verifier?: string };
+  if (args.commitmentId == null || !args.verifier) return null;
+  return { commitmentId: args.commitmentId, verifier: args.verifier.toLowerCase() };
 }

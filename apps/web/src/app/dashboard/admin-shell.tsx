@@ -76,7 +76,7 @@ function pageTitle(pathname: string): string {
     pathname.startsWith(`${BASE}/markets`) ||
     pathname.startsWith(`${BASE}/milestones`)
   ) {
-    return "Goals";
+    return "Milestones";
   }
   if (
     pathname.startsWith(`${BASE}/broadcasts`) ||
@@ -102,7 +102,7 @@ function pageTitle(pathname: string): string {
   return "Dashboard";
 }
 
-function isGoalsPath(pathname: string) {
+function isMilestonesPath(pathname: string) {
   return (
     pathname.startsWith(`${BASE}/markets`) ||
     pathname.startsWith(`${BASE}/milestones`)
@@ -201,9 +201,9 @@ export function AdminShell({
           />
           <NavItem
             icon={Target}
-            label="Goals"
-            href={`${BASE}/markets`}
-            active={isGoalsPath(pathname)}
+            label="Milestones"
+            href={`${BASE}/milestones`}
+            active={isMilestonesPath(pathname)}
             badge={pendingCount}
             onNavigate={closeMobile}
           />

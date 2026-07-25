@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  isCampaignEndedByDate,
+  isCampaignExpired,
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
 import {
@@ -37,7 +37,7 @@ export async function POST(
   const { data: campaign } = await admin
     .from("community_campaigns")
     .select(`
-      id, community_id, status, title, display_ends_at, on_chain_challenge_id,
+      id, community_id, status, title, display_ends_at, duration_days, created_at, on_chain_challenge_id,
       is_free_to_join, join_amount, join_token, is_hidden,
       communities ( id, name, slug, status )
     `)
@@ -51,7 +51,7 @@ export async function POST(
   if (!isCampaignParticipatable(campaign.status)) {
     return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
   }
-  if (isCampaignEndedByDate(campaign.display_ends_at)) {
+  if (isCampaignExpired(campaign)) {
     return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
   }
 

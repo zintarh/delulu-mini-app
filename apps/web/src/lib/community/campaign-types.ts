@@ -44,6 +44,26 @@ export function isCampaignEndedByDate(displayEndsAt: string | null): boolean {
   return new Date(displayEndsAt).getTime() <= Date.now();
 }
 
+/**
+ * `display_ends_at` is only populated once an admin confirms funding or
+ * milestones for a campaign (see confirm-fund/confirm-milestones routes) —
+ * an approved campaign that never goes through either step keeps
+ * `display_ends_at: null` forever, even though it's live and running against
+ * its stated duration. Falls back to created_at + duration_days so joining
+ * and the join-limit count still respect the campaign's actual end date.
+ */
+export function isCampaignExpired(campaign: {
+  display_ends_at: string | null;
+  created_at?: string | null;
+  duration_days?: number | null;
+}): boolean {
+  if (campaign.display_ends_at) return isCampaignEndedByDate(campaign.display_ends_at);
+  if (!campaign.created_at || !campaign.duration_days) return false;
+  return isCampaignEndedByDate(
+    computeDisplayEndsAt(campaign.duration_days, new Date(campaign.created_at)),
+  );
+}
+
 export function computeDisplayEndsAt(durationDays: number, from = new Date()): string {
   const ends = new Date(from);
   ends.setDate(ends.getDate() + durationDays);

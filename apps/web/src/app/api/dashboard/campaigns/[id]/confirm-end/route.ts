@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
-import { parseCommunityChallengeEndedFromTx } from "@/lib/dashboard/parse-challenge-tx";
+import {
+  parseCommunityChallengeEndedFromTx,
+  readCommunityChallengeEndedOnChain,
+} from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
 import {
@@ -21,10 +24,8 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
-  if (!txHash.startsWith("0x")) {
-    return NextResponse.json({ error: "txHash is required" }, { status: 400 });
-  }
+  const rawTxHash = String(body.txHash ?? "").trim();
+  const txHash = rawTxHash.startsWith("0x") ? (rawTxHash as `0x${string}`) : null;
 
   const { id } = await params;
   const admin = getSupabaseAdmin();
@@ -52,19 +53,40 @@ export async function POST(
     return NextResponse.json({ error: "Campaign cannot be ended in its current state." }, { status: 400 });
   }
 
-  if (campaign.status !== "ended") {
-    let parsed;
-    try {
-      parsed = await parseCommunityChallengeEndedFromTx(txHash);
-    } catch (err) {
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : "Failed to read transaction" },
-        { status: 400 },
-      );
-    }
+  let resynced = false;
 
-    if (!parsed || Number(parsed.challengeId) !== campaign.on_chain_challenge_id) {
-      return NextResponse.json({ error: "CommunityChallengeEnded event not found." }, { status: 400 });
+  if (campaign.status !== "ended") {
+    if (txHash) {
+      let parsed;
+      try {
+        parsed = await parseCommunityChallengeEndedFromTx(txHash);
+      } catch (err) {
+        // The submitted tx reverted on-chain. This happens when "End Campaign"
+        // is retried after an earlier end transaction already succeeded but
+        // this DB-sync step never ran (e.g. the tab closed mid-request) — the
+        // contract correctly rejects the retry with AlreadyEnded. Rather than
+        // surface that as a failure, check live on-chain state: if the
+        // challenge is in fact already ended, sync from that instead of
+        // requiring the (unrecoverable) original tx hash.
+        const alreadyEnded = await readCommunityChallengeEndedOnChain(campaign.on_chain_challenge_id);
+        if (!alreadyEnded) {
+          return NextResponse.json(
+            { error: err instanceof Error ? err.message : "Failed to read transaction" },
+            { status: 400 },
+          );
+        }
+        resynced = true;
+      }
+
+      if (!resynced && (!parsed || Number(parsed.challengeId) !== campaign.on_chain_challenge_id)) {
+        return NextResponse.json({ error: "CommunityChallengeEnded event not found." }, { status: 400 });
+      }
+    } else {
+      const alreadyEnded = await readCommunityChallengeEndedOnChain(campaign.on_chain_challenge_id);
+      if (!alreadyEnded) {
+        return NextResponse.json({ error: "Campaign has not ended on-chain yet." }, { status: 400 });
+      }
+      resynced = true;
     }
 
     const now = new Date().toISOString();
@@ -74,7 +96,10 @@ export async function POST(
       .eq("id", id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    await logCampaignEvent(id, "ended", session.userId, { tx_hash: txHash });
+    await logCampaignEvent(id, "ended", session.userId, {
+      tx_hash: txHash,
+      resynced_from_onchain_read: resynced,
+    });
   }
 
   let payout: {
@@ -153,5 +178,6 @@ export async function POST(
   return NextResponse.json({
     campaign: data,
     payout,
+    resynced,
   });
 }

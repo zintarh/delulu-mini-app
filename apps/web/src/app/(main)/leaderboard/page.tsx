@@ -772,7 +772,7 @@ export default function LeaderboardPage() {
 
   return (
     <MainPage>
-      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
+      <header className="border-b border-border/40 bg-background">
         <div className="mx-auto max-w-5xl px-4 py-4 lg:px-8 lg:py-5">
           <Link
             href="/"
