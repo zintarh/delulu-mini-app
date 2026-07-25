@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/email-reminders",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/cron/push-reminders",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 16 * * *"
     }
   ]
 }
