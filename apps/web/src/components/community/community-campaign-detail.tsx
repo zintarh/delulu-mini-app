@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronLeft,
-  Coins,
   Flame,
   Loader2,
   LogOut,
@@ -754,189 +753,177 @@ export function CommunityCampaignDetail({
               ) : null}
             </div>
 
-            {/* ── Reward card — prize / top-N framing is paid-only ── */}
+            {/* ── Prize & stakes — one card, no duplicate pool / top-N ── */}
             {isPaidJoin || showPrizePool ? (
               <div className="mt-5 px-5 lg:px-3">
-                {showPrizePool ? (() => {
+                {(() => {
                   const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
+                  const forfeitPct = campaign.forfeit_pct ?? 0;
+                  const forfeitAmount =
+                    forfeitPct > 0
+                      ? Math.round(joinStakeAmount * forfeitPct / 100)
+                      : 0;
+                  const showStakeRow = isPaidJoin && joinStakeAmount > 0;
+
+                  if (!showPrizePool && !showStakeRow) {
+                    return (
+                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                        <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
+                          <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                            Leaderboard reward
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 divide-x divide-border/40">
+                          <div className="flex flex-col items-center px-4 py-5 text-center">
+                            <p
+                              className="text-3xl font-black text-foreground"
+                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                            >
+                              Top {topN}
+                            </p>
+                            <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
+                              Winners
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-center px-4 py-5 text-center">
+                            <p
+                              className="text-3xl font-black text-foreground"
+                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                            >
+                              Points
+                            </p>
+                            <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
+                              Ranked by
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
                       <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 px-5 py-3">
                         <Trophy className="h-5 w-5 text-[#9a7b0a]" />
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a]">
-                          Prize Pool
+                          {showStakeRow ? "Prize & stakes" : "Prize pool"}
                         </p>
                       </div>
 
-                      <div
-                        className={cn(
-                          "grid divide-x divide-[#f6c324]/20",
-                          isPaidJoin ? "grid-cols-3" : "grid-cols-1",
-                        )}
-                      >
-                        <div className="flex flex-col items-center px-4 py-5 text-center">
-                          <p
-                            className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                            style={{ fontFamily: '"Clash Display", sans-serif' }}
-                          >
-                            {totalPrizePool.toLocaleString()}
-                            <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
-                          </p>
-                          <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">Total pool</p>
-                        </div>
+                      {showPrizePool ? (
+                        <div
+                          className={cn(
+                            "grid divide-x divide-[#f6c324]/20",
+                            isPaidJoin ? "grid-cols-3" : "grid-cols-1",
+                          )}
+                        >
+                          <div className="flex flex-col items-center px-4 py-5 text-center">
+                            <p
+                              className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                            >
+                              {totalPrizePool.toLocaleString()}
+                              <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
+                            </p>
+                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                              Total pool
+                            </p>
+                          </div>
 
-                        {isPaidJoin ? (
-                          <>
-                            <div className="flex flex-col items-center px-4 py-5 text-center">
-                              <p
-                                className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                                style={{ fontFamily: '"Clash Display", sans-serif' }}
-                              >
-                                {perWinner > 0 ? (
-                                  <>
-                                    ~{perWinner.toLocaleString()}
-                                    <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
-                                  </>
-                                ) : (
-                                  "TBD"
-                                )}
-                              </p>
-                              <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
-                                Per winner
-                              </p>
-                            </div>
+                          {isPaidJoin ? (
+                            <>
+                              <div className="flex flex-col items-center px-4 py-5 text-center">
+                                <p
+                                  className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                                  style={{ fontFamily: '"Clash Display", sans-serif' }}
+                                >
+                                  {perWinner > 0 ? (
+                                    <>
+                                      ~{perWinner.toLocaleString()}
+                                      <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">
+                                        G$
+                                      </span>
+                                    </>
+                                  ) : (
+                                    "TBD"
+                                  )}
+                                </p>
+                                <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                                  Per winner
+                                </p>
+                              </div>
 
-                            <div className="flex flex-col items-center px-4 py-5 text-center">
-                              <p
-                                className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                                style={{ fontFamily: '"Clash Display", sans-serif' }}
-                              >
-                                Top {topN}
-                              </p>
-                              <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
-                                Winners
-                              </p>
-                            </div>
-                          </>
-                        ) : null}
-                      </div>
-
-                      {isPaidJoin ? (
-                        <div className="border-t border-[#f6c324]/20 px-5 py-3">
-                          <p className="text-xs text-[#9a7b0a]/70">
-                            Top {topN} on the leaderboard share the prize pool.
-                          </p>
+                              <div className="flex flex-col items-center px-4 py-5 text-center">
+                                <p
+                                  className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                                  style={{ fontFamily: '"Clash Display", sans-serif' }}
+                                >
+                                  Top {topN}
+                                </p>
+                                <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                                  Winners
+                                </p>
+                              </div>
+                            </>
+                          ) : null}
                         </div>
                       ) : null}
+
+                      {showStakeRow ? (
+                        <div
+                          className={cn(
+                            "grid gap-px bg-[#f6c324]/20",
+                            forfeitAmount > 0 ? "grid-cols-2" : "grid-cols-1",
+                            showPrizePool && "border-t border-[#f6c324]/20",
+                          )}
+                        >
+                          <div className="flex flex-col items-center bg-[#fffdf5] px-3 py-4 text-center">
+                            <p
+                              className="text-lg font-black tabular-nums text-foreground sm:text-xl"
+                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                            >
+                              {joinStakeAmount}
+                              <span className="ml-1 text-xs font-bold text-muted-foreground">
+                                {stakeToken}
+                              </span>
+                            </p>
+                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Your stake to join
+                            </p>
+                          </div>
+
+                          {forfeitAmount > 0 ? (
+                            <div className="flex flex-col items-center bg-[#fffdf5] px-3 py-4 text-center">
+                              <p
+                                className="text-lg font-black tabular-nums text-orange-600 sm:text-xl"
+                                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              >
+                                −{forfeitAmount}
+                                <span className="ml-1 text-xs font-bold text-orange-600/70">
+                                  {stakeToken}
+                                </span>
+                              </p>
+                              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Miss a milestone ({forfeitPct}%)
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      <div className="border-t border-[#f6c324]/20 px-5 py-3">
+                        <p className="text-xs leading-relaxed text-[#9a7b0a]/80">
+                          {isPaidJoin
+                            ? forfeitAmount > 0
+                              ? `Top ${topN} on the leaderboard share the pool. Missed-milestone forfeits are added for winners.`
+                              : `Top ${topN} on the leaderboard share the prize pool.`
+                            : "Prize pool is paid out when the campaign ends."}
+                        </p>
+                      </div>
                     </div>
                   );
-                })() : (
-                  <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-                    <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
-                      <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
-                        Leaderboard Reward
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 divide-x divide-border/40">
-                      <div className="flex flex-col items-center px-4 py-5 text-center">
-                        <p
-                          className="text-3xl font-black text-foreground"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          Top {topN}
-                        </p>
-                        <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Winners</p>
-                      </div>
-                      <div className="flex flex-col items-center px-4 py-5 text-center">
-                        <p
-                          className="text-3xl font-black text-foreground"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          Points
-                        </p>
-                        <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">Ranked by</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Stakes & Rewards — cost & payout mechanics, styled to match the Prize Pool card */}
-            {isPaidJoin && joinStakeAmount > 0 ? (
-              <div className="mt-5 px-5 lg:px-3">
-                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-                  <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
-                    <Coins className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
-                      Stakes &amp; Rewards
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-px bg-border/40 sm:grid-cols-4">
-                    <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
-                      <p
-                        className="text-xl font-black tabular-nums text-foreground sm:text-2xl"
-                        style={{ fontFamily: '"Clash Display", sans-serif' }}
-                      >
-                        {joinStakeAmount}
-                        <span className="ml-1 text-xs font-bold text-muted-foreground">{stakeToken}</span>
-                      </p>
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Your stake
-                      </p>
-                    </div>
-
-                    {(campaign.forfeit_pct ?? 0) > 0 ? (
-                      <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
-                        <p
-                          className="text-xl font-black tabular-nums text-orange-600 sm:text-2xl"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          −{Math.round(joinStakeAmount * (campaign.forfeit_pct ?? 0) / 100)}
-                          <span className="ml-1 text-xs font-bold text-orange-600/70">{stakeToken}</span>
-                        </p>
-                        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Miss a milestone ({campaign.forfeit_pct}%)
-                        </p>
-                      </div>
-                    ) : null}
-
-                    <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
-                      <p
-                        className="text-xl font-black text-emerald-700 sm:text-2xl"
-                        style={{ fontFamily: '"Clash Display", sans-serif' }}
-                      >
-                        Top {topN}
-                      </p>
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        If you win
-                      </p>
-                    </div>
-
-                    {totalPrizePool > 0 ? (
-                      <div className="flex flex-col items-center bg-card px-3 py-5 text-center">
-                        <p
-                          className="text-xl font-black tabular-nums text-[#9a7b0a] sm:text-2xl"
-                          style={{ fontFamily: '"Clash Display", sans-serif' }}
-                        >
-                          {totalPrizePool}
-                          <span className="ml-1 text-xs font-bold text-[#9a7b0a]/70">G$</span>
-                        </p>
-                        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Current pool
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="border-t border-[#f6c324]/20 bg-orange-50/60 px-5 py-3">
-                    <p className="text-xs leading-relaxed text-orange-700">
-                      Forfeited stakes from missed milestones are added to the prize pool — winners earn more when others slip up.
-                    </p>
-                  </div>
-                </div>
+                })()}
               </div>
             ) : null}
 
@@ -1053,20 +1040,31 @@ export function CommunityCampaignDetail({
           </button>
         </div>
 
-        {/* ── Leaderboard (paid campaigns only — free has no ranking / top-N prizes) ── */}
-        {isPaidJoin ? (
+        {/* ── Leaderboard (paid) / Participants (free) ── */}
         <section ref={leaderboardRef} className="mt-10 px-5 lg:px-3">
-          <div className="rounded-3xl border border-emerald-500/15 bg-emerald-500/6 p-5">
+          <div
+            className={cn(
+              "rounded-3xl border p-5",
+              isPaidJoin
+                ? "border-emerald-500/15 bg-emerald-500/6"
+                : "border-border/60 bg-muted/20",
+            )}
+          >
           <div className="mb-4 flex items-center justify-between gap-2.5">
             <div>
               <h2
                 className="flex items-center gap-2.5 text-lg font-black text-foreground lg:text-base"
               >
-                <Trophy className="h-5 w-5 text-delulu-blue" />
+                {isPaidJoin ? (
+                  <Trophy className="h-5 w-5 text-delulu-blue" />
+                ) : (
+                  <Users className="h-5 w-5 text-delulu-blue" />
+                )}
                 Leaderboard
               </h2>
               <p className="text-sm text-muted-foreground">
-                {participantCount} participant{participantCount !== 1 ? "s" : ""} · top {topN} win
+                {participantCount} participant{participantCount !== 1 ? "s" : ""}
+                {isPaidJoin ? ` · top ${topN} win` : " · ranked by points"}
               </p>
             </div>
           </div>
@@ -1076,9 +1074,13 @@ export function CommunityCampaignDetail({
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-delulu-blue-light text-delulu-blue">
                 <Users className="h-6 w-6" />
               </div>
-              <p className="text-base font-bold text-foreground">No one on the board yet</p>
+              <p className="text-base font-bold text-foreground">
+                {isPaidJoin ? "No one on the board yet" : "No participants yet"}
+              </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Be the first to join and claim the top spot.
+                {isPaidJoin
+                  ? "Be the first to join and claim the top spot."
+                  : "Join and complete milestones to earn points."}
               </p>
               {!isJoined && canJoin ? (
                 <div className="mt-5 flex justify-center">
@@ -1090,9 +1092,16 @@ export function CommunityCampaignDetail({
             <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               {leaderboard.map((row) => {
                 const isMe = address?.toLowerCase() === row.wallet_address.toLowerCase();
-                const inZone = row.rank <= topN;
-                const medal =
-                  row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : null;
+                const inZone = isPaidJoin && row.rank <= topN;
+                const medal = isPaidJoin
+                  ? row.rank === 1
+                    ? "🥇"
+                    : row.rank === 2
+                      ? "🥈"
+                      : row.rank === 3
+                        ? "🥉"
+                        : null
+                  : null;
                 return (
                   <li
                     key={row.wallet_address}
@@ -1105,7 +1114,11 @@ export function CommunityCampaignDetail({
                     <div className="flex min-w-0 items-center gap-4">
                       <span className="flex w-9 shrink-0 items-center justify-center text-base font-black tabular-nums">
                         {medal ?? (
-                          <span className={inZone ? "text-[#9a7b0a]" : "text-muted-foreground"}>
+                          <span
+                            className={
+                              inZone ? "text-[#9a7b0a]" : "text-muted-foreground"
+                            }
+                          >
                             {row.rank}
                           </span>
                         )}
@@ -1161,7 +1174,7 @@ export function CommunityCampaignDetail({
           ) : null}
           </div>
 
-          {canClaimReward ? (
+          {isPaidJoin && canClaimReward ? (
             <div className="mt-4 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
               <p className="text-sm font-semibold text-emerald-800">
                 You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
@@ -1181,13 +1194,13 @@ export function CommunityCampaignDetail({
             </div>
           ) : null}
 
-          {claimSuccess || claimInfo?.alreadyClaimed ? (
+          {isPaidJoin && (claimSuccess || claimInfo?.alreadyClaimed) ? (
             <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800">
               Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
             </p>
           ) : null}
 
-          {showClaimNote && !canClaimReward && !claimSuccess ? (
+          {isPaidJoin && showClaimNote && !canClaimReward && !claimSuccess ? (
             <p className="mt-4 rounded-xl border border-[#f6c324]/40 bg-[#fffbeb] px-4 py-3 text-sm text-[#9a7b0a]">
               You&apos;re in the prize zone. Join{" "}
               <Link href={`/communities/${communitySlug}`} className="font-bold underline">
@@ -1197,7 +1210,8 @@ export function CommunityCampaignDetail({
             </p>
           ) : null}
 
-          {campaign.status === "ended" &&
+          {isPaidJoin &&
+          campaign.status === "ended" &&
           inPrizeZone &&
           claimInfo &&
           !claimInfo.eligible &&
@@ -1208,7 +1222,6 @@ export function CommunityCampaignDetail({
             </p>
           ) : null}
         </section>
-        ) : null}
       </main>
 
 
