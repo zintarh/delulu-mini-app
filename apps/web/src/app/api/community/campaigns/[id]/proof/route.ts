@@ -26,11 +26,26 @@ export async function POST(
   const milestoneId =
     milestoneIdRaw != null && milestoneIdRaw !== "" ? Number(milestoneIdRaw) : null;
 
-  if (!walletAddress) return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
-  if (proofUrls.length === 0) return NextResponse.json({ error: "proofUrls is required" }, { status: 400 });
+  if (!walletAddress) {
+    return NextResponse.json(
+      { error: "Connect your wallet to submit proof." },
+      { status: 400 },
+    );
+  }
+  if (proofUrls.length === 0) {
+    return NextResponse.json(
+      { error: "No proof frames were received. Record again and try uploading." },
+      { status: 400 },
+    );
+  }
 
   const admin = getSupabaseAdmin();
-  if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Something went wrong on our side. Please try again in a moment." },
+      { status: 500 },
+    );
+  }
 
   const { data: campaign } = await admin
     .from("community_campaigns")
@@ -101,10 +116,18 @@ export async function POST(
       milestone: milestone.label,
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Verification failed" },
-      { status: 503 },
-    );
+    const raw = err instanceof Error ? err.message : "Verification failed";
+    const friendly =
+      /ai service not configured/i.test(raw)
+        ? "Proof review is temporarily unavailable. Please try again later."
+        : /image fetch failed/i.test(raw)
+          ? "We couldn't load your proof images. Please try uploading again."
+          : /verification failed/i.test(raw)
+            ? "Proof review failed. Check your connection and try again."
+            : raw.length > 0 && raw.length < 180
+              ? raw
+              : "Proof review failed. Check your connection and try again.";
+    return NextResponse.json({ error: friendly }, { status: 503 });
   }
 
   if (!verdict.verified) {

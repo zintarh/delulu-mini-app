@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Image upload is temporarily unavailable. Please try again later." },
+        { status: 500 },
+      );
     }
 
     const formData = await request.formData();
@@ -98,6 +101,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: publicUrl, path: filePath, bucket });
   } catch (error) {
     console.error("[upload-image]", error);
-    return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't upload your image. Check your connection and try again." },
+      { status: 500 },
+    );
   }
 }

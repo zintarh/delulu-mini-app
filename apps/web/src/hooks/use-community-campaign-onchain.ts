@@ -67,12 +67,27 @@ function formatOnChainError(raw: string): string {
     msg.includes("rejected the request") ||
     msg.includes("transaction was cancelled") ||
     msg.includes("request rejected")
-  ) return "Transaction cancelled.";
+  ) return "You cancelled the wallet request. Tap Try again when you're ready to confirm.";
   if (
     msg.includes("insufficient funds") ||
     msg.includes("fee payer balance too low") ||
     msg.includes("not enough celo")
-  ) return "Not enough CELO for gas fees.";
+  ) return "Not enough CELO for gas fees. Top up a little CELO, then try again.";
+  if (
+    msg.includes("alreadycompleted")
+  ) return "You already submitted proof for this day.";
+  if (msg.includes("proofafterdeadline")) {
+    return "The deadline for this day has passed, so proof can't be submitted.";
+  }
+  if (msg.includes("proofbeforestart")) {
+    return "This day isn't open for proof yet. Check back when it starts.";
+  }
+  if (msg.includes("notjoined")) {
+    return "Join this campaign before submitting proof.";
+  }
+  if (msg.includes("invalidproof")) {
+    return "Your proof was rejected on-chain. Record again showing the activity clearly.";
+  }
   return "Transaction failed. Please try again.";
 }
 
@@ -167,13 +182,45 @@ export function useSubmitCommunityMilestoneProofOnChain() {
     milestoneId: number | bigint,
     proofLink: string,
   ) => {
-    const txHash = await submitCommunityCampaignMilestoneProof(
-      challengeId,
-      milestoneId,
-      proofLink,
-    );
-    await awaitMinedSuccess(publicClient, txHash, "Proof submission failed on-chain");
-    return txHash;
+    try {
+      const txHash = await submitCommunityCampaignMilestoneProof(
+        challengeId,
+        milestoneId,
+        proofLink,
+      );
+      await awaitMinedSuccess(
+        publicClient,
+        txHash,
+        "Proof submission failed on-chain. The network rejected the transaction — try again.",
+      );
+      return txHash;
+    } catch (err) {
+      const name = extractContractErrorName(err);
+      if (name === "AlreadyCompleted") {
+        throw new Error("You already submitted proof for this day.");
+      }
+      if (name === "ProofAfterDeadline") {
+        throw new Error("The deadline for this day has passed, so proof can't be submitted.");
+      }
+      if (name === "ProofBeforeStart") {
+        throw new Error("This day isn't open for proof yet. Check back when it starts.");
+      }
+      if (name === "NotJoined") {
+        throw new Error("Join this campaign before submitting proof.");
+      }
+      if (name === "InvalidProof") {
+        throw new Error(
+          "Your proof was rejected on-chain. Record again showing the activity clearly.",
+        );
+      }
+      if (name === "MilestoneNotFound") {
+        throw new Error("This day wasn't found. Refresh the page and try again.");
+      }
+      if (err instanceof Error) {
+        throw new Error(formatOnChainError(err.message));
+      }
+      throw new Error("Proof submission failed. Please try again.");
+    }
   };
 
   const isError = !!error || !!receiptError;

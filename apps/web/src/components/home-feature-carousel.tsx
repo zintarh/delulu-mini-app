@@ -87,16 +87,28 @@ export function HomeFeatureCarousel() {
   const scrollToIndex = (index: number) => {
     const el = scrollerRef.current;
     if (!el) return;
-    const cardWidth = el.scrollWidth / CARDS.length;
-    el.scrollTo({ left: cardWidth * index, behavior: "smooth" });
+    const slide = el.children[index] as HTMLElement | undefined;
+    if (!slide) return;
+    el.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
   };
 
   const handleScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
-    const cardWidth = el.scrollWidth / CARDS.length;
-    const index = Math.round(el.scrollLeft / cardWidth);
-    setActive(Math.min(CARDS.length - 1, Math.max(0, index)));
+    const slides = Array.from(el.children) as HTMLElement[];
+    if (slides.length === 0) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    slides.forEach((slide, i) => {
+      const mid = slide.offsetLeft + slide.offsetWidth / 2;
+      const dist = Math.abs(mid - center);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    });
+    setActive(best);
   };
 
   // Auto-advance until the user takes control (touch/drag), then stop for good.
@@ -121,24 +133,27 @@ export function HomeFeatureCarousel() {
         ref={scrollerRef}
         onScroll={handleScroll}
         onPointerDown={stopAutoplay}
-        className="scrollbar-hide -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
+        className="scrollbar-hide -mx-4 flex snap-x snap-mandatory overflow-x-auto pb-1"
       >
         {CARDS.map((card) => {
           const Icon = card.icon;
           return (
             <div
               key={card.id}
-              className={cn(
-                "group relative w-full shrink-0 snap-start overflow-hidden rounded-3xl px-5 py-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)]",
-                card.bgClassName,
-              )}
+              className="w-full min-w-full shrink-0 snap-start px-4"
             >
+              <div
+                className={cn(
+                  "group relative overflow-hidden rounded-3xl px-4 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+                  card.bgClassName,
+                )}
+              >
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{ background: card.glow }}
               />
 
-              <div className="relative flex h-full min-h-[168px] flex-col">
+              <div className="relative flex h-full min-h-[140px] flex-col">
                 <div className="flex items-center justify-between">
                   <p
                     className={cn(
@@ -151,17 +166,17 @@ export function HomeFeatureCarousel() {
                   </p>
                   <div
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6",
+                      "flex h-7 w-7 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6",
                       card.accentClassName,
                     )}
                   >
-                    <Icon className="h-4 w-4" strokeWidth={2} />
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                   </div>
                 </div>
 
                 <p
                   className={cn(
-                    "mt-3 text-[26px] font-black leading-[1.1] tracking-tight",
+                    "mt-2.5 text-[24px] font-black leading-[1.1] tracking-tight",
                     card.light ? "text-white" : "text-foreground",
                   )}
                   style={{ fontFamily: '"Clash Display", sans-serif' }}
@@ -171,7 +186,7 @@ export function HomeFeatureCarousel() {
 
                 <p
                   className={cn(
-                    "mt-2 text-[12.5px] leading-snug",
+                    "mt-1.5 text-[12px] leading-snug",
                     card.light ? "text-white/85" : "text-muted-foreground",
                   )}
                 >
@@ -182,7 +197,7 @@ export function HomeFeatureCarousel() {
                   <Link
                     href={card.action.href}
                     className={cn(
-                      "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-4 py-2 text-[12px] font-black transition-transform hover:scale-[1.04] active:scale-[0.97]",
+                      "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 text-[11px] font-black transition-transform hover:scale-[1.04] active:scale-[0.97]",
                       card.light
                         ? "bg-white text-foreground"
                         : "bg-delulu-blue text-white",
@@ -191,6 +206,7 @@ export function HomeFeatureCarousel() {
                     {card.action.label} →
                   </Link>
                 ) : null}
+              </div>
               </div>
             </div>
           );

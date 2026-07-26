@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
+import { parseUnits } from "viem";
 import {
   Activity,
   Camera,
@@ -10,15 +13,35 @@ import {
   Clock,
   HeartPulse,
   Image as ImageIcon,
+  Loader2,
   MapPin,
   ShieldCheck,
-  Smartphone,
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { DateTimePicker } from "@/components/date-time-picker";
 import { DeluluDetailHeader } from "@/components/delulu-detail/delulu-detail-header";
+import { useSupportedTokens } from "@/hooks/use-supported-tokens";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useTokenApproval } from "@/hooks/use-token-approval";
+import { useTokenMetadata } from "@/hooks/use-token-metadata";
+import { TokenBadge } from "@/components/token-badge";
+import { FeedbackModal } from "@/components/feedback-modal";
+import {
+  ForfeitCadence,
+  ForfeitDestinationType,
+  generateVerifierInviteCode,
+  useCreateForfeitCommitment,
+} from "@/hooks/use-create-forfeit-commitment";
+
+/** No charity-picker UI exists yet — v1 ships with a single owner-approved default
+ * charity address (see ForfeitMarket.sol's approvedCharities allowlist). */
+const DEFAULT_CHARITY_ADDRESS = process.env.NEXT_PUBLIC_FORFEIT_DEFAULT_CHARITY as
+  | `0x${string}`
+  | undefined;
+
+const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
 const CLASH = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -174,17 +197,6 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     placeholder: "8,000 steps today",
     comingSoon: true,
   },
-  {
-    id: "apple-health",
-    title: "Apple Health",
-    description: "Verify activity or health metrics from Apple Health.",
-    icon: Smartphone,
-    sentencePrefix: "I'll hit my",
-    pillLabel: "Apple Health",
-    sentenceSuffix: "goal of",
-    placeholder: "30 minutes of exercise",
-    comingSoon: true,
-  },
 ];
 
 const PENALTY_AMOUNT_PRESETS = [100, 250, 500, 1000] as const;
@@ -211,6 +223,33 @@ const FORFEIT_DESTINATIONS = [
 ] as const;
 
 type ForfeitDestinationId = (typeof FORFEIT_DESTINATIONS)[number]["id"];
+
+const DESTINATION_TYPE_BY_ID: Record<ForfeitDestinationId, number> = {
+  charity: ForfeitDestinationType.Charity,
+  friend: ForfeitDestinationType.Friend,
+  delulu: ForfeitDestinationType.CommunityPool,
+};
+
+/** Approximate seconds per on-chain period for each repeat cadence. "Weekday" still
+ * advances a fixed 24h period on-chain — skipping weekends is a display/reminder
+ * concern the UI and reminder cron handle, not something ForfeitMarket.sol tracks. */
+const PERIOD_SECONDS_BY_CADENCE: Record<(typeof REPEAT_EVERY)[number], number> = {
+  day: 86400,
+  weekday: 86400,
+  week: 604800,
+  month: 2592000,
+};
+
+const CADENCE_BY_REPEAT: Record<(typeof REPEAT_EVERY)[number], number> = {
+  day: ForfeitCadence.Daily,
+  weekday: ForfeitCadence.Weekday,
+  week: ForfeitCadence.Weekly,
+  month: ForfeitCadence.Monthly,
+};
+
+/** No end-date picker exists yet for repeating commitments, and the contract requires
+ * a bounded totalPeriods (no true "forever"). ~1 year at the fastest (daily) cadence. */
+const DEFAULT_REPEAT_TOTAL_PERIODS = 365;
 
 const ADDITIONAL_OPTIONS: ReadonlyArray<{
   id: string;
@@ -366,6 +405,18 @@ export function ForfeitCreatePage() {
   const [forfeitAmount, setForfeitAmount] = useState(100);
   const [amountDraft, setAmountDraft] = useState("100");
   const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("charity");
+  const [destinationFriendAddress, setDestinationFriendAddress] = useState("");
+
+  const supportedTokens = useSupportedTokens();
+  const [selectedToken, setSelectedToken] = useState<string>(
+    () => supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "",
+  );
+
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [remindEnabled, setRemindEnabled] = useState(true);
+  const [friendVerifierEnabled, setFriendVerifierEnabled] = useState(false);
+  const [verifierUsername, setVerifierUsername] = useState("");
+  const [verifierEmail, setVerifierEmail] = useState("");
 
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [deadlineOpen, setDeadlineOpen] = useState(false);
@@ -374,6 +425,20 @@ export function ForfeitCreatePage() {
   const [amountOpen, setAmountOpen] = useState(false);
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+
+  const router = useRouter();
+  const { address, isConnected } = useAccount();
+  const { createCommitmentAndWait, isPending: isCreating } = useCreateForfeitCommitment();
+  const {
+    approve,
+    needsApproval,
+    isPending: isApproving,
+    isConfirming: isApprovingConfirming,
+    isSuccess: isApprovalSuccess,
+  } = useTokenApproval(selectedToken);
+  const selectedTokenBalance = useTokenBalance(selectedToken);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const evidence = useMemo(
     () => EVIDENCE_TYPES.find((e) => e.id === evidenceId) ?? EVIDENCE_TYPES[0],
@@ -388,10 +453,27 @@ export function ForfeitCreatePage() {
     [evidenceId],
   );
 
-  const canNext = description.trim().length >= 3 && forfeitAmount > 0;
-  const isProduction = process.env.NODE_ENV === "production";
-  const nextEnabled = canNext && !isProduction;
-  const amountLabel = `${forfeitAmount.toLocaleString()} G$`;
+  const { decimals: selectedTokenDecimals } = useTokenMetadata(selectedToken);
+  const selectedTokenSymbol =
+    supportedTokens.find((t) => t.address === selectedToken)?.symbol ?? "";
+
+  const verificationMethod: "self" | "friend" | "ai" =
+    evidenceId === "self" ? "self" : friendVerifierEnabled ? "friend" : "ai";
+
+  const hasInsufficientBalance =
+    isConnected && !selectedTokenBalance.isLoading
+      ? parseFloat(selectedTokenBalance.formatted) < forfeitAmount
+      : false;
+
+  const canNext =
+    description.trim().length >= 3 &&
+    forfeitAmount > 0 &&
+    !!selectedToken &&
+    !hasInsufficientBalance &&
+    (destinationId !== "friend" || ADDRESS_RE.test(destinationFriendAddress.trim())) &&
+    (verificationMethod !== "friend" || verifierEmail.trim().length > 3) &&
+    (destinationId !== "charity" || !!DEFAULT_CHARITY_ADDRESS);
+  const amountLabel = `${forfeitAmount.toLocaleString()} ${selectedTokenSymbol}`;
   const placeholder =
     mode === "repeat" && evidenceId === "photo"
       ? "Meditate for 10 minutes"
@@ -408,6 +490,88 @@ export function ForfeitCreatePage() {
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
   };
+
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSubmit = async () => {
+    if (isSubmitting || isCreating || isApproving || isApprovingConfirming) return;
+    setSubmitError(null);
+
+    try {
+      if (!isConnected || !address) throw new Error("Connect your wallet first");
+      if (!canNext) throw new Error("Fill in every required field before continuing");
+
+      setIsSubmitting(true);
+
+      if (needsApproval(forfeitAmount) && !isApprovalSuccess) {
+        await approve(forfeitAmount);
+      }
+
+      let verifierInviteCodeHash: `0x${string}` | undefined;
+      let plaintextInviteCode: `0x${string}` | undefined;
+      if (verificationMethod === "friend") {
+        const invite = generateVerifierInviteCode();
+        verifierInviteCodeHash = invite.hash;
+        plaintextInviteCode = invite.code;
+      }
+
+      const cadence = mode === "once" ? ForfeitCadence.Once : CADENCE_BY_REPEAT[repeatEvery];
+      const periodSeconds = mode === "once" ? undefined : PERIOD_SECONDS_BY_CADENCE[repeatEvery];
+      const totalPeriods = mode === "once" ? 1 : DEFAULT_REPEAT_TOTAL_PERIODS;
+      const firstDeadline = Math.floor(deadlineDate.getTime() / 1000);
+
+      const destinationAddr =
+        destinationId === "friend"
+          ? (destinationFriendAddress.trim() as `0x${string}`)
+          : destinationId === "charity"
+            ? DEFAULT_CHARITY_ADDRESS
+            : undefined;
+
+      const stakeAmountWei = parseUnits(forfeitAmount.toString(), selectedTokenDecimals ?? 18);
+
+      const txHash = await createCommitmentAndWait({
+        token: selectedToken as `0x${string}`,
+        stakeAmountWei,
+        destinationType: DESTINATION_TYPE_BY_ID[destinationId],
+        destinationAddr,
+        cadence,
+        periodSeconds,
+        totalPeriods,
+        firstDeadline,
+        verifierInviteCodeHash,
+      });
+
+      const res = await fetch("/api/forfeit/confirm-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          txHash,
+          walletAddress: address,
+          title: description.trim().slice(0, 100),
+          description: description.trim(),
+          evidenceType: evidenceId,
+          verificationMethod,
+          isPrivate,
+          remindEnabled,
+          verifierUsername: verificationMethod === "friend" ? verifierUsername.trim() || null : null,
+          verifierEmail: verificationMethod === "friend" ? verifierEmail.trim() : null,
+          verifierInviteCode: plaintextInviteCode ?? null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Commitment created on-chain, but saving details failed");
+      }
+
+      setShowSuccess(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to create forfeit");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isBusy = isSubmitting || isCreating || isApproving || isApprovingConfirming;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
@@ -513,8 +677,11 @@ export function ForfeitCreatePage() {
 
         <div className="mt-6 space-y-3 text-[12px] leading-relaxed text-muted-foreground" style={MANROPE}>
           <p>
-            AI will verify your forfeit instantly. It compares the description above with the
-            proof you send, and approves it if it matches.
+            {verificationMethod === "self"
+              ? "You confirm completion yourself — no AI check, no verifier."
+              : verificationMethod === "friend"
+                ? "Your named friend reviews your proof and confirms completion — not AI."
+                : "AI will verify your forfeit instantly. It compares the description above with the proof you send, and approves it if it matches."}
           </p>
           <p>
             If you fail to submit in time, or the forfeit is denied, your stake goes to{" "}
@@ -522,21 +689,55 @@ export function ForfeitCreatePage() {
           </p>
         </div>
 
+        {hasInsufficientBalance ? (
+          <p className="mt-4 text-sm font-semibold text-red-500" style={MANROPE}>
+            Insufficient {selectedTokenSymbol} balance
+          </p>
+        ) : null}
+
+        {submitError ? (
+          <p className="mt-4 text-sm font-semibold text-red-500" style={MANROPE}>
+            {submitError}
+          </p>
+        ) : null}
+
         <button
           type="button"
-          disabled={!nextEnabled}
+          disabled={!canNext || isBusy}
+          onClick={handleSubmit}
           className={cn(
-            "mt-8 w-full rounded-full py-3.5 text-sm font-bold transition-opacity",
-            nextEnabled
+            "mt-8 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-opacity",
+            canNext && !isBusy
               ? "bg-delulu-charcoal text-white hover:opacity-90"
               : "bg-muted text-muted-foreground opacity-60",
           )}
           style={MANROPE}
         >
-          {isProduction ? "Coming soon" : "Next"}
+          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {!isConnected
+            ? "Connect wallet"
+            : isApproving || isApprovingConfirming
+              ? "Approving..."
+              : isCreating
+                ? "Creating..."
+                : isSubmitting
+                  ? "Saving..."
+                  : "Create forfeit"}
         </button>
         </div>
       </div>
+
+      <FeedbackModal
+        isOpen={showSuccess}
+        type="success"
+        title="Forfeit created!"
+        message="Your stake is locked in. Submit proof before the deadline to get it back."
+        onClose={() => {
+          setShowSuccess(false);
+          router.push("/profile");
+        }}
+        actionText="Done"
+      />
 
       {/* Evidence type sheet */}
       <ResponsiveSheet
@@ -737,6 +938,36 @@ export function ForfeitCreatePage() {
               />
             ))}
           </div>
+
+          {destinationId === "friend" ? (
+            <label className="mt-4 block">
+              <span
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                style={MANROPE}
+              >
+                Friend&apos;s wallet address
+              </span>
+              <input
+                type="text"
+                value={destinationFriendAddress}
+                onChange={(e) => setDestinationFriendAddress(e.target.value.trim())}
+                placeholder="0x..."
+                className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                style={MANROPE}
+              />
+              {destinationFriendAddress && !ADDRESS_RE.test(destinationFriendAddress) ? (
+                <p className="mt-1.5 text-xs font-semibold text-red-500" style={MANROPE}>
+                  Enter a valid wallet address
+                </p>
+              ) : null}
+            </label>
+          ) : null}
+
+          {destinationId === "charity" && !DEFAULT_CHARITY_ADDRESS ? (
+            <p className="mt-4 text-xs font-semibold text-red-500" style={MANROPE}>
+              Charity payouts aren&apos;t configured yet — pick a different destination for now.
+            </p>
+          ) : null}
         </div>
       </ResponsiveSheet>
 
@@ -752,8 +983,30 @@ export function ForfeitCreatePage() {
             Forfeit amount
           </h2>
           <p className="mb-4 text-xs text-muted-foreground" style={MANROPE}>
-            Choose how much G$ you&apos;re willing to forfeit if you miss the goal.
+            Choose the token and how much you&apos;re willing to forfeit if you miss the goal.
           </p>
+
+          {supportedTokens.length > 1 ? (
+            <div className="mb-4 flex gap-2">
+              {supportedTokens.map((t) => (
+                <button
+                  key={t.address}
+                  type="button"
+                  onClick={() => setSelectedToken(t.address)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
+                    selectedToken === t.address
+                      ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
+                      : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                  )}
+                  style={MANROPE}
+                >
+                  <TokenBadge tokenAddress={t.address} size="sm" showText={false} />
+                  {t.symbol}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-2">
             {PENALTY_AMOUNT_PRESETS.map((amount) => (
@@ -773,7 +1026,7 @@ export function ForfeitCreatePage() {
                 )}
                 style={MANROPE}
               >
-                {amount.toLocaleString()} G$
+                {amount.toLocaleString()} {selectedTokenSymbol}
               </button>
             ))}
           </div>
@@ -801,7 +1054,7 @@ export function ForfeitCreatePage() {
                 placeholder="100"
               />
               <span className="shrink-0 text-sm font-bold text-muted-foreground" style={MANROPE}>
-                G$
+                {selectedTokenSymbol}
               </span>
             </div>
           </label>
@@ -835,18 +1088,87 @@ export function ForfeitCreatePage() {
             Additional options
           </h2>
           <div className="space-y-2">
-            {additionalOptions.map((opt) => (
-              <label
-                key={opt.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5"
-              >
-                <span className="text-sm font-semibold text-foreground" style={MANROPE}>
-                  {opt.label}
-                </span>
-                <span className="h-5 w-5 shrink-0 rounded-md border border-border bg-background" />
-              </label>
-            ))}
+            {additionalOptions.map((opt) => {
+              const checked =
+                opt.id === "private"
+                  ? isPrivate
+                  : opt.id === "remind"
+                    ? remindEnabled
+                    : friendVerifierEnabled;
+              const toggle =
+                opt.id === "private"
+                  ? () => setIsPrivate((v) => !v)
+                  : opt.id === "remind"
+                    ? () => setRemindEnabled((v) => !v)
+                    : () => setFriendVerifierEnabled((v) => !v);
+              return (
+                <label
+                  key={opt.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5"
+                >
+                  <span className="text-sm font-semibold text-foreground" style={MANROPE}>
+                    {opt.label}
+                  </span>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={checked}
+                    onClick={toggle}
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                      checked
+                        ? "border-delulu-blue bg-delulu-blue text-white"
+                        : "border-border bg-background",
+                    )}
+                  >
+                    {checked ? <Check className="h-3.5 w-3.5" /> : null}
+                  </button>
+                </label>
+              );
+            })}
           </div>
+
+          {friendVerifierEnabled ? (
+            <div className="mt-3 space-y-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5">
+              <p className="text-xs text-muted-foreground" style={MANROPE}>
+                They&apos;ll get an email inviting them to review your proof and confirm you
+                completed it — not AI.
+              </p>
+              <label className="block">
+                <span
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  style={MANROPE}
+                >
+                  Friend&apos;s username (optional)
+                </span>
+                <input
+                  type="text"
+                  value={verifierUsername}
+                  onChange={(e) => setVerifierUsername(e.target.value)}
+                  placeholder="@username"
+                  className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                  style={MANROPE}
+                />
+              </label>
+              <label className="block">
+                <span
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  style={MANROPE}
+                >
+                  Friend&apos;s email
+                </span>
+                <input
+                  type="email"
+                  value={verifierEmail}
+                  onChange={(e) => setVerifierEmail(e.target.value)}
+                  placeholder="friend@example.com"
+                  className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                  style={MANROPE}
+                />
+              </label>
+            </div>
+          ) : null}
+
           <button
             type="button"
             onClick={() => setOptionsOpen(false)}

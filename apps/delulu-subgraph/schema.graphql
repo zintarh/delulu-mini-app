@@ -11,6 +11,7 @@ type User @entity(immutable: false) {
   stakes: [Stake!]! @derivedFrom(field: "user")
   claims: [Claim!]! @derivedFrom(field: "user")
   milestones: [Milestone!]! @derivedFrom(field: "creator")
+  forfeitCommitments: [ForfeitCommitment!]! @derivedFrom(field: "creator")
 }
 
 # Delulu entity - tracks each delulu/market
@@ -257,6 +258,46 @@ type Tip @entity(immutable: true) {
   milestoneId: BigInt!
   amount: BigInt!
   isScout: Boolean!
+  txHash: Bytes!
+  createdAt: BigInt!
+}
+
+# Personal stake-or-lose commitment — indexed from ForfeitMarket.createCommitment
+type ForfeitCommitment @entity(immutable: false) {
+  id: ID! # "fm1-" + commitmentId
+  commitmentId: BigInt!
+  creator: User!
+  creatorAddress: String!
+  token: Bytes!
+  stakeAmount: BigInt!
+  destinationType: Int! # 0=SelfReturn,1=Charity,2=Friend,3=CommunityPool
+  destinationAddr: Bytes
+  cadence: Int! # 0=Once,1=Daily,2=Weekday,3=Weekly,4=Monthly
+  periodSeconds: BigInt!
+  totalPeriods: Int!
+  currentPeriodIndex: Int!
+  currentPeriodDeadline: BigInt!
+  verifier: Bytes # zero address = self/AI-gated-self verification
+  hasPendingVerifierInvite: Boolean!
+  active: Boolean!
+  cancelled: Boolean!
+  createdAt: BigInt!
+  resolutions: [ForfeitPeriodResolution!]! @derivedFrom(field: "commitment")
+}
+
+# Immutable per-period outcome log — the rich history the contract itself doesn't store.
+type ForfeitPeriodResolution @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  commitment: ForfeitCommitment!
+  commitmentId: BigInt!
+  periodIndex: Int!
+  outcome: String! # "success" | "forfeited"
+  resolver: Bytes! # creator/verifier on success, keeper on forfeiture
+  bountyPaid: BigInt # forfeiture only
+  platformFee: BigInt # forfeiture only
+  destinationType: Int # forfeiture only
+  destinationAddr: Bytes # forfeiture only
+  amountToDestination: BigInt # forfeiture only
   txHash: Bytes!
   createdAt: BigInt!
 }

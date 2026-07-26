@@ -10,6 +10,7 @@ import { HomeFeatureCarousel } from "@/components/home-feature-carousel";
 // import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { HomeClaimNudge } from "@/components/home-claim-nudge";
 import { HomeCampaignsSection } from "@/components/home-campaigns-section";
+import { HomeDailyBreakdown } from "@/components/home-daily-breakdown";
 import { useUserStore } from "@/stores/useUserStore";
 import { useUserEarnedTotal } from "@/hooks/use-earned-totals";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
@@ -114,6 +115,8 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
       <div className="mb-4 space-y-2.5 px-4">
         <HomeClaimNudge />
       </div>
+
+      {address ? <HomeDailyBreakdown address={address} /> : null}
 
       <HomeCampaignsSection />
 {/* 

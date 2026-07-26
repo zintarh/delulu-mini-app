@@ -3,6 +3,7 @@
 import { joinCommunityCampaign as joinCommunityCampaignApi } from "@/hooks/use-home-campaigns-feed";
 import { celebrateCampaignJoin } from "@/lib/celebrate";
 import { waitForMilestoneCompletionInGraph } from "@/lib/community/campaign-subgraph";
+import { formatProofError } from "@/lib/community/format-proof-error";
 
 type JoinOnChain = (challengeId: number | bigint) => Promise<`0x${string}` | string>;
 
@@ -68,15 +69,21 @@ export async function submitCommunityProofWithWallet(input: {
       milestoneId: input.milestoneId,
     }),
   });
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(json.message ?? json.reason ?? json.error ?? "Proof not accepted");
+    const raw =
+      json.message ?? json.reason ?? json.error ?? "Proof not accepted";
+    throw new Error(formatProofError(new Error(String(raw))).message);
   }
 
   if (json.requiresOnChain && json.challengeId != null) {
     input.onStepChange?.("wallet-sign");
     const canonicalProofUrl = json.proofUrl ?? input.proofUrls[0];
-    await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
+    try {
+      await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
+    } catch (err) {
+      throw new Error(formatProofError(err).message);
+    }
     input.onStepChange?.("confirming");
     // Subgraph indexing can take up to ~30s and the caller already treats
     // milestone completion as optimistic (updates the UI before the indexer

@@ -5,7 +5,13 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Loader2, RefreshCw, VideoOff, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { getContractErrorDisplay } from "@/lib/contract-error";
+import {
+  formatCameraError,
+  formatProofError,
+  formatUploadError,
+  type ProofErrorDisplay,
+  type ProofErrorKind,
+} from "@/lib/community/format-proof-error";
 import { ProofSuccessCard } from "@/components/proof-success-card";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
@@ -70,6 +76,25 @@ function frameIntervalMsFor(durationSeconds: number, targetFrames: number) {
   return Math.min((durationSeconds * 1000) / targetFrames, 2500);
 }
 
+function retryLabelFor(kind: ProofErrorKind | null, hasFrames: boolean): string {
+  if (kind === "camera") return "Try again";
+  if (kind === "ai" || kind === "validation") return hasFrames ? "Try again" : "Record again";
+  if (kind === "wallet") return "Try again";
+  return "Retry upload";
+}
+
+function displayForCaughtError(err: unknown): ProofErrorDisplay {
+  if (err instanceof DOMException && err.name === "AbortError") {
+    return formatUploadError(err);
+  }
+  const msg = err instanceof Error ? err.message : "";
+  const looksLikeSubmit =
+    /not accept|wallet|transaction|deadline|joined|milestone|campaign|gas|celo|review|verif|already|ended|open yet/i.test(
+      msg,
+    );
+  return looksLikeSubmit ? formatProofError(err) : formatUploadError(err);
+}
+
 export function LiveCameraProofModal({
   open,
   onOpenChange,
@@ -98,7 +123,9 @@ export function LiveCameraProofModal({
   const [captureStep, setCaptureStep] = useState<CaptureStep>("idle");
   const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds);
   const [capturedCount, setCapturedCount] = useState(0);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [errorDisplay, setErrorDisplay] = useState<ProofErrorDisplay | null>(null);
+  const [cameraErrorTitle, setCameraErrorTitle] = useState("Camera access needed");
+  const [cameraErrorMessage, setCameraErrorMessage] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -130,14 +157,15 @@ export function LiveCameraProofModal({
         : STEP_LABEL[proofStep];
 
   const displayError =
-    captureStep === "upload-error"
+    captureStep === "upload-error" || captureStep === "permission-denied"
       ? null
       : submitError && !busy
-        ? getContractErrorDisplay(submitError).message
+        ? formatProofError(submitError)
         : null;
 
   const progressPct = Math.min(100, Math.round((capturedCount / targetFrames) * 100));
   const framesReady = capturedCount >= targetFrames;
+  const hasCapturedFrames = framesRef.current.length >= MIN_FRAMES || capturedCount >= MIN_FRAMES;
 
   const clearTimers = useCallback(() => {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -168,7 +196,9 @@ export function LiveCameraProofModal({
     setCaptureStep("idle");
     setRemainingSeconds(durationSeconds);
     setCapturedCount(0);
-    setUploadError(null);
+    setErrorDisplay(null);
+    setCameraErrorTitle("Camera access needed");
+    setCameraErrorMessage(null);
   }, [clearTimers, releaseStream, abortPendingUploads, durationSeconds]);
 
   useEffect(() => {
@@ -180,7 +210,7 @@ export function LiveCameraProofModal({
     if (!submitError) return;
     if (captureStep !== "submitting" && captureStep !== "uploading") return;
     setCaptureStep("upload-error");
-    setUploadError(getContractErrorDisplay(submitError).message);
+    setErrorDisplay(formatProofError(submitError));
   }, [isSubmitting, submitSuccess, submitError, captureStep]);
 
   useEffect(() => {
@@ -200,17 +230,33 @@ export function LiveCameraProofModal({
       signal && typeof AbortSignal.any === "function"
         ? AbortSignal.any([signal, timeout])
         : timeout;
-    const res = await fetch("/api/ipfs/upload-image", {
-      method: "POST",
-      body: formData,
-      signal: combined,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || "Upload failed");
+    try {
+      const res = await fetch("/api/ipfs/upload-image", {
+        method: "POST",
+        body: formData,
+        signal: combined,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const apiMsg =
+          typeof err.error === "string" && err.error.trim()
+            ? err.error
+            : `Frame ${i + 1} failed to upload`;
+        throw new Error(apiMsg);
+      }
+      const { url } = await res.json();
+      return { i, url: url as string };
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw err;
+      }
+      const formatted = formatUploadError(err);
+      throw new Error(
+        formatted.message.includes("Frame ")
+          ? formatted.message
+          : `Frame ${i + 1}: ${formatted.message}`,
+      );
     }
-    const { url } = await res.json();
-    return { i, url: url as string };
   }, []);
 
   const startFrameUpload = useCallback(
@@ -218,6 +264,8 @@ export function LiveCameraProofModal({
       const controller = new AbortController();
       uploadControllersRef.current.push(controller);
       const task = uploadOneFrame(blob, i, controller.signal);
+      // Keep Promise.all as the user-facing failure surface; ignore here so
+      // a single early reject doesn't surface as an unhandled rejection.
       task.catch(() => {});
       return task;
     },
@@ -283,38 +331,56 @@ export function LiveCameraProofModal({
     clearTimers();
     releaseStream();
     setCaptureStep("uploading");
-    setUploadError(null);
+    setErrorDisplay(null);
     try {
       if (uploadTasksRef.current.length < MIN_FRAMES) {
-        throw new Error(`Need at least ${MIN_FRAMES} frames. Record again.`);
+        throw new Error(
+          `We only captured ${framesRef.current.length} of ${MIN_FRAMES} required frames. Record again and stay in frame the whole time.`,
+        );
       }
       const uploaded = await Promise.all(uploadTasksRef.current);
       uploaded.sort((a, b) => a.i - b.i);
       setCaptureStep("submitting");
       await onSubmit(uploaded.map((f) => f.url));
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        setCaptureStep("upload-error");
-        setUploadError("Upload timed out. Check your connection and try again.");
-        return;
-      }
       setCaptureStep("upload-error");
-      setUploadError(err instanceof Error ? err.message : "Failed to upload. Try again.");
+      setErrorDisplay(displayForCaughtError(err));
     }
   }, [clearTimers, releaseStream, onSubmit]);
 
-  const retryUpload = useCallback(() => {
+  const retryFromError = useCallback(() => {
+    const kind = errorDisplay?.kind ?? null;
+    if (kind === "ai" || kind === "validation" || kind === "camera") {
+      // Content / eligibility / camera issues need a fresh recording session.
+      resetCapture();
+      return;
+    }
+    if (!hasCapturedFrames) {
+      resetCapture();
+      return;
+    }
     abortPendingUploads();
     uploadTasksRef.current = framesRef.current.map((blob, i) => startFrameUpload(blob, i));
     void uploadFrames();
-  }, [startFrameUpload, uploadFrames, abortPendingUploads]);
+  }, [
+    errorDisplay?.kind,
+    hasCapturedFrames,
+    resetCapture,
+    abortPendingUploads,
+    startFrameUpload,
+    uploadFrames,
+  ]);
 
   const startPreview = useCallback(async () => {
     if (streamRef.current) return;
     const requestId = ++previewRequestIdRef.current;
     setCaptureStep("requesting-permission");
-    setUploadError(null);
+    setErrorDisplay(null);
+    setCameraErrorMessage(null);
     try {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        throw Object.assign(new Error("Camera API unavailable"), { name: "NotSupportedError" });
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
         audio: false,
@@ -326,11 +392,20 @@ export function LiveCameraProofModal({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          // Autoplay can fail on some browsers even with muted+playsInline;
+          // keep going — user can still see frames once recording starts.
+          console.warn("[live-camera] video.play failed", playErr);
+        }
       }
       setCaptureStep("previewing");
-    } catch {
+    } catch (err) {
       if (requestId !== previewRequestIdRef.current) return;
+      const formatted = formatCameraError(err);
+      setCameraErrorTitle(formatted.title);
+      setCameraErrorMessage(formatted.message);
       setCaptureStep("permission-denied");
     }
   }, []);
@@ -461,8 +536,10 @@ export function LiveCameraProofModal({
           {captureStep === "permission-denied" ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
               <VideoOff className="h-8 w-8 text-white/70" strokeWidth={1.75} />
+              <p className="text-sm font-bold text-white">{cameraErrorTitle}</p>
               <p className="text-sm text-white/70">
-                Camera access was denied. Enable camera permissions for this site and try again.
+                {cameraErrorMessage ??
+                  "Camera access was blocked. Enable camera permissions for this site and try again."}
               </p>
             </div>
           ) : null}
@@ -517,8 +594,8 @@ export function LiveCameraProofModal({
 
             {displayError && !busy ? (
               <div className="mt-2 rounded-2xl border border-destructive/40 bg-destructive/25 px-3.5 py-2.5 backdrop-blur-md">
-                <p className="text-xs font-bold text-white">Couldn&apos;t submit</p>
-                <p className="mt-0.5 text-[11px] text-white/80">{displayError}</p>
+                <p className="text-xs font-bold text-white">{displayError.title}</p>
+                <p className="mt-0.5 text-[11px] text-white/80">{displayError.message}</p>
               </div>
             ) : null}
           </div>
@@ -535,15 +612,21 @@ export function LiveCameraProofModal({
 
           {captureStep === "upload-error" ? (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/75 px-6 text-center backdrop-blur-[3px]">
-              <p className="text-sm font-bold text-white">Couldn&apos;t upload your recording</p>
-              {uploadError ? <p className="text-xs text-white/70">{uploadError}</p> : null}
+              <p className="text-sm font-bold text-white">
+                {errorDisplay?.title ?? "Couldn't submit proof"}
+              </p>
+              {errorDisplay?.message ? (
+                <p className="max-w-sm text-xs leading-relaxed text-white/70">
+                  {errorDisplay.message}
+                </p>
+              ) : null}
               <button
                 type="button"
-                onClick={retryUpload}
+                onClick={retryFromError}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#1a1a19]"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Retry upload
+                {retryLabelFor(errorDisplay?.kind ?? null, hasCapturedFrames)}
               </button>
             </div>
           ) : null}
@@ -618,10 +701,14 @@ export function LiveCameraProofModal({
                   onClick={() =>
                     captureStep === "permission-denied" ? void startPreview() : beginCapture()
                   }
-                  disabled={busy || captureStep !== "previewing"}
+                  disabled={
+                    busy ||
+                    (captureStep !== "previewing" && captureStep !== "permission-denied")
+                  }
                   className={cn(
                     "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
-                    busy || captureStep !== "previewing"
+                    busy ||
+                      (captureStep !== "previewing" && captureStep !== "permission-denied")
                       ? "cursor-not-allowed bg-white/15 text-white/40"
                       : "bg-delulu-blue text-white hover:opacity-90",
                   )}

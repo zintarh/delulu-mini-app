@@ -50,7 +50,9 @@ function userPrompt(goal: string, milestone?: string, imageCount = 1) {
 
 async function toDataUri(url: string): Promise<string> {
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+  if (!res.ok) {
+    throw new Error("We couldn't load your proof images. Please try uploading again.");
+  }
   const contentType = res.headers.get("content-type") ?? "image/jpeg";
   const buffer = await res.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
@@ -63,7 +65,7 @@ export async function verifyImageProof(input: {
   milestone?: string;
 }): Promise<VerifyImageProofResult> {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error("AI service not configured");
+    throw new Error("Proof review is temporarily unavailable. Please try again later.");
   }
 
   const urls = Array.isArray(input.imageUrl) ? input.imageUrl : [input.imageUrl];

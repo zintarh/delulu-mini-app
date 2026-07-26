@@ -41,6 +41,21 @@ export function getCommunityMarketV1Address(chainId?: number): `0x${string}` {
   return addr as `0x${string}`;
 }
 
+/** Standalone personal stake-or-lose commitment contract — separate from the Delulu proxy and CommunityMarketV1. */
+export const FORFEIT_MARKET_ADDRESSES = {
+  mainnet: process.env.NEXT_PUBLIC_FORFEIT_MARKET_MAINNET || "",
+  sepolia: process.env.NEXT_PUBLIC_FORFEIT_MARKET_SEPOLIA || "",
+} as const;
+
+export function getForfeitMarketAddress(chainId?: number): `0x${string}` {
+  const addr =
+    chainId === CELO_SEPOLIA_ID
+      ? FORFEIT_MARKET_ADDRESSES.sepolia
+      : FORFEIT_MARKET_ADDRESSES.mainnet;
+  if (!addr) throw new Error("ForfeitMarket address not configured. Set NEXT_PUBLIC_FORFEIT_MARKET_MAINNET.");
+  return addr as `0x${string}`;
+}
+
 /** Admin-granted, user-claimed reward vault — separate from the Delulu proxy and its treasury/stakes. */
 export const REWARD_VAULT_ADDRESSES = {
   mainnet: process.env.NEXT_PUBLIC_REWARD_VAULT_MAINNET || "",

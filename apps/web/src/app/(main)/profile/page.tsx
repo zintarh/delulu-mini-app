@@ -1,25 +1,25 @@
 "use client";
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
-import { useGraphUserDelulus } from "@/hooks/graph";
 import { formatAddress } from "@/lib/utils";
-import { Copy, Check, Plus, Camera, Loader2 } from "lucide-react";
+import { Copy, Check, Camera, Loader2 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { cn } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
-import { ProfileDeluluGrid } from "@/components/profile/profile-delulu-grid";
+import { ProfileEndedCampaigns } from "@/components/profile/profile-ended-campaigns";
+import { ProfileForfeitSection } from "@/components/profile/profile-forfeit-section";
 import { MainPage } from "@/components/main-app-header";
 
 type TabType = "milestones" | "active" | "ended";
 
 const PROFILE_TABS: { id: TabType; label: string }[] = [
   { id: "milestones", label: "Milestones" },
-  { id: "active", label: "Active" },
+  { id: "active", label: "Forfeit" },
   { id: "ended", label: "Ended" },
 ];
 
@@ -242,37 +242,8 @@ function ProfileHeader({
 }
 
 function ProfileContent({ activeTab, address }: { activeTab: TabType; address: string | null | undefined }) {
-  const {
-    delulus: ongoingDelulus,
-    isLoading: isLoadingOngoing,
-  } = useGraphUserDelulus("ongoing");
-
-  const {
-    delulus,
-    isLoading: isLoadingDelulus,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useGraphUserDelulus("past");
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const el = scrollContainerRef.current;
-      if (!el) return;
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      if (distanceFromBottom < 200 && hasNextPage && !isFetchingNextPage && !isLoadingDelulus) {
-        fetchNextPage();
-      }
-    };
-    const el = scrollContainerRef.current;
-    el?.addEventListener("scroll", handleScroll);
-    return () => el?.removeEventListener("scroll", handleScroll);
-  }, [hasNextPage, isFetchingNextPage, isLoadingDelulus, fetchNextPage]);
-
   return (
-    <div ref={scrollContainerRef}>
+    <div>
       {activeTab === "milestones" && (
         <div className="pb-24 lg:pb-8">
           {address ? (
@@ -289,59 +260,28 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
       )}
 
       {activeTab === "active" && (
-        <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8 space-y-6">
-          <ProfileDeluluGrid
-            delulus={ongoingDelulus}
-            isLoading={isLoadingOngoing}
-            emptyState={
-              <div className="flex flex-col items-center py-20 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                  <Plus className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <p
-                  className="mb-1 text-lg font-black text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                >
-                  No active delulu
-                </p>
-                <p
-                  className="text-sm text-muted-foreground"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  Your active delulus will appear here.
-                </p>
-              </div>
-            }
-          />
+        <div className="mx-auto max-w-xl px-4 pb-24 pt-6 lg:pb-8">
+          {address ? (
+            <ProfileForfeitSection address={address} />
+          ) : (
+            <div className="flex flex-col items-center py-20 text-center">
+              <p className="text-sm text-muted-foreground">
+                Connect your wallet to create a forfeit.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === "ended" && (
         <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8">
-          <ProfileDeluluGrid
-            delulus={delulus}
-            isLoading={isLoadingDelulus}
-            isFetchingMore={isFetchingNextPage}
-            emptyState={
-              <div className="flex flex-col items-center py-20 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                  <Plus className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <p
-                  className="mb-1 text-lg font-black text-foreground"
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                >
-                  No ended delulu yet
-                </p>
-                <p
-                  className="text-sm text-muted-foreground"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  Ended and resolved delulu will appear here.
-                </p>
-              </div>
-            }
-          />
+          {address ? (
+            <ProfileEndedCampaigns address={address} />
+          ) : (
+            <div className="flex flex-col items-center py-20 text-center">
+              <p className="text-sm text-muted-foreground">Connect your wallet to see ended campaigns.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

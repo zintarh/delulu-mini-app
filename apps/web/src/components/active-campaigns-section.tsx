@@ -10,6 +10,7 @@ import {
   useJoinedCampaignDashboard,
 } from "@/hooks/use-user-campaign-milestones";
 import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
+import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
 import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility";
@@ -75,7 +76,7 @@ export function ActiveCampaignsSection({
       setProofSuccess(true);
       invalidate();
     } catch (err) {
-      setProofError(err instanceof Error ? err.message : "Proof failed");
+      setProofError(proofErrorMessage(err));
       setProofStep("idle");
     } finally {
       setProofBusy(false);

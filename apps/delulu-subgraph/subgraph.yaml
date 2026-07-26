@@ -128,6 +128,41 @@ dataSources:
       file: ./src/community-market-v1.ts
 
   - kind: ethereum
+    name: ForfeitMarket
+    network: celo
+    source:
+      abi: ForfeitMarket
+      # TODO: replace with the real deployed proxy address + its deployment block once
+      # ForfeitMarket.sol is deployed (see apps/contracts/contracts/ForfeitMarket.sol).
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 70315658
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ForfeitCommitment
+        - ForfeitPeriodResolution
+        - User
+      abis:
+        - name: ForfeitMarket
+          file: ./abis/ForfeitMarket.json
+      eventHandlers:
+        - event: CommitmentCreated(indexed uint256,indexed address,address,uint256,uint8,address,uint8,uint64,uint32,uint64,address)
+          handler: handleFMCommitmentCreated
+        - event: VerifierInviteAccepted(indexed uint256,indexed address)
+          handler: handleFMVerifierInviteAccepted
+        - event: ProofSubmitted(indexed uint256,indexed uint32,indexed address,string)
+          handler: handleFMProofSubmitted
+        - event: PeriodResolvedSuccess(indexed uint256,indexed uint32,indexed address,bool)
+          handler: handleFMPeriodResolvedSuccess
+        - event: PeriodResolvedForfeited(indexed uint256,indexed uint32,indexed address,uint256,uint256,uint8,address,uint256)
+          handler: handleFMPeriodResolvedForfeited
+        - event: CommitmentCancelled(indexed uint256,uint256)
+          handler: handleFMCommitmentCancelled
+      file: ./src/forfeit-market.ts
+
+  - kind: ethereum
     name: ERC1967Proxy
     network: celo
     source:

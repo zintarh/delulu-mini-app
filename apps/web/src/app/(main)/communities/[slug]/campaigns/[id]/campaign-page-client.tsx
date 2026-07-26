@@ -14,6 +14,7 @@ import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-s
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
+import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { MainPage } from "@/components/main-app-header";
@@ -273,7 +274,7 @@ export function CommunityCampaignPageClient() {
       // optimistic state above keeps the milestone showing as complete.
       void Promise.all([loadLeaderboard(), loadCampaign()]);
     } catch (err) {
-      setProofError(err instanceof Error ? err.message : "Something went wrong. Try again.");
+      setProofError(proofErrorMessage(err));
       setProofStep("idle");
     } finally {
       setProofBusy(false);

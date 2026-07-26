@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Camera, CheckCircle2, Loader2, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { getContractErrorDisplay } from "@/lib/contract-error";
+import { formatProofError, formatUploadError } from "@/lib/community/format-proof-error";
 import { ProofSuccessCard, fireConfetti } from "@/components/proof-success-card";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
@@ -78,8 +78,11 @@ export function ProofModal({
   const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
   const busy = isSubmitting || isUploading;
   const activeStep: ProofStep = isUploading ? "uploading" : proofStep;
-  const displayError =
-    uploadError ?? (submitError ? getContractErrorDisplay(submitError).message : null);
+  const submitErrorDisplay = submitError && !uploadError ? formatProofError(submitError) : null;
+  const displayError = uploadError ?? submitErrorDisplay?.message ?? null;
+  const displayErrorTitle = uploadError
+    ? "Couldn't upload"
+    : (submitErrorDisplay?.title ?? "Couldn't submit");
 
   useEffect(() => {
     if (submitSuccess && !confettiFired.current) {
@@ -160,9 +163,7 @@ export function ProofModal({
       const { url } = await res.json();
       onSubmit(url);
     } catch (err) {
-      setUploadError(
-        err instanceof Error ? err.message : "Failed to upload. Try again.",
-      );
+      setUploadError(formatUploadError(err).message);
     } finally {
       setIsUploading(false);
     }
@@ -240,7 +241,7 @@ export function ProofModal({
           {/* Error banner */}
           {displayError && !busy ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3">
-              <p className="text-sm font-bold text-destructive">Couldn&apos;t submit</p>
+              <p className="text-sm font-bold text-destructive">{displayErrorTitle}</p>
               <p className="mt-0.5 text-xs text-destructive/80">{displayError}</p>
               {imagePreview ? (
                 <button
