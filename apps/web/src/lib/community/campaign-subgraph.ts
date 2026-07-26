@@ -181,16 +181,35 @@ const JOINED_PARTICIPANTS_QUERY = `
   }
 `;
 
-const MONTHLY_CAMPAIGN_PARTICIPANTS_QUERY = `
-  query MonthlyCampaignParticipants($since: BigInt!) {
-    communityCampaignParticipants(
-      where: { joinedAt_gte: $since }
-      first: 1000
-      orderBy: pointsTotal
-      orderDirection: desc
+const MONTHLY_CAMPAIGN_COMPLETIONS_QUERY = `
+  query MonthlyCampaignCompletions($since: BigInt!, $first: Int!, $skip: Int!) {
+    communityCampaignMilestoneCompletions(
+      where: { createdAt_gte: $since }
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: asc
     ) {
       participantAddress
-      pointsTotal
+      pointsAwarded
+      participant {
+        username
+      }
+    }
+  }
+`;
+
+const MONTHLY_COMMUNITY_PROOFS_QUERY = `
+  query MonthlyCommunityProofs($since: BigInt!, $first: Int!, $skip: Int!) {
+    communityProofs(
+      where: { createdAt_gte: $since }
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      participantAddress
+      pointsAwarded
       participant {
         username
       }
@@ -204,31 +223,67 @@ export type MonthlyCampaignPointsRow = {
   username: string | null;
 };
 
+type ProofPointRow = {
+  participantAddress: string;
+  pointsAwarded: string;
+  participant: { username: string | null } | null;
+};
+
+async function fetchAllProofRows(
+  query: string,
+  sinceUnixSeconds: number,
+): Promise<ProofPointRow[]> {
+  const pageSize = 1000;
+  const all: ProofPointRow[] = [];
+  for (let skip = 0; skip < 10_000; skip += pageSize) {
+    const data = await fetchSubgraph<{
+      communityCampaignMilestoneCompletions?: ProofPointRow[];
+      communityProofs?: ProofPointRow[];
+    }>(query, {
+      since: sinceUnixSeconds.toString(),
+      first: pageSize,
+      skip,
+    });
+    const batch =
+      data.communityCampaignMilestoneCompletions ?? data.communityProofs ?? [];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
+
 /**
- * Every on-chain community-campaign participation joined since `sinceUnixSeconds`,
- * summed per wallet (a wallet may have joined more than one campaign this month).
+ * Campaign points earned from proofs submitted at/after `sinceUnixSeconds`.
+ * Sums pointsAwarded from milestone completions (and legacy communityProofs),
+ * not lifetime pointsTotal / join date — so a season reset can drop old campaigns.
  */
 export async function fetchMonthlyCampaignPointsFromGraph(
   sinceUnixSeconds: number,
 ): Promise<MonthlyCampaignPointsRow[]> {
   try {
-    const data = await fetchSubgraph<{
-      communityCampaignParticipants: Array<{
-        participantAddress: string;
-        pointsTotal: string;
-        participant: { username: string | null } | null;
-      }>;
-    }>(MONTHLY_CAMPAIGN_PARTICIPANTS_QUERY, { since: sinceUnixSeconds.toString() });
+    const [completions, legacyProofs] = await Promise.all([
+      fetchAllProofRows(MONTHLY_CAMPAIGN_COMPLETIONS_QUERY, sinceUnixSeconds),
+      fetchAllProofRows(MONTHLY_COMMUNITY_PROOFS_QUERY, sinceUnixSeconds).catch(
+        () => [] as ProofPointRow[],
+      ),
+    ]);
 
     const byWallet = new Map<string, { points: number; username: string | null }>();
-    for (const row of data.communityCampaignParticipants ?? []) {
+    for (const row of [...completions, ...legacyProofs]) {
       const wallet = row.participantAddress.toLowerCase();
+      const awarded = Number(row.pointsAwarded ?? "0");
+      if (!(awarded > 0)) continue;
       const existing = byWallet.get(wallet);
-      const points = Number(row.pointsTotal ?? "0");
       if (existing) {
-        existing.points += points;
+        existing.points += awarded;
+        if (!existing.username && row.participant?.username) {
+          existing.username = row.participant.username;
+        }
       } else {
-        byWallet.set(wallet, { points, username: row.participant?.username ?? null });
+        byWallet.set(wallet, {
+          points: awarded,
+          username: row.participant?.username ?? null,
+        });
       }
     }
 

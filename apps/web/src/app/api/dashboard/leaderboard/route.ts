@@ -4,16 +4,11 @@ import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { fetchMonthlyCampaignPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
+import { monthlyCampaignLeaderboardSinceUnixSeconds } from "@/lib/dashboard/campaign-constants";
 
 export const dynamic = "force-dynamic";
 
 const TOP_N = 20;
-
-function startOfCurrentMonthUnixSeconds(): number {
-  const now = new Date();
-  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0);
-  return Math.floor(start / 1000);
-}
 
 async function requirePlatformAdminSession() {
   const session = await readAdminSession();
@@ -28,7 +23,7 @@ async function requirePlatformAdminSession() {
 
 /**
  * GET /api/dashboard/leaderboard
- * Top 20 users by campaign points this month (platform admin).
+ * Top 20 users by campaign proof points in the current monthly window.
  */
 export async function GET() {
   const { error: authError } = await requirePlatformAdminSession();
@@ -37,52 +32,10 @@ export async function GET() {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
-  const sinceUnixSeconds = startOfCurrentMonthUnixSeconds();
-  const sinceIso = new Date(sinceUnixSeconds * 1000).toISOString();
+  const sinceUnixSeconds = monthlyCampaignLeaderboardSinceUnixSeconds();
+  const onChainRows = await fetchMonthlyCampaignPointsFromGraph(sinceUnixSeconds);
 
-  const [onChainRows, offChainResult] = await Promise.all([
-    fetchMonthlyCampaignPointsFromGraph(sinceUnixSeconds),
-    admin
-      .from("campaign_participants")
-      .select("wallet_address, points_total, community_campaigns(on_chain_challenge_id)")
-      .eq("status", "joined")
-      .gte("joined_at", sinceIso),
-  ]);
-
-  const byWallet = new Map<string, { points_total: number; username: string | null }>();
-
-  for (const row of onChainRows) {
-    byWallet.set(row.wallet_address, {
-      points_total: row.points_total,
-      username: row.username,
-    });
-  }
-
-  for (const row of offChainResult.data ?? []) {
-    const campaignRel = row.community_campaigns as
-      | { on_chain_challenge_id: number | null }
-      | { on_chain_challenge_id: number | null }[]
-      | null;
-    const challengeId = Array.isArray(campaignRel)
-      ? campaignRel[0]?.on_chain_challenge_id
-      : campaignRel?.on_chain_challenge_id;
-    if (challengeId != null) continue;
-
-    const wallet = row.wallet_address.toLowerCase();
-    const existing = byWallet.get(wallet);
-    if (existing) {
-      existing.points_total += row.points_total ?? 0;
-    } else {
-      byWallet.set(wallet, { points_total: row.points_total ?? 0, username: null });
-    }
-  }
-
-  const combined = Array.from(byWallet.entries())
-    .map(([wallet_address, v]) => ({
-      wallet_address,
-      points_total: v.points_total,
-      username: v.username,
-    }))
+  const combined = onChainRows
     .filter((row) => row.points_total > 0)
     .sort((a, b) => b.points_total - a.points_total);
 
@@ -98,5 +51,6 @@ export async function GET() {
     leaderboard: top,
     totalCount: enriched.length,
     period: "month",
+    since: new Date(sinceUnixSeconds * 1000).toISOString(),
   });
 }
