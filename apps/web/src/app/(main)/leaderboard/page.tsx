@@ -337,10 +337,10 @@ function LeaderboardStatsRow({
             : myPoints != null
               ? activeTab === "monthly"
                 ? `${myPoints.toLocaleString()} campaign points this month`
-                : `${myPoints.toLocaleString()} dreamer points`
+                : `${myPoints.toLocaleString()} total points`
               : activeTab === "monthly"
                 ? "Join a campaign this month to earn points"
-                : "Earn points by verifying milestones and receiving tips on your delulus"
+                : "Earn points from delulu milestones, tips, and community campaigns"
         }
         footer={
           !authenticated ? (
@@ -365,7 +365,7 @@ function LeaderboardStatsRow({
         detail={
           activeTab === "monthly"
             ? "Wallets earning campaign points this month"
-            : "Wallets ranked by total points"
+            : "Wallets ranked by all-time app points"
         }
         footer={
           activeTab === "monthly" ? (
@@ -873,7 +873,7 @@ function LeaderboardContent({
         <div className="mb-6 rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6 lg:hidden">
           <h2 className="text-sm font-bold text-foreground">How to climb</h2>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Verify milestones on your delulus to earn dreamer points.
+            Verify milestones, get tipped, and complete community campaign proofs — all count toward Global.
           </p>
           <button
             type="button"

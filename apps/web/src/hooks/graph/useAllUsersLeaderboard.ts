@@ -1,47 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
-import { weiToNumber } from "@/lib/graph/transformers";
+import { useEffect, useMemo, useState } from "react";
 
 const PAGE_SIZE = 10;
-
-// Keep this query minimal — only fields confirmed available on the User entity.
-// Nested delulus just fetch id so we can get a count without ordering by
-// fields that may not be indexed in nested context.
-const ALL_USERS_QUERY = gql`
-  query AllUsersLeaderboard($first: Int!, $skip: Int!) {
-    users(
-      first: $first
-      skip: $skip
-      orderBy: deluluPoints
-      orderDirection: desc
-    ) {
-      id
-      username
-      deluluPoints
-      totalStaked
-      delulus(first: 100) {
-        id
-      }
-      claims(first: 200) {
-        id
-        amount
-      }
-    }
-  }
-`;
-
-// Fetches up to 1000 users with points for count + rank calculation.
-const ALL_USERS_RANK_QUERY = gql`
-  query AllUsersRank {
-    users(first: 1000, orderBy: deluluPoints, orderDirection: desc) {
-      id
-      deluluPoints
-    }
-  }
-`;
 
 export interface UserLeaderboardEntry {
   rank: number;
@@ -53,78 +14,118 @@ export interface UserLeaderboardEntry {
   deluluCount: number;
 }
 
+type ApiRow = {
+  rank: number;
+  wallet_address: string;
+  points_total: number;
+  username: string | null;
+};
+
+type ApiResponse = {
+  leaderboard: ApiRow[];
+  hasMore: boolean;
+  totalCount: number;
+  myEntry: { rank: number; points_total: number; username: string | null } | null;
+  error?: string;
+};
+
+/**
+ * Global leaderboard: personal delulu points + all community campaign points
+ * (same total as home useUserTotalPoints).
+ */
 export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string) {
-  const { data, loading, error, refetch } = useQuery<{ users: any[] }>(
-    ALL_USERS_QUERY,
-    {
-      variables: { first: PAGE_SIZE, skip: page * PAGE_SIZE },
-      fetchPolicy: "cache-first",
-      nextFetchPolicy: "cache-first",
-    }
+  const [entries, setEntries] = useState<UserLeaderboardEntry[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState<number | string | null>(null);
+  const [myRankEntry, setMyRankEntry] = useState<{ rank: number; points: number } | null>(
+    null,
   );
+  const [myApiUsername, setMyApiUsername] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRankLoading, setIsRankLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const { data: rankData, loading: rankLoading, error: rankError } = useQuery<{
-    users: { id: string; deluluPoints: string }[];
-  }>(ALL_USERS_RANK_QUERY, {
-    fetchPolicy: "cache-first",
-    nextFetchPolicy: "cache-first",
-  });
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setIsRankLoading(true);
+    setError(null);
 
-  if (error) {
-    console.error("[AllUsersLeaderboard] query error:", error.message);
-  }
-  if (rankError) {
-    console.error("[AllUsersRank] query error:", rankError.message);
-  }
+    void (async () => {
+      try {
+        const qs = new URLSearchParams({ page: String(page) });
+        if (currentUserAddress) qs.set("address", currentUserAddress);
+        const res = await fetch(`/api/leaderboard/global?${qs}`);
+        const json = (await res.json()) as ApiResponse;
+        if (cancelled) return;
+        if (!res.ok) throw new Error(json.error ?? "Failed to load leaderboard");
 
-  const entries: UserLeaderboardEntry[] = useMemo(() => {
-    if (!data?.users) return [];
-    return data.users.map((u: any, i: number): UserLeaderboardEntry => {
-      const delulus: any[] = u.delulus ?? [];
-      const claims: any[] = u.claims ?? [];
-      return {
-        rank: page * PAGE_SIZE + i + 1,
-        address: u.id,
-        username: u.username ?? null,
-        points: Number(u.deluluPoints ?? "0"),
-        totalStaked: weiToNumber(u.totalStaked),
-        totalClaimed: claims.reduce((sum, c) => sum + weiToNumber(c.amount), 0),
-        deluluCount: delulus.length,
-      };
-    });
-  }, [data?.users, page]);
+        setEntries(
+          (json.leaderboard ?? []).map((row) => ({
+            rank: row.rank,
+            address: row.wallet_address,
+            username: row.username,
+            points: row.points_total,
+            totalStaked: 0,
+            totalClaimed: 0,
+            deluluCount: 0,
+          })),
+        );
+        setHasMore(Boolean(json.hasMore));
+        setTotalCount(json.totalCount ?? null);
+        setMyRankEntry(
+          json.myEntry
+            ? { rank: json.myEntry.rank, points: json.myEntry.points_total }
+            : null,
+        );
+        setMyApiUsername(json.myEntry?.username ?? null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error("Failed to load leaderboard"));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsRankLoading(false);
+        }
+      }
+    })();
 
-  const allRankedUsers = rankData?.users ?? [];
-  const rawTotal = allRankedUsers.length;
-  const totalCount = rawTotal === 1000 ? "1000+" : rawTotal || null;
-  const hasNextPage = (data?.users.length ?? 0) >= PAGE_SIZE;
+    return () => {
+      cancelled = true;
+    };
+  }, [page, currentUserAddress, reloadToken]);
 
-  // Find the current user's rank and points from the full sorted list.
-  const myRankEntry = useMemo(() => {
-    if (!currentUserAddress || allRankedUsers.length === 0) return null;
-    const lc = currentUserAddress.toLowerCase();
-    const idx = allRankedUsers.findIndex((u) => u.id.toLowerCase() === lc);
-    if (idx === -1) return null;
-    return { rank: idx + 1, points: Number(allRankedUsers[idx].deluluPoints ?? "0") };
-  }, [allRankedUsers, currentUserAddress]);
-
-  // Find current user's full entry from the current page (for username/UB).
   const myPageEntry = useMemo(() => {
     if (!currentUserAddress) return null;
     const lc = currentUserAddress.toLowerCase();
-    return entries.find((e) => e.address.toLowerCase() === lc) ?? null;
-  }, [entries, currentUserAddress]);
+    const onPage = entries.find((e) => e.address.toLowerCase() === lc);
+    if (onPage) return onPage;
+    if (!myRankEntry) return null;
+    return {
+      rank: myRankEntry.rank,
+      address: currentUserAddress,
+      username: myApiUsername,
+      points: myRankEntry.points,
+      totalStaked: 0,
+      totalClaimed: 0,
+      deluluCount: 0,
+    } satisfies UserLeaderboardEntry;
+  }, [entries, currentUserAddress, myRankEntry, myApiUsername]);
 
   return {
     entries,
-    isLoading: loading,
-    isRankLoading: rankLoading,
+    isLoading,
+    isRankLoading,
     totalCount,
-    hasNextPage,
+    hasNextPage: hasMore,
     hasPrevPage: page > 0,
-    error: error ?? null,
-    refetch,
+    error,
+    refetch: () => setReloadToken((t) => t + 1),
     myRankEntry,
     myPageEntry,
   };
 }
+
+export { PAGE_SIZE as ALL_USERS_LEADERBOARD_PAGE_SIZE };

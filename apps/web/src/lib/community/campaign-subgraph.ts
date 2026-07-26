@@ -743,3 +743,125 @@ export async function waitForMilestoneCompletionInGraph(
   }
   return false;
 }
+
+export type GlobalAppPointsRow = {
+  wallet_address: string;
+  points_total: number;
+  username: string | null;
+  delulu_points: number;
+  campaign_points: number;
+};
+
+const GLOBAL_USERS_POINTS_QUERY = `
+  query GlobalUsersPoints($first: Int!, $skip: Int!) {
+    users(
+      first: $first
+      skip: $skip
+      orderBy: deluluPoints
+      orderDirection: desc
+      where: { deluluPoints_gt: "0" }
+    ) {
+      id
+      username
+      deluluPoints
+    }
+  }
+`;
+
+const GLOBAL_CAMPAIGN_POINTS_QUERY = `
+  query GlobalCampaignPoints($first: Int!, $skip: Int!) {
+    communityCampaignParticipants(
+      first: $first
+      skip: $skip
+      orderBy: pointsTotal
+      orderDirection: desc
+      where: { pointsTotal_gt: "0" }
+    ) {
+      participantAddress
+      pointsTotal
+      participant {
+        username
+      }
+    }
+  }
+`;
+
+/**
+ * All-time app points per wallet = personal deluluPoints + Σ campaign pointsTotal.
+ * Matches useUserTotalPoints on the home dashboard.
+ */
+export async function fetchGlobalAppPointsFromGraph(): Promise<GlobalAppPointsRow[]> {
+  const pageSize = 1000;
+  const byWallet = new Map<
+    string,
+    { delulu: number; campaign: number; username: string | null }
+  >();
+
+  try {
+    for (let skip = 0; skip < 10_000; skip += pageSize) {
+      const data = await fetchSubgraph<{
+        users: Array<{ id: string; username: string | null; deluluPoints: string }>;
+      }>(GLOBAL_USERS_POINTS_QUERY, { first: pageSize, skip });
+      const batch = data.users ?? [];
+      for (const u of batch) {
+        const wallet = u.id.toLowerCase();
+        const delulu = Number(u.deluluPoints ?? "0");
+        const existing = byWallet.get(wallet);
+        if (existing) {
+          existing.delulu = delulu;
+          if (!existing.username && u.username) existing.username = u.username;
+        } else {
+          byWallet.set(wallet, {
+            delulu,
+            campaign: 0,
+            username: u.username ?? null,
+          });
+        }
+      }
+      if (batch.length < pageSize) break;
+    }
+
+    for (let skip = 0; skip < 10_000; skip += pageSize) {
+      const data = await fetchSubgraph<{
+        communityCampaignParticipants: Array<{
+          participantAddress: string;
+          pointsTotal: string;
+          participant: { username: string | null } | null;
+        }>;
+      }>(GLOBAL_CAMPAIGN_POINTS_QUERY, { first: pageSize, skip });
+      const batch = data.communityCampaignParticipants ?? [];
+      for (const row of batch) {
+        const wallet = row.participantAddress.toLowerCase();
+        const pts = Number(row.pointsTotal ?? "0");
+        if (!(pts > 0)) continue;
+        const existing = byWallet.get(wallet);
+        if (existing) {
+          existing.campaign += pts;
+          if (!existing.username && row.participant?.username) {
+            existing.username = row.participant.username;
+          }
+        } else {
+          byWallet.set(wallet, {
+            delulu: 0,
+            campaign: pts,
+            username: row.participant?.username ?? null,
+          });
+        }
+      }
+      if (batch.length < pageSize) break;
+    }
+  } catch {
+    return [];
+  }
+
+  return Array.from(byWallet.entries())
+    .map(([wallet_address, v]) => ({
+      wallet_address,
+      points_total: v.delulu + v.campaign,
+      username: v.username,
+      delulu_points: v.delulu,
+      campaign_points: v.campaign,
+    }))
+    .filter((r) => r.points_total > 0)
+    .sort((a, b) => b.points_total - a.points_total);
+}
