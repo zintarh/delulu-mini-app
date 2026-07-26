@@ -326,6 +326,7 @@ export function CampaignDetailClient({
     "idle" | "building" | "signing" | "confirming" | "done" | "error"
   >("idle");
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishAck, setPublishAck] = useState(false);
   const [submitPending, setSubmitPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -574,14 +575,20 @@ export function CampaignDetailClient({
           }
         }}
         title="End campaign"
-        description={`This will permanently close "${campaign.title}" on-chain. Participants will have a window to reclaim their join stake before you publish winner payouts separately.`}
+        description={
+          campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0
+            ? `This will permanently close "${campaign.title}" on-chain. Participants can reclaim their join stake afterward (minus any missed-milestone forfeit). Publish winner payouts separately when you're ready.`
+            : `This will permanently close "${campaign.title}" on-chain. Publish winner payouts separately when you're ready.`
+        }
       >
         <div className="space-y-4 pt-2 text-sm">
           {endStep === "done" ? (
             <p className="font-semibold text-emerald-700">
               {endResynced
                 ? "This campaign had already ended on-chain from an earlier attempt — dashboard status is now synced, no new transaction was needed."
-                : "Campaign ended. Participants can now reclaim their stake — publish payouts whenever you're ready from the Settings tab."}
+                : campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0
+                  ? "Campaign ended. Participants can reclaim their stake from Rewards — publish payouts whenever you're ready from the Settings tab."
+                  : "Campaign ended. Publish payouts whenever you're ready from the Settings tab."}
             </p>
           ) : null}
           {endError ? <p className="text-xs text-destructive">{endError}</p> : null}
@@ -608,7 +615,7 @@ export function CampaignDetailClient({
           }
         }}
         title="Publish winner payouts"
-        description={`This locks in the current prize pool for "${campaign.title}" (including any stake forfeited by participants who missed milestones) and publishes it on-chain so winners can claim. This can't be undone.`}
+        description={`This publishes the current claimable G$ prize for "${campaign.title}" so winners can claim. Rebuild uses live on-chain pool + subgraph points. Later G$ forfeits will not change shares unless you replace the root before the first claim.`}
       >
         <div className="space-y-4 pt-2 text-sm">
           {publishStep === "done" ? (
@@ -618,28 +625,50 @@ export function CampaignDetailClient({
           ) : null}
           {publishError ? <p className="text-xs text-destructive">{publishError}</p> : null}
           {publishStep !== "done" ? (
-            <DashboardPrimaryButton
-              className="w-full"
-              disabled={
-                isPublishingRoot ||
+            <>
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={publishAck}
+                  onChange={(e) => setPublishAck(e.target.checked)}
+                  disabled={
+                    isPublishingRoot ||
+                    publishStep === "building" ||
+                    publishStep === "signing" ||
+                    publishStep === "confirming"
+                  }
+                />
+                <span>
+                  I understand this locks winner shares from the pool as it stands now. If this
+                  was a paid campaign, I should wait for stake reclaims first so G$ forfeits can
+                  grow the prize.
+                </span>
+              </label>
+              <DashboardPrimaryButton
+                className="w-full"
+                disabled={
+                  !publishAck ||
+                  isPublishingRoot ||
+                  publishStep === "building" ||
+                  publishStep === "signing" ||
+                  publishStep === "confirming"
+                }
+                onClick={() => void handlePublishPayouts()}
+              >
+                {isPublishingRoot ||
                 publishStep === "building" ||
                 publishStep === "signing" ||
-                publishStep === "confirming"
-              }
-              onClick={() => void handlePublishPayouts()}
-            >
-              {isPublishingRoot ||
-              publishStep === "building" ||
-              publishStep === "signing" ||
-              publishStep === "confirming" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
-              {publishStep === "building"
-                ? "Building payout snapshot…"
-                : publishStep === "confirming"
-                  ? "Confirming…"
-                  : "Publish payouts"}
-            </DashboardPrimaryButton>
+                publishStep === "confirming" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                {publishStep === "building"
+                  ? "Building payout snapshot…"
+                  : publishStep === "confirming"
+                    ? "Confirming…"
+                    : "Publish payouts"}
+              </DashboardPrimaryButton>
+            </>
           ) : null}
         </div>
       </DashboardModal>
@@ -710,9 +739,9 @@ export function CampaignDetailClient({
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Publish winner payouts</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Campaign has ended. Consider waiting to give participants a window to reclaim
-                    their join stake first — any amount forfeited for missed milestones grows the
-                    pool winners split. Publishing locks in the pool at whatever it is right now.
+                    Campaign has ended. If this campaign had paid join, wait for participants to
+                    reclaim stakes first — forfeited G$ stake can grow the claimable prize.
+                    Publishing sets the merkle root from the pool as it stands right now.
                   </p>
                 </div>
                 <button
@@ -721,6 +750,7 @@ export function CampaignDetailClient({
                     setPublishModalOpen(true);
                     setPublishStep("idle");
                     setPublishError(null);
+                    setPublishAck(false);
                   }}
                   className="flex items-center gap-1.5 rounded-lg border border-delulu-blue/30 bg-delulu-blue-light px-3 py-1.5 text-xs font-semibold text-delulu-blue hover:opacity-90 transition-colors"
                 >

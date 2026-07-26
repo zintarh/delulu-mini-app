@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import { getEffectiveDisplayEndsAt, isCampaignExpired } from "@/lib/community/campaign-types";
 import {
   fetchBatchCampaignStats,
   fetchJoinedChallengeIdsFromGraph,
@@ -22,9 +22,18 @@ const MAX_CANDIDATES = 50;
 // promoting a nearly-over campaign discourages new joins.
 const ENDING_SOON_DAYS = 3;
 
-function daysLeft(displayEndsAt: string | null): number {
-  if (!displayEndsAt) return Infinity;
-  return Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000);
+function daysLeft(row: { displayEndsAt: string | null; _createdAt?: string; durationDays?: number }): number {
+  const effective =
+    row.displayEndsAt ??
+    (row._createdAt && row.durationDays
+      ? getEffectiveDisplayEndsAt({
+          display_ends_at: null,
+          created_at: row._createdAt,
+          duration_days: row.durationDays,
+        })
+      : null);
+  if (!effective) return Infinity;
+  return Math.ceil((new Date(effective).getTime() - Date.now()) / 86400000);
 }
 
 export async function GET(request: NextRequest) {
@@ -76,7 +85,7 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const activeRows = (rows ?? []).filter((row) =>
-    endedFilter ? isCampaignEndedByDate(row.display_ends_at) : !isCampaignEndedByDate(row.display_ends_at),
+    endedFilter ? isCampaignExpired(row) : !isCampaignExpired(row),
   );
 
   const hasMore = sort === "recent" && activeRows.length > limit;
@@ -175,7 +184,8 @@ export async function GET(request: NextRequest) {
       canJoin: joinedSet.has(c.id)
         ? false
         : isValidOnChainChallengeId(c.on_chain_challenge_id) &&
-          (milestoneCounts[index] ?? 0) > 0,
+          (milestoneCounts[index] ?? 0) > 0 &&
+          !isCampaignExpired(c),
       isJoined: joinedSet.has(c.id),
       isFreeToJoin: c.is_free_to_join !== false,
       joinToken: c.join_token ?? "G$",
@@ -201,10 +211,10 @@ export async function GET(request: NextRequest) {
 
         // Explicitly browsing "ending soon" — soonest-to-end first is the
         // whole point, so skip the usual participant-count ranking.
-        if (endingSoonFilter) return daysLeft(a.displayEndsAt) - daysLeft(b.displayEndsAt);
+        if (endingSoonFilter) return daysLeft(a) - daysLeft(b);
 
-        const aEndingSoon = daysLeft(a.displayEndsAt) <= ENDING_SOON_DAYS;
-        const bEndingSoon = daysLeft(b.displayEndsAt) <= ENDING_SOON_DAYS;
+        const aEndingSoon = daysLeft(a) <= ENDING_SOON_DAYS;
+        const bEndingSoon = daysLeft(b) <= ENDING_SOON_DAYS;
         if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
         return b.participantCount - a.participantCount || (b._createdAt > a._createdAt ? 1 : -1);
       })
@@ -230,6 +240,7 @@ export async function GET(request: NextRequest) {
 
   const campaigns = result.map(({ _createdAt, ...rest }) => ({
     ...rest,
+    createdAt: _createdAt,
     participantAvatars: avatarsByCampaign.get(rest.id) ?? [],
   }));
 

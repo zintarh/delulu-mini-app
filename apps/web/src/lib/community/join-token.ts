@@ -1,4 +1,4 @@
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { USDT_ADDRESSES } from "@/lib/constant";
 
 /** On-chain join token: zero address means the contract's default currency (G$). */
 export function resolveJoinTokenAddress(
@@ -8,10 +8,14 @@ export function resolveJoinTokenAddress(
   if (!symbol || symbol === "g$" || symbol === "gdollar" || symbol === "gooddollar") {
     return "0x0000000000000000000000000000000000000000";
   }
+  if (symbol === "usdt" || symbol === "tether") {
+    return USDT_ADDRESSES.mainnet;
+  }
   if (symbol.startsWith("0x") && symbol.length === 42) {
     return symbol as `0x${string}`;
   }
-  return GOODDOLLAR_ADDRESSES.mainnet;
+  // Unknown label — default to G$ (contract zero address). Do not silently map to a random ERC-20.
+  return "0x0000000000000000000000000000000000000000";
 }
 
 export function formatJoinTokenLabel(joinToken?: string | null): string {

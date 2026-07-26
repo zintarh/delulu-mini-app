@@ -9,6 +9,7 @@ import {
 } from "@/lib/community/campaign-subgraph";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import { fetchCampaignOnchainEconomics } from "@/lib/community/campaign-onchain-economics";
+import { isCampaignExpired } from "@/lib/community/campaign-types";
 
 export const dynamic = "force-dynamic";
 
@@ -227,7 +228,8 @@ export async function GET(
     canJoin:
       !isJoined &&
       isValidOnChainChallengeId(campaign.on_chain_challenge_id) &&
-      graphMilestoneCount > 0,
+      graphMilestoneCount > 0 &&
+      !isCampaignExpired(campaign),
     poolStats,
   });
 }

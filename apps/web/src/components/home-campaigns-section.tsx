@@ -41,6 +41,7 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
     durationDays: c.duration_days,
     coverImageUrl: c.cover_image_url,
     displayEndsAt: c.display_ends_at,
+    createdAt: c.created_at,
     status: c.status,
     participantCount: c.participant_count ?? 0,
     participantAvatars: c.participant_avatars ?? [],

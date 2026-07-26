@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Check, Clock, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
 import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
 
 export type ActiveMilestoneData = {
@@ -23,6 +23,7 @@ export type CampaignExploreCardData = {
   durationDays: number;
   coverImageUrl: string | null;
   displayEndsAt: string | null;
+  createdAt?: string | null;
   status: string;
   participantCount: number;
   participantAvatars?: AvatarStackParticipant[];
@@ -42,9 +43,9 @@ export type CampaignExploreCardData = {
   activeMilestone?: ActiveMilestoneData | null;
 };
 
-function daysLeft(displayEndsAt: string | null, durationDays: number) {
-  if (!displayEndsAt) return durationDays;
-  return Math.max(0, Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000));
+function daysLeft(effectiveEndsAt: string | null) {
+  if (!effectiveEndsAt) return null;
+  return Math.max(0, Math.ceil((new Date(effectiveEndsAt).getTime() - Date.now()) / 86400000));
 }
 
 export function CampaignExploreCard({
@@ -62,9 +63,18 @@ export function CampaignExploreCard({
 }) {
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
-  const isClosed = isCampaignEndedByDate(campaign.displayEndsAt);
+  const effectiveEndsAt = getEffectiveDisplayEndsAt({
+    display_ends_at: campaign.displayEndsAt,
+    created_at: campaign.createdAt,
+    duration_days: campaign.durationDays,
+  });
+  const isClosed = isCampaignExpired({
+    display_ends_at: campaign.displayEndsAt,
+    created_at: campaign.createdAt,
+    duration_days: campaign.durationDays,
+  });
   const poolAmount = campaign.proposedPoolAmount;
-  const left = daysLeft(campaign.displayEndsAt, campaign.durationDays);
+  const left = daysLeft(effectiveEndsAt);
   const stakeLabel =
     campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0
       ? `Join · Stake ${campaign.joinAmount} ${campaign.joinToken ?? "G$"}`
@@ -108,12 +118,13 @@ export function CampaignExploreCard({
         </div>
       ) : null}
 
-      {/* Prize badge, top-right */}
+      {/* Prize badge — only when funded (status active). Amount is proposed target;
+          live claimable may differ until detail loads on-chain pool. */}
       {funded && poolAmount > 0 ? (
         <div className="absolute right-3 top-3">
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#D1E822] px-2.5 py-1 text-[11px] font-black text-[#244E1A]">
             <Trophy className="h-3 w-3" />
-            {poolAmount} G$
+            {poolAmount} G$ prize
           </span>
         </div>
       ) : null}
@@ -131,11 +142,17 @@ export function CampaignExploreCard({
             <span
               className={cn(
                 "flex items-center gap-1",
-                !isClosed && left <= 3 && "text-amber-300",
+                !isClosed && left != null && left <= 3 && "text-amber-300",
               )}
             >
               <Clock className="h-3.5 w-3.5" />
-              {isClosed ? "Ended" : left === 0 ? "Ends today" : `${left}d left`}
+              {isClosed
+                ? "Ended"
+                : left == null
+                  ? `${campaign.durationDays}d`
+                  : left === 0
+                    ? "Ends today"
+                    : `${left}d left`}
             </span>
             {campaign.participantCount > 0 ? (
               <span className="flex items-center gap-1.5">

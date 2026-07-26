@@ -58,10 +58,13 @@ export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoi
   const proposedPoolAmount = Number(
     campaign.proposed_pool_amount ?? campaign.proposedPoolAmount ?? 0,
   );
-  const maxForfeitTotal =
+  // Contract caps total forfeit at 100% of stake.
+  const uncappedForfeit =
     !isFreeToJoin && forfeitPct > 0 && joinAmount > 0
       ? (joinAmount * forfeitPct * milestoneCount) / 100
       : 0;
+  const maxForfeitTotal =
+    uncappedForfeit > 0 ? Math.min(uncappedForfeit, joinAmount) : 0;
 
   return {
     title: campaign.title,

@@ -22,11 +22,14 @@ export async function GET(request: NextRequest) {
   const sinceUnixSeconds = startOfCurrentMonthUnixSeconds();
   const sinceIso = new Date(sinceUnixSeconds * 1000).toISOString();
 
+  // Subgraph is source of truth for on-chain campaigns. Only add DB points for
+  // campaigns that have no on_chain_challenge_id (legacy / off-chain), so we
+  // never double-count or prefer stale zeros.
   const [onChainRows, offChainResult] = await Promise.all([
     fetchMonthlyCampaignPointsFromGraph(sinceUnixSeconds),
     admin
       .from("campaign_participants")
-      .select("wallet_address, points_total")
+      .select("wallet_address, points_total, community_campaigns(on_chain_challenge_id)")
       .eq("status", "joined")
       .gte("joined_at", sinceIso),
   ]);
@@ -41,6 +44,16 @@ export async function GET(request: NextRequest) {
   }
 
   for (const row of offChainResult.data ?? []) {
+    const campaignRel = row.community_campaigns as
+      | { on_chain_challenge_id: number | null }
+      | { on_chain_challenge_id: number | null }[]
+      | null;
+    const challengeId = Array.isArray(campaignRel)
+      ? campaignRel[0]?.on_chain_challenge_id
+      : campaignRel?.on_chain_challenge_id;
+    // Skip on-chain campaigns — their points come from the subgraph above.
+    if (challengeId != null) continue;
+
     const wallet = row.wallet_address.toLowerCase();
     const existing = byWallet.get(wallet);
     if (existing) {

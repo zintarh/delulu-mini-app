@@ -167,8 +167,8 @@ export function FundCampaignModal({
         </DashboardField>
 
         <p className="text-xs text-muted-foreground">
-          Funds are escrowed on-chain. After the campaign ends, winners in the prize
-          zone can claim their share of the pool.
+          Funds are escrowed on-chain as the claimable G$ prize. After the campaign
+          ends, an admin must publish winner payouts before anyone can claim.
         </p>
 
         {balance.formatted ? (

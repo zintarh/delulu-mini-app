@@ -274,6 +274,12 @@ export function CreateCampaignModal({
                   </DashboardField>
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Join stake is charged in this token. The funded prize pool is always paid in G$.
+                {joinToken === "USDT"
+                  ? " USDT forfeits reduce what participants reclaim; they do not add to the G$ prize."
+                  : " G$ forfeits can grow the prize after participants reclaim."}
+              </p>
 
               <DashboardField label="Forfeit % per missed milestone">
                 <div className="flex gap-2">
@@ -294,7 +300,9 @@ export function CreateCampaignModal({
                   ))}
                 </div>
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Forfeited stakes go into a second pool shared with winners.
+                  {joinToken === "USDT"
+                    ? "USDT forfeits are deducted at reclaim — they do not add to the G$ prize winners claim."
+                    : "G$ forfeits are added to the same prize pool when participants reclaim after the campaign ends."}
                 </p>
               </DashboardField>
             </div>

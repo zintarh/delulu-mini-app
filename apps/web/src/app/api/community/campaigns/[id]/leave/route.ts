@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { isPaidJoinCampaign } from "@/lib/community/campaign-join-info";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,27 @@ export async function POST(
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
+
+  const { data: campaign } = await admin
+    .from("community_campaigns")
+    .select("is_free_to_join, join_amount")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (!campaign) {
+    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  }
+
+  // Paid stake stays on-chain until end; leaving would hide proofs and force forfeit.
+  if (isPaidJoinCampaign(campaign)) {
+    return NextResponse.json(
+      {
+        error:
+          "Paid campaigns can't be left. Your stake stays locked until the campaign ends — then reclaim from Rewards.",
+      },
+      { status: 400 },
+    );
+  }
 
   const { data: participant } = await admin
     .from("campaign_participants")

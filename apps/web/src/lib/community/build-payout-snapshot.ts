@@ -7,6 +7,7 @@ import {
 } from "@/lib/community/merkle-payout";
 import { getCommunityMarketV1Address, DELULU_CHAIN_ID } from "@/lib/constant";
 import { COMMUNITY_CAMPAIGN_ABI } from "@/lib/abi/community-campaign";
+import { fetchAllCommunityCampaignPointsFromGraph } from "@/lib/community/campaign-subgraph";
 
 const publicClient = createPublicClient({
   chain: celo,
@@ -30,6 +31,52 @@ export async function readOnChainPoolAmountHuman(challengeId: number): Promise<n
   });
   const poolAmountWei = (result as readonly unknown[])[1] as bigint;
   return Number(formatUnits(poolAmountWei, 18));
+}
+
+/**
+ * On-chain campaigns: subgraph points (proofs never write Supabase points_total).
+ * Also mirrors points/streak into campaign_participants for DB consumers.
+ * Off-chain fallback: Supabase rows.
+ */
+export async function resolveLeaderboardForPayout(
+  admin: SupabaseClient,
+  campaignUuid: string,
+  challengeId: number | null | undefined,
+): Promise<Array<{ wallet_address: string; points_total: number }>> {
+  if (challengeId != null && Number.isFinite(Number(challengeId))) {
+    const graphRows = await fetchAllCommunityCampaignPointsFromGraph(Number(challengeId));
+    if (graphRows.length > 0) {
+      await Promise.all(
+        graphRows.map((row) =>
+          admin
+            .from("campaign_participants")
+            .update({
+              points_total: row.points_total,
+              current_streak: row.current_streak,
+            })
+            .eq("campaign_id", campaignUuid)
+            .eq("wallet_address", row.wallet_address),
+        ),
+      );
+      return graphRows
+        .map((r) => ({
+          wallet_address: r.wallet_address,
+          points_total: r.points_total,
+        }))
+        .sort((a, b) => b.points_total - a.points_total);
+    }
+  }
+
+  const { data: participants } = await admin
+    .from("campaign_participants")
+    .select("wallet_address, points_total")
+    .eq("campaign_id", campaignUuid)
+    .order("points_total", { ascending: false });
+
+  return (participants ?? []).map((p) => ({
+    wallet_address: p.wallet_address,
+    points_total: Number(p.points_total ?? 0),
+  }));
 }
 
 export type PayoutWinnerRow = {
@@ -78,7 +125,7 @@ export function buildWinnerPayoutSnapshot(input: {
     throw new Error("Total points must be greater than zero.");
   }
 
-  // Floor each share; give leftover wei to rank 1 so sum == pool.
+  // Floor each share; give leftover wei to the last winner so sum == pool.
   const amounts: bigint[] = [];
   let allocated = 0n;
   for (let i = 0; i < winnersRaw.length; i++) {
@@ -129,7 +176,6 @@ export async function persistPayoutSnapshot(
 
   if (updateError) throw new Error(updateError.message);
 
-  // Replace leaves (keep claimed rows if already claimed — shouldn't happen pre-publish)
   await admin.from("campaign_payout_claims").delete().eq("campaign_id", campaignUuid);
 
   const rows = snapshot.winners.map((w) => ({

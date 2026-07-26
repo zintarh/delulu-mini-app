@@ -44,7 +44,7 @@ export async function GET() {
     fetchMonthlyCampaignPointsFromGraph(sinceUnixSeconds),
     admin
       .from("campaign_participants")
-      .select("wallet_address, points_total")
+      .select("wallet_address, points_total, community_campaigns(on_chain_challenge_id)")
       .eq("status", "joined")
       .gte("joined_at", sinceIso),
   ]);
@@ -59,6 +59,15 @@ export async function GET() {
   }
 
   for (const row of offChainResult.data ?? []) {
+    const campaignRel = row.community_campaigns as
+      | { on_chain_challenge_id: number | null }
+      | { on_chain_challenge_id: number | null }[]
+      | null;
+    const challengeId = Array.isArray(campaignRel)
+      ? campaignRel[0]?.on_chain_challenge_id
+      : campaignRel?.on_chain_challenge_id;
+    if (challengeId != null) continue;
+
     const wallet = row.wallet_address.toLowerCase();
     const existing = byWallet.get(wallet);
     if (existing) {

@@ -8,22 +8,14 @@ import {
   buildWinnerPayoutSnapshot,
   persistPayoutSnapshot,
   readOnChainPoolAmountHuman,
+  resolveLeaderboardForPayout,
 } from "@/lib/community/build-payout-snapshot";
 
 export const dynamic = "force-dynamic";
 
 /**
- * (Re)builds the winner payout snapshot using the *current* on-chain poolAmount —
- * deliberately a separate, later step from confirm-end. Call this right before
- * publishing (setCommunityPayoutRoot), not right after ending, so participants
- * have had a real window to call claimCommunityJoinStake first: any stake they
- * forfeit for missed milestones lands back in poolAmount, and this step is what
- * lets that actually reach winners instead of just sitting there unaccounted for.
- *
- * Safe to call repeatedly — persistPayoutSnapshot replaces any prior unpublished
- * snapshot. Blocked once payout_published_at is set (the root is already live
- * on-chain at that point; rebuilding after that would invalidate proofs for
- * anyone who already claimed).
+ * (Re)builds the winner payout snapshot using the *current* on-chain poolAmount
+ * and live subgraph points — deliberately a separate, later step from confirm-end.
  */
 export async function POST(
   request: NextRequest,
@@ -64,11 +56,18 @@ export async function POST(
     );
   }
 
-  const { data: participants } = await admin
-    .from("campaign_participants")
-    .select("wallet_address, points_total")
-    .eq("campaign_id", id)
-    .order("points_total", { ascending: false });
+  if (campaign.on_chain_challenge_id == null) {
+    return NextResponse.json(
+      { error: "Campaign has no on-chain challenge id." },
+      { status: 400 },
+    );
+  }
+
+  const leaderboard = await resolveLeaderboardForPayout(
+    admin,
+    id,
+    campaign.on_chain_challenge_id,
+  );
 
   let poolAmountHuman: number;
   try {
@@ -86,16 +85,14 @@ export async function POST(
       campaignIdOnChain: campaign.on_chain_challenge_id as number,
       prizeWinnerCount: Number(campaign.prize_winner_count ?? 10),
       poolAmountHuman,
-      leaderboard: (participants ?? []).map((p) => ({
-        wallet_address: p.wallet_address,
-        points_total: Number(p.points_total ?? 0),
-      })),
+      leaderboard,
     });
     await persistPayoutSnapshot(admin, id, snapshot);
     await logCampaignEvent(id, "payout_snapshot_rebuilt", session.userId, {
       merkle_root: snapshot.merkleRoot,
       winner_count: snapshot.winners.length,
       pool_amount_human: poolAmountHuman,
+      points_source: "subgraph",
     });
 
     return NextResponse.json({

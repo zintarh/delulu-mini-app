@@ -31,7 +31,10 @@ import {
   getActiveMilestone,
   getUpcomingMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
-import { isCampaignFunded, isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import {
+  isCampaignExpired,
+  getEffectiveDisplayEndsAt,
+} from "@/lib/community/campaign-types";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { useClaimCommunityCampaignReward } from "@/hooks/use-community-campaign-onchain";
 
@@ -47,6 +50,7 @@ export type CommunityCampaignDetailData = {
   cover_image_url: string | null;
   status: string;
   display_ends_at: string | null;
+  created_at?: string | null;
   duration_days: number;
   prize_winner_count: number;
   on_chain_challenge_id?: number | null;
@@ -93,9 +97,9 @@ function formatEndsAt(iso: string | null) {
   });
 }
 
-function daysRemaining(displayEndsAt: string | null, durationDays: number) {
-  if (!displayEndsAt) return durationDays;
-  return Math.max(0, Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000));
+function daysRemaining(effectiveEndsAt: string | null, durationDays: number) {
+  if (!effectiveEndsAt) return durationDays;
+  return Math.max(0, Math.ceil((new Date(effectiveEndsAt).getTime() - Date.now()) / 86400000));
 }
 
 function milestoneCountdown(deadline: string) {
@@ -200,7 +204,7 @@ export function CommunityCampaignDetail({
   onNextLeaderboardPage,
   participantCount,
   isJoined,
-  isCommunityMember,
+  isCommunityMember: _isCommunityMember,
   address,
   authenticated,
   joining,
@@ -219,8 +223,8 @@ export function CommunityCampaignDetail({
   actionError,
   poolStats,
   onJoin,
-  onJoinCommunity,
-  joiningCommunity = false,
+  onJoinCommunity: _onJoinCommunity,
+  joiningCommunity: _joiningCommunity = false,
   onLeave,
   leaving = false,
   onOpenProof,
@@ -364,19 +368,25 @@ export function CommunityCampaignDetail({
   }, [campaign.id, communitySlug]);
   const MILESTONES_PREVIEW = 4;
   const leaderboardRef = useRef<HTMLDivElement>(null);
-  const funded = isCampaignFunded(campaign.status);
-  const endsLabel = formatEndsAt(campaign.display_ends_at);
-  const daysLeft = daysRemaining(campaign.display_ends_at, campaign.duration_days ?? 30);
+  const effectiveEndsAt = getEffectiveDisplayEndsAt({
+    display_ends_at: campaign.display_ends_at,
+    created_at: campaign.created_at,
+    duration_days: campaign.duration_days,
+  });
+  const endsLabel = formatEndsAt(effectiveEndsAt);
+  const daysLeft = daysRemaining(effectiveEndsAt, campaign.duration_days ?? 30);
   const topN = campaign.prize_winner_count ?? 10;
   const communityName = campaign.communities?.name ?? "Community";
-  const fundedPool =
-    poolStats?.fundedPoolAmount ??
-    (funded && campaign.proposed_pool_amount > 0 ? campaign.proposed_pool_amount : 0);
-  const participantStakes = poolStats?.totalParticipantStakes ?? 0;
+  const fundedPool = poolStats?.fundedPoolAmount ?? 0;
   const stakeToken = poolStats?.joinTokenLabel ?? campaign.join_token ?? "G$";
-  const totalPrizePool =
-    poolStats?.totalPrizePoolAmount ?? fundedPool + participantStakes;
-  const showPrizePool = totalPrizePool > 0 || participantStakes > 0 || fundedPool > 0;
+  // Claimable prize = funded G$ on-chain only. Never treat proposed_pool as claimable.
+  const claimablePrize =
+    poolStats?.totalPrizePoolAmount ?? fundedPool;
+  const showPrizePool = claimablePrize > 0;
+  const proposedPrize =
+    !showPrizePool && campaign.proposed_pool_amount > 0
+      ? campaign.proposed_pool_amount
+      : 0;
   const isPaidJoin =
     poolStats?.isPaidOnChain ??
     (campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0);
@@ -387,8 +397,7 @@ export function CommunityCampaignDetail({
     ? leaderboard.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase())
     : undefined;
   const inPrizeZone =
-    isPaidJoin && myLeaderboardRow ? myLeaderboardRow.rank <= topN : false;
-  const showClaimNote = inPrizeZone && isJoined && !isCommunityMember && funded;
+    showPrizePool && myLeaderboardRow ? myLeaderboardRow.rank <= topN : false;
   const claimAmountLabel =
     claimInfo?.amountWei != null
       ? `${Number(formatUnits(BigInt(claimInfo.amountWei), 18)).toLocaleString(undefined, {
@@ -413,8 +422,7 @@ export function CommunityCampaignDetail({
   );
   const focusMilestone = activeMilestone ?? upcomingMilestone;
 
-  const isClosed =
-    campaign.status === "ended" || isCampaignEndedByDate(campaign.display_ends_at);
+  const isClosed = campaign.status === "ended" || isCampaignExpired(campaign);
 
   const campaignPhase = useMemo(() => {
     if (isClosed) return "closed" as const;
@@ -481,15 +489,12 @@ export function CommunityCampaignDetail({
                 {showPrizePool ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#1a1a19]">
                     <Trophy className="h-3.5 w-3.5" />
-                    {participantStakes > 0 && stakeToken !== "G$" && fundedPool > 0
-                      ? `${fundedPool} G$ + ${participantStakes} ${stakeToken}`
-                      : `${totalPrizePool} G$`}{" "}
-                    pool
+                    {claimablePrize} G$ prize
                   </span>
-                ) : funded && campaign.proposed_pool_amount > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#1a1a19]">
+                ) : proposedPrize > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
                     <Trophy className="h-3.5 w-3.5" />
-                    {campaign.proposed_pool_amount} G$ pool
+                    Target {proposedPrize} G$
                   </span>
                 ) : null}
               </div>
@@ -540,26 +545,30 @@ export function CommunityCampaignDetail({
                 {daysLeft}d left
               </span>
 
-              {/* Leave campaign */}
-              {onLeave && !isClosed ? (
+              {/* Leave — free campaigns only (paid stake can't be abandoned mid-campaign) */}
+              {onLeave && !isClosed && !isPaidJoin ? (
                 leaveConfirm ? (
-                  <div className="ml-auto flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Leave campaign?</span>
-                    <button
-                      type="button"
-                      disabled={leaving}
-                      onClick={() => { onLeave(); setLeaveConfirm(false); }}
-                      className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
-                    >
-                      {leaving ? "Leaving…" : "Yes, leave"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLeaveConfirm(false)}
-                      className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                    >
-                      Cancel
-                    </button>
+                  <div className="ml-auto flex max-w-[min(100%,20rem)] flex-col items-end gap-1.5">
+                    <span className="text-right text-xs text-muted-foreground">
+                      Leave campaign? You can rejoin later if it&apos;s still open.
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={leaving}
+                        onClick={() => { onLeave(); setLeaveConfirm(false); }}
+                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                      >
+                        {leaving ? "Leaving…" : "Yes, leave"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLeaveConfirm(false)}
+                        className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -663,14 +672,14 @@ export function CommunityCampaignDetail({
                     </span>
                     <span className="font-bold text-delulu-blue">+1,000 pts</span>
                   </div>
-                  {isPaidJoin ? (
+                  {showPrizePool ? (
                     <div className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2 text-foreground">
                         <Trophy className="h-4 w-4 text-emerald-600" />
                         Rank in the top {topN}
                       </span>
                       <span className="font-bold text-emerald-700">
-                        Split the forfeit pool{totalPrizePool > 0 ? ` · ${totalPrizePool} G$` : ""}
+                        Share the prize{claimablePrize > 0 ? ` · ${claimablePrize} G$` : ""}
                       </span>
                     </div>
                   ) : null}
@@ -698,7 +707,8 @@ export function CommunityCampaignDetail({
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Points earned here count toward rewards on Delulu.
+                  Points here rank you on this campaign&apos;s leaderboard
+                  {showPrizePool ? " and determine your share of the prize" : ""}.
                 </p>
               </div>
 
@@ -710,7 +720,10 @@ export function CommunityCampaignDetail({
                   <div>
                     <p className="text-base font-bold text-foreground">Miss your milestone</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> per missed milestone. Those amounts grow the forfeit pool for winners.
+                      Forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
+                      {stakeToken === "G$"
+                        ? ". Forfeited stake is added to the G$ prize when participants reclaim after the campaign ends."
+                        : ". Forfeited stake is deducted from what you reclaim after the campaign ends."}
                     </p>
                   </div>
                 </div>
@@ -753,16 +766,21 @@ export function CommunityCampaignDetail({
               ) : null}
             </div>
 
-            {/* ── Prize & stakes — one card, no duplicate pool / top-N ── */}
+            {/* ── Prize & stakes — claimable prize separate from join stakes ── */}
             {isPaidJoin || showPrizePool ? (
               <div className="mt-5 px-5 lg:px-3">
                 {(() => {
-                  const perWinner = topN > 0 ? Math.floor(totalPrizePool / topN) : 0;
                   const forfeitPct = campaign.forfeit_pct ?? 0;
-                  const forfeitAmount =
-                    forfeitPct > 0
-                      ? Math.round(joinStakeAmount * forfeitPct / 100)
+                  const forfeitAmountRaw =
+                    forfeitPct > 0 && joinStakeAmount > 0
+                      ? (joinStakeAmount * forfeitPct) / 100
                       : 0;
+                  const forfeitAmountLabel =
+                    forfeitAmountRaw > 0
+                      ? forfeitAmountRaw >= 1
+                        ? String(Math.round(forfeitAmountRaw * 100) / 100)
+                        : forfeitAmountRaw.toFixed(2)
+                      : null;
                   const showStakeRow = isPaidJoin && joinStakeAmount > 0;
 
                   if (!showPrizePool && !showStakeRow) {
@@ -815,7 +833,7 @@ export function CommunityCampaignDetail({
                         <div
                           className={cn(
                             "grid divide-x divide-[#f6c324]/20",
-                            isPaidJoin ? "grid-cols-3" : "grid-cols-1",
+                            "grid-cols-2",
                           )}
                         >
                           <div className="flex flex-col items-center px-4 py-5 text-center">
@@ -823,50 +841,25 @@ export function CommunityCampaignDetail({
                               className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
                               style={{ fontFamily: '"Clash Display", sans-serif' }}
                             >
-                              {totalPrizePool.toLocaleString()}
+                              {claimablePrize.toLocaleString()}
                               <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
                             </p>
                             <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
-                              Total pool
+                              Claimable prize
                             </p>
                           </div>
 
-                          {isPaidJoin ? (
-                            <>
-                              <div className="flex flex-col items-center px-4 py-5 text-center">
-                                <p
-                                  className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                                >
-                                  {perWinner > 0 ? (
-                                    <>
-                                      ~{perWinner.toLocaleString()}
-                                      <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">
-                                        G$
-                                      </span>
-                                    </>
-                                  ) : (
-                                    "TBD"
-                                  )}
-                                </p>
-                                <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
-                                  Per winner
-                                </p>
-                              </div>
-
-                              <div className="flex flex-col items-center px-4 py-5 text-center">
-                                <p
-                                  className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                                  style={{ fontFamily: '"Clash Display", sans-serif' }}
-                                >
-                                  Top {topN}
-                                </p>
-                                <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
-                                  Winners
-                                </p>
-                              </div>
-                            </>
-                          ) : null}
+                          <div className="flex flex-col items-center px-4 py-5 text-center">
+                            <p
+                              className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
+                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                            >
+                              Top {topN}
+                            </p>
+                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                              Share by points
+                            </p>
+                          </div>
                         </div>
                       ) : null}
 
@@ -874,7 +867,7 @@ export function CommunityCampaignDetail({
                         <div
                           className={cn(
                             "grid gap-px bg-[#f6c324]/20",
-                            forfeitAmount > 0 ? "grid-cols-2" : "grid-cols-1",
+                            forfeitAmountRaw > 0 ? "grid-cols-2" : "grid-cols-1",
                             showPrizePool && "border-t border-[#f6c324]/20",
                           )}
                         >
@@ -893,13 +886,13 @@ export function CommunityCampaignDetail({
                             </p>
                           </div>
 
-                          {forfeitAmount > 0 ? (
+                          {forfeitAmountLabel ? (
                             <div className="flex flex-col items-center bg-[#fffdf5] px-3 py-4 text-center">
                               <p
                                 className="text-lg font-black tabular-nums text-orange-600 sm:text-xl"
                                 style={{ fontFamily: '"Clash Display", sans-serif' }}
                               >
-                                −{forfeitAmount}
+                                −{forfeitAmountLabel}
                                 <span className="ml-1 text-xs font-bold text-orange-600/70">
                                   {stakeToken}
                                 </span>
@@ -914,11 +907,15 @@ export function CommunityCampaignDetail({
 
                       <div className="border-t border-[#f6c324]/20 px-5 py-3">
                         <p className="text-xs leading-relaxed text-[#9a7b0a]/80">
-                          {isPaidJoin
-                            ? forfeitAmount > 0
-                              ? `Top ${topN} on the leaderboard share the pool. Missed-milestone forfeits are added for winners.`
-                              : `Top ${topN} on the leaderboard share the prize pool.`
-                            : "Prize pool is paid out when the campaign ends."}
+                          {showPrizePool
+                            ? `Top ${topN} split the claimable G$ prize pro-rata by points when payouts are published.${
+                                isPaidJoin && forfeitAmountRaw > 0 && stakeToken === "G$"
+                                  ? " Missed-milestone forfeits can grow that prize after reclaim."
+                                  : ""
+                              }`
+                            : isPaidJoin
+                              ? "Your stake is held until the campaign ends — reclaim from Rewards afterward."
+                              : "Rank up by earning points on milestones."}
                         </p>
                       </div>
                     </div>
@@ -976,7 +973,7 @@ export function CommunityCampaignDetail({
                   </div>
                   <p className="text-base font-bold text-foreground">Earn points</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Upload proof for each milestone and earn points. Points count toward rewards on Delulu.
+                    Upload proof for each milestone and earn points on this campaign&apos;s leaderboard.
                   </p>
                 </div>
                 {/* 2 — Achieve goal */}
@@ -989,15 +986,15 @@ export function CommunityCampaignDetail({
                     Stay consistent, build the habit, and actually accomplish what you set out to do.
                   </p>
                 </div>
-                {/* 3 — Win the forfeit pool (paid only; free campaigns have no ranking prizes) */}
-                {isPaidJoin ? (
+                {/* 3 — Win the prize (when there is a claimable pool) */}
+                {showPrizePool ? (
                   <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-5">
                     <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
                       <Trophy className="h-5 w-5" />
                     </div>
-                    <p className="text-base font-bold text-foreground">Win the forfeit pool</p>
+                    <p className="text-base font-bold text-foreground">Win the prize pool</p>
                     <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                      Top {topN} on the leaderboard split the forfeit pool when the campaign ends.
+                      Top {topN} on the leaderboard share the claimable G$ prize pro-rata by points when payouts are published.
                     </p>
                   </div>
                 ) : null}
@@ -1045,7 +1042,7 @@ export function CommunityCampaignDetail({
           <div
             className={cn(
               "rounded-3xl border p-5",
-              isPaidJoin
+              showPrizePool
                 ? "border-emerald-500/15 bg-emerald-500/6"
                 : "border-border/60 bg-muted/20",
             )}
@@ -1055,7 +1052,7 @@ export function CommunityCampaignDetail({
               <h2
                 className="flex items-center gap-2.5 text-lg font-black text-foreground lg:text-base"
               >
-                {isPaidJoin ? (
+                {showPrizePool ? (
                   <Trophy className="h-5 w-5 text-delulu-blue" />
                 ) : (
                   <Users className="h-5 w-5 text-delulu-blue" />
@@ -1064,7 +1061,7 @@ export function CommunityCampaignDetail({
               </h2>
               <p className="text-sm text-muted-foreground">
                 {participantCount} participant{participantCount !== 1 ? "s" : ""}
-                {isPaidJoin ? ` · top ${topN} win` : " · ranked by points"}
+                {showPrizePool ? ` · top ${topN} share by points` : " · ranked by points"}
               </p>
             </div>
           </div>
@@ -1075,10 +1072,10 @@ export function CommunityCampaignDetail({
                 <Users className="h-6 w-6" />
               </div>
               <p className="text-base font-bold text-foreground">
-                {isPaidJoin ? "No one on the board yet" : "No participants yet"}
+                {showPrizePool ? "No one on the board yet" : "No participants yet"}
               </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                {isPaidJoin
+                {showPrizePool
                   ? "Be the first to join and claim the top spot."
                   : "Join and complete milestones to earn points."}
               </p>
@@ -1092,8 +1089,8 @@ export function CommunityCampaignDetail({
             <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               {leaderboard.map((row) => {
                 const isMe = address?.toLowerCase() === row.wallet_address.toLowerCase();
-                const inZone = isPaidJoin && row.rank <= topN;
-                const medal = isPaidJoin
+                const inZone = showPrizePool && row.rank <= topN;
+                const medal = showPrizePool
                   ? row.rank === 1
                     ? "🥇"
                     : row.rank === 2
@@ -1174,7 +1171,7 @@ export function CommunityCampaignDetail({
           ) : null}
           </div>
 
-          {isPaidJoin && canClaimReward ? (
+          {canClaimReward ? (
             <div className="mt-4 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
               <p className="text-sm font-semibold text-emerald-800">
                 You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
@@ -1194,24 +1191,13 @@ export function CommunityCampaignDetail({
             </div>
           ) : null}
 
-          {isPaidJoin && (claimSuccess || claimInfo?.alreadyClaimed) ? (
+          {claimSuccess || claimInfo?.alreadyClaimed ? (
             <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800">
               Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
             </p>
           ) : null}
 
-          {isPaidJoin && showClaimNote && !canClaimReward && !claimSuccess ? (
-            <p className="mt-4 rounded-xl border border-[#f6c324]/40 bg-[#fffbeb] px-4 py-3 text-sm text-[#9a7b0a]">
-              You&apos;re in the prize zone. Join{" "}
-              <Link href={`/communities/${communitySlug}`} className="font-bold underline">
-                {communityName}
-              </Link>{" "}
-              so you can claim when this campaign ends.
-            </p>
-          ) : null}
-
-          {isPaidJoin &&
-          campaign.status === "ended" &&
+          {campaign.status === "ended" &&
           inPrizeZone &&
           claimInfo &&
           !claimInfo.eligible &&

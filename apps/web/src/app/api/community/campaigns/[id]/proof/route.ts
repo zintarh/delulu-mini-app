@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  isCampaignEndedByDate,
+  isCampaignExpired,
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
 import { verifyImageProof } from "@/lib/ai/verify-image-proof";
@@ -35,7 +35,7 @@ export async function POST(
   const { data: campaign } = await admin
     .from("community_campaigns")
     .select(
-      "id, community_id, status, title, proof_instructions, proof_cadence, display_ends_at, on_chain_challenge_id, proof_type",
+      "id, community_id, status, title, proof_instructions, proof_cadence, display_ends_at, created_at, duration_days, on_chain_challenge_id, proof_type",
     )
     .eq("id", campaignId)
     .maybeSingle();
@@ -44,7 +44,7 @@ export async function POST(
   if (!isCampaignParticipatable(campaign.status)) {
     return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
   }
-  if (isCampaignEndedByDate(campaign.display_ends_at)) {
+  if (isCampaignExpired(campaign)) {
     return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
   }
 

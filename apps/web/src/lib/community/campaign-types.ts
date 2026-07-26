@@ -49,19 +49,26 @@ export function isCampaignEndedByDate(displayEndsAt: string | null): boolean {
  * milestones for a campaign (see confirm-fund/confirm-milestones routes) —
  * an approved campaign that never goes through either step keeps
  * `display_ends_at: null` forever, even though it's live and running against
- * its stated duration. Falls back to created_at + duration_days so joining
- * and the join-limit count still respect the campaign's actual end date.
+ * its stated duration. Falls back to created_at + duration_days so joining,
+ * the join-limit count, and "days left" displays all still respect the
+ * campaign's actual end date instead of treating it as open-ended.
  */
+export function getEffectiveDisplayEndsAt(campaign: {
+  display_ends_at: string | null;
+  created_at?: string | null;
+  duration_days?: number | null;
+}): string | null {
+  if (campaign.display_ends_at) return campaign.display_ends_at;
+  if (!campaign.created_at || !campaign.duration_days) return null;
+  return computeDisplayEndsAt(campaign.duration_days, new Date(campaign.created_at));
+}
+
 export function isCampaignExpired(campaign: {
   display_ends_at: string | null;
   created_at?: string | null;
   duration_days?: number | null;
 }): boolean {
-  if (campaign.display_ends_at) return isCampaignEndedByDate(campaign.display_ends_at);
-  if (!campaign.created_at || !campaign.duration_days) return false;
-  return isCampaignEndedByDate(
-    computeDisplayEndsAt(campaign.duration_days, new Date(campaign.created_at)),
-  );
+  return isCampaignEndedByDate(getEffectiveDisplayEndsAt(campaign));
 }
 
 export function computeDisplayEndsAt(durationDays: number, from = new Date()): string {
@@ -81,6 +88,7 @@ export type CommunityCampaignFeedItem = {
   prize_winner_count: number;
   cover_image_url: string | null;
   display_ends_at: string | null;
+  created_at?: string;
   on_chain_challenge_id: number | null;
   community: { id: string; name: string; slug: string };
   participant_state: "none" | "joined";

@@ -107,16 +107,10 @@ export async function fetchCampaignOnchainEconomics(
       stakeTokenForMath,
     );
 
-    // Funded pool is always G$; stakes may be another token — sum only when same token.
-    const sameToken =
-      joinTokenRaw === zeroAddress ||
-      joinTokenRaw.toLowerCase() === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase();
-    const totalPrizePoolWei = sameToken
-      ? fundedPoolWei + totalParticipantStakesWei
-      : fundedPoolWei;
-    const totalPrizePoolAmount = sameToken
-      ? fundedPoolAmount + totalParticipantStakes
-      : fundedPoolAmount;
+    // Claimable prize = on-chain poolAmount (funded G$ + forfeited stake after reclaim).
+    // Do NOT add live participant stakes — those stay escrowed until reclaim.
+    const totalPrizePoolWei = fundedPoolWei;
+    const totalPrizePoolAmount = fundedPoolAmount;
 
     return {
       isPaid,

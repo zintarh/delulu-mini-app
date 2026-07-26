@@ -31,13 +31,36 @@ export async function POST(
 
   const { data: campaign } = await admin
     .from("community_campaigns")
-    .select("id, title, communities ( slug )")
+    .select("id, title, on_chain_challenge_id, communities ( slug )")
     .eq("id", campaignId)
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
   const communitySlug = unwrapRelation(campaign.communities)?.slug ?? null;
+
+  // Best-effort: mirror on-chain points into Supabase after a proof so DB
+  // consumers (feed badges, off-graph paths) stay aligned with the subgraph.
+  if (campaign.on_chain_challenge_id != null) {
+    try {
+      const { isJoinedCommunityCampaignOnGraph } = await import(
+        "@/lib/community/campaign-subgraph"
+      );
+      const joined = await isJoinedCommunityCampaignOnGraph(
+        campaign.on_chain_challenge_id,
+        walletAddress,
+      );
+      if (joined.joined) {
+        await admin
+          .from("campaign_participants")
+          .update({ points_total: joined.pointsTotal })
+          .eq("campaign_id", campaignId)
+          .eq("wallet_address", walletAddress);
+      }
+    } catch {
+      // non-blocking
+    }
+  }
 
   const { data: participants } = await admin
     .from("campaign_participants")

@@ -4,7 +4,7 @@ import {
   buildOffChainMilestoneSchedule,
   getDashboardNextMilestones,
 } from "@/lib/community/milestone-submit-eligibility";
-import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
+import { isCampaignExpired, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
 import {
   fetchCampaignParticipantAvatars,
   type ParticipantAvatar,
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const { data: onChainRows } = await admin
     .from("community_campaigns")
     .select(`
-      id, title, cover_image_url, display_ends_at, duration_days, on_chain_challenge_id,
+      id, title, cover_image_url, display_ends_at, created_at, duration_days, on_chain_challenge_id,
       proof_type, live_camera_duration_seconds,
       is_free_to_join, join_token, join_amount, forfeit_pct,
       communities ( name, slug )
@@ -57,7 +57,12 @@ export async function GET(request: NextRequest) {
     const cid = (raw as { on_chain_challenge_id: number | null }).on_chain_challenge_id;
     if (cid == null) continue;
     const endsAt = (raw as { display_ends_at: string | null }).display_ends_at;
-    if (isCampaignEndedByDate(endsAt)) continue;
+    const rawTyped = raw as { created_at?: string | null; duration_days?: number | null };
+    if (isCampaignExpired({
+      display_ends_at: endsAt,
+      created_at: rawTyped.created_at,
+      duration_days: rawTyped.duration_days,
+    })) continue;
     const community = unwrapRelation(
       (raw as { communities: { name: string; slug: string } | { name: string; slug: string }[] | null })
         .communities,
@@ -133,7 +138,7 @@ export async function GET(request: NextRequest) {
     admin
       .from("community_campaigns")
       .select(`
-        id, title, cover_image_url, display_ends_at, duration_days, proof_cadence,
+        id, title, cover_image_url, display_ends_at, created_at, duration_days, proof_cadence,
         proof_type, live_camera_duration_seconds,
         is_free_to_join, join_token, join_amount, forfeit_pct,
         communities ( name, slug )
@@ -152,7 +157,9 @@ export async function GET(request: NextRequest) {
 
   const activeOffChainRows = (offChainCampaignResult.data ?? []).filter(
     (raw) =>
-      !isCampaignEndedByDate((raw as { display_ends_at: string | null }).display_ends_at),
+      !isCampaignExpired(
+        raw as { display_ends_at: string | null; created_at?: string | null; duration_days?: number | null },
+      ),
   );
 
   if (activeOffChainRows.length === 0) {

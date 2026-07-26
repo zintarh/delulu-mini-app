@@ -8,11 +8,6 @@ import {
 } from "@/lib/dashboard/parse-challenge-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { canEndDashboardCampaign } from "@/lib/dashboard/campaign-constants";
-import {
-  buildWinnerPayoutSnapshot,
-  persistPayoutSnapshot,
-  readOnChainPoolAmountHuman,
-} from "@/lib/community/build-payout-snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -61,13 +56,6 @@ export async function POST(
       try {
         parsed = await parseCommunityChallengeEndedFromTx(txHash);
       } catch (err) {
-        // The submitted tx reverted on-chain. This happens when "End Campaign"
-        // is retried after an earlier end transaction already succeeded but
-        // this DB-sync step never ran (e.g. the tab closed mid-request) — the
-        // contract correctly rejects the retry with AlreadyEnded. Rather than
-        // surface that as a failure, check live on-chain state: if the
-        // challenge is in fact already ended, sync from that instead of
-        // requiring the (unrecoverable) original tx hash.
         const alreadyEnded = await readCommunityChallengeEndedOnChain(campaign.on_chain_challenge_id);
         if (!alreadyEnded) {
           return NextResponse.json(
@@ -102,71 +90,9 @@ export async function POST(
     });
   }
 
-  let payout: {
-    merkleRoot: string;
-    totalClaimableWei: string;
-    winnerCount: number;
-  } | null = null;
-
-  const { data: fresh } = await admin
-    .from("community_campaigns")
-    .select("payout_merkle_root, payout_total_claimable_wei")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!fresh?.payout_merkle_root) {
-    const { data: participants } = await admin
-      .from("campaign_participants")
-      .select("wallet_address, points_total")
-      .eq("campaign_id", id)
-      .order("points_total", { ascending: false });
-
-    try {
-      let poolAmountHuman: number;
-      try {
-        poolAmountHuman = await readOnChainPoolAmountHuman(campaign.on_chain_challenge_id);
-      } catch (err) {
-        console.warn(
-          "[confirm-end] on-chain poolAmount read failed, falling back to proposed_pool_amount:",
-          err instanceof Error ? err.message : err,
-        );
-        poolAmountHuman = Number(campaign.proposed_pool_amount ?? 0);
-      }
-
-      const snapshot = buildWinnerPayoutSnapshot({
-        campaignIdOnChain: campaign.on_chain_challenge_id,
-        prizeWinnerCount: Number(campaign.prize_winner_count ?? 10),
-        poolAmountHuman,
-        leaderboard: (participants ?? []).map((p) => ({
-          wallet_address: p.wallet_address,
-          points_total: Number(p.points_total ?? 0),
-        })),
-      });
-      await persistPayoutSnapshot(admin, id, snapshot);
-      payout = {
-        merkleRoot: snapshot.merkleRoot,
-        totalClaimableWei: snapshot.totalClaimableWei,
-        winnerCount: snapshot.winners.length,
-      };
-      await logCampaignEvent(id, "payout_snapshot", session.userId, {
-        merkle_root: snapshot.merkleRoot,
-        winner_count: snapshot.winners.length,
-      });
-    } catch (err) {
-      payout = null;
-      console.warn(
-        "[confirm-end] payout snapshot skipped:",
-        err instanceof Error ? err.message : err,
-      );
-    }
-  } else {
-    payout = {
-      merkleRoot: fresh.payout_merkle_root,
-      totalClaimableWei: fresh.payout_total_claimable_wei ?? "0",
-      winnerCount: 0,
-    };
-  }
-
+  // Do not build a payout snapshot here — that must wait until publish so
+  // participants can reclaim (and forfeit into the pool) and so we use live
+  // subgraph points via build-payout-snapshot.
   const { data } = await admin
     .from("community_campaigns")
     .select(
@@ -177,7 +103,7 @@ export async function POST(
 
   return NextResponse.json({
     campaign: data,
-    payout,
+    payout: null,
     resynced,
   });
 }

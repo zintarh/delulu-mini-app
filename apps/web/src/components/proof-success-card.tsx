@@ -58,7 +58,7 @@ export function ProofSuccessCard({
       : (milestoneName ?? "Milestone");
 
   const onShareX = () => {
-    const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-day streak going strong` : "";
+    const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
     const tweet = `just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nstaying delusional, staying accountable 💪`;
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(shareUrl ?? "")}`,
@@ -68,7 +68,7 @@ export function ProofSuccessCard({
   };
 
   const onShareWhatsApp = () => {
-    const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-day streak going strong` : "";
+    const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
     const msg = `just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nstaying delusional, staying accountable 💪\n\n${shareUrl ?? ""}`;
     window.open(
       `https://wa.me/?text=${encodeURIComponent(msg)}`,
@@ -163,7 +163,7 @@ export function ProofSuccessCard({
           <div className="flex flex-wrap items-center justify-center gap-2">
             {(myStreak ?? 0) > 0 ? (
               <span className="rounded-full border border-border/60 bg-white px-3 py-1 text-xs font-bold text-[#1a1a19]">
-                🔥 {myStreak}-day streak
+                🔥 {myStreak}-milestone streak
               </span>
             ) : null}
             {(myPoints ?? 0) > 0 ? (

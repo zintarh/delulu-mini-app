@@ -12,7 +12,7 @@ import {
 } from "@/lib/milestone-utils";
 import { sendReminderEmail } from "@/lib/email/send-reminder";
 import { buildOffChainMilestoneSchedule } from "@/lib/community/milestone-submit-eligibility";
-import { isCampaignEndedByDate, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
+import { isCampaignExpired, PARTICIPATING_STATUSES } from "@/lib/community/campaign-types";
 
 export const maxDuration = 300;
 
@@ -252,7 +252,7 @@ async function sendCampaignMilestoneReminders(
   // Active off-chain campaigns (milestones stored in Supabase, not The Graph)
   const { data: campaignData, error: campaignErr } = await supabase
     .from("community_campaigns")
-    .select("id, title, display_ends_at, duration_days, proof_cadence")
+    .select("id, title, display_ends_at, created_at, duration_days, proof_cadence")
     .in("status", [...PARTICIPATING_STATUSES])
     .is("on_chain_challenge_id", null);
 
@@ -262,7 +262,10 @@ async function sendCampaignMilestoneReminders(
   }
 
   const activeCampaigns = (campaignData ?? []).filter(
-    (c) => !isCampaignEndedByDate((c as { display_ends_at: string | null }).display_ends_at),
+    (c) =>
+      !isCampaignExpired(
+        c as { display_ends_at: string | null; created_at?: string | null; duration_days?: number | null },
+      ),
   );
   if (activeCampaigns.length === 0) return stats;
 

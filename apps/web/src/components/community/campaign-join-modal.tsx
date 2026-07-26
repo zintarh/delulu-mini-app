@@ -57,16 +57,16 @@ export function CampaignJoinModal({
   const joinAmount = info.joinAmount ?? 0;
   const joinToken = info.joinToken ?? "G$";
   const cadenceLabel = info.proofCadence === "weekly" ? "Weekly" : "Daily";
-  const fundedPool = info.fundedPoolAmount ?? info.proposedPoolAmount ?? 0;
-  const participantStakes = info.totalParticipantStakes ?? 0;
-  const totalPool = info.totalPrizePoolAmount ?? fundedPool + participantStakes;
-  const hasPool = totalPool > 0;
+  // Claimable prize is funded G$ only — never treat proposed as claimable.
+  const claimablePrize = info.fundedPoolAmount ?? info.totalPrizePoolAmount ?? 0;
+  const hasPool = claimablePrize > 0;
   const hasForfeit = !info.isFreeToJoin && (info.forfeitPct ?? 0) > 0;
   const forfeitPerMiss =
     hasForfeit && joinAmount > 0
       ? ((joinAmount * (info.forfeitPct ?? 0)) / 100).toFixed(2)
       : null;
   const maxForfeitTotal = info.maxForfeitTotal ?? 0;
+  const stakeIsGd = joinToken === "G$";
   const endsLabel = info.endsAt
     ? new Date(info.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
@@ -117,22 +117,22 @@ export function CampaignJoinModal({
                   {joinAmount} {joinToken} stake required
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Returned when you complete the campaign
+                  Held until the campaign ends — reclaim from Rewards (minus any forfeit)
                 </p>
               </div>
             </div>
           ) : null}
 
-          {/* Prize pool */}
+          {/* Claimable prize pool (always G$) */}
           {hasPool ? (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-[#f6c324]/30 bg-[#fffbeb] px-3 py-2.5">
               <Trophy className="h-4 w-4 shrink-0 text-[#9a7b0a]" />
               <div className="min-w-0">
                 <p className="text-sm font-black text-foreground">
-                  {totalPool} {joinToken} prize pool
+                  {claimablePrize} G$ prize pool
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Top {info.prizeWinnerCount} share the prize
+                  Top {info.prizeWinnerCount} share by points
                 </p>
               </div>
             </div>
@@ -149,8 +149,14 @@ export function CampaignJoinModal({
           {/* Forfeit warning — only for paid with forfeit */}
           {hasForfeit ? (
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Miss a milestone? You forfeit {info.forfeitPct}%{forfeitPerMiss ? ` (${forfeitPerMiss} ${joinToken})` : ""} per miss to the prize pool
-              {maxForfeitTotal > 0 ? ` — up to ${maxForfeitTotal} ${joinToken} total` : ""}.
+              Miss a milestone? You forfeit {info.forfeitPct}%
+              {forfeitPerMiss ? ` (${forfeitPerMiss} ${joinToken})` : ""} per miss
+              {maxForfeitTotal > 0
+                ? ` — up to ${maxForfeitTotal} ${joinToken} (capped at your stake)`
+                : ""}
+              {stakeIsGd
+                ? ". Forfeited stake is added to the G$ prize when you reclaim."
+                : ". Forfeited stake is deducted when you reclaim after the campaign ends."}
             </p>
           ) : null}
 
@@ -210,7 +216,7 @@ export function CampaignJoinModal({
           <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
             {info.isFreeToJoin
               ? "You'll need to sign a wallet transaction to confirm your join."
-              : "Your stake is held on-chain and returned when you complete the campaign."}
+              : "Your stake stays on-chain until the campaign ends. Reclaim from Rewards afterward."}
           </p>
         </div>
       </div>

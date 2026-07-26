@@ -3,7 +3,8 @@ import {
   type CommunityCampaignFeedItem,
   decodeFeedCursor,
   encodeFeedCursor,
-  isCampaignEndedByDate,
+  getEffectiveDisplayEndsAt,
+  isCampaignExpired,
   isCampaignFunded,
   parseHomeCampaignFeedSection,
 } from "@/lib/community/campaign-types";
@@ -32,9 +33,10 @@ const FETCH_BATCH = 40;
 // promoting a nearly-over campaign on the home feed discourages new joins.
 const ENDING_SOON_DAYS = 3;
 
-function daysLeft(displayEndsAt: string | null): number {
-  if (!displayEndsAt) return Infinity;
-  return Math.ceil((new Date(displayEndsAt).getTime() - Date.now()) / 86400000);
+function daysLeft(row: { display_ends_at: string | null; created_at?: string | null; duration_days?: number | null }): number {
+  const effective = getEffectiveDisplayEndsAt(row);
+  if (!effective) return Infinity;
+  return Math.ceil((new Date(effective).getTime() - Date.now()) / 86400000);
 }
 
 const CAMPAIGN_FEED_SELECT = `
@@ -88,6 +90,7 @@ function toFeedItem(
     prize_winner_count: Number(row.prize_winner_count ?? 10),
     cover_image_url: row.cover_image_url ?? null,
     display_ends_at: row.display_ends_at,
+    created_at: row.created_at,
     on_chain_challenge_id: row.on_chain_challenge_id,
     community: { id: community.id, name: community.name, slug: community.slug },
     participant_state: joined ? "joined" : "none",
@@ -183,7 +186,7 @@ export async function GET(request: NextRequest) {
           .communities,
       ),
     };
-    if (isCampaignEndedByDate(row.display_ends_at)) continue;
+    if (isCampaignExpired(row)) continue;
 
     const isJoined = joinedCampaignIds.has(row.id);
     if (section === "joined") {
@@ -218,8 +221,8 @@ export async function GET(request: NextRequest) {
         const bPaid = isPaidJoinCampaign(b);
         if (aPaid !== bPaid) return aPaid ? -1 : 1;
 
-        const aEndingSoon = daysLeft(a.display_ends_at) <= ENDING_SOON_DAYS;
-        const bEndingSoon = daysLeft(b.display_ends_at) <= ENDING_SOON_DAYS;
+        const aEndingSoon = daysLeft(a) <= ENDING_SOON_DAYS;
+        const bEndingSoon = daysLeft(b) <= ENDING_SOON_DAYS;
         if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
 
         const ap = isValidOnChainChallengeId(a.on_chain_challenge_id)
@@ -287,7 +290,9 @@ export async function GET(request: NextRequest) {
     const count = milestoneCounts[i] ?? 0;
     const canJoin = isJoined
       ? false
-      : isValidOnChainChallengeId(row.on_chain_challenge_id) && (milestoneCounts[i] ?? 0) > 0;
+      : isValidOnChainChallengeId(row.on_chain_challenge_id) &&
+        (milestoneCounts[i] ?? 0) > 0 &&
+        !isCampaignExpired(row);
     return toFeedItem(
       row,
       isJoined,

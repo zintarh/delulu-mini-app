@@ -13,7 +13,7 @@ import {
 } from "@/lib/milestone-utils";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { buildOffChainMilestoneSchedule } from "@/lib/community/milestone-submit-eligibility";
-import { PARTICIPATING_STATUSES, isCampaignEndedByDate } from "@/lib/community/campaign-types";
+import { PARTICIPATING_STATUSES, isCampaignExpired } from "@/lib/community/campaign-types";
 
 type SubgraphMilestoneRow = {
   id: string;
@@ -95,7 +95,7 @@ async function sendCampaignMilestoneDuePushReminders(
 
   const { data: campaignData, error: campaignErr } = await supabase
     .from("community_campaigns")
-    .select("id, title, display_ends_at, duration_days, proof_cadence")
+    .select("id, title, display_ends_at, created_at, duration_days, proof_cadence")
     .in("status", [...PARTICIPATING_STATUSES]);
 
   if (campaignErr) {
@@ -104,7 +104,10 @@ async function sendCampaignMilestoneDuePushReminders(
   }
 
   const activeCampaigns = (campaignData ?? []).filter(
-    (c) => !isCampaignEndedByDate((c as { display_ends_at: string | null }).display_ends_at),
+    (c) =>
+      !isCampaignExpired(
+        c as { display_ends_at: string | null; created_at?: string | null; duration_days?: number | null },
+      ),
   );
   if (activeCampaigns.length === 0) return stats;
 

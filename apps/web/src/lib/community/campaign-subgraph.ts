@@ -328,6 +328,27 @@ export async function fetchCommunityCampaignLeaderboardFromGraph(
   }
 }
 
+/**
+ * Full leaderboard for payout snapshots — subgraph is source of truth for
+ * on-chain campaign points (Supabase points_total is not updated on proof).
+ */
+export async function fetchAllCommunityCampaignPointsFromGraph(
+  challengeId: number,
+): Promise<Array<{ wallet_address: string; points_total: number; current_streak: number }>> {
+  const pageSize = 1000;
+  const rows = await fetchCommunityCampaignLeaderboardFromGraph(
+    challengeId,
+    new Set(),
+    0,
+    pageSize,
+  );
+  return rows.map((r) => ({
+    wallet_address: r.wallet_address,
+    points_total: r.points_total,
+    current_streak: r.current_streak,
+  }));
+}
+
 export async function isJoinedCommunityCampaignOnGraph(
   challengeId: number,
   walletAddress: string,

@@ -212,14 +212,19 @@ function StakeReclaimRow({
         </p>
         <p className="text-xs text-muted-foreground" style={MANROPE}>
           {item.communityName ? `${item.communityName} · ` : ""}
-          Stake reclaim · {formatStakeDisplay(item.amountWei, item.tokenAddress)}{" "}
-          {item.tokenSymbol}
+          You&apos;ll receive{" "}
+          {formatStakeDisplay(item.netAmountWei, item.tokenAddress)} {item.tokenSymbol}
         </p>
         {item.missedMilestones > 0 ? (
           <p className="mt-0.5 text-[11px] font-medium text-amber-600" style={MANROPE}>
             Missed {item.missedMilestones}/{item.totalMilestones} milestone
-            {item.missedMilestones === 1 ? "" : "s"} · you&apos;ll receive{" "}
-            {formatStakeDisplay(item.netAmountWei, item.tokenAddress)} {item.tokenSymbol}
+            {item.missedMilestones === 1 ? "" : "s"} · original stake{" "}
+            {formatStakeDisplay(item.amountWei, item.tokenAddress)} {item.tokenSymbol}
+          </p>
+        ) : item.amountWei !== item.netAmountWei ? (
+          <p className="mt-0.5 text-[11px] text-muted-foreground" style={MANROPE}>
+            Original stake {formatStakeDisplay(item.amountWei, item.tokenAddress)}{" "}
+            {item.tokenSymbol}
           </p>
         ) : null}
         {item.communitySlug ? (
