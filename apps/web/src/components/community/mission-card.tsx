@@ -14,6 +14,12 @@ import {
   AvatarStack,
   type AvatarStackParticipant,
 } from "@/components/ui/avatar-stack";
+import {
+  FEED_CARD_CTA_CLASS,
+  FEED_CARD_EYEBROW_CLASS,
+  FEED_CARD_META_CLASS,
+  FEED_CARD_TITLE_CLASS,
+} from "@/components/feed-card-layout";
 
 export interface MissionCardProps {
   href: string;
@@ -87,17 +93,6 @@ function ProgressRing({ index, count }: { index: number; count: number }) {
   );
 }
 
-// Duolingo-style: lead with a concrete "Day N" marker (loss aversion — a real
-// number you'd hate to abandon) and pair it with a line that shifts tone as
-// the journey progresses, so the card feels like momentum, not a form field.
-function momentumLine(index: number, count: number): string {
-  if (count <= 1) return "This is the one — make it count.";
-  if (index <= 1) return "Day one. Every streak starts here.";
-  if (index >= count) return "Final day. Finish what you started.";
-  if (count - index === 1) return "One more after this. So close.";
-  return "You're on a roll — don't break it now.";
-}
-
 export function MissionCard({
   href,
   title,
@@ -123,7 +118,7 @@ export function MissionCard({
   const atRisk = hasStake && forfeitPct > 0 && Boolean(countdown?.urgent);
 
   return (
-    <div className="group rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex items-start gap-4">
         <Link href={href} className="relative shrink-0">
           <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
@@ -147,17 +142,13 @@ export function MissionCard({
         </Link>
 
         <Link href={href} className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground/50">
+          <p className={cn("truncate", FEED_CARD_EYEBROW_CLASS)}>
             {title}
           </p>
 
-          <p className="mt-1.5 truncate text-lg font-bold leading-snug text-foreground">
+          <p className={cn("mt-1.5 truncate", FEED_CARD_TITLE_CLASS)}>
             {milestone.label}
           </p>
-
-          {/* <p className="mt-0.5 truncate text-[12px] font-medium text-muted-foreground">
-            {momentumLine(milestoneIndex, milestoneCount)}
-          </p> */}
 
           {participantCount > 1 ? (
             <div className="mt-2 flex items-center gap-1.5">
@@ -170,7 +161,7 @@ export function MissionCard({
               ) : (
                 <Users className="h-3.5 w-3.5 shrink-0 text-foreground" />
               )}
-              <p className="truncate text-xs font-medium text-foreground">
+              <p className={cn("truncate text-foreground", FEED_CARD_META_CLASS)}>
                 people are in this together
               </p>
             </div>
@@ -178,8 +169,7 @@ export function MissionCard({
         </Link>
       </div>
 
-      {/* Motivation strip — the reward, the urgency, what's at stake */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-border/40 pt-4 text-xs">
+      <div className={cn("mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-border/40 pt-4", FEED_CARD_META_CLASS)}>
         {countdown ? (
           <span className="flex items-center gap-1 font-semibold text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
@@ -207,7 +197,8 @@ export function MissionCard({
           disabled={!canSubmit || proofBusy}
           onClick={onSubmitProof}
           className={cn(
-            "ml-auto shrink-0 rounded-full px-5 py-2.5 text-sm font-bold transition-transform",
+            "ml-auto shrink-0 rounded-full px-5 py-2.5 transition-transform",
+            FEED_CARD_CTA_CLASS,
             canSubmit
               ? "bg-foreground text-background hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
               : "bg-muted text-muted-foreground",

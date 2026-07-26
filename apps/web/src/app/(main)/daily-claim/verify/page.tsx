@@ -52,7 +52,7 @@ export default function VerifyGoodDollarPage() {
           your goal.
         </p>
 
-        <div className="rounded-2xl border border-border bg-card p-3">
+        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
           {fvLink ? (
             <iframe
               src={fvLink}

@@ -12,32 +12,52 @@ import {
 import { cn } from "@/lib/utils";
 
 const DISMISS_KEY = "delulu_push_prompt_dismissed_at_v1";
+/** After a successful enable, never soft-prompt again on this browser. */
+const DONE_KEY = "delulu_push_prompt_done_v1";
 /** After dismiss, wait this long before showing again. */
 const DISMISS_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-function isDismissedRecently(): boolean {
+function readStorage(key: string): string | null {
   try {
-    const raw = window.localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const at = Number(raw);
-    if (!Number.isFinite(at)) return false;
-    return Date.now() - at < DISMISS_COOLDOWN_MS;
+    return window.localStorage.getItem(key);
   } catch {
-    return false;
+    return null;
   }
 }
 
-function markDismissed() {
+function writeStorage(key: string, value: string) {
   try {
-    window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    window.localStorage.setItem(key, value);
   } catch {
     // ignore quota / private mode
   }
 }
 
+function isDismissedRecently(): boolean {
+  const raw = readStorage(DISMISS_KEY);
+  if (!raw) return false;
+  const at = Number(raw);
+  if (!Number.isFinite(at)) return false;
+  return Date.now() - at < DISMISS_COOLDOWN_MS;
+}
+
+function markDismissed() {
+  writeStorage(DISMISS_KEY, String(Date.now()));
+}
+
+function isPromptDone(): boolean {
+  return readStorage(DONE_KEY) === "1";
+}
+
+function markPromptDone() {
+  writeStorage(DONE_KEY, "1");
+}
+
 /**
  * Soft prompt to enable push — same floating style as the no-gas banner.
- * Dismiss hides it for several hours, then it can resurface.
+ * Only shown when the browser has never decided (permission === "default").
+ * If permission is already granted, we never nag — we silently repair the
+ * subscription if needed (common after hard refresh / SW race on desktop).
  */
 export function EnableNotificationsBanner() {
   const { address, authenticated } = useAuth();
@@ -56,7 +76,7 @@ export function EnableNotificationsBanner() {
       setVisible(false);
       return;
     }
-    if (isDismissedRecently()) {
+    if (isPromptDone() || isDismissedRecently()) {
       setVisible(false);
       return;
     }
@@ -66,21 +86,35 @@ export function EnableNotificationsBanner() {
       try {
         const state = await getPushSupportState();
         if (cancelled) return;
+
         if (state.state === "unsupported") {
           setVisible(false);
           return;
         }
+
         if (state.state === "needs_permission") {
           // Browser already blocked — Settings is the only path.
           if (state.permission === "denied") {
             setVisible(false);
             return;
           }
+          // permission === "default" — soft prompt is appropriate
           setVisible(true);
           return;
         }
-        // ready — only prompt if not subscribed yet
-        setVisible(!state.subscribed);
+
+        // permission already granted — never soft-prompt again.
+        // If the PushManager subscription is missing (SW race / cleared),
+        // quietly re-register instead of showing "Enable" again.
+        markPromptDone();
+        setVisible(false);
+        if (!state.subscribed) {
+          try {
+            await subscribeToWebPush(address);
+          } catch {
+            // Best-effort repair; Settings can still toggle manually.
+          }
+        }
       } catch {
         if (!cancelled) setVisible(false);
       }
@@ -103,6 +137,7 @@ export function EnableNotificationsBanner() {
     setError(null);
     try {
       await subscribeToWebPush(address);
+      markPromptDone();
       setVisible(false);
     } catch (err) {
       const message =

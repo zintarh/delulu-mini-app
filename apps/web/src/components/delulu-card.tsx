@@ -406,8 +406,8 @@ export function DeluluCard({
       className={cn(
         "relative aspect-[5/4] w-full overflow-hidden transition-[transform,box-shadow] duration-200",
         "rounded-3xl border-0",
-        "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_20px_rgba(0,0,0,0.07)]",
-        "hover:-translate-y-1 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.1)]",
+        "shadow-sm",
+        "hover:-translate-y-1 hover:shadow-sm",
         href && "cursor-pointer active:scale-[0.99]",
       )}
       style={{ background: cardGradient }}
@@ -489,17 +489,17 @@ export function DeluluCard({
       className={cn(
         "flex flex-col overflow-hidden bg-card transition-[transform,box-shadow] duration-200",
         variant === "grid"
-          ? "min-h-0 rounded-2xl border border-border/60 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+          ? "min-h-0 rounded-2xl border border-border/60 shadow-sm hover:-translate-y-0.5 hover:shadow-sm"
           : variant === "feed"
             ? [
                 "min-h-[380px] rounded-3xl border-0",
-                "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_20px_rgba(0,0,0,0.07)]",
-                "hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.1)]",
+                "shadow-sm",
+                "hover:shadow-sm",
                 "hover:-translate-y-1",
               ]
             : [
                 "min-h-[380px] rounded-2xl border border-border shadow-sm",
-                "hover:shadow-md hover:-translate-y-0.5",
+                "hover:shadow-sm hover:-translate-y-0.5",
               ],
         href && "cursor-pointer active:scale-[0.99]",
       )}

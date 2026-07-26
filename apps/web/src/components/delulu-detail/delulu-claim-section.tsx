@@ -37,7 +37,7 @@ export function DeluluClaimSection({
   onClaim: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-3.5 md:p-4 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+    <div className="rounded-2xl border border-border/70 bg-card p-3.5 md:p-4 shadow-sm">
       <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 md:gap-4 items-end">
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-2">

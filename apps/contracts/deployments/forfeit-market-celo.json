@@ -1,0 +1,13 @@
+{
+  "network": "celo",
+  "chainId": 42220,
+  "contract": "ForfeitMarket",
+  "proxy": "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8",
+  "implementation": "0xe8304c2f292020c65B854a8439E910b19B3C1305",
+  "address": "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8",
+  "startBlock": 73186960,
+  "owner": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
+  "platformFeeAddress": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
+  "deployedAt": "2026-07-26",
+  "upgradeable": "uups"
+}

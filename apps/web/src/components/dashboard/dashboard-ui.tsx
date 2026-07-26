@@ -115,7 +115,7 @@ export function DashboardCard({
 }) {
   const classes = cn(
     "group block rounded-2xl border border-[#e8e8e3] bg-white p-4 shadow-sm transition-all",
-    "hover:border-delulu-blue/30 hover:shadow-md",
+    "hover:border-delulu-blue/30 hover:shadow-sm",
     onClick && "cursor-pointer text-left w-full",
     className,
   );

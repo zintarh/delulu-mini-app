@@ -17,6 +17,11 @@ function fmId(commitmentId: BigInt): string {
   return "fm1-" + commitmentId.toString()
 }
 
+// Matches BASE_PROOF_POINTS in apps/web/src/lib/dashboard/campaign-constants.ts — a
+// resolved forfeit period is treated the same as a verified campaign milestone for
+// leaderboard purposes, so both feed the same User.deluluPoints total.
+const FORFEIT_PROOF_POINTS = BigInt.fromI32(1000)
+
 function getOrCreateUser(address: Bytes): User {
   let id = address.toHexString().toLowerCase()
   let user = User.load(Bytes.fromHexString(id))
@@ -87,9 +92,18 @@ export function handleFMPeriodResolvedSuccess(event: PeriodResolvedSuccessEvent)
   resolution.periodIndex = event.params.periodIndex.toI32()
   resolution.outcome = "success"
   resolution.resolver = event.params.resolver
+  resolution.pointsAwarded = FORFEIT_PROOF_POINTS
   resolution.txHash = event.transaction.hash
   resolution.createdAt = event.block.timestamp
   resolution.save()
+
+  // Points go to the creator (the one who did the task), not event.params.resolver —
+  // resolver is the creator for self/AI-verify but the named friend for friend-verify.
+  let creator = User.load(commitment.creator)
+  if (creator != null) {
+    creator.deluluPoints = creator.deluluPoints.plus(FORFEIT_PROOF_POINTS)
+    creator.save()
+  }
 
   if (event.params.commitmentEnded) {
     commitment.active = false

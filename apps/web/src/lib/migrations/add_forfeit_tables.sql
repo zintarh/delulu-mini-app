@@ -18,6 +18,15 @@ create table if not exists public.forfeit_commitments (
                         check (verification_method in ('self', 'friend', 'ai')),
   is_private            boolean      not null default false,
   remind_enabled        boolean      not null default true,
+  -- Charity vs Delulu both map to CommunityPool on-chain; this records intent.
+  is_charity_intent     boolean      not null default false,
+  -- Snapshot at create time so feed UI doesn't depend on subgraph lag.
+  stake_amount_wei      text,
+  token                 text,
+  destination_type      int,
+  destination_addr      text,
+  destination_friend_username text,
+  destination_friend_email    text,
   verifier_wallet        text,        -- nullable until an existing user is resolved, or an invite is accepted
   status                text         not null default 'pending_confirmation'
                         check (status in ('pending_confirmation', 'active', 'completed', 'forfeited', 'cancelled')),

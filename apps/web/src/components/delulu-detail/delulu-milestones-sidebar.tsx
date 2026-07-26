@@ -116,7 +116,7 @@ export function DeluluMilestonesSidebar({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-4 lg:p-5">
         <div className="flex flex-col gap-4 mb-5 md:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ function MilestoneAddForm({
           return (
             <div
               key={index}
-              className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-2"
+              className="rounded-xl border border-border bg-card shadow-sm p-3 md:p-4 space-y-2"
             >
               {newMilestones.length > 1 ? (
                 <div className="flex items-center justify-end mb-1">

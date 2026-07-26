@@ -79,7 +79,7 @@ export function AppRewardsCard({ address }: { address: `0x${string}` | undefined
   return (
     <section>
       <h3 className="mb-2.5 text-sm font-semibold tracking-wide text-foreground">App rewards</h3>
-      <div className="divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/50 bg-card">
+      <div className="divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         {rows.map((r) => (
           <RewardRow
             key={r.tokenAddress}

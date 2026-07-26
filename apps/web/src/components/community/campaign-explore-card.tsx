@@ -6,6 +6,7 @@ import { Check, Clock, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
 import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
+import { FEED_CARD_META_CLASS, FEED_CARD_TITLE_CLASS } from "@/components/feed-card-layout";
 
 export type ActiveMilestoneData = {
   milestone_id: number;
@@ -84,7 +85,7 @@ export function CampaignExploreCard({
     <Link
       href={href}
       className={cn(
-        "group relative block aspect-[1/1] overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:aspect-[4/5]",
+        "group relative block aspect-[1/1] overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm sm:aspect-[4/5]",
         className,
       )}
     >
@@ -133,12 +134,12 @@ export function CampaignExploreCard({
           how much longer it's open, and what joining costs. Everything else
           (description, join button, milestones) lives on the detail page. */}
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-        <h3 className="line-clamp-2 text-base font-black leading-snug text-white sm:text-lg">
+        <h3 className={cn("line-clamp-2 text-white", FEED_CARD_TITLE_CLASS)}>
           {campaign.title}
         </h3>
 
-        <div className="mt-4 flex items-center justify-between gap-2 sm:mt-2">
-          <div className="flex items-center gap-3 text-xs font-semibold text-white/85">
+        <div className="mt-3 flex items-center justify-between gap-2 sm:mt-2">
+          <div className={cn("flex items-center gap-3 font-semibold text-white/85", FEED_CARD_META_CLASS)}>
             <span
               className={cn(
                 "flex items-center gap-1",

@@ -11,7 +11,6 @@ import {
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
-import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import type { CommunityCampaignFeedItem } from "@/lib/community/campaign-types";
 import { homeCampaignKeys, useHomeCampaignsFeed } from "@/hooks/use-home-campaigns-feed";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
@@ -20,6 +19,11 @@ import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { useAuth } from "@/hooks/use-auth";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
+import { cn } from "@/lib/utils";
+import { FEED_CARD_EYEBROW_CLASS } from "@/components/feed-card-layout";
+
+/** Desktop side rail (and stacked home discover) — keep short so the column doesn't tower. */
+const DISCOVER_SIDE_LIMIT = 2;
 
 function ExploreLink() {
   return (
@@ -61,44 +65,46 @@ function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardDa
   };
 }
 
-
 function DiscoverCampaignsSection({
   address,
   onJoin,
   joiningId,
+  rail,
 }: {
   address: string;
   onJoin: (campaign: CommunityCampaignFeedItem) => void;
   joiningId: string | null;
+  rail?: boolean;
 }) {
   const { data, isLoading } = useHomeCampaignsFeed("ongoing", address, "participants");
-  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 6);
+  const limit = rail ? DISCOVER_SIDE_LIMIT : 3;
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, limit);
 
   if (isLoading) {
     return (
-      <div className="px-4 py-4">
+      <div className={cn(rail ? "py-0" : "px-4 py-4")}>
         <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <CampaignExploreCardSkeleton />
-          <CampaignExploreCardSkeleton className="hidden lg:flex" />
-          <CampaignExploreCardSkeleton className="hidden lg:flex" />
+        <div className={cn("grid gap-4", rail ? "grid-cols-1" : "grid-cols-1 gap-5")}>
+          {Array.from({ length: limit }, (_, i) => (
+            <CampaignExploreCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (campaigns.length === 0) return null; // nothing new to discover — don't show empty section
+  if (campaigns.length === 0) return null;
 
   return (
-    <div className="px-4 py-4">
+    <div className={cn(rail ? "py-0" : "px-4 py-4")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-          You might also like
+        <p className={FEED_CARD_EYEBROW_CLASS}>
+          Campaigns
         </p>
         <ExploreLink />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className={cn("grid gap-4", rail ? "grid-cols-1" : "grid-cols-1 gap-5")}>
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
@@ -112,11 +118,12 @@ function DiscoverCampaignsSection({
   );
 }
 
-function GuestDiscoverCampaignsSection() {
+function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
   const joinFlow = useCampaignJoinFlow();
   const { requireAuth } = useRedirectToSignIn();
   const { data, isLoading } = useExploreCampaigns(undefined, "participants");
-  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, 6);
+  const limit = rail ? DISCOVER_SIDE_LIMIT : 3;
+  const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, limit);
 
   const openJoin = useCallback(
     (campaign: CampaignExploreCardData) => {
@@ -143,12 +150,12 @@ function GuestDiscoverCampaignsSection() {
 
   if (isLoading) {
     return (
-      <div className="px-4 py-2">
+      <div className={cn(rail ? "py-0" : "px-4 py-2")}>
         <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <CampaignExploreCardSkeleton />
-          <CampaignExploreCardSkeleton className="hidden md:flex" />
-          <CampaignExploreCardSkeleton className="hidden md:flex" />
+        <div className="grid grid-cols-1 gap-4">
+          {Array.from({ length: limit }, (_, i) => (
+            <CampaignExploreCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
@@ -157,15 +164,15 @@ function GuestDiscoverCampaignsSection() {
   if (campaigns.length === 0) return null;
 
   return (
-    <div className="px-4 py-2">
+    <div className={cn(rail ? "py-0" : "px-4 py-2")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+        <p className={FEED_CARD_EYEBROW_CLASS}>
           Discover campaigns
         </p>
         <ExploreLink />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4">
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
@@ -181,13 +188,19 @@ function GuestDiscoverCampaignsSection() {
   );
 }
 
-export function HomeCampaignsSection() {
+export function HomeCampaignsSection({
+  layout = "stack",
+}: {
+  /** `rail` = side column layout on desktop home */
+  layout?: "stack" | "rail";
+}) {
   const { address } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const joinFlow = useCampaignJoinFlow();
   const { requireAuth } = useRedirectToSignIn();
   const pendingJoinRef = useRef<CommunityCampaignFeedItem | null>(null);
+  const rail = layout === "rail";
 
   const invalidateFeeds = useCallback(() => {
     if (!address) return;
@@ -232,37 +245,23 @@ export function HomeCampaignsSection() {
   );
 
   if (!address) {
-    return <GuestDiscoverCampaignsSection />;
+    return <GuestDiscoverCampaignsSection rail={rail} />;
   }
 
   return (
     <>
-      <div className="px-4 pt-6 pb-2">
-        <ActiveCampaignsSection address={address} heading="Campaigns" />
-      </div>
-
-      <div className="mt-10" />
-
       <DiscoverCampaignsSection
         address={address}
         onJoin={openJoin}
-        joiningId={
-          joinFlow.joining ? joinFlow.pendingCampaignId : null
-        }
+        joiningId={joinFlow.joining ? joinFlow.pendingCampaignId : null}
+        rail={rail}
       />
-
-
-
 
       <CampaignJoinFlowOverlay
         flow={joinFlow}
         address={address}
         onJoined={handleJoined}
       />
-
-
-
-
     </>
   );
 }

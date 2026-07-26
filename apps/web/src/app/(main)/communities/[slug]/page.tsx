@@ -41,14 +41,14 @@ function PageSkeleton() {
       {/* Back */}
       <div className="mb-5 h-7 w-28 rounded-full bg-muted" />
       {/* Header card */}
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-2 shadow-sm">
         <div className="h-6 w-40 rounded-lg bg-muted" />
         <div className="h-4 w-64 rounded-lg bg-muted/70" />
       </div>
       {/* Campaign cards */}
       <div className="mt-6 space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="aspect-[16/7] bg-muted" />
             <div className="p-4 space-y-2">
               <div className="h-5 w-3/4 rounded-lg bg-muted" />
@@ -69,7 +69,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
   const hasPrize = campaign.proposed_pool_amount > 0;
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all hover:border-delulu-blue/30 hover:shadow-md">
+    <article className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all hover:border-delulu-blue/30 hover:shadow-sm">
       <Link href={href} className="block">
         {/* Image */}
         <div className="relative aspect-[16/7] overflow-hidden bg-gradient-to-br from-delulu-blue/20 via-delulu-blue/10 to-muted/30">
@@ -202,7 +202,7 @@ export default function CommunityHubPage() {
       </Link>
 
       {/* Community header */}
-      <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5">
+      <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-delulu-blue/10 text-lg font-black text-delulu-blue">
             {community.name[0]?.toUpperCase()}

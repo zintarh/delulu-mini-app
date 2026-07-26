@@ -5,6 +5,7 @@ import { ProfileLoader } from "@/components/profile-loader";
 import {
   MainAppContent,
   MainAppHeader,
+  MobileBottomNavSpacer,
 } from "@/components/main-app-header";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
@@ -18,7 +19,16 @@ const LeftSidebar = dynamic(
 );
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
-  { ssr: false, loading: () => <div className="fixed bottom-0 left-0 right-0 z-40 h-16 border-t border-border bg-background/95 lg:hidden" /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 shadow-[0_-6px_20px_rgba(26,26,25,0.06)] lg:hidden"
+        style={{ height: "var(--mobile-bottom-nav-bar)" }}
+        aria-hidden
+      />
+    ),
+  },
 );
 const ClaimPanel = dynamic(
   () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
@@ -94,6 +104,8 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
             <MainAppHeader />
             <MainAppContent>{children}</MainAppContent>
+            {/* Reserves space so fixed BottomNav never covers scroll content */}
+            <MobileBottomNavSpacer />
           </div>
         </div>
 

@@ -10,7 +10,7 @@ export function DeluluCampaignSection({
   deluluEarnedPoints: number;
 }) {
   return (
-    <div className="p-6 bg-card rounded-2xl border border-border space-y-4">
+    <div className="p-6 bg-card rounded-2xl border border-border shadow-sm space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 border border-purple-400/60">

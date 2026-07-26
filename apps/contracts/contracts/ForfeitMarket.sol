@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -21,7 +22,8 @@ contract ForfeitMarket is
     Initializable,
     UUPSUpgradeable,
     OwnableUpgradeable,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable
 {
     using SafeERC20 for IERC20;
 
@@ -37,6 +39,8 @@ contract ForfeitMarket is
     error InvalidInviteCode();
     error CharityNotApproved();
     error StakeBelowMinimum();
+    error VerifierInvitePending();
+    error TokenNotApproved();
 
     // --- CONSTANTS ---
     uint256 public constant BPS_DENOMINATOR = 10000;
@@ -102,6 +106,14 @@ contract ForfeitMarket is
     ///      bad-faith address from silently swallowing someone's stake.
     mapping(address => bool) public approvedCharities;
 
+    /// @dev Owner-curated allowlist for stake tokens. Without this, createCommitment
+    ///      would accept any ERC20 — a fee-on-transfer or rebasing token would record a
+    ///      nominal stakeAmount that exceeds what the contract actually receives, and
+    ///      since all commitments in a token share one undifferentiated balance, that
+    ///      shortfall can leave a later, unrelated commitment in the same token unable
+    ///      to pay out in full.
+    mapping(address => bool) public approvedTokens;
+
     /// @dev Per-token minimum stake, sized so the keeper bounty clears a sane gas-cost
     ///      floor on Celo and the permissionless resolution path stays economically viable.
     mapping(address => uint256) public minStakeForToken;
@@ -150,9 +162,19 @@ contract ForfeitMarket is
     );
     event CommitmentCancelled(uint256 indexed commitmentId, uint256 refundAmount);
     event ApprovedCharityUpdated(address indexed charity, bool approved);
+    event ApprovedTokenUpdated(address indexed token, bool approved);
     event MinStakeUpdated(address indexed token, uint256 minStake);
     event PlatformFeeAddressUpdated(address indexed newPlatformFeeAddress);
     event CommunityPoolWithdrawn(address indexed token, address indexed to, uint256 amount);
+    event VerifierInviteRevoked(uint256 indexed commitmentId, address indexed newVerifier);
+    /// @dev Emitted when a forfeiture's destination transfer fails (e.g. the token
+    ///      blacklisted or paused that address) and the remainder was routed to the
+    ///      community pool instead, so it doesn't get permanently stuck.
+    event ForfeitedDestinationFallback(
+        uint256 indexed commitmentId,
+        address indexed destination,
+        uint256 amount
+    );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -163,6 +185,7 @@ contract ForfeitMarket is
         if (initialOwner == address(0) || _platformFeeAddress == address(0)) revert InvalidInput();
         __Ownable_init(initialOwner);
         __ReentrancyGuard_init();
+        __Pausable_init();
         platformFeeAddress = _platformFeeAddress;
     }
 
@@ -176,9 +199,28 @@ contract ForfeitMarket is
         emit ApprovedCharityUpdated(charity, approved);
     }
 
+    function setApprovedToken(address token, bool approved) external onlyOwner {
+        if (token == address(0)) revert InvalidInput();
+        approvedTokens[token] = approved;
+        emit ApprovedTokenUpdated(token, approved);
+    }
+
     function setMinStake(address token, uint256 minStake) external onlyOwner {
         minStakeForToken[token] = minStake;
         emit MinStakeUpdated(token, minStake);
+    }
+
+    /// @notice Blocks new commitments only — existing ones can still be resolved,
+    ///         cancelled, or permissionlessly forfeited as normal, so a pause never
+    ///         locks anyone out of funds already at stake. Meant as a fast circuit
+    ///         breaker if a bug is discovered, buying time to prepare a proper upgrade
+    ///         without leaving createCommitment open in the meantime.
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     function setPlatformFeeAddress(address _platform) external onlyOwner {
@@ -220,8 +262,9 @@ contract ForfeitMarket is
         uint64 firstDeadline,
         address verifier,
         bytes32 verifierInviteCodeHash
-    ) external nonReentrant returns (uint256 commitmentId) {
+    ) external nonReentrant whenNotPaused returns (uint256 commitmentId) {
         if (token == address(0) || stakeAmount == 0 || totalPeriods == 0) revert InvalidInput();
+        if (!approvedTokens[token]) revert TokenNotApproved();
         if (stakeAmount < minStakeForToken[token]) revert StakeBelowMinimum();
         if (firstDeadline <= block.timestamp) revert InvalidInput();
         if (cadence == Cadence.Once) {
@@ -294,6 +337,48 @@ contract ForfeitMarket is
         emit VerifierInviteAccepted(commitmentId, msg.sender);
     }
 
+    /**
+     * @notice Creator-only escape hatch for the friend-verify path: rebind to a
+     *         different resolved wallet or issue a fresh invite code. Exists mainly
+     *         so a hijacked invite (the plaintext code was visible in the mempool
+     *         before `acceptVerifierInvite` mined, letting someone else claim the
+     *         role first) or a simple mistake isn't a permanent dead end for the
+     *         commitment. Deliberately cannot be used to clear verification down to
+     *         self-verify — exactly one of `newVerifier` / `newInviteCodeHash` must be
+     *         set, same mutual-exclusivity as createCommitment.
+     * @param newVerifier Resolved wallet of an existing-user friend-verifier, or
+     *        address(0) if issuing an invite code instead.
+     * @param newInviteCodeHash keccak256 of a fresh one-time code, or bytes32(0) if
+     *        binding directly to `newVerifier` instead.
+     */
+    function revokeVerifierInvite(
+        uint256 commitmentId,
+        address newVerifier,
+        bytes32 newInviteCodeHash
+    ) external {
+        Commitment storage c = commitments[commitmentId];
+        if (c.creator == address(0)) revert CommitmentNotFound();
+        if (msg.sender != c.creator) revert Unauthorized();
+        if (!c.active || c.cancelled) revert NotActive();
+        if (block.timestamp > c.currentPeriodDeadline) revert DeadlinePassed();
+        if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
+            revert PeriodAlreadyResolved();
+        }
+        if (c.verifier == address(0) && pendingVerifierCodeHash[commitmentId] == bytes32(0)) {
+            revert InvalidInput(); // not a friend-verify commitment — nothing to revoke
+        }
+        if (newVerifier == address(0) && newInviteCodeHash == bytes32(0)) revert InvalidInput();
+        if (newVerifier != address(0) && newInviteCodeHash != bytes32(0)) revert InvalidInput();
+
+        c.verifier = newVerifier;
+        if (newInviteCodeHash != bytes32(0)) {
+            pendingVerifierCodeHash[commitmentId] = newInviteCodeHash;
+        } else {
+            delete pendingVerifierCodeHash[commitmentId];
+        }
+        emit VerifierInviteRevoked(commitmentId, newVerifier);
+    }
+
     /// @notice Records evidence for the current period. Deliberately evidence-agnostic —
     ///         the contract never interprets what kind of proof this is, so new evidence
     ///         types (GPS, Strava, ...) never require a contract change.
@@ -324,9 +409,20 @@ contract ForfeitMarket is
             revert PeriodAlreadyResolved();
         }
 
-        bool authorized = c.verifier == address(0)
-            ? msg.sender == c.creator
-            : msg.sender == c.verifier;
+        bool authorized;
+        if (c.verifier != address(0)) {
+            authorized = msg.sender == c.verifier;
+        } else if (pendingVerifierCodeHash[commitmentId] != bytes32(0)) {
+            // A friend-verifier invite is still pending acceptance. `c.verifier` reads
+            // as address(0) here exactly like true self-verify, but the creator must
+            // not be able to self-approve while a named friend hasn't claimed the role
+            // yet — that would let them silently bypass friend-verification entirely by
+            // just never forwarding the invite code. Nobody can resolve success until
+            // the friend accepts (or the deadline lapses into permissionless forfeiture).
+            revert VerifierInvitePending();
+        } else {
+            authorized = msg.sender == c.creator;
+        }
         if (!authorized) revert Unauthorized();
 
         periodOutcome[commitmentId][c.currentPeriodIndex] = PeriodOutcome.Success;
@@ -375,13 +471,27 @@ contract ForfeitMarket is
 
         if (c.destinationType == DestinationType.CommunityPool) {
             communityPoolBalance[c.token] += remainder;
-        } else {
+        } else if (remainder > 0) {
             // SelfReturn never reaches forfeiture with a nonzero remainder recipient other
             // than the creator; Charity/Friend transfer directly to the validated address.
             address to = c.destinationType == DestinationType.SelfReturn
                 ? c.creator
                 : c.destinationAddr;
-            stakeToken.safeTransfer(to, remainder);
+            // A plain external call (not SafeERC20's inlined wrapper) so a reverting
+            // transfer — e.g. `to` got blacklisted or paused by the token after the
+            // commitment was created — is catchable instead of reverting this whole
+            // resolution and leaving the stake, bounty, and fee permanently stuck with
+            // no other path to unlock them. Falls back to the community pool, where an
+            // owner can manually redirect it (see withdrawCommunityPool).
+            try IERC20(c.token).transfer(to, remainder) returns (bool ok) {
+                if (!ok) {
+                    communityPoolBalance[c.token] += remainder;
+                    emit ForfeitedDestinationFallback(commitmentId, to, remainder);
+                }
+            } catch {
+                communityPoolBalance[c.token] += remainder;
+                emit ForfeitedDestinationFallback(commitmentId, to, remainder);
+            }
         }
 
         emit PeriodResolvedForfeited(

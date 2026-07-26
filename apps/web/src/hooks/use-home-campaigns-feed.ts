@@ -27,7 +27,7 @@ async function fetchFeedPage(
     address,
     section,
     sort,
-    limit: "6",
+    limit: "2",
   });
   if (cursor) params.set("cursor", cursor);
 

@@ -45,6 +45,13 @@ body {
 }
 
 :root {
+  /*
+   * Fixed mobile bottom nav: h-14 (56px) + safe-area padding on the nav itself.
+   * Layout spacer uses --mobile-bottom-nav-clearance (bar + breathing room).
+   */
+  --mobile-bottom-nav-bar: calc(56px + max(env(safe-area-inset-bottom, 0px), 8px));
+  --mobile-bottom-nav-clearance: calc(var(--mobile-bottom-nav-bar) + 20px);
+
   /* Delulu color palette */
   --delulu-yellow: #f6c324;
   --delulu-yellow-reserved: #f6c324;

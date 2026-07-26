@@ -170,10 +170,10 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
     },
   },
   {
-    test: /proof was not accepted|proof not accepted/i,
+    test: /^(proof was not accepted\.?|proof not accepted\.?)$/i,
     display: {
       title: "Proof not accepted",
-      message: "Your proof wasn't accepted. Record again showing the activity clearly.",
+      message: "Your proof wasn't accepted. Try a clearer photo that shows the activity.",
       kind: "ai",
     },
   },
@@ -448,11 +448,17 @@ export function formatProofError(error: unknown): ProofErrorDisplay {
     if (test.test(msg)) return display;
   }
 
-  // AI rejection reasons are already written for humans (second person).
+  // AI rejection reasons (and other short human copy) must stay intact for the UI.
   if (msg && !looksTechnical(msg)) {
     const lower = msg.toLowerCase();
     const kind: ProofErrorKind =
-      lower.includes("not accept") || lower.includes("doesn't show") || lower.includes("does not show")
+      lower.includes("not accept") ||
+      lower.includes("doesn't show") ||
+      lower.includes("does not show") ||
+      lower.includes("doesn't look") ||
+      lower.includes("does not look") ||
+      lower.includes("unrelated") ||
+      lower.includes("instead")
         ? "ai"
         : lower.includes("wallet") || lower.includes("transaction") || lower.includes("gas")
           ? "wallet"

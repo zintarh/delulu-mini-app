@@ -408,7 +408,7 @@ export default function RewardsPage() {
 
           {activeTab === "tokens" ? (
             <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
                 <div className="divide-y divide-border/40">
                   <TokenListRow
                     tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
@@ -451,7 +451,7 @@ export default function RewardsPage() {
             </section>
           ) : (
             <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
                 {isLoadingActivity && activityItems.length === 0 ? (
                   <div className="divide-y divide-border/40">
                     {Array.from({ length: 3 }).map((_, i) => (

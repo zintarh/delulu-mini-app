@@ -462,7 +462,7 @@ export function CommunityCampaignDetail({
             {communityName}
           </Link>
 
-          <div className="relative overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <div className="relative overflow-hidden rounded-3xl shadow-sm">
             {campaign.cover_image_url ? (
               <div className={cn("relative w-full", heroAspect)}>
                 <Image
@@ -785,7 +785,7 @@ export function CommunityCampaignDetail({
 
                   if (!showPrizePool && !showStakeRow) {
                     return (
-                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
                         <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
                           <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
                           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">

@@ -20,7 +20,8 @@ const STEP_LABEL: Record<ProofStep, string> = {
 interface ProofModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (imageUrl: string) => void;
+  /** May be async — the modal awaits it so failures can leave loading and show errors. */
+  onSubmit: (imageUrl: string) => void | Promise<void>;
   isSubmitting?: boolean;
   submitSuccess?: boolean;
   submitError?: Error | null;
@@ -30,7 +31,7 @@ interface ProofModalProps {
   proofStep?: ProofStep;
   milestoneName?: string | null;
   milestoneDeadline?: string | null;
-  // Achievement card props — all optional, card degrades gracefully
+  // Achievement card props - all optional, card degrades gracefully
   campaignTitle?: string | null;
   communityName?: string | null;
   myUsername?: string | null;
@@ -83,6 +84,9 @@ export function ProofModal({
   const displayErrorTitle = uploadError
     ? "Couldn't upload"
     : (submitErrorDisplay?.title ?? "Couldn't submit");
+
+  // Keep the error banner visible once a failure lands (don't hide behind a stuck busy overlay).
+  const showErrorBanner = Boolean(displayError) && (!busy || Boolean(submitError || uploadError));
 
   useEffect(() => {
     if (submitSuccess && !confettiFired.current) {
@@ -157,11 +161,16 @@ export function ProofModal({
         body: formData,
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Upload failed");
+        const err = await res.json().catch(() => ({}));
+        throw Object.assign(new Error(err.error || "Upload failed"), { stage: "upload" as const });
       }
       const { url } = await res.json();
-      onSubmit(url);
+      try {
+        await onSubmit(url);
+      } catch (err) {
+        // Always surface a message in-modal (parent may also set submitError).
+        setUploadError(formatProofError(err).message);
+      }
     } catch (err) {
       setUploadError(formatUploadError(err).message);
     } finally {
@@ -186,12 +195,12 @@ export function ProofModal({
       sheetClassName="rounded-t-3xl pb-14"
       modalClassName="max-w-lg"
     >
-      {/* Drag handle pill — visible on mobile sheet only */}
+      {/* Drag handle pill (mobile sheet) */}
       <div className="-mt-1 mb-5 flex justify-center lg:hidden">
         <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
       </div>
 
-      {/* ── Success state ────────────────────────────────────────── */}
+      {/* Success state */}
       {submitSuccess ? (
         <ProofSuccessCard
           campaignTitle={campaignTitle}
@@ -207,7 +216,7 @@ export function ProofModal({
           onDone={handleClose}
         />
       ) : (
-        /* ── Upload state ──────────────────────────────────────── */
+        /* Upload state */
         <div className="space-y-4">
           {/* Header */}
           <div>
@@ -234,22 +243,25 @@ export function ProofModal({
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
               {proofInstructions
                 ? proofInstructions
-                : "Show what you did — a screenshot is totally fine."}
+                : "Show what you did. A screenshot is totally fine."}
             </p>
           </div>
 
-          {/* Error banner */}
-          {displayError && !busy ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3">
+          {/* Error banner - always visible after a failure */}
+          {showErrorBanner ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3"
+            >
               <p className="text-sm font-bold text-destructive">{displayErrorTitle}</p>
-              <p className="mt-0.5 text-xs text-destructive/80">{displayError}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-destructive/90">{displayError}</p>
               {imagePreview ? (
                 <button
                   type="button"
                   onClick={clearImage}
                   className="mt-1.5 text-xs font-semibold text-delulu-blue hover:underline"
                 >
-                  Try a different photo →
+                  Try a different photo
                 </button>
               ) : null}
             </div>
@@ -344,7 +356,7 @@ export function ProofModal({
                     {isDragging ? "Drop it here" : "Tap to add proof"}
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground/60">
-                    screenshot · photo · selfie — anything real
+                    screenshot · photo · selfie · anything real
                   </p>
                 </div>
 

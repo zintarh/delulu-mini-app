@@ -208,10 +208,10 @@ export function LiveCameraProofModal({
   useEffect(() => {
     if (isSubmitting || submitSuccess) return;
     if (!submitError) return;
-    if (captureStep !== "submitting" && captureStep !== "uploading") return;
+    // Parent may set submitError after busy clears — always surface it.
     setCaptureStep("upload-error");
     setErrorDisplay(formatProofError(submitError));
-  }, [isSubmitting, submitSuccess, submitError, captureStep]);
+  }, [isSubmitting, submitSuccess, submitError]);
 
   useEffect(() => {
     return () => {
@@ -509,7 +509,7 @@ export function LiveCameraProofModal({
         >
           <DialogPrimitive.Title asChild>
             <h2 className="sr-only">
-              {milestoneName ? `Upload proof — ${milestoneName}` : "Upload proof"}
+              {milestoneName ? `Upload proof: ${milestoneName}` : "Upload proof"}
             </h2>
           </DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">

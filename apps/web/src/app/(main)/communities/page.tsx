@@ -16,7 +16,7 @@ function CommunitySkeleton() {
   return (
     <div className="animate-pulse space-y-3">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex items-center gap-4 rounded-2xl border border-border bg-card px-4 py-4">
+        <div key={i} className="flex items-center gap-4 rounded-2xl border border-border bg-card shadow-sm px-4 py-4">
           <div className="h-12 w-12 shrink-0 rounded-xl bg-muted" />
           <div className="flex-1 space-y-2">
             <div className="h-4 w-1/3 rounded-lg bg-muted" />
@@ -74,7 +74,7 @@ export default function CommunitiesPage() {
       {loading ? (
         <CommunitySkeleton />
       ) : communities.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-card shadow-sm px-6 py-16 text-center">
           <p className="text-sm font-semibold text-foreground">No communities yet</p>
           <p className="mt-1 text-xs text-muted-foreground">Check back soon.</p>
         </div>
@@ -84,7 +84,7 @@ export default function CommunitiesPage() {
             <li key={c.id}>
               <Link
                 href={`/communities/${c.slug}`}
-                className="group flex items-center gap-4 rounded-2xl border border-border bg-card px-4 py-4 transition-all hover:border-delulu-blue/40 hover:shadow-sm"
+                className="group flex items-center gap-4 rounded-2xl border border-border bg-card shadow-sm px-4 py-4 transition-all hover:border-delulu-blue/40 hover:shadow-sm"
               >
                 <CommunityAvatar name={c.name} />
                 <div className="min-w-0 flex-1">

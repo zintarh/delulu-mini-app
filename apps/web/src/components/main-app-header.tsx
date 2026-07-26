@@ -46,11 +46,25 @@ export function usesNestedScroll(pathname: string): boolean {
 }
 
 /**
- * Clears the fixed mobile bottom nav (h-14) + home-indicator safe area,
- * with extra room so the last card isn’t tucked under the bar.
+ * Full padding clearance for pages that render their own BottomNav
+ * (outside the main layout spacer). Prefer the layout spacer instead.
  */
 export const MOBILE_BOTTOM_NAV_CLEARANCE =
-  "pb-[calc(56px+max(env(safe-area-inset-bottom),8px)+40px)]";
+  "pb-[calc(var(--mobile-bottom-nav-clearance)+20px)]";
+
+/**
+ * Reserves space under the main column so fixed BottomNav never covers
+ * scroll content. Matches bar height + a little breathing room.
+ */
+export function MobileBottomNavSpacer() {
+  return (
+    <div
+      className="shrink-0 lg:hidden"
+      style={{ height: "var(--mobile-bottom-nav-clearance)" }}
+      aria-hidden
+    />
+  );
+}
 
 /** Shared mobile navbar + desktop search bar for main app routes. */
 export function MainAppHeader() {
@@ -87,7 +101,11 @@ export function MainPage({
   return <main className={cn("bg-background", className)}>{children}</main>;
 }
 
-/** Offsets fixed mobile navbar; scroll container for most routes. */
+/**
+ * Offsets fixed mobile top navbar; scroll container for most routes.
+ * Bottom clearance comes from MobileBottomNavSpacer in the main layout
+ * (scroll viewport ends above the fixed nav).
+ */
 export function MainAppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const config = getHeaderConfig(pathname);
@@ -100,7 +118,6 @@ export function MainAppContent({ children }: { children: React.ReactNode }) {
         "min-h-0 flex-1",
         nestedScroll ? "flex flex-col overflow-hidden" : "overflow-y-auto scrollbar-hide",
         needsMobileNavOffset && "pt-[4.5rem] lg:pt-0",
-        !nestedScroll && cn(MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-0"),
       )}
     >
       {children}

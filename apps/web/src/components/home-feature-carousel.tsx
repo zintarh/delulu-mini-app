@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Trophy, Coins, Sparkles, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  FEED_CARD_CTA_CLASS,
+  FEED_CARD_EYEBROW_CLASS,
+  FEED_CARD_SUBTITLE_CLASS,
+  FEED_CARD_TITLE_CLASS,
+} from "@/components/feed-card-layout";
 
 type FeatureCard = {
   id: string;
@@ -144,7 +150,7 @@ export function HomeFeatureCarousel() {
             >
               <div
                 className={cn(
-                  "group relative overflow-hidden rounded-3xl px-4 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+                  "group relative overflow-hidden rounded-3xl px-4 py-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm",
                   card.bgClassName,
                 )}
               >
@@ -157,10 +163,9 @@ export function HomeFeatureCarousel() {
                 <div className="flex items-center justify-between">
                   <p
                     className={cn(
-                      "text-[9px] font-black uppercase tracking-[0.22em]",
-                      card.light ? "text-white/70" : "text-muted-foreground/70",
+                      FEED_CARD_EYEBROW_CLASS,
+                      card.light ? "text-white/70" : "text-foreground/40",
                     )}
-                    style={{ fontFamily: "var(--font-manrope)" }}
                   >
                     {card.eyebrow}
                   </p>
@@ -176,17 +181,18 @@ export function HomeFeatureCarousel() {
 
                 <p
                   className={cn(
-                    "mt-2.5 text-[24px] font-black leading-[1.1] tracking-tight",
+                    "mt-2.5",
+                    FEED_CARD_TITLE_CLASS,
                     card.light ? "text-white" : "text-foreground",
                   )}
-                  style={{ fontFamily: '"Clash Display", sans-serif' }}
                 >
                   {card.headline}
                 </p>
 
                 <p
                   className={cn(
-                    "mt-1.5 text-[12px] leading-snug",
+                    "mt-1.5",
+                    FEED_CARD_SUBTITLE_CLASS,
                     card.light ? "text-white/85" : "text-muted-foreground",
                   )}
                 >
@@ -197,7 +203,8 @@ export function HomeFeatureCarousel() {
                   <Link
                     href={card.action.href}
                     className={cn(
-                      "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 text-[11px] font-black transition-transform hover:scale-[1.04] active:scale-[0.97]",
+                      "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 transition-transform hover:scale-[1.04] active:scale-[0.97]",
+                      FEED_CARD_CTA_CLASS,
                       card.light
                         ? "bg-white text-foreground"
                         : "bg-delulu-blue text-white",

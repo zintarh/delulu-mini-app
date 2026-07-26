@@ -1107,7 +1107,7 @@ export default function DeluluPage() {
 
   return (
     <>
-      <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background pb-20 lg:pb-8">
+      <main className="h-full min-h-0 overflow-y-auto scrollbar-hide bg-background pb-6 lg:pb-8">
         <DeluluDetailHeader
           shareSlot={
             <DeluluShareMenu

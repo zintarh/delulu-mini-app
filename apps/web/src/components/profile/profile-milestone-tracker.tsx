@@ -110,7 +110,7 @@ export function MilestoneTrackerHero({
   return (
     <header
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-border/50 bg-card shadow-[0_4px_24px_rgba(0,0,0,0.06)]",
+        "relative overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm",
         compact ? "px-4 py-4" : "px-5 py-6",
       )}
     >
@@ -400,7 +400,7 @@ export function DeluluJourneyCard({
         "overflow-hidden border border-border/40 bg-card",
         compact
           ? "rounded-xl shadow-sm"
-          : "rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.05)] sm:rounded-3xl",
+          : "rounded-2xl shadow-sm sm:rounded-3xl",
       )}
     >
       <div

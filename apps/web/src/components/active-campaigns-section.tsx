@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import { MissionCard, MissionCardSkeleton } from "@/components/community/mission-card";
+import { FEED_CARD_EYEBROW_CLASS } from "@/components/feed-card-layout";
 import {
   joinedDashboardKeys,
   useJoinedCampaignDashboard,
@@ -24,11 +25,14 @@ export function ActiveCampaignsSection({
   heading = "Your missions",
   showMax = 3,
   showSeeAll = true,
+  showEmpty = false,
 }: {
   address: string;
   heading?: string;
   showMax?: number;
   showSeeAll?: boolean;
+  /** When true, render a campaign-focused empty state instead of null. */
+  showEmpty?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { submitCommunityCampaignMilestoneProofAndWait } =
@@ -60,7 +64,11 @@ export function ActiveCampaignsSection({
   }, [address, queryClient]);
 
   const handleProofSubmit = async (proofUrls: string[]) => {
-    if (!activeProof) return;
+    if (!activeProof) {
+      const msg = "Pick a milestone before uploading proof.";
+      setProofError(msg);
+      throw new Error(msg);
+    }
     setProofBusy(true);
     setProofError(null);
     setProofStep("ai-verifying");
@@ -76,8 +84,10 @@ export function ActiveCampaignsSection({
       setProofSuccess(true);
       invalidate();
     } catch (err) {
-      setProofError(proofErrorMessage(err));
+      const msg = proofErrorMessage(err);
+      setProofError(msg);
       setProofStep("idle");
+      throw err instanceof Error ? err : new Error(msg);
     } finally {
       setProofBusy(false);
     }
@@ -94,7 +104,28 @@ export function ActiveCampaignsSection({
   }
 
   const all = (data ?? []).filter((c) => c.next_milestones.length > 0);
-  if (all.length === 0) return null;
+  if (all.length === 0) {
+    if (!showEmpty) return null;
+    return (
+      <div className="flex flex-col items-center rounded-3xl border border-border/60 bg-card px-5 py-12 text-center shadow-sm">
+        <p
+          className="text-lg font-bold tracking-tight text-foreground"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          No campaign milestones
+        </p>
+        <p className="mt-1.5 max-w-[18rem] text-sm text-muted-foreground">
+          Join a campaign and your next milestones will show up here.
+        </p>
+        <Link
+          href="/explore"
+          className="mt-5 rounded-full bg-delulu-charcoal px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+        >
+          Explore campaigns
+        </Link>
+      </div>
+    );
+  }
 
   const visible = all.slice(0, showMax);
   const hiddenCount = all.length - showMax;
@@ -102,10 +133,7 @@ export function ActiveCampaignsSection({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p
-          className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
+        <p className={FEED_CARD_EYEBROW_CLASS}>
           {heading}
         </p>
         {showSeeAll && all.length > 1 && (

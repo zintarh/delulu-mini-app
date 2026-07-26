@@ -56,8 +56,8 @@ export function BottomNav(_props: BottomNavProps = {}) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md shadow-[0_-6px_20px_rgba(26,26,25,0.06)]"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
       aria-label="Main navigation"
     >
         <div className="flex items-center justify-around h-14 px-1">

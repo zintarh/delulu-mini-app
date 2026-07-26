@@ -51,7 +51,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
   return (
     <Link
       href={href}
-      className="group block overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md hover:border-border"
+      className="group block overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-sm hover:border-border"
     >
       {/* Cover image with overlay title */}
       <div className="relative aspect-[4/1] overflow-hidden bg-delulu-blue-light/40">
@@ -182,7 +182,7 @@ export default function JoinedCampaignsPage() {
   );
 
   return (
-    <MainPage className="mx-auto max-w-2xl pb-24 lg:pb-8">
+    <MainPage className="mx-auto max-w-2xl pb-6 lg:pb-8">
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <h1
@@ -200,7 +200,7 @@ export default function JoinedCampaignsPage() {
           <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="mx-4 rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+        <div className="mx-4 rounded-2xl border border-dashed border-border bg-card shadow-sm px-6 py-14 text-center">
           <Target className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
           <p className="text-sm font-semibold text-foreground">No campaigns joined yet</p>
           <p className="mt-1 text-xs text-muted-foreground">

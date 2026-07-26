@@ -301,7 +301,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         <div className="divide-y divide-border/40">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3.5">
@@ -320,7 +320,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
 
   if (error) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card px-6 py-10 text-center">
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm px-6 py-10 text-center">
         <p className="text-sm font-semibold text-foreground">Couldn&apos;t load claims</p>
         <p className="mt-1 text-xs text-muted-foreground">{error}</p>
         <button
@@ -336,7 +336,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
 
   if (prizeItems.length === 0 && stakeItems.length === 0) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60">
             <Sparkles className="h-5 w-5 text-muted-foreground" />
@@ -367,7 +367,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
               Prizes from campaigns you placed in
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
             <div className="divide-y divide-border/40">
               {prizeItems.map((item) => (
                 <CampaignClaimRow
@@ -395,7 +395,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
               Join stakes returned after a campaign ended
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
             <div className="divide-y divide-border/40">
               {stakeItems.map((item) => (
                 <StakeReclaimRow

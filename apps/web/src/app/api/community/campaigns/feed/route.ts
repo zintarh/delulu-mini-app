@@ -25,9 +25,10 @@ import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 export const dynamic = "force-dynamic"; // address-specific, cannot be CDN-cached
 
 const DEFAULT_LIMIT = 6;
-const ONGOING_HOME_LIMIT = 6;
+const ONGOING_HOME_LIMIT = 3;
 const MAX_LIMIT = 20;
-const FETCH_BATCH = 40;
+/** Rank/filter window — keep small; home only needs ~3 cards. */
+const FETCH_BATCH = 18;
 
 // Campaigns this close to ending sink to the bottom of the ranked list —
 // promoting a nearly-over campaign on the home feed discourages new joins.
@@ -200,18 +201,24 @@ export async function GET(request: NextRequest) {
 
   // Discover: prefer joinable campaigns (milestones configured).
   let page: CampaignRow[] = [];
+  /** Reused for ongoing ranking + page enrichment — one subgraph round-trip. */
+  let rankingBatchStats: Map<
+    number,
+    { participantCount: number; milestoneCount: number }
+  > | null = null;
+
   if (section === "ongoing") {
     const onChainFiltered = filtered
       .map((row) => row.on_chain_challenge_id)
       .filter(isValidOnChainChallengeId);
-    const batchStats =
+    rankingBatchStats =
       onChainFiltered.length > 0
         ? await fetchBatchCampaignStats(onChainFiltered)
         : new Map();
 
     const joinable = filtered.filter((row) => {
       if (!isValidOnChainChallengeId(row.on_chain_challenge_id)) return false;
-      const graphCount = batchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0;
+      const graphCount = rankingBatchStats!.get(row.on_chain_challenge_id)?.milestoneCount ?? 0;
       return graphCount > 0;
     });
 
@@ -226,10 +233,10 @@ export async function GET(request: NextRequest) {
         if (aEndingSoon !== bEndingSoon) return aEndingSoon ? 1 : -1;
 
         const ap = isValidOnChainChallengeId(a.on_chain_challenge_id)
-          ? (batchStats.get(a.on_chain_challenge_id)?.participantCount ?? 0)
+          ? (rankingBatchStats!.get(a.on_chain_challenge_id)?.participantCount ?? 0)
           : 0;
         const bp = isValidOnChainChallengeId(b.on_chain_challenge_id)
-          ? (batchStats.get(b.on_chain_challenge_id)?.participantCount ?? 0)
+          ? (rankingBatchStats!.get(b.on_chain_challenge_id)?.participantCount ?? 0)
           : 0;
         return bp - ap || (b.created_at > a.created_at ? 1 : -1);
       });
@@ -247,17 +254,32 @@ export async function GET(request: NextRequest) {
     page = filtered.slice(0, limit);
   }
 
-  const dbMilestoneCountMap = await fetchDbMilestoneCounts(
-    admin,
-    page.map((row) => row.id),
-  );
   const pageOnChainIds = page
     .map((row) => row.on_chain_challenge_id)
     .filter(isValidOnChainChallengeId);
-  const pageBatchStats =
-    pageOnChainIds.length > 0
-      ? await fetchBatchCampaignStats(pageOnChainIds)
-      : new Map();
+
+  // Reuse ranking stats when every page id was already fetched; otherwise fetch page-only.
+  const needPageStats =
+    rankingBatchStats == null ||
+    pageOnChainIds.some((id) => !rankingBatchStats!.has(id));
+
+  const [dbMilestoneCountMap, pageBatchStats, avatarsByCampaign] = await Promise.all([
+    fetchDbMilestoneCounts(
+      admin,
+      page.map((row) => row.id),
+    ),
+    needPageStats
+      ? pageOnChainIds.length > 0
+        ? fetchBatchCampaignStats(pageOnChainIds)
+        : Promise.resolve(
+            new Map<number, { participantCount: number; milestoneCount: number }>(),
+          )
+      : Promise.resolve(rankingBatchStats!),
+    fetchCampaignParticipantAvatars(
+      admin,
+      page.map((row) => row.id),
+    ),
+  ]);
 
   const milestoneCounts = page.map((row) => {
     const dbCount = dbMilestoneCountMap.get(row.id) ?? 0;
@@ -267,26 +289,14 @@ export async function GET(request: NextRequest) {
     return mergeMilestoneCount(dbCount, graphCount);
   });
 
-  const graphMilestoneCounts = page.map((row) =>
-    isValidOnChainChallengeId(row.on_chain_challenge_id)
-      ? (pageBatchStats.get(row.on_chain_challenge_id)?.milestoneCount ?? 0)
-      : 0,
-  );
-
   const pageCountMap = new Map<string, number>();
   for (const [challengeId, stats] of pageBatchStats) {
     const campaignId = page.find((r) => r.on_chain_challenge_id === challengeId)?.id;
     if (campaignId) pageCountMap.set(campaignId, stats.participantCount);
   }
 
-  const avatarsByCampaign = await fetchCampaignParticipantAvatars(
-    admin,
-    page.map((row) => row.id),
-  );
-
   const campaigns = page.map((row, i) => {
     const isJoined = joinedCampaignIds.has(row.id);
-    const graphCount = graphMilestoneCounts[i] ?? 0;
     const count = milestoneCounts[i] ?? 0;
     const canJoin = isJoined
       ? false

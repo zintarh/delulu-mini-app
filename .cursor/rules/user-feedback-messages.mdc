@@ -1,0 +1,23 @@
+---
+description: Always surface success and error feedback to users for any action
+alwaysApply: true
+---
+
+# User-visible success and error messages
+
+Every user-facing action that can succeed or fail must communicate the outcome in the UI.
+
+## Required
+
+- On failure: show a clear, human-readable error (title + short reason when useful). Never fail silently, swallow errors without UI, or early-return without feedback.
+- On success: show confirmation when the user would otherwise be unsure the action worked (submit, create, upload, claim, stake, etc.).
+- Prefer existing patterns (`FeedbackModal`, inline error banners, toasts) over inventing a new channel.
+- Preserve specific server/AI reasons when they are already written for humans (e.g. proof rejection text). Do not replace them with a generic "Something went wrong" unless the raw message is technical.
+- Async handlers passed into modals must be `await`ed so the modal can leave loading state and display errors.
+- If a preconditions check blocks an action (missing wallet, missing id, wrong network), tell the user why.
+
+## Avoid
+
+- Empty `catch` blocks on user-triggered flows
+- `if (!ready) return;` without setting an error or disabling the control with an explanation
+- Clearing error state on close/retry without also handling the next failure

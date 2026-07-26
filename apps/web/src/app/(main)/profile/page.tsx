@@ -3,17 +3,21 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
-import { formatAddress } from "@/lib/utils";
-import { Copy, Check, Camera, Loader2 } from "lucide-react";
+import { formatAddress, cn } from "@/lib/utils";
+import { Copy, Check, Camera, Loader2, Star, Coins } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
-import { cn } from "@/lib/utils";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { OngoingMilestonesSection } from "@/components/ongoing-milestones-section";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { ProfileEndedCampaigns } from "@/components/profile/profile-ended-campaigns";
 import { ProfileForfeitSection } from "@/components/profile/profile-forfeit-section";
 import { MainPage } from "@/components/main-app-header";
+import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
+import {
+  formatEarnedUsdt,
+  useUserEarnedTotal,
+} from "@/hooks/use-earned-totals";
+import Link from "next/link";
 
 type TabType = "milestones" | "active" | "ended";
 
@@ -131,6 +135,9 @@ function ProfileHeader({
   const displayUsername = contractUsername || null;
   const pfpFromSupabase = usePfp(address);
   const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
+  const { points, isLoading: pointsLoading } = useUserTotalPoints(address ?? undefined);
+  const { totalEarned, isLoading: earnedLoading } = useUserEarnedTotal(address ?? undefined);
+  const hasEarned = totalEarned > 0;
 
   const handlePfpFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -235,6 +242,36 @@ function ProfileHeader({
               <Copy className="w-3 h-3" />
             )}
           </button>
+
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5 shadow-sm">
+              <Star className="h-3.5 w-3.5 fill-delulu-blue text-delulu-blue" />
+              <span className="text-xs font-black tabular-nums text-foreground">
+                {pointsLoading ? "—" : points.toLocaleString()}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                pts
+              </span>
+            </div>
+
+            <Link
+              href="/rewards"
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 shadow-sm transition-opacity active:opacity-70",
+                hasEarned
+                  ? "bg-emerald-500/10 text-emerald-700"
+                  : "border border-border/50 bg-card text-muted-foreground",
+              )}
+            >
+              <Coins className="h-3.5 w-3.5" />
+              <span className="text-xs font-black tabular-nums">
+                {earnedLoading ? "—" : formatEarnedUsdt(totalEarned)}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+                earned
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -245,22 +282,26 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
   return (
     <div>
       {activeTab === "milestones" && (
-        <div className="pb-24 lg:pb-8">
+        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:pb-8">
           {address ? (
-            <div className="mx-auto max-w-xl px-4 pt-6">
-              <ActiveCampaignsSection
-                address={address}
-                heading="Active campaigns"
-                showMax={10}
-              />
+            <ActiveCampaignsSection
+              address={address}
+              heading="Active campaigns"
+              showMax={10}
+              showEmpty
+            />
+          ) : (
+            <div className="flex flex-col items-center py-20 text-center">
+              <p className="text-sm text-muted-foreground">
+                Connect your wallet to see campaign milestones.
+              </p>
             </div>
-          ) : null}
-          <OngoingMilestonesSection address={address} />
+          )}
         </div>
       )}
 
       {activeTab === "active" && (
-        <div className="mx-auto max-w-xl px-4 pb-24 pt-6 lg:pb-8">
+        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:pb-8">
           {address ? (
             <ProfileForfeitSection address={address} />
           ) : (
@@ -274,7 +315,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
       )}
 
       {activeTab === "ended" && (
-        <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:pb-8">
+        <div className="mx-auto max-w-6xl px-4 pb-6 pt-6 lg:pb-8">
           {address ? (
             <ProfileEndedCampaigns address={address} />
           ) : (
@@ -290,7 +331,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
 
 function ProfileContentSkeleton() {
   return (
-    <div className="px-4 space-y-3 pb-24">
+    <div className="px-4 space-y-3 pb-6">
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="h-32 w-full animate-pulse rounded-2xl bg-muted/40" />
       ))}

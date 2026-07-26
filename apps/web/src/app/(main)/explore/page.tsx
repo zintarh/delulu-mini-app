@@ -11,7 +11,6 @@ import {
 } from "@/components/community/campaign-explore-card";
 import type { CampaignSearchResult } from "@/hooks/use-campaign-search";
 import { useAuth } from "@/hooks/use-auth";
-import { MOBILE_BOTTOM_NAV_CLEARANCE } from "@/components/main-app-header";
 import { cn } from "@/lib/utils";
 
 export default function CampaignsPage() {
@@ -91,8 +90,8 @@ export default function CampaignsPage() {
           className={cn(
             "mx-auto w-full px-4 sm:px-6 lg:px-8",
             isSearchMode
-              ? cn("max-w-[1600px] pt-6 lg:py-8", MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-8")
-              : cn("max-w-[1600px] pt-3 lg:pt-4", MOBILE_BOTTOM_NAV_CLEARANCE, "lg:pb-12"),
+              ? "max-w-[1600px] pt-6 pb-6 lg:py-8"
+              : "max-w-[1600px] pt-3 pb-6 lg:pt-4 lg:pb-12",
           )}
         >
           {!isSearchMode ? (
@@ -144,7 +143,7 @@ export default function CampaignsPage() {
                     {campaignResults.map((c) => (
                       <CampaignExploreCard
                         key={c.id}
-                        className="shadow-sm hover:shadow-md"
+                        className="shadow-sm hover:shadow-sm"
                         campaign={{
                           id: c.id,
                           title: c.title,

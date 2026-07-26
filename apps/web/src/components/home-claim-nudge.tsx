@@ -18,7 +18,7 @@ export function HomeClaimNudge() {
       type="button"
       onClick={() => void claimFromHome()}
       disabled={isClaiming}
-      className="w-full rounded-2xl border border-[#f6c324]/40 bg-gradient-to-r from-[#fffbeb] to-[#fffbeb]/50 px-3.5 py-3 text-left transition-colors hover:from-[#fff8dc] hover:to-[#fff8dc]/60 disabled:opacity-70"
+      className="w-full rounded-2xl border border-[#f6c324]/40 bg-gradient-to-r from-[#fffbeb] to-[#fffbeb]/50 px-3.5 py-3 text-left shadow-sm transition-colors hover:from-[#fff8dc] hover:to-[#fff8dc]/60 disabled:opacity-70"
     >
       <div className="flex items-center gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f6c324]/40 text-[#1a1a19]">

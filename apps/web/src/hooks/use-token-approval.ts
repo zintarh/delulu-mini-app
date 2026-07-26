@@ -32,8 +32,17 @@ const ERC20_ABI = [
   },
 ] as const;
 
-/** Per-market token approval. Pass the market's token address. */
-export function useTokenApproval(tokenAddress: string | undefined) {
+/**
+ * Per-market token approval. Pass the market's token address, and — critically —
+ * the spender that actually needs to pull the tokens (the contract calling
+ * safeTransferFrom). Defaults to the personal Delulu-v3 goals contract only for
+ * backward compatibility with call sites that genuinely target it; any other
+ * market (ForfeitMarket, CommunityMarketV1, ...) must pass its own address
+ * explicitly, or this checks/approves allowance for the wrong contract entirely —
+ * the approval "succeeds" but the actual market's transferFrom then reverts on
+ * insufficient allowance, since nothing was ever approved for it.
+ */
+export function useTokenApproval(tokenAddress: string | undefined, spenderAddress?: string) {
   const { address } = useAuth();
   const chainId = useChainId();
   const publicClient = usePublicClient();
@@ -46,7 +55,7 @@ export function useTokenApproval(tokenAddress: string | undefined) {
 
   const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
-  const contractAddress = getDeluluContractAddress(chainId);
+  const contractAddress = (spenderAddress as `0x${string}` | undefined) ?? getDeluluContractAddress(chainId);
 
   const { data: allowance, refetch: refetchAllowance, isLoading: isLoadingAllowance } = useReadContract({
     address: token,

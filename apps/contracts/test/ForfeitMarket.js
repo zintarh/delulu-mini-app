@@ -50,6 +50,9 @@ describe("ForfeitMarket", function () {
     await market.write.setApprovedCharity([charity.account.address, true], {
       account: owner.account,
     });
+    await market.write.setApprovedToken([token.address, true], {
+      account: owner.account,
+    });
 
     return {
       market,
@@ -149,11 +152,27 @@ describe("ForfeitMarket", function () {
       const balBefore = await token.read.balanceOf([creator.account.address]);
       await market.write.resolveCommitmentSuccess([0n], { account: friend.account });
       const balAfter = await token.read.balanceOf([creator.account.address]);
-      expect(balAfter).to.be.greaterThan(balBefore);
+      expect(balAfter - balBefore).to.equal(parseEther("100"));
     });
   });
 
   describe("friend-verify invite flow (friend not yet a user at creation)", function () {
+    it("rejects the creator resolving success while the invite is still pending", async function () {
+      const { market, token, creator } = await loadFixture(deployFixture);
+      const inviteCode = `0x${"33".repeat(32)}`;
+      const codeHash = keccak256(inviteCode);
+
+      await approveAndCreate(market, token, creator, { verifierInviteCodeHash: codeHash });
+
+      // Regression test: before the invite is accepted, `verifier` reads as
+      // address(0) exactly like true self-verify — the creator must not be able
+      // to exploit that to self-approve and bypass friend-verification entirely.
+      await assertRevert(
+        market.write.resolveCommitmentSuccess([0n], { account: creator.account }),
+        /VerifierInvitePending/,
+      );
+    });
+
     it("binds the invited wallet as verifier via acceptVerifierInvite", async function () {
       const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
       const inviteCode = `0x${"11".repeat(32)}`;
@@ -388,6 +407,159 @@ describe("ForfeitMarket", function () {
         ),
         /StakeBelowMinimum/,
       );
+    });
+  });
+
+  describe("token allowlist", function () {
+    it("rejects creating a commitment with a non-approved token", async function () {
+      const { market, creator } = await loadFixture(deployFixture);
+      const otherToken = await hre.viem.deployContract("MockERC20", ["Other", "OTH", 18]);
+      await otherToken.write.mint([creator.account.address, parseEther("1000")]);
+      await otherToken.write.approve([market.address, parseEther("100")], {
+        account: creator.account,
+      });
+      const deadline = BigInt(await time.latest()) + ONE_DAY;
+      await assertRevert(
+        market.write.createCommitment(
+          [
+            otherToken.address,
+            parseEther("100"),
+            DestinationType.SelfReturn,
+            zeroAddress,
+            Cadence.Once,
+            1,
+            0n,
+            deadline,
+            zeroAddress,
+            `0x${"00".repeat(32)}`,
+          ],
+          { account: creator.account },
+        ),
+        /TokenNotApproved/,
+      );
+    });
+  });
+
+  describe("pausing", function () {
+    it("blocks new commitments while paused, but not resolving an existing one", async function () {
+      const { market, token, owner, creator } = await loadFixture(deployFixture);
+      const { stakeAmount, deadline } = await approveAndCreate(market, token, creator);
+
+      await market.write.pause({ account: owner.account });
+
+      await token.write.approve([market.address, parseEther("100")], { account: creator.account });
+      await assertRevert(
+        market.write.createCommitment(
+          [
+            token.address,
+            parseEther("100"),
+            DestinationType.SelfReturn,
+            zeroAddress,
+            Cadence.Once,
+            1,
+            0n,
+            deadline + ONE_DAY,
+            zeroAddress,
+            `0x${"00".repeat(32)}`,
+          ],
+          { account: creator.account },
+        ),
+        /EnforcedPause/,
+      );
+
+      // Existing commitment can still be resolved normally while paused.
+      const balBefore = await token.read.balanceOf([creator.account.address]);
+      await market.write.resolveCommitmentSuccess([0n], { account: creator.account });
+      const balAfter = await token.read.balanceOf([creator.account.address]);
+      expect(balAfter - balBefore).to.equal(stakeAmount);
+    });
+
+    it("rejects a non-owner pausing", async function () {
+      const { market, creator } = await loadFixture(deployFixture);
+      await assertRevert(
+        market.write.pause({ account: creator.account }),
+        /OwnableUnauthorizedAccount/,
+      );
+    });
+  });
+
+  describe("revokeVerifierInvite", function () {
+    it("lets the creator rebind a hijacked/pending invite to a new verifier wallet", async function () {
+      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+      const inviteCode = `0x${"44".repeat(32)}`;
+      const codeHash = keccak256(inviteCode);
+      await approveAndCreate(market, token, creator, { verifierInviteCodeHash: codeHash });
+
+      // Someone other than the intended friend claims the role first (front-run).
+      await market.write.acceptVerifierInvite([0n, inviteCode], { account: stranger.account });
+      const [, , , , , , , , , , hijackedVerifier] = await market.read.commitments([0n]);
+      expect(hijackedVerifier.toLowerCase()).to.equal(stranger.account.address.toLowerCase());
+
+      // Creator rebinds directly to the friend's now-known wallet.
+      await market.write.revokeVerifierInvite(
+        [0n, friend.account.address, `0x${"00".repeat(32)}`],
+        { account: creator.account },
+      );
+      const [, , , , , , , , , , newVerifier] = await market.read.commitments([0n]);
+      expect(newVerifier.toLowerCase()).to.equal(friend.account.address.toLowerCase());
+
+      // The original hijacker can no longer act as verifier.
+      await assertRevert(
+        market.write.resolveCommitmentSuccess([0n], { account: stranger.account }),
+        /Unauthorized/,
+      );
+      // The friend now can.
+      await market.write.resolveCommitmentSuccess([0n], { account: friend.account });
+    });
+
+    it("rejects a non-creator revoking", async function () {
+      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, { verifier: friend.account.address });
+      await assertRevert(
+        market.write.revokeVerifierInvite(
+          [0n, stranger.account.address, `0x${"00".repeat(32)}`],
+          { account: stranger.account },
+        ),
+        /Unauthorized/,
+      );
+    });
+
+    it("cannot be used to downgrade a friend-verify commitment to self-verify", async function () {
+      const { market, token, creator, friend } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, { verifier: friend.account.address });
+      await assertRevert(
+        market.write.revokeVerifierInvite([0n, zeroAddress, `0x${"00".repeat(32)}`], {
+          account: creator.account,
+        }),
+        /InvalidInput/,
+      );
+    });
+  });
+
+  describe("forfeiture destination fallback", function () {
+    it("routes the remainder to the community pool if the Friend destination is blacklisted by the token", async function () {
+      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+      const { stakeAmount } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+      });
+      await token.write.setBlacklisted([friend.account.address, true]);
+      await time.increase(ONE_DAY + 1n);
+
+      const bounty = (stakeAmount * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
+      const fee = (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const remainder = stakeAmount - bounty - fee;
+
+      const keeperBalBefore = await token.read.balanceOf([stranger.account.address]);
+      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
+      // Must not revert even though the intended destination can't receive funds.
+      await market.write.resolveCommitmentForfeited([0n], { account: stranger.account });
+
+      expect(
+        (await token.read.balanceOf([stranger.account.address])) - keeperBalBefore,
+      ).to.equal(bounty);
+      expect(await token.read.balanceOf([friend.account.address])).to.equal(friendBalBefore);
+      expect(await market.read.communityPoolBalance([token.address])).to.equal(remainder);
     });
   });
 

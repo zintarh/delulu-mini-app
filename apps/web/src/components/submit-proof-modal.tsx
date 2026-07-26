@@ -10,7 +10,7 @@ type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confir
 interface SubmitProofModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (proofUrls: string[]) => void;
+  onSubmit: (proofUrls: string[]) => void | Promise<void>;
   proofType?: string | null;
   liveCameraDurationSeconds?: number | null;
   isSubmitting?: boolean;
@@ -36,7 +36,7 @@ interface SubmitProofModalProps {
 /**
  * Single entry point for "submit proof" anywhere in the app. Decides between
  * the screenshot flow, the live-camera flow, and a phone-required blocked
- * state, based on the campaign's proof_type — so every call site (campaign
+ * state, based on the campaign's proof_type, so every call site (campaign
  * detail page, home feed, etc.) behaves identically instead of each one
  * re-implementing this branch.
  */

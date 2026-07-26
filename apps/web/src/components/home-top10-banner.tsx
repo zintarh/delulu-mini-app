@@ -5,7 +5,7 @@ import { Trophy } from "lucide-react";
 
 export function HomeTop10Banner() {
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-[#D1E822] px-3.5 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="group relative overflow-hidden rounded-2xl bg-[#D1E822] px-3.5 py-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between ">
         <div className="relative flex items-start gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#244E1A]/10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">

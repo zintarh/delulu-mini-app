@@ -566,7 +566,7 @@ export function CreateManifestStep({
 
   return (
     <>
-      <div className="flex flex-1 min-h-0 flex-col overflow-y-auto scrollbar-hide pb-24 lg:pb-8">
+      <div className="flex flex-1 min-h-0 flex-col overflow-y-auto scrollbar-hide pb-6 lg:pb-8">
         <div className={cn(createFlowPx, createFlowPy)}>
           <div className={cn("flex flex-col lg:flex-row lg:items-start", createFlowGap, "lg:gap-10")}>
             <div className="w-full shrink-0 space-y-4 lg:sticky lg:top-4 lg:w-[300px]">

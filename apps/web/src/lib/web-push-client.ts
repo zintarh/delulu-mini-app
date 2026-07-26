@@ -61,6 +61,37 @@ function urlBase64ToUint8Array(base64String: string) {
   return bytes;
 }
 
+/**
+ * Wait briefly for the app SW to finish registering. On hard refresh the banner
+ * can race ServiceWorkerRegister and see `subscribed: false` even when push is on.
+ */
+async function waitForPushRegistration(
+  timeoutMs = 2500,
+): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const reg = await navigator.serviceWorker.getRegistration("/");
+    if (reg) {
+      try {
+        // Prefer an active worker when available; don't hang forever.
+        return await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<ServiceWorkerRegistration>((resolve) => {
+            window.setTimeout(() => resolve(reg), 1200);
+          }),
+        ]);
+      } catch {
+        return reg;
+      }
+    }
+    await new Promise((r) => window.setTimeout(r, 100));
+  }
+
+  return (await navigator.serviceWorker.getRegistration("/")) ?? null;
+}
+
 export async function getPushSupportState(): Promise<PushSupportState> {
   if (typeof window === "undefined") return { state: "unsupported" };
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -69,20 +100,19 @@ export async function getPushSupportState(): Promise<PushSupportState> {
   if (!("Notification" in window)) return { state: "unsupported" };
 
   const permission = Notification.permission;
-  const reg = await navigator.serviceWorker.getRegistration("/");
-  const sub = reg ? await reg.pushManager.getSubscription() : null;
-
   if (permission !== "granted") {
     return { state: "needs_permission", permission };
   }
+
+  const reg = await waitForPushRegistration();
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
   return { state: "ready", permission, subscribed: Boolean(sub) };
 }
 
 export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
-  const reg =
-    (await navigator.serviceWorker.getRegistration("/")) ??
-    (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
-  return reg;
+  const existing = await waitForPushRegistration(1500);
+  if (existing) return existing;
+  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
 export async function subscribeToWebPush(address: string): Promise<void> {

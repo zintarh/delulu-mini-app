@@ -18,7 +18,7 @@ export function DeluluLeaderboardSection({
         {leaderboard.map((entry) => (
           <div
             key={entry.address}
-            className="p-4 bg-card border border-border rounded-xl flex items-center justify-between"
+            className="p-4 bg-card border border-border rounded-xl shadow-sm flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-delulu-yellow-reserved rounded-full flex items-center justify-center font-black text-delulu-charcoal">

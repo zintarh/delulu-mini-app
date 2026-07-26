@@ -207,7 +207,7 @@ export default function SettingsPage() {
               <section>
                 <SectionLabel>Balances</SectionLabel>
                 <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                  <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5 flex items-center gap-2.5">
+                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
                     <img
                       src="/celo.png"
                       alt=""
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-border/50 bg-card px-3.5 py-3.5 flex items-center gap-2.5">
+                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
                     <TokenBadge
                       tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
                       size="sm"
@@ -253,7 +253,7 @@ export default function SettingsPage() {
               {/* More */}
               <section>
                 <SectionLabel>More</SectionLabel>
-                <div className="mt-2.5 rounded-2xl border border-border/50 bg-card divide-y divide-border/40 overflow-hidden">
+                <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40 overflow-hidden">
                   <LinkRow
                     icon={<Wallet className="w-4 h-4" />}
                     title="Rewards"
@@ -292,7 +292,7 @@ export default function SettingsPage() {
               {pushState && pushState.state !== "unsupported" ? (
                 <section>
                   <SectionLabel>Notifications</SectionLabel>
-                  <div className="mt-2.5 rounded-2xl border border-border/50 bg-card p-4">
+                  <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm p-4">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground shrink-0">
                         {pushState.state === "ready" && pushState.subscribed ? (

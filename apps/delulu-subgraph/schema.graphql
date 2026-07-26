@@ -4,7 +4,7 @@ type User @entity(immutable: false) {
   totalStaked: BigInt! # Total amount user has staked across all delulus
   username: String # Username set via ProfileUpdated event
   metadataHash: String # IPFS CID for encrypted metadata (deprecated in v2, kept for compatibility)
-  deluluPoints: BigInt! # Points earned from milestones and challenges
+  deluluPoints: BigInt! # Points earned from milestones, challenges, and forfeit proof resolutions
   
   # Reverse lookups
   delulus: [Delulu!]! @derivedFrom(field: "creator")
@@ -293,6 +293,7 @@ type ForfeitPeriodResolution @entity(immutable: true) {
   periodIndex: Int!
   outcome: String! # "success" | "forfeited"
   resolver: Bytes! # creator/verifier on success, keeper on forfeiture
+  pointsAwarded: BigInt # success only — added to the creator's User.deluluPoints
   bountyPaid: BigInt # forfeiture only
   platformFee: BigInt # forfeiture only
   destinationType: Int # forfeiture only

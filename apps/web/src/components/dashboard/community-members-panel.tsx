@@ -220,7 +220,7 @@ export function CommunityMembersPanel({ communityId }: { communityId: string }) 
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+    <div className="rounded-xl border border-border bg-card shadow-sm px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-lg font-black tabular-nums text-foreground">{value}</p>
     </div>

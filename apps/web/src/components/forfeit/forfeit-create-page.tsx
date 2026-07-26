@@ -1,22 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { parseUnits } from "viem";
 import {
   Activity,
   Camera,
   Check,
   ChevronDown,
-  ChevronRight,
   Clock,
-  HeartPulse,
   Image as ImageIcon,
   Loader2,
   MapPin,
   ShieldCheck,
-  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -26,85 +23,64 @@ import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenMetadata } from "@/hooks/use-token-metadata";
+import { getForfeitMarketAddress } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   ForfeitCadence,
   ForfeitDestinationType,
   generateVerifierInviteCode,
   useCreateForfeitCommitment,
 } from "@/hooks/use-create-forfeit-commitment";
+import {
+  clearPendingForfeitConfirm,
+  ensurePendingForfeitConfirmed,
+  readPendingForfeitConfirm,
+  writePendingForfeitConfirm,
+  type PendingForfeitConfirm,
+} from "@/lib/forfeit/pending-forfeit-confirm";
+import {
+  FORFEIT_DEADLINE_PRESETS,
+  addDays,
+  deadlineFromPreset,
+  endOfDay,
+  scheduleFromDeadline,
+  startOfDay,
+} from "@/lib/forfeit/forfeit-schedule";
 
-/** No charity-picker UI exists yet — v1 ships with a single owner-approved default
- * charity address (see ForfeitMarket.sol's approvedCharities allowlist). */
-const DEFAULT_CHARITY_ADDRESS = process.env.NEXT_PUBLIC_FORFEIT_DEFAULT_CHARITY as
-  | `0x${string}`
-  | undefined;
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const CLASH = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
 
-const DEADLINE_PRESETS = [
-  "Anytime tomorrow",
-  "Tonight",
-  "End of week",
-  "In 3 days",
-] as const;
-
-function startOfDay(date: Date) {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function endOfDay(date: Date) {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
-  return next;
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
+const DEADLINE_PRESETS = FORFEIT_DEADLINE_PRESETS;
 
 function formatAnytimeLabel(date: Date) {
   const today = startOfDay(new Date());
   const target = startOfDay(date);
   const tomorrow = addDays(today, 1);
-  if (target.getTime() === today.getTime()) return "Anytime today";
-  if (target.getTime() === tomorrow.getTime()) return "Anytime tomorrow";
-  return `Anytime ${date.toLocaleDateString(undefined, {
+  const in3 = addDays(today, 2);
+  const in7 = addDays(today, 6);
+  if (target.getTime() === today.getTime()) return "Today";
+  if (target.getTime() === tomorrow.getTime()) return "Tomorrow";
+  if (target.getTime() === in3.getTime()) return "3 days";
+  if (target.getTime() === in7.getTime()) return "7 days";
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year:
       date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
-  })}`;
+  });
 }
 
-function deadlineFromPreset(preset: (typeof DEADLINE_PRESETS)[number]) {
-  const today = new Date();
-  switch (preset) {
-    case "Tonight":
-      return endOfDay(today);
-    case "Anytime tomorrow":
-      return endOfDay(addDays(today, 1));
-    case "End of week": {
-      const day = today.getDay();
-      const daysUntilSunday = day === 0 ? 0 : 7 - day;
-      return endOfDay(addDays(today, daysUntilSunday));
-    }
-    case "In 3 days":
-      return endOfDay(addDays(today, 3));
-    default:
-      return endOfDay(addDays(today, 1));
-  }
+function normalizeEvidenceTypeForApi(evidenceId: string): string {
+  if (evidenceId === "gps-checkin") return "gps";
+  if (evidenceId === "self") return "photo";
+  return evidenceId;
 }
-
-type ForfeitMode = "once" | "repeat";
 
 type EvidenceType = {
   id: string;
@@ -144,16 +120,6 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     placeholder: "Finishing a 20-minute workout",
   },
   {
-    id: "timelapse",
-    title: "Timelapse",
-    description: "Record a short timelapse of you doing the task.",
-    icon: Video,
-    sentencePrefix: "I'll send a",
-    pillLabel: "timelapse",
-    sentenceSuffix: "of",
-    placeholder: "Studying for 1 hour",
-  },
-  {
     id: "self",
     title: "Self verify",
     description: "Honestly confirm completion yourself. Trust-based, no time limit.",
@@ -186,17 +152,6 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     placeholder: "A 30-minute run",
     comingSoon: true,
   },
-  {
-    id: "google-health",
-    title: "Google Health",
-    description: "Pull step count or workout data from Google Fit / Health Connect.",
-    icon: HeartPulse,
-    sentencePrefix: "I'll hit my",
-    pillLabel: "Google Health",
-    sentenceSuffix: "goal of",
-    placeholder: "8,000 steps today",
-    comingSoon: true,
-  },
 ];
 
 const PENALTY_AMOUNT_PRESETS = [100, 250, 500, 1000] as const;
@@ -204,9 +159,10 @@ const PENALTY_AMOUNT_PRESETS = [100, 250, 500, 1000] as const;
 const FORFEIT_DESTINATIONS = [
   {
     id: "charity",
-    label: "a charity",
+    label: "charity",
     title: "Charity",
-    description: "If you miss it, your stake is donated to a verified charity.",
+    description:
+      "If you miss it, your stake is held in the Delulu pool earmarked for charity, until direct charity payouts are supported.",
   },
   {
     id: "friend",
@@ -224,32 +180,35 @@ const FORFEIT_DESTINATIONS = [
 
 type ForfeitDestinationId = (typeof FORFEIT_DESTINATIONS)[number]["id"];
 
+// "Charity" is routed to the same on-chain CommunityPool mechanism as "Delulu"
+// for now — CommunityPool is the only destination type the contract escrows
+// internally (communityPoolBalance) rather than requiring an approved external
+// payout address, so charity forfeits can go live without picking a real charity
+// wallet yet. The two are only distinguished off-chain, via is_charity_intent on
+// the forfeit_commitments row (see confirm-create) — otherwise the pooled funds
+// would be indistinguishable once mixed together on-chain.
 const DESTINATION_TYPE_BY_ID: Record<ForfeitDestinationId, number> = {
-  charity: ForfeitDestinationType.Charity,
+  charity: ForfeitDestinationType.CommunityPool,
   friend: ForfeitDestinationType.Friend,
   delulu: ForfeitDestinationType.CommunityPool,
 };
 
-/** Approximate seconds per on-chain period for each repeat cadence. "Weekday" still
- * advances a fixed 24h period on-chain — skipping weekends is a display/reminder
- * concern the UI and reminder cron handle, not something ForfeitMarket.sol tracks. */
-const PERIOD_SECONDS_BY_CADENCE: Record<(typeof REPEAT_EVERY)[number], number> = {
-  day: 86400,
-  weekday: 86400,
-  week: 604800,
-  month: 2592000,
-};
+const REPEAT_EVERY = ["day", "weekday", "week"] as const;
+
+const REPEAT_EVERY_OPTIONS: ReadonlyArray<{
+  id: (typeof REPEAT_EVERY)[number];
+  label: string;
+}> = [
+  { id: "day", label: "every day" },
+  { id: "weekday", label: "every weekday" },
+  { id: "week", label: "every week" },
+];
 
 const CADENCE_BY_REPEAT: Record<(typeof REPEAT_EVERY)[number], number> = {
   day: ForfeitCadence.Daily,
   weekday: ForfeitCadence.Weekday,
   week: ForfeitCadence.Weekly,
-  month: ForfeitCadence.Monthly,
 };
-
-/** No end-date picker exists yet for repeating commitments, and the contract requires
- * a bounded totalPeriods (no true "forever"). ~1 year at the fastest (daily) cadence. */
-const DEFAULT_REPEAT_TOTAL_PERIODS = 365;
 
 const ADDITIONAL_OPTIONS: ReadonlyArray<{
   id: string;
@@ -257,16 +216,12 @@ const ADDITIONAL_OPTIONS: ReadonlyArray<{
   excludeEvidence: readonly string[];
 }> = [
   {
-    id: "private",
-    label: "Private forfeit (only you can see it)",
-    /** Evidence types where this option does not apply */
-    excludeEvidence: [],
-  },
-  {
     id: "remind",
     label: "Remind me 1 hour before deadline",
-    // Self-verify has no time pressure / deadline reminders.
-    excludeEvidence: ["self"],
+    // Self-verify still has the same on-chain deadline as any other commitment
+    // (miss it and it forfeits, same as everyone else) — if anything, self-verify
+    // needs the reminder more, since there's no friend around to nudge you.
+    excludeEvidence: [],
   },
   {
     id: "friend-verifier",
@@ -275,8 +230,6 @@ const ADDITIONAL_OPTIONS: ReadonlyArray<{
     excludeEvidence: ["self"],
   },
 ];
-
-const REPEAT_EVERY = ["day", "weekday", "week", "month"] as const;
 
 function PillButton({
   children,
@@ -391,43 +344,87 @@ function SheetListRow({
 }
 
 export function ForfeitCreatePage() {
-  const [mode, setMode] = useState<ForfeitMode>("once");
+  // Defaults to repeating — an ongoing accountability habit is the more common
+  // case for this app; a one-time forfeit is the thing you opt into via the toggle.
+  const [isRepeat, setIsRepeat] = useState(true);
   const [evidenceId, setEvidenceId] = useState("photo");
   const [description, setDescription] = useState("");
   const [deadlineDate, setDeadlineDate] = useState<Date>(() =>
-    endOfDay(addDays(new Date(), 1)),
+    endOfDay(addDays(new Date(), 6)),
   );
-  const [deadlineLabel, setDeadlineLabel] = useState<string>("Anytime tomorrow");
+  const [deadlineLabel, setDeadlineLabel] = useState<string>("7 days");
   const [submitAnytime, setSubmitAnytime] = useState(true);
   const minDeadlineDate = useMemo(() => startOfDay(new Date()), []);
   const [repeatEvery, setRepeatEvery] = useState<(typeof REPEAT_EVERY)[number]>("day");
-  const [repeatFrom, setRepeatFrom] = useState("Tomorrow");
   const [forfeitAmount, setForfeitAmount] = useState(100);
   const [amountDraft, setAmountDraft] = useState("100");
-  const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("charity");
+  // Neutral default — "charity" shouldn't be silently pre-selected for anyone
+  // who never opens the destination picker; that's an intent worth an explicit choice.
+  const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("delulu");
   const [destinationFriendAddress, setDestinationFriendAddress] = useState("");
+  const [destinationFriendQuery, setDestinationFriendQuery] = useState("");
+  const [destinationFriend, setDestinationFriend] = useState<{
+    address: `0x${string}`;
+    username: string | null;
+    email: string | null;
+    pfpUrl: string | null;
+  } | null>(null);
+  const [destinationSearchResults, setDestinationSearchResults] = useState<
+    Array<{
+      address: string;
+      username: string | null;
+      email: string | null;
+      hasRealEmail: boolean;
+      pfpUrl: string | null;
+    }>
+  >([]);
+  const [destinationSearchLoading, setDestinationSearchLoading] = useState(false);
 
   const supportedTokens = useSupportedTokens();
   const [selectedToken, setSelectedToken] = useState<string>(
     () => supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "",
   );
 
-  const [isPrivate, setIsPrivate] = useState(false);
   const [remindEnabled, setRemindEnabled] = useState(true);
   const [friendVerifierEnabled, setFriendVerifierEnabled] = useState(false);
   const [verifierUsername, setVerifierUsername] = useState("");
   const [verifierEmail, setVerifierEmail] = useState("");
+  const [resolvedVerifier, setResolvedVerifier] = useState<{
+    address: `0x${string}`;
+    username: string | null;
+    email: string | null;
+    hasRealEmail: boolean;
+    pfpUrl: string | null;
+  } | null>(null);
+  const [friendSearchResults, setFriendSearchResults] = useState<
+    Array<{
+      address: string;
+      username: string | null;
+      email: string | null;
+      hasRealEmail: boolean;
+      pfpUrl: string | null;
+    }>
+  >([]);
+  const [friendSearchLoading, setFriendSearchLoading] = useState(false);
 
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [deadlineOpen, setDeadlineOpen] = useState(false);
   const [everyOpen, setEveryOpen] = useState(false);
-  const [fromOpen, setFromOpen] = useState(false);
   const [amountOpen, setAmountOpen] = useState(false);
   const [destinationOpen, setDestinationOpen] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  // Resolved lazily (not thrown at render time) so a missing env var surfaces as
+  // a normal submit-time error instead of crashing the whole page.
+  const forfeitMarketAddress = useMemo(() => {
+    try {
+      return getForfeitMarketAddress(chainId);
+    } catch {
+      return undefined;
+    }
+  }, [chainId]);
   const { createCommitmentAndWait, isPending: isCreating } = useCreateForfeitCommitment();
   const {
     approve,
@@ -435,7 +432,7 @@ export function ForfeitCreatePage() {
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
-  } = useTokenApproval(selectedToken);
+  } = useTokenApproval(selectedToken, forfeitMarketAddress);
   const selectedTokenBalance = useTokenBalance(selectedToken);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -453,12 +450,148 @@ export function ForfeitCreatePage() {
     [evidenceId],
   );
 
+  // Self-verify clears friend-verifier state so it doesn't leak into submit —
+  // reminders stay available, since self-verify has the same real deadline.
+  useEffect(() => {
+    if (evidenceId !== "self") return;
+    setFriendVerifierEnabled(false);
+    setResolvedVerifier(null);
+    setVerifierUsername("");
+    setVerifierEmail("");
+  }, [evidenceId]);
+
   const { decimals: selectedTokenDecimals } = useTokenMetadata(selectedToken);
   const selectedTokenSymbol =
     supportedTokens.find((t) => t.address === selectedToken)?.symbol ?? "";
 
   const verificationMethod: "self" | "friend" | "ai" =
     evidenceId === "self" ? "self" : friendVerifierEnabled ? "friend" : "ai";
+
+  // Conflict of interest: if your verifier is also who your stake goes to on a
+  // miss, they're financially better off never approving your proof. Not blocked
+  // outright — just surfaced, since it may be an intentional/trusted choice.
+  const verifierIsDestinationFriend =
+    destinationId === "friend" &&
+    !!destinationFriend &&
+    !!resolvedVerifier &&
+    destinationFriend.address.toLowerCase() === resolvedVerifier.address.toLowerCase();
+
+  // Resolved-but-no-real-email-on-file uses the small dedicated `verifierEmail`
+  // follow-up field. Unresolved (invite) has no separate email field anymore —
+  // the single search box doubles as the invite address whenever what's typed
+  // there looks like an email instead of a username.
+  const friendEmailValid = EMAIL_RE.test(verifierEmail.trim());
+  const friendInviteEmail = resolvedVerifier ? verifierEmail.trim() : verifierUsername.trim();
+  const friendVerifierReady = resolvedVerifier
+    ? resolvedVerifier.hasRealEmail || friendEmailValid
+    : EMAIL_RE.test(verifierUsername.trim());
+
+  // Live search-as-you-type for an existing registered user to tag directly.
+  useEffect(() => {
+    if (resolvedVerifier) return;
+    const query = verifierUsername.trim();
+    if (query.length < 2) {
+      setFriendSearchResults([]);
+      setFriendSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const ctrl = new AbortController();
+    setFriendSearchLoading(true);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ q: query });
+      if (address) params.set("excludeAddress", address);
+      fetch(`/api/forfeit/lookup-friend?${params}`, { signal: ctrl.signal })
+        .then((res) => res.json())
+        .then((json) => {
+          if (cancelled) return;
+          setFriendSearchResults(json.results ?? []);
+        })
+        .catch((err) => {
+          if (cancelled || err?.name === "AbortError") return;
+          setFriendSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setFriendSearchLoading(false);
+        });
+    }, 150);
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+  }, [verifierUsername, resolvedVerifier, address]);
+
+  // Live search for "forfeit to a friend" — only resolves to an existing Delulu
+  // user (username or email); a raw wallet address is never a valid destination
+  // pick here, since anyone can paste any address and this must stay a picker
+  // over real registered accounts.
+  useEffect(() => {
+    if (destinationId !== "friend" || destinationFriend) return;
+    const query = destinationFriendQuery.trim();
+    if (query.length < 2 || ADDRESS_RE.test(query)) {
+      setDestinationSearchResults([]);
+      setDestinationSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const ctrl = new AbortController();
+    setDestinationSearchLoading(true);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ q: query });
+      if (address) params.set("excludeAddress", address);
+      fetch(`/api/forfeit/lookup-friend?${params}`, { signal: ctrl.signal })
+        .then((res) => res.json())
+        .then((json) => {
+          if (cancelled) return;
+          setDestinationSearchResults(json.results ?? []);
+        })
+        .catch((err) => {
+          if (cancelled || err?.name === "AbortError") return;
+          setDestinationSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setDestinationSearchLoading(false);
+        });
+    }, 150);
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+  }, [destinationFriendQuery, destinationFriend, destinationId, address]);
+
+  const selectDestinationFriend = (friend: {
+    address: string;
+    username: string | null;
+    email: string | null;
+    pfpUrl?: string | null;
+  }) => {
+    const addr = friend.address as `0x${string}`;
+    setDestinationFriendAddress(addr);
+    setDestinationFriend({
+      address: addr,
+      username: friend.username,
+      email: friend.email,
+      pfpUrl: friend.pfpUrl ?? null,
+    });
+    setDestinationFriendQuery("");
+    setDestinationSearchResults([]);
+  };
+
+  const clearDestinationFriend = () => {
+    setDestinationFriend(null);
+    setDestinationFriendAddress("");
+    setDestinationFriendQuery("");
+    setDestinationSearchResults([]);
+  };
+
+  const destinationPillLabel =
+    destinationId === "friend" && destinationFriend?.username
+      ? `@${destinationFriend.username}`
+      : destinationId === "friend" && destinationFriendAddress
+        ? `${destinationFriendAddress.slice(0, 6)}…${destinationFriendAddress.slice(-4)}`
+        : destination.label;
 
   const hasInsufficientBalance =
     isConnected && !selectedTokenBalance.isLoading
@@ -471,13 +604,12 @@ export function ForfeitCreatePage() {
     !!selectedToken &&
     !hasInsufficientBalance &&
     (destinationId !== "friend" || ADDRESS_RE.test(destinationFriendAddress.trim())) &&
-    (verificationMethod !== "friend" || verifierEmail.trim().length > 3) &&
-    (destinationId !== "charity" || !!DEFAULT_CHARITY_ADDRESS);
+    (verificationMethod !== "friend" || friendVerifierReady);
   const amountLabel = `${forfeitAmount.toLocaleString()} ${selectedTokenSymbol}`;
-  const placeholder =
-    mode === "repeat" && evidenceId === "photo"
-      ? "Meditate for 10 minutes"
-      : evidence.placeholder;
+  const placeholder = evidence.placeholder;
+
+  const repeatEveryLabel =
+    REPEAT_EVERY_OPTIONS.find((o) => o.id === repeatEvery)?.label ?? "every day";
 
   const openAmountSheet = () => {
     setAmountDraft(String(forfeitAmount));
@@ -492,9 +624,141 @@ export function ForfeitCreatePage() {
   };
 
   const [showSuccess, setShowSuccess] = useState(false);
+  // Survives refresh. Once the stake lands we persist + show success immediately;
+  // DB confirm runs silently in the background so users never feel money is "gone".
+  const resumeStartedRef = useRef(false);
+
+  /** Restore every field to the same defaults as a fresh visit. */
+  const resetFormToDefaults = () => {
+    setIsRepeat(true);
+    setEvidenceId("photo");
+    setDescription("");
+    setDeadlineDate(endOfDay(addDays(new Date(), 6)));
+    setDeadlineLabel("7 days");
+    setSubmitAnytime(true);
+    setRepeatEvery("day");
+    setForfeitAmount(100);
+    setAmountDraft("100");
+    setDestinationId("delulu");
+    setDestinationFriendAddress("");
+    setDestinationFriendQuery("");
+    setDestinationFriend(null);
+    setDestinationSearchResults([]);
+    setDestinationSearchLoading(false);
+    setSelectedToken(
+      supportedTokens.find((t) => t.symbol === "G$")?.address ??
+        supportedTokens[0]?.address ??
+        "",
+    );
+    setRemindEnabled(true);
+    setFriendVerifierEnabled(false);
+    setVerifierUsername("");
+    setVerifierEmail("");
+    setResolvedVerifier(null);
+    setFriendSearchResults([]);
+    setFriendSearchLoading(false);
+    setEvidenceOpen(false);
+    setDeadlineOpen(false);
+    setEveryOpen(false);
+    setAmountOpen(false);
+    setDestinationOpen(false);
+    setSubmitError(null);
+    setIsSubmitting(false);
+  };
+
+  const buildConfirmPayload = (
+    txHash: `0x${string}`,
+    plaintextInviteCode: `0x${string}` | undefined,
+    stakeAmountWei: bigint,
+    schedule: {
+      firstDeadline: number;
+      totalPeriods: number;
+      cadence: number;
+      periodSeconds: number | undefined;
+    },
+  ): PendingForfeitConfirm => {
+    const resolvedFriendEmail =
+      resolvedVerifier?.hasRealEmail && resolvedVerifier.email
+        ? resolvedVerifier.email
+        : friendInviteEmail || null;
+
+    return {
+      txHash,
+      plaintextInviteCode,
+      walletAddress: (address ?? "").toLowerCase(),
+      title: description.trim().slice(0, 100) || "Forfeit",
+      description: description.trim() || "Forfeit",
+      evidenceType: normalizeEvidenceTypeForApi(evidenceId),
+      verificationMethod,
+      remindEnabled,
+      verifierUsername:
+        verificationMethod === "friend"
+          ? (resolvedVerifier?.username ??
+              (EMAIL_RE.test(verifierUsername.trim()) ? null : verifierUsername.trim())) ||
+            null
+          : null,
+      verifierEmail: verificationMethod === "friend" ? resolvedFriendEmail : null,
+      isCharityIntent: destinationId === "charity",
+      destinationFriendUsername:
+        destinationId === "friend"
+          ? destinationFriend?.username?.trim() ||
+            (EMAIL_RE.test(destinationFriendQuery.trim())
+              ? null
+              : destinationFriendQuery.trim().replace(/^@/, "") || null)
+          : null,
+      destinationFriendEmail:
+        destinationId === "friend"
+          ? destinationFriend?.email?.trim() ||
+            (EMAIL_RE.test(destinationFriendQuery.trim())
+              ? destinationFriendQuery.trim()
+              : null)
+          : null,
+      stakeAmountWei: stakeAmountWei.toString(),
+      token: (selectedToken ?? "").toLowerCase(),
+      destinationType: DESTINATION_TYPE_BY_ID[destinationId],
+      destinationAddr:
+        destinationId === "friend"
+          ? destinationFriendAddress.trim().toLowerCase()
+          : null,
+      firstDeadline: schedule.firstDeadline,
+      totalPeriods: schedule.totalPeriods,
+      cadence: schedule.cadence,
+      periodSeconds: schedule.periodSeconds ?? 86_400,
+      savedAt: Date.now(),
+    };
+  };
+
+  /** Fire-and-forget: keep confirming until the row exists. Never blocks success UI. */
+  const syncPendingInBackground = (pending: PendingForfeitConfirm) => {
+    void ensurePendingForfeitConfirmed(pending).then((ok) => {
+      if (ok) clearPendingForfeitConfirm();
+    });
+  };
+
+  // If they refresh mid-sync: celebrate immediately (stake is already locked) and
+  // finish the quiet DB save — never ask them to create again.
+  useEffect(() => {
+    if (!address || resumeStartedRef.current) return;
+    const stored = readPendingForfeitConfirm(address);
+    if (!stored) return;
+
+    resumeStartedRef.current = true;
+    resetFormToDefaults();
+    setShowSuccess(true);
+    syncPendingInBackground(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   const handleSubmit = async () => {
     if (isSubmitting || isCreating || isApproving || isApprovingConfirming) return;
+    // Never open a second stake while a previous one still needs indexing.
+    if (address && readPendingForfeitConfirm(address)) {
+      resetFormToDefaults();
+      setShowSuccess(true);
+      const stored = readPendingForfeitConfirm(address);
+      if (stored) syncPendingInBackground(stored);
+      return;
+    }
     setSubmitError(null);
 
     try {
@@ -509,23 +773,21 @@ export function ForfeitCreatePage() {
 
       let verifierInviteCodeHash: `0x${string}` | undefined;
       let plaintextInviteCode: `0x${string}` | undefined;
-      if (verificationMethod === "friend") {
+      if (verificationMethod === "friend" && !resolvedVerifier) {
         const invite = generateVerifierInviteCode();
         verifierInviteCodeHash = invite.hash;
         plaintextInviteCode = invite.code;
       }
 
-      const cadence = mode === "once" ? ForfeitCadence.Once : CADENCE_BY_REPEAT[repeatEvery];
-      const periodSeconds = mode === "once" ? undefined : PERIOD_SECONDS_BY_CADENCE[repeatEvery];
-      const totalPeriods = mode === "once" ? 1 : DEFAULT_REPEAT_TOTAL_PERIODS;
-      const firstDeadline = Math.floor(deadlineDate.getTime() / 1000);
+      const schedule = scheduleFromDeadline({
+        deadlineDate,
+        isRepeat,
+        repeatEvery,
+        cadenceByRepeat: CADENCE_BY_REPEAT,
+      });
 
       const destinationAddr =
-        destinationId === "friend"
-          ? (destinationFriendAddress.trim() as `0x${string}`)
-          : destinationId === "charity"
-            ? DEFAULT_CHARITY_ADDRESS
-            : undefined;
+        destinationId === "friend" ? (destinationFriendAddress.trim() as `0x${string}`) : undefined;
 
       const stakeAmountWei = parseUnits(forfeitAmount.toString(), selectedTokenDecimals ?? 18);
 
@@ -534,39 +796,27 @@ export function ForfeitCreatePage() {
         stakeAmountWei,
         destinationType: DESTINATION_TYPE_BY_ID[destinationId],
         destinationAddr,
-        cadence,
-        periodSeconds,
-        totalPeriods,
-        firstDeadline,
+        cadence: schedule.cadence,
+        periodSeconds: schedule.periodSeconds,
+        totalPeriods: schedule.totalPeriods,
+        firstDeadline: schedule.firstDeadline,
+        verifier: resolvedVerifier?.address,
         verifierInviteCodeHash,
       });
 
-      const res = await fetch("/api/forfeit/confirm-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          txHash,
-          walletAddress: address,
-          title: description.trim().slice(0, 100),
-          description: description.trim(),
-          evidenceType: evidenceId,
-          verificationMethod,
-          isPrivate,
-          remindEnabled,
-          verifierUsername: verificationMethod === "friend" ? verifierUsername.trim() || null : null,
-          verifierEmail: verificationMethod === "friend" ? verifierEmail.trim() : null,
-          verifierInviteCode: plaintextInviteCode ?? null,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error || "Commitment created on-chain, but saving details failed");
-      }
-
+      // Stake is locked — success for the user starts here. DB sync is background.
+      const pending = buildConfirmPayload(
+        txHash,
+        plaintextInviteCode,
+        stakeAmountWei,
+        schedule,
+      );
+      writePendingForfeitConfirm(pending);
+      resetFormToDefaults();
       setShowSuccess(true);
+      syncPendingInBackground(pending);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Failed to create forfeit");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -578,32 +828,13 @@ export function ForfeitCreatePage() {
       <DeluluDetailHeader shareSlot={null} />
 
       <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden lg:max-w-2xl">
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-6 scrollbar-hide lg:px-8 lg:pt-8">
-        {/* Once / Repeat tabs */}
-        <div className="mx-auto mb-7 flex w-full max-w-xs rounded-full border border-border bg-muted p-1">
-          {(
-            [
-              { id: "once", label: "Once" },
-              { id: "repeat", label: "Repeat" },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setMode(tab.id)}
-              aria-pressed={mode === tab.id}
-              className={cn(
-                "flex-1 rounded-full py-2.5 text-sm font-bold transition-all",
-                mode === tab.id
-                  ? "bg-delulu-blue text-white shadow-sm"
-                  : "bg-transparent text-muted-foreground hover:text-foreground",
-              )}
-              style={MANROPE}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-6 scrollbar-hide lg:px-8 lg:pb-8 lg:pt-8">
+        <p
+          className="mb-5 text-lg font-black tracking-tight text-foreground sm:text-xl"
+          style={CLASH}
+        >
+          Create a forfeit
+        </p>
 
         {/* Sentence form */}
         <div className="space-y-4">
@@ -623,56 +854,296 @@ export function ForfeitCreatePage() {
             className="w-full resize-none rounded-2xl border border-border/60 bg-card px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
             style={MANROPE}
           />
-
-          {mode === "once" ? (
-            <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
-              Before{" "}
-              <button
-                type="button"
-                onClick={() => setDeadlineOpen(true)}
-                className="inline-flex items-center rounded-xl bg-muted px-3 py-1.5 text-sm font-bold text-delulu-blue transition-colors hover:bg-muted/80"
-                style={MANROPE}
-              >
-                {deadlineLabel}
-              </button>
+          {description.length > 0 && description.trim().length < 3 ? (
+            <p className="-mt-2 text-xs text-amber-600" style={MANROPE}>
+              Add a few more words so your verifier knows what to check.
             </p>
-          ) : (
-            <div className="space-y-3.5">
-              <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
-                Before{" "}
-                <PillButton onClick={() => setDeadlineOpen(true)}>midnight</PillButton>
-              </p>
-              <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
-                Every{" "}
-                <PillButton onClick={() => setEveryOpen(true)}>{repeatEvery}</PillButton>
-              </p>
-              <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
-                From{" "}
-                <PillButton onClick={() => setFromOpen(true)}>{repeatFrom}</PillButton>
-              </p>
-            </div>
-          )}
+          ) : null}
+
+          <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
+            Duration{" "}
+            <PillButton onClick={() => setDeadlineOpen(true)}>
+              {deadlineLabel}
+            </PillButton>
+          </p>
 
           <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
             Or forfeit to{" "}
             <PillButton onClick={() => setDestinationOpen(true)}>
-              {destination.label}
+              {destinationPillLabel}
             </PillButton>{" "}
             <PillButton onClick={openAmountSheet}>{amountLabel}</PillButton>
           </p>
         </div>
 
+        {/* Repeat toggle + Every pill (same pattern as Duration) */}
+        <div className="mt-6 space-y-4">
+          <label className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground" style={MANROPE}>
+                Repeat this forfeit
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground" style={MANROPE}>
+                Keep proving on a schedule instead of just once
+              </p>
+            </div>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={isRepeat}
+              onClick={() => setIsRepeat((v) => !v)}
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
+                isRepeat
+                  ? "border-delulu-blue bg-delulu-blue text-white"
+                  : "border-border bg-background",
+              )}
+            >
+              {isRepeat ? <Check className="h-3.5 w-3.5" /> : null}
+            </button>
+          </label>
+
+          {isRepeat ? (
+            <>
+              <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
+                Every{" "}
+                <PillButton onClick={() => setEveryOpen(true)}>
+                  {repeatEveryLabel.replace(/^every\s+/i, "")}
+                </PillButton>
+              </p>
+              <p className="text-xs text-muted-foreground" style={MANROPE}>
+                You&apos;ll prove on this schedule until{" "}
+                <span className="font-semibold text-foreground/80">{deadlineLabel}</span>
+                {" "}— that end date is what we lock on-chain (not a year-long default).
+                The time ({deadlineDate.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}) is your cutoff each period.
+              </p>
+            </>
+          ) : null}
+        </div>
+
         {additionalOptions.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setOptionsOpen(true)}
-            className="mt-6 flex w-full items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40"
-          >
-            <span className="text-sm font-bold text-foreground" style={MANROPE}>
-              Additional options
-            </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
+          <div className="mt-6 space-y-2">
+            <p
+              className="px-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-foreground/40"
+              style={MANROPE}
+            >
+              Options
+            </p>
+            {additionalOptions.map((opt) => {
+              const checked =
+                opt.id === "remind" ? remindEnabled : friendVerifierEnabled;
+              const toggle =
+                opt.id === "remind"
+                  ? () => setRemindEnabled((v) => !v)
+                  : () => setFriendVerifierEnabled((v) => !v);
+              return (
+                <label
+                  key={opt.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm"
+                >
+                  <span className="text-sm font-semibold text-foreground" style={MANROPE}>
+                    {opt.label}
+                  </span>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={checked}
+                    onClick={toggle}
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
+                      checked
+                        ? "border-delulu-blue bg-delulu-blue text-white"
+                        : "border-border bg-background",
+                    )}
+                  >
+                    {checked ? <Check className="h-3.5 w-3.5" /> : null}
+                  </button>
+                </label>
+              );
+            })}
+
+            {friendVerifierEnabled ? (
+              <div className="space-y-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm">
+                {resolvedVerifier ? (
+                  <>
+                    <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <UserAvatar
+                          address={resolvedVerifier.address}
+                          username={resolvedVerifier.username}
+                          pfpUrl={resolvedVerifier.pfpUrl}
+                          size={36}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-delulu-blue" style={MANROPE}>
+                            {resolvedVerifier.username
+                              ? `@${resolvedVerifier.username}`
+                              : `${resolvedVerifier.address.slice(0, 6)}…${resolvedVerifier.address.slice(-4)}`}
+                          </p>
+                        {resolvedVerifier.hasRealEmail && resolvedVerifier.email ? (
+                          <p className="mt-0.5 truncate text-xs text-delulu-blue/80" style={MANROPE}>
+                            {resolvedVerifier.email}
+                          </p>
+                        ) : (
+                          <p className="mt-0.5 text-xs text-amber-700" style={MANROPE}>
+                            No email on file — add one below to invite them
+                          </p>
+                        )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResolvedVerifier(null);
+                          setVerifierUsername("");
+                          setVerifierEmail("");
+                          setFriendSearchResults([]);
+                        }}
+                        className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                        style={MANROPE}
+                      >
+                        Change
+                      </button>
+                    </div>
+
+                    {!resolvedVerifier.hasRealEmail ? (
+                      <label className="block">
+                        <span
+                          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                          style={MANROPE}
+                        >
+                          Friend&apos;s email
+                        </span>
+                        <input
+                          type="email"
+                          value={verifierEmail}
+                          onChange={(e) => setVerifierEmail(e.target.value)}
+                          placeholder="friend@example.com"
+                          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                          style={MANROPE}
+                        />
+                        <p className="mt-1.5 text-xs text-muted-foreground" style={MANROPE}>
+                          We&apos;ll email them so they know they&apos;ve been tagged as your verifier.
+                        </p>
+                        {verifierEmail.trim() && !friendEmailValid ? (
+                          <p className="mt-1 text-xs font-semibold text-red-500" style={MANROPE}>
+                            Enter a valid email address
+                          </p>
+                        ) : null}
+                      </label>
+                    ) : (
+                      <p className="text-xs text-muted-foreground" style={MANROPE}>
+                        They&apos;re on Delulu — we&apos;ll notify them at {resolvedVerifier.email} when
+                        you create this forfeit.
+                      </p>
+                    )}
+                    {verifierIsDestinationFriend ? (
+                      <p className="text-xs font-semibold text-amber-700" style={MANROPE}>
+                        Heads up — this is the same person your stake goes to if you miss it,
+                        which gives them a reason not to approve your proof.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground" style={MANROPE}>
+                      Search for someone already on Delulu by username or email — or just type a
+                      friend&apos;s email to invite them if they&apos;re not on Delulu yet. They
+                      review your proof, not AI.
+                    </p>
+                    <label className="block">
+                      <span
+                        className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                        style={MANROPE}
+                      >
+                        Friend&apos;s username or email
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={verifierUsername}
+                          onChange={(e) => setVerifierUsername(e.target.value)}
+                          placeholder="@username or friend@email.com"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-3.5 pr-9 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                          style={MANROPE}
+                        />
+                        {friendSearchLoading ? (
+                          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                        ) : null}
+                      </div>
+                      {friendSearchLoading ? null : friendSearchResults.length > 0 ? (
+                        <div className="mt-2 space-y-1.5">
+                          {friendSearchResults.map((result) => (
+                            <button
+                              key={result.address}
+                              type="button"
+                              onClick={() => {
+                                setResolvedVerifier({
+                                  address: result.address as `0x${string}`,
+                                  username: result.username,
+                                  email: result.email,
+                                  hasRealEmail: result.hasRealEmail,
+                                  pfpUrl: result.pfpUrl,
+                                });
+                                setVerifierUsername(result.username ?? result.email ?? "");
+                                setVerifierEmail(result.hasRealEmail && result.email ? result.email : "");
+                                setFriendSearchResults([]);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-xl border border-border/60 bg-background px-3 py-2 text-left transition-colors hover:bg-muted/60"
+                              style={MANROPE}
+                            >
+                              <UserAvatar
+                                address={result.address}
+                                username={result.username}
+                                pfpUrl={result.pfpUrl}
+                                size={32}
+                              />
+                              <span className="flex min-w-0 flex-col gap-0.5">
+                                <span className="truncate text-sm font-semibold text-foreground">
+                                  {result.username
+                                    ? `@${result.username}`
+                                    : `${result.address.slice(0, 6)}…${result.address.slice(-4)}`}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {result.hasRealEmail && result.email
+                                    ? result.email
+                                    : "No email on file"}
+                                </span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : verifierUsername.trim().length >= 2 ? (
+                        EMAIL_RE.test(verifierUsername.trim()) ? (
+                          <p className="mt-1.5 text-xs text-emerald-700" style={MANROPE}>
+                            No Delulu account found for this email — we&apos;ll invite{" "}
+                            {verifierUsername.trim()} to sign up and verify.
+                          </p>
+                        ) : verifierUsername.includes("@") ? (
+                          // Contains "@" but doesn't fully match EMAIL_RE yet (e.g. no
+                          // dot/TLD typed) — they're mid-typing an email, not a failed
+                          // username search, so don't tell them to "try their email".
+                          <p className="mt-1.5 text-xs text-muted-foreground" style={MANROPE}>
+                            Keep typing their email address...
+                          </p>
+                        ) : (
+                          <p className="mt-1.5 text-xs text-muted-foreground" style={MANROPE}>
+                            No match — try their email instead to invite them.
+                          </p>
+                        )
+                      ) : null}
+                    </label>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="mt-6 space-y-3 text-[12px] leading-relaxed text-muted-foreground" style={MANROPE}>
@@ -719,9 +1190,9 @@ export function ForfeitCreatePage() {
             : isApproving || isApprovingConfirming
               ? "Approving..."
               : isCreating
-                ? "Creating..."
+                ? "Confirm in wallet..."
                 : isSubmitting
-                  ? "Saving..."
+                  ? "Creating..."
                   : "Create forfeit"}
         </button>
         </div>
@@ -772,98 +1243,80 @@ export function ForfeitCreatePage() {
         </div>
       </ResponsiveSheet>
 
-      {/* Deadline sheet */}
+      {/* Duration sheet */}
       <ResponsiveSheet
         open={deadlineOpen}
         onOpenChange={setDeadlineOpen}
-        title="Set deadline"
+        title="Set duration"
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
           <h2 className="mb-4 text-center text-lg font-black text-foreground" style={CLASH}>
-            Set deadline
+            Set duration
           </h2>
 
-          {mode === "once" ? (
-            <>
-              <div className="grid grid-cols-2 gap-2">
-                {DEADLINE_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => {
-                      const next = deadlineFromPreset(preset);
-                      setDeadlineDate(next);
-                      setDeadlineLabel(preset);
-                    }}
-                    className={cn(
-                      "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
-                      deadlineLabel === preset
-                        ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                        : "border-border/60 bg-card text-foreground hover:bg-muted/40",
-                    )}
-                    style={MANROPE}
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            {DEADLINE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => {
+                  const next = deadlineFromPreset(preset);
+                  setDeadlineDate(next);
+                  setDeadlineLabel(preset);
+                }}
+                className={cn(
+                  "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
+                  deadlineLabel === preset
+                    ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
+                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                )}
+                style={MANROPE}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
 
-              <div className="mt-4">
-                <p
-                  className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={MANROPE}
-                >
-                  Or pick any date
-                </p>
-                <DateTimePicker
-                  value={deadlineDate}
-                  onChange={(date) => {
-                    if (!date) return;
-                    setDeadlineDate(date);
-                    setDeadlineLabel(formatAnytimeLabel(date));
-                  }}
-                  minDate={minDeadlineDate}
-                  className="max-w-none"
-                />
-              </div>
+          <div className="mt-4 flex flex-col items-center">
+            <p
+              className="mb-2 w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+              style={MANROPE}
+            >
+              Or pick an end date
+            </p>
+            <DateTimePicker
+              value={deadlineDate}
+              onChange={(date) => {
+                if (!date) return;
+                setDeadlineDate(date);
+                setDeadlineLabel(formatAnytimeLabel(date));
+              }}
+              minDate={minDeadlineDate}
+              className="max-w-[280px]"
+            />
+          </div>
 
-              <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                <span className="flex items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Submit anytime
-                </span>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={submitAnytime}
-                  onClick={() => setSubmitAnytime((v) => !v)}
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
-                    submitAnytime
-                      ? "border-delulu-blue bg-delulu-blue text-white"
-                      : "border-border bg-background",
-                  )}
-                >
-                  {submitAnytime ? <Check className="h-3.5 w-3.5" /> : null}
-                </button>
-              </label>
-            </>
-          ) : (
-            <div className="space-y-2">
-              {["midnight", "9:00 PM", "noon", "end of day"].map((label) => (
-                <SheetListRow
-                  key={label}
-                  title={label}
-                  selected={deadlineLabel.toLowerCase() === label}
-                  onClick={() => {
-                    setDeadlineLabel(label);
-                    setDeadlineOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          )}
+          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Submit anytime
+            </span>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={submitAnytime}
+              onClick={() => setSubmitAnytime((v) => !v)}
+              className={cn(
+                "flex h-5 w-5 items-center justify-center border transition-colors",
+                submitAnytime
+                  ? "border-delulu-blue bg-delulu-blue text-white"
+                  : "border-border bg-background",
+              )}
+            >
+              {submitAnytime ? <Check className="h-3.5 w-3.5" /> : null}
+            </button>
+          </label>
 
           <button
             type="button"
@@ -876,37 +1329,30 @@ export function ForfeitCreatePage() {
         </div>
       </ResponsiveSheet>
 
-      {/* Every sheet */}
-      <ResponsiveSheet open={everyOpen} onOpenChange={setEveryOpen} title="Repeat every">
-        <div className="space-y-2 pb-4 pt-2">
-          {REPEAT_EVERY.map((item) => (
-            <SheetListRow
-              key={item}
-              title={`Every ${item}`}
-              selected={repeatEvery === item}
-              onClick={() => {
-                setRepeatEvery(item);
-                setEveryOpen(false);
-              }}
-            />
-          ))}
-        </div>
-      </ResponsiveSheet>
-
-      {/* From sheet */}
-      <ResponsiveSheet open={fromOpen} onOpenChange={setFromOpen} title="Starts from">
-        <div className="space-y-2 pb-4 pt-2">
-          {["Tomorrow", "Today", "Next Monday", "Next week"].map((item) => (
-            <SheetListRow
-              key={item}
-              title={item}
-              selected={repeatFrom === item}
-              onClick={() => {
-                setRepeatFrom(item);
-                setFromOpen(false);
-              }}
-            />
-          ))}
+      {/* Every sheet — same pill/dropdown pattern as Duration */}
+      <ResponsiveSheet
+        open={everyOpen}
+        onOpenChange={setEveryOpen}
+        title="Repeat every"
+        hideTitleVisually
+      >
+        <div className="px-1 pb-4 pt-1">
+          <h2 className="mb-4 text-lg font-black text-foreground" style={CLASH}>
+            Repeat every
+          </h2>
+          <div className="space-y-2">
+            {REPEAT_EVERY_OPTIONS.map((opt) => (
+              <SheetListRow
+                key={opt.id}
+                title={opt.label}
+                selected={repeatEvery === opt.id}
+                onClick={() => {
+                  setRepeatEvery(opt.id);
+                  setEveryOpen(false);
+                }}
+              />
+            ))}
+          </div>
         </div>
       </ResponsiveSheet>
 
@@ -933,40 +1379,139 @@ export function ForfeitCreatePage() {
                 selected={destinationId === item.id}
                 onClick={() => {
                   setDestinationId(item.id);
-                  setDestinationOpen(false);
+                  if (item.id !== "friend") {
+                    clearDestinationFriend();
+                    setDestinationOpen(false);
+                  }
                 }}
               />
             ))}
           </div>
 
           {destinationId === "friend" ? (
-            <label className="mt-4 block">
-              <span
-                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                style={MANROPE}
-              >
-                Friend&apos;s wallet address
-              </span>
-              <input
-                type="text"
-                value={destinationFriendAddress}
-                onChange={(e) => setDestinationFriendAddress(e.target.value.trim())}
-                placeholder="0x..."
-                className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
-                style={MANROPE}
-              />
-              {destinationFriendAddress && !ADDRESS_RE.test(destinationFriendAddress) ? (
-                <p className="mt-1.5 text-xs font-semibold text-red-500" style={MANROPE}>
-                  Enter a valid wallet address
-                </p>
-              ) : null}
-            </label>
+            <div className="mt-4 space-y-3">
+              {destinationFriend ? (
+                <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <UserAvatar
+                      address={destinationFriend.address}
+                      username={destinationFriend.username}
+                      pfpUrl={destinationFriend.pfpUrl}
+                      size={36}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-delulu-blue" style={MANROPE}>
+                        {destinationFriend.username
+                          ? `@${destinationFriend.username}`
+                          : `${destinationFriend.address.slice(0, 8)}…${destinationFriend.address.slice(-4)}`}
+                      </p>
+                      {destinationFriend.email ? (
+                        <p className="mt-0.5 truncate text-xs text-delulu-blue/80" style={MANROPE}>
+                          {destinationFriend.email}
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 truncate text-xs text-delulu-blue/70" style={MANROPE}>
+                          {destinationFriend.address.slice(0, 10)}…{destinationFriend.address.slice(-6)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearDestinationFriend}
+                    className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    style={MANROPE}
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <label className="block">
+                    <span
+                      className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      style={MANROPE}
+                    >
+                      Search by username or email
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={destinationFriendQuery}
+                        onChange={(e) => setDestinationFriendQuery(e.target.value)}
+                        placeholder="@username or friend@email.com"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        className="w-full rounded-2xl border border-border/60 bg-card py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                        style={MANROPE}
+                      />
+                      {destinationSearchLoading ? (
+                        <Loader2 className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                      ) : null}
+                    </div>
+                    {destinationSearchLoading ? null : destinationSearchResults.length > 0 ? (
+                      <div className="mt-2 space-y-1.5">
+                        {destinationSearchResults.map((result) => (
+                          <button
+                            key={result.address}
+                            type="button"
+                            onClick={() =>
+                              selectDestinationFriend({
+                                address: result.address,
+                                username: result.username,
+                                email: result.hasRealEmail ? result.email : null,
+                                pfpUrl: result.pfpUrl,
+                              })
+                            }
+                            className="flex w-full items-center gap-2.5 rounded-xl border border-border/60 bg-background px-3 py-2 text-left transition-colors hover:bg-muted/60"
+                            style={MANROPE}
+                          >
+                            <UserAvatar
+                              address={result.address}
+                              username={result.username}
+                              pfpUrl={result.pfpUrl}
+                              size={32}
+                            />
+                            <span className="flex min-w-0 flex-col gap-0.5">
+                              <span className="truncate text-sm font-semibold text-foreground">
+                                {result.username
+                                  ? `@${result.username}`
+                                  : `${result.address.slice(0, 6)}…${result.address.slice(-4)}`}
+                              </span>
+                              <span className="truncate text-xs text-muted-foreground">
+                                {result.hasRealEmail && result.email
+                                  ? result.email
+                                  : `${result.address.slice(0, 8)}…${result.address.slice(-4)}`}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : destinationFriendQuery.trim().length >= 2 ? (
+                      <p className="mt-1.5 text-xs text-muted-foreground" style={MANROPE}>
+                        No match — they need a Delulu account to be picked as a destination.
+                      </p>
+                    ) : null}
+                  </label>
+                </>
+              )}
+            </div>
           ) : null}
 
-          {destinationId === "charity" && !DEFAULT_CHARITY_ADDRESS ? (
-            <p className="mt-4 text-xs font-semibold text-red-500" style={MANROPE}>
-              Charity payouts aren&apos;t configured yet — pick a different destination for now.
-            </p>
+
+          {destinationId === "friend" ? (
+            <button
+              type="button"
+              onClick={() => setDestinationOpen(false)}
+              disabled={
+                !destinationFriendAddress || !ADDRESS_RE.test(destinationFriendAddress)
+              }
+              className="mt-5 w-full rounded-full bg-delulu-blue py-3 text-sm font-bold text-white disabled:opacity-50"
+              style={MANROPE}
+            >
+              Save
+            </button>
           ) : null}
         </div>
       </ResponsiveSheet>
@@ -1072,110 +1617,6 @@ export function ForfeitCreatePage() {
             style={MANROPE}
           >
             Save
-          </button>
-        </div>
-      </ResponsiveSheet>
-
-      {/* Additional options */}
-      <ResponsiveSheet
-        open={optionsOpen}
-        onOpenChange={setOptionsOpen}
-        title="Additional options"
-        hideTitleVisually
-      >
-        <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-4 text-lg font-black text-foreground" style={CLASH}>
-            Additional options
-          </h2>
-          <div className="space-y-2">
-            {additionalOptions.map((opt) => {
-              const checked =
-                opt.id === "private"
-                  ? isPrivate
-                  : opt.id === "remind"
-                    ? remindEnabled
-                    : friendVerifierEnabled;
-              const toggle =
-                opt.id === "private"
-                  ? () => setIsPrivate((v) => !v)
-                  : opt.id === "remind"
-                    ? () => setRemindEnabled((v) => !v)
-                    : () => setFriendVerifierEnabled((v) => !v);
-              return (
-                <label
-                  key={opt.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5"
-                >
-                  <span className="text-sm font-semibold text-foreground" style={MANROPE}>
-                    {opt.label}
-                  </span>
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={checked}
-                    onClick={toggle}
-                    className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-                      checked
-                        ? "border-delulu-blue bg-delulu-blue text-white"
-                        : "border-border bg-background",
-                    )}
-                  >
-                    {checked ? <Check className="h-3.5 w-3.5" /> : null}
-                  </button>
-                </label>
-              );
-            })}
-          </div>
-
-          {friendVerifierEnabled ? (
-            <div className="mt-3 space-y-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-              <p className="text-xs text-muted-foreground" style={MANROPE}>
-                They&apos;ll get an email inviting them to review your proof and confirm you
-                completed it — not AI.
-              </p>
-              <label className="block">
-                <span
-                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={MANROPE}
-                >
-                  Friend&apos;s username (optional)
-                </span>
-                <input
-                  type="text"
-                  value={verifierUsername}
-                  onChange={(e) => setVerifierUsername(e.target.value)}
-                  placeholder="@username"
-                  className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
-                  style={MANROPE}
-                />
-              </label>
-              <label className="block">
-                <span
-                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={MANROPE}
-                >
-                  Friend&apos;s email
-                </span>
-                <input
-                  type="email"
-                  value={verifierEmail}
-                  onChange={(e) => setVerifierEmail(e.target.value)}
-                  placeholder="friend@example.com"
-                  className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
-                  style={MANROPE}
-                />
-              </label>
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => setOptionsOpen(false)}
-            className="mt-5 w-full rounded-full bg-delulu-blue py-3 text-sm font-bold text-white"
-            style={MANROPE}
-          >
-            Done
           </button>
         </div>
       </ResponsiveSheet>

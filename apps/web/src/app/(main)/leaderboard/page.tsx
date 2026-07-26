@@ -840,7 +840,7 @@ function LeaderboardContent({
     typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
       {/* $100 / 30,000 points campaign ended — banner commented out */}
       {/* <div className="mb-6">
         <HomeTop10Banner />
@@ -905,7 +905,7 @@ function LeaderboardContent({
 
 function LeaderboardSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
       {/* Stats row skeleton */}
       <div className="mb-8 grid grid-cols-3 gap-3 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (

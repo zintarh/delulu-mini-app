@@ -132,10 +132,8 @@ dataSources:
     network: celo
     source:
       abi: ForfeitMarket
-      # TODO: replace with the real deployed proxy address + its deployment block once
-      # ForfeitMarket.sol is deployed (see apps/contracts/contracts/ForfeitMarket.sol).
-      address: "0x0000000000000000000000000000000000000000"
-      startBlock: 70315658
+      address: "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8"
+      startBlock: 73186960
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
