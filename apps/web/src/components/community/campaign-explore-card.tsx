@@ -6,7 +6,6 @@ import { Check, Clock, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
 import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
-import { FEED_CARD_META_CLASS, FEED_CARD_TITLE_CLASS } from "@/components/feed-card-layout";
 
 export type ActiveMilestoneData = {
   milestone_id: number;
@@ -52,6 +51,7 @@ function daysLeft(effectiveEndsAt: string | null) {
 export function CampaignExploreCard({
   campaign,
   className,
+  compact = false,
 }: {
   campaign: CampaignExploreCardData;
   /** @deprecated no longer rendered — join now happens on the campaign detail page */
@@ -61,6 +61,8 @@ export function CampaignExploreCard({
   onSubmitMilestone?: () => void;
   proofBusy?: boolean;
   className?: string;
+  /** Shorter home-rail cards so three fit in the viewport. */
+  compact?: boolean;
 }) {
   const href = `/communities/${campaign.community?.slug ?? ""}/campaigns/${campaign.id}`;
   const funded = isCampaignFunded(campaign.status);
@@ -85,7 +87,10 @@ export function CampaignExploreCard({
     <Link
       href={href}
       className={cn(
-        "group relative block aspect-[1/1] overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm sm:aspect-[4/5]",
+        "group relative block overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm",
+        compact
+          ? "aspect-[4/3] h-full min-h-0 rounded-xl lg:aspect-auto"
+          : "aspect-[1/1] sm:aspect-[4/5]",
         className,
       )}
     >
@@ -102,7 +107,7 @@ export function CampaignExploreCard({
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]">
-          <Target className="h-10 w-10 text-white/20" />
+          <Target className={cn("text-white/20", compact ? "h-7 w-7" : "h-10 w-10")} />
         </div>
       )}
 
@@ -111,7 +116,7 @@ export function CampaignExploreCard({
 
       {/* Joined badge, top-left */}
       {campaign.isJoined ? (
-        <div className="absolute left-3 top-3">
+        <div className={cn("absolute", compact ? "left-2 top-2" : "left-3 top-3")}>
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-black text-delulu-charcoal">
             <Check className="h-3 w-3" />
             Joined
@@ -122,7 +127,7 @@ export function CampaignExploreCard({
       {/* Prize badge — only when funded (status active). Amount is proposed target;
           live claimable may differ until detail loads on-chain pool. */}
       {funded && poolAmount > 0 ? (
-        <div className="absolute right-3 top-3">
+        <div className={cn("absolute", compact ? "right-2 top-2" : "right-3 top-3")}>
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#D1E822] px-2.5 py-1 text-[11px] font-black text-[#244E1A]">
             <Trophy className="h-3 w-3" />
             {poolAmount} G$ prize
@@ -133,13 +138,30 @@ export function CampaignExploreCard({
       {/* Overlaid content — title + the two things worth knowing before you tap in:
           how much longer it's open, and what joining costs. Everything else
           (description, join button, milestones) lives on the detail page. */}
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-        <h3 className={cn("line-clamp-2 text-white", FEED_CARD_TITLE_CLASS)}>
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0",
+          compact ? "px-3 pb-3.5 pt-2.5 lg:p-3" : "p-4 sm:p-5",
+        )}
+      >
+        <h3
+          className={cn(
+            "text-white",
+            compact
+              ? "line-clamp-1 text-sm font-bold leading-snug tracking-tight"
+              : "line-clamp-2 text-lg font-bold leading-snug tracking-tight",
+          )}
+        >
           {campaign.title}
         </h3>
 
-        <div className="mt-3 flex items-center justify-between gap-2 sm:mt-2">
-          <div className={cn("flex items-center gap-3 font-semibold text-white/85", FEED_CARD_META_CLASS)}>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2",
+            compact ? "mt-2.5 lg:mt-1.5" : "mt-3 sm:mt-2",
+          )}
+        >
+          <div className="flex items-center gap-3 text-xs font-semibold text-white/85">
             <span
               className={cn(
                 "flex items-center gap-1",
@@ -161,7 +183,7 @@ export function CampaignExploreCard({
                   <AvatarStack
                     participants={campaign.participantAvatars}
                     total={campaign.participantCount}
-                    size={18}
+                    size={compact ? 16 : 18}
                   />
                 ) : (
                   <>
@@ -173,7 +195,12 @@ export function CampaignExploreCard({
             ) : null}
           </div>
           {!isClosed ? (
-            <span className="shrink-0 rounded-full bg-black px-2.5 py-1 text-[11px] font-bold text-white">
+            <span
+              className={cn(
+                "shrink-0 rounded-full bg-black font-bold text-white",
+                compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
+              )}
+            >
               {stakeLabel}
             </span>
           ) : null}
@@ -183,16 +210,25 @@ export function CampaignExploreCard({
   );
 }
 
-export function CampaignExploreCardSkeleton({ className }: { className?: string }) {
+export function CampaignExploreCardSkeleton({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   return (
     <div
       className={cn(
-        "relative aspect-[1/1] animate-pulse overflow-hidden rounded-2xl bg-muted sm:aspect-[4/5]",
+        "relative animate-pulse overflow-hidden rounded-2xl bg-muted",
+        compact
+          ? "aspect-[4/3] h-full min-h-0 rounded-xl lg:aspect-auto"
+          : "aspect-[1/1] sm:aspect-[4/5]",
         className,
       )}
     >
       <div className="absolute right-3 top-3 h-6 w-16 rounded-full bg-background/60" />
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+      <div className={cn("absolute inset-x-0 bottom-0", compact ? "px-3 pb-3.5 pt-2.5 lg:p-3" : "p-4 sm:p-5")}>
         <div className="h-5 w-3/4 rounded-lg bg-background/60" />
         <div className="mt-2.5 h-4 w-1/2 rounded-lg bg-background/60" />
       </div>

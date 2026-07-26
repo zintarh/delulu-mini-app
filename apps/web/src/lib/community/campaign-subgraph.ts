@@ -217,6 +217,21 @@ const MONTHLY_COMMUNITY_PROOFS_QUERY = `
   }
 `;
 
+const MONTHLY_FORFEIT_POINTS_QUERY = `
+  query MonthlyForfeitPoints($since: BigInt!, $first: Int!, $skip: Int!) {
+    forfeitPeriodResolutions(
+      where: { outcome: "success", createdAt_gte: $since }
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      creatorAddress
+      pointsAwarded
+    }
+  }
+`;
+
 export type MonthlyCampaignPointsRow = {
   wallet_address: string;
   points_total: number;
@@ -228,6 +243,26 @@ type ProofPointRow = {
   pointsAwarded: string;
   participant: { username: string | null } | null;
 };
+
+type ForfeitPointRow = {
+  creatorAddress: string;
+  pointsAwarded: string | null;
+};
+
+async function fetchAllForfeitPointRows(sinceUnixSeconds: number): Promise<ForfeitPointRow[]> {
+  const pageSize = 1000;
+  const all: ForfeitPointRow[] = [];
+  for (let skip = 0; skip < 10_000; skip += pageSize) {
+    const data = await fetchSubgraph<{ forfeitPeriodResolutions?: ForfeitPointRow[] }>(
+      MONTHLY_FORFEIT_POINTS_QUERY,
+      { since: sinceUnixSeconds.toString(), first: pageSize, skip },
+    );
+    const batch = data.forfeitPeriodResolutions ?? [];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
 
 async function fetchAllProofRows(
   query: string,
@@ -253,19 +288,21 @@ async function fetchAllProofRows(
 }
 
 /**
- * Campaign points earned from proofs submitted at/after `sinceUnixSeconds`.
- * Sums pointsAwarded from milestone completions (and legacy communityProofs),
- * not lifetime pointsTotal / join date — so a season reset can drop old campaigns.
+ * Monthly points earned at/after `sinceUnixSeconds`: campaign proofs (milestone
+ * completions + legacy communityProofs) plus resolved forfeit periods — sums
+ * pointsAwarded from each event, not lifetime pointsTotal / join date, so a
+ * season reset can drop old activity.
  */
 export async function fetchMonthlyCampaignPointsFromGraph(
   sinceUnixSeconds: number,
 ): Promise<MonthlyCampaignPointsRow[]> {
   try {
-    const [completions, legacyProofs] = await Promise.all([
+    const [completions, legacyProofs, forfeitResolutions] = await Promise.all([
       fetchAllProofRows(MONTHLY_CAMPAIGN_COMPLETIONS_QUERY, sinceUnixSeconds),
       fetchAllProofRows(MONTHLY_COMMUNITY_PROOFS_QUERY, sinceUnixSeconds).catch(
         () => [] as ProofPointRow[],
       ),
+      fetchAllForfeitPointRows(sinceUnixSeconds).catch(() => [] as ForfeitPointRow[]),
     ]);
 
     const byWallet = new Map<string, { points: number; username: string | null }>();
@@ -284,6 +321,21 @@ export async function fetchMonthlyCampaignPointsFromGraph(
           points: awarded,
           username: row.participant?.username ?? null,
         });
+      }
+    }
+
+    // Forfeit resolutions have no participant relation (creatorAddress is a plain
+    // scalar) — username enrichment for these wallets happens downstream against
+    // Supabase profiles, same as the global leaderboard already does.
+    for (const row of forfeitResolutions) {
+      const wallet = row.creatorAddress.toLowerCase();
+      const awarded = Number(row.pointsAwarded ?? "0");
+      if (!(awarded > 0)) continue;
+      const existing = byWallet.get(wallet);
+      if (existing) {
+        existing.points += awarded;
+      } else {
+        byWallet.set(wallet, { points: awarded, username: null });
       }
     }
 

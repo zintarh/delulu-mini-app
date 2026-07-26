@@ -19,6 +19,7 @@ import {
   forfeitFeedKeys,
   isActiveForfeit,
   useCreatorForfeits,
+  useDestinationForfeits,
   useVerifierForfeits,
   type ForfeitFeedItem,
   type ForfeitPeriodSnapshot,
@@ -52,7 +53,7 @@ type PeriodStatus = "past" | "current" | "upcoming";
 
 type DayItem = {
   key: string;
-  role: "creator" | "verifier";
+  role: "creator" | "verifier" | "destination";
   forfeit: ForfeitFeedItem;
   /** On-chain period used for proof submit / lookup. */
   periodIndex: number;
@@ -142,7 +143,7 @@ function periodForIndex(
  */
 function expandForfeitDays(
   forfeit: ForfeitFeedItem,
-  role: "creator" | "verifier",
+  role: "creator" | "verifier" | "destination",
 ): DayItem[] {
   const currentIdx = forfeit.onChain?.currentPeriodIndex ?? 0;
   const total = Math.max(1, forfeit.onChain?.totalPeriods ?? 1);
@@ -216,8 +217,10 @@ function formatStakeAmount(item: ForfeitFeedItem): string | null {
 }
 
 function destinationLabel(item: ForfeitFeedItem): string | null {
-  const type = item.onChain?.destinationType;
-  const addr = item.onChain?.destinationAddr;
+  const type =
+    item.onChain?.destinationType != null
+      ? Number(item.onChain.destinationType)
+      : null;
 
   // Charity vs Delulu both settle to CommunityPool on-chain — intent wins.
   if (item.isCharityIntent || type === ForfeitDestinationType.Charity) {
@@ -234,9 +237,7 @@ function destinationLabel(item: ForfeitFeedItem): string | null {
     if (username) return username.startsWith("@") ? username : `@${username}`;
     const email = item.destinationFriendEmail?.trim();
     if (email && !email.endsWith("@wallet.local")) return email;
-    if (addr && addr.startsWith("0x") && addr.length >= 10) {
-      return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-    }
+    // Prefer never showing a raw address when we know it's a friend destination.
     return "a friend";
   }
   // Snapshot lag: still show Delulu/Charity from intent alone.
@@ -502,6 +503,61 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
   );
 }
 
+/**
+ * Informational only — you're not the creator or verifier here, just the friend
+ * a stake would land with if they miss it. No action to take, so no button;
+ * this exists purely so it isn't a total surprise if a forfeit ever pays out.
+ */
+function ForfeitDestinationCard({ day }: { day: DayItem }) {
+  const item = day.forfeit;
+  const amount = formatStakeAmount(item);
+  const symbol = item.onChain?.token ? getTokenSymbol(item.onChain.token) : "G$";
+  const tokenAddress = item.onChain?.token;
+  const duration = formatForfeitDuration(item);
+  const progress = formatPeriodProgress(item, day.calendarPeriodIndex);
+
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-sm">
+      <div className={cn("mb-2.5 flex items-center gap-2 text-amber-700", FEED_CARD_META_CLASS)}>
+        <ShieldCheck className="h-3.5 w-3.5" />
+        <span className="font-bold uppercase tracking-wide">If they miss it, you get this</span>
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <UserAvatar
+          address={item.creatorWallet}
+          username={item.otherPartyUsername}
+          pfpUrl={item.otherPartyPfpUrl}
+          size={28}
+        />
+        <p className={cn("truncate", FEED_CARD_SUBTITLE_CLASS, "font-semibold text-foreground")}>
+          {item.otherPartyUsername ? `@${item.otherPartyUsername}` : "A friend"}
+        </p>
+      </div>
+
+      <p className={cn("mt-2.5", FEED_CARD_TITLE_CLASS)}>
+        {item.title || "Untitled forfeit"}
+      </p>
+      <p className={cn("mt-1", FEED_CARD_META_CLASS)}>
+        {duration}
+        {progress ? ` · ${progress}` : null}
+      </p>
+
+      {amount ? (
+        <div className="mt-2.5 flex items-center gap-2">
+          <TokenMark tokenAddress={tokenAddress} symbol={symbol} />
+          <p className={FEED_CARD_SUBTITLE_CLASS}>
+            <span className="font-medium">At stake</span>{" "}
+            <span className="font-bold tabular-nums text-foreground">
+              {amount} {symbol}
+            </span>
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Single empty CTA — no promo banner above it. */
 function ForfeitEmptyState() {
   return (
@@ -544,8 +600,9 @@ export function ForfeitDayCard({
   const { user } = useUserStore();
   const { data: creatorData, isLoading: creatorLoading } = useCreatorForfeits(address);
   const { data: verifierData, isLoading: verifierLoading } = useVerifierForfeits(address);
+  const { data: destinationData, isLoading: destinationLoading } = useDestinationForfeits(address);
   const { optimisticItem, justSynced } = usePendingForfeitSync(address);
-  const isLoading = creatorLoading || verifierLoading;
+  const isLoading = creatorLoading || verifierLoading || destinationLoading;
 
   const { submitProofAndWait } = useSubmitForfeitProof();
   const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
@@ -558,9 +615,13 @@ export function ForfeitDayCard({
   const items = useMemo<DayItem[]>(() => {
     const creatorForfeits = (creatorData ?? []).filter(isActiveForfeit);
     const verifierForfeits = (verifierData ?? []).filter(isActiveForfeit);
+    const destinationForfeits = (destinationData ?? []).filter(isActiveForfeit);
 
     const creatorDays = creatorForfeits.flatMap((f) => expandForfeitDays(f, "creator"));
     const verifierDays = verifierForfeits.flatMap((f) => expandForfeitDays(f, "verifier"));
+    const destinationDays = destinationForfeits.flatMap((f) =>
+      expandForfeitDays(f, "destination"),
+    );
 
     // Stake already locked but DB row not ready — keep the card visible so money never "vanishes".
     const alreadyIndexed = optimisticItem
@@ -576,8 +637,8 @@ export function ForfeitDayCard({
         ? expandForfeitDays(optimisticItem, "creator")
         : [];
 
-    return [...optimisticDays, ...creatorDays, ...verifierDays];
-  }, [creatorData, verifierData, optimisticItem]);
+    return [...optimisticDays, ...creatorDays, ...verifierDays, ...destinationDays];
+  }, [creatorData, verifierData, destinationData, optimisticItem]);
 
   const dayBuckets = useMemo(() => groupIntoDayBuckets(items), [items]);
 
@@ -627,7 +688,7 @@ export function ForfeitDayCard({
   };
 
   const handleProofSubmit = async (proofUrls: string[]) => {
-    if (!activeProofItem?.onChainCommitmentId) {
+    if (activeProofItem?.onChainCommitmentId == null) {
       const msg =
         "This forfeit is still setting up. Wait a moment, then try uploading again.";
       setProofError(msg);
@@ -722,6 +783,8 @@ export function ForfeitDayCard({
         {currentDays.map((day) =>
           day.role === "verifier" ? (
             <ForfeitVerifyCard key={day.key} day={day} />
+          ) : day.role === "destination" ? (
+            <ForfeitDestinationCard key={day.key} day={day} />
           ) : (
             <ForfeitTaskCard
               key={day.key}

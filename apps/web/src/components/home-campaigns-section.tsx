@@ -22,8 +22,8 @@ import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-co
 import { cn } from "@/lib/utils";
 import { FEED_CARD_EYEBROW_CLASS } from "@/components/feed-card-layout";
 
-/** Desktop side rail (and stacked home discover) — keep short so the column doesn't tower. */
-const DISCOVER_SIDE_LIMIT = 2;
+/** Desktop side rail — three compact cards sized to the viewport. */
+const DISCOVER_SIDE_LIMIT = 3;
 
 function ExploreLink() {
   return (
@@ -79,14 +79,26 @@ function DiscoverCampaignsSection({
   const { data, isLoading } = useHomeCampaignsFeed("ongoing", address, "participants");
   const limit = rail ? DISCOVER_SIDE_LIMIT : 3;
   const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, limit);
+  const railRows = Math.max(campaigns.length, 1);
 
   if (isLoading) {
     return (
-      <div className={cn(rail ? "py-0" : "px-4 py-4")}>
-        <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        <div className={cn("grid gap-4", rail ? "grid-cols-1" : "grid-cols-1 gap-5")}>
+      <div
+        className={cn(
+          rail ? "flex min-h-0 flex-col py-0 lg:h-full" : "px-4 py-4",
+        )}
+      >
+        <div className="mb-2.5 h-4 w-36 shrink-0 animate-pulse rounded-lg bg-muted" />
+        <div
+          className={cn(
+            "grid min-h-0",
+            rail
+              ? "flex-1 grid-cols-1 gap-2.5 lg:grid-rows-3"
+              : "grid-cols-1 gap-5",
+          )}
+        >
           {Array.from({ length: limit }, (_, i) => (
-            <CampaignExploreCardSkeleton key={i} />
+            <CampaignExploreCardSkeleton key={i} compact={rail} />
           ))}
         </div>
       </div>
@@ -96,21 +108,36 @@ function DiscoverCampaignsSection({
   if (campaigns.length === 0) return null;
 
   return (
-    <div className={cn(rail ? "py-0" : "px-4 py-4")}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div
+      className={cn(
+        rail ? "flex min-h-0 flex-col py-0 lg:h-full" : "px-4 py-4",
+      )}
+    >
+      <div className="mb-2.5 flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className={FEED_CARD_EYEBROW_CLASS}>
           Campaigns
         </p>
         <ExploreLink />
       </div>
 
-      <div className={cn("grid gap-4", rail ? "grid-cols-1" : "grid-cols-1 gap-5")}>
+      <div
+        className={cn(
+          "grid min-h-0",
+          rail ? "flex-1 grid-cols-1 gap-2.5" : "grid-cols-1 gap-5",
+        )}
+        style={
+          rail
+            ? { gridTemplateRows: `repeat(${railRows}, minmax(0, 1fr))` }
+            : undefined
+        }
+      >
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
             campaign={feedItemToCardData(c)}
             joining={joiningId === c.id}
             onJoin={() => onJoin(c)}
+            compact={rail}
           />
         ))}
       </div>
@@ -124,6 +151,7 @@ function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
   const { data, isLoading } = useExploreCampaigns(undefined, "participants");
   const limit = rail ? DISCOVER_SIDE_LIMIT : 3;
   const campaigns = (data?.pages.flatMap((p) => p.campaigns) ?? []).slice(0, limit);
+  const railRows = Math.max(campaigns.length, 1);
 
   const openJoin = useCallback(
     (campaign: CampaignExploreCardData) => {
@@ -150,11 +178,22 @@ function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
 
   if (isLoading) {
     return (
-      <div className={cn(rail ? "py-0" : "px-4 py-2")}>
-        <div className="mb-3 h-4 w-36 animate-pulse rounded-lg bg-muted" />
-        <div className="grid grid-cols-1 gap-4">
+      <div
+        className={cn(
+          rail ? "flex min-h-0 flex-col py-0 lg:h-full" : "px-4 py-2",
+        )}
+      >
+        <div className="mb-2.5 h-4 w-36 shrink-0 animate-pulse rounded-lg bg-muted" />
+        <div
+          className={cn(
+            "grid min-h-0",
+            rail
+              ? "flex-1 grid-cols-1 gap-2.5 lg:grid-rows-3"
+              : "grid-cols-1 gap-4",
+          )}
+        >
           {Array.from({ length: limit }, (_, i) => (
-            <CampaignExploreCardSkeleton key={i} />
+            <CampaignExploreCardSkeleton key={i} compact={rail} />
           ))}
         </div>
       </div>
@@ -164,21 +203,36 @@ function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
   if (campaigns.length === 0) return null;
 
   return (
-    <div className={cn(rail ? "py-0" : "px-4 py-2")}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div
+      className={cn(
+        rail ? "flex min-h-0 flex-col py-0 lg:h-full" : "px-4 py-2",
+      )}
+    >
+      <div className="mb-2.5 flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className={FEED_CARD_EYEBROW_CLASS}>
           Discover campaigns
         </p>
         <ExploreLink />
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div
+        className={cn(
+          "grid min-h-0",
+          rail ? "flex-1 grid-cols-1 gap-2.5" : "grid-cols-1 gap-4",
+        )}
+        style={
+          rail
+            ? { gridTemplateRows: `repeat(${railRows}, minmax(0, 1fr))` }
+            : undefined
+        }
+      >
         {campaigns.map((c) => (
           <CampaignExploreCard
             key={c.id}
             campaign={c}
             joining={joinFlow.pendingCampaignId === c.id && joinFlow.joining}
             onJoin={() => openJoin(c)}
+            compact={rail}
           />
         ))}
       </div>
@@ -245,11 +299,15 @@ export function HomeCampaignsSection({
   );
 
   if (!address) {
-    return <GuestDiscoverCampaignsSection rail={rail} />;
+    return (
+      <div className={cn(rail && "h-full min-h-0")}>
+        <GuestDiscoverCampaignsSection rail={rail} />
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className={cn(rail && "h-full min-h-0")}>
       <DiscoverCampaignsSection
         address={address}
         onJoin={openJoin}
@@ -262,6 +320,6 @@ export function HomeCampaignsSection({
         address={address}
         onJoined={handleJoined}
       />
-    </>
+    </div>
   );
 }

@@ -162,7 +162,7 @@ export function AdminShell({
   const closeMobile = () => setSidebarOpen(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f9f8f4] text-foreground">
+    <div className="flex h-screen overflow-hidden bg-[#f3f2ed] text-foreground">
       {sidebarOpen ? (
         <div
           className="fixed inset-0 z-30 bg-black/20 lg:hidden"
@@ -172,11 +172,11 @@ export function AdminShell({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-[212px] flex-col border-r border-[#e8e8e3] bg-white transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-[212px] flex-col bg-white shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)] transition-transform duration-200 lg:static lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center gap-2.5 border-b border-[#e8e8e3] px-4">
+        <div className="flex h-14 items-center gap-2.5 px-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-delulu-blue">
             <span className="text-sm font-black text-white">D</span>
           </div>
@@ -228,8 +228,8 @@ export function AdminShell({
           ) : null}
         </nav>
 
-        <div className="shrink-0 space-y-2 border-t border-[#e8e8e3] p-3">
-          <div className="flex items-center gap-2 rounded-xl bg-[#f9f8f4] px-3 py-2">
+        <div className="shrink-0 space-y-2 bg-[#fafaf7] p-3">
+          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(26,26,25,0.04)]">
             <div
               className={cn(
                 "h-2 w-2 rounded-full",
@@ -243,7 +243,7 @@ export function AdminShell({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white/80 hover:text-foreground"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -252,7 +252,7 @@ export function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-[#e8e8e3] bg-white px-4 sm:px-6">
+        <header className="relative z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)] sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"

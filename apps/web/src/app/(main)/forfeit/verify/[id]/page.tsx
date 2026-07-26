@@ -88,7 +88,7 @@ export default function ForfeitVerifyPage() {
   }, [isReady, authenticated, returnPath, router]);
 
   const handleAccept = async () => {
-    if (!commitment?.onChainCommitmentId || !inviteCode || !address) return;
+    if (commitment?.onChainCommitmentId == null || !inviteCode || !address) return;
     setActionStep("working");
     setActionError(null);
     try {
@@ -114,7 +114,7 @@ export default function ForfeitVerifyPage() {
   };
 
   const handleApprove = async () => {
-    if (!commitment?.onChainCommitmentId) return;
+    if (commitment?.onChainCommitmentId == null) return;
     setActionStep("working");
     setActionError(null);
     try {

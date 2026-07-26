@@ -293,6 +293,8 @@ type ForfeitPeriodResolution @entity(immutable: true) {
   periodIndex: Int!
   outcome: String! # "success" | "forfeited"
   resolver: Bytes! # creator/verifier on success, keeper on forfeiture
+  creatorAddress: String! # denormalized so monthly-leaderboard queries can group by
+                           # who earned the points, regardless of who resolved
   pointsAwarded: BigInt # success only — added to the creator's User.deluluPoints
   bountyPaid: BigInt # forfeiture only
   platformFee: BigInt # forfeiture only

@@ -17,7 +17,7 @@ export function MainDesktopHeader({
   searchClassName = "min-w-0 flex-1 max-w-2xl",
 }: MainDesktopHeaderProps) {
   return (
-    <div className="hidden lg:block sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/40">
+    <div className="sticky top-0 z-30 hidden bg-white shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)] lg:block">
       <div className="flex w-full items-center gap-4 px-6 py-4 lg:px-8">
         {showSearch ? (
           <HomeSearch variant="hero" className={searchClassName} />

@@ -145,7 +145,7 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
         </div>
 
         {/* Discover campaigns: below feed on mobile, sticky side rail on desktop */}
-        <aside className="min-w-0 px-4 pb-6 lg:sticky lg:top-6 lg:self-start lg:px-0 lg:pb-0">
+        <aside className="min-w-0 px-4 pb-6 lg:sticky lg:top-4 lg:h-[calc(100dvh-6.5rem)] lg:self-start lg:px-0 lg:pb-0">
           <HomeCampaignsSection layout="rail" />
         </aside>
       </div>

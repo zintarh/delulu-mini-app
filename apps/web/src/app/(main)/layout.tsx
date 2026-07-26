@@ -92,7 +92,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <LeftSidebar />
         </div>
 
-        <div className="flex h-screen lg:pl-24">
+        <div className="flex h-screen bg-[#f3f2ed] lg:pl-24">
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />

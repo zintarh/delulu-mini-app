@@ -98,12 +98,12 @@ export function LeftSidebar() {
     );
 
   return (
-    <aside className="h-full flex flex-col items-center py-6 border-r border-border bg-background w-24">
+    <aside className="relative z-30 flex h-full w-24 flex-col items-center bg-white py-6 shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)]">
       <div className="mb-8">
         <Link
           href="/"
           aria-label="Delulu home"
-          className="flex items-center justify-center w-14 h-14"
+          className="flex h-14 w-14 items-center justify-center"
           onClick={() => closePanels()}
         >
           <Image

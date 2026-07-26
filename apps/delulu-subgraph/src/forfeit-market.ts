@@ -92,6 +92,7 @@ export function handleFMPeriodResolvedSuccess(event: PeriodResolvedSuccessEvent)
   resolution.periodIndex = event.params.periodIndex.toI32()
   resolution.outcome = "success"
   resolution.resolver = event.params.resolver
+  resolution.creatorAddress = commitment.creatorAddress
   resolution.pointsAwarded = FORFEIT_PROOF_POINTS
   resolution.txHash = event.transaction.hash
   resolution.createdAt = event.block.timestamp
@@ -127,6 +128,7 @@ export function handleFMPeriodResolvedForfeited(event: PeriodResolvedForfeitedEv
   resolution.periodIndex = event.params.periodIndex.toI32()
   resolution.outcome = "forfeited"
   resolution.resolver = event.params.keeper
+  resolution.creatorAddress = commitment.creatorAddress
   resolution.bountyPaid = event.params.bountyPaid
   resolution.platformFee = event.params.platformFee
   resolution.destinationType = event.params.destinationType

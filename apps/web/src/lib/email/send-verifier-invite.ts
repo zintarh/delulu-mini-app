@@ -52,6 +52,56 @@ export async function sendVerifierInviteEmail(to: string, data: VerifierInviteEm
   if (error) throw error;
 }
 
+export interface ForfeitDestinationTaggedEmailData {
+  creatorUsername: string | null;
+  creatorWallet: string;
+  commitmentTitle: string;
+  appUrl: string;
+}
+
+/**
+ * Sent once, at creation time, to the friend a creator picked as their forfeit
+ * destination — the wallet that would receive the stake if the creator misses
+ * their commitment. Purely informational: there's nothing for them to do, and
+ * nothing is guaranteed to happen (the creator may well succeed) — this just
+ * means they're never blindsided by an unexplained token transfer later.
+ */
+export async function sendForfeitDestinationTaggedEmail(
+  to: string,
+  data: ForfeitDestinationTaggedEmailData,
+) {
+  const from = process.env.RESEND_FROM_EMAIL ?? "Delulu <onboarding@resend.dev>";
+  const creatorLabel = data.creatorUsername?.trim()
+    ? `@${data.creatorUsername.trim()}`
+    : "A Delulu friend";
+  const subject = `${creatorLabel} set you as their forfeit destination`;
+  const settingsUrl = `${data.appUrl.replace(/\/$/, "")}/settings`;
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto;">
+      <p>${creatorLabel} started a forfeit on Delulu:</p>
+      <p style="font-weight: 700; font-size: 16px;">${data.commitmentTitle}</p>
+      <p>They've staked money on completing it, and named <strong>you</strong> as where that stake goes if they miss it. Nothing for you to do — just a heads-up in case it ever pays out.</p>
+      <p style="color:#888; font-size:12px;">You're only receiving this because they picked you — no account changes or actions are needed on your end.</p>
+    </div>
+  `;
+  const text = `${creatorLabel} started a forfeit on Delulu ("${data.commitmentTitle}") and named you as where their stake goes if they miss it. Nothing for you to do — just a heads-up in case it ever pays out.`;
+
+  const { error } = await resend.emails.send({
+    from,
+    to,
+    subject,
+    html,
+    text,
+    headers: {
+      "List-Unsubscribe": `<${settingsUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  });
+
+  if (error) throw error;
+}
+
 export interface VerifierTaggedEmailData {
   creatorUsername: string | null;
   creatorWallet: string;

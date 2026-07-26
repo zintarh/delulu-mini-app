@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { keccak256 } from "viem";
 import { parseForfeitCommitmentCreatedFromTx } from "@/lib/dashboard/parse-forfeit-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-import { sendVerifierInviteEmail, sendVerifierTaggedEmail } from "@/lib/email/send-verifier-invite";
+import {
+  sendForfeitDestinationTaggedEmail,
+  sendVerifierInviteEmail,
+  sendVerifierTaggedEmail,
+} from "@/lib/email/send-verifier-invite";
 import { normalizeMarketingAppUrl } from "@/lib/marketing-email-template";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { resolveUsernameForAddress } from "@/lib/resolve-username";
@@ -332,6 +336,45 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error("[forfeit/confirm-create] friend side-effects failed", err);
+    }
+  }
+
+  // Friend forfeit-destination: they always have a resolved wallet already
+  // (on-chain Friend destinationAddr can't be zero), unlike friend-verify, which
+  // can point at an email with no wallet yet — so this is always a real user,
+  // never an invite-by-email flow.
+  if (
+    parsed.destinationType === 2 &&
+    parsed.destinationAddr &&
+    parsed.destinationAddr !== ZERO_ADDRESS.toLowerCase()
+  ) {
+    try {
+      const creatorUsername = await resolveUsernameForAddress(admin, walletAddress);
+
+      if (destinationFriendEmail) {
+        await sendForfeitDestinationTaggedEmail(destinationFriendEmail, {
+          creatorUsername,
+          creatorWallet: walletAddress,
+          commitmentTitle: title,
+          appUrl,
+        }).catch((err) => {
+          console.error("[forfeit/confirm-create] destination email failed", err);
+        });
+      }
+
+      const creatorLabel = creatorUsername ? `@${creatorUsername}` : "Someone";
+      await notifyManyRecipients(admin, [parsed.destinationAddr], {
+        title: `${creatorLabel} set you as their forfeit destination`,
+        body: `If they miss "${title}", the stake comes to you.`,
+        url: "/",
+        type: "forfeit_destination_tagged",
+        message: `**${creatorLabel}** set you as where their forfeit stake goes if they miss it.`,
+        eventKeyFor: (addr) => `forfeit_destination_tagged:${commitment.id}:${addr}`,
+      }).catch((err) => {
+        console.error("[forfeit/confirm-create] destination notification failed", err);
+      });
+    } catch (err) {
+      console.error("[forfeit/confirm-create] destination side-effects failed", err);
     }
   }
 

@@ -52,11 +52,13 @@ export const forfeitFeedKeys = {
     ["forfeit", "commitments", "creator", address.toLowerCase()] as const,
   verifier: (address: string) =>
     ["forfeit", "commitments", "verifier", address.toLowerCase()] as const,
+  destination: (address: string) =>
+    ["forfeit", "commitments", "destination", address.toLowerCase()] as const,
 };
 
 async function fetchForfeitFeed(
   address: string,
-  role: "creator" | "verifier",
+  role: "creator" | "verifier" | "destination",
 ): Promise<ForfeitFeedItem[]> {
   const res = await fetch(
     `/api/forfeit/commitments/feed?address=${encodeURIComponent(address)}&role=${role}`,
@@ -80,6 +82,16 @@ export function useVerifierForfeits(address: string | undefined) {
   return useQuery({
     queryKey: forfeitFeedKeys.verifier(address ?? ""),
     queryFn: () => fetchForfeitFeed(address!, "verifier"),
+    enabled: Boolean(address),
+    staleTime: 45_000,
+  });
+}
+
+/** Forfeits where `address` is the friend a creator's stake goes to on a miss. */
+export function useDestinationForfeits(address: string | undefined) {
+  return useQuery({
+    queryKey: forfeitFeedKeys.destination(address ?? ""),
+    queryFn: () => fetchForfeitFeed(address!, "destination"),
     enabled: Boolean(address),
     staleTime: 45_000,
   });
