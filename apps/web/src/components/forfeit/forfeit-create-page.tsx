@@ -912,13 +912,14 @@ export function ForfeitCreatePage() {
                 </PillButton>
               </p>
               <p className="text-xs text-muted-foreground" style={MANROPE}>
-                You&apos;ll prove on this schedule until{" "}
-                <span className="font-semibold text-foreground/80">{deadlineLabel}</span>
-                {" "}— that end date is what we lock on-chain (not a year-long default).
-                The time ({deadlineDate.toLocaleTimeString(undefined, {
+                Prove on this schedule until{" "}
+                <span className="font-semibold text-foreground/80">{deadlineLabel}</span>.
+                Cutoff each period:{" "}
+                {deadlineDate.toLocaleTimeString(undefined, {
                   hour: "numeric",
                   minute: "2-digit",
-                })}) is your cutoff each period.
+                })}
+                .
               </p>
             </>
           ) : null}
@@ -1042,8 +1043,7 @@ export function ForfeitCreatePage() {
                     )}
                     {verifierIsDestinationFriend ? (
                       <p className="text-xs font-semibold text-amber-700" style={MANROPE}>
-                        Heads up — this is the same person your stake goes to if you miss it,
-                        which gives them a reason not to approve your proof.
+                        Heads up: this person also gets your stake if you miss, so there&apos;s a conflict.
                       </p>
                     ) : null}
                   </>

@@ -914,11 +914,6 @@ export function ForfeitDayCard({
             />
           ),
         )}
-        {dayBuckets.length > 1 ? (
-          <p className="text-center text-[11px] text-muted-foreground">
-            Day {safeDayIndex + 1} of {dayBuckets.length}
-          </p>
-        ) : null}
       </div>
 
       <SubmitProofModal
