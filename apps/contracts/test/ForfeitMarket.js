@@ -351,23 +351,50 @@ describe("ForfeitMarket", function () {
   });
 
   describe("cancelCommitment", function () {
-    it("refunds the full stake to the creator before the deadline", async function () {
-      const { market, token, creator } = await loadFixture(deployFixture);
-      const { stakeAmount } = await approveAndCreate(market, token, creator);
-      const balBefore = await token.read.balanceOf([creator.account.address]);
+    it("forfeits the stake to a Friend destination, minus the platform fee — no refund to the creator", async function () {
+      const { market, token, creator, friend } = await loadFixture(deployFixture);
+      const { stakeAmount } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+      });
+      const fee = (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const remainder = stakeAmount - fee; // no keeper bounty — creator-initiated, not a keeper call
+
+      const creatorBalBefore = await token.read.balanceOf([creator.account.address]);
+      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
       await market.write.cancelCommitment([0n], { account: creator.account });
-      const balAfter = await token.read.balanceOf([creator.account.address]);
-      expect(balAfter - balBefore).to.equal(stakeAmount);
+
+      expect(await token.read.balanceOf([creator.account.address])).to.equal(creatorBalBefore);
+      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
+        remainder,
+      );
       expect(await market.read.getCommitmentState([0n])).to.equal("CANCELLED");
     });
 
-    it("rejects cancelling after the deadline has passed (must resolve as forfeited instead)", async function () {
+    it("accrues the remainder to communityPoolBalance for CommunityPool destination, waiving the platform fee", async function () {
       const { market, token, creator } = await loadFixture(deployFixture);
-      await approveAndCreate(market, token, creator, { deadlineOffset: ONE_DAY });
+      const { stakeAmount } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.CommunityPool,
+      });
+      await market.write.cancelCommitment([0n], { account: creator.account });
+      expect(await market.read.communityPoolBalance([token.address])).to.equal(stakeAmount);
+    });
+
+    it("still works after the deadline has passed — cancelling never returns money either way", async function () {
+      const { market, token, creator, friend } = await loadFixture(deployFixture);
+      const { stakeAmount } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+        deadlineOffset: ONE_DAY,
+      });
       await time.increase(ONE_DAY + 1n);
-      await assertRevert(
-        market.write.cancelCommitment([0n], { account: creator.account }),
-        /DeadlinePassed/,
+      const fee = (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const remainder = stakeAmount - fee;
+
+      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
+      await market.write.cancelCommitment([0n], { account: creator.account });
+      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
+        remainder,
       );
     });
 
@@ -377,6 +404,16 @@ describe("ForfeitMarket", function () {
       await assertRevert(
         market.write.cancelCommitment([0n], { account: stranger.account }),
         /Unauthorized/,
+      );
+    });
+
+    it("rejects cancelling an already-cancelled commitment", async function () {
+      const { market, token, creator } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator);
+      await market.write.cancelCommitment([0n], { account: creator.account });
+      await assertRevert(
+        market.write.cancelCommitment([0n], { account: creator.account }),
+        /NotActive/,
       );
     });
   });

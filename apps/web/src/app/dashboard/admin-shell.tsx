@@ -18,6 +18,7 @@ import {
   Menu,
   Bell,
   Building2,
+  Flame,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
@@ -91,6 +92,7 @@ function pageTitle(pathname: string): string {
   ) {
     return "People";
   }
+  if (pathname.startsWith(`${BASE}/forfeit`)) return "Forfeit";
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
   if (
@@ -122,6 +124,10 @@ function isPeoplePath(pathname: string) {
     pathname.startsWith(`${BASE}/leaderboard`) ||
     pathname.startsWith(`${BASE}/rewards`)
   );
+}
+
+function isForfeitPath(pathname: string) {
+  return pathname.startsWith(`${BASE}/forfeit`);
 }
 
 function isCommunitiesPath(pathname: string) {
@@ -210,6 +216,13 @@ export function AdminShell({
 
           {isPlatformAdmin ? (
             <>
+              <NavItem
+                icon={Flame}
+                label="Forfeit"
+                href={`${BASE}/forfeit`}
+                active={isForfeitPath(pathname)}
+                onNavigate={closeMobile}
+              />
               <NavItem
                 icon={Megaphone}
                 label="Outreach"

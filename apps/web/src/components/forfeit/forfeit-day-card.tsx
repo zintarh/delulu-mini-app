@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import {
   forfeitFeedKeys,
@@ -27,6 +28,7 @@ import {
 import {
   ForfeitCadence,
   ForfeitDestinationType,
+  useCancelForfeitCommitment,
   useResolveForfeitCommitmentSuccess,
   useSubmitForfeitProof,
 } from "@/hooks/use-create-forfeit-commitment";
@@ -270,16 +272,54 @@ function TokenMark({
   );
 }
 
+/** Resolve whether this calendar day already settled as a win, a miss, or still open. */
+function periodOutcome(day: DayItem): "pending" | "won" | "failed" {
+  const period = day.period;
+  const action = period?.verifierAction ?? null;
+
+  if (action === "rejected" || action === "timed_out") return "failed";
+  if (action === "approved" && period?.resolvedAt) return "won";
+  // Self/AI success: resolved with proof, no rejection.
+  if (period?.resolvedAt && period.proofUrl) return "won";
+  // Deadline passed with nothing successful on record → forfeited.
+  if (day.periodStatus === "past") return "failed";
+  return "pending";
+}
+
+/**
+ * Stake line copy tracks outcome:
+ * - open day: "Fail · forfeit X to Y" (conditional)
+ * - won: "Won · kept X"
+ * - missed: "Failed · forfeited X to Y"
+ */
+function stakeOutcomeLine(
+  day: DayItem,
+  amount: string | null,
+  symbol: string,
+  destination: string | null,
+): { lead: string; verb: string; showDestination: boolean } {
+  const outcome = periodOutcome(day);
+  if (outcome === "won") {
+    return { lead: "Won.", verb: "Kept", showDestination: false };
+  }
+  if (outcome === "failed") {
+    return { lead: "Failed.", verb: "Forfeited", showDestination: true };
+  }
+  return { lead: "Fail.", verb: "Forfeit", showDestination: true };
+}
+
 function ForfeitTaskCard({
   item,
   day,
   onSubmitProof,
   proofBusy,
+  onDiscontinue,
 }: {
   item: ForfeitFeedItem;
   day: DayItem;
   onSubmitProof: () => void;
   proofBusy: boolean;
+  onDiscontinue: () => void;
 }) {
   const amount = formatStakeAmount(item);
   const symbol = item.onChain?.token ? getTokenSymbol(item.onChain.token) : "G$";
@@ -288,6 +328,7 @@ function ForfeitTaskCard({
   const isPendingSync = item.id.startsWith("pending:");
   const duration = formatForfeitDuration(item);
   const progress = formatPeriodProgress(item, day.calendarPeriodIndex);
+  const stakeLine = stakeOutcomeLine(day, amount, symbol, destination);
 
   const proofUrl = day.period?.proofUrl ?? null;
   const proofSubmitted = Boolean(proofUrl);
@@ -416,8 +457,8 @@ function ForfeitTaskCard({
       <div className="mt-3 flex items-center gap-3">
         <TokenMark tokenAddress={tokenAddress} symbol={symbol} />
         <p className={cn("min-w-0 flex-1", FEED_CARD_SUBTITLE_CLASS)}>
-          <span className="font-medium">Failed.</span>{" "}
-          <span className="font-semibold text-foreground/80">Forfeit</span>
+          <span className="font-medium">{stakeLine.lead}</span>{" "}
+          <span className="font-semibold text-foreground/80">{stakeLine.verb}</span>
           {amount ? (
             <>
               {" "}
@@ -426,7 +467,7 @@ function ForfeitTaskCard({
               </span>
             </>
           ) : null}
-          {destination ? (
+          {stakeLine.showDestination && destination ? (
             <>
               <span> to </span>
               <span className="font-semibold text-foreground">{destination}</span>
@@ -435,8 +476,30 @@ function ForfeitTaskCard({
         </p>
         {action}
       </div>
+
+      {!isPendingSync ? (
+        <button
+          type="button"
+          onClick={onDiscontinue}
+          className="mt-3 text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Discontinue
+        </button>
+      ) : null}
     </div>
   );
+}
+
+function creatorDisplayName(item: ForfeitFeedItem): string {
+  const username = item.otherPartyUsername?.trim();
+  if (username) return username.startsWith("@") ? username : `@${username}`;
+  if (item.creatorWallet) return formatAddressShort(item.creatorWallet);
+  return "A friend";
+}
+
+function formatAddressShort(wallet: string): string {
+  if (wallet.length < 10) return wallet;
+  return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`;
 }
 
 function ForfeitVerifyCard({ day }: { day: DayItem }) {
@@ -447,58 +510,78 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
   const hasProof = !!day.period?.proofUrl;
   const duration = formatForfeitDuration(item);
   const progress = formatPeriodProgress(item, day.calendarPeriodIndex);
+  const creatorName = creatorDisplayName(item);
 
   return (
-    <div className="rounded-3xl border border-delulu-blue/30 bg-delulu-blue-light/30 p-5 shadow-sm">
-      <div className={cn("mb-2.5 flex items-center gap-2 text-delulu-blue", FEED_CARD_META_CLASS)}>
-        <ShieldCheck className="h-3.5 w-3.5" />
-        <span className="font-bold uppercase tracking-wide">You&apos;re verifying</span>
-      </div>
-
-      <div className="flex items-center gap-2.5">
-        <UserAvatar
-          address={item.creatorWallet}
-          username={item.otherPartyUsername}
-          pfpUrl={item.otherPartyPfpUrl}
-          size={28}
-        />
-        <p className={cn("truncate", FEED_CARD_SUBTITLE_CLASS, "font-semibold text-foreground")}>
-          {item.otherPartyUsername ? `@${item.otherPartyUsername}` : "A friend"}
-        </p>
-      </div>
-
-      <p className={cn("mt-2.5", FEED_CARD_TITLE_CLASS)}>
-        {item.title || "Untitled forfeit"}
-      </p>
-      <p className={cn("mt-1", FEED_CARD_META_CLASS)}>
-        {duration}
-        {progress ? ` · ${progress}` : null}
-      </p>
-
-      {amount ? (
-        <div className="mt-2.5 flex items-center gap-2">
-          <TokenMark tokenAddress={tokenAddress} symbol={symbol} />
-          <p className={FEED_CARD_SUBTITLE_CLASS}>
-            <span className="font-medium">At stake</span>{" "}
-            <span className="font-bold tabular-nums text-foreground">
-              {amount} {symbol}
-            </span>
+    <div className="rounded-3xl border border-delulu-blue/30 bg-delulu-blue-light/30 p-3.5 shadow-sm sm:p-4">
+      <div className="flex gap-3">
+        {/* Friend column — fixed narrow rail */}
+        <div className="flex w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1.5 self-stretch border-r border-delulu-blue/15 pr-3 sm:w-[5.25rem]">
+          <UserAvatar
+            address={item.creatorWallet}
+            username={item.otherPartyUsername}
+            pfpUrl={item.otherPartyPfpUrl}
+            size={40}
+          />
+          <p
+            className={cn(
+              "w-full truncate text-center text-[11px] font-bold leading-tight text-foreground",
+            )}
+            title={creatorName}
+          >
+            {creatorName}
           </p>
         </div>
-      ) : null}
 
-      <Link
-        href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
-        className={cn(
-          "mt-4 flex w-full items-center justify-center gap-2 rounded-full py-2.5 transition-opacity",
-          FEED_CARD_CTA_CLASS,
-          hasProof
-            ? "bg-delulu-charcoal text-white hover:opacity-90"
-            : "border border-delulu-blue/40 bg-transparent text-delulu-blue",
-        )}
-      >
-        {hasProof ? "Review proof" : "View forfeit"}
-      </Link>
+        {/* Content column — takes remaining width */}
+        <div className="min-w-0 flex-1">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 text-delulu-blue",
+              FEED_CARD_META_CLASS,
+            )}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-bold uppercase tracking-wide">Verifying</span>
+          </div>
+
+          <p className={cn("mt-1 line-clamp-2", FEED_CARD_TITLE_CLASS, "text-base sm:text-lg")}>
+            {item.title || "Untitled forfeit"}
+          </p>
+          <p className={cn("mt-0.5", FEED_CARD_META_CLASS)}>
+            {duration}
+            {progress ? ` · ${progress}` : null}
+          </p>
+
+          <div className="mt-2.5 flex items-center gap-2">
+            <TokenMark tokenAddress={tokenAddress} symbol={symbol} />
+            <p className={cn("min-w-0 flex-1 truncate", FEED_CARD_SUBTITLE_CLASS)}>
+              <span className="font-medium">At stake</span>
+              {amount ? (
+                <>
+                  {" "}
+                  <span className="font-bold tabular-nums text-foreground">
+                    {amount} {symbol}
+                  </span>
+                </>
+              ) : null}
+            </p>
+            <Link
+              href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
+              className={cn(
+                "inline-flex shrink-0 items-center justify-center rounded-full px-3 py-1.5 transition-opacity hover:opacity-90",
+                FEED_CARD_CTA_CLASS,
+                "text-xs sm:text-sm",
+                hasProof
+                  ? "bg-delulu-charcoal text-white"
+                  : "border border-delulu-blue/40 bg-transparent text-delulu-blue",
+              )}
+            >
+              {hasProof ? "Review proof" : "View forfeit"}
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -531,7 +614,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
           size={28}
         />
         <p className={cn("truncate", FEED_CARD_SUBTITLE_CLASS, "font-semibold text-foreground")}>
-          {item.otherPartyUsername ? `@${item.otherPartyUsername}` : "A friend"}
+          {creatorDisplayName(item)}
         </p>
       </div>
 
@@ -606,6 +689,7 @@ export function ForfeitDayCard({
 
   const { submitProofAndWait } = useSubmitForfeitProof();
   const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
+  const { cancelCommitmentAndWait } = useCancelForfeitCommitment();
 
   useEffect(() => {
     if (!justSynced) return;
@@ -679,6 +763,10 @@ export function ForfeitDayCard({
   >("idle");
   const [activeProofItem, setActiveProofItem] = useState<ForfeitFeedItem | null>(null);
 
+  const [discontinueItem, setDiscontinueItem] = useState<ForfeitFeedItem | null>(null);
+  const [discontinueBusy, setDiscontinueBusy] = useState(false);
+  const [discontinueError, setDiscontinueError] = useState<string | null>(null);
+
   const goPrev = () => setDayIndex((i) => Math.max(0, i - 1));
   const goNext = () => setDayIndex((i) => Math.min(dayBuckets.length - 1, i + 1));
 
@@ -715,6 +803,26 @@ export function ForfeitDayCard({
       throw err instanceof Error ? err : new Error(msg);
     } finally {
       setProofBusy(false);
+    }
+  };
+
+  const handleDiscontinue = async () => {
+    if (discontinueItem?.onChainCommitmentId == null) return;
+    setDiscontinueBusy(true);
+    setDiscontinueError(null);
+    try {
+      const txHash = await cancelCommitmentAndWait(discontinueItem.onChainCommitmentId);
+      await fetch("/api/forfeit/confirm-cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ txHash, walletAddress: address }),
+      }).catch(() => {});
+      setDiscontinueItem(null);
+      invalidate();
+    } catch (err) {
+      setDiscontinueError(err instanceof Error ? err.message : "Failed to discontinue this forfeit");
+    } finally {
+      setDiscontinueBusy(false);
     }
   };
 
@@ -799,6 +907,10 @@ export function ForfeitDayCard({
                 setProofStep("idle");
                 setProofOpen(true);
               }}
+              onDiscontinue={() => {
+                setDiscontinueItem(day.forfeit);
+                setDiscontinueError(null);
+              }}
             />
           ),
         )}
@@ -828,6 +940,49 @@ export function ForfeitDayCard({
         myUsername={user?.username}
         myAvatar={user?.pfpUrl}
       />
+
+      <ResponsiveSheet
+        open={!!discontinueItem}
+        onOpenChange={(open) => {
+          if (!open && !discontinueBusy) {
+            setDiscontinueItem(null);
+            setDiscontinueError(null);
+          }
+        }}
+        title="Discontinue this forfeit?"
+      >
+        <div className="space-y-4 px-1 pb-1">
+          <p className={FEED_CARD_SUBTITLE_CLASS}>
+            Your stake will be forfeited to{" "}
+            <span className="font-semibold text-foreground">
+              {discontinueItem ? destinationLabel(discontinueItem) ?? "its destination" : "its destination"}
+            </span>{" "}
+            — same as if you&apos;d missed the deadline. This can&apos;t be undone.
+          </p>
+          {discontinueError ? (
+            <p className="text-xs font-semibold text-red-500">{discontinueError}</p>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={discontinueBusy}
+              onClick={() => setDiscontinueItem(null)}
+              className="flex-1 rounded-full border border-border/60 py-3 text-sm font-bold text-foreground disabled:opacity-60"
+            >
+              Keep it
+            </button>
+            <button
+              type="button"
+              disabled={discontinueBusy}
+              onClick={() => void handleDiscontinue()}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-red-500 py-3 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {discontinueBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Discontinue
+            </button>
+          </div>
+        </div>
+      </ResponsiveSheet>
     </section>
   );
 }

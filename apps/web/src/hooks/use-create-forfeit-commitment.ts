@@ -274,3 +274,32 @@ export function useResolveForfeitCommitmentSuccess() {
 
   return { resolveCommitmentSuccess, resolveCommitmentSuccessAndWait, isPending, error, reset };
 }
+
+export function useCancelForfeitCommitment() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, isPending, error, reset } = useUnifiedWriteContract();
+
+  const cancelCommitment = async (commitmentId: number) => {
+    return writeContractAsync({
+      address: getForfeitMarketAddress(chainId),
+      abi: FORFEIT_MARKET_ABI,
+      functionName: "cancelCommitment",
+      args: [BigInt(commitmentId)],
+    });
+  };
+
+  const cancelCommitmentAndWait = async (commitmentId: number) => {
+    try {
+      const txHash = await cancelCommitment(commitmentId);
+      await awaitMinedSuccess(publicClient, txHash, "Cancel transaction failed on-chain");
+      return txHash;
+    } catch (err) {
+      const name = extractForfeitErrorName(err);
+      if (name) throw new Error(describeForfeitError(name, "Failed to discontinue this forfeit."));
+      throw err;
+    }
+  };
+
+  return { cancelCommitment, cancelCommitmentAndWait, isPending, error, reset };
+}

@@ -71,10 +71,11 @@ export async function GET(request: NextRequest) {
   // generics can't express here, so this stays loosely typed.
   const applyRoleFilter = (query: any) =>
     role === "verifier"
-      ? query.eq("verifier_wallet", address)
+      ? // Case-insensitive: verifier_wallet may be checksummed in older rows.
+        query.ilike("verifier_wallet", address)
       : role === "destination"
         ? query.ilike("destination_addr", address).eq("destination_type", 2)
-        : query.eq("creator_wallet", address);
+        : query.ilike("creator_wallet", address);
 
   let commitments: CommitmentRow[] = [];
 
@@ -276,6 +277,10 @@ export async function GET(request: NextRequest) {
       const otherProfile = otherWallet
         ? profileByAddress.get(otherWallet.toLowerCase())
         : undefined;
+      let otherPartyUsername = otherProfile?.username?.trim() || null;
+      if (!otherPartyUsername && otherWallet) {
+        otherPartyUsername = await resolveUsernameForAddress(admin, otherWallet);
+      }
 
       const destinationProfile = destinationAddr
         ? profileByAddress.get(destinationAddr)
@@ -350,7 +355,7 @@ export async function GET(request: NextRequest) {
         verificationMethod: c.verification_method,
         creatorWallet: c.creator_wallet,
         verifierWallet: c.verifier_wallet,
-        otherPartyUsername: otherProfile?.username ?? null,
+        otherPartyUsername,
         otherPartyPfpUrl: otherProfile?.pfp_url ?? null,
         destinationFriendUsername,
         destinationFriendEmail,

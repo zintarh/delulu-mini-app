@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatUnits } from "viem";
-import { CheckCircle2, Clock, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Clock, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
+import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { getTokenDecimals } from "@/lib/token-amounts";
 import { DeluluDetailHeader } from "@/components/delulu-detail/delulu-detail-header";
 import {
@@ -47,9 +48,27 @@ export default function ForfeitVerifyPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { address, authenticated, isReady } = useAuth();
+  const sessionHint = hasStoredAuthSession();
+  const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   const inviteCode = searchParams.get("code");
 
   const returnPath = `/forfeit/verify/${params.id}${inviteCode ? `?code=${inviteCode}` : ""}`;
+
+  // A pull-to-refresh does a full reload, so isReady/authenticated both start
+  // false again — without this, that brief restoring window looked identical
+  // to "actually signed out" and bounced straight to /sign-in before the
+  // session had a chance to come back.
+  useEffect(() => {
+    if (!sessionHint || authenticated) {
+      setRestoreTimedOut(false);
+      return;
+    }
+    const id = window.setTimeout(() => setRestoreTimedOut(true), 3_000);
+    return () => window.clearTimeout(id);
+  }, [sessionHint, authenticated]);
+
+  const awaitingAuth =
+    !restoreTimedOut && (!isReady || (!authenticated && sessionHint));
 
   const [commitment, setCommitment] = useState<CommitmentDetail | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
@@ -80,12 +99,12 @@ export default function ForfeitVerifyPage() {
   }, [fetchCommitment]);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (awaitingAuth) return;
     if (!authenticated) {
       persistSignInRedirect(returnPath);
       router.replace(buildSignInUrl(returnPath));
     }
-  }, [isReady, authenticated, returnPath, router]);
+  }, [awaitingAuth, authenticated, returnPath, router]);
 
   const handleAccept = async () => {
     if (commitment?.onChainCommitmentId == null || !inviteCode || !address) return;
@@ -127,7 +146,15 @@ export default function ForfeitVerifyPage() {
     }
   };
 
-  if (!isReady || !authenticated) {
+  if (awaitingAuth) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
+      </main>
+    );
+  }
+
+  if (!authenticated) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
         <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
@@ -169,10 +196,20 @@ export default function ForfeitVerifyPage() {
   const isEnded = commitment.onChain ? !commitment.onChain.active : commitment.status !== "active";
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <DeluluDetailHeader shareSlot={null} />
 
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
+      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
+        <div className="mx-auto flex w-full max-w-xl flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+          aria-label="Go back"
+          className="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card text-foreground transition-colors hover:bg-muted"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
         <div className="mb-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <ShieldCheck className="h-4 w-4" />
           Verifier review
@@ -287,6 +324,7 @@ export default function ForfeitVerifyPage() {
                 : "This commitment isn't set up for verifier review."}
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

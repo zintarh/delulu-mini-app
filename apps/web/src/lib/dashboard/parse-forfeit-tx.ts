@@ -183,6 +183,27 @@ export async function parsePeriodResolvedSuccessFromTx(txHash: `0x${string}`): P
   };
 }
 
+export async function parseCommitmentCancelledFromTx(txHash: `0x${string}`): Promise<{
+  commitmentId: bigint;
+  refundAmount: bigint;
+} | null> {
+  const receipt = await waitForMinedReceipt(txHash);
+  if (receipt.status !== "success") {
+    throw new Error("Cancel transaction reverted on-chain");
+  }
+  const contract = forfeitMarketAddress();
+  const logs = parseEventLogs({
+    abi: FORFEIT_MARKET_ABI,
+    eventName: "CommitmentCancelled",
+    logs: receipt.logs,
+  });
+  const match = logs.find((log) => log.address.toLowerCase() === contract.toLowerCase());
+  if (!match) return null;
+  const args = match.args as { commitmentId?: bigint; refundAmount?: bigint };
+  if (args.commitmentId == null || args.refundAmount == null) return null;
+  return { commitmentId: args.commitmentId, refundAmount: args.refundAmount };
+}
+
 export async function parseVerifierInviteAcceptedFromTx(
   txHash: `0x${string}`,
 ): Promise<{ commitmentId: bigint; verifier: string } | null> {

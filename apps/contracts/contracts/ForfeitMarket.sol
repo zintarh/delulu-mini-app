@@ -446,24 +446,19 @@ contract ForfeitMarket is
     ///         routes the remainder to the commitment's configured destination. Ends the
     ///         commitment outright — missing one period of a repeating commitment forfeits
     ///         the whole thing, it doesn't just cost that one period.
-    function resolveCommitmentForfeited(uint256 commitmentId) external nonReentrant {
-        Commitment storage c = commitments[commitmentId];
-        if (c.creator == address(0)) revert CommitmentNotFound();
-        if (!c.active || c.cancelled) revert NotActive();
-        if (block.timestamp <= c.currentPeriodDeadline) revert DeadlineNotPassed();
-        if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
-            revert PeriodAlreadyResolved();
-        }
-
-        periodOutcome[commitmentId][c.currentPeriodIndex] = PeriodOutcome.Forfeited;
-        c.active = false;
-
+    /// @dev Shared by resolveCommitmentForfeited (bounty > 0, permissionless) and
+    ///      cancelCommitment (bounty == 0, creator-initiated) — same fee + destination
+    ///      routing either way, since a voluntary cancel is a forfeiture, not a refund.
+    function _distributeForfeitedStake(
+        uint256 commitmentId,
+        Commitment storage c,
+        uint256 bounty
+    ) internal returns (uint256 remainder, uint256 fee) {
         uint256 stakeAmount = c.stakeAmount;
-        uint256 bounty = (stakeAmount * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
-        uint256 fee = c.destinationType == DestinationType.CommunityPool
+        fee = c.destinationType == DestinationType.CommunityPool
             ? 0
             : (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 remainder = stakeAmount - bounty - fee;
+        remainder = stakeAmount - bounty - fee;
 
         IERC20 stakeToken = IERC20(c.token);
         if (bounty > 0) stakeToken.safeTransfer(msg.sender, bounty);
@@ -493,6 +488,22 @@ contract ForfeitMarket is
                 emit ForfeitedDestinationFallback(commitmentId, to, remainder);
             }
         }
+    }
+
+    function resolveCommitmentForfeited(uint256 commitmentId) external nonReentrant {
+        Commitment storage c = commitments[commitmentId];
+        if (c.creator == address(0)) revert CommitmentNotFound();
+        if (!c.active || c.cancelled) revert NotActive();
+        if (block.timestamp <= c.currentPeriodDeadline) revert DeadlineNotPassed();
+        if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
+            revert PeriodAlreadyResolved();
+        }
+
+        periodOutcome[commitmentId][c.currentPeriodIndex] = PeriodOutcome.Forfeited;
+        c.active = false;
+
+        uint256 bounty = (c.stakeAmount * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
+        (uint256 remainder, uint256 fee) = _distributeForfeitedStake(commitmentId, c, bounty);
 
         emit PeriodResolvedForfeited(
             commitmentId,
@@ -506,22 +517,24 @@ contract ForfeitMarket is
         );
     }
 
-    /// @notice Creator-only. Blocked once the current period's deadline has passed, so a
-    ///         creator can't front-run their own forfeiture with a cancel — at that point
-    ///         resolveCommitmentForfeited is the only path. Refunds the full escrowed stake.
+    /// @notice Creator-only. Voluntarily discontinuing is a forfeiture, not a refund —
+    ///         same fee + destination routing as a missed deadline, minus the keeper
+    ///         bounty (no permissionless caller to pay here). Callable any time the
+    ///         commitment is active, deadline passed or not: cancelling never returns
+    ///         money to the creator, so there's no reason to race a keeper for it.
     function cancelCommitment(uint256 commitmentId) external nonReentrant {
         Commitment storage c = commitments[commitmentId];
         if (c.creator == address(0)) revert CommitmentNotFound();
         if (msg.sender != c.creator) revert Unauthorized();
         if (!c.active || c.cancelled) revert NotActive();
-        if (block.timestamp > c.currentPeriodDeadline) revert DeadlinePassed();
 
+        periodOutcome[commitmentId][c.currentPeriodIndex] = PeriodOutcome.Forfeited;
         c.active = false;
         c.cancelled = true;
-        uint256 refund = c.stakeAmount;
-        IERC20(c.token).safeTransfer(c.creator, refund);
 
-        emit CommitmentCancelled(commitmentId, refund);
+        (uint256 remainder, ) = _distributeForfeitedStake(commitmentId, c, 0);
+
+        emit CommitmentCancelled(commitmentId, remainder);
     }
 
     // --- VIEW HELPERS ---
