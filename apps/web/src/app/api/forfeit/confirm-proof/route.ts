@@ -72,10 +72,18 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    // Contract currently emits PeriodResolvedSuccess after bumping currentPeriodIndex
+    // for repeating commitments, so the emitted period can be proofPeriod+1.
+    // Accept both shapes to keep confirm-proof backward compatible.
+    const periodMatches =
+      resolveEvent &&
+      (resolveEvent.periodIndex === proofEvent.periodIndex ||
+        resolveEvent.periodIndex === proofEvent.periodIndex + 1);
+
     if (
       !resolveEvent ||
       resolveEvent.commitmentId !== proofEvent.commitmentId ||
-      resolveEvent.periodIndex !== proofEvent.periodIndex ||
+      !periodMatches ||
       resolveEvent.resolver !== walletAddress
     ) {
       return NextResponse.json(
