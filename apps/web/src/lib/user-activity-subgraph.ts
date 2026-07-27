@@ -36,6 +36,7 @@ async function fetchSubgraph<T>(
   return json.data as T;
 }
 
+/** Campaign milestone proofs + successful forfeit period resolutions (not delulu milestones). */
 const WEEKLY_ACTIVITY_QUERY = `
   query WeeklyUserActivity(
     $address: String!
@@ -55,35 +56,19 @@ const WEEKLY_ACTIVITY_QUERY = `
       id
       createdAt
     }
-    milestonesSubmitted: milestones(
+    forfeitPeriodResolutions(
       where: {
-        creator: $address
-        isDeleted: false
-        submittedAt_gte: $from
-        submittedAt_lt: $to
+        creatorAddress: $address
+        outcome: "success"
+        createdAt_gte: $from
+        createdAt_lt: $to
       }
       first: 1000
-      orderBy: submittedAt
+      orderBy: createdAt
       orderDirection: asc
     ) {
       id
-      submittedAt
-      verifiedAt
-    }
-    milestonesVerified: milestones(
-      where: {
-        creator: $address
-        isDeleted: false
-        verifiedAt_gte: $from
-        verifiedAt_lt: $to
-      }
-      first: 1000
-      orderBy: verifiedAt
-      orderDirection: asc
-    ) {
-      id
-      submittedAt
-      verifiedAt
+      createdAt
     }
   }
 `;
@@ -106,23 +91,8 @@ function addDaysIso(isoDate: string, days: number): string {
   return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-${pad2(next.getUTCDate())}`;
 }
 
-function milestoneEventUnix(m: {
-  submittedAt: string | null;
-  verifiedAt: string | null;
-}): number | null {
-  if (m.verifiedAt) {
-    const v = Number(m.verifiedAt);
-    if (Number.isFinite(v) && v > 0) return v;
-  }
-  if (m.submittedAt) {
-    const s = Number(m.submittedAt);
-    if (Number.isFinite(s) && s > 0) return s;
-  }
-  return null;
-}
-
 /**
- * Fetches community + personal proof activity for a wallet in [from, to)
+ * Fetches campaign + forfeit proof activity for a wallet in [from, to)
  * and buckets counts into Mon–Sun local calendar days.
  */
 export async function fetchWeeklyUserActivity(input: {
@@ -135,16 +105,7 @@ export async function fetchWeeklyUserActivity(input: {
   const address = input.address.toLowerCase();
   const data = await fetchSubgraph<{
     communityCampaignMilestoneCompletions: Array<{ id: string; createdAt: string }>;
-    milestonesSubmitted: Array<{
-      id: string;
-      submittedAt: string | null;
-      verifiedAt: string | null;
-    }>;
-    milestonesVerified: Array<{
-      id: string;
-      submittedAt: string | null;
-      verifiedAt: string | null;
-    }>;
+    forfeitPeriodResolutions: Array<{ id: string; createdAt: string }>;
   }>(WEEKLY_ACTIVITY_QUERY, {
     address,
     from: String(input.fromUnix),
@@ -153,26 +114,12 @@ export async function fetchWeeklyUserActivity(input: {
 
   const timestamps: number[] = [];
 
-  for (const row of data.communityCampaignMilestoneCompletions ?? []) {
+  for (const row of [
+    ...(data.communityCampaignMilestoneCompletions ?? []),
+    ...(data.forfeitPeriodResolutions ?? []),
+  ]) {
     const ts = Number(row.createdAt);
     if (Number.isFinite(ts) && ts >= input.fromUnix && ts < input.toUnix) {
-      timestamps.push(ts);
-    }
-  }
-
-  const milestoneById = new Map<
-    string,
-    { submittedAt: string | null; verifiedAt: string | null }
-  >();
-  for (const m of [
-    ...(data.milestonesSubmitted ?? []),
-    ...(data.milestonesVerified ?? []),
-  ]) {
-    milestoneById.set(m.id, m);
-  }
-  for (const m of milestoneById.values()) {
-    const ts = milestoneEventUnix(m);
-    if (ts != null && ts >= input.fromUnix && ts < input.toUnix) {
       timestamps.push(ts);
     }
   }
