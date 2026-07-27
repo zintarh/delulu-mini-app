@@ -189,7 +189,7 @@ function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
             "grid min-h-0",
             rail
               ? "flex-1 grid-cols-1 gap-2.5 lg:grid-rows-3"
-              : "grid-cols-1 gap-4",
+              : "grid-cols-1 gap-4 lg:grid-cols-3",
           )}
         >
           {Array.from({ length: limit }, (_, i) => (
@@ -218,7 +218,7 @@ function GuestDiscoverCampaignsSection({ rail }: { rail?: boolean }) {
       <div
         className={cn(
           "grid min-h-0",
-          rail ? "flex-1 grid-cols-1 gap-2.5" : "grid-cols-1 gap-4",
+          rail ? "flex-1 grid-cols-1 gap-2.5" : "grid-cols-1 gap-4 lg:grid-cols-3",
         )}
         style={
           rail
