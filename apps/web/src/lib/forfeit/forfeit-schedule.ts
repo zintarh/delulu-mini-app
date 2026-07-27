@@ -185,7 +185,6 @@ export function buildForfeitCalendarSlots(input: {
   const total = Math.max(1, input.totalPeriods);
   const currentIdx = input.currentPeriodIndex;
   const periodSeconds = Math.max(1, input.periodSeconds || 86_400);
-  const daysSinceOrigin = daysBetween(origin, today);
 
   if (!input.isRepeating) {
     const deadlineSec = periodDeadlineSecAt(
@@ -240,21 +239,46 @@ export function buildForfeitCalendarSlots(input: {
     );
     const liveOpen = liveDeadlineSec * 1000 > now.getTime();
 
-    // Always map calendar day i → period i for labels. On today, submit the
-    // live on-chain period (handles legacy schedules that started "tomorrow").
-    const periodIndex = isToday ? currentIdx : i;
-    const periodDeadlineSec = isToday ? liveDeadlineSec : nativeDeadlineSec;
+    // The live on-chain period's deadline can land on a different calendar day
+    // than its "expected" one (e.g. the create-time schedule and the on-chain
+    // deadline drift by a day) — when that happens, whichever day it actually
+    // falls on is the one that should be actionable, not the day the naive
+    // origin+i mapping would have picked.
+    const liveDueToday =
+      startOfDay(new Date(liveDeadlineSec * 1000)).getTime() === today.getTime();
 
+    let periodIndex: number;
     let periodStatus: PeriodStatus;
-    if (dayDate.getTime() < today.getTime()) {
-      periodStatus = i <= currentIdx ? "past" : "upcoming";
+    if (isToday && liveDueToday) {
+      // The currently-open (or just-missed) period is genuinely due today —
+      // show it here even if the calendar's own day-count says otherwise.
+      periodIndex = currentIdx;
+      periodStatus = liveOpen ? "current" : "past";
+    } else if (dayDate.getTime() < today.getTime()) {
+      // A calendar day that's already elapsed is always "past" — there's no
+      // such thing as an "upcoming" yesterday, no matter how far behind
+      // currentIdx is (e.g. a missed period a keeper hasn't finalized yet).
+      periodIndex = i;
+      periodStatus = "past";
     } else if (dayDate.getTime() > today.getTime()) {
+      periodIndex = i;
       periodStatus = "upcoming";
-    } else if (liveOpen && (i === currentIdx || i === daysSinceOrigin)) {
-      periodStatus = "current";
+    } else if (i < currentIdx) {
+      periodIndex = i;
+      periodStatus = "past";
+    } else if (i === currentIdx) {
+      periodIndex = i;
+      periodStatus = liveOpen ? "current" : "past";
     } else {
+      // i > currentIdx and the live period isn't due today: only genuinely
+      // "upcoming" while that live period is still open — once its deadline
+      // has passed with nothing resolved, the whole commitment is done
+      // (missing a period forfeits it outright), so later days read as past
+      // too instead of dangling as a false "up next".
+      periodIndex = i;
       periodStatus = liveOpen ? "upcoming" : "past";
     }
+    const periodDeadlineSec = isToday ? liveDeadlineSec : nativeDeadlineSec;
 
     slots.push({
       dayDate,

@@ -102,7 +102,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   {
     id: "photo",
     title: "Photo",
-    description: "Submit photo evidence from your camera roll or camera.",
+    description: "Submit photo evidence.",
     icon: ImageIcon,
     sentencePrefix: "I'll send a",
     pillLabel: "photo",
@@ -112,7 +112,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   {
     id: "camera",
     title: "Camera only",
-    description: "Live camera proof only — uploads from gallery are blocked.",
+    description: "Live camera proof only",
     icon: Camera,
     sentencePrefix: "I'll take a",
     pillLabel: "live photo",
@@ -122,7 +122,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   {
     id: "self",
     title: "Self verify",
-    description: "Honestly confirm completion yourself. Trust-based, no time limit.",
+    description: "Honestly confirm completion yourself",
     icon: ShieldCheck,
     sentencePrefix: "I'll",
     pillLabel: "self-verify",
@@ -144,7 +144,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   {
     id: "strava",
     title: "Strava run",
-    description: "Verify a completed run or workout from your Strava activity.",
+    description: "Verify a completed workout from your Strava activity.",
     icon: Activity,
     sentencePrefix: "I'll complete a",
     pillLabel: "Strava run",
@@ -154,7 +154,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   },
 ];
 
-const PENALTY_AMOUNT_PRESETS = [100, 250, 500, 1000] as const;
+const PENALTY_AMOUNT_PRESETS = [100,  1000] as const;
 
 const FORFEIT_DESTINATIONS = [
   {
@@ -286,7 +286,7 @@ function SheetListRow({
           ? "cursor-not-allowed border-border/40 bg-muted/30 opacity-70"
           : selected
             ? "border-delulu-blue bg-delulu-blue-light/60"
-            : "border-border/60 bg-card hover:bg-muted/40",
+            : "border-border/60 bg-white hover:bg-muted/40",
       )}
     >
       {Icon ? (
@@ -827,8 +827,8 @@ export function ForfeitCreatePage() {
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <DeluluDetailHeader shareSlot={null} />
 
-      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden lg:max-w-2xl">
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-6 scrollbar-hide lg:px-8 lg:pb-8 lg:pt-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-y-auto scrollbar-hide lg:max-w-2xl">
+        <div className="my-6 h-auto flex-none rounded-3xl border-none bg-white px-5 py-6 lg:px-8 lg:py-8">
         <p
           className="mb-5 text-lg font-black tracking-tight text-foreground sm:text-xl"
           style={CLASH}
@@ -851,7 +851,7 @@ export function ForfeitCreatePage() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder={placeholder}
             rows={2}
-            className="w-full resize-none rounded-2xl border border-border/60 bg-card px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+            className="w-full resize-none rounded-2xl border border-border/60 bg-white px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
             style={MANROPE}
           />
           {description.length > 0 && description.trim().length < 3 ? (
@@ -878,7 +878,7 @@ export function ForfeitCreatePage() {
 
         {/* Repeat toggle + Every pill (same pattern as Duration) */}
         <div className="mt-6 space-y-4">
-          <label className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm">
+          <label className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground" style={MANROPE}>
                 Repeat this forfeit
@@ -912,7 +912,6 @@ export function ForfeitCreatePage() {
                 </PillButton>
               </p>
               <p className="text-xs text-muted-foreground" style={MANROPE}>
-                Prove on this schedule until{" "}
                 <span className="font-semibold text-foreground/80">{deadlineLabel}</span>.
                 Cutoff each period:{" "}
                 {deadlineDate.toLocaleTimeString(undefined, {
@@ -943,7 +942,7 @@ export function ForfeitCreatePage() {
               return (
                 <label
                   key={opt.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm"
                 >
                   <span className="text-sm font-semibold text-foreground" style={MANROPE}>
                     {opt.label}
@@ -967,7 +966,7 @@ export function ForfeitCreatePage() {
             })}
 
             {friendVerifierEnabled ? (
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm">
+              <div className="space-y-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm">
                 {resolvedVerifier ? (
                   <>
                     <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
@@ -1152,12 +1151,9 @@ export function ForfeitCreatePage() {
               ? "You confirm completion yourself — no AI check, no verifier."
               : verificationMethod === "friend"
                 ? "Your named friend reviews your proof and confirms completion — not AI."
-                : "AI will verify your forfeit instantly. It compares the description above with the proof you send, and approves it if it matches."}
+                : "AI will verify your forfeit instantly."}
           </p>
-          <p>
-            If you fail to submit in time, or the forfeit is denied, your stake goes to{" "}
-            {destination.label}.
-          </p>
+          
         </div>
 
         {hasInsufficientBalance ? (
@@ -1269,7 +1265,7 @@ export function ForfeitCreatePage() {
                   "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
                   deadlineLabel === preset
                     ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                    : "border-border/60 bg-white text-foreground hover:bg-muted/40",
                 )}
                 style={MANROPE}
               >
@@ -1297,7 +1293,7 @@ export function ForfeitCreatePage() {
             />
           </div>
 
-          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5">
+          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-white px-4 py-3.5">
             <span className="flex items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
               <Clock className="h-4 w-4 text-muted-foreground" />
               Submit anytime
@@ -1443,7 +1439,7 @@ export function ForfeitCreatePage() {
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}
-                        className="w-full rounded-2xl border border-border/60 bg-card py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                        className="w-full rounded-2xl border border-border/60 bg-white py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
                         style={MANROPE}
                       />
                       {destinationSearchLoading ? (
@@ -1542,7 +1538,7 @@ export function ForfeitCreatePage() {
                     "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                     selectedToken === t.address
                       ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                      : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                      : "border-border/60 bg-white text-foreground hover:bg-muted/40",
                   )}
                   style={MANROPE}
                 >
@@ -1567,7 +1563,7 @@ export function ForfeitCreatePage() {
                   "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
                   forfeitAmount === amount
                     ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                    : "border-border/60 bg-white text-foreground hover:bg-muted/40",
                 )}
                 style={MANROPE}
               >
@@ -1580,7 +1576,7 @@ export function ForfeitCreatePage() {
             <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground" style={MANROPE}>
               Or enter any amount
             </span>
-            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 focus-within:border-delulu-blue focus-within:ring-2 focus-within:ring-delulu-blue/20">
+            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-white px-4 py-3 focus-within:border-delulu-blue focus-within:ring-2 focus-within:ring-delulu-blue/20">
               <input
                 type="number"
                 inputMode="decimal"

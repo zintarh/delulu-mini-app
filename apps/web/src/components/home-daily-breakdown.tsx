@@ -49,7 +49,7 @@ function StatPill({
         accent ? "bg-delulu-blue/10" : "bg-muted/70",
       )}
     >
-      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+      <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p
@@ -88,13 +88,8 @@ export function HomeDailyBreakdown({ address }: { address: string }) {
 
   return (
     <section className="mb-6 px-4">
-      <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-white bg-gradient-to-b from-delulu-blue-light to-white shadow-sm">
         <div className="relative">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-delulu-blue/[0.06] to-transparent"
-          />
-
           <div className="relative px-4 pb-1 pt-3.5">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">

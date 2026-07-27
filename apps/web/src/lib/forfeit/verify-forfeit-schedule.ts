@@ -116,6 +116,75 @@ function main() {
     );
   }
 
+  // --- After period 0 proof + auto-resolve, today stays on period 0 (past) ---
+  const afterResolve = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: three.schedule.totalPeriods,
+    currentPeriodIndex: 1,
+    currentPeriodDeadlineSec: three.schedule.firstDeadline + 86_400,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: sunday,
+  });
+  const todaySlot = afterResolve.find((s) => dayKey(s.dayDate) === "2026-07-26");
+  if (!todaySlot) fail("Expected today slot after period-0 resolve");
+  if (todaySlot.periodIndex !== 0) {
+    fail(`After resolve, today periodIndex=${todaySlot.periodIndex}, want 0`);
+  }
+  if (todaySlot.periodStatus !== "past") {
+    fail(`After resolve, today status=${todaySlot.periodStatus}, want past`);
+  }
+
+  // --- Sunday's period was missed (never resolved) — Monday must not read as
+  // "upcoming"; the whole commitment is done, so both days show past. ---
+  const monday = new Date(2026, 6, 27, 15, 0, 0, 0);
+  const missedSunday = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: three.schedule.totalPeriods,
+    currentPeriodIndex: 0,
+    currentPeriodDeadlineSec: three.schedule.firstDeadline,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: monday,
+  });
+  const sundaySlot = missedSunday.find((s) => dayKey(s.dayDate) === "2026-07-26");
+  const mondaySlot = missedSunday.find((s) => dayKey(s.dayDate) === "2026-07-27");
+  if (!sundaySlot || !mondaySlot) fail("Expected both Sunday and Monday slots");
+  if (sundaySlot.periodStatus !== "past") {
+    fail(`Missed Sunday should read past, got ${sundaySlot.periodStatus}`);
+  }
+  if (mondaySlot.periodStatus !== "past") {
+    fail(
+      `Monday after a missed Sunday should read past (not upcoming), got ${mondaySlot.periodStatus}`,
+    );
+  }
+
+  // --- Period 0's real on-chain deadline drifted a day past its expected
+  // calendar slot (created Sunday, but firstDeadline landed on Monday EOD
+  // instead of Sunday EOD) — Monday must show period 0 as submittable
+  // ("current"), not as a mismatched "upcoming" period 1. ---
+  const driftedDeadline = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: three.schedule.totalPeriods,
+    currentPeriodIndex: 0,
+    currentPeriodDeadlineSec: three.schedule.firstDeadline + 86_400,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: monday,
+  });
+  const driftedMondaySlot = driftedDeadline.find(
+    (s) => dayKey(s.dayDate) === "2026-07-27",
+  );
+  if (!driftedMondaySlot) fail("Expected a Monday slot for the drifted-deadline case");
+  if (driftedMondaySlot.periodStatus !== "current") {
+    fail(
+      `Drifted period 0 due today should read current, got ${driftedMondaySlot.periodStatus}`,
+    );
+  }
+  if (driftedMondaySlot.periodIndex !== 0) {
+    fail(`Drifted period 0 due today should keep periodIndex 0, got ${driftedMondaySlot.periodIndex}`);
+  }
+
   void longDeadline;
   console.log("OK: forfeit schedule ↔ calendar days are consistent");
   console.log("  3 days →", three.days.join(" · "));

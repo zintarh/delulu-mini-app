@@ -16,6 +16,6 @@ export const FEED_CARD_META_CLASS =
   "text-xs font-medium text-muted-foreground";
 
 export const FEED_CARD_EYEBROW_CLASS =
-  "text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40";
+  "text-[10px] font-black uppercase text-foreground/40";
 
 export const FEED_CARD_CTA_CLASS = "text-sm font-bold";

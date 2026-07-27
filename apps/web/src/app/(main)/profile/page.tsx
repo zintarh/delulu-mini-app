@@ -75,15 +75,15 @@ export default function ProfilePage() {
         setUploadToast={setUploadToast}
       />
 
-      <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-1 rounded-full border border-border/50 bg-muted/30 p-1">
+      <div className="sticky top-0 z-40 flex justify-center bg-background/95 px-4 py-2 backdrop-blur-sm">
+        <div className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/30 p-0.5">
           {PROFILE_TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
               className={cn(
-                "flex-1 rounded-full py-2 text-xs font-bold transition-all sm:text-sm",
+                "rounded-full px-6 py-1.5 text-xs font-bold transition-all",
                 activeTab === id
                   ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -184,7 +184,7 @@ function ProfileHeader({
             type="button"
             onClick={openPfpPicker}
             disabled={isPfpUploading}
-            className="relative w-24 h-24 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
+            className="relative w-20 h-20 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
           >
             {pfpFromSupabase === undefined && !user?.pfpUrl ? (
               <div className="w-full h-full bg-muted animate-pulse rounded-full" />
@@ -211,10 +211,10 @@ function ProfileHeader({
             type="button"
             onClick={openPfpPicker}
             disabled={isPfpUploading}
-            className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#35d07f] border-2 border-background flex items-center justify-center shadow"
+            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#35d07f] border-2 border-background flex items-center justify-center shadow"
             aria-label="Change photo"
           >
-            <Camera className="w-3.5 h-3.5 text-white" />
+            <Camera className="w-3 h-3 text-white" />
           </button>
         </div>
         <input

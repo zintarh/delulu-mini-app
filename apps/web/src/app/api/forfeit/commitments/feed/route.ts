@@ -250,7 +250,10 @@ export async function GET(request: NextRequest) {
       const periods = periodList
         .filter((p) => {
           const idx = Number(p.period_index);
-          return idx >= Math.max(0, periodIndex - 1) && idx <= periodIndex + 1;
+          return (
+            Boolean(p.proof_url) ||
+            (idx >= Math.max(0, periodIndex - 1) && idx <= periodIndex + 1)
+          );
         })
         .map((p) => ({
           periodIndex: Number(p.period_index),
