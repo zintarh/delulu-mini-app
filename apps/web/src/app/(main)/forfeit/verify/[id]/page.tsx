@@ -165,9 +165,18 @@ export default function ForfeitVerifyPage() {
 
   if (loadState === "loading") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
-      </main>
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
+        <DeluluDetailHeader shareSlot={null} />
+        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
+          <div className="mx-auto flex w-full max-w-xl animate-pulse flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
+            <div className="mb-4 h-9 w-9 rounded-full bg-muted" />
+            <div className="mb-6 h-4 w-28 rounded bg-muted" />
+            <div className="h-7 w-3/4 rounded bg-muted" />
+            <div className="mt-5 h-24 rounded-2xl border border-white bg-white" />
+            <div className="mt-6 h-14 rounded-2xl border border-white bg-white" />
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -205,7 +214,7 @@ export default function ForfeitVerifyPage() {
           type="button"
           onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
           aria-label="Go back"
-          className="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card text-foreground transition-colors hover:bg-muted"
+          className="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-white bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -225,7 +234,7 @@ export default function ForfeitVerifyPage() {
           <p className="mt-2 text-sm text-muted-foreground">{commitment.description}</p>
         ) : null}
 
-        <div className="mt-5 space-y-2 rounded-2xl border border-border/60 bg-card p-4 text-sm">
+        <div className="mt-5 space-y-2 rounded-2xl border border-white bg-white p-4 text-sm shadow-sm">
           <p>
             <span className="text-muted-foreground">Committed by</span>{" "}
             <span className="font-bold text-foreground">{creatorLabel(commitment)}</span>
@@ -249,15 +258,14 @@ export default function ForfeitVerifyPage() {
 
         <div className="mt-6">
           {isEnded ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3.5 text-sm font-semibold text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-3.5 text-sm font-semibold text-muted-foreground shadow-sm">
               <CheckCircle2 className="h-4 w-4" />
-              This commitment has ended — nothing left to review.
+              Ended — nothing to review.
             </div>
           ) : canAcceptInvite ? (
-            <div className="space-y-3 rounded-2xl border border-delulu-blue/30 bg-delulu-blue-light/40 p-4">
+            <div className="space-y-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
               <p className="text-sm text-foreground">
-                {creatorLabel(commitment)} named you to verify this commitment. Accept to become
-                their verifier — you&apos;ll review their proof and confirm whether they completed it.
+                {creatorLabel(commitment)} wants you as their verifier.
               </p>
               {actionStep === "error" && actionError ? (
                 <p className="text-xs font-semibold text-red-500">{actionError}</p>
@@ -271,11 +279,11 @@ export default function ForfeitVerifyPage() {
                 {isAccepting || actionStep === "working" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
-                Accept and become verifier
+                Accept
               </button>
             </div>
           ) : isResolvedVerifier ? (
-            <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4">
+            <div className="space-y-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
               {commitment.currentPeriod?.proofUrl ? (
                 <>
                   <p className="text-sm font-semibold text-foreground">Proof submitted</p>
@@ -307,21 +315,18 @@ export default function ForfeitVerifyPage() {
                     Confirm completed
                   </button>
                   <p className="text-xs text-muted-foreground">
-                    If you don&apos;t respond before the deadline, this resolves as missed automatically.
+                    Unresolved by the deadline auto-resolves as missed.
                   </p>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  You&apos;re set as the verifier. {creatorLabel(commitment)} hasn&apos;t submitted proof for
-                  this period yet — check back closer to the deadline.
+                  Waiting on {creatorLabel(commitment)}&apos;s proof.
                 </p>
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border border-border/60 bg-muted/40 px-4 py-3.5 text-sm text-muted-foreground">
-              {commitment.verifierWallet
-                ? "Only the assigned verifier can review this commitment."
-                : "This commitment isn't set up for verifier review."}
+            <div className="rounded-2xl border border-white bg-white px-4 py-3.5 text-sm text-muted-foreground shadow-sm">
+              {commitment.verifierWallet ? "Only the assigned verifier can view this." : "No verifier set."}
             </div>
           )}
         </div>

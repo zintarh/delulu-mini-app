@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { MainDesktopHeader } from "@/components/main-desktop-header";
+import { AppLogo } from "@/components/app-logo";
 
 interface DeluluDetailHeaderProps {
   shareSlot?: React.ReactNode;
@@ -22,13 +22,7 @@ export function DeluluDetailHeader({
             className="outline-none focus-visible:ring-2 focus-visible:ring-ring rounded flex items-center shrink-0"
             aria-label="Delulu home"
           >
-            <Image
-              src="/favicon_io/favicon-32x32.png"
-              alt="Delulu"
-              width={32}
-              height={32}
-              className="h-8 w-8 shrink-0"
-            />
+            <AppLogo size={32} className="h-8 w-8 shrink-0" />
           </Link>
           <div className="flex-1" />
           <div className="flex shrink-0 items-center gap-0.5">

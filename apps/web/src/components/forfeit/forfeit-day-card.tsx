@@ -106,16 +106,16 @@ function formatForfeitDuration(item: ForfeitFeedItem): string {
   // totalPeriods comes from the user's duration end date at create time.
   if (!isRepeatingForfeit(item) || cadence === ForfeitCadence.Once) return "One time";
   if (cadence === ForfeitCadence.Daily) {
-    return total === 1 ? "Every day" : `Every day · ${total} days`;
+    return `${total} day${total === 1 ? "" : "s"}`;
   }
   if (cadence === ForfeitCadence.Weekday) {
-    return total === 1 ? "Every weekday" : `Every weekday · ${total} days`;
+    return `${total} weekday${total === 1 ? "" : "s"}`;
   }
   if (cadence === ForfeitCadence.Weekly) {
-    return total === 1 ? "Every week" : `Every week · ${total} weeks`;
+    return `${total} week${total === 1 ? "" : "s"}`;
   }
   if (cadence === ForfeitCadence.Monthly) {
-    return total === 1 ? "Every month" : `Every month · ${total} months`;
+    return `${total} month${total === 1 ? "" : "s"}`;
   }
   return "Repeating";
 }
@@ -319,10 +319,14 @@ function formatStakeLine(
   const amountText = amount ? `${amount} ${symbol}` : null;
   const outcome = periodOutcome(day);
   if (outcome === "won") {
-    return { prefix: "Won · kept", amountText, suffix: "" };
+    return { prefix: "Success. Kept", amountText, suffix: "" };
   }
   if (outcome === "failed") {
-    return { prefix: "Forfeited", amountText, suffix: destination ? ` to ${destination}` : "" };
+    return {
+      prefix: "Failed. Forfeited",
+      amountText,
+      suffix: destination ? ` to ${destination}` : "",
+    };
   }
   return { prefix: "Fail. Forfeit", amountText, suffix: destination ? ` to ${destination}` : "" };
 }
