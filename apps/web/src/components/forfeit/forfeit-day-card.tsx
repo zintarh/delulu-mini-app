@@ -583,9 +583,18 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#f2f1ec] pt-3">
         <p className={cn("truncate", FEED_CARD_META_CLASS)}>
-          {amount ? `${amount} ${symbol} at stake` : "Verifying"}
+          {amount ? (
+            <>
+              <span className="font-bold text-foreground">
+                {amount} {symbol}
+              </span>{" "}
+              at stake
+            </>
+          ) : (
+            "Verifying"
+          )}
         </p>
         <Link
           href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
@@ -878,12 +887,17 @@ export function ForfeitDayCard({
 
   if (isLoading) {
     return (
-      <section className={cn(className)}>
-        <div className="animate-pulse rounded-3xl border border-white bg-white p-5 shadow-sm">
-          <div className="h-5 w-3/4 rounded-lg bg-muted" />
-          <div className="mt-3 flex items-center gap-2.5">
-            <div className="h-6 w-6 rounded-full bg-muted" />
-            <div className="h-4 w-48 rounded bg-muted" />
+      <section className={cn(className)} role="status" aria-label="Loading forfeit">
+        <div className="mb-7 flex animate-pulse items-center justify-between gap-2">
+          <div className="h-8 w-8 rounded-full bg-muted" />
+          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-8 w-8 rounded-full bg-muted" />
+        </div>
+        <div className="animate-pulse rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+          <div className="h-4 w-2/3 rounded bg-muted" />
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="h-3.5 w-28 rounded bg-muted" />
+            <div className="h-6 w-20 rounded-full bg-muted" />
           </div>
         </div>
       </section>
