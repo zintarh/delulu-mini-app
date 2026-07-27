@@ -96,6 +96,7 @@ interface HomeDashboardProps {
 
 export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) {
   const { authenticated, address, isReady } = useAuth();
+  const isGuest = !address;
   const sessionHint = hasStoredAuthSession();
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
 
@@ -121,7 +122,13 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
 
   return (
     <div className={cn("mx-auto w-full", className)}>
-      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+      <div
+        className={cn(
+          "flex flex-col",
+          !isGuest &&
+            "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]",
+        )}
+      >
         {/* Main feed */}
         <div className="min-w-0">
           <HomeDashboardHeader address={address} />
@@ -142,12 +149,21 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
           {address ? <HomeDailyBreakdown address={address} /> : null}
 
           {address ? <HomeForfeitAndCampaigns address={address} /> : null}
+
+          {/* Signed-out desktop: render campaign discovery in the main column so layout doesn't feel empty. */}
+          {!address ? (
+            <div className="mb-6 px-4">
+              <HomeCampaignsSection layout="stack" />
+            </div>
+          ) : null}
         </div>
 
         {/* Discover campaigns: below feed on mobile, sticky side rail on desktop */}
-        <aside className="min-w-0 px-4 pb-6 lg:sticky lg:top-4 lg:h-[calc(100dvh-6.5rem)] lg:self-start lg:px-0 lg:pb-0">
-          <HomeCampaignsSection layout="rail" />
-        </aside>
+        {address ? (
+          <aside className="min-w-0 px-4 pb-6 lg:sticky lg:top-4 lg:h-[calc(100dvh-6.5rem)] lg:self-start lg:px-0 lg:pb-0">
+            <HomeCampaignsSection layout="rail" />
+          </aside>
+        ) : null}
       </div>
 {/* 
       <OngoingMilestonesSection
