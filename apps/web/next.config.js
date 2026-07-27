@@ -37,6 +37,19 @@ const nextConfig = {
         ],
       },
       {
+        // Always revalidate the service worker so PWAs pick up deploys without
+        // force-closing the app. updateViaCache: "none" alone is not enough if
+        // CDN/browser cache keeps an old sw.js.
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         // Next.js hardcodes crossOrigin="use-credentials" on the
         // <link rel="manifest"> tag whenever a manifest.ts route is used
         // (see next/dist/lib/metadata/generate/basic.js). A credentialed

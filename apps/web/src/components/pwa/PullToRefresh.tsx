@@ -98,6 +98,15 @@ export function PullToRefresh() {
         setIsRefreshing(true);
         pullPxRef.current = threshold;
         setPullPx(threshold);
+
+        // Installed PWA has no browser refresh — soft Next refresh leaves a stale
+        // client shell. Hard reload matches "close and reopen" without the user
+        // needing to know that workaround.
+        if (isStandalonePwa()) {
+          window.location.reload();
+          return;
+        }
+
         window.dispatchEvent(
           new CustomEvent("delulu:pull-refresh", {
             detail: { pathname: pathname ?? "/" },

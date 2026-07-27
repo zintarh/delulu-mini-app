@@ -22,7 +22,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             staleTime: 30_000,
             gcTime: 5 * 60 * 1000,
             retry: 1,
-            refetchOnWindowFocus: false,
+            // PWA resumes often leave queries stale; refetch when the user
+            // returns to the app (browser tab focus / standalone visibility).
+            refetchOnWindowFocus: true,
           },
         },
       })

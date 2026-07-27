@@ -112,7 +112,10 @@ export async function getPushSupportState(): Promise<PushSupportState> {
 export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existing = await waitForPushRegistration(1500);
   if (existing) return existing;
-  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  return navigator.serviceWorker.register("/sw.js", {
+    scope: "/",
+    updateViaCache: "none",
+  });
 }
 
 export async function subscribeToWebPush(address: string): Promise<void> {

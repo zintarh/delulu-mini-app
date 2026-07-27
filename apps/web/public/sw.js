@@ -1,18 +1,42 @@
 /* eslint-disable no-restricted-globals */
 
-// Minimal service worker for Web Push.
-// Note: caching/offline strategies can be added later.
+/**
+ * Push + update service worker (no offline HTML/JS caching).
+ * Bump SW_VERSION when changing this file so installs always see a byte change.
+ */
+const SW_VERSION = "delulu-sw-v3-2026-07-27";
+
+self.addEventListener("install", (event) => {
+  // Activate immediately so users don't need to kill the PWA after a deploy.
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      // Clear any leftover Cache Storage from older SW experiments.
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+      await self.clients.claim();
+      // Quiet log so DevTools shows which build is controlling the client.
+      console.log(`[sw.js] activated ${SW_VERSION}`);
+    })(),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    void self.skipWaiting();
+  }
+});
 
 self.addEventListener("push", (event) => {
   try {
-    // Debug-friendly push payload parsing:
-    // event.data.json() can throw if the payload isn't valid JSON.
     let data = {};
     if (event.data) {
       try {
         data = event.data.json();
-      } catch (e) {
-        // Fall back to text, then try parsing as JSON.
+      } catch {
         const text = event.data.text();
         try {
           data = JSON.parse(text);
@@ -22,8 +46,6 @@ self.addEventListener("push", (event) => {
       }
     }
 
-    // Visible in Chrome DevTools -> Application -> Service Workers -> "Service Worker"
-    console.log("[sw.js] push received:", data);
     const title = data.title || "Delulu";
     const body = data.body || "";
     const url = data.url || "/";
@@ -37,14 +59,15 @@ self.addEventListener("push", (event) => {
 
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    // Best-effort: ignore malformed push payloads.
     console.error("[sw.js] push error:", e);
   }
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification && event.notification.data && event.notification.data.url) || "/";
+  const url =
+    (event.notification && event.notification.data && event.notification.data.url) ||
+    "/";
 
   event.waitUntil(
     (async () => {
@@ -64,4 +87,3 @@ self.addEventListener("notificationclick", (event) => {
     })(),
   );
 });
-
