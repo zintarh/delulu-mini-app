@@ -21,12 +21,12 @@ const gloriaHallelujah = Gloria_Hallelujah({
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
+// Dark mode is temporarily forced off in production (see theme-provider.tsx)
+// — pinned to light here too so native browser chrome (address bar tint,
+// scrollbars) doesn't mismatch the always-light page content.
 export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f9f8f4" },
-    { media: "(prefers-color-scheme: dark)", color: "#121211" },
-  ],
-  colorScheme: "light dark",
+  themeColor: "#f9f8f4",
+  colorScheme: "light",
 } as const;
 
 export const metadata: Metadata = {

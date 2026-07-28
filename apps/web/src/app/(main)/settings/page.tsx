@@ -50,7 +50,7 @@ export default function SettingsPage() {
   const { isConnected, address, isReady } = useAuth();
   const { user } = useUserStore();
   const { openLogoutSheet } = useLogoutSheet();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, forcedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
@@ -254,27 +254,29 @@ export default function SettingsPage() {
                 </div>
               </section>
 
-              {/* Appearance */}
-              <section>
-                <SectionLabel>Appearance</SectionLabel>
-                <div className="mt-2.5 flex gap-1 rounded-2xl border border-border/50 bg-card p-1 shadow-sm">
-                  {(["system", "light", "dark"] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setTheme(opt)}
-                      className={cn(
-                        "flex-1 rounded-xl py-2 text-xs font-bold capitalize transition-colors",
-                        mounted && theme === opt
-                          ? "bg-secondary text-foreground"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </section>
+              {/* Appearance — hidden while dark mode is toggled off in production */}
+              {!forcedTheme ? (
+                <section>
+                  <SectionLabel>Appearance</SectionLabel>
+                  <div className="mt-2.5 flex gap-1 rounded-2xl border border-border/50 bg-card p-1 shadow-sm">
+                    {(["system", "light", "dark"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setTheme(opt)}
+                        className={cn(
+                          "flex-1 rounded-xl py-2 text-xs font-bold capitalize transition-colors",
+                          mounted && theme === opt
+                            ? "bg-secondary text-foreground"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               {/* More */}
               <section>
