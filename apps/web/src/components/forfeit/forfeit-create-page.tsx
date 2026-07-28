@@ -287,7 +287,7 @@ function SheetListRow({
           ? "cursor-not-allowed border-border/40 bg-muted/30 opacity-70"
           : selected
             ? "border-delulu-blue bg-delulu-blue-light/60"
-            : "border-border/60 bg-white hover:bg-muted/40",
+            : "border-border/60 bg-card hover:bg-muted/40",
       )}
     >
       {Icon ? (
@@ -829,7 +829,7 @@ export function ForfeitCreatePage() {
       <DeluluDetailHeader shareSlot={null} />
 
       <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-y-auto scrollbar-hide lg:max-w-2xl">
-        <div className="my-6 h-auto flex-none rounded-3xl border-none bg-white px-5 py-6 lg:px-8 lg:py-8">
+        <div className="my-6 h-auto flex-none rounded-3xl border-none bg-card px-5 py-6 lg:px-8 lg:py-8">
         <p
           className="mb-5 text-lg font-black tracking-tight text-foreground sm:text-xl"
           style={CLASH}
@@ -852,7 +852,7 @@ export function ForfeitCreatePage() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder={placeholder}
             rows={2}
-            className="w-full resize-none rounded-2xl border border-border/60 bg-white px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+            className="w-full resize-none rounded-2xl border border-border/60 bg-card px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
             style={MANROPE}
           />
           {description.length > 0 && description.trim().length < 3 ? (
@@ -879,7 +879,7 @@ export function ForfeitCreatePage() {
 
         {/* Repeat toggle + Every pill (same pattern as Duration) */}
         <div className="mt-6 space-y-4">
-          <label className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm">
+          <label className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground" style={MANROPE}>
                 Repeat this forfeit
@@ -943,7 +943,7 @@ export function ForfeitCreatePage() {
               return (
                 <label
                   key={opt.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm"
                 >
                   <span className="text-sm font-semibold text-foreground" style={MANROPE}>
                     {opt.label}
@@ -967,7 +967,7 @@ export function ForfeitCreatePage() {
             })}
 
             {friendVerifierEnabled ? (
-              <div className="space-y-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm">
+              <div className="space-y-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm">
                 {resolvedVerifier ? (
                   <>
                     <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
@@ -1273,7 +1273,7 @@ export function ForfeitCreatePage() {
                   "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
                   deadlineLabel === preset
                     ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                    : "border-border/60 bg-white text-foreground hover:bg-muted/40",
+                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
                 )}
                 style={MANROPE}
               >
@@ -1301,7 +1301,7 @@ export function ForfeitCreatePage() {
             />
           </div>
 
-          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-white px-4 py-3.5">
+          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5">
             <span className="flex items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
               <Clock className="h-4 w-4 text-muted-foreground" />
               Submit anytime
@@ -1447,7 +1447,7 @@ export function ForfeitCreatePage() {
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}
-                        className="w-full rounded-2xl border border-border/60 bg-white py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                        className="w-full rounded-2xl border border-border/60 bg-card py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
                         style={MANROPE}
                       />
                       {destinationSearchLoading ? (
@@ -1546,7 +1546,7 @@ export function ForfeitCreatePage() {
                     "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                     selectedToken === t.address
                       ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                      : "border-border/60 bg-white text-foreground hover:bg-muted/40",
+                      : "border-border/60 bg-card text-foreground hover:bg-muted/40",
                   )}
                   style={MANROPE}
                 >
@@ -1571,7 +1571,7 @@ export function ForfeitCreatePage() {
                   "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
                   forfeitAmount === amount
                     ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                    : "border-border/60 bg-white text-foreground hover:bg-muted/40",
+                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
                 )}
                 style={MANROPE}
               >
@@ -1584,7 +1584,7 @@ export function ForfeitCreatePage() {
             <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground" style={MANROPE}>
               Or enter any amount
             </span>
-            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-white px-4 py-3 focus-within:border-delulu-blue focus-within:ring-2 focus-within:ring-delulu-blue/20">
+            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 focus-within:border-delulu-blue focus-within:ring-2 focus-within:ring-delulu-blue/20">
               <input
                 type="number"
                 inputMode="decimal"

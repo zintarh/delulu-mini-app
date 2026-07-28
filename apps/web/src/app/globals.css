@@ -123,6 +123,41 @@ body {
   --spacing: 0.25rem;
 }
 
+.dark {
+  --background: #121211;
+  --foreground: #f2f1ec;
+  --card: #1c1c1a;
+  --card-foreground: #f2f1ec;
+  --popover: #1c1c1a;
+  --popover-foreground: #f2f1ec;
+  --primary: #f2f1ec;
+  --primary-foreground: #1a1a19;
+  --secondary: #2a2a27;
+  --secondary-foreground: #f2f1ec;
+  --muted: #2a2a27;
+  --muted-foreground: #a3a39c;
+  --accent: #1e2a3f;
+  --accent-foreground: #93c5fd;
+  --destructive: #f87171;
+  --destructive-foreground: #1a1a19;
+  --border: #33332f;
+  --input: #33332f;
+  --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-2: #60a5fa;
+  --chart-3: #93c5fd;
+  --chart-4: #bfdbfe;
+  --chart-5: #dbeafe;
+  --sidebar: #1c1c1a;
+  --sidebar-foreground: #f2f1ec;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: #1e2a3f;
+  --sidebar-accent-foreground: #93c5fd;
+  --sidebar-border: #33332f;
+  --sidebar-ring: #3b82f6;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -149,7 +184,7 @@ body {
   font-size: 14px;
   font-weight: 400;
   line-height: 24px;
-  color: rgb(0, 0, 0);
+  color: var(--foreground);
 }
 
 @media (min-width: 1024px) {
@@ -178,7 +213,7 @@ h6 {
   font-size: 20px;
   font-weight: 800;
   line-height: 24px;
-  color: rgba(4, 4, 3, 0.898);
+  color: var(--foreground);
 }
 
 /* Custom color utilities for Tailwind */
@@ -452,6 +487,18 @@ h6 {
   background: #9ca3af;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1c1c1a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3a3a36;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #52524c;
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -472,13 +519,13 @@ textarea {
   -ms-overflow-style: none;
 }
 
-/* Custom Date Picker Styles - Light Theme */
+/* Custom Date Picker Styles */
 .rdp {
   --rdp-cell-size: 32px;
-  --rdp-accent-color: #1a1a19;
+  --rdp-accent-color: var(--foreground);
   --rdp-background-color: var(--card);
-  --rdp-outline: 2px solid #1a1a19;
-  --rdp-outline-selected: 2px solid #1a1a19;
+  --rdp-outline: 2px solid var(--foreground);
+  --rdp-outline-selected: 2px solid var(--foreground);
   margin: 0;
 }
 
@@ -507,13 +554,13 @@ textarea {
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: #1a1a19 !important;
-  color: #ffffff !important;
+  background-color: var(--foreground) !important;
+  color: var(--background) !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: #1a1a19 !important;
-  color: #ffffff !important;
+  background-color: var(--foreground) !important;
+  color: var(--background) !important;
 }
 
 .rdp-selected .rdp-day_button {
@@ -644,6 +691,10 @@ textarea {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(28, 28, 26, 0.85);
 }
 
 /* Line clamp utility */

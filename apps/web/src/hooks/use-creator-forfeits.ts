@@ -103,3 +103,15 @@ export function isActiveForfeit(item: ForfeitFeedItem): boolean {
   if (item.onChain && !item.onChain.active && item.status !== "pending_verifier") return false;
   return true;
 }
+
+/**
+ * Whether this forfeit should ever be shown on the day-card at all — as
+ * opposed to isActiveForfeit, which means "currently at stake" (used to
+ * decide home-feed ordering). A completed or forfeited commitment should
+ * still appear on the calendar days it actually happened, correctly labeled
+ * (Kept / Forfeited) — only a row that never actually confirmed on-chain
+ * (an abandoned draft) has nothing real to show.
+ */
+export function hasConfirmedForfeitState(item: ForfeitFeedItem): boolean {
+  return item.status !== "pending_confirmation";
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -49,6 +50,9 @@ export default function SettingsPage() {
   const { isConnected, address, isReady } = useAuth();
   const { user } = useUserStore();
   const { openLogoutSheet } = useLogoutSheet();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pushState, setPushState] = useState<PushSupportState | null>(null);
@@ -247,6 +251,28 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </section>
+
+              {/* Appearance */}
+              <section>
+                <SectionLabel>Appearance</SectionLabel>
+                <div className="mt-2.5 flex gap-1 rounded-2xl border border-border/50 bg-card p-1 shadow-sm">
+                  {(["system", "light", "dark"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setTheme(opt)}
+                      className={cn(
+                        "flex-1 rounded-xl py-2 text-xs font-bold capitalize transition-colors",
+                        mounted && theme === opt
+                          ? "bg-secondary text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
               </section>
 

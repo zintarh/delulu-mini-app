@@ -80,11 +80,15 @@ export async function GET(request: NextRequest) {
   let commitments: CommitmentRow[] = [];
 
   {
+    // Include terminal statuses too — a completed/forfeited/cancelled forfeit
+    // should still show on its own historical calendar day (labeled Kept /
+    // Forfeited), not vanish from the feed the moment it resolves. Only
+    // "pending_confirmation" (never actually confirmed on-chain) is excluded.
     const full = await applyRoleFilter(
       admin
         .from("forfeit_commitments")
         .select(FEED_SELECT)
-        .in("status", ["active", "pending_verifier"])
+        .in("status", ["active", "pending_verifier", "completed", "forfeited", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(FEED_LIMIT),
     );

@@ -3,6 +3,7 @@ import { Manrope, Gloria_Hallelujah } from "next/font/google";
 import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -21,8 +22,11 @@ const gloriaHallelujah = Gloria_Hallelujah({
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
 export const viewport = {
-  themeColor: "#f9f8f4",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f9f8f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#121211" },
+  ],
+  colorScheme: "light dark",
 } as const;
 
 export const metadata: Metadata = {
@@ -61,7 +65,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link
@@ -72,7 +76,9 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >
-        <ProvidersShell>{children}</ProvidersShell>
+        <ThemeProvider>
+          <ProvidersShell>{children}</ProvidersShell>
+        </ThemeProvider>
       </body>
     </html>
   );

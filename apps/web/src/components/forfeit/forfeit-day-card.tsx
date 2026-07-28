@@ -20,7 +20,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import {
   forfeitFeedKeys,
-  isActiveForfeit,
+  hasConfirmedForfeitState,
   useCreatorForfeits,
   useDestinationForfeits,
   useVerifierForfeits,
@@ -338,7 +338,7 @@ function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
         <MoreVertical className="h-4 w-4" />
       </button>
       {open ? (
-        <div className="absolute right-0 top-8 z-20 w-40 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+        <div className="absolute right-0 top-8 z-20 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
           <button
             type="button"
             onClick={() => {
@@ -547,7 +547,7 @@ function ForfeitTaskCard({
   const showProgress = isRepeatingForfeit(item);
 
   return (
-    <div className="relative rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+    <div className="relative rounded-3xl bg-card p-3.5 shadow-sm">
       {showProgress ? (
         <div className="flex items-center gap-1.5 pr-7">
           <DotProgress
@@ -614,8 +614,29 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
   const hasProof = !!day.period?.proofUrl;
   const creatorName = creatorDisplayName(item);
 
+  // The creator not submitting is exactly the case a verifier most needs to
+  // see reflected here — otherwise this card just says "Verifying" forever,
+  // even once it's actually overdue or already forfeited.
+  const outcome = periodOutcome(day);
+  const label =
+    outcome === "won"
+      ? "Completed"
+      : outcome === "failed"
+        ? "Forfeited"
+        : outcome === "overdue"
+          ? "Overdue"
+          : "Verifying";
+  const labelColor =
+    outcome === "won"
+      ? "text-delulu-green"
+      : outcome === "failed"
+        ? "text-red-500"
+        : outcome === "overdue"
+          ? "text-amber-600"
+          : "text-delulu-blue";
+
   return (
-    <div className="rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+    <div className="rounded-3xl bg-card p-3.5 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <UserAvatar
@@ -630,8 +651,8 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
-            Verifying
+          <p className={cn("text-[10px] font-black uppercase tracking-wide", labelColor)}>
+            {label}
           </p>
           <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
@@ -656,7 +677,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
           className="ml-auto w-fit shrink-0 rounded-full bg-delulu-charcoal px-4 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
         >
-          {hasProof ? "Review" : "View"}
+          {outcome === "pending" && hasProof ? "Review" : "View"}
         </Link>
       </div>
     </div>
@@ -728,7 +749,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
   const creatorName = creatorDisplayName(item);
 
   return (
-    <div className="rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+    <div className="rounded-3xl bg-card p-3.5 shadow-sm">
       <div className="flex items-center gap-3">
         <UserAvatar
           address={item.creatorWallet}
@@ -768,7 +789,7 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
+    <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
       <Calendar
         className="h-12 w-12 text-muted-foreground/50"
         strokeWidth={1.5}
@@ -844,9 +865,9 @@ export function ForfeitDayCard({
   }, [justSynced, address, queryClient]);
 
   const items = useMemo<DayItem[]>(() => {
-    const creatorForfeits = (creatorData ?? []).filter(isActiveForfeit);
-    const verifierForfeits = (verifierData ?? []).filter(isActiveForfeit);
-    const destinationForfeits = (destinationData ?? []).filter(isActiveForfeit);
+    const creatorForfeits = (creatorData ?? []).filter(hasConfirmedForfeitState);
+    const verifierForfeits = (verifierData ?? []).filter(hasConfirmedForfeitState);
+    const destinationForfeits = (destinationData ?? []).filter(hasConfirmedForfeitState);
 
     const creatorDays = creatorForfeits.flatMap((f) =>
       expandForfeitDays(f, "creator"),
@@ -1010,7 +1031,7 @@ export function ForfeitDayCard({
           <div className="h-4 w-32 rounded bg-muted" />
           <div className="h-8 w-8 rounded-full bg-muted" />
         </div>
-        <div className="animate-pulse rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+        <div className="animate-pulse rounded-3xl bg-card p-3.5 shadow-sm">
           <div className="h-4 w-2/3 rounded bg-muted" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="h-3.5 w-28 rounded bg-muted" />
@@ -1029,7 +1050,7 @@ export function ForfeitDayCard({
         {showCreateWhenEmpty ? (
           <ForfeitEmptyState authenticated={!!address} />
         ) : (
-          <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
+          <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
             <Calendar
               className="h-12 w-12 text-muted-foreground/50"
               strokeWidth={1.5}
@@ -1076,7 +1097,7 @@ export function ForfeitDayCard({
       </div>
 
       {currentDays.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
+        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
           <Calendar
             className="h-10 w-10 text-muted-foreground/50"
             strokeWidth={1.5}
