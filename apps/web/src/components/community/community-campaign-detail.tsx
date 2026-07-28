@@ -133,7 +133,7 @@ function JoinButton({
       className={cn(
         "rounded-xl font-bold transition-all active:scale-[0.98]",
         canJoin
-          ? "bg-black text-white shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:bg-black/90"
+          ? "bg-foreground text-background shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:opacity-90"
           : "bg-muted text-muted-foreground",
         size === "large" ? "px-7 py-4 text-base" : "px-6 py-3 text-base",
         className,
@@ -185,12 +185,12 @@ function campaignDescriptionClassName(
     return "mt-2.5 line-clamp-2 text-base leading-relaxed text-white/85 lg:text-sm";
   }
   if (len > 220) {
-    return "text-sm leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-xs";
+    return "text-sm leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-xs";
   }
   if (len > 120) {
-    return "text-[15px] leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-sm";
+    return "text-[15px] leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-sm";
   }
-  return "text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 pb-4 lg:text-sm";
+  return "text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-sm";
 }
 
 export function CommunityCampaignDetail({
@@ -440,9 +440,9 @@ export function CommunityCampaignDetail({
 
   const phaseClass = {
     closed: "bg-muted text-muted-foreground border-border/60",
-    setup: "bg-[#fffbeb] text-[#9a7b0a] border-[#f6c324]/40",
+    setup: "bg-[#fffbeb] dark:bg-amber-950/30 text-[#9a7b0a] dark:text-amber-300 border-[#f6c324]/40 dark:border-amber-800/40",
     open: "bg-delulu-blue-light text-delulu-blue border-delulu-blue/30",
-    active: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+    active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
   }[campaignPhase];
 
   /* ─── Hero (slimmer for joined users) ─── */
@@ -605,7 +605,7 @@ export function CommunityCampaignDetail({
             ) : !focusMilestone ? (
               <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/8 lg:mx-3">
                 <div className="border-l-4 border-emerald-500 p-6">
-                  <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">
+                  <p className="text-sm font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                     All milestones complete 🎉
                   </p>
                   <p className="mt-1.5 text-base text-muted-foreground">
@@ -656,7 +656,7 @@ export function CommunityCampaignDetail({
 
             {/* Rewards + proof info — always visible, single card */}
             <section className="mt-5 px-5 lg:px-3">
-              <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-6 space-y-5">
+              <div className="rounded-2xl border border-[#f6c324]/25 dark:border-amber-800/25 bg-[#fffbeb]/50 dark:bg-amber-950/20 p-6 space-y-5">
                 {campaign.description ? (
                   <p className={campaignDescriptionClassName(campaign.description, "body")}>
                     {campaign.description}
@@ -678,23 +678,23 @@ export function CommunityCampaignDetail({
                         <Trophy className="h-4 w-4 text-emerald-600" />
                         Rank in the top {topN}
                       </span>
-                      <span className="font-bold text-emerald-700">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300">
                         Share the prize{claimablePrize > 0 ? ` · ${claimablePrize} G$` : ""}
                       </span>
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between text-base">
                     <span className="flex items-center gap-2 text-foreground">
-                      <Target className="h-4 w-4 text-[#9a7b0a]" />
+                      <Target className="h-4 w-4 text-[#9a7b0a] dark:text-amber-300" />
                       Stay consistent
                     </span>
-                    <span className="font-bold text-[#9a7b0a]">Achieve your goal</span>
+                    <span className="font-bold text-[#9a7b0a] dark:text-amber-300">Achieve your goal</span>
                   </div>
                 </div>
 
                 {/* Upload proof — merged into same card */}
-                <div className="border-t border-[#f6c324]/20 pt-4 flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
+                <div className="border-t border-[#f6c324]/20 dark:border-amber-800/30 pt-4 flex items-start gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f6c324]/25 dark:bg-amber-500/20 text-[#9a7b0a] dark:text-amber-300">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div>
@@ -713,14 +713,14 @@ export function CommunityCampaignDetail({
               </div>
 
               {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                <div className="mt-2.5 rounded-2xl border border-orange-200/70 bg-orange-50/60 p-5 flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                <div className="mt-2.5 rounded-2xl border border-orange-200/70 bg-orange-50/60 dark:border-orange-800/40 dark:bg-orange-950/20 p-5 flex items-start gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-base font-bold text-foreground">Miss your milestone</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Forfeit <strong className="text-orange-700">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
+                      Forfeit <strong className="text-orange-700 dark:text-orange-300">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
                       {stakeToken === "G$"
                         ? ". Forfeited stake is added to the G$ prize when participants reclaim after the campaign ends."
                         : ". Forfeited stake is deducted from what you reclaim after the campaign ends."}
@@ -821,10 +821,10 @@ export function CommunityCampaignDetail({
                   }
 
                   return (
-                    <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)]">
-                      <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 px-5 py-3">
-                        <Trophy className="h-5 w-5 text-[#9a7b0a]" />
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a]">
+                    <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 dark:border-amber-800/30 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)] dark:from-amber-950/30 dark:via-amber-950/20 dark:to-card dark:shadow-none">
+                      <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 dark:border-amber-800/30 px-5 py-3">
+                        <Trophy className="h-5 w-5 text-[#9a7b0a] dark:text-amber-300" />
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a] dark:text-amber-300">
                           {showStakeRow ? "Prize & stakes" : "Prize pool"}
                         </p>
                       </div>
@@ -832,7 +832,7 @@ export function CommunityCampaignDetail({
                       {showPrizePool ? (
                         <div
                           className={cn(
-                            "grid divide-x divide-[#f6c324]/20",
+                            "grid divide-x divide-[#f6c324]/20 dark:divide-amber-800/30",
                             "grid-cols-2",
                           )}
                         >
@@ -842,9 +842,9 @@ export function CommunityCampaignDetail({
                               style={{ fontFamily: '"Clash Display", sans-serif' }}
                             >
                               {claimablePrize.toLocaleString()}
-                              <span className="ml-1.5 text-base font-bold text-[#9a7b0a]">G$</span>
+                              <span className="ml-1.5 text-base font-bold text-[#9a7b0a] dark:text-amber-300">G$</span>
                             </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70 dark:text-amber-300/70">
                               Claimable prize
                             </p>
                           </div>
@@ -856,7 +856,7 @@ export function CommunityCampaignDetail({
                             >
                               Top {topN}
                             </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70">
+                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70 dark:text-amber-300/70">
                               Share by points
                             </p>
                           </div>
@@ -866,12 +866,12 @@ export function CommunityCampaignDetail({
                       {showStakeRow ? (
                         <div
                           className={cn(
-                            "grid gap-px bg-[#f6c324]/20",
+                            "grid gap-px bg-[#f6c324]/20 dark:bg-amber-800/20",
                             forfeitAmountRaw > 0 ? "grid-cols-2" : "grid-cols-1",
-                            showPrizePool && "border-t border-[#f6c324]/20",
+                            showPrizePool && "border-t border-[#f6c324]/20 dark:border-amber-800/30",
                           )}
                         >
-                          <div className="flex flex-col items-center bg-[#fffdf5] px-3 py-4 text-center">
+                          <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
                             <p
                               className="text-lg font-black tabular-nums text-foreground sm:text-xl"
                               style={{ fontFamily: '"Clash Display", sans-serif' }}
@@ -887,13 +887,13 @@ export function CommunityCampaignDetail({
                           </div>
 
                           {forfeitAmountLabel ? (
-                            <div className="flex flex-col items-center bg-[#fffdf5] px-3 py-4 text-center">
+                            <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
                               <p
-                                className="text-lg font-black tabular-nums text-orange-600 sm:text-xl"
+                                className="text-lg font-black tabular-nums text-orange-600 dark:text-orange-400 sm:text-xl"
                                 style={{ fontFamily: '"Clash Display", sans-serif' }}
                               >
                                 −{forfeitAmountLabel}
-                                <span className="ml-1 text-xs font-bold text-orange-600/70">
+                                <span className="ml-1 text-xs font-bold text-orange-600/70 dark:text-orange-400/70">
                                   {stakeToken}
                                 </span>
                               </p>
@@ -905,8 +905,8 @@ export function CommunityCampaignDetail({
                         </div>
                       ) : null}
 
-                      <div className="border-t border-[#f6c324]/20 px-5 py-3">
-                        <p className="text-xs leading-relaxed text-[#9a7b0a]/80">
+                      <div className="border-t border-[#f6c324]/20 dark:border-amber-800/30 px-5 py-3">
+                        <p className="text-xs leading-relaxed text-[#9a7b0a]/80 dark:text-amber-300/80">
                           {showPrizePool
                             ? `Top ${topN} split the claimable G$ prize pro-rata by points when payouts are published.${
                                 isPaidJoin && forfeitAmountRaw > 0 && stakeToken === "G$"
@@ -988,8 +988,8 @@ export function CommunityCampaignDetail({
                 </div>
                 {/* 3 — Win the prize (when there is a claimable pool) */}
                 {showPrizePool ? (
-                  <div className="rounded-2xl border border-[#f6c324]/25 bg-[#fffbeb]/50 p-5">
-                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 text-[#9a7b0a]">
+                  <div className="rounded-2xl border border-[#f6c324]/25 dark:border-amber-800/25 bg-[#fffbeb]/50 dark:bg-amber-950/20 p-5">
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 dark:bg-amber-500/20 text-[#9a7b0a] dark:text-amber-300">
                       <Trophy className="h-5 w-5" />
                     </div>
                     <p className="text-base font-bold text-foreground">Win the prize pool</p>
@@ -999,8 +999,8 @@ export function CommunityCampaignDetail({
                   </div>
                 ) : null}
                 {/* 4 — Upload proof */}
-                <div className="rounded-2xl border border-[#E9C0E9]/50 bg-[#E9C0E9]/15 p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#E9C0E9]/40 text-[#8a3f8a]">
+                <div className="rounded-2xl border border-[#E9C0E9]/50 bg-[#E9C0E9]/15 dark:border-[#8a3f8a]/40 dark:bg-[#8a3f8a]/15 p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#E9C0E9]/40 dark:bg-[#8a3f8a]/25 text-[#8a3f8a] dark:text-[#E9C0E9]">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Upload proof</p>
@@ -1022,7 +1022,7 @@ export function CommunityCampaignDetail({
               href={campaign.telegram_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-5 py-2.5 text-sm font-semibold text-[#1a8cc7] hover:bg-[#2AABEE]/20 transition-colors"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-5 py-2.5 text-sm font-semibold text-[#1a8cc7] dark:text-[#6dcbf5] hover:bg-[#2AABEE]/20 transition-colors"
             >
               Join Telegram
             </a>
@@ -1105,7 +1105,7 @@ export function CommunityCampaignDetail({
                     className={cn(
                       "flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4 last:border-0",
                       isMe && "bg-delulu-blue-light/50",
-                      inZone && !isMe && "bg-[#fffbeb]/60",
+                      inZone && !isMe && "bg-[#fffbeb]/60 dark:bg-amber-950/25",
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-4">
@@ -1113,7 +1113,7 @@ export function CommunityCampaignDetail({
                         {medal ?? (
                           <span
                             className={
-                              inZone ? "text-[#9a7b0a]" : "text-muted-foreground"
+                              inZone ? "text-[#9a7b0a] dark:text-amber-300" : "text-muted-foreground"
                             }
                           >
                             {row.rank}
@@ -1173,7 +1173,7 @@ export function CommunityCampaignDetail({
 
           {canClaimReward ? (
             <div className="mt-4 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
-              <p className="text-sm font-semibold text-emerald-800">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                 You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
               </p>
               <button
@@ -1192,7 +1192,7 @@ export function CommunityCampaignDetail({
           ) : null}
 
           {claimSuccess || claimInfo?.alreadyClaimed ? (
-            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800">
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
               Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
             </p>
           ) : null}

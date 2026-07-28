@@ -62,7 +62,7 @@ function ProgressRing({ index, count }: { index: number; count: number }) {
 
   return (
     <div
-      className="absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-full bg-white shadow-sm"
+      className="absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-full bg-white shadow-sm dark:bg-card"
       style={{ width: size, height: size }}
     >
       <svg width={size} height={size} className="-rotate-90">
@@ -118,7 +118,7 @@ export function MissionCard({
   const atRisk = hasStake && forfeitPct > 0 && Boolean(countdown?.urgent);
 
   return (
-    <div className="group rounded-3xl border border-white bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
+    <div className="group rounded-3xl bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex items-start gap-4">
         <Link href={href} className="relative shrink-0">
           <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
@@ -169,7 +169,7 @@ export function MissionCard({
         </Link>
       </div>
 
-      <div className={cn("mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[#f2f1ec] pt-4", FEED_CARD_META_CLASS)}>
+      <div className={cn("mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-border/40 pt-4", FEED_CARD_META_CLASS)}>
         {countdown ? (
           <span className="flex items-center gap-1 font-semibold text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
@@ -220,7 +220,7 @@ export function MissionCard({
 
 export function MissionCardSkeleton() {
   return (
-    <div className="animate-pulse rounded-3xl border border-white bg-white p-5">
+    <div className="animate-pulse rounded-3xl bg-card p-5">
       <div className="flex items-start gap-4">
         <div className="h-24 w-24 shrink-0 rounded-2xl bg-muted" />
         <div className="min-w-0 flex-1 space-y-2.5 pt-1">
@@ -229,7 +229,7 @@ export function MissionCardSkeleton() {
           <div className="h-3.5 w-1/3 rounded bg-muted" />
         </div>
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-[#f2f1ec] pt-4">
+      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
         <div className="h-3 w-24 rounded bg-muted" />
         <div className="h-9 w-28 shrink-0 rounded-full bg-muted" />
       </div>

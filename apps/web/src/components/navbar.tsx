@@ -17,7 +17,7 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
   const closeSearch = () => setSearchExpanded(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-background/95 backdrop-blur-sm shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)]">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)] dark:bg-card/95">
       <nav className="mx-auto flex min-h-[56px] max-w-lg items-center gap-3 px-4 pb-3 pt-3 md:max-w-7xl md:px-6">
         {searchExpanded ? (
           <>

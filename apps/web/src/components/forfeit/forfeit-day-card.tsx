@@ -129,7 +129,8 @@ function expandForfeitDays(
 ): DayItem[] {
   const currentIdx = forfeit.onChain?.currentPeriodIndex ?? 0;
   const total = Math.max(1, forfeit.onChain?.totalPeriods ?? 1);
-  const slots = buildForfeitCalendarSlots({
+  const isRepeating = isRepeatingForfeit(forfeit);
+  let slots = buildForfeitCalendarSlots({
     createdAt: forfeit.createdAt || new Date(),
     totalPeriods: total,
     currentPeriodIndex: currentIdx,
@@ -137,8 +138,17 @@ function expandForfeitDays(
       forfeit.onChain?.currentPeriodDeadline ?? 0,
     ),
     periodSeconds: periodSecondsFor(forfeit),
-    isRepeating: isRepeatingForfeit(forfeit),
+    isRepeating,
   });
+
+  // A one-time forfeit's slot range spans creation day → deadline day so a
+  // still-pending task stays navigable across however many days it has left
+  // — but once it's actually resolved (won or failed) before that deadline
+  // arrives, there's nothing pending anymore, so drop the leftover "upcoming"
+  // day(s) instead of showing a phantom future card for an already-done task.
+  if (!isRepeating && forfeit.onChain?.active === false) {
+    slots = slots.filter((slot) => slot.periodStatus !== "upcoming");
+  }
 
   return slots.map((slot) => ({
     key: `${role}:${forfeit.id}:${dayKey(slot.dayDate)}:${slot.calendarPeriodIndex}`,
@@ -338,7 +348,7 @@ function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
         <MoreVertical className="h-4 w-4" />
       </button>
       {open ? (
-        <div className="absolute right-0 top-8 z-20 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute right-0 top-8 z-20 w-40 overflow-hidden rounded-xl border border-border bg-white dark:bg-card shadow-lg">
           <button
             type="button"
             onClick={() => {
@@ -573,7 +583,7 @@ function ForfeitTaskCard({
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
 
   return (
-    <div className="relative rounded-3xl bg-card p-3.5 shadow-sm">
+    <div className="relative rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
       {showProgress ? (
         <div className="flex items-center gap-1.5 pr-7">
           <DotProgress
@@ -662,7 +672,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           : "text-delulu-blue";
 
   return (
-    <div className="rounded-3xl bg-card p-3.5 shadow-sm">
+    <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <UserAvatar
@@ -775,7 +785,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
   const creatorName = creatorDisplayName(item);
 
   return (
-    <div className="rounded-3xl bg-card p-3.5 shadow-sm">
+    <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
       <div className="flex items-center gap-3">
         <UserAvatar
           address={item.creatorWallet}
@@ -815,7 +825,7 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
+    <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
       <Calendar
         className="h-12 w-12 text-muted-foreground/50"
         strokeWidth={1.5}
@@ -1057,7 +1067,7 @@ export function ForfeitDayCard({
           <div className="h-4 w-32 rounded bg-muted" />
           <div className="h-8 w-8 rounded-full bg-muted" />
         </div>
-        <div className="animate-pulse rounded-3xl bg-card p-3.5 shadow-sm">
+        <div className="animate-pulse rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
           <div className="h-4 w-2/3 rounded bg-muted" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="h-3.5 w-28 rounded bg-muted" />
@@ -1076,7 +1086,7 @@ export function ForfeitDayCard({
         {showCreateWhenEmpty ? (
           <ForfeitEmptyState authenticated={!!address} />
         ) : (
-          <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
+          <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
             <Calendar
               className="h-12 w-12 text-muted-foreground/50"
               strokeWidth={1.5}
@@ -1123,7 +1133,7 @@ export function ForfeitDayCard({
       </div>
 
       {currentDays.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-10 text-center shadow-sm">
+        <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
           <Calendar
             className="h-10 w-10 text-muted-foreground/50"
             strokeWidth={1.5}

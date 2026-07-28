@@ -98,7 +98,7 @@ export function LeftSidebar() {
     );
 
   return (
-    <aside className="relative z-30 flex h-full w-24 flex-col items-center bg-background py-6 shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)]">
+    <aside className="relative z-30 flex h-full w-24 flex-col items-center bg-white py-6 shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)] dark:bg-card">
       <div className="mb-8">
         <Link
           href="/"

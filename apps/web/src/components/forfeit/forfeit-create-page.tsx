@@ -612,6 +612,21 @@ export function ForfeitCreatePage() {
   const repeatEveryLabel =
     REPEAT_EVERY_OPTIONS.find((o) => o.id === repeatEvery)?.label ?? "every day";
 
+  // A repeating forfeit's first period always ends at tonight's midnight,
+  // never a full 24h after creation (see scheduleFromDeadline) — surface
+  // that here so a late-night creation doesn't quietly hand someone a
+  // 10-minute first day they never agreed to.
+  const firstPeriodEndsAt = isRepeat ? endOfDay(new Date()) : null;
+  const firstPeriodMinutesLeft = firstPeriodEndsAt
+    ? Math.max(0, Math.round((firstPeriodEndsAt.getTime() - Date.now()) / 60_000))
+    : null;
+  const firstPeriodTimeLeftLabel =
+    firstPeriodMinutesLeft == null
+      ? null
+      : firstPeriodMinutesLeft >= 60
+        ? `${Math.floor(firstPeriodMinutesLeft / 60)}h ${firstPeriodMinutesLeft % 60}m`
+        : `${firstPeriodMinutesLeft}m`;
+
   const openAmountSheet = () => {
     setAmountDraft(String(forfeitAmount));
     setAmountOpen(true);
@@ -1166,6 +1181,28 @@ export function ForfeitCreatePage() {
         {submitError ? (
           <p className="mt-4 text-sm font-semibold text-red-500" style={MANROPE}>
             {submitError}
+          </p>
+        ) : null}
+
+        {firstPeriodEndsAt && firstPeriodTimeLeftLabel ? (
+          <p
+            className={cn(
+              "mt-4 rounded-2xl px-4 py-3 text-xs leading-relaxed",
+              (firstPeriodMinutesLeft ?? 0) < 180
+                ? "bg-amber-500/10 text-amber-700"
+                : "bg-muted text-muted-foreground",
+            )}
+            style={MANROPE}
+          >
+            Your first check-in is due tonight,{" "}
+            <span className="font-semibold">
+              {firstPeriodEndsAt.toLocaleTimeString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </span>{" "}
+            — about <span className="font-semibold">{firstPeriodTimeLeftLabel}</span> from now,
+            not a full 24 hours.
           </p>
         ) : null}
 

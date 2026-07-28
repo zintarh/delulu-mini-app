@@ -33,6 +33,9 @@ type SubgraphParticipant = {
   pointsTotal: string;
   streak: string;
   joinedAt: string;
+  /** Unix seconds of this participant's most recent proof — used to break
+   * point ties in the caller's favor of whoever got there first. */
+  lastProofAt?: string | null;
   completedMilestoneCount?: string;
   participant?: { username?: string | null } | null;
 };
@@ -75,6 +78,12 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// No secondary orderBy here — graph-node only sorts on one field, so ties on
+// pointsTotal fall back to an arbitrary id (address) order that has nothing
+// to do with who actually reached that total first. Fetches the full set
+// (bounded like the other whole-campaign queries in this file) and breaks
+// ties by lastProofAt client-side instead — see
+// fetchCommunityCampaignLeaderboardFromGraph.
 const LEADERBOARD_QUERY = `
   query CommunityCampaignLeaderboard($challengeId: BigInt!, $first: Int!, $skip: Int!) {
     communityCampaignParticipants(
@@ -88,6 +97,7 @@ const LEADERBOARD_QUERY = `
       pointsTotal
       streak
       joinedAt
+      lastProofAt
       participant {
         username
       }
@@ -408,15 +418,31 @@ export async function fetchCommunityCampaignLeaderboardFromGraph(
   pageSize: number = 20,
 ): Promise<CommunityCampaignLeaderboardRow[]> {
   try {
+    // Fetch the whole campaign's participants (same 1000-cap assumption as
+    // fetchAllCommunityCampaignPointsFromGraph/PARTICIPANT_COUNT_QUERY below)
+    // rather than paginating at the subgraph level — a point-tie tiebreak has
+    // to be correct across the *entire* ranking, not just within one page.
     const data = await fetchSubgraph<{
       communityCampaignParticipants: SubgraphParticipant[];
     }>(LEADERBOARD_QUERY, {
       challengeId: challengeId.toString(),
-      first: pageSize,
-      skip: page * pageSize,
+      first: 1000,
+      skip: 0,
     });
 
-    return (data.communityCampaignParticipants ?? []).map((row, index) => {
+    const all = data.communityCampaignParticipants ?? [];
+    // Same points total → whoever got there first (earlier lastProofAt)
+    // ranks higher. Missing lastProofAt (shouldn't happen once points > 0,
+    // but fail safe) sorts last among its tie group instead of jumping ahead.
+    const sorted = [...all].sort((a, b) => {
+      const pointsDiff = Number(b.pointsTotal) - Number(a.pointsTotal);
+      if (pointsDiff !== 0) return pointsDiff;
+      const aTime = a.lastProofAt ? Number(a.lastProofAt) : Infinity;
+      const bTime = b.lastProofAt ? Number(b.lastProofAt) : Infinity;
+      return aTime - bTime;
+    });
+
+    return sorted.slice(page * pageSize, page * pageSize + pageSize).map((row, index) => {
       const wallet = row.participantAddress.toLowerCase();
       return {
         rank: page * pageSize + index + 1,

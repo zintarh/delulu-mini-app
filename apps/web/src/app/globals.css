@@ -44,6 +44,22 @@ body {
   overflow: hidden;
 }
 
+/*
+ * Pins native UI (scrollbars, form controls, autofill) to whichever theme is
+ * actually applied via the .dark class — without this, the viewport's
+ * `colorScheme: "light dark"` meta tells the browser both are supported, so
+ * it free-renders native widgets straight from the OS preference regardless
+ * of what theme the site itself is showing, producing a half-and-half
+ * "auto" look whenever the two disagree (e.g. site forced to Light while
+ * the OS is in Dark).
+ */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
 :root {
   /*
    * Fixed mobile bottom nav: h-14 (56px) + safe-area padding on the nav itself.
