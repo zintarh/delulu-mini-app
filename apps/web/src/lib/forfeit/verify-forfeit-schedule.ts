@@ -110,10 +110,12 @@ function main() {
     fail("365-day forfeit must appear on Wednesday Jul 29");
   }
 
-  // First period starts today (deadline calendar day = Sunday)
-  if (dayKey(new Date(three.schedule.firstDeadline * 1000)) !== "2026-07-26") {
+  // First period opens today (Sunday) but is a true 24h window, so its
+  // deadline lands Monday — never "end of today," which could give a creator
+  // as little as minutes if they set up late in the day.
+  if (dayKey(new Date(three.schedule.firstDeadline * 1000)) !== "2026-07-27") {
     fail(
-      `firstDeadline day=${dayKey(new Date(three.schedule.firstDeadline * 1000))}, want Sunday`,
+      `firstDeadline day=${dayKey(new Date(three.schedule.firstDeadline * 1000))}, want Monday`,
     );
   }
 
@@ -160,10 +162,11 @@ function main() {
     );
   }
 
-  // --- Period 0's real on-chain deadline drifted a day past its expected
-  // calendar slot (created Sunday, but firstDeadline landed on Monday EOD
-  // instead of Sunday EOD) — Monday must show period 0 as submittable
-  // ("current"), not as a mismatched "upcoming" period 1. ---
+  // --- Period 0's real on-chain deadline drifted a day past its normal
+  // (24h-from-creation) window — created Sunday, normally due Monday 3pm, but
+  // actually still open and due Tuesday 3pm. Tuesday must show period 0 as
+  // submittable ("current"), not as a mismatched "upcoming" period 2. ---
+  const tuesdayMorning = new Date(2026, 6, 28, 10, 0, 0, 0);
   const driftedDeadline = buildForfeitCalendarSlots({
     createdAt: sunday,
     totalPeriods: three.schedule.totalPeriods,
@@ -171,19 +174,19 @@ function main() {
     currentPeriodDeadlineSec: three.schedule.firstDeadline + 86_400,
     periodSeconds: 86_400,
     isRepeating: true,
-    now: monday,
+    now: tuesdayMorning,
   });
-  const driftedMondaySlot = driftedDeadline.find(
-    (s) => dayKey(s.dayDate) === "2026-07-27",
+  const driftedTuesdaySlot = driftedDeadline.find(
+    (s) => dayKey(s.dayDate) === "2026-07-28",
   );
-  if (!driftedMondaySlot) fail("Expected a Monday slot for the drifted-deadline case");
-  if (driftedMondaySlot.periodStatus !== "current") {
+  if (!driftedTuesdaySlot) fail("Expected a Tuesday slot for the drifted-deadline case");
+  if (driftedTuesdaySlot.periodStatus !== "current") {
     fail(
-      `Drifted period 0 due today should read current, got ${driftedMondaySlot.periodStatus}`,
+      `Drifted period 0 due today should read current, got ${driftedTuesdaySlot.periodStatus}`,
     );
   }
-  if (driftedMondaySlot.periodIndex !== 0) {
-    fail(`Drifted period 0 due today should keep periodIndex 0, got ${driftedMondaySlot.periodIndex}`);
+  if (driftedTuesdaySlot.periodIndex !== 0) {
+    fail(`Drifted period 0 due today should keep periodIndex 0, got ${driftedTuesdaySlot.periodIndex}`);
   }
 
   // --- Regression: a period resolved on-chain (currentPeriodIndex moved past

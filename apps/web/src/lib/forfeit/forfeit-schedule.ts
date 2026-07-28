@@ -120,11 +120,11 @@ export function scheduleFromDeadline(input: {
   const cadence = cadenceMap[input.repeatEvery];
   const periodSeconds = PERIOD_SECONDS_BY_CADENCE[input.repeatEvery];
 
-  const todayEndSec = Math.floor(endOfDay(now).getTime() / 1000);
-  let firstDeadline = Math.min(todayEndSec, endSec);
-  if (firstDeadline <= nowSec) {
-    firstDeadline = Math.min(endSec, nowSec + Math.min(periodSeconds, 86_400));
-  }
+  // The first check-in is always a full period away from creation (e.g. a
+  // full 24h for daily/weekday) — never "end of today", which could give a
+  // creator as little as a few minutes if they set it up late in the day.
+  // Still capped by the chosen final deadline, in case that's sooner.
+  let firstDeadline = Math.min(nowSec + periodSeconds, endSec);
   if (firstDeadline <= nowSec) {
     firstDeadline = nowSec + 60;
   }
@@ -359,15 +359,19 @@ export function assertScheduleCalendarAligned(input: {
     };
   }
 
-  // On-chain period i deadline's local calendar day should match slot i for daily.
+  // Each period *opens* on its own calendar slot (days[i]) but is a true 24h
+  // (or full-period) window from there, so its actual on-chain deadline lands
+  // one full period later — the following calendar day for daily/weekday.
   if (input.repeatEvery === "day" || input.repeatEvery === "weekday") {
+    const origin = slots[0]!.dayDate;
     for (let i = 0; i < schedule.totalPeriods; i++) {
       const deadlineSec = schedule.firstDeadline + i * (schedule.periodSeconds ?? 86_400);
       const deadlineDay = dayKey(new Date(deadlineSec * 1000));
-      if (deadlineDay !== days[i]) {
+      const expectedDay = dayKey(addDays(origin, i + 1));
+      if (deadlineDay !== expectedDay) {
         return {
           ok: false,
-          error: `Period ${i} deadline day ${deadlineDay} ≠ calendar day ${days[i]}`,
+          error: `Period ${i} deadline day ${deadlineDay} ≠ expected ${expectedDay} (opens ${days[i]})`,
         };
       }
     }

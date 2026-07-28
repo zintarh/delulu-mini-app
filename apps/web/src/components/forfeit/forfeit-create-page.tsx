@@ -612,21 +612,6 @@ export function ForfeitCreatePage() {
   const repeatEveryLabel =
     REPEAT_EVERY_OPTIONS.find((o) => o.id === repeatEvery)?.label ?? "every day";
 
-  // A repeating forfeit's first period always ends at tonight's midnight,
-  // never a full 24h after creation (see scheduleFromDeadline) — surface
-  // that here so a late-night creation doesn't quietly hand someone a
-  // 10-minute first day they never agreed to.
-  const firstPeriodEndsAt = isRepeat ? endOfDay(new Date()) : null;
-  const firstPeriodMinutesLeft = firstPeriodEndsAt
-    ? Math.max(0, Math.round((firstPeriodEndsAt.getTime() - Date.now()) / 60_000))
-    : null;
-  const firstPeriodTimeLeftLabel =
-    firstPeriodMinutesLeft == null
-      ? null
-      : firstPeriodMinutesLeft >= 60
-        ? `${Math.floor(firstPeriodMinutesLeft / 60)}h ${firstPeriodMinutesLeft % 60}m`
-        : `${firstPeriodMinutesLeft}m`;
-
   const openAmountSheet = () => {
     setAmountDraft(String(forfeitAmount));
     setAmountOpen(true);
@@ -844,7 +829,7 @@ export function ForfeitCreatePage() {
       <DeluluDetailHeader shareSlot={null} />
 
       <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-y-auto scrollbar-hide lg:max-w-2xl">
-        <div className="my-6 h-auto flex-none rounded-3xl border-none bg-card px-5 py-6 lg:px-8 lg:py-8">
+        <div className="my-6 h-auto flex-none rounded-3xl border-none bg-white dark:bg-card px-5 py-6 lg:px-8 lg:py-8">
         <p
           className="mb-5 text-lg font-black tracking-tight text-foreground sm:text-xl"
           style={CLASH}
@@ -1184,27 +1169,6 @@ export function ForfeitCreatePage() {
           </p>
         ) : null}
 
-        {firstPeriodEndsAt && firstPeriodTimeLeftLabel ? (
-          <p
-            className={cn(
-              "mt-4 rounded-2xl px-4 py-3 text-xs leading-relaxed",
-              (firstPeriodMinutesLeft ?? 0) < 180
-                ? "bg-amber-500/10 text-amber-700"
-                : "bg-muted text-muted-foreground",
-            )}
-            style={MANROPE}
-          >
-            Your first check-in is due tonight,{" "}
-            <span className="font-semibold">
-              {firstPeriodEndsAt.toLocaleTimeString(undefined, {
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </span>{" "}
-            — about <span className="font-semibold">{firstPeriodTimeLeftLabel}</span> from now,
-            not a full 24 hours.
-          </p>
-        ) : null}
 
         <button
           type="button"

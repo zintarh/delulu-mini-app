@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
@@ -16,11 +16,6 @@ import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { useUserStore } from "@/stores/useUserStore";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 import { cn } from "@/lib/utils";
-import {
-  isActiveForfeit,
-  useCreatorForfeits,
-  useVerifierForfeits,
-} from "@/hooks/use-creator-forfeits";
 
 function HomeDashboardHeader({ address }: { address: string | undefined }) {
   const user = useUserStore((s) => s.user);
@@ -50,41 +45,16 @@ function HomeDashboardHeader({ address }: { address: string | undefined }) {
   );
 }
 
-/** Forfeit first when you have one; otherwise active campaigns first, forfeit below.
- * Shares React Query cache with ForfeitDayCard (same keys) — no duplicate network. */
+/** Forfeit always first, active campaigns always below it. */
 function HomeForfeitAndCampaigns({ address }: { address: string }) {
-  const { data: forfeits } = useCreatorForfeits(address);
-  const { data: verifyForfeits } = useVerifierForfeits(address);
-  const hasForfeits = useMemo(
-    () => (forfeits ?? []).some(isActiveForfeit) || (verifyForfeits ?? []).some(isActiveForfeit),
-    [forfeits, verifyForfeits],
-  );
-
-  const forfeit = (
-    <div className="mb-6 px-4">
-      <ForfeitDayCard address={address} />
-    </div>
-  );
-
-  const campaigns = (
-    <div className="mb-6 px-4">
-      <ActiveCampaignsSection address={address} heading="Active campaigns" />
-    </div>
-  );
-
-  if (hasForfeits) {
-    return (
-      <>
-        {forfeit}
-        {campaigns}
-      </>
-    );
-  }
-
   return (
     <>
-      {campaigns}
-      {forfeit}
+      <div className="mb-6 px-4">
+        <ForfeitDayCard address={address} />
+      </div>
+      <div className="mb-6 px-4">
+        <ActiveCampaignsSection address={address} heading="Active campaigns" />
+      </div>
     </>
   );
 }

@@ -141,13 +141,17 @@ function expandForfeitDays(
     isRepeating,
   });
 
-  // A one-time forfeit's slot range spans creation day → deadline day so a
-  // still-pending task stays navigable across however many days it has left
-  // — but once it's actually resolved (won or failed) before that deadline
-  // arrives, there's nothing pending anymore, so drop the leftover "upcoming"
-  // day(s) instead of showing a phantom future card for an already-done task.
-  if (!isRepeating && forfeit.onChain?.active === false) {
-    slots = slots.filter((slot) => slot.periodStatus !== "upcoming");
+  // Both branches build slots for the whole planned range (creation day →
+  // deadline day for a one-off; every period for a repeating plan) assuming
+  // it stays active the whole time. Once the commitment has actually ended
+  // on-chain — resolved early, forfeited, or cancelled via Discontinue —
+  // there's nothing left pending, so drop every day beyond today instead of
+  // showing phantom future cards (or a falsely-still-"current" today) for a
+  // plan that's already over. A repeating forfeit cancelled on day 3 of 365
+  // must not keep surfacing days 4 through 365 as if still live.
+  if (forfeit.onChain?.active === false) {
+    const today = startOfDay(new Date());
+    slots = slots.filter((slot) => slot.dayDate.getTime() <= today.getTime());
   }
 
   return slots.map((slot) => ({
