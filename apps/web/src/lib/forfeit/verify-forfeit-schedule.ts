@@ -7,6 +7,7 @@ import {
   buildForfeitCalendarSlots,
   dayKey,
   deadlineFromPreset,
+  resolvePeriodOutcome,
   scheduleFromDeadline,
 } from "./forfeit-schedule";
 
@@ -183,6 +184,68 @@ function main() {
   }
   if (driftedMondaySlot.periodIndex !== 0) {
     fail(`Drifted period 0 due today should keep periodIndex 0, got ${driftedMondaySlot.periodIndex}`);
+  }
+
+  // --- Regression: a period resolved on-chain (currentPeriodIndex moved past
+  // it) but whose off-chain proof row never got a resolvedAt/verifierAction
+  // logged (the exact "Reading books" incident — period 0 submitted+resolved
+  // on-chain, currentPeriodIndex reached 2, but period 0's DB row stayed
+  // blank). Must read as "won", not fall through to "failed". ---
+  const orphanedSuccess = resolvePeriodOutcome({
+    periodIndex: 0,
+    currentPeriodIndex: 2,
+    periodStatus: "past",
+    commitmentActiveOnChain: true,
+    period: { proofUrl: "https://example.com/proof.jpg", verifierAction: null, resolvedAt: null },
+  });
+  if (orphanedSuccess !== "won") {
+    fail(`Period behind currentPeriodIndex with no off-chain record should read won, got ${orphanedSuccess}`);
+  }
+  // A period genuinely never reached by the chain (currentPeriodIndex still
+  // at/behind it), nothing on record, a past deadline, AND a confirmed
+  // on-chain forfeiture (active: false) is a real, confirmed miss.
+  const genuineMiss = resolvePeriodOutcome({
+    periodIndex: 1,
+    currentPeriodIndex: 0,
+    periodStatus: "past",
+    commitmentActiveOnChain: false,
+    period: null,
+  });
+  if (genuineMiss !== "failed") {
+    fail(`Period at/ahead of currentPeriodIndex, confirmed forfeited on-chain, should read failed, got ${genuineMiss}`);
+  }
+
+  // --- Regression: the exact mainnet incident. Deadline passed, nothing on
+  // record, but the commitment is STILL active on-chain (no keeper has
+  // resolved it yet — no PeriodResolvedForfeited event fired). Must read as
+  // "overdue", never "failed" — calendar time alone can't claim a forfeiture
+  // that hasn't actually happened. ---
+  const overdueNotYetResolved = resolvePeriodOutcome({
+    periodIndex: 1,
+    currentPeriodIndex: 0,
+    periodStatus: "past",
+    commitmentActiveOnChain: true,
+    period: null,
+  });
+  if (overdueNotYetResolved !== "overdue") {
+    fail(
+      `Period past deadline but still active on-chain should read overdue, got ${overdueNotYetResolved}`,
+    );
+  }
+
+  // Same shape, but on-chain state hasn't loaded yet (undefined) — must still
+  // fail safe to "overdue", never assume forfeiture without a confirmed `false`.
+  const overdueUnknownOnChainState = resolvePeriodOutcome({
+    periodIndex: 1,
+    currentPeriodIndex: 0,
+    periodStatus: "past",
+    commitmentActiveOnChain: undefined,
+    period: null,
+  });
+  if (overdueUnknownOnChainState !== "overdue") {
+    fail(
+      `Period past deadline with unknown on-chain state should read overdue, got ${overdueUnknownOnChainState}`,
+    );
   }
 
   void longDeadline;

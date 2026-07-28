@@ -375,3 +375,52 @@ export function assertScheduleCalendarAligned(input: {
 
   return { ok: true, schedule, days };
 }
+
+export type PeriodOutcome = "pending" | "won" | "failed" | "overdue";
+
+export type PeriodOutcomeInput = {
+  periodIndex: number;
+  currentPeriodIndex: number;
+  periodStatus: PeriodStatus;
+  /**
+   * On-chain truth for the whole commitment (subgraph/RPC ForfeitCommitment.active).
+   * Only ever flips to `false` via a genuine PeriodResolvedForfeited,
+   * CommitmentCancelled, or final-period-success event — never from calendar
+   * time alone. `undefined` means on-chain state hasn't loaded yet.
+   */
+  commitmentActiveOnChain: boolean | undefined;
+  period: {
+    proofUrl: string | null;
+    verifierAction: string | null;
+    resolvedAt: string | null;
+  } | null;
+};
+
+/**
+ * Whether a given period ultimately succeeded, failed, is still open, or has
+ * simply missed its deadline without a confirmed on-chain resolution yet.
+ * Trusts the on-chain currentPeriodIndex first: that counter only ever
+ * advances via a successful resolve (a miss ends the whole commitment
+ * instead, it never increments it), so any period behind the live index
+ * necessarily succeeded — even if the off-chain proof/resolve record for it
+ * is missing or incomplete (e.g. a resolve that landed on-chain but didn't
+ * get logged off-chain). Falling back to the off-chain record only matters
+ * for the live/current period, where the chain hasn't moved past it yet.
+ *
+ * "failed" is reserved for a *confirmed* on-chain forfeiture
+ * (commitmentActiveOnChain === false) — a deadline merely having passed
+ * (periodStatus === "past") only means "overdue": the keeper hasn't
+ * permissionlessly resolved it yet, nothing has actually moved on-chain.
+ * Calendar time alone must never claim a forfeiture that hasn't happened.
+ */
+export function resolvePeriodOutcome(input: PeriodOutcomeInput): PeriodOutcome {
+  if (input.periodIndex < input.currentPeriodIndex) return "won";
+
+  const action = input.period?.verifierAction ?? null;
+  if (action === "rejected" || action === "timed_out") return "failed";
+  if (action === "approved" && input.period?.resolvedAt) return "won";
+  if (input.period?.resolvedAt && input.period.proofUrl) return "won";
+  if (input.commitmentActiveOnChain === false) return "failed";
+  if (input.periodStatus === "past") return "overdue";
+  return "pending";
+}

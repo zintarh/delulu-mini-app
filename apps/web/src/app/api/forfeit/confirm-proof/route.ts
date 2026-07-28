@@ -13,15 +13,22 @@ export const dynamic = "force-dynamic";
  * commitments, the immediately-following resolveCommitmentSuccess) confirm
  * on-chain. Independently re-derives both events from their tx receipts before
  * writing anything — same tamper-resistant pattern as confirm-create.
+ *
+ * `proofTxHash` is optional: the friend-verify page (/forfeit/verify/[id])
+ * only ever calls resolveCommitmentSuccess itself — the proof was submitted
+ * earlier by the creator, in a transaction the verifier's client never saw —
+ * so it calls this with just `resolveTxHash`. PeriodResolvedSuccess alone
+ * carries commitmentId/periodIndex, so the period row can still be looked up
+ * and marked approved without re-deriving the (already-recorded) proof link.
  */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  const proofTxHash = String(body.proofTxHash ?? "").trim() as `0x${string}`;
+  const proofTxHash = body.proofTxHash ? (String(body.proofTxHash).trim() as `0x${string}`) : null;
   const resolveTxHash = body.resolveTxHash ? (String(body.resolveTxHash).trim() as `0x${string}`) : null;
   const walletAddress = String(body.walletAddress ?? "").trim().toLowerCase();
 
-  if (!proofTxHash.startsWith("0x")) {
-    return NextResponse.json({ error: "proofTxHash is required" }, { status: 400 });
+  if (!proofTxHash && !resolveTxHash) {
+    return NextResponse.json({ error: "proofTxHash or resolveTxHash is required" }, { status: 400 });
   }
   if (!walletAddress) {
     return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
@@ -29,6 +36,10 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
+
+  if (!proofTxHash) {
+    return confirmResolveOnly(admin, resolveTxHash!, walletAddress);
+  }
 
   let proofEvent;
   try {
@@ -117,4 +128,70 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, commitmentId: commitment.id, commitmentEnded });
+}
+
+type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
+
+/**
+ * Friend-verify path: only a resolveCommitmentSuccess tx exists (the caller
+ * never submitted proof themselves), so re-derive commitmentId/periodIndex
+ * straight from PeriodResolvedSuccess and just mark that period approved —
+ * the proof_url/tx_hash columns are left as whatever the creator's earlier
+ * submit-proof confirm already wrote.
+ */
+async function confirmResolveOnly(
+  admin: SupabaseAdmin,
+  resolveTxHash: `0x${string}`,
+  walletAddress: string,
+) {
+  let resolveEvent;
+  try {
+    resolveEvent = await parsePeriodResolvedSuccessFromTx(resolveTxHash);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to read resolve transaction" },
+      { status: 400 },
+    );
+  }
+  if (!resolveEvent || resolveEvent.resolver !== walletAddress) {
+    return NextResponse.json(
+      { error: "PeriodResolvedSuccess event not found for this wallet." },
+      { status: 400 },
+    );
+  }
+
+  const { data: commitment } = await admin
+    .from("forfeit_commitments")
+    .select("id")
+    .eq("on_chain_commitment_id", Number(resolveEvent.commitmentId))
+    .maybeSingle();
+  if (!commitment) return NextResponse.json({ error: "Commitment not found" }, { status: 404 });
+
+  // Contract emits PeriodResolvedSuccess after bumping currentPeriodIndex for
+  // repeating commitments — the approved period is the one just before it,
+  // never negative since a resolve can't fire on period 0's predecessor.
+  const approvedPeriodIndex = Math.max(0, resolveEvent.periodIndex - (resolveEvent.commitmentEnded ? 0 : 1));
+
+  // Idempotent: upsert rather than update-only, so this still records the
+  // approval even if the creator's submit-proof confirm never landed a row
+  // for this period (e.g. that request failed after the on-chain tx).
+  await admin.from("forfeit_periods").upsert(
+    {
+      commitment_id: commitment.id,
+      period_index: approvedPeriodIndex,
+      verifier_action: "approved",
+      resolved_at: new Date().toISOString(),
+    },
+    { onConflict: "commitment_id,period_index" },
+  );
+
+  if (resolveEvent.commitmentEnded) {
+    await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    commitmentId: commitment.id,
+    commitmentEnded: resolveEvent.commitmentEnded,
+  });
 }

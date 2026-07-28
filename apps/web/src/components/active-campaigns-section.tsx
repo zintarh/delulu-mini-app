@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import { MissionCard, MissionCardSkeleton } from "@/components/community/mission-card";
 import { FEED_CARD_EYEBROW_CLASS } from "@/components/feed-card-layout";
@@ -16,13 +17,9 @@ import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-c
 import { useUserStore } from "@/stores/useUserStore";
 import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility";
 
-/**
- * Shows joined community campaigns as explore cards with inline active milestone
- * and a Upload proof button. Used on the home feed and profile Active tab.
- */
 export function ActiveCampaignsSection({
   address,
-  heading = "Your missions",
+  heading,
   showMax = 3,
   showSeeAll = true,
   showEmpty = false,
@@ -31,7 +28,6 @@ export function ActiveCampaignsSection({
   heading?: string;
   showMax?: number;
   showSeeAll?: boolean;
-  /** When true, render a campaign-focused empty state instead of null. */
   showEmpty?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -107,15 +103,12 @@ export function ActiveCampaignsSection({
   if (all.length === 0) {
     if (!showEmpty) return null;
     return (
-      <div className="flex flex-col items-center rounded-3xl border border-border/60 bg-card px-5 py-12 text-center shadow-sm">
+      <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-12 text-center shadow-sm">
         <p
           className="text-lg font-bold tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
-          No campaign milestones
-        </p>
-        <p className="mt-1.5 max-w-[18rem] text-sm text-muted-foreground">
-          Join a campaign and your next milestones will show up here.
+          No campaign
         </p>
         <Link
           href="/explore"
@@ -130,21 +123,23 @@ export function ActiveCampaignsSection({
   const visible = all.slice(0, showMax);
   const hiddenCount = all.length - showMax;
 
+  const showSeeAllLink = showSeeAll && all.length > 1;
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className={FEED_CARD_EYEBROW_CLASS}>
-          {heading}
-        </p>
-        {showSeeAll && all.length > 1 && (
-          <Link
-            href="/communities/joined"
-            className="text-[11px] font-semibold text-delulu-blue hover:underline"
-          >
-            {all.length} active →
-          </Link>
-        )}
-      </div>
+      {heading || showSeeAllLink ? (
+        <div className={cn("mb-4 flex items-center", heading ? "justify-between" : "justify-end")}>
+          {heading ? <p className={FEED_CARD_EYEBROW_CLASS}>{heading}</p> : null}
+          {showSeeAllLink && (
+            <Link
+              href="/communities/joined"
+              className="text-[11px] font-semibold text-delulu-blue hover:underline"
+            >
+              {all.length} active →
+            </Link>
+          )}
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         {visible.map((c) => {

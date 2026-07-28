@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatUnits } from "viem";
 import {
@@ -36,6 +37,7 @@ import {
 import { submitForfeitProofWithWallet } from "@/lib/forfeit/submit-forfeit-proof-client";
 import { usePendingForfeitSync } from "@/lib/forfeit/use-pending-forfeit-sync";
 import { proofErrorMessage } from "@/lib/community/format-proof-error";
+import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { useUserStore } from "@/stores/useUserStore";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
 import { cn } from "@/lib/utils";
@@ -43,7 +45,9 @@ import {
   addDays,
   buildForfeitCalendarSlots,
   dayKey,
+  resolvePeriodOutcome,
   startOfDay,
+  type PeriodOutcome,
 } from "@/lib/forfeit/forfeit-schedule";
 import {
   FEED_CARD_CTA_CLASS,
@@ -100,32 +104,6 @@ function isRepeatingForfeit(item: ForfeitFeedItem): boolean {
   return cadence !== ForfeitCadence.Once && total > 1;
 }
 
-function formatForfeitDuration(item: ForfeitFeedItem): string {
-  const total = item.onChain?.totalPeriods ?? 1;
-  const cadence = Number(item.onChain?.cadence ?? 0);
-  // totalPeriods comes from the user's duration end date at create time.
-  if (!isRepeatingForfeit(item) || cadence === ForfeitCadence.Once) return "One time";
-  if (cadence === ForfeitCadence.Daily) {
-    return `${total} day${total === 1 ? "" : "s"}`;
-  }
-  if (cadence === ForfeitCadence.Weekday) {
-    return `${total} weekday${total === 1 ? "" : "s"}`;
-  }
-  if (cadence === ForfeitCadence.Weekly) {
-    return `${total} week${total === 1 ? "" : "s"}`;
-  }
-  if (cadence === ForfeitCadence.Monthly) {
-    return `${total} month${total === 1 ? "" : "s"}`;
-  }
-  return "Repeating";
-}
-
-function formatPeriodProgress(item: ForfeitFeedItem, periodIndex: number): string | null {
-  if (!isRepeatingForfeit(item)) return null;
-  const total = item.onChain?.totalPeriods ?? 1;
-  return `Day ${periodIndex + 1} of ${total}`;
-}
-
 function periodForIndex(
   item: ForfeitFeedItem,
   periodIndex: number,
@@ -155,7 +133,9 @@ function expandForfeitDays(
     createdAt: forfeit.createdAt || new Date(),
     totalPeriods: total,
     currentPeriodIndex: currentIdx,
-    currentPeriodDeadlineSec: Number(forfeit.onChain?.currentPeriodDeadline ?? 0),
+    currentPeriodDeadlineSec: Number(
+      forfeit.onChain?.currentPeriodDeadline ?? 0,
+    ),
     periodSeconds: periodSecondsFor(forfeit),
     isRepeating: isRepeatingForfeit(forfeit),
   });
@@ -271,7 +251,8 @@ function destinationLabel(item: ForfeitFeedItem): string | null {
       return `your friend ${username.startsWith("@") ? username : `@${username}`}`;
     }
     const email = item.destinationFriendEmail?.trim();
-    if (email && !email.endsWith("@wallet.local")) return `your friend ${email}`;
+    if (email && !email.endsWith("@wallet.local"))
+      return `your friend ${email}`;
     // Prefer never showing a raw address when we know it's a friend destination.
     return "a friend";
   }
@@ -280,35 +261,35 @@ function destinationLabel(item: ForfeitFeedItem): string | null {
   return null;
 }
 
-/** Resolve whether this calendar day already settled as a win, a miss, or still open. */
-function periodOutcome(day: DayItem): "pending" | "won" | "failed" {
-  const period = day.period;
-  const action = period?.verifierAction ?? null;
-
-  if (action === "rejected" || action === "timed_out") return "failed";
-  if (action === "approved" && period?.resolvedAt) return "won";
-  // Self/AI success: resolved with proof, no rejection.
-  if (period?.resolvedAt && period.proofUrl) return "won";
-  // Deadline passed with nothing successful on record → forfeited.
-  if (day.periodStatus === "past") return "failed";
-  return "pending";
+/** Resolve whether this calendar day already settled as a win, a confirmed
+ * on-chain miss, is merely overdue-but-unresolved, or still open. */
+function periodOutcome(day: DayItem): PeriodOutcome {
+  return resolvePeriodOutcome({
+    periodIndex: day.periodIndex,
+    currentPeriodIndex: day.forfeit.onChain?.currentPeriodIndex ?? 0,
+    periodStatus: day.periodStatus,
+    commitmentActiveOnChain: day.forfeit.onChain?.active,
+    period: day.period,
+  });
 }
 
 /** How many periods this forfeit has actually had a successful proof resolved
  * for — the real "how far along" number, not just the elapsed calendar day. */
 function countCompletedPeriods(item: ForfeitFeedItem): number {
   return (item.periods ?? []).filter((p) => {
-    if (p.verifierAction === "rejected" || p.verifierAction === "timed_out") return false;
+    if (p.verifierAction === "rejected" || p.verifierAction === "timed_out")
+      return false;
     if (p.verifierAction === "approved" && p.resolvedAt) return true;
     return Boolean(p.resolvedAt && p.proofUrl);
   }).length;
 }
 
 /**
- * One short line summarizing the stake — no separate lead/verb/destination
- * spans, just a single sentence sized for a compact card footer.
+ * One real sentence — "You've forfeited 100 G$ to Charity" — read left to
+ * right as a single flowing phrase: state, then amount (colored), then
+ * where. No separate label row, no split ledger layout.
  */
-type StakeLine = { prefix: string; amountText: string | null; suffix: string };
+type StakeLine = { lead: string; amountText: string | null; tail: string };
 
 function formatStakeLine(
   day: DayItem,
@@ -318,21 +299,20 @@ function formatStakeLine(
 ): StakeLine {
   const amountText = amount ? `${amount} ${symbol}` : null;
   const outcome = periodOutcome(day);
+  const to = destination ? ` to ${destination}` : "";
   if (outcome === "won") {
-    return { prefix: "Success. Kept", amountText, suffix: "" };
+    return { lead: "You've kept", amountText, tail: "" };
   }
   if (outcome === "failed") {
-    return {
-      prefix: "Failed. Forfeited",
-      amountText,
-      suffix: destination ? ` to ${destination}` : "",
-    };
+    const planEnded = isRepeatingForfeit(day.forfeit) ? " — plan ended" : "";
+    return { lead: "You've forfeited", amountText, tail: `${to}${planEnded}` };
   }
-  return { prefix: "Fail. Forfeit", amountText, suffix: destination ? ` to ${destination}` : "" };
+  if (outcome === "overdue") {
+    return { lead: "You're forfeiting", amountText, tail: to };
+  }
+  return { lead: "You'll forfeit", amountText, tail: `${to} if missed` };
 }
 
-/** Small "···" menu used on your own forfeit cards — keeps destructive actions
- * out of the main card body instead of a permanent text link. */
 function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -340,7 +320,8 @@ function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -374,6 +355,33 @@ function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
   );
 }
 
+/** Tiny filled/unfilled dot row standing in for "Day X of Y" — caps at 7 dots. */
+function DotProgress({
+  day,
+  total,
+  color,
+}: {
+  day: number;
+  total: number;
+  color: string;
+}) {
+  const max = Math.min(total, 7);
+  const filled = Math.max(1, Math.round((day / total) * max));
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: max }).map((_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            i < filled ? color : "bg-muted",
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ForfeitTaskCard({
   item,
   day,
@@ -388,7 +396,9 @@ function ForfeitTaskCard({
   onDiscontinue: () => void;
 }) {
   const amount = formatStakeAmount(item);
-  const symbol = item.onChain?.token ? getTokenSymbol(item.onChain.token) : "G$";
+  const symbol = item.onChain?.token
+    ? getTokenSymbol(item.onChain.token)
+    : "G$";
   const destination = destinationLabel(item);
   const isPendingSync = item.id.startsWith("pending:");
   const stakeLine = formatStakeLine(day, amount, symbol, destination);
@@ -462,16 +472,7 @@ function ForfeitTaskCard({
     }
 
     if (day.periodStatus === "past") {
-      return (
-        <span
-          className={cn(
-            "shrink-0 rounded-full bg-amber-500/10 px-3.5 py-1.5 text-amber-700",
-            FEED_CARD_META_CLASS,
-          )}
-        >
-          No proof
-        </span>
-      );
+      return null;
     }
 
     if (day.periodStatus === "upcoming") {
@@ -494,7 +495,7 @@ function ForfeitTaskCard({
           onClick={onSubmitProof}
           disabled={proofBusy}
           className={cn(
-            "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-delulu-charcoal px-3 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+            "ml-auto inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-full bg-delulu-charcoal px-4 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-60",
             FEED_CARD_CTA_CLASS,
             "text-xs",
           )}
@@ -508,38 +509,85 @@ function ForfeitTaskCard({
     return null;
   })();
 
+  const outcome = periodOutcome(day);
+  // Fills the trailing slot when there's no proof-review action to show —
+  // "past, nothing submitted" otherwise renders nothing on the right at all.
+  const statusPill =
+    outcome === "overdue" ? (
+      <span className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
+        Overdue
+      </span>
+    ) : outcome === "failed" ? (
+      <span className="shrink-0 rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-600">
+        Forfeited
+      </span>
+    ) : null;
+  // "overdue" is deliberately kept distinct from "failed": the deadline
+  // passed, but nothing has actually moved on-chain yet — the keeper hasn't
+  // permissionlessly resolved it. Only a confirmed on-chain forfeiture
+  // (commitmentActiveOnChain === false) earns "You forfeited" — calendar
+  // time alone never does.
+  const stateColor =
+    outcome === "won"
+      ? "text-delulu-green"
+      : outcome === "failed"
+        ? "text-red-500"
+        : outcome === "overdue"
+          ? "text-amber-600"
+          : "text-delulu-blue";
+  const dotColor =
+    outcome === "won"
+      ? "bg-delulu-green"
+      : outcome === "failed"
+        ? "bg-red-500"
+        : outcome === "overdue"
+          ? "bg-amber-500"
+          : "bg-delulu-blue";
+  const totalPeriods = item.onChain?.totalPeriods ?? 1;
+  const showProgress = isRepeatingForfeit(item);
+
   return (
     <div className="relative rounded-3xl border border-white bg-white p-3.5 shadow-sm">
-      {!isPendingSync ? (
-        <div className="absolute right-2 top-2">
+      {showProgress ? (
+        <div className="flex items-center gap-1.5 pr-7">
+          <DotProgress
+            day={day.calendarPeriodIndex + 1}
+            total={totalPeriods}
+            color={dotColor}
+          />
+          <span className="text-[10px] font-semibold text-muted-foreground">
+            {day.calendarPeriodIndex + 1}/{totalPeriods}
+          </span>
+        </div>
+      ) : null}
+      {!isPendingSync && outcome !== "failed" && outcome !== "overdue" ? (
+        <div className="absolute right-1.5 top-1.5">
           <ForfeitCardMenu onDiscontinue={onDiscontinue} />
         </div>
       ) : null}
 
+      {/* Title and the sentence below it are siblings — one thought split
+          across two lines — so they sit close together. The progress row
+          above is a different kind of information (which day this is, not
+          what happened), so it gets more room before the title starts. */}
       <p
         className={cn(
-          "truncate pr-8",
-          FEED_CARD_TITLE_CLASS,
-          "text-base",
+          showProgress ? "mt-0.5" : "",
+          "truncate text-xl font-black leading-tight text-foreground",
         )}
       >
         {item.title || "Untitled forfeit"}
       </p>
 
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <p className={cn("min-w-0 truncate", FEED_CARD_SUBTITLE_CLASS)}>
-          {stakeLine.prefix}
-          {stakeLine.amountText ? (
-            <>
-              {" "}
-              <span className="font-bold text-foreground">{stakeLine.amountText}</span>
-            </>
-          ) : (
-            " at stake"
-          )}
-          {stakeLine.suffix}
+      <div className="mt-0.5 flex items-center justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {stakeLine.lead}{" "}
+          <span className={cn("font-bold tabular-nums", stateColor)}>
+            {stakeLine.amountText ?? "—"}
+          </span>
+          {stakeLine.tail}
         </p>
-        {action}
+        {action ?? statusPill}
       </div>
     </div>
   );
@@ -560,58 +608,55 @@ function formatAddressShort(wallet: string): string {
 function ForfeitVerifyCard({ day }: { day: DayItem }) {
   const item = day.forfeit;
   const amount = formatStakeAmount(item);
-  const symbol = item.onChain?.token ? getTokenSymbol(item.onChain.token) : "G$";
+  const symbol = item.onChain?.token
+    ? getTokenSymbol(item.onChain.token)
+    : "G$";
   const hasProof = !!day.period?.proofUrl;
   const creatorName = creatorDisplayName(item);
 
   return (
-    <div className="rounded-3xl border border-white bg-white p-4 shadow-sm">
+    <div className="rounded-3xl border border-white bg-white p-3.5 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <UserAvatar
             address={item.creatorWallet}
             username={item.otherPartyUsername}
             pfpUrl={item.otherPartyPfpUrl}
-            size={40}
+            size={38}
           />
-          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-delulu-blue text-white ring-2 ring-card">
-            <ShieldCheck className="h-3 w-3" strokeWidth={2.5} />
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-delulu-blue text-white ring-2 ring-white">
+            <ShieldCheck className="h-2.5 w-2.5" strokeWidth={2.5} />
           </span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className={cn("truncate", FEED_CARD_TITLE_CLASS, "text-base")}>
+          <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
+            Verifying
+          </p>
+          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
-          <p className={cn("mt-0.5 truncate", FEED_CARD_META_CLASS)}>{creatorName}</p>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#f2f1ec] pt-3">
-        <p className={cn("truncate", FEED_CARD_META_CLASS)}>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-sm text-muted-foreground">
           {amount ? (
             <>
               <span className="font-bold text-foreground">
                 {amount} {symbol}
               </span>{" "}
-              at stake
+              · {creatorName}
             </>
           ) : (
-            "Verifying"
+            creatorName
           )}
         </p>
         <Link
           href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
-          className={cn(
-            "inline-flex shrink-0 items-center justify-center rounded-full px-3.5 py-1.5 transition-opacity hover:opacity-90",
-            FEED_CARD_CTA_CLASS,
-            "text-xs",
-            hasProof
-              ? "bg-delulu-charcoal text-white"
-              : "border border-border text-foreground",
-          )}
+          className="ml-auto w-fit shrink-0 rounded-full bg-delulu-charcoal px-4 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
         >
-          {hasProof ? "Review proof" : "View"}
+          {hasProof ? "Review" : "View"}
         </Link>
       </div>
     </div>
@@ -625,7 +670,13 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
  */
 /** Compact ring showing how far the friend is through their forfeit — same
  * visual language as the mission-card progress ring, sized down for a row. */
-function FriendProgressRing({ index, count }: { index: number; count: number }) {
+function FriendProgressRing({
+  index,
+  count,
+}: {
+  index: number;
+  count: number;
+}) {
   const size = 32;
   const strokeWidth = 3;
   const radius = (size - strokeWidth) / 2;
@@ -634,7 +685,10 @@ function FriendProgressRing({ index, count }: { index: number; count: number }) 
   const offset = circumference * (1 - pct);
 
   return (
-    <div className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}
@@ -666,61 +720,84 @@ function FriendProgressRing({ index, count }: { index: number; count: number }) 
 function ForfeitDestinationCard({ day }: { day: DayItem }) {
   const item = day.forfeit;
   const amount = formatStakeAmount(item);
-  const symbol = item.onChain?.token ? getTokenSymbol(item.onChain.token) : "G$";
-  const duration = formatForfeitDuration(item);
-  const progress = formatPeriodProgress(item, day.calendarPeriodIndex);
+  const symbol = item.onChain?.token
+    ? getTokenSymbol(item.onChain.token)
+    : "G$";
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
   const completedPeriods = countCompletedPeriods(item);
+  const creatorName = creatorDisplayName(item);
 
   return (
-    <div className="flex items-center gap-3 rounded-3xl border border-white bg-white p-4 shadow-sm">
-      <UserAvatar
-        address={item.creatorWallet}
-        username={item.otherPartyUsername}
-        pfpUrl={item.otherPartyPfpUrl}
-        size={36}
-      />
-      <div className="min-w-0 flex-1">
-        <p className={cn("truncate", FEED_CARD_TITLE_CLASS, "text-base")}>
-          {item.title || "Untitled forfeit"}
-        </p>
-        <p className={cn("mt-0.5 truncate", FEED_CARD_SUBTITLE_CLASS)}>
-          If {creatorDisplayName(item)} fails, you win
-          {amount ? (
-            <>
-              {" "}
-              <span className="font-bold text-foreground">
-                {amount} {symbol}
-              </span>
-            </>
-          ) : null}
-        </p>
-        <p className={cn("mt-0.5 truncate", FEED_CARD_META_CLASS)}>
-          {duration}
-          {progress ? ` · ${progress}` : null}
-        </p>
+    <div className="rounded-3xl border border-white bg-white p-3.5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <UserAvatar
+          address={item.creatorWallet}
+          username={item.otherPartyUsername}
+          pfpUrl={item.otherPartyPfpUrl}
+          size={38}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
+            If they miss it
+          </p>
+          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
+            {item.title || "Untitled forfeit"}
+          </p>
+        </div>
+        <FriendProgressRing index={completedPeriods} count={totalPeriods} />
       </div>
-      <FriendProgressRing index={completedPeriods} count={totalPeriods} />
+      <p className="mt-1.5 truncate text-sm text-muted-foreground">
+        {amount ? (
+          <>
+            <span className="font-bold text-foreground">
+              {amount} {symbol}
+            </span>{" "}
+            to you ·{" "}
+          </>
+        ) : null}
+        {creatorName}
+      </p>
     </div>
   );
 }
 
-/** Single empty CTA — no promo banner above it. */
-function ForfeitEmptyState() {
+/** Single empty CTA — no promo banner above it. Guests see the same empty
+ * state as signed-in users with nothing yet; tapping create just routes them
+ * through sign-in first instead of the button being hidden or disabled. */
+function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
-      <Calendar className="h-12 w-12 text-muted-foreground/50" strokeWidth={1.5} />
+      <Calendar
+        className="h-12 w-12 text-muted-foreground/50"
+        strokeWidth={1.5}
+      />
       <p className={cn("mt-4", FEED_CARD_TITLE_CLASS)}>No forfeit</p>
       <p className={cn("mt-1.5 max-w-[16rem]", FEED_CARD_SUBTITLE_CLASS)}>
         Stake on a goal. Miss it, and the stake goes where you choose.
       </p>
-      <Link
-        href="/forfeit"
-        aria-label="Create a forfeit"
-        className="mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
-      >
-        <Plus className="h-5 w-5" strokeWidth={2.5} />
-      </Link>
+      {authenticated ? (
+        <Link
+          href="/forfeit"
+          aria-label="Create a forfeit"
+          className="mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} />
+        </Link>
+      ) : (
+        <button
+          type="button"
+          aria-label="Sign in to create a forfeit"
+          onClick={() => {
+            persistSignInRedirect("/forfeit");
+            router.push(buildSignInUrl("/forfeit"));
+          }}
+          className="mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} />
+        </button>
+      )}
     </div>
   );
 }
@@ -739,25 +816,31 @@ export function ForfeitDayCard({
   className,
   showCreateWhenEmpty = true,
 }: {
-  address: string;
+  address: string | undefined;
   className?: string;
   showCreateWhenEmpty?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { user } = useUserStore();
-  const { data: creatorData, isLoading: creatorLoading } = useCreatorForfeits(address);
-  const { data: verifierData, isLoading: verifierLoading } = useVerifierForfeits(address);
-  const { data: destinationData, isLoading: destinationLoading } = useDestinationForfeits(address);
+  const { data: creatorData, isLoading: creatorLoading } =
+    useCreatorForfeits(address);
+  const { data: verifierData, isLoading: verifierLoading } =
+    useVerifierForfeits(address);
+  const { data: destinationData, isLoading: destinationLoading } =
+    useDestinationForfeits(address);
   const { optimisticItem, justSynced } = usePendingForfeitSync(address);
   const isLoading = creatorLoading || verifierLoading || destinationLoading;
 
   const { submitProofAndWait } = useSubmitForfeitProof();
-  const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
+  const { resolveCommitmentSuccessAndWait } =
+    useResolveForfeitCommitmentSuccess();
   const { cancelCommitmentAndWait } = useCancelForfeitCommitment();
 
   useEffect(() => {
-    if (!justSynced) return;
-    void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.creator(address) });
+    if (!justSynced || !address) return;
+    void queryClient.invalidateQueries({
+      queryKey: forfeitFeedKeys.creator(address),
+    });
   }, [justSynced, address, queryClient]);
 
   const items = useMemo<DayItem[]>(() => {
@@ -765,8 +848,12 @@ export function ForfeitDayCard({
     const verifierForfeits = (verifierData ?? []).filter(isActiveForfeit);
     const destinationForfeits = (destinationData ?? []).filter(isActiveForfeit);
 
-    const creatorDays = creatorForfeits.flatMap((f) => expandForfeitDays(f, "creator"));
-    const verifierDays = verifierForfeits.flatMap((f) => expandForfeitDays(f, "verifier"));
+    const creatorDays = creatorForfeits.flatMap((f) =>
+      expandForfeitDays(f, "creator"),
+    );
+    const verifierDays = verifierForfeits.flatMap((f) =>
+      expandForfeitDays(f, "verifier"),
+    );
     const destinationDays = destinationForfeits.flatMap((f) =>
       expandForfeitDays(f, "destination"),
     );
@@ -785,14 +872,21 @@ export function ForfeitDayCard({
         ? expandForfeitDays(optimisticItem, "creator")
         : [];
 
-    return [...optimisticDays, ...creatorDays, ...verifierDays, ...destinationDays];
+    return [
+      ...optimisticDays,
+      ...creatorDays,
+      ...verifierDays,
+      ...destinationDays,
+    ];
   }, [creatorData, verifierData, destinationData, optimisticItem]);
 
   const dayBuckets = useMemo(() => groupIntoDayBuckets(items), [items]);
 
   // Navigation is over the calendar itself, not just days that have a
   // forfeit — the arrows can land on an empty day and just show that state.
-  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    startOfDay(new Date()),
+  );
   const bucketsKey = dayBuckets.map((b) => b.key).join("|");
 
   // Land on today (or nearest day with forfeits) when the calendar shape changes.
@@ -808,7 +902,9 @@ export function ForfeitDayCard({
     const upcoming = dayBuckets.find(
       (b) => b.dayDate.getTime() > startOfDay(new Date()).getTime(),
     );
-    setSelectedDate(upcoming ? upcoming.dayDate : dayBuckets[dayBuckets.length - 1]!.dayDate);
+    setSelectedDate(
+      upcoming ? upcoming.dayDate : dayBuckets[dayBuckets.length - 1]!.dayDate,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when keys change
   }, [bucketsKey]);
 
@@ -824,9 +920,11 @@ export function ForfeitDayCard({
   const [proofStep, setProofStep] = useState<
     "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming"
   >("idle");
-  const [activeProofItem, setActiveProofItem] = useState<ForfeitFeedItem | null>(null);
+  const [activeProofItem, setActiveProofItem] =
+    useState<ForfeitFeedItem | null>(null);
 
-  const [discontinueItem, setDiscontinueItem] = useState<ForfeitFeedItem | null>(null);
+  const [discontinueItem, setDiscontinueItem] =
+    useState<ForfeitFeedItem | null>(null);
   const [discontinueBusy, setDiscontinueBusy] = useState(false);
   const [discontinueError, setDiscontinueError] = useState<string | null>(null);
 
@@ -834,12 +932,17 @@ export function ForfeitDayCard({
   const goNext = () => setSelectedDate((d) => addDays(d, 1));
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.creator(address) });
-    void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.verifier(address) });
+    if (!address) return;
+    void queryClient.invalidateQueries({
+      queryKey: forfeitFeedKeys.creator(address),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: forfeitFeedKeys.verifier(address),
+    });
   };
 
   const handleProofSubmit = async (proofUrls: string[]) => {
-    if (activeProofItem?.onChainCommitmentId == null) {
+    if (!address || activeProofItem?.onChainCommitmentId == null) {
       const msg =
         "This forfeit is still setting up. Wait a moment, then try uploading again.";
       setProofError(msg);
@@ -874,7 +977,9 @@ export function ForfeitDayCard({
     setDiscontinueBusy(true);
     setDiscontinueError(null);
     try {
-      const txHash = await cancelCommitmentAndWait(discontinueItem.onChainCommitmentId);
+      const txHash = await cancelCommitmentAndWait(
+        discontinueItem.onChainCommitmentId,
+      );
       await fetch("/api/forfeit/confirm-cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -883,7 +988,11 @@ export function ForfeitDayCard({
       setDiscontinueItem(null);
       invalidate();
     } catch (err) {
-      setDiscontinueError(err instanceof Error ? err.message : "Failed to discontinue this forfeit");
+      setDiscontinueError(
+        err instanceof Error
+          ? err.message
+          : "Failed to discontinue this forfeit",
+      );
     } finally {
       setDiscontinueBusy(false);
     }
@@ -891,7 +1000,11 @@ export function ForfeitDayCard({
 
   if (isLoading) {
     return (
-      <section className={cn(className)} role="status" aria-label="Loading forfeit">
+      <section
+        className={cn(className)}
+        role="status"
+        aria-label="Loading forfeit"
+      >
         <div className="mb-7 flex animate-pulse items-center justify-between gap-2">
           <div className="h-8 w-8 rounded-full bg-muted" />
           <div className="h-4 w-32 rounded bg-muted" />
@@ -914,10 +1027,13 @@ export function ForfeitDayCard({
     return (
       <section className={cn(className)}>
         {showCreateWhenEmpty ? (
-          <ForfeitEmptyState />
+          <ForfeitEmptyState authenticated={!!address} />
         ) : (
           <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
-            <Calendar className="h-12 w-12 text-muted-foreground/50" strokeWidth={1.5} />
+            <Calendar
+              className="h-12 w-12 text-muted-foreground/50"
+              strokeWidth={1.5}
+            />
             <p className={cn("mt-4", FEED_CARD_TITLE_CLASS)}>No forfeit</p>
           </div>
         )}
@@ -935,12 +1051,17 @@ export function ForfeitDayCard({
           type="button"
           onClick={goPrev}
           aria-label="Previous day"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5" />
         </button>
 
-        <p className={cn("min-w-0 flex-1 text-center font-semibold text-foreground", FEED_CARD_SUBTITLE_CLASS)}>
+        <p
+          className={cn(
+            "min-w-0 flex-1 text-center font-semibold text-foreground",
+            FEED_CARD_SUBTITLE_CLASS,
+          )}
+        >
           {formatForfeitDayLabel(label)}
         </p>
 
@@ -948,53 +1069,58 @@ export function ForfeitDayCard({
           type="button"
           onClick={goNext}
           aria-label="Next day"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
       {currentDays.length === 0 ? (
         <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-10 text-center shadow-sm">
-          <Calendar className="h-10 w-10 text-muted-foreground/50" strokeWidth={1.5} />
+          <Calendar
+            className="h-10 w-10 text-muted-foreground/50"
+            strokeWidth={1.5}
+          />
           <p className={cn("mt-3", FEED_CARD_TITLE_CLASS)}>No forfeit</p>
         </div>
       ) : (
-      <div className="space-y-4">
-        {roleGroups.map(({ role, items, heading }) => (
-          <div key={role} className="space-y-2">
-            {roleGroups.length > 1 ? (
-              <p className={cn("px-1", FEED_CARD_EYEBROW_CLASS)}>{heading}</p>
-            ) : null}
-            {items.map((day) =>
-              day.role === "verifier" ? (
-                <ForfeitVerifyCard key={day.key} day={day} />
-              ) : day.role === "destination" ? (
-                <ForfeitDestinationCard key={day.key} day={day} />
-              ) : (
-                <ForfeitTaskCard
-                  key={day.key}
-                  item={day.forfeit}
-                  day={day}
-                  proofBusy={proofBusy && activeProofItem?.id === day.forfeit.id}
-                  onSubmitProof={() => {
-                    if (day.periodStatus !== "current") return;
-                    setActiveProofItem(day.forfeit);
-                    setProofSuccess(false);
-                    setProofError(null);
-                    setProofStep("idle");
-                    setProofOpen(true);
-                  }}
-                  onDiscontinue={() => {
-                    setDiscontinueItem(day.forfeit);
-                    setDiscontinueError(null);
-                  }}
-                />
-              ),
-            )}
-          </div>
-        ))}
-      </div>
+        <div className="space-y-4">
+          {roleGroups.map(({ role, items, heading }) => (
+            <div key={role} className="space-y-2">
+              {roleGroups.length > 1 ? (
+                <p className={cn("px-1", FEED_CARD_EYEBROW_CLASS)}>{heading}</p>
+              ) : null}
+              {items.map((day) =>
+                day.role === "verifier" ? (
+                  <ForfeitVerifyCard key={day.key} day={day} />
+                ) : day.role === "destination" ? (
+                  <ForfeitDestinationCard key={day.key} day={day} />
+                ) : (
+                  <ForfeitTaskCard
+                    key={day.key}
+                    item={day.forfeit}
+                    day={day}
+                    proofBusy={
+                      proofBusy && activeProofItem?.id === day.forfeit.id
+                    }
+                    onSubmitProof={() => {
+                      if (day.periodStatus !== "current") return;
+                      setActiveProofItem(day.forfeit);
+                      setProofSuccess(false);
+                      setProofError(null);
+                      setProofStep("idle");
+                      setProofOpen(true);
+                    }}
+                    onDiscontinue={() => {
+                      setDiscontinueItem(day.forfeit);
+                      setDiscontinueError(null);
+                    }}
+                  />
+                ),
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       <SubmitProofModal
@@ -1031,12 +1157,17 @@ export function ForfeitDayCard({
           <p className={FEED_CARD_SUBTITLE_CLASS}>
             Your stake will be forfeited to{" "}
             <span className="font-semibold text-foreground">
-              {discontinueItem ? destinationLabel(discontinueItem) ?? "its destination" : "its destination"}
+              {discontinueItem
+                ? (destinationLabel(discontinueItem) ?? "its destination")
+                : "its destination"}
             </span>{" "}
-            — same as if you&apos;d missed the deadline. This can&apos;t be undone.
+            — same as if you&apos;d missed the deadline. This can&apos;t be
+            undone.
           </p>
           {discontinueError ? (
-            <p className="text-xs font-semibold text-red-500">{discontinueError}</p>
+            <p className="text-xs font-semibold text-red-500">
+              {discontinueError}
+            </p>
           ) : null}
           <div className="flex gap-2">
             <button
@@ -1053,7 +1184,9 @@ export function ForfeitDayCard({
               onClick={() => void handleDiscontinue()}
               className="flex flex-1 items-center justify-center gap-2 rounded-full bg-red-500 py-3 text-sm font-bold text-white disabled:opacity-60"
             >
-              {discontinueBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {discontinueBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
               Discontinue
             </button>
           </div>

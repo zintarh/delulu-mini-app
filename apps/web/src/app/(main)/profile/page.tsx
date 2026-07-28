@@ -22,7 +22,7 @@ import Link from "next/link";
 type TabType = "milestones" | "active" | "ended";
 
 const PROFILE_TABS: { id: TabType; label: string }[] = [
-  { id: "milestones", label: "Milestones" },
+  { id: "milestones", label: "Campaigns" },
   { id: "active", label: "Forfeit" },
   { id: "ended", label: "Ended" },
 ];
@@ -286,8 +286,8 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
           {address ? (
             <ActiveCampaignsSection
               address={address}
-              heading="Active campaigns"
               showMax={10}
+              showSeeAll={false}
               showEmpty
             />
           ) : (

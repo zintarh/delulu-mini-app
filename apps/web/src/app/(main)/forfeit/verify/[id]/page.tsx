@@ -133,11 +133,23 @@ export default function ForfeitVerifyPage() {
   };
 
   const handleApprove = async () => {
-    if (commitment?.onChainCommitmentId == null) return;
+    if (commitment?.onChainCommitmentId == null || !address) return;
     setActionStep("working");
     setActionError(null);
     try {
-      await resolveCommitmentSuccessAndWait(commitment.onChainCommitmentId);
+      const resolveTxHash = await resolveCommitmentSuccessAndWait(commitment.onChainCommitmentId);
+      // Best-effort: the approval already succeeded on-chain (points are
+      // awarded independently by the subgraph regardless of this call) — this
+      // just persists verifier_action/resolved_at so off-chain progress
+      // displays (e.g. the destination card's completed-periods ring) don't
+      // undercount. Never block or fail the approval on this.
+      await fetch("/api/forfeit/confirm-proof", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolveTxHash, walletAddress: address }),
+      }).catch((err) => {
+        console.error("[forfeit/verify] confirm-proof failed", err);
+      });
       await fetchCommitment();
       setActionStep("idle");
     } catch (err) {

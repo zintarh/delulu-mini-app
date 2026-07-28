@@ -1,0 +1,25 @@
+name: Forfeit keeper
+
+# Hits the existing /api/cron/forfeit-deadline-check endpoint frequently so
+# overdue forfeits get resolved on-chain within minutes instead of waiting
+# for the once-a-day Vercel cron (vercel.json). Free — GitHub Actions'
+# scheduler, not Vercel's, so this doesn't depend on the Vercel plan tier.
+#
+# Setup: add a repo secret CRON_SECRET matching the CRON_SECRET (or
+# PUSH_CRON_SECRET) env var already set in the Vercel project.
+# Settings → Secrets and variables → Actions → New repository secret.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  resolve-overdue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call forfeit-deadline-check
+        run: |
+          curl -sf -X GET "https://www.staydelulu.xyz/api/cron/forfeit-deadline-check" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            --max-time 280

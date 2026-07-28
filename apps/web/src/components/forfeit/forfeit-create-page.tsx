@@ -16,6 +16,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { DateTimePicker } from "@/components/date-time-picker";
 import { DeluluDetailHeader } from "@/components/delulu-detail/delulu-detail-header";
@@ -1170,11 +1171,18 @@ export function ForfeitCreatePage() {
 
         <button
           type="button"
-          disabled={!canNext || isBusy}
-          onClick={handleSubmit}
+          disabled={isConnected && (!canNext || isBusy)}
+          onClick={() => {
+            if (!isConnected) {
+              persistSignInRedirect("/forfeit");
+              router.push(buildSignInUrl("/forfeit"));
+              return;
+            }
+            void handleSubmit();
+          }}
           className={cn(
             "mt-8 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-opacity",
-            canNext && !isBusy
+            !isConnected || (canNext && !isBusy)
               ? "bg-delulu-charcoal text-white hover:opacity-90"
               : "bg-muted text-muted-foreground opacity-60",
           )}
@@ -1182,7 +1190,7 @@ export function ForfeitCreatePage() {
         >
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {!isConnected
-            ? "Connect wallet"
+            ? "Sign in"
             : isApproving || isApprovingConfirming
               ? "Approving..."
               : isCreating

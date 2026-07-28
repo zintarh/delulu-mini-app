@@ -148,7 +148,13 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
 
           {address ? <HomeDailyBreakdown address={address} /> : null}
 
-          {address ? <HomeForfeitAndCampaigns address={address} /> : null}
+          {address ? (
+            <HomeForfeitAndCampaigns address={address} />
+          ) : (
+            <div className="mb-6 px-4">
+              <ForfeitDayCard address={undefined} />
+            </div>
+          )}
 
           {/* Signed-out desktop: render campaign discovery in the main column so layout doesn't feel empty. */}
           {!address ? (
