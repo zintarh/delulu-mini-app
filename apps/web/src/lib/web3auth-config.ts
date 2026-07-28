@@ -10,8 +10,7 @@ export const web3AuthContextConfig: Web3AuthContextConfig = {
       {
         chainNamespace: "eip155",
         chainId: "0xa4ec",
-        rpcTarget:
-          process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org",
+        rpcTarget:process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org",
         displayName: "Celo Mainnet",
         ticker: "CELO",
         tickerName: "Celo",
