@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
@@ -106,13 +106,7 @@ export function LeftSidebar() {
           className="flex h-14 w-14 items-center justify-center"
           onClick={() => closePanels()}
         >
-          <Image
-            src="/favicon_io/android-chrome-192x192.png"
-            alt="Delulu"
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-xl"
-          />
+          <AppLogo size={40} className="h-10 w-10" />
         </Link>
       </div>
 

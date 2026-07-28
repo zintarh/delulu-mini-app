@@ -408,8 +408,15 @@ function ForfeitTaskCard({
   const resolved = !!day.period?.resolvedAt;
   const isFriendVerified = item.verificationMethod === "friend";
   const canSubmit = day.periodStatus === "current" && !isPendingSync;
+  const outcome = periodOutcome(day);
 
   const action = (() => {
+    // A confirmed win gets its own status pill (below) instead of the
+    // generic "View proof" link, so a completed day is visually unmistakable
+    // from an in-progress one rather than looking identical minus the color
+    // of one line of text.
+    if (outcome === "won") return null;
+
     if (isPendingSync) {
       return (
         <span
@@ -509,11 +516,27 @@ function ForfeitTaskCard({
     return null;
   })();
 
-  const outcome = periodOutcome(day);
   // Fills the trailing slot when there's no proof-review action to show —
   // "past, nothing submitted" otherwise renders nothing on the right at all.
+  // "won" is clickable (links to the submitted proof) when one exists, so
+  // completing a day doesn't lose the ability to look back at what you sent.
   const statusPill =
-    outcome === "overdue" ? (
+    outcome === "won" ? (
+      proofUrl ? (
+        <a
+          href={proofUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-full bg-delulu-green/10 px-3 py-1 text-xs font-semibold text-delulu-green transition-opacity hover:opacity-80"
+        >
+          Kept
+        </a>
+      ) : (
+        <span className="shrink-0 rounded-full bg-delulu-green/10 px-3 py-1 text-xs font-semibold text-delulu-green">
+          Kept
+        </span>
+      )
+    ) : outcome === "overdue" ? (
       <span className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
         Overdue
       </span>
@@ -544,7 +567,10 @@ function ForfeitTaskCard({
           ? "bg-amber-500"
           : "bg-delulu-blue";
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
-  const showProgress = isRepeatingForfeit(item);
+  // Always show which day this was once it's settled (won/failed) — even a
+  // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
+  // finished item from one still in progress, not just repeating plans.
+  const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
 
   return (
     <div className="relative rounded-3xl bg-card p-3.5 shadow-sm">

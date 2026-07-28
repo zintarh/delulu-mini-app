@@ -88,7 +88,7 @@ export function HomeDailyBreakdown({ address }: { address: string }) {
 
   return (
     <section className="mb-6 px-4">
-      <div className="overflow-hidden rounded-3xl border border-white bg-gradient-to-b from-delulu-blue-light to-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-border/40 bg-gradient-to-b from-delulu-blue-light/60 to-card shadow-sm">
         <div className="relative">
           <div className="relative px-4 pb-1 pt-3.5">
             <div className="mb-3 flex items-start justify-between gap-3">

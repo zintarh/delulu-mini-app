@@ -21,7 +21,7 @@ export function AppLogo({
         fontSize="25"
         fontWeight="800"
         fontFamily="var(--font-manrope), sans-serif"
-        fill="var(--delulu-charcoal, #1a1a19)"
+        fill="var(--foreground, #1a1a19)"
       >
         D
       </text>

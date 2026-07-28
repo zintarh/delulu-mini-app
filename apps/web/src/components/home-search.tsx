@@ -204,7 +204,7 @@ export function HomeSearch({
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="mx-2 mb-2 mt-1 w-[calc(100%-1rem)] rounded-full bg-[#efefef] py-2.5 text-sm font-semibold text-foreground hover:bg-[#e2e2e2]"
+                    className="mx-2 mb-2 mt-1 w-[calc(100%-1rem)] rounded-full bg-muted py-2.5 text-sm font-semibold text-foreground hover:bg-muted/70"
                   >
                     See all results
                   </button>
