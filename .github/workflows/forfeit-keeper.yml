@@ -5,7 +5,7 @@ name: Forfeit keeper
 # for the once-a-day Vercel cron (vercel.json). Free — GitHub Actions'
 # scheduler, not Vercel's, so this doesn't depend on the Vercel plan tier.
 #
-# Setup: add a repo secret CRON_SECRET matching the CRON_SECRET (or
+# Setup: add a repo secret PUSH_CRON_SECRET matching the CRON_SECRET (or
 # PUSH_CRON_SECRET) env var already set in the Vercel project.
 # Settings → Secrets and variables → Actions → New repository secret.
 
@@ -21,5 +21,5 @@ jobs:
       - name: Call forfeit-deadline-check
         run: |
           curl -sf -X GET "https://www.staydelulu.xyz/api/cron/forfeit-deadline-check" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "x-cron-secret: ${{ secrets.PUSH_CRON_SECRET }}" \
             --max-time 280
