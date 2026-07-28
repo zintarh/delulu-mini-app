@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, formatEther, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { FORFEIT_MARKET_ABI } from "@/lib/abi/forfeit-market";
@@ -26,6 +26,18 @@ function getRpcUrl(): string {
     process.env.NEXT_PUBLIC_RPC_URL ??
     "https://forno.celo.org"
   );
+}
+
+/**
+ * Diagnostic only — the keeper's address and CELO balance, never the key
+ * itself. Lets the deadline-check cron report *why* resolves are failing
+ * (unfunded wallet vs. something else) without needing Vercel log access.
+ */
+export async function getKeeperStatus(): Promise<{ address: string; celoBalance: string }> {
+  const account = getKeeperAccount();
+  const publicClient = createPublicClient({ chain: celo, transport: http(getRpcUrl()) });
+  const balance = await publicClient.getBalance({ address: account.address });
+  return { address: account.address, celoBalance: formatEther(balance) };
 }
 
 /** Resolves one overdue commitment as forfeited. Returns the tx hash once mined. */

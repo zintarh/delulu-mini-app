@@ -6,7 +6,7 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
-import { resolveCommitmentForfeitedAsKeeper } from "@/lib/celo/forfeit-keeper";
+import { getKeeperStatus, resolveCommitmentForfeitedAsKeeper } from "@/lib/celo/forfeit-keeper";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 
 async function fetchGraph(url: string, query: string, variables: Record<string, unknown>) {
@@ -89,13 +89,28 @@ export async function GET(req: NextRequest) {
 
     let resolved = 0;
     let resolveFailed = 0;
+    const resolveErrors: Array<{ commitmentId: string; error: string }> = [];
     for (const c of overdue) {
       try {
         await resolveCommitmentForfeitedAsKeeper(BigInt(c.commitmentId));
         resolved++;
       } catch (err) {
         resolveFailed++;
+        const message = err instanceof Error ? err.message : String(err);
+        resolveErrors.push({ commitmentId: c.commitmentId, error: message });
         console.error(`[forfeit-deadline-check] resolve failed for ${c.commitmentId}:`, err);
+      }
+    }
+
+    // Surfaced whenever anything failed to resolve, so the wallet's funding
+    // state is visible in the response itself — no Vercel log access needed
+    // to tell "unfunded keeper" apart from "something else reverted".
+    let keeper: { address: string; celoBalance: string } | { error: string } | null = null;
+    if (resolveFailed > 0) {
+      try {
+        keeper = await getKeeperStatus();
+      } catch (err) {
+        keeper = { error: err instanceof Error ? err.message : String(err) };
       }
     }
 
@@ -153,6 +168,8 @@ export async function GET(req: NextRequest) {
       overdueFound: overdue.length,
       resolved,
       resolveFailed,
+      resolveErrors: resolveErrors.length > 0 ? resolveErrors : undefined,
+      keeper: keeper ?? undefined,
       recentForfeitedFound: recent.length,
       synced,
       notified,
