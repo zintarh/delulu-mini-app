@@ -40,6 +40,7 @@ import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { useUserStore } from "@/stores/useUserStore";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
+import { FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { cn } from "@/lib/utils";
 import {
   addDays,
@@ -838,7 +839,17 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
       <p className={cn("mt-1.5 max-w-[16rem]", FEED_CARD_SUBTITLE_CLASS)}>
         Stake on a goal. Miss it, and the stake goes where you choose.
       </p>
-      {authenticated ? (
+      {!FORFEIT_CREATION_ENABLED ? (
+        <button
+          type="button"
+          disabled
+          aria-label="Creating forfeits is temporarily paused"
+          title="Creating forfeits is temporarily paused"
+          className="mt-5 flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full bg-muted text-muted-foreground"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} />
+        </button>
+      ) : authenticated ? (
         <Link
           href="/forfeit"
           aria-label="Create a forfeit"

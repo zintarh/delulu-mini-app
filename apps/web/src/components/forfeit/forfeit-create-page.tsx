@@ -14,6 +14,7 @@ import {
   Loader2,
   MapPin,
   ShieldCheck,
+  Hourglass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
@@ -24,7 +25,7 @@ import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenMetadata } from "@/hooks/use-token-metadata";
-import { getForfeitMarketAddress } from "@/lib/constant";
+import { getForfeitMarketAddress, FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { TokenBadge } from "@/components/token-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -823,6 +824,25 @@ export function ForfeitCreatePage() {
   };
 
   const isBusy = isSubmitting || isCreating || isApproving || isApprovingConfirming;
+
+  if (!FORFEIT_CREATION_ENABLED) {
+    return (
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
+        <DeluluDetailHeader shareSlot={null} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Hourglass className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg font-black tracking-tight text-foreground">
+            New forfeits are paused
+          </p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            We&apos;re making some improvements. Existing forfeits keep working as normal — check back soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">

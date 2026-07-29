@@ -98,6 +98,9 @@ export const KNOWN_TOKEN_SYMBOLS: Record<string, string> = {
   [USDT_ADDRESSES.mainnet.toLowerCase()]: "USDT",
 } as const;
 
+/** Temporarily disables new forfeit creation in production; existing forfeits still work fully. */
+export const FORFEIT_CREATION_ENABLED = false;
+
 /** Wallets excluded from all points leaderboards (e.g. abuse/spam). Lowercase. */
 export const LEADERBOARD_BLACKLISTED_ADDRESSES = new Set<string>([
   "0x5057f171157c39bbcdbd2ab214a590bddbea113f",
