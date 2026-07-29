@@ -99,7 +99,7 @@ export const KNOWN_TOKEN_SYMBOLS: Record<string, string> = {
 } as const;
 
 /** Temporarily disables new forfeit creation in production; existing forfeits still work fully. */
-export const FORFEIT_CREATION_ENABLED = false;
+export const FORFEIT_CREATION_ENABLED = true;
 
 /** Wallets excluded from all points leaderboards (e.g. abuse/spam). Lowercase. */
 export const LEADERBOARD_BLACKLISTED_ADDRESSES = new Set<string>([
