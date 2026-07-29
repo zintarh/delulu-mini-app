@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { formatUnits } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import {
   checkGoodDollarWhitelisted,
@@ -35,6 +36,7 @@ export interface UseGoodDollarClaimReturn {
 export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const { address } = useAuth();
   const { claimSDK: claimSDKInstance, isReady } = useClaimSDK();
+  const queryClient = useQueryClient();
 
   const [isClaiming, setIsClaiming] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -215,6 +217,12 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
       await claimSDKInstance.claim();
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // The claim SDK auto-tops up CELO gas for low-balance wallets as part of
+      // claim() itself — refetch everything (incl. the gas-balance check
+      // behind the "no gas" prompt) so that top-up is reflected immediately
+      // instead of waiting on the gas hook's own poll interval.
+      void queryClient.invalidateQueries();
 
       recordAppEarned({
         address,
