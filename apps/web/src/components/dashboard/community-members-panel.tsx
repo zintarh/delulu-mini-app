@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClaimSparkline } from "@/components/dashboard/claim-sparkline";
 import { AdminPagination } from "@/components/admin/admin-ui";
@@ -178,8 +178,17 @@ export function CommunityMembersPanel({ communityId }: { communityId: string }) 
               {data.members.map((m) => (
                 <DashboardTableRow key={m.id}>
                   <DashboardTableCell>
-                    <div>
+                    <div className="flex items-center gap-1.5">
                       <p className="font-mono text-xs">{m.username ? `@${m.username}` : formatAddress(m.wallet_address)}</p>
+                      <a
+                        href={`https://celoscan.io/address/${m.wallet_address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="View on Celoscan"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
                   </DashboardTableCell>
                   <DashboardTableCell className="text-xs text-muted-foreground">

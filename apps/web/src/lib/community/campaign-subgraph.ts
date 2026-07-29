@@ -1,5 +1,5 @@
 import { getSubgraphUrlForChain } from "@/lib/constant";
-import { CELO_MAINNET_ID } from "@/lib/constant";
+import { CELO_MAINNET_ID, isLeaderboardBlacklisted } from "@/lib/constant";
 import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
 
 export type CommunityCampaignLeaderboardRow = {
@@ -963,6 +963,6 @@ export async function fetchGlobalAppPointsFromGraph(): Promise<GlobalAppPointsRo
       delulu_points: v.delulu,
       campaign_points: v.campaign,
     }))
-    .filter((r) => r.points_total > 0)
+    .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))
     .sort((a, b) => b.points_total - a.points_total);
 }

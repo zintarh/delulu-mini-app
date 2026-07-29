@@ -84,8 +84,8 @@ function HubTabs({
   memberCount: number;
 }) {
   const tabs: { id: HubTab; label: string }[] = [
-    { id: "campaigns", label: `Campaigns (${campaignCount})` },
     { id: "members", label: `Members (${memberCount})` },
+    { id: "campaigns", label: `Campaigns (${campaignCount})` },
   ];
 
   return (
@@ -194,7 +194,7 @@ export function CommunityDetailClient({
   const [community, setCommunity] = useState<Community>(initialCommunity);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<HubTab>("campaigns");
+  const [activeTab, setActiveTab] = useState<HubTab>("members");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [approveTarget, setApproveTarget] = useState<DashboardCampaign | null>(null);
   const [rejectTarget, setRejectTarget] = useState<{ id: string; title: string } | null>(null);

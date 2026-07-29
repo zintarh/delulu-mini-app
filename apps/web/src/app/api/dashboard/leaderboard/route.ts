@@ -5,6 +5,7 @@ import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { fetchMonthlyCampaignPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 import { monthlyCampaignLeaderboardSinceUnixSeconds } from "@/lib/dashboard/campaign-constants";
+import { isLeaderboardBlacklisted } from "@/lib/constant";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET() {
   const onChainRows = await fetchMonthlyCampaignPointsFromGraph(sinceUnixSeconds);
 
   const combined = onChainRows
-    .filter((row) => row.points_total > 0)
+    .filter((row) => row.points_total > 0 && !isLeaderboardBlacklisted(row.wallet_address))
     .sort((a, b) => b.points_total - a.points_total);
 
   const enriched = await enrichLeaderboardWithUsernames(admin, combined);

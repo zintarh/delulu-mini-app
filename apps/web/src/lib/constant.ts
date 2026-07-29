@@ -98,6 +98,15 @@ export const KNOWN_TOKEN_SYMBOLS: Record<string, string> = {
   [USDT_ADDRESSES.mainnet.toLowerCase()]: "USDT",
 } as const;
 
+/** Wallets excluded from all points leaderboards (e.g. abuse/spam). Lowercase. */
+export const LEADERBOARD_BLACKLISTED_ADDRESSES = new Set<string>([
+  "0x5057f171157c39bbcdbd2ab214a590bddbea113f",
+]);
+
+export function isLeaderboardBlacklisted(address: string): boolean {
+  return LEADERBOARD_BLACKLISTED_ADDRESSES.has(address.toLowerCase());
+}
+
 
 
 export const SUBGRAPH_URLS: Record<number, string> = {
