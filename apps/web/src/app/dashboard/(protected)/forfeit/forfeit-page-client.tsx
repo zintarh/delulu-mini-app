@@ -44,6 +44,7 @@ import {
   ModalTitle,
   ModalDescription,
 } from "@/components/ui/modal";
+import { DashboardSectionTabs, FORFEIT_SECTION_TABS } from "@/components/dashboard/dashboard-section-tabs";
 import {
   useDashboardForfeit,
   type ForfeitCommitmentAdmin,
@@ -401,6 +402,8 @@ export function ForfeitAdminPageClient() {
           daily and weekly growth included.
         </p>
       </div>
+
+      <DashboardSectionTabs items={FORFEIT_SECTION_TABS} />
 
       {error ? (
         <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

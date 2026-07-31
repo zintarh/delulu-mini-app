@@ -92,7 +92,8 @@ export type ForfeitSchedule = {
 
 /**
  * On-chain schedule from the duration ("ends on") date.
- * Period 0 always ends today (local EOD); last period ends on the selected day.
+ * Period 0 ends one full period after creation (capped by the chosen final
+ * deadline); last period ends on the selected day.
  * totalPeriods === number of calendar days the day-card will show (daily cadence).
  */
 export function scheduleFromDeadline(input: {

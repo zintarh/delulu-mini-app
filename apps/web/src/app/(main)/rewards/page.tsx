@@ -6,6 +6,7 @@ import { useBalance } from "wagmi";
 import {
   AlertTriangle,
   ArrowDownToLine,
+  ArrowUpFromLine,
   ExternalLink,
   Gift,
   Loader2,
@@ -20,8 +21,10 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useCeloPrice } from "@/hooks/use-celo-price";
 import { useGraphUserClaims } from "@/hooks/graph/useGraphUserClaims";
+import { useGraphUserForfeitActivity } from "@/hooks/graph/useGraphUserForfeitActivity";
 import { useAdminRewardGrants } from "@/hooks/use-admin-reward-grants";
 import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
+import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { TokenBadge } from "@/components/token-badge";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
@@ -38,13 +41,26 @@ import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
 
 type ActivityItem = {
   id: string;
-  kind: "team_reward" | "delulu_claim";
+  kind: "team_reward" | "delulu_claim" | "forfeit_success" | "forfeit_sent";
   title: string;
   description: string | null;
   amountLabel: string;
   txHash: string;
   createdAt: string;
 };
+
+function forfeitDestinationLabel(type: number | null): string {
+  switch (type) {
+    case ForfeitDestinationType.Charity:
+      return "charity";
+    case ForfeitDestinationType.Friend:
+      return "a friend";
+    case ForfeitDestinationType.CommunityPool:
+      return "Delulu";
+    default:
+      return "its destination";
+  }
+}
 
 const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
@@ -103,6 +119,11 @@ export default function RewardsPage() {
     isLoading: isLoadingGrants,
     error: grantsError,
   } = useAdminRewardGrants(address);
+  const {
+    activity: forfeitActivity,
+    isLoading: isLoadingForfeitActivity,
+    error: forfeitActivityError,
+  } = useGraphUserForfeitActivity(address);
 
   const activityItems = useMemo((): ActivityItem[] => {
     const fromClaims: ActivityItem[] = claims.map((claim) => ({
@@ -132,13 +153,37 @@ export default function RewardsPage() {
       };
     });
 
-    return [...fromClaims, ...fromGrants].sort(
+    const fromForfeits: ActivityItem[] = forfeitActivity.map((item) => {
+      const amountStr = item.amount.toLocaleString(undefined, { maximumFractionDigits: 4 });
+      if (item.outcome === "forfeited") {
+        return {
+          id: `forfeit-${item.id}`,
+          kind: "forfeit_sent",
+          title: `Sent to ${forfeitDestinationLabel(item.destinationType)}`,
+          description: null,
+          amountLabel: `-${amountStr} ${item.tokenSymbol}`,
+          txHash: item.txHash,
+          createdAt: item.createdAt,
+        };
+      }
+      return {
+        id: `forfeit-${item.id}`,
+        kind: "forfeit_success",
+        title: "Stake returned",
+        description: null,
+        amountLabel: `+${amountStr} ${item.tokenSymbol}`,
+        txHash: item.txHash,
+        createdAt: item.createdAt,
+      };
+    });
+
+    return [...fromClaims, ...fromGrants, ...fromForfeits].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [claims, teamGrants]);
+  }, [claims, teamGrants, forfeitActivity]);
 
-  const isLoadingActivity = isLoadingClaims || isLoadingGrants;
-  const activityError = claimsError || grantsError;
+  const isLoadingActivity = isLoadingClaims || isLoadingGrants || isLoadingForfeitActivity;
+  const activityError = claimsError || grantsError || forfeitActivityError;
 
   const {
     formatted: gDollarBalance,
@@ -583,11 +628,15 @@ function ActivityRow({ item }: { item: ActivityItem }) {
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
           item.kind === "team_reward"
             ? "bg-amber-500/10 text-amber-600"
-            : "bg-emerald-500/10 text-emerald-600",
+            : item.kind === "forfeit_sent"
+              ? "bg-red-500/10 text-red-600"
+              : "bg-emerald-500/10 text-emerald-600",
         )}
       >
         {item.kind === "team_reward" ? (
           <Gift className="h-4 w-4" />
+        ) : item.kind === "forfeit_sent" ? (
+          <ArrowUpFromLine className="h-4 w-4" />
         ) : (
           <ArrowDownToLine className="h-4 w-4" />
         )}
@@ -606,7 +655,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <span className="text-sm font-bold tabular-nums text-emerald-600">
+        <span
+          className={cn(
+            "text-sm font-bold tabular-nums",
+            item.kind === "forfeit_sent" ? "text-red-600" : "text-emerald-600",
+          )}
+        >
           {item.amountLabel}
         </span>
         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50" />

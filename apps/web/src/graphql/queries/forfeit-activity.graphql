@@ -1,0 +1,37 @@
+# ============================================================
+# FORFEIT ACTIVITY QUERIES
+# Used by: Rewards page Activity tab (per-user forfeit history)
+# ============================================================
+
+# All forfeit period resolutions (success + forfeited) for a wallet's own
+# commitments — used to show "what happened" on the rewards Activity tab.
+query GetForfeitActivityByUser(
+  $address: String!
+  $first: Int = 100
+  $orderBy: ForfeitPeriodResolution_orderBy = createdAt
+  $orderDirection: OrderDirection = desc
+) {
+  forfeitPeriodResolutions(
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: { creatorAddress: $address }
+  ) {
+    id
+    commitmentId
+    periodIndex
+    outcome
+    amountToDestination
+    destinationType
+    destinationAddr
+    platformFee
+    bountyPaid
+    txHash
+    createdAt
+    commitment {
+      token
+      active
+      stakeAmount
+    }
+  }
+}

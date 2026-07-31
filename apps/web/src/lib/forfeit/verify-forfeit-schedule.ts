@@ -251,6 +251,74 @@ function main() {
     );
   }
 
+  // --- Weekly cadence: calendar slots must step 7 days at a time and stay
+  // on the same weekday as creation, not silently fall back to daily steps. ---
+  const weeklyDeadline = new Date(2026, 6, 26 + 28, 23, 59, 59, 999); // 4 weeks out
+  const weeklySchedule = scheduleFromDeadline({
+    deadlineDate: weeklyDeadline,
+    isRepeat: true,
+    repeatEvery: "week",
+    now: sunday,
+    cadenceByRepeat: CADENCE,
+  });
+  if (weeklySchedule.totalPeriods !== 4) {
+    fail(`Weekly 4-week span totalPeriods=${weeklySchedule.totalPeriods}, want 4`);
+  }
+  const weeklySlots = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: weeklySchedule.totalPeriods,
+    currentPeriodIndex: 0,
+    currentPeriodDeadlineSec: weeklySchedule.firstDeadline,
+    periodSeconds: 604_800,
+    isRepeating: true,
+    now: sunday,
+  });
+  const weeklyDays = weeklySlots.map((s) => dayKey(s.dayDate));
+  const expectedWeeklyDays = ["2026-07-26", "2026-08-02", "2026-08-09", "2026-08-16"];
+  if (weeklyDays.join(",") !== expectedWeeklyDays.join(",")) {
+    fail(`Weekly slots=${weeklyDays.join(",")}, want ${expectedWeeklyDays.join(",")}`);
+  }
+  for (const d of weeklySlots.map((s) => s.dayDate)) {
+    if (d.getDay() !== 0) fail(`Weekly slot ${dayKey(d)} should stay on Sunday`);
+  }
+
+  // --- Year boundary: a daily forfeit created Dec 28 must roll Dec 31 → Jan 1
+  // cleanly (no duplicate/skipped calendar day, no year-math error). ---
+  const dec28 = new Date(2026, 11, 28, 12, 0, 0, 0);
+  const yearEndDeadline = deadlineFromPreset("7 days", dec28);
+  if (dayKey(yearEndDeadline) !== "2027-01-03") {
+    fail(`7 days from Dec 28 should end Jan 3, got ${dayKey(yearEndDeadline)}`);
+  }
+  const yearEndSchedule = scheduleFromDeadline({
+    deadlineDate: yearEndDeadline,
+    isRepeat: true,
+    repeatEvery: "day",
+    now: dec28,
+    cadenceByRepeat: CADENCE,
+  });
+  const yearEndSlots = buildForfeitCalendarSlots({
+    createdAt: dec28,
+    totalPeriods: yearEndSchedule.totalPeriods,
+    currentPeriodIndex: 0,
+    currentPeriodDeadlineSec: yearEndSchedule.firstDeadline,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: dec28,
+  });
+  const yearEndDays = yearEndSlots.map((s) => dayKey(s.dayDate));
+  const expectedYearEndDays = [
+    "2026-12-28",
+    "2026-12-29",
+    "2026-12-30",
+    "2026-12-31",
+    "2027-01-01",
+    "2027-01-02",
+    "2027-01-03",
+  ];
+  if (yearEndDays.join(",") !== expectedYearEndDays.join(",")) {
+    fail(`Year-boundary slots=${yearEndDays.join(",")}, want ${expectedYearEndDays.join(",")}`);
+  }
+
   void longDeadline;
   console.log("OK: forfeit schedule ↔ calendar days are consistent");
   console.log("  3 days →", three.days.join(" · "));

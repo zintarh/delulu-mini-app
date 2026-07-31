@@ -39,6 +39,7 @@ export function DashboardSectionTabs({
           pathname === item.href ||
           (match !== "/dashboard" &&
             match !== "/dashboard/communities" &&
+            match !== "/dashboard/forfeit" &&
             pathname.startsWith(`${match}/`));
 
         return (
@@ -90,4 +91,9 @@ export const OUTREACH_SECTION_TABS: DashboardSectionTab[] = [
 export const COMMUNITIES_SECTION_TABS: DashboardSectionTab[] = [
   { href: "/dashboard/communities", label: "Communities", match: "/dashboard/communities" },
   { href: "/dashboard/campaigns", label: "All campaigns", match: "/dashboard/campaigns" },
+];
+
+export const FORFEIT_SECTION_TABS: DashboardSectionTab[] = [
+  { href: "/dashboard/forfeit", label: "Overview", match: "/dashboard/forfeit" },
+  { href: "/dashboard/forfeit/activity", label: "Activity", match: "/dashboard/forfeit/activity" },
 ];

@@ -357,6 +357,9 @@ export function ForfeitCreatePage() {
   const [deadlineLabel, setDeadlineLabel] = useState<string>("7 days");
   const [submitAnytime, setSubmitAnytime] = useState(true);
   const minDeadlineDate = useMemo(() => startOfDay(new Date()), []);
+  // Frozen at mount so the "cutoff each period" preview doesn't drift as the
+  // user fills out the form — it should reflect when the schedule would start.
+  const formStartedAtRef = useRef(new Date());
   const [repeatEvery, setRepeatEvery] = useState<(typeof REPEAT_EVERY)[number]>("day");
   const [forfeitAmount, setForfeitAmount] = useState(100);
   const [amountDraft, setAmountDraft] = useState("100");
@@ -612,6 +615,23 @@ export function ForfeitCreatePage() {
 
   const repeatEveryLabel =
     REPEAT_EVERY_OPTIONS.find((o) => o.id === repeatEvery)?.label ?? "every day";
+
+  // Each period's on-chain cutoff lands one full period after creation, so its
+  // time-of-day matches when the form was opened — not the final deadline's
+  // time-of-day (those only coincide for the last period).
+  const periodCutoffLabel = useMemo(() => {
+    const schedule = scheduleFromDeadline({
+      deadlineDate,
+      isRepeat: true,
+      repeatEvery,
+      now: formStartedAtRef.current,
+      cadenceByRepeat: CADENCE_BY_REPEAT,
+    });
+    return new Date(schedule.firstDeadline * 1000).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, [deadlineDate, repeatEvery]);
 
   const openAmountSheet = () => {
     setAmountDraft(String(forfeitAmount));
@@ -934,12 +954,7 @@ export function ForfeitCreatePage() {
               </p>
               <p className="text-xs text-muted-foreground" style={MANROPE}>
                 <span className="font-semibold text-foreground/80">{deadlineLabel}</span>.
-                Cutoff each period:{" "}
-                {deadlineDate.toLocaleTimeString(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-                .
+                Cutoff each period: {periodCutoffLabel}.
               </p>
             </>
           ) : null}

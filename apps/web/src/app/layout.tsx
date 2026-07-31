@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { AppSplashScreen } from "@/components/app-splash-screen";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -77,6 +78,7 @@ export default function RootLayout({
         className={`${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
       >
         <ThemeProvider>
+          <AppSplashScreen />
           <ProvidersShell>{children}</ProvidersShell>
         </ThemeProvider>
       </body>
