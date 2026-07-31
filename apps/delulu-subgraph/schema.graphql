@@ -8,7 +8,6 @@ type User @entity(immutable: false) {
   
   # Reverse lookups
   delulus: [Delulu!]! @derivedFrom(field: "creator")
-  stakes: [Stake!]! @derivedFrom(field: "user")
   claims: [Claim!]! @derivedFrom(field: "user")
   milestones: [Milestone!]! @derivedFrom(field: "creator")
   forfeitCommitments: [ForfeitCommitment!]! @derivedFrom(field: "creator")
@@ -58,45 +57,8 @@ type Delulu @entity(immutable: false) {
   totalSupportForProRata: BigInt # v3: total support used for pro‑rata refunds
   
   # Reverse lookups
-  stakes: [Stake!]! @derivedFrom(field: "delulu")
   claims: [Claim!]! @derivedFrom(field: "delulu")
   milestones: [Milestone!]! @derivedFrom(field: "delulu")
-  shareTrades: [ShareTrade!]! @derivedFrom(field: "delulu")
-  shareHoldings: [ShareHolding!]! @derivedFrom(field: "delulu")
-}
-
-# ShareTrade entity - tracks each buy/sell
-type ShareTrade @entity(immutable: true) {
-  id: ID! # txHash-logIndex
-  delulu: Delulu!
-  user: User!
-  isBuy: Boolean!
-  amount: BigInt!
-  curveAmount: BigInt!
-  protocolFee: BigInt!
-  creatorFee: BigInt!
-  txHash: Bytes!
-  createdAt: BigInt!
-}
-
-# ShareHolding entity - rolling per-user per-delulu share balance
-type ShareHolding @entity(immutable: false) {
-  id: ID! # deluluId-userAddress
-  delulu: Delulu!
-  user: User!
-  balance: BigInt!
-  hasEverBought: Boolean! # true once they've bought; never reset even after selling
-  updatedAt: BigInt!
-}
-
-# Stake entity - tracks each support stake
-type Stake @entity(immutable: true) {
-  id: ID! # txHash-logIndex
-  delulu: Delulu! # Relation to Delulu
-  user: User! # Relation to User
-  amount: BigInt! # Amount staked
-  txHash: Bytes! # Transaction hash
-  createdAt: BigInt! # Block timestamp
 }
 
 # Claim entity - tracks reward claims
@@ -137,30 +99,6 @@ type Milestone @entity(immutable: false) {
   streakBonus: BigInt # Bonus points awarded for streak
   tipCount: BigInt! # Number of tips received on this milestone
   totalTipSupport: BigInt! # Total G$ tipped to this milestone
-}
-
-# Aggregated creator stats for leaderboards
-type CreatorStats @entity(immutable: false) {
-  id: Bytes!          # creator address (same as User.id)
-  user: User!         # relation to User for username / reverse lookups
-
-  # Goals
-  totalGoals: BigInt!
-  completedGoals: BigInt!
-  failedGoals: BigInt!
-
-  # Milestones
-  totalMilestones: BigInt!
-  verifiedMilestones: BigInt!
-
-  # Support
-  totalSupportCollected: BigInt!
-
-  # Tips
-  totalTipsReceived: BigInt!   # total number of tips received
-  totalTipPoints: BigInt!      # points earned purely from tips
-
-  createdAt: BigInt!  # first time this creator appeared
 }
 
 # Challenge entity - tracks admin-created challenges
@@ -250,18 +188,6 @@ type CommunityProof @entity(immutable: true) {
   createdAt: BigInt!
 }
 
-# Tip entity - tracks each individual tip
-type Tip @entity(immutable: true) {
-  id: ID! # txHash-logIndex
-  delulu: Delulu!
-  tipper: User!
-  milestoneId: BigInt!
-  amount: BigInt!
-  isScout: Boolean!
-  txHash: Bytes!
-  createdAt: BigInt!
-}
-
 # Personal stake-or-lose commitment — indexed from ForfeitMarket.createCommitment
 type ForfeitCommitment @entity(immutable: false) {
   id: ID! # "fm1-" + commitmentId
@@ -303,13 +229,4 @@ type ForfeitPeriodResolution @entity(immutable: true) {
   amountToDestination: BigInt # forfeiture only
   txHash: Bytes!
   createdAt: BigInt!
-}
-
-# Upgraded entity - tracks contract upgrades
-type Upgraded @entity(immutable: true) {
-  id: ID! # txHash-logIndex
-  implementation: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
 }

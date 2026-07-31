@@ -202,6 +202,7 @@ const MONTHLY_CAMPAIGN_COMPLETIONS_QUERY = `
     ) {
       participantAddress
       pointsAwarded
+      createdAt
       participant {
         username
       }
@@ -220,6 +221,7 @@ const MONTHLY_COMMUNITY_PROOFS_QUERY = `
     ) {
       participantAddress
       pointsAwarded
+      createdAt
       participant {
         username
       }
@@ -238,6 +240,7 @@ const MONTHLY_FORFEIT_POINTS_QUERY = `
     ) {
       creatorAddress
       pointsAwarded
+      createdAt
     }
   }
 `;
@@ -246,17 +249,23 @@ export type MonthlyCampaignPointsRow = {
   wallet_address: string;
   points_total: number;
   username: string | null;
+  // Timestamp (unix seconds) of the event that pushed this wallet to its
+  // current total — used to break point ties in favor of whoever got there
+  // first. Null only if points_total is somehow 0.
+  last_event_at: number | null;
 };
 
 type ProofPointRow = {
   participantAddress: string;
   pointsAwarded: string;
+  createdAt: string;
   participant: { username: string | null } | null;
 };
 
 type ForfeitPointRow = {
   creatorAddress: string;
   pointsAwarded: string | null;
+  createdAt: string;
 };
 
 async function fetchAllForfeitPointRows(sinceUnixSeconds: number): Promise<ForfeitPointRow[]> {
@@ -315,14 +324,19 @@ export async function fetchMonthlyCampaignPointsFromGraph(
       fetchAllForfeitPointRows(sinceUnixSeconds).catch(() => [] as ForfeitPointRow[]),
     ]);
 
-    const byWallet = new Map<string, { points: number; username: string | null }>();
+    const byWallet = new Map<
+      string,
+      { points: number; username: string | null; lastEventAt: number }
+    >();
     for (const row of [...completions, ...legacyProofs]) {
       const wallet = row.participantAddress.toLowerCase();
       const awarded = Number(row.pointsAwarded ?? "0");
       if (!(awarded > 0)) continue;
+      const createdAt = Number(row.createdAt ?? "0");
       const existing = byWallet.get(wallet);
       if (existing) {
         existing.points += awarded;
+        existing.lastEventAt = Math.max(existing.lastEventAt, createdAt);
         if (!existing.username && row.participant?.username) {
           existing.username = row.participant.username;
         }
@@ -330,6 +344,7 @@ export async function fetchMonthlyCampaignPointsFromGraph(
         byWallet.set(wallet, {
           points: awarded,
           username: row.participant?.username ?? null,
+          lastEventAt: createdAt,
         });
       }
     }
@@ -341,11 +356,13 @@ export async function fetchMonthlyCampaignPointsFromGraph(
       const wallet = row.creatorAddress.toLowerCase();
       const awarded = Number(row.pointsAwarded ?? "0");
       if (!(awarded > 0)) continue;
+      const createdAt = Number(row.createdAt ?? "0");
       const existing = byWallet.get(wallet);
       if (existing) {
         existing.points += awarded;
+        existing.lastEventAt = Math.max(existing.lastEventAt, createdAt);
       } else {
-        byWallet.set(wallet, { points: awarded, username: null });
+        byWallet.set(wallet, { points: awarded, username: null, lastEventAt: createdAt });
       }
     }
 
@@ -353,6 +370,7 @@ export async function fetchMonthlyCampaignPointsFromGraph(
       wallet_address,
       points_total: v.points,
       username: v.username,
+      last_event_at: v.lastEventAt || null,
     }));
   } catch {
     return [];

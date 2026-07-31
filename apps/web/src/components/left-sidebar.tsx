@@ -17,7 +17,6 @@ import {
   normalizePathname,
 } from "@/components/main-nav-config";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
-import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 function Tooltip({ label }: { label: string }) {
   return (
@@ -56,15 +55,6 @@ export function LeftSidebar() {
     ["/", "/rewards", "/explore", "/forfeit", "/profile", "/leaderboard"].forEach(
       (href) => router.prefetch(href),
     );
-    const schedule = () => {
-      prefetchExploreOnIntent();
-    };
-    if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(schedule, { timeout: 4000 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const timer = window.setTimeout(schedule, 1500);
-    return () => window.clearTimeout(timer);
   }, [router]);
 
   const path = normalizePathname(pathname ?? "");
@@ -132,14 +122,8 @@ export function LeftSidebar() {
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
                   onClick={() => closePanels()}
-                  onMouseEnter={() => {
-                    router.prefetch(href);
-                    if (action === "explore") prefetchExploreOnIntent();
-                  }}
-                  onTouchStart={() => {
-                    router.prefetch(href);
-                    if (action === "explore") prefetchExploreOnIntent();
-                  }}
+                  onMouseEnter={() => router.prefetch(href)}
+                  onTouchStart={() => router.prefetch(href)}
                 >
                   <NavIcon icon={icon} active={active} />
                 </Link>

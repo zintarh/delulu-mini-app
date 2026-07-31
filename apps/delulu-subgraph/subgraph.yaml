@@ -18,13 +18,9 @@ dataSources:
       entities:
         - User
         - Delulu
-        - Stake
         - Claim
         - Milestone
         - Challenge
-        - CreatorStats
-        - ShareTrade
-        - ShareHolding
         - CommunityCampaignParticipant
         - CommunityProof
         - CommunityCampaignMilestone
@@ -37,8 +33,6 @@ dataSources:
           handler: handleDeluluCreated
         - event: DeluluJoinedChallenge(indexed uint256,indexed uint256)
           handler: handleDeluluJoinedChallenge
-        - event: PointsAllocated(indexed uint256,uint256,uint256)
-          handler: handlePointsAllocated
         - event: SupportClaimed(indexed uint256,indexed address,uint256,uint256)
           handler: handleSupportClaimed
         - event: ChallengeRewardClaimed(indexed uint256,indexed uint256,indexed address,uint256,uint256)
@@ -59,12 +53,6 @@ dataSources:
           handler: handleTipExecuted
         - event: TipPointsAwarded(indexed uint256,indexed address,indexed address,uint256,uint256)
           handler: handleTipPointsAwarded
-        - event: EarlyCompletionBonus(indexed uint256,indexed uint256,indexed address,uint256)
-          handler: handleEarlyCompletionBonus
-        - event: StreakBonus(indexed uint256,indexed uint256,indexed address,uint256)
-          handler: handleStreakBonus
-        - event: ChallengeCreated(indexed uint256,string,uint256,uint256,uint256)
-          handler: handleChallengeCreated
         - event: CommunityChallengeCreated(indexed uint256,string,uint256,uint256,indexed address)
           handler: handleCommunityChallengeCreated
         - event: CommunityCampaignJoined(indexed uint256,indexed address)
@@ -77,16 +65,6 @@ dataSources:
           handler: handleCommunityChallengeEnded
         - event: GoalFailed(indexed uint256,uint256)
           handler: handleGoalFailed
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: Paused(address)
-          handler: handlePaused
-        - event: Unpaused(address)
-          handler: handleUnpaused
-        - event: SharesBought(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
-          handler: handleSharesBought
-        - event: SharesSold(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
-          handler: handleSharesSold
       file: ./src/delulu-market.ts
   - kind: ethereum
     name: CommunityMarketV1
@@ -159,24 +137,3 @@ dataSources:
         - event: CommitmentCancelled(indexed uint256,uint256)
           handler: handleFMCommitmentCancelled
       file: ./src/forfeit-market.ts
-
-  - kind: ethereum
-    name: ERC1967Proxy
-    network: celo
-    source:
-      abi: ERC1967Proxy
-      address: "0x7692199630F3865160fB1Fa496961251fA15aFEa"
-      startBlock: 60517387
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - Upgraded
-      abis:
-        - name: ERC1967Proxy
-          file: ./abis/ERC1967Proxy.json
-      eventHandlers:
-        - event: Upgraded(indexed address)
-          handler: handleUpgraded
-      file: ./src/erc-1967-proxy.ts

@@ -2,7 +2,6 @@ import { BigInt, Bytes } from "@graphprotocol/graph-ts"
 import {
   DeluluCreated as DeluluCreatedEvent,
   DeluluJoinedChallenge as DeluluJoinedChallengeEvent,
-  PointsAllocated as PointsAllocatedEvent,
   SupportClaimed as SupportClaimedEvent,
   ChallengeRewardClaimed as ChallengeRewardClaimedEvent,
   ProfileUpdated as ProfileUpdatedEvent,
@@ -11,17 +10,9 @@ import {
   MilestoneSubmitted as MilestoneSubmittedEvent,
   MilestoneVerified as MilestoneVerifiedEvent,
   MilestoneDeleted as MilestoneDeletedEvent,
-  ChallengeCreated as ChallengeCreatedEvent,
   TipExecuted as TipExecutedEvent,
   TipPointsAwarded as TipPointsAwardedEvent,
-  EarlyCompletionBonus as EarlyCompletionBonusEvent,
-  StreakBonus as StreakBonusEvent,
   GoalFailed as GoalFailedEvent,
-  SharesBought as SharesBoughtEvent,
-  SharesSold as SharesSoldEvent,
-  OwnershipTransferred as OwnershipTransferredEvent,
-  Paused as PausedEvent,
-  Unpaused as UnpausedEvent,
   CommunityChallengeCreated as CommunityChallengeCreatedEvent,
   CommunityCampaignJoined as CommunityCampaignJoinedEvent,
   CommunityProofSubmitted as CommunityProofSubmittedEvent,
@@ -31,7 +22,7 @@ import {
   CommunityCampaignMilestoneProofSubmitted as CommunityCampaignMilestoneProofSubmittedEvent,
   DeluluMarket as DeluluMarketContract
 } from "../generated/DeluluMarket/DeluluMarket"
-import { User, Delulu, Claim, Milestone, Challenge, CreatorStats, ShareTrade, ShareHolding, Tip, CommunityCampaignParticipant, CommunityProof, CommunityCampaignMilestone, CommunityCampaignMilestoneCompletion } from "../generated/schema"
+import { User, Delulu, Claim, Milestone, Challenge, CommunityCampaignParticipant, CommunityProof, CommunityCampaignMilestone, CommunityCampaignMilestoneCompletion } from "../generated/schema"
 
 function getOrCreateUser(userId: Bytes, timestamp: BigInt): User {
   let user = User.load(userId)
@@ -42,43 +33,13 @@ function getOrCreateUser(userId: Bytes, timestamp: BigInt): User {
     user.metadataHash = null
     user.deluluPoints = BigInt.fromI32(0)
     user.save()
-
-    // Ensure a CreatorStats row exists so this user can appear on leaderboards
-    let _ = getOrCreateCreatorStats(userId, timestamp)
   }
   return user as User
-}
-
-function getOrCreateCreatorStats(creatorId: Bytes, timestamp: BigInt): CreatorStats {
-  let stats = CreatorStats.load(creatorId)
-  if (stats == null) {
-    stats = new CreatorStats(creatorId)
-    stats.user = creatorId
-    stats.totalGoals = BigInt.fromI32(0)
-    stats.completedGoals = BigInt.fromI32(0)
-    stats.failedGoals = BigInt.fromI32(0)
-    stats.totalMilestones = BigInt.fromI32(0)
-    stats.verifiedMilestones = BigInt.fromI32(0)
-    stats.totalSupportCollected = BigInt.fromI32(0)
-    stats.totalTipsReceived = BigInt.fromI32(0)
-    stats.totalTipPoints = BigInt.fromI32(0)
-    stats.createdAt = timestamp
-    stats.save()
-  }
-  return stats as CreatorStats
 }
 
 export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   let userId = event.params.creator
   let user = getOrCreateUser(userId, event.block.timestamp)
-
-  // Creator stats: increment total goals and initialize support
-  let stats = getOrCreateCreatorStats(userId, event.block.timestamp)
-  stats.totalGoals = stats.totalGoals.plus(BigInt.fromI32(1))
-  stats.totalSupportCollected = stats.totalSupportCollected.plus(
-    event.params.initialSupport
-  )
-  stats.save()
 
   let deluluId = event.params.deluluId.toString()
   let delulu = new Delulu(deluluId)
@@ -121,111 +82,10 @@ export function handleDeluluCreated(event: DeluluCreatedEvent): void {
   delulu.save()
 }
 
-function getOrCreateShareHolding(deluluId: string, userId: Bytes, timestamp: BigInt): ShareHolding {
-  const id = deluluId + "-" + userId.toHexString()
-  let holding = ShareHolding.load(id)
-  if (holding == null) {
-    holding = new ShareHolding(id)
-    holding.delulu = deluluId
-    holding.user = userId
-    holding.balance = BigInt.fromI32(0)
-    holding.hasEverBought = false
-  }
-  holding.updatedAt = timestamp
-  return holding as ShareHolding
-}
-
-export function handleSharesBought(event: SharesBoughtEvent): void {
-  const deluluId = event.params.deluluId.toString()
-  const userId = event.params.buyer
-  const user = getOrCreateUser(userId, event.block.timestamp)
-
-  const delulu = Delulu.load(deluluId)
-  if (delulu == null) return
-
-  delulu.shareSupply = delulu.shareSupply.plus(event.params.amount)
-  delulu.tradeCount = delulu.tradeCount.plus(BigInt.fromI32(1))
-
-  const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
-  if (!holding.hasEverBought) {
-    holding.hasEverBought = true
-    delulu.uniqueBuyerCount = delulu.uniqueBuyerCount.plus(BigInt.fromI32(1))
-  }
-
-  delulu.save()
-
-  holding.balance = holding.balance.plus(event.params.amount)
-  holding.save()
-
-  const tradeId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  const trade = new ShareTrade(tradeId)
-  trade.delulu = deluluId
-  trade.user = user.id
-  trade.isBuy = true
-  trade.amount = event.params.amount
-  trade.curveAmount = event.params.curveCost
-  trade.protocolFee = event.params.protocolFee
-  trade.creatorFee = event.params.creatorFee
-  trade.txHash = event.transaction.hash
-  trade.createdAt = event.block.timestamp
-  trade.save()
-}
-
-export function handleSharesSold(event: SharesSoldEvent): void {
-  const deluluId = event.params.deluluId.toString()
-  const userId = event.params.seller
-  const user = getOrCreateUser(userId, event.block.timestamp)
-
-  const delulu = Delulu.load(deluluId)
-  if (delulu == null) return
-
-  delulu.shareSupply = delulu.shareSupply.minus(event.params.amount)
-  delulu.tradeCount = delulu.tradeCount.plus(BigInt.fromI32(1))
-  delulu.save()
-
-  const holding = getOrCreateShareHolding(deluluId, userId, event.block.timestamp)
-  holding.balance = holding.balance.minus(event.params.amount)
-  holding.save()
-
-  const tradeId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  const trade = new ShareTrade(tradeId)
-  trade.delulu = deluluId
-  trade.user = user.id
-  trade.isBuy = false
-  trade.amount = event.params.amount
-  trade.curveAmount = event.params.curveProceeds
-  trade.protocolFee = event.params.protocolFee
-  trade.creatorFee = event.params.creatorFee
-  trade.txHash = event.transaction.hash
-  trade.createdAt = event.block.timestamp
-  trade.save()
-}
-
 export function handleTipPointsAwarded(event: TipPointsAwardedEvent): void {
   let creator = getOrCreateUser(event.params.creator, event.block.timestamp)
   creator.deluluPoints = event.params.totalPoints
   creator.save()
-
-  let stats = getOrCreateCreatorStats(event.params.creator, event.block.timestamp)
-  stats.totalTipsReceived = stats.totalTipsReceived.plus(BigInt.fromI32(1))
-  stats.totalTipPoints = stats.totalTipPoints.plus(event.params.points)
-  stats.save()
-}
-
-export function handleEarlyCompletionBonus(event: EarlyCompletionBonusEvent): void {
-  let milestoneEntityId = event.params.deluluId.toString() + "-" + event.params.milestoneId.toString()
-  let milestone = Milestone.load(milestoneEntityId)
-  if (milestone == null) return
-  milestone.earlyCompletionBonus = event.params.points
-  milestone.save()
-}
-
-export function handleStreakBonus(event: StreakBonusEvent): void {
-  let milestoneEntityId = event.params.deluluId.toString() + "-" + event.params.milestoneId.toString()
-  let milestone = Milestone.load(milestoneEntityId)
-  if (milestone == null) return
-  milestone.streakBonus = event.params.points
-  milestone.save()
 }
 
 export function handleGoalFailed(event: GoalFailedEvent): void {
@@ -237,10 +97,6 @@ export function handleGoalFailed(event: GoalFailedEvent): void {
   delulu.isResolved = true
   delulu.failedStakePool = event.params.stakedAmountAllocatedToSupporters
   delulu.save()
-
-  let stats = getOrCreateCreatorStats(delulu.creator as Bytes, event.block.timestamp)
-  stats.failedGoals = stats.failedGoals.plus(BigInt.fromI32(1))
-  stats.save()
 }
 
 export function handleSupportClaimed(event: SupportClaimedEvent): void {
@@ -307,9 +163,6 @@ export function handleProfileUpdated(event: ProfileUpdatedEvent): void {
   let user = getOrCreateUser(userId, event.block.timestamp)
   user.username = event.params.username
   user.save()
-
-
-  let _ = getOrCreateCreatorStats(userId, event.block.timestamp)
 }
 
 export function handleMilestonesAdded(event: MilestonesAddedEvent): void {
@@ -317,18 +170,7 @@ export function handleMilestonesAdded(event: MilestonesAddedEvent): void {
   let delulu = Delulu.load(deluluId)
 
   if (delulu != null) {
-    let previousCount = delulu.milestoneCount
-    let newCount = event.params.count
-
-    let addedCount = newCount.minus(previousCount)
-    let creatorStats = getOrCreateCreatorStats(
-      delulu.creator as Bytes,
-      event.block.timestamp
-    )
-    creatorStats.totalMilestones = creatorStats.totalMilestones.plus(addedCount)
-    creatorStats.save()
-
-    delulu.milestoneCount = newCount
+    delulu.milestoneCount = event.params.count
     delulu.save()
   }
 }
@@ -432,7 +274,8 @@ export function handleTipExecuted(event: TipExecutedEvent): void {
   let delulu = Delulu.load(deluluId)
   if (delulu == null) return
 
-  let tipper = getOrCreateUser(event.params.data.tipper, event.block.timestamp)
+  // Ensure the tipper's User row exists even if this is their first interaction.
+  getOrCreateUser(event.params.data.tipper, event.block.timestamp)
 
   delulu.totalSupportCollected = delulu.totalSupportCollected.plus(event.params.data.amount)
   delulu.totalG = delulu.totalG.plus(event.params.data.amount)
@@ -446,21 +289,6 @@ export function handleTipExecuted(event: TipExecutedEvent): void {
     milestone.tipCount = milestone.tipCount.plus(BigInt.fromI32(1))
     milestone.save()
   }
-
-  let stats = getOrCreateCreatorStats(delulu.creator as Bytes, event.block.timestamp)
-  stats.totalSupportCollected = stats.totalSupportCollected.plus(event.params.data.amount)
-  stats.save()
-
-  let tipId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  let tip = new Tip(tipId)
-  tip.delulu = deluluId
-  tip.tipper = tipper.id
-  tip.milestoneId = event.params.data.milestoneId
-  tip.amount = event.params.data.amount
-  tip.isScout = event.params.data.isScout
-  tip.txHash = event.transaction.hash
-  tip.createdAt = event.block.timestamp
-  tip.save()
 }
 
 export function handleMilestoneVerified(event: MilestoneVerifiedEvent): void {
@@ -521,44 +349,7 @@ export function handleMilestoneVerified(event: MilestoneVerifiedEvent): void {
     user.save()
   }
 
-  let stats = getOrCreateCreatorStats(
-    delulu.creator as Bytes,
-    event.block.timestamp
-  )
-  stats.verifiedMilestones = stats.verifiedMilestones.plus(
-    BigInt.fromI32(1)
-  )
-  stats.save()
-
   milestone.save()
-}
-
-export function handleChallengeCreated(event: ChallengeCreatedEvent): void {
-  let challengeId = event.params.challengeId.toString()
-  let challenge = new Challenge(challengeId)
-
-  // All data now comes from the event
-  challenge.challengeId = event.params.challengeId
-  challenge.contentHash = event.params.contentHash
-  challenge.poolAmount = event.params.poolAmount
-  challenge.startTime = event.params.startTime
-  challenge.duration = event.params.duration
-  challenge.totalPoints = BigInt.fromI32(0) 
-  challenge.active = true
-  challenge.createdAt = event.block.timestamp
-  challenge.isCommunity = false
-  challenge.isEnded = false
-  challenge.endedAt = null
-  challenge.proofIntervalSeconds = null
-  challenge.milestoneCount = BigInt.fromI32(0)
-  // Legacy admin challenges are never paid community campaigns
-  challenge.isPaid = false
-  challenge.joinToken = null
-  challenge.joinAmount = BigInt.fromI32(0)
-  challenge.forfeitPct = 0
-  challenge.forfeitPool = BigInt.fromI32(0)
-
-  challenge.save()
 }
 
 export function handleCommunityChallengeCreated(event: CommunityChallengeCreatedEvent): void {
@@ -822,17 +613,6 @@ export function handleCommunityCampaignMilestoneProofSubmitted(
   completion.save()
 }
 
-export function handleOwnershipTransferred(
-  event: OwnershipTransferredEvent
-): void {
-}
-
-export function handlePaused(event: PausedEvent): void {
-}
-
-export function handleUnpaused(event: UnpausedEvent): void {
-}
-
 export function handleDeluluJoinedChallenge(event: DeluluJoinedChallengeEvent): void {
   let deluluId = event.params.deluluId.toString()
   let delulu = Delulu.load(deluluId)
@@ -840,28 +620,5 @@ export function handleDeluluJoinedChallenge(event: DeluluJoinedChallengeEvent): 
   if (delulu != null) {
     delulu.challengeId = event.params.challengeId
     delulu.save()
-  }
-}
-
-export function handlePointsAllocated(event: PointsAllocatedEvent): void {
-  let deluluId = event.params.deluluId.toString()
-  let delulu = Delulu.load(deluluId)
-
-  if (delulu != null) {
-    delulu.points = event.params.points
-    // v3: refresh pro‑rata pool totals if available (best-effort)
-    let contract = DeluluMarketContract.bind(event.address)
-    let poolRes = contract.try_failedStakePool(event.params.deluluId)
-    if (!poolRes.reverted) {
-      delulu.failedStakePool = poolRes.value
-    }
-    let totalRes = contract.try_totalSupportForProRata(event.params.deluluId)
-    if (!totalRes.reverted) {
-      delulu.totalSupportForProRata = totalRes.value
-    }
-    delulu.save()
-
-    // Note: Challenge totalPoints can be calculated from aggregating delulu points
-    // We'll skip updating it here to avoid AssemblyScript nullable type issues
   }
 }

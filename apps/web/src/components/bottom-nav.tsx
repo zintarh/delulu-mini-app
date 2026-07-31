@@ -13,7 +13,6 @@ import {
   normalizePathname,
 } from "@/components/main-nav-config";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
-import { prefetchExploreOnIntent } from "@/lib/prefetch-explore-feed";
 
 interface BottomNavProps {
   /** @deprecated Profile is not in main nav; kept for existing callers */
@@ -37,15 +36,6 @@ export function BottomNav(_props: BottomNavProps = {}) {
     ["/", "/rewards", "/explore", "/forfeit", "/profile"].forEach((href) =>
       router.prefetch(href),
     );
-    const schedule = () => {
-      prefetchExploreOnIntent();
-    };
-    if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(schedule, { timeout: 4000 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const timer = window.setTimeout(schedule, 1500);
-    return () => window.clearTimeout(timer);
   }, [router]);
 
   const activeOptions = {
@@ -105,14 +95,8 @@ export function BottomNav(_props: BottomNavProps = {}) {
                   key={item.action}
                   href={item.href}
                   onClick={() => closePanels()}
-                  onMouseEnter={() => {
-                    router.prefetch(item.href!);
-                    if (item.action === "explore") prefetchExploreOnIntent();
-                  }}
-                  onTouchStart={() => {
-                    router.prefetch(item.href!);
-                    if (item.action === "explore") prefetchExploreOnIntent();
-                  }}
+                  onMouseEnter={() => router.prefetch(item.href!)}
+                  onTouchStart={() => router.prefetch(item.href!)}
                   className={itemClass}
                   aria-current={isActive ? "page" : undefined}
                   aria-label={item.label}

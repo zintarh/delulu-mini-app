@@ -38,7 +38,14 @@ export async function GET() {
 
   const combined = onChainRows
     .filter((row) => row.points_total > 0 && !isLeaderboardBlacklisted(row.wallet_address))
-    .sort((a, b) => b.points_total - a.points_total);
+    .sort((a, b) => {
+      const pointsDiff = b.points_total - a.points_total;
+      if (pointsDiff !== 0) return pointsDiff;
+      // Same total → whoever got there first ranks higher.
+      const aTime = a.last_event_at ?? Infinity;
+      const bTime = b.last_event_at ?? Infinity;
+      return aTime - bTime;
+    });
 
   const enriched = await enrichLeaderboardWithUsernames(admin, combined);
   const top = enriched.slice(0, TOP_N).map((row, idx) => ({
