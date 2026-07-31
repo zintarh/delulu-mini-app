@@ -325,63 +325,73 @@ export default function RewardsPage() {
                 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
                 style={MANROPE}
               >
-                Ready to claim
+                Total balance
               </p>
-              <div className="mt-2 flex items-end gap-2">
-                {primaryPending ? (
-                  <TokenBadge tokenAddress={primaryPending.token} size="lg" showText={false} />
-                ) : (
-                  <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="lg" showText={false} />
-                )}
+              <div className="mt-2 flex items-end gap-1">
                 <span
                   className={cn(
-                    "text-4xl font-black tabular-nums leading-none",
-                    hasAdminPending ? "text-foreground" : "text-muted-foreground/70",
+                    "pb-1 text-2xl font-black leading-none",
+                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
                   )}
                   style={CLASH_DISPLAY}
                 >
-                  {isLoadingAdminRewards
+                  $
+                </span>
+                <span
+                  className={cn(
+                    "text-4xl font-black tabular-nums leading-none",
+                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
+                  )}
+                  style={CLASH_DISPLAY}
+                >
+                  {!balancesLoaded
                     ? "—"
-                    : primaryPending
-                      ? primaryPending.amount.toLocaleString(undefined, {
-                          maximumFractionDigits: 4,
-                        })
-                      : "0"}
+                    : `${isTotalPartial ? "≈ " : ""}${totalUsd.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`}
                 </span>
-                <span className="pb-1 text-sm font-bold text-muted-foreground">
-                  {primaryPending?.symbol ?? "G$"}
-                </span>
-              </div>
-              {secondaryPending.length > 0 ? (
-                <p className="mt-1 text-xs font-semibold text-emerald-600" style={MANROPE}>
-                  + {secondaryPending.map((r) => r.display).join(" + ")}
-                </p>
-              ) : null}
-              {!isLoadingAdminRewards && !hasAdminPending ? (
-                <p className="mt-1 text-xs text-muted-foreground" style={MANROPE}>
-                  No team rewards waiting
-                </p>
-              ) : null}
-
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5">
-                <TokenBadge tokenAddress={GOODDOLLAR_ADDRESSES.mainnet} size="sm" showText={false} />
-                <span className="text-xs font-bold text-foreground" style={MANROPE}>
-                  Balance{" "}
-                  {isGdLoading || gdError
-                    ? "—"
-                    : formatGAmount(gdDisplay)}{" "}
-                  G$
-                </span>
+                <span className="pb-1 text-sm font-bold text-muted-foreground">USDT</span>
               </div>
               {gdError ? (
                 <p className="mt-1 text-[11px] font-medium text-destructive">
                   Couldn&apos;t load your balance — check your connection and try again.
                 </p>
-              ) : hasAnyUsdValue ? (
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground" style={MANROPE}>
-                  {isTotalPartial ? "≈ " : ""}${totalUsd.toFixed(2)} total across all assets
-                </p>
               ) : null}
+
+              <div className="mt-3 flex items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2">
+                <TokenBadge
+                  tokenAddress={primaryPending?.token ?? GOODDOLLAR_ADDRESSES.mainnet}
+                  size="sm"
+                  showText={false}
+                />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    style={MANROPE}
+                  >
+                    Ready to claim
+                  </p>
+                  <p
+                    className={cn(
+                      "text-sm font-bold tabular-nums",
+                      hasAdminPending ? "text-foreground" : "text-muted-foreground",
+                    )}
+                    style={MANROPE}
+                  >
+                    {isLoadingAdminRewards
+                      ? "—"
+                      : primaryPending
+                        ? `${primaryPending.amount.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${primaryPending.symbol}`
+                        : "0 G$"}
+                    {secondaryPending.length > 0
+                      ? ` + ${secondaryPending.map((r) => r.display).join(" + ")}`
+                      : ""}
+                  </p>
+                </div>
+              </div>
 
               <div className="mt-5 flex gap-2.5">
                 <button

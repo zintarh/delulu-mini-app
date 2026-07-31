@@ -131,7 +131,7 @@ function expandForfeitDays(
   const currentIdx = forfeit.onChain?.currentPeriodIndex ?? 0;
   const total = Math.max(1, forfeit.onChain?.totalPeriods ?? 1);
   const isRepeating = isRepeatingForfeit(forfeit);
-  let slots = buildForfeitCalendarSlots({
+  const slots = buildForfeitCalendarSlots({
     createdAt: forfeit.createdAt || new Date(),
     totalPeriods: total,
     currentPeriodIndex: currentIdx,
@@ -140,20 +140,13 @@ function expandForfeitDays(
     ),
     periodSeconds: periodSecondsFor(forfeit),
     isRepeating,
+    // Once confirmed inactive (resolved early, forfeited, or cancelled via
+    // Discontinue), buildForfeitCalendarSlots itself caps slot generation at
+    // the period the commitment actually stopped on — a repeating forfeit
+    // cancelled on day 3 of 365 must not keep surfacing days 4 through 365
+    // as if still live, no matter how much later this is viewed.
+    commitmentActiveOnChain: forfeit.onChain?.active,
   });
-
-  // Both branches build slots for the whole planned range (creation day →
-  // deadline day for a one-off; every period for a repeating plan) assuming
-  // it stays active the whole time. Once the commitment has actually ended
-  // on-chain — resolved early, forfeited, or cancelled via Discontinue —
-  // there's nothing left pending, so drop every day beyond today instead of
-  // showing phantom future cards (or a falsely-still-"current" today) for a
-  // plan that's already over. A repeating forfeit cancelled on day 3 of 365
-  // must not keep surfacing days 4 through 365 as if still live.
-  if (forfeit.onChain?.active === false) {
-    const today = startOfDay(new Date());
-    slots = slots.filter((slot) => slot.dayDate.getTime() <= today.getTime());
-  }
 
   return slots.map((slot) => ({
     key: `${role}:${forfeit.id}:${dayKey(slot.dayDate)}:${slot.calendarPeriodIndex}`,

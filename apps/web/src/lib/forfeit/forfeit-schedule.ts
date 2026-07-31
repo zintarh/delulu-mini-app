@@ -179,6 +179,14 @@ export function buildForfeitCalendarSlots(input: {
   periodSeconds: number;
   isRepeating: boolean;
   now?: Date;
+  /**
+   * On-chain truth for the whole commitment (same field `resolvePeriodOutcome`
+   * reads). `undefined` means on-chain state hasn't loaded yet and must never
+   * be treated as inactive. Only a confirmed `false` caps slot generation at
+   * the period the commitment actually stopped on — see the "isInactive"
+   * branches below.
+   */
+  commitmentActiveOnChain?: boolean;
 }): ForfeitCalendarSlot[] {
   const now = input.now ?? new Date();
   const today = startOfDay(now);
@@ -186,6 +194,7 @@ export function buildForfeitCalendarSlots(input: {
   const total = Math.max(1, input.totalPeriods);
   const currentIdx = input.currentPeriodIndex;
   const periodSeconds = Math.max(1, input.periodSeconds || 86_400);
+  const isInactive = input.commitmentActiveOnChain === false;
 
   if (!input.isRepeating) {
     const deadlineSec = periodDeadlineSecAt(
@@ -222,8 +231,19 @@ export function buildForfeitCalendarSlots(input: {
   const dayStep =
     periodSeconds >= 2_000_000 ? 30 : periodSeconds >= 600_000 ? 7 : 1;
 
+  // Once a commitment is confirmed inactive (forfeited, cancelled, or
+  // completed), nothing beyond the period it actually stopped at ever
+  // happened on-chain — generating slots past `currentIdx` is how a single
+  // missed day used to balloon into a "Forfeited" card for every day between
+  // the miss and whenever the calendar was next opened. A commitment that
+  // ended via a *successful* final period already has currentIdx at
+  // totalPeriods - 1 (see ForfeitMarket.sol resolveCommitmentSuccess, which
+  // never advances the index on the final period), so this cap is a no-op
+  // for that case and only bites for an early forfeiture/cancellation.
+  const slotCount = isInactive ? Math.min(total, currentIdx + 1) : total;
+
   const slots: ForfeitCalendarSlot[] = [];
-  for (let i = 0; i < total; i++) {
+  for (let i = 0; i < slotCount; i++) {
     const dayDate = addDays(origin, i * dayStep);
     const nativeDeadlineSec = periodDeadlineSecAt(
       currentIdx,
@@ -244,8 +264,13 @@ export function buildForfeitCalendarSlots(input: {
     // than its "expected" one (e.g. the create-time schedule and the on-chain
     // deadline drift by a day) — when that happens, whichever day it actually
     // falls on is the one that should be actionable, not the day the naive
-    // origin+i mapping would have picked.
+    // origin+i mapping would have picked. Only meaningful while the
+    // commitment is still live — once confirmed inactive there's no "live"
+    // period left to alias today to, so each day just keeps its own natural
+    // index (otherwise the day a forfeiture resolves would duplicate the day
+    // it was actually missed).
     const liveDueToday =
+      !isInactive &&
       startOfDay(new Date(liveDeadlineSec * 1000)).getTime() === today.getTime();
 
     let periodIndex: number;
@@ -269,7 +294,7 @@ export function buildForfeitCalendarSlots(input: {
       periodStatus = "past";
     } else if (i === currentIdx) {
       periodIndex = i;
-      periodStatus = liveOpen ? "current" : "past";
+      periodStatus = isInactive ? "past" : liveOpen ? "current" : "past";
     } else {
       // i > currentIdx and the live period isn't due today: only genuinely
       // "upcoming" while that live period is still open — once its deadline
@@ -290,8 +315,12 @@ export function buildForfeitCalendarSlots(input: {
     });
   }
 
+  // Guarantees a still-live commitment is actionable today even if the
+  // day-step math didn't land a slot on it. Once confirmed inactive there's
+  // nothing left to act on, so this must not force in an extra day past
+  // wherever the capped loop above already stopped.
   const todayAlready = slots.some((s) => s.dayDate.getTime() === today.getTime());
-  if (!todayAlready && currentIdx < total) {
+  if (!isInactive && !todayAlready && currentIdx < total) {
     const deadlineSec = periodDeadlineSecAt(
       currentIdx,
       input.currentPeriodDeadlineSec,

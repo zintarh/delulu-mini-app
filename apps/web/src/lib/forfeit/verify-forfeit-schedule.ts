@@ -162,6 +162,66 @@ function main() {
     );
   }
 
+  // --- Regression: a 4-day daily forfeit where periods 0-1 succeeded and
+  // period 2 (Tuesday) was missed and confirmed forfeited on-chain
+  // (currentPeriodIndex stays at 2, active: false — a forfeiture never
+  // advances the index). Tuesday's on-chain deadline lands Wednesday, same as
+  // any other daily period. Viewed the very next day (Wednesday, when the
+  // deadline crossed over): must show exactly Sun/Mon/Tue, no duplicate
+  // Wednesday card aliased to the same period 2. ---
+  const wednesday = new Date(2026, 6, 29, 10, 0, 0, 0);
+  const forfeitedTuesdayDeadlineSec = three.schedule.firstDeadline + 2 * 86_400;
+  const forfeitedSameDay = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: 4,
+    currentPeriodIndex: 2,
+    currentPeriodDeadlineSec: forfeitedTuesdayDeadlineSec,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: wednesday,
+    commitmentActiveOnChain: false,
+  });
+  const forfeitedSameDayKeys = forfeitedSameDay.map((s) => dayKey(s.dayDate));
+  if (forfeitedSameDayKeys.join(",") !== "2026-07-26,2026-07-27,2026-07-28") {
+    fail(
+      `Forfeited-on-Tuesday (viewed Wednesday) days=${forfeitedSameDayKeys.join(",")}, want Sun/Mon/Tue only (no duplicate Wednesday)`,
+    );
+  }
+  const forfeitedTuesdaySlot = forfeitedSameDay.find(
+    (s) => dayKey(s.dayDate) === "2026-07-28",
+  )!;
+  const forfeitedTuesdayOutcome = resolvePeriodOutcome({
+    periodIndex: forfeitedTuesdaySlot.periodIndex,
+    currentPeriodIndex: 2,
+    periodStatus: forfeitedTuesdaySlot.periodStatus,
+    commitmentActiveOnChain: false,
+    period: null,
+  });
+  if (forfeitedTuesdayOutcome !== "failed") {
+    fail(`Forfeited Tuesday should resolve failed, got ${forfeitedTuesdayOutcome}`);
+  }
+
+  // --- Same forfeited commitment, but viewed a month later. Must still show
+  // only Sun/Mon/Tue — no phantom "Forfeited" card for every day between the
+  // miss and whenever the calendar happens to be reopened. ---
+  const muchLater = new Date(2026, 7, 27, 10, 0, 0, 0);
+  const forfeitedMuchLater = buildForfeitCalendarSlots({
+    createdAt: sunday,
+    totalPeriods: 4,
+    currentPeriodIndex: 2,
+    currentPeriodDeadlineSec: forfeitedTuesdayDeadlineSec,
+    periodSeconds: 86_400,
+    isRepeating: true,
+    now: muchLater,
+    commitmentActiveOnChain: false,
+  });
+  const forfeitedMuchLaterKeys = forfeitedMuchLater.map((s) => dayKey(s.dayDate));
+  if (forfeitedMuchLaterKeys.join(",") !== "2026-07-26,2026-07-27,2026-07-28") {
+    fail(
+      `Forfeited-on-Tuesday viewed a month later days=${forfeitedMuchLaterKeys.join(",")}, want Sun/Mon/Tue only (no leaking phantom days)`,
+    );
+  }
+
   // --- Period 0's real on-chain deadline drifted a day past its normal
   // (24h-from-creation) window — created Sunday, normally due Monday 3pm, but
   // actually still open and due Tuesday 3pm. Tuesday must show period 0 as
