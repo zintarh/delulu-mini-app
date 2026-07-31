@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Pencil,
   Gift,
+  BadgeCheck,
 } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 import {
@@ -47,6 +48,7 @@ interface UserRow {
   pfp_url: string | null;
   referral_code: string | null;
   claim_count: number | null;
+  admin_verified: boolean | null;
   created_at: string;
 }
 
@@ -81,6 +83,7 @@ export default function AdminUsersPage() {
   const [editValue, setEditValue] = useState("");
   const [savingAddress, setSavingAddress] = useState<string | null>(null);
   const [rewardAddress, setRewardAddress] = useState<string | null>(null);
+  const [verifyingAddress, setVerifyingAddress] = useState<string | null>(null);
   const { show: showToast } = useDashboardToast();
 
   const fetchUsers = useCallback(async () => {
@@ -143,6 +146,37 @@ export default function AdminUsersPage() {
       setError(err instanceof Error ? err.message : "Failed to delete user");
     } finally {
       setDeletingAddress(null);
+    }
+  };
+
+  const handleVerifyUser = async (targetAddress: string) => {
+    setVerifyingAddress(targetAddress);
+    setError(null);
+    try {
+      const res = await fetch("/api/dashboard/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: targetAddress, admin_verified: true }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? `Verify failed: ${res.status}`);
+      }
+      // Optimistic flip so the row updates instantly instead of waiting on a refetch.
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              users: current.users.map((u) =>
+                u.address === targetAddress ? { ...u, admin_verified: true } : u,
+              ),
+            }
+          : current,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to verify user");
+    } finally {
+      setVerifyingAddress(null);
     }
   };
 
@@ -379,6 +413,26 @@ export default function AdminUsersPage() {
                     </DashboardTableCell>
                     <DashboardTableCell align="right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {u.admin_verified ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
+                            <BadgeCheck className="w-3.5 h-3.5" />
+                            Verified
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyUser(u.address)}
+                            disabled={verifyingAddress === u.address}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {verifyingAddress === u.address ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <BadgeCheck className="w-3.5 h-3.5" />
+                            )}
+                            Verify
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setRewardAddress(u.address)}

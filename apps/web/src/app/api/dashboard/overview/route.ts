@@ -28,8 +28,13 @@ export async function GET() {
     communitiesQuery = communitiesQuery.in("id", communityIds);
   }
 
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
+  // "New signups" resets on the most recent Wednesday (UTC midnight) rather
+  // than a rolling 7-day window, per the team's weekly reporting cadence.
+  const now = new Date();
+  const daysSinceWednesday = (now.getUTCDay() - 3 + 7) % 7; // 0=Sun..3=Wed..6=Sat
+  const sinceWednesday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceWednesday),
+  );
 
   const [
     { data: communities, count: communityCount },
@@ -45,7 +50,7 @@ export async function GET() {
       return q;
     })(),
     admin.from("profiles").select("address", { count: "exact", head: true }),
-    admin.from("profiles").select("address", { count: "exact", head: true }).gte("created_at", weekAgo.toISOString()),
+    admin.from("profiles").select("address", { count: "exact", head: true }).gte("created_at", sinceWednesday.toISOString()),
     (async () => {
       if (!isPlatformAdmin && communityIds.length === 0) {
         return { data: [] as { gd_first_claimed_at: string | null }[] };

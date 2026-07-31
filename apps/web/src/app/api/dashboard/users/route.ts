@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("profiles")
     .select(
-      "address, username, email, pfp_url, referral_code, created_at, auth_provider, claim_count",
+      "address, username, email, pfp_url, referral_code, created_at, auth_provider, claim_count, admin_verified",
       { count: "exact" },
     )
     .order("created_at", { ascending: false });
@@ -82,9 +82,10 @@ export async function GET(request: NextRequest) {
 
   let { data, error, count } = await query;
 
-  // Backward compatibility: if claim_count column doesn't exist yet, retry without it.
+  // Backward compatibility: if claim_count/admin_verified columns don't exist yet
+  // (migration not run), retry without them and default in code.
   if (error?.code === "42703") {
-    console.warn("[admin/users] claim_count column missing, falling back:", error.message);
+    console.warn("[admin/users] claim_count/admin_verified column missing, falling back:", error.message);
     let fallbackQuery = supabase
       .from("profiles")
       .select("address, username, email, pfp_url, referral_code, created_at, auth_provider", {
@@ -127,7 +128,11 @@ export async function GET(request: NextRequest) {
     }
     fallbackQuery = fallbackQuery.range(from, to);
     const fallback = await fallbackQuery;
-    data = (fallback.data ?? []).map((row) => ({ ...row, claim_count: 0 }));
+    data = (fallback.data ?? []).map((row) => ({
+      ...row,
+      claim_count: 0,
+      admin_verified: false,
+    }));
     error = fallback.error;
     count = fallback.count;
   }
@@ -197,29 +202,51 @@ export async function PATCH(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const address = typeof body?.address === "string" ? body.address.trim().toLowerCase() : "";
-  const username = typeof body?.username === "string" ? body.username.trim() : "";
 
   if (!address || !ADDRESS_RE.test(address)) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
-  if (!username || username.length > 32) {
-    return NextResponse.json({ error: "Username must be 1-32 characters" }, { status: 400 });
+
+  const hasUsername = typeof body?.username === "string";
+  const hasAdminVerified = typeof body?.admin_verified === "boolean";
+
+  if (!hasUsername && !hasAdminVerified) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const update: { username?: string; admin_verified?: boolean } = {};
+
+  if (hasUsername) {
+    const username = (body.username as string).trim();
+    if (!username || username.length > 32) {
+      return NextResponse.json({ error: "Username must be 1-32 characters" }, { status: 400 });
+    }
+    update.username = username;
+  }
+
+  if (hasAdminVerified) {
+    update.admin_verified = body.admin_verified as boolean;
   }
 
   const { data, error } = await supabase
     .from("profiles")
-    .update({ username })
+    .update(update)
     .eq("address", address)
-    .select("address, username")
+    .select("address, username, admin_verified")
     .maybeSingle();
 
   if (error) {
-    console.error("[admin/users] rename supabase error:", error);
+    console.error("[admin/users] update supabase error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (!data) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, address: data.address, username: data.username });
+  return NextResponse.json({
+    ok: true,
+    address: data.address,
+    username: data.username,
+    admin_verified: data.admin_verified,
+  });
 }

@@ -228,7 +228,7 @@ export function DashboardOverview() {
               <>
                 <p className="text-2xl font-bold tabular-nums">{platform?.users.newThisWeek ?? 0}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  in the last 7 days · {platform?.users.total ?? 0} total users
+                  since Wednesday · {platform?.users.total ?? 0} total users
                 </p>
               </>
             )}
