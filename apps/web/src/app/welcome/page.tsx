@@ -7,8 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
-import { Loader2, ArrowRight, Camera, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, ArrowRight, Camera, ArrowLeft, Copy, Check } from "lucide-react";
+import { cn, formatAddress } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import {
@@ -40,6 +40,7 @@ export default function WelcomePage() {
 
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
+  const [addressCopied, setAddressCopied] = useState(false);
   const savedRef = useRef(false);
   const profileSubmittedRef = useRef(false);
 
@@ -82,6 +83,13 @@ export default function WelcomePage() {
     const referral = peekCommunityReferral();
     if (referral) setCommunityCode(referral);
   }, []);
+
+  const handleCopyAddress = async () => {
+    if (!address) return;
+    await navigator.clipboard.writeText(address);
+    setAddressCopied(true);
+    setTimeout(() => setAddressCopied(false), 2000);
+  };
 
   const validateCommunityCode = useCallback(async (code: string) => {
     const trimmed = code.trim().toUpperCase();
@@ -459,6 +467,21 @@ export default function WelcomePage() {
                   )}
                 </span>
               </button>
+
+              {address ? (
+                <button
+                  type="button"
+                  onClick={handleCopyAddress}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span className="font-mono">{formatAddress(address)}</span>
+                  {addressCopied ? (
+                    <Check className="w-3 h-3 text-[#35d07f]" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
+              ) : null}
             </form>
           </>
         ) : (
