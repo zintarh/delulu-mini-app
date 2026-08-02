@@ -3,14 +3,27 @@
 ## Overview
 
 This guide walks you through setting up a Dune dashboard that gives anyone a complete picture
-of Delulu's on-chain activity — goals, staking, tipping, shares, challenges, and protocol revenue.
+of Delulu's on-chain activity — goals, staking, tipping, shares, challenges, protocol revenue,
+personal forfeit commitments, community campaigns, and admin-granted rewards.
 
-**Contract (Celo Mainnet):** `0x7692199630F3865160fB1Fa496961251fA15aFEa`  
+Delulu is now **four separate deployed contracts**, each decoded and queried independently
+under the same Dune project (`delulu`) so every table lives under `celo.delulu_*`:
+
+| Contract | Address (Celo Mainnet) | Covers |
+|---|---|---|
+| Delulu v3 (proxy) | `0x7692199630F3865160fB1Fa496961251fA15aFEa` | Goals, staking, tipping, shares, milestones, challenges |
+| ForfeitMarket | `0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8` | Personal stake-or-lose commitments |
+| CommunityMarketV1 | `0xE652E0cA7DACb6489928C6801D83356a016DcfE1` | Community campaigns / challenges |
+| RewardVault | `0xFE5a411b47F88198038EcE3177C19Ea043398c02` | Admin-granted, user-claimed rewards |
+
 **Chain in Dune:** `celo`
+
+Existing live dashboard: https://dune.com/zintarh/delulu (currently only has Delulu v3 —
+Steps 1b/1c/1d and Sections 6/7/8 below are what's missing.)
 
 ---
 
-## Step 1 — Decode the Contract
+## Step 1 — Decode Delulu v3
 
 Before you can write clean SQL you need Dune to decode the ABI into named tables.
 
@@ -48,16 +61,113 @@ celo.delulu_delulu_evt_stakerefundclaimed
 
 ---
 
-## Step 2 — Dashboard Layout
+## Step 1b — Decode ForfeitMarket
 
-Structure your dashboard into **5 sections** using Dune's text blocks as headers.
+1. **dune.com → My Account → Contracts → Submit for decoding**
+2. Fill in:
+   - **Blockchain:** Celo
+   - **Contract address:** `0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8`
+   - **Project name:** `delulu` (same project as v3, so tables group under `celo.delulu_*`)
+   - **Contract name:** `ForfeitMarket`
+   - **ABI:** paste the full ABI from `apps/web/src/lib/abi/forfeit-market.ts`
+3. Submit.
+
+Resulting tables (the ones with real data — admin/config events like `ApprovedCharityUpdated`
+are omitted below since they're not analytics-relevant):
 
 ```
-Section 1 — Protocol Overview       (headline KPIs)
+celo.delulu_forfeitmarket_evt_commitmentcreated
+celo.delulu_forfeitmarket_evt_proofsubmitted
+celo.delulu_forfeitmarket_evt_periodresolvedsuccess
+celo.delulu_forfeitmarket_evt_periodresolvedforfeited
+celo.delulu_forfeitmarket_evt_commitmentcancelled
+celo.delulu_forfeitmarket_evt_communitypoolwithdrawn
+```
+
+Key columns:
+- `commitmentcreated`: `commitmentId, creator, token, stakeAmount, destinationType (0=SelfReturn,1=Charity,2=Friend,3=CommunityPool), destinationAddr, cadence, periodSeconds, totalPeriods, firstDeadline, verifier`
+- `periodresolvedsuccess`: `commitmentId, periodIndex, resolver, commitmentEnded`
+- `periodresolvedforfeited`: `commitmentId, periodIndex, keeper, bountyPaid, platformFee, destinationType, destinationAddr, amountToDestination`
+- `commitmentcancelled`: `commitmentId, refundAmount`
+
+---
+
+## Step 1c — Decode CommunityMarketV1
+
+1. **dune.com → My Account → Contracts → Submit for decoding**
+2. Fill in:
+   - **Blockchain:** Celo
+   - **Contract address:** `0xE652E0cA7DACb6489928C6801D83356a016DcfE1`
+   - **Project name:** `delulu`
+   - **Contract name:** `CommunityMarketV1`
+   - **ABI:** paste the full ABI from `apps/web/src/lib/abi/community-campaign.ts`
+3. Submit.
+
+Resulting tables:
+
+```
+celo.delulu_communitymarketv1_evt_communitychallengecreated
+celo.delulu_communitymarketv1_evt_communitycampaignpaidconfigured
+celo.delulu_communitymarketv1_evt_communitycampaignjoined
+celo.delulu_communitymarketv1_evt_communitycampaignmilestoneproofsubmitted
+celo.delulu_communitymarketv1_evt_communitychallengefunded
+celo.delulu_communitymarketv1_evt_communitychallengeended
+celo.delulu_communitymarketv1_evt_communitycampaignrewardclaimed
+celo.delulu_communitymarketv1_evt_communityjoinstakeclaimed
+celo.delulu_communitymarketv1_evt_stakeforfeited
+```
+
+Key columns:
+- `communitychallengecreated`: `campaignId, contentHash, duration, proofIntervalSeconds, creator`
+- `communitycampaignpaidconfigured`: `campaignId, isPaid, joinToken, joinAmount, forfeitPct`
+- `communitycampaignjoined`: `campaignId, participant`
+- `communitycampaignmilestoneproofsubmitted`: `campaignId, milestoneId, participant, proofLink, pointsAwarded, pointsTotal`
+- `communitychallengefunded`: `campaignId, totalPool, addedAmount, funder`
+- `communitycampaignrewardclaimed`: `campaignId, winner, amount`
+- `communityjoinstakeclaimed`: `campaignId, participant, token, amount`
+- `stakeforfeited`: `campaignId, participant, token, amount, missedMilestones`
+
+---
+
+## Step 1d — Decode RewardVault
+
+1. **dune.com → My Account → Contracts → Submit for decoding**
+2. Fill in:
+   - **Blockchain:** Celo
+   - **Contract address:** `0xFE5a411b47F88198038EcE3177C19Ea043398c02`
+   - **Project name:** `delulu`
+   - **Contract name:** `RewardVault`
+   - **ABI:** paste the full ABI from `apps/web/src/lib/abi/reward-vault.ts`
+3. Submit.
+
+Resulting tables:
+
+```
+celo.delulu_rewardvault_evt_rewarddeposited
+celo.delulu_rewardvault_evt_rewardclaimed
+celo.delulu_rewardvault_evt_rewardrevoked
+```
+
+Key columns:
+- `rewarddeposited`: `user, token, amount, rewardId, depositedBy`
+- `rewardclaimed`: `user, token, amount`
+- `rewardrevoked`: `user, token, amount, revokedBy`
+
+---
+
+## Step 2 — Dashboard Layout
+
+Structure your dashboard into **8 sections** using Dune's text blocks as headers.
+
+```
+Section 1 — Protocol Overview       (headline KPIs, Delulu v3)
 Section 2 — Goals (Delulus)          (creation, resolution, failure rates)
 Section 3 — Money Flow               (staking, tipping, shares, revenue)
 Section 4 — Milestones               (submissions, verifications, misses)
 Section 5 — Users & Community        (unique wallets, profiles, leaderboard)
+Section 6 — Forfeit Commitments      (ForfeitMarket: created, outcomes, destinations, revenue)
+Section 7 — Community Campaigns      (CommunityMarketV1: campaigns, joins, milestones, payouts)
+Section 8 — Reward Vault             (RewardVault: admin deposits vs claims, top recipients)
 ```
 
 ---
@@ -536,6 +646,226 @@ ORDER BY 1, 2
 
 ---
 
+### SECTION 6 — Forfeit Commitments (ForfeitMarket)
+
+> Token amounts below are divided by `1e18` to match the convention used throughout this
+> guide — double-check against `apps/web/src/lib/token-amounts.ts` first if a token's actual
+> on-chain decimals differ (e.g. USDT is 6 decimals in the app's own constants, not 18).
+
+#### Q21: Weekly Commitments Created + Total Staked
+
+```sql
+SELECT
+    DATE_TRUNC('week', block_time)      AS week,
+    COUNT(*)                            AS commitments_created,
+    COUNT(DISTINCT creator)             AS unique_creators,
+    SUM(CAST(stakeAmount AS DOUBLE)) / 1e18 AS total_staked
+FROM celo.delulu_forfeitmarket_evt_commitmentcreated
+GROUP BY 1
+ORDER BY 1
+```
+
+> **Visualization:** Bar chart (total_staked) + line overlay (unique_creators). Title: "Weekly Forfeit Commitments".
+
+---
+
+#### Q22: Outcome Funnel (Success vs Forfeited vs Cancelled)
+
+```sql
+SELECT 'Created',   COUNT(*) FROM celo.delulu_forfeitmarket_evt_commitmentcreated
+UNION ALL
+SELECT 'Completed successfully', COUNT(*) FROM celo.delulu_forfeitmarket_evt_periodresolvedsuccess WHERE commitmentEnded = true
+UNION ALL
+SELECT 'Forfeited', COUNT(*) FROM celo.delulu_forfeitmarket_evt_periodresolvedforfeited
+UNION ALL
+SELECT 'Cancelled', COUNT(*) FROM celo.delulu_forfeitmarket_evt_commitmentcancelled
+```
+
+> **Visualization:** Bar or donut chart. Title: "Forfeit Commitment Outcomes". Shows how many people actually follow through.
+
+---
+
+#### Q23: Where Forfeited Stake Goes (Destination Breakdown)
+
+```sql
+SELECT
+    CASE destinationType
+        WHEN 0 THEN 'Self return'
+        WHEN 1 THEN 'Charity'
+        WHEN 2 THEN 'Friend'
+        WHEN 3 THEN 'Community pool'
+        ELSE 'Unknown'
+    END AS destination,
+    COUNT(*)                                          AS forfeitures,
+    SUM(CAST(amountToDestination AS DOUBLE)) / 1e18    AS total_amount
+FROM celo.delulu_forfeitmarket_evt_periodresolvedforfeited
+GROUP BY 1
+ORDER BY 3 DESC
+```
+
+> **Visualization:** Donut chart. Title: "Forfeited Stake by Destination". Note: the app's own UI
+> currently routes both "Charity" and "Delulu" choices to `CommunityPool` on-chain (see
+> `docs/dune-dashboard-guide.md`'s sibling doc, the forfeit feature code) — so real-world
+> "Charity" volume is folded into `Community pool` here, not the `Charity` row.
+
+---
+
+#### Q24: Protocol Revenue from Forfeitures (Platform Fee + Keeper Bounties)
+
+```sql
+SELECT
+    DATE_TRUNC('week', block_time)                    AS week,
+    SUM(CAST(platformFee AS DOUBLE)) / 1e18           AS platform_fee_revenue,
+    SUM(CAST(bountyPaid AS DOUBLE)) / 1e18            AS keeper_bounties_paid
+FROM celo.delulu_forfeitmarket_evt_periodresolvedforfeited
+GROUP BY 1
+ORDER BY 1
+```
+
+> **Visualization:** Stacked bar chart. Title: "Weekly Forfeit Revenue & Keeper Bounties".
+
+---
+
+### SECTION 7 — Community Campaigns (CommunityMarketV1)
+
+#### Q25: Campaigns Created & Funded Over Time
+
+```sql
+WITH created AS (
+    SELECT DATE_TRUNC('week', block_time) AS week, COUNT(*) AS campaigns_created
+    FROM celo.delulu_communitymarketv1_evt_communitychallengecreated
+    GROUP BY 1
+),
+funded AS (
+    SELECT DATE_TRUNC('week', block_time) AS week, SUM(CAST(addedAmount AS DOUBLE)) / 1e18 AS amount_funded
+    FROM celo.delulu_communitymarketv1_evt_communitychallengefunded
+    GROUP BY 1
+)
+SELECT c.week, c.campaigns_created, COALESCE(f.amount_funded, 0) AS amount_funded
+FROM created c
+LEFT JOIN funded f USING (week)
+ORDER BY 1
+```
+
+> **Visualization:** Bar (campaigns_created) + line (amount_funded). Title: "Weekly Community Campaigns Created & Funded".
+
+---
+
+#### Q26: Participation Funnel (Joined → Proof Submitted → Reward Claimed / Forfeited)
+
+```sql
+SELECT 'Joined',          COUNT(*) FROM celo.delulu_communitymarketv1_evt_communitycampaignjoined
+UNION ALL
+SELECT 'Proof submitted', COUNT(DISTINCT participant || '-' || campaignId) FROM celo.delulu_communitymarketv1_evt_communitycampaignmilestoneproofsubmitted
+UNION ALL
+SELECT 'Reward claimed',  COUNT(*) FROM celo.delulu_communitymarketv1_evt_communitycampaignrewardclaimed
+UNION ALL
+SELECT 'Stake forfeited', COUNT(*) FROM celo.delulu_communitymarketv1_evt_stakeforfeited
+```
+
+> **Visualization:** Bar chart. Title: "Community Campaign Participation Funnel".
+
+---
+
+#### Q27: Top Campaigns by Funding
+
+```sql
+SELECT
+    campaignId,
+    MAX(totalPool) / 1e18                       AS pool_total,
+    COUNT(*)                                     AS funding_events
+FROM celo.delulu_communitymarketv1_evt_communitychallengefunded
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 25
+```
+
+> **Visualization:** Table. Title: "Top 25 Community Campaigns by Pool Size".
+
+---
+
+#### Q28: Milestone Proofs & Points Awarded Over Time
+
+```sql
+SELECT
+    DATE_TRUNC('week', block_time)              AS week,
+    COUNT(*)                                    AS proofs_submitted,
+    COUNT(DISTINCT participant)                 AS unique_participants,
+    SUM(CAST(pointsAwarded AS DOUBLE))          AS points_awarded
+FROM celo.delulu_communitymarketv1_evt_communitycampaignmilestoneproofsubmitted
+GROUP BY 1
+ORDER BY 1
+```
+
+> **Visualization:** Bar (proofs_submitted) + line (points_awarded). Title: "Weekly Community Milestone Activity".
+
+---
+
+### SECTION 8 — Reward Vault
+
+#### Q29: Deposited vs Claimed Over Time (by Token)
+
+```sql
+WITH deposited AS (
+    SELECT DATE_TRUNC('week', block_time) AS week, token, SUM(CAST(amount AS DOUBLE)) / 1e18 AS deposited
+    FROM celo.delulu_rewardvault_evt_rewarddeposited
+    GROUP BY 1, 2
+),
+claimed AS (
+    SELECT DATE_TRUNC('week', block_time) AS week, token, SUM(CAST(amount AS DOUBLE)) / 1e18 AS claimed
+    FROM celo.delulu_rewardvault_evt_rewardclaimed
+    GROUP BY 1, 2
+)
+SELECT
+    COALESCE(d.week, c.week)     AS week,
+    COALESCE(d.token, c.token)   AS token,
+    COALESCE(d.deposited, 0)     AS deposited,
+    COALESCE(c.claimed, 0)       AS claimed
+FROM deposited d
+FULL OUTER JOIN claimed c ON d.week = c.week AND d.token = c.token
+ORDER BY 1
+```
+
+> **Visualization:** Grouped bar chart, colored by token. Title: "Reward Vault — Deposited vs Claimed".
+> A growing gap between the two lines means unclaimed rewards are piling up.
+
+---
+
+#### Q30: Top Reward Recipients
+
+```sql
+SELECT
+    user                                         AS wallet,
+    token,
+    SUM(CAST(amount AS DOUBLE)) / 1e18           AS total_claimed,
+    COUNT(*)                                     AS claim_count
+FROM celo.delulu_rewardvault_evt_rewardclaimed
+GROUP BY 1, 2
+ORDER BY 3 DESC
+LIMIT 25
+```
+
+> **Visualization:** Table. Title: "Top 25 Reward Vault Recipients".
+
+---
+
+#### Q31: Revocations (Ops Health Check)
+
+```sql
+SELECT
+    DATE_TRUNC('week', block_time)      AS week,
+    COUNT(*)                            AS revocations,
+    SUM(CAST(amount AS DOUBLE)) / 1e18  AS amount_revoked
+FROM celo.delulu_rewardvault_evt_rewardrevoked
+GROUP BY 1
+ORDER BY 1
+```
+
+> **Visualization:** Bar chart. Title: "Weekly Reward Revocations". Should stay near zero —
+> a spike is worth investigating (bad grant, abuse, etc).
+
+---
+
 ## Step 4 — Sharing & Embedding
 
 1. Open your dashboard → click the **Share** button (top right)
@@ -597,9 +927,16 @@ each event type shows its topic0 hash.
 |---|---|---|
 | Delulu Proxy | `0x7692199630F3865160fB1Fa496961251fA15aFEa` | — |
 | Delulu Impl | `0xb916bBAa5b5c13FD09A1a63dCFC151f8C2544C8e` | — |
+| ForfeitMarket | `0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8` | — |
+| CommunityMarketV1 | `0xE652E0cA7DACb6489928C6801D83356a016DcfE1` | — |
+| RewardVault | `0xFE5a411b47F88198038EcE3177C19Ea043398c02` | — |
 | G$ (GoodDollar) | `0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A` | 18 |
 | USDT (Celo) | `0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e` | 18 |
 | USDm (cUSD) | `0x765DE816845861e75A25fCA122bb6898B8B1282a` | 18 |
+
+> ⚠️ The app's own `apps/web/src/lib/token-amounts.ts` lists **USDT at 6 decimals**, not 18 —
+> that predates this doc and wasn't re-verified here. Confirm the real decimals on Celoscan
+> before trusting any USDT `$` figure produced by a query above.
 
 ---
 
@@ -615,4 +952,7 @@ each event type shows its topic0 hash.
 8. **Q8** — Protocol revenue
 9. **Q12** — Top supporters
 10. **Q18** — Top creators
-11. Everything else
+11. **Q22** — Forfeit outcome funnel (new)
+12. **Q27** — Community campaign participation funnel (new)
+13. **Q29** — Reward vault deposited vs claimed (new)
+14. Everything else, including the rest of Sections 6–8
