@@ -111,9 +111,10 @@ export function NavbarProfileMenu({
     };
   }, []);
 
-  const pfpFromCache = usePfp(address ?? undefined);
+  const pfpFromCache = usePfp(authenticated ? address ?? undefined : undefined);
   // Use live Supabase pfp (via batch cache) → fall back to store → default
-  const resolvedPfp = pfpFromCache || user?.pfpUrl || null;
+  // Gated on `authenticated` so a logged-out user never sees a stale/cached picture.
+  const resolvedPfp = authenticated ? pfpFromCache || user?.pfpUrl || null : null;
   const avatarSrc = resolvedPfp ?? DEFAULT_AVATAR;
   const displayName =
     user?.displayName?.trim() ||

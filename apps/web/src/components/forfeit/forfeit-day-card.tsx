@@ -963,13 +963,13 @@ export function ForfeitDayCard({
       setSelectedDate(todayBucket.dayDate);
       return;
     }
-    // Prefer the soonest upcoming day, else the latest past day.
+    // Only ever jump forward to the soonest upcoming day — never default
+    // backward into a past day. A forfeit that's already over must not make
+    // the dashboard look stuck in the past when reopened today.
     const upcoming = dayBuckets.find(
       (b) => b.dayDate.getTime() > startOfDay(new Date()).getTime(),
     );
-    setSelectedDate(
-      upcoming ? upcoming.dayDate : dayBuckets[dayBuckets.length - 1]!.dayDate,
-    );
+    setSelectedDate(upcoming ? upcoming.dayDate : startOfDay(new Date()));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when keys change
   }, [bucketsKey]);
 
