@@ -50,3 +50,21 @@ export function monthlyCampaignLeaderboardSinceUnixSeconds(now = new Date()): nu
   );
   return Math.max(monthStart, MONTHLY_CAMPAIGN_LEADERBOARD_EPOCH_UNIX);
 }
+
+/**
+ * Forfeit campaign: qualify by forfeiting a single commitment worth
+ * FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE+ G$ to Charity or Delulu (on-chain
+ * CommunityPool) within the window below. Top FORFEIT_CAMPAIGN_TOP_N by total
+ * G$ forfeited share the pool.
+ *
+ * 2026-08-04 00:00:00 UTC start, 2 weeks → 2026-08-18 00:00:00 UTC end.
+ */
+export const FORFEIT_CAMPAIGN_START_UNIX = Math.floor(
+  Date.UTC(2026, 7, 4, 0, 0, 0) / 1000,
+);
+export const FORFEIT_CAMPAIGN_END_UNIX = Math.floor(
+  Date.UTC(2026, 7, 18, 0, 0, 0) / 1000,
+);
+export const FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE = 10_000;
+export const FORFEIT_CAMPAIGN_POOL_USD = 50;
+export const FORFEIT_CAMPAIGN_TOP_N = 5;

@@ -1,6 +1,8 @@
 import { getSubgraphUrlForChain } from "@/lib/constant";
-import { CELO_MAINNET_ID, isLeaderboardBlacklisted } from "@/lib/constant";
+import { CELO_MAINNET_ID, isLeaderboardBlacklisted, isGoodDollarToken } from "@/lib/constant";
 import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
+import { weiToTokenAmount } from "@/lib/token-amounts";
+import { FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE } from "@/lib/dashboard/campaign-constants";
 
 export type CommunityCampaignLeaderboardRow = {
   rank: number;
@@ -370,6 +372,118 @@ export async function fetchMonthlyCampaignPointsFromGraph(
       wallet_address,
       points_total: v.points,
       username: v.username,
+      last_event_at: v.lastEventAt || null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const FORFEIT_CAMPAIGN_QUERY = `
+  query ForfeitCampaignResolutions($since: BigInt!, $until: BigInt!, $first: Int!, $skip: Int!) {
+    forfeitPeriodResolutions(
+      where: {
+        outcome: "forfeited"
+        destinationType: 3
+        createdAt_gte: $since
+        createdAt_lt: $until
+      }
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      creatorAddress
+      amountToDestination
+      createdAt
+      commitment {
+        token
+        stakeAmount
+      }
+    }
+  }
+`;
+
+type ForfeitCampaignRow = {
+  creatorAddress: string;
+  amountToDestination: string | null;
+  createdAt: string;
+  commitment: { token: string; stakeAmount: string } | null;
+};
+
+export type ForfeitCampaignLeaderboardRow = {
+  wallet_address: string;
+  username: string | null;
+  forfeited_amount: number;
+  qualifying_count: number;
+  last_event_at: number | null;
+};
+
+async function fetchAllForfeitCampaignRows(
+  sinceUnixSeconds: number,
+  untilUnixSeconds: number,
+): Promise<ForfeitCampaignRow[]> {
+  const pageSize = 1000;
+  const all: ForfeitCampaignRow[] = [];
+  for (let skip = 0; skip < 10_000; skip += pageSize) {
+    const data = await fetchSubgraph<{ forfeitPeriodResolutions?: ForfeitCampaignRow[] }>(
+      FORFEIT_CAMPAIGN_QUERY,
+      { since: sinceUnixSeconds.toString(), until: untilUnixSeconds.toString(), first: pageSize, skip },
+    );
+    const batch = data.forfeitPeriodResolutions ?? [];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
+
+/**
+ * Forfeit campaign leaderboard: every wallet with at least one G$ forfeiture
+ * to Charity/Delulu (on-chain CommunityPool, destinationType 3) whose
+ * *commitment* stake was FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE+ G$, within the
+ * campaign window. Ranked by total G$ actually forfeited from qualifying
+ * commitments — a wallet with several qualifying forfeitures outranks one
+ * with a single minimum-size one. Non-qualifying (smaller-stake) forfeitures
+ * don't count toward the total even if the same wallet also has a qualifying
+ * one elsewhere.
+ */
+export async function fetchForfeitCampaignLeaderboardFromGraph(
+  sinceUnixSeconds: number,
+  untilUnixSeconds: number,
+): Promise<ForfeitCampaignLeaderboardRow[]> {
+  try {
+    const rows = await fetchAllForfeitCampaignRows(sinceUnixSeconds, untilUnixSeconds);
+    const minStakeWei = BigInt(FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE) * 10n ** 18n;
+
+    const byWallet = new Map<
+      string,
+      { amount: number; username: null; count: number; lastEventAt: number }
+    >();
+
+    for (const row of rows) {
+      const commitment = row.commitment;
+      if (!commitment) continue;
+      if (!isGoodDollarToken(commitment.token)) continue;
+      if (BigInt(commitment.stakeAmount || "0") < minStakeWei) continue;
+
+      const wallet = row.creatorAddress.toLowerCase();
+      const amount = weiToTokenAmount(row.amountToDestination, commitment.token);
+      const createdAt = Number(row.createdAt ?? "0");
+      const existing = byWallet.get(wallet);
+      if (existing) {
+        existing.amount += amount;
+        existing.count += 1;
+        existing.lastEventAt = Math.max(existing.lastEventAt, createdAt);
+      } else {
+        byWallet.set(wallet, { amount, username: null, count: 1, lastEventAt: createdAt });
+      }
+    }
+
+    return Array.from(byWallet.entries()).map(([wallet_address, v]) => ({
+      wallet_address,
+      username: v.username,
+      forfeited_amount: v.amount,
+      qualifying_count: v.count,
       last_event_at: v.lastEventAt || null,
     }));
   } catch {

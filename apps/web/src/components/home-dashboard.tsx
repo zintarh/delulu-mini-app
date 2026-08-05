@@ -7,7 +7,7 @@ import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-ske
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { HomeFeatureCarousel } from "@/components/home-feature-carousel";
-// import { HomeTop10Banner } from "@/components/home-top10-banner";
+import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { HomeClaimNudge } from "@/components/home-claim-nudge";
 import { HomeCampaignsSection } from "@/components/home-campaigns-section";
 import { HomeDailyBreakdown } from "@/components/home-daily-breakdown";
@@ -107,10 +107,9 @@ export function HomeDashboard({ className, onCreateClick }: HomeDashboardProps) 
             <HomeFeatureCarousel />
           </div>
 
-          {/* $100 / 30,000 points campaign ended — banner commented out */}
-          {/* <div className="mb-4 px-4">
+          <div className="mb-4 px-4">
             <HomeTop10Banner />
-          </div> */}
+          </div>
 
           <div className="mb-4 space-y-2.5 px-4">
             <HomeClaimNudge />

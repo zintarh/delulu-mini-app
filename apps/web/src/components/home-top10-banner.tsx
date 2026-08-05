@@ -2,6 +2,18 @@
 
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import {
+  FORFEIT_CAMPAIGN_END_UNIX,
+  FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE,
+  FORFEIT_CAMPAIGN_POOL_USD,
+  FORFEIT_CAMPAIGN_TOP_N,
+} from "@/lib/dashboard/campaign-constants";
+
+const campaignEndsLabel = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+}).format(new Date(FORFEIT_CAMPAIGN_END_UNIX * 1000));
 
 export function HomeTop10Banner() {
   return (
@@ -17,40 +29,40 @@ export function HomeTop10Banner() {
               className="text-[8px] font-black uppercase tracking-[0.18em] text-[#244E1A]"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              Top 10 challenge
+              Forfeit challenge
             </p>
             <p
               className="mt-0.5  font-black  text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
-              Top 10 share $100
+              Top {FORFEIT_CAMPAIGN_TOP_N} share ${FORFEIT_CAMPAIGN_POOL_USD.toLocaleString()}
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
-              Join a campaign, earn up to 30,000 points, and climb the
-              leaderboard for your shot at the pool.
+              Forfeit {FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE.toLocaleString()}+ G$ to charity or
+              Delulu, then climb the leaderboard for your shot at the pool.
             </p>
             <p className="mt-1 text-[10px] sm:text-xs font-bold leading-snug text-[#244E1A]/70">
-              Ends Friday — leaderboard resets Friday for the next campaign.
+              Ends {campaignEndsLabel} — top {FORFEIT_CAMPAIGN_TOP_N} share the pool.
             </p>
           </div>
         </div>
 
         <div className=" hidden sm:flex justify-end">
           <Link
-            href="/explore"
+            href="/forfeit"
             className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
           >
-            Join a campaign →
+            Create a forfeit →
           </Link>
         </div>
       </div>
 
       <div className=" sm:hidden flex justify-end mt-2">
         <Link
-          href="/explore"
+          href="/forfeit"
           className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
         >
-          Join a campaign →
+          Create a forfeit →
         </Link>
       </div>
     </div>

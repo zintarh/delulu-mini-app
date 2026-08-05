@@ -156,7 +156,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   },
 ];
 
-const PENALTY_AMOUNT_PRESETS = [100,  1000] as const;
+const PENALTY_AMOUNT_PRESETS = [1000, 5000, 10000] as const;
 
 const FORFEIT_DESTINATIONS = [
   {
@@ -361,8 +361,8 @@ export function ForfeitCreatePage() {
   // user fills out the form — it should reflect when the schedule would start.
   const formStartedAtRef = useRef(new Date());
   const [repeatEvery, setRepeatEvery] = useState<(typeof REPEAT_EVERY)[number]>("day");
-  const [forfeitAmount, setForfeitAmount] = useState(100);
-  const [amountDraft, setAmountDraft] = useState("100");
+  const [forfeitAmount, setForfeitAmount] = useState(10000);
+  const [amountDraft, setAmountDraft] = useState("10000");
   // Neutral default — "charity" shouldn't be silently pre-selected for anyone
   // who never opens the destination picker; that's an intent worth an explicit choice.
   const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("delulu");
@@ -659,8 +659,8 @@ export function ForfeitCreatePage() {
     setDeadlineLabel("7 days");
     setSubmitAnytime(true);
     setRepeatEvery("day");
-    setForfeitAmount(100);
-    setAmountDraft("100");
+    setForfeitAmount(10000);
+    setAmountDraft("10000");
     setDestinationId("delulu");
     setDestinationFriendAddress("");
     setDestinationFriendQuery("");
@@ -892,7 +892,7 @@ export function ForfeitCreatePage() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder={placeholder}
             rows={2}
-            className="w-full resize-none rounded-2xl border border-border/60 bg-card px-4 py-2.5 text-[15px] font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+            className="w-full resize-none rounded-2xl border border-border/60 bg-card px-4 py-2.5 text-base font-medium text-foreground placeholder:text-muted-foreground/70 outline-none ring-delulu-blue focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
             style={MANROPE}
           />
           {description.length > 0 && description.trim().length < 3 ? (
@@ -1058,7 +1058,7 @@ export function ForfeitCreatePage() {
                           value={verifierEmail}
                           onChange={(e) => setVerifierEmail(e.target.value)}
                           placeholder="friend@example.com"
-                          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-base font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
                           style={MANROPE}
                         />
                         <p className="mt-1.5 text-xs text-muted-foreground" style={MANROPE}>
@@ -1105,7 +1105,7 @@ export function ForfeitCreatePage() {
                           autoComplete="off"
                           autoCorrect="off"
                           spellCheck={false}
-                          className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-3.5 pr-9 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                          className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-3.5 pr-9 text-base font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
                           style={MANROPE}
                         />
                         {friendSearchLoading ? (
@@ -1483,7 +1483,7 @@ export function ForfeitCreatePage() {
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}
-                        className="w-full rounded-2xl border border-border/60 bg-card py-3 pl-4 pr-10 text-sm font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
+                        className="w-full rounded-2xl border border-border/60 bg-card py-3 pl-4 pr-10 text-base font-medium text-foreground outline-none focus:border-delulu-blue focus:ring-2 focus:ring-delulu-blue/20"
                         style={MANROPE}
                       />
                       {destinationSearchLoading ? (
@@ -1593,7 +1593,7 @@ export function ForfeitCreatePage() {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {PENALTY_AMOUNT_PRESETS.map((amount) => (
               <button
                 key={amount}
@@ -1604,7 +1604,7 @@ export function ForfeitCreatePage() {
                   setAmountOpen(false);
                 }}
                 className={cn(
-                  "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
+                  "rounded-full border px-3 py-2.5 text-center text-sm font-semibold transition-colors",
                   forfeitAmount === amount
                     ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
                     : "border-border/60 bg-card text-foreground hover:bg-muted/40",
@@ -1636,7 +1636,7 @@ export function ForfeitCreatePage() {
                 }}
                 className="w-full bg-transparent text-base font-bold text-foreground outline-none"
                 style={MANROPE}
-                placeholder="100"
+                placeholder="10000"
               />
               <span className="shrink-0 text-sm font-bold text-muted-foreground" style={MANROPE}>
                 {selectedTokenSymbol}

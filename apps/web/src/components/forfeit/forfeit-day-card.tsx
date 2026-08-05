@@ -1146,7 +1146,16 @@ export function ForfeitDayCard({
             className="h-10 w-10 text-muted-foreground/50"
             strokeWidth={1.5}
           />
-          <p className={cn("mt-3", FEED_CARD_TITLE_CLASS)}>No forfeit</p>
+          <p className={cn("mt-3", FEED_CARD_TITLE_CLASS)}>
+            {dayKey(selectedDate) === dayKey(new Date())
+              ? "No forfeit for today"
+              : "No forfeit"}
+          </p>
+          {dayKey(selectedDate) === dayKey(new Date()) ? (
+            <p className={cn("mt-1.5 max-w-[16rem]", FEED_CARD_SUBTITLE_CLASS)}>
+              Use the arrow to view your previous forfeit
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-4">
