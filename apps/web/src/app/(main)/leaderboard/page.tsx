@@ -789,7 +789,8 @@ function LeaderboardTabs({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {(["monthly", "forfeit", "global"] as Tab[]).map((tab) => (
+      {/* Forfeit campaign tab paused for now */}
+      {(["monthly", "global"] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"

@@ -65,6 +65,6 @@ export const FORFEIT_CAMPAIGN_START_UNIX = Math.floor(
 export const FORFEIT_CAMPAIGN_END_UNIX = Math.floor(
   Date.UTC(2026, 7, 18, 0, 0, 0) / 1000,
 );
-export const FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE = 10_000;
+export const FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE = 1_000;
 export const FORFEIT_CAMPAIGN_POOL_USD = 50;
 export const FORFEIT_CAMPAIGN_TOP_N = 5;

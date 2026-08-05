@@ -157,6 +157,7 @@ const EVIDENCE_TYPES: EvidenceType[] = [
 ];
 
 const PENALTY_AMOUNT_PRESETS = [1000, 5000, 10000] as const;
+const MIN_FORFEIT_AMOUNT_GOODDOLLAR = 1000;
 
 const FORFEIT_DESTINATIONS = [
   {
@@ -361,8 +362,8 @@ export function ForfeitCreatePage() {
   // user fills out the form — it should reflect when the schedule would start.
   const formStartedAtRef = useRef(new Date());
   const [repeatEvery, setRepeatEvery] = useState<(typeof REPEAT_EVERY)[number]>("day");
-  const [forfeitAmount, setForfeitAmount] = useState(10000);
-  const [amountDraft, setAmountDraft] = useState("10000");
+  const [forfeitAmount, setForfeitAmount] = useState(1000);
+  const [amountDraft, setAmountDraft] = useState("1000");
   // Neutral default — "charity" shouldn't be silently pre-selected for anyone
   // who never opens the destination picker; that's an intent worth an explicit choice.
   const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("delulu");
@@ -603,9 +604,12 @@ export function ForfeitCreatePage() {
       ? parseFloat(selectedTokenBalance.formatted) < forfeitAmount
       : false;
 
+  const minForfeitAmount =
+    selectedTokenSymbol === "G$" ? MIN_FORFEIT_AMOUNT_GOODDOLLAR : 1;
+
   const canNext =
     description.trim().length >= 3 &&
-    forfeitAmount > 0 &&
+    forfeitAmount >= minForfeitAmount &&
     !!selectedToken &&
     !hasInsufficientBalance &&
     (destinationId !== "friend" || ADDRESS_RE.test(destinationFriendAddress.trim())) &&
@@ -640,7 +644,7 @@ export function ForfeitCreatePage() {
 
   const saveAmount = () => {
     const parsed = Number(amountDraft.replace(/,/g, "").trim());
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    if (!Number.isFinite(parsed) || parsed < minForfeitAmount) return;
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
   };
@@ -659,8 +663,8 @@ export function ForfeitCreatePage() {
     setDeadlineLabel("7 days");
     setSubmitAnytime(true);
     setRepeatEvery("day");
-    setForfeitAmount(10000);
-    setAmountDraft("10000");
+    setForfeitAmount(1000);
+    setAmountDraft("1000");
     setDestinationId("delulu");
     setDestinationFriendAddress("");
     setDestinationFriendQuery("");
@@ -1196,6 +1200,10 @@ export function ForfeitCreatePage() {
           <p className="mt-4 text-sm font-semibold text-red-500" style={MANROPE}>
             Insufficient {selectedTokenSymbol} balance
           </p>
+        ) : forfeitAmount < minForfeitAmount ? (
+          <p className="mt-4 text-sm font-semibold text-red-500" style={MANROPE}>
+            Minimum forfeit is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}
+          </p>
         ) : null}
 
         {submitError ? (
@@ -1624,7 +1632,7 @@ export function ForfeitCreatePage() {
               <input
                 type="number"
                 inputMode="decimal"
-                min={1}
+                min={minForfeitAmount}
                 step={1}
                 value={amountDraft}
                 onChange={(e) => setAmountDraft(e.target.value)}
@@ -1636,21 +1644,26 @@ export function ForfeitCreatePage() {
                 }}
                 className="w-full bg-transparent text-base font-bold text-foreground outline-none"
                 style={MANROPE}
-                placeholder="10000"
+                placeholder="1000"
               />
               <span className="shrink-0 text-sm font-bold text-muted-foreground" style={MANROPE}>
                 {selectedTokenSymbol}
               </span>
             </div>
+            {Number(amountDraft) > 0 && Number(amountDraft) < minForfeitAmount ? (
+              <p className="mt-1.5 text-xs font-medium text-destructive">
+                Minimum forfeit is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}
+              </p>
+            ) : null}
           </label>
 
           <button
             type="button"
             onClick={saveAmount}
-            disabled={!Number.isFinite(Number(amountDraft)) || Number(amountDraft) <= 0}
+            disabled={!Number.isFinite(Number(amountDraft)) || Number(amountDraft) < minForfeitAmount}
             className={cn(
               "mt-5 w-full rounded-full py-3 text-sm font-bold text-white",
-              Number(amountDraft) > 0
+              Number(amountDraft) >= minForfeitAmount
                 ? "bg-delulu-blue"
                 : "bg-muted text-muted-foreground",
             )}
