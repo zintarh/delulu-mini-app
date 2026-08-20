@@ -605,21 +605,21 @@ function ForfeitTaskCard({
           across two lines — so they sit close together. The progress row
           above is a different kind of information (which day this is, not
           what happened), so it gets more room before the title starts.
-          No truncate: the card grows to fit a long title on a second line
-          instead of clipping it, and the menu button (when shown without a
-          progress row above it) gets right padding so wrapped text never
-          runs under it. */}
+          No truncate on either line: the card grows to fit long text on a
+          second line instead of clipping it, and the menu button (when shown
+          without a progress row above it) gets right padding so wrapped
+          title text never runs under it. */}
       <p
         className={cn(
           showProgress ? "mt-0.5" : showMenu ? "pr-8" : "",
-          "text-lg font-black leading-snug text-foreground",
+          "text-base font-black leading-snug text-foreground",
         )}
       >
         {item.title || "Untitled forfeit"}
       </p>
 
-      <div className="mt-0.5 flex items-center justify-between gap-2">
-        <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+      <div className="mt-0.5 flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
           {stakeLine.lead}{" "}
           <span className={cn("font-bold tabular-nums", stateColor)}>
             {stakeLine.amountText ?? "—"}
@@ -693,14 +693,14 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           <p className={cn("text-[10px] font-black uppercase tracking-wide", labelColor)}>
             {label}
           </p>
-          <p className="mt-0.5 text-base font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-sm text-muted-foreground">
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <p className="min-w-0 text-sm text-muted-foreground">
           {amount ? (
             <>
               <span className="font-bold text-foreground">
@@ -800,13 +800,13 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
           <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
             If they miss it
           </p>
-          <p className="mt-0.5 text-base font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
         <FriendProgressRing index={completedPeriods} count={totalPeriods} />
       </div>
-      <p className="mt-1.5 truncate text-sm text-muted-foreground">
+      <p className="mt-1.5 text-sm text-muted-foreground">
         {amount ? (
           <>
             <span className="font-bold text-foreground">
