@@ -579,6 +579,7 @@ function ForfeitTaskCard({
   // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
   // finished item from one still in progress, not just repeating plans.
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
+  const showMenu = !isPendingSync && outcome !== "failed" && outcome !== "overdue";
 
   return (
     <div className="relative rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
@@ -594,7 +595,7 @@ function ForfeitTaskCard({
           </span>
         </div>
       ) : null}
-      {!isPendingSync && outcome !== "failed" && outcome !== "overdue" ? (
+      {showMenu ? (
         <div className="absolute right-1.5 top-1.5">
           <ForfeitCardMenu onDiscontinue={onDiscontinue} />
         </div>
@@ -603,11 +604,15 @@ function ForfeitTaskCard({
       {/* Title and the sentence below it are siblings — one thought split
           across two lines — so they sit close together. The progress row
           above is a different kind of information (which day this is, not
-          what happened), so it gets more room before the title starts. */}
+          what happened), so it gets more room before the title starts.
+          No truncate: the card grows to fit a long title on a second line
+          instead of clipping it, and the menu button (when shown without a
+          progress row above it) gets right padding so wrapped text never
+          runs under it. */}
       <p
         className={cn(
-          showProgress ? "mt-0.5" : "",
-          "truncate text-xl font-black leading-tight text-foreground",
+          showProgress ? "mt-0.5" : showMenu ? "pr-8" : "",
+          "text-lg font-black leading-snug text-foreground",
         )}
       >
         {item.title || "Untitled forfeit"}
@@ -671,7 +676,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
 
   return (
     <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className="relative shrink-0">
           <UserAvatar
             address={item.creatorWallet}
@@ -688,7 +693,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           <p className={cn("text-[10px] font-black uppercase tracking-wide", labelColor)}>
             {label}
           </p>
-          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-base font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
@@ -784,7 +789,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
 
   return (
     <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <UserAvatar
           address={item.creatorWallet}
           username={item.otherPartyUsername}
@@ -795,7 +800,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
           <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
             If they miss it
           </p>
-          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-base font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
