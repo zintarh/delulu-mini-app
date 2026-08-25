@@ -330,11 +330,11 @@ export function ProofModal({
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className="relative flex h-52 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border bg-white transition-all"
+                className="relative flex h-52 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border bg-card transition-all"
                 style={{
                   background: isDragging
-                    ? "radial-gradient(ellipse at 50% 50%, rgba(79,70,229,0.08) 0%, transparent 70%), #ffffff"
-                    : "#ffffff",
+                    ? "radial-gradient(ellipse at 50% 50%, rgba(79,70,229,0.08) 0%, transparent 70%), rgb(var(--card))"
+                    : undefined,
                 }}
               >
                 {isDragging && (

@@ -355,7 +355,7 @@ function LeaderboardContent({ challengeId, challenge }: { challengeId: number | 
                   setEditingPoints(null);
                   setPointsInput("");
                 }}
-                className="px-3 py-2 text-xs font-semibold rounded-md border border-gray-300"
+                className="px-3 py-2 text-xs font-semibold rounded-md border border-border"
               >
                 Cancel
               </button>

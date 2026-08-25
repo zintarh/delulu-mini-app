@@ -115,7 +115,6 @@ export function NavbarProfileMenu({
   // Use live Supabase pfp (via batch cache) → fall back to store → default
   // Gated on `authenticated` so a logged-out user never sees a stale/cached picture.
   const resolvedPfp = authenticated ? pfpFromCache || user?.pfpUrl || null : null;
-  const avatarSrc = resolvedPfp ?? DEFAULT_AVATAR;
   const displayName =
     user?.displayName?.trim() ||
     (user?.username ? user.username : null) ||
@@ -150,7 +149,16 @@ export function NavbarProfileMenu({
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <TriggerAvatar src={avatarSrc} size={triggerSize} />
+        {authenticated && walletAddress ? (
+          <UserAvatar
+            address={walletAddress}
+            username={user?.username}
+            pfpUrl={resolvedPfp}
+            size={triggerSize}
+          />
+        ) : (
+          <TriggerAvatar src={DEFAULT_AVATAR} size={triggerSize} />
+        )}
         <ChevronDown
           className={cn(
             "shrink-0 text-muted-foreground transition-transform duration-200",
@@ -183,7 +191,7 @@ export function NavbarProfileMenu({
                       className="shrink-0"
                     />
                   ) : (
-                    <TriggerAvatar src={avatarSrc} size={48} />
+                    <TriggerAvatar src={DEFAULT_AVATAR} size={48} />
                   )}
                   <div className="min-w-0 flex-1 pt-0.5">
                     <p className="truncate text-[15px] font-bold leading-tight text-foreground">

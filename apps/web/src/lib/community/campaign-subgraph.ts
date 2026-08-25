@@ -2,7 +2,10 @@ import { getSubgraphUrlForChain } from "@/lib/constant";
 import { CELO_MAINNET_ID, isLeaderboardBlacklisted, isGoodDollarToken } from "@/lib/constant";
 import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
 import { weiToTokenAmount } from "@/lib/token-amounts";
-import { FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE } from "@/lib/dashboard/campaign-constants";
+import {
+  FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE,
+  FORFEIT_STAKED_MIN_WHOLE,
+} from "@/lib/dashboard/campaign-constants";
 
 export type CommunityCampaignLeaderboardRow = {
   rank: number;
@@ -486,6 +489,156 @@ export async function fetchForfeitCampaignLeaderboardFromGraph(
       qualifying_count: v.count,
       last_event_at: v.lastEventAt || null,
     }));
+  } catch {
+    return [];
+  }
+}
+
+const FORFEIT_STAKED_QUERY = `
+  query ForfeitStakedCommitments($minStake: BigInt!, $first: Int!, $skip: Int!) {
+    forfeitCommitments(
+      where: { stakeAmount_gte: $minStake }
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      commitmentId
+      creatorAddress
+      token
+      stakeAmount
+      destinationType
+      destinationAddr
+      cadence
+      periodSeconds
+      totalPeriods
+      currentPeriodDeadline
+      active
+      cancelled
+      createdAt
+      resolutions(first: 1, orderBy: createdAt, orderDirection: desc) {
+        outcome
+      }
+    }
+  }
+`;
+
+type ForfeitStakedRow = {
+  commitmentId: string;
+  creatorAddress: string;
+  token: string;
+  stakeAmount: string;
+  destinationType: number;
+  destinationAddr: string | null;
+  cadence: number;
+  periodSeconds: string;
+  totalPeriods: number;
+  currentPeriodDeadline: string;
+  active: boolean;
+  cancelled: boolean;
+  createdAt: string;
+  resolutions: Array<{ outcome: string }>;
+};
+
+export type ForfeitStakedEntryStatus = "active" | "failed";
+
+export type ForfeitStakedEntryRow = {
+  commitment_id: number;
+  wallet_address: string;
+  username: string | null;
+  staked_amount: number;
+  status: ForfeitStakedEntryStatus;
+  destination_type: number;
+  destination_addr: string | null;
+  /** Only meaningful when destination_type is CommunityPool (3) — resolved
+   *  against Supabase forfeit_commitments.is_charity_intent downstream, since
+   *  "Charity" and "Delulu" are the same on-chain destination. */
+  destination_kind: "self" | "charity" | "friend" | "delulu";
+  duration_seconds: number;
+  created_at: number;
+};
+
+async function fetchAllForfeitStakedRows(minStakeWei: bigint): Promise<ForfeitStakedRow[]> {
+  const pageSize = 1000;
+  const all: ForfeitStakedRow[] = [];
+  for (let skip = 0; skip < 10_000; skip += pageSize) {
+    const data = await fetchSubgraph<{ forfeitCommitments?: ForfeitStakedRow[] }>(
+      FORFEIT_STAKED_QUERY,
+      { minStake: minStakeWei.toString(), first: pageSize, skip },
+    );
+    const batch = data.forfeitCommitments ?? [];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return all;
+}
+
+function forfeitDestinationKind(destinationType: number): "self" | "charity" | "friend" | "delulu" {
+  switch (destinationType) {
+    case 0:
+      return "self";
+    case 1:
+      return "charity";
+    case 2:
+      return "friend";
+    default:
+      return "delulu";
+  }
+}
+
+/**
+ * Forfeit "20,000+ G$" activity: every G$ Forfeit commitment whose stake is
+ * FORFEIT_STAKED_MIN_WHOLE+, active or already forfeited (deadline missed or
+ * cancelled). Successfully-completed commitments (stake returned to creator)
+ * are excluded — this is about who's currently at risk or already lost, not
+ * a full history. One row per commitment, not aggregated per wallet, since
+ * destination/status/duration are per-commitment.
+ */
+export async function fetchForfeitStakedLeaderboardFromGraph(): Promise<
+  ForfeitStakedEntryRow[]
+> {
+  try {
+    const minStakeWei = BigInt(FORFEIT_STAKED_MIN_WHOLE) * 10n ** 18n;
+    const rows = await fetchAllForfeitStakedRows(minStakeWei);
+
+    const entries: ForfeitStakedEntryRow[] = [];
+    for (const row of rows) {
+      if (!isGoodDollarToken(row.token)) continue;
+      if (BigInt(row.stakeAmount || "0") < minStakeWei) continue;
+
+      let status: ForfeitStakedEntryStatus;
+      if (row.active) {
+        status = "active";
+      } else if (row.cancelled) {
+        status = "failed";
+      } else if (row.resolutions[0]?.outcome === "forfeited") {
+        status = "failed";
+      } else {
+        // Ended via a successful final period (stake returned) — not forfeit activity.
+        continue;
+      }
+
+      const periodSeconds = Number(row.periodSeconds || "0");
+      const durationSeconds =
+        row.cadence === 0 || periodSeconds === 0
+          ? Math.max(0, Number(row.currentPeriodDeadline) - Number(row.createdAt))
+          : periodSeconds * row.totalPeriods;
+
+      entries.push({
+        commitment_id: Number(row.commitmentId),
+        wallet_address: row.creatorAddress.toLowerCase(),
+        username: null,
+        staked_amount: weiToTokenAmount(row.stakeAmount, row.token),
+        status,
+        destination_type: row.destinationType,
+        destination_addr: row.destinationAddr ? row.destinationAddr.toLowerCase() : null,
+        destination_kind: forfeitDestinationKind(row.destinationType),
+        duration_seconds: durationSeconds,
+        created_at: Number(row.createdAt ?? "0"),
+      });
+    }
+
+    return entries;
   } catch {
     return [];
   }

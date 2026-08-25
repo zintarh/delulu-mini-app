@@ -620,7 +620,7 @@ export function CommunityCampaignDetail({
 
             {/* ── MILESTONES — front and centre ── */}
             <section className="mt-6 px-5 lg:px-3">
-              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5">
+              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5 dark:bg-accent">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -736,7 +736,7 @@ export function CommunityCampaignDetail({
               ════════════════════════════════════════════ */
           <>
             {/* Action card — simplified for non-joined */}
-            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-6 shadow-lg lg:mx-3">
+            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-6 shadow-lg lg:mx-3 dark:bg-accent">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -926,7 +926,7 @@ export function CommunityCampaignDetail({
 
             {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
             <section className="mt-8 px-5 lg:px-3">
-              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5">
+              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5 dark:bg-accent">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -967,7 +967,7 @@ export function CommunityCampaignDetail({
               </h2>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {/* 1 — Earn points (lead with the win) */}
-                <div className="rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-5">
+                <div className="rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-5 dark:bg-accent">
                   <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
                     <Star className="h-5 w-5" />
                   </div>
@@ -1104,7 +1104,7 @@ export function CommunityCampaignDetail({
                     key={row.wallet_address}
                     className={cn(
                       "flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4 last:border-0",
-                      isMe && "bg-delulu-blue-light/50",
+                      isMe && "bg-delulu-blue-light/50 dark:bg-accent",
                       inZone && !isMe && "bg-[#fffbeb]/60 dark:bg-amber-950/25",
                     )}
                   >
@@ -1180,7 +1180,7 @@ export function CommunityCampaignDetail({
                 type="button"
                 onClick={() => void handleClaimReward()}
                 disabled={claimBusy}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-delulu-charcoal py-3 text-sm font-bold text-white disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
                 {claimBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {claimBusy ? "Claiming…" : "Claim reward"}

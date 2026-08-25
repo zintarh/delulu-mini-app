@@ -8,6 +8,10 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
 import { getKeeperStatus, resolveCommitmentForfeitedAsKeeper } from "@/lib/celo/forfeit-keeper";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
+import { getTokenSymbol, weiToTokenAmount } from "@/lib/token-amounts";
+import { creditProfileEarnedFromToken } from "@/lib/profile-earned";
+import { normalizeMarketingAppUrl } from "@/lib/marketing-email-template";
+import { sendRewardNotificationEmail } from "@/lib/email/send-reward-notification";
 
 async function fetchGraph(url: string, query: string, variables: Record<string, unknown>) {
   const res = await fetch(url, {
@@ -56,6 +60,28 @@ const RECENT_FORFEITED_QUERY = `
   }
 `;
 
+// Separate from RECENT_FORFEITED_QUERY: FriendRewardCredited fires from both
+// resolveCommitmentForfeited (deadline miss) and cancelCommitment (voluntary),
+// but cancelCommitment never creates a ForfeitPeriodResolution row — so relying
+// on that entity alone would miss friend rewards from cancellations.
+const RECENT_FRIEND_REWARDS_QUERY = `
+  query RecentFriendRewards {
+    forfeitFriendRewards(
+      first: 100
+      orderBy: createdAt
+      orderDirection: desc
+    ) {
+      id
+      commitmentId
+      recipientAddress
+      token
+      amount
+      txHash
+      createdAt
+    }
+  }
+`;
+
 /**
  * Backstop keeper + resolution sync, run on a schedule (see vercel.json).
  *
@@ -68,6 +94,11 @@ const RECENT_FORFEITED_QUERY = `
  *    third-party keeper, or a public caller) from the subgraph into Supabase
  *    and notifies the creator — covers all three triggers uniformly instead
  *    of only reacting to this cron's own transactions.
+ * 3) Syncs any new Friend-destination reward credits into Supabase (idempotent
+ *    by subgraph event id) and emails/push-notifies the recipient — the stake
+ *    itself was already credited on-chain the instant the forfeiture resolved
+ *    (see ForfeitMarket.claimFriendReward); this step is purely notification +
+ *    the leaderboard "earned" credit, not a money movement.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -162,6 +193,107 @@ export async function GET(req: NextRequest) {
       notified += result.sent;
     }
 
+    // ── 3) Sync new Friend-destination reward credits + notify recipients ──
+    const friendResp = await fetchGraph(subgraphUrl, RECENT_FRIEND_REWARDS_QUERY, {});
+    const friendRewards: Array<{
+      id: string;
+      commitmentId: string;
+      recipientAddress: string;
+      token: string;
+      amount: string;
+      txHash: string;
+      createdAt: string;
+    }> = friendResp?.data?.forfeitFriendRewards ?? [];
+
+    const appUrl = normalizeMarketingAppUrl(
+      process.env.NEXT_PUBLIC_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://www.staydelulu.xyz",
+    );
+
+    let friendRewardsSynced = 0;
+    let friendRewardsNotified = 0;
+    let friendRewardsEmailed = 0;
+    for (const r of friendRewards) {
+      const recipientAddress = r.recipientAddress.toLowerCase();
+      const tokenAddress = r.token.toLowerCase();
+      const amountNum = weiToTokenAmount(r.amount, tokenAddress);
+      const tokenSymbol = getTokenSymbol(tokenAddress);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, username")
+        .ilike("address", recipientAddress)
+        .maybeSingle();
+      const profileEmail = profile?.email?.trim().toLowerCase() ?? "";
+      const hasRealEmail =
+        !!profileEmail && profileEmail.includes("@") && !profileEmail.endsWith("@wallet.local");
+      const recipientUsername = profile?.username?.trim() || null;
+
+      // Idempotent insert on the subgraph event id — a duplicate insert means
+      // this row was already processed by a prior cron run, so skip it.
+      const { error: insertError } = await supabase.from("forfeit_friend_rewards").insert({
+        id: r.id,
+        commitment_id: Number(r.commitmentId),
+        recipient_address: recipientAddress,
+        recipient_username: recipientUsername,
+        recipient_email: hasRealEmail ? profileEmail : null,
+        token_address: tokenAddress,
+        token_symbol: tokenSymbol,
+        amount: amountNum,
+        amount_wei: r.amount,
+        tx_hash: r.txHash,
+        credited_at: new Date(Number(r.createdAt) * 1000).toISOString(),
+        email_sent: false,
+      });
+      if (insertError) continue; // already synced (or a real DB error — either way, not retryable here)
+      friendRewardsSynced++;
+
+      if (amountNum > 0) {
+        await creditProfileEarnedFromToken({
+          address: recipientAddress,
+          amount: amountNum,
+          tokenAddress,
+        });
+      }
+
+      const pushResult = await notifyManyRecipients(supabase, [recipientAddress], {
+        title: "You received a forfeit reward",
+        body: "A friend missed their commitment — their stake is ready for you to claim.",
+        url: "/rewards",
+        type: "forfeit_friend_reward",
+        message: "A friend missed their commitment — their stake is ready for you to claim.",
+        eventKeyFor: (addr) => `forfeit_friend_reward:${r.id}:${addr}`,
+      });
+      friendRewardsNotified += pushResult.sent;
+
+      if (hasRealEmail) {
+        const username =
+          recipientUsername || `${recipientAddress.slice(0, 6)}…${recipientAddress.slice(-4)}`;
+        const amountLabel = amountNum.toLocaleString(undefined, { maximumFractionDigits: 6 });
+        try {
+          await sendRewardNotificationEmail(profileEmail, {
+            username,
+            amountLabel,
+            tokenSymbol,
+            appUrl,
+            claimUrl: `${appUrl}/rewards`,
+            reason: "a friend's forfeited commitment",
+          });
+          await supabase
+            .from("forfeit_friend_rewards")
+            .update({ email_sent: true, email_error: null })
+            .eq("id", r.id);
+          friendRewardsEmailed++;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(`[forfeit-deadline-check] friend reward email failed for ${r.id}:`, err);
+          await supabase
+            .from("forfeit_friend_rewards")
+            .update({ email_sent: false, email_error: message.slice(0, 500) })
+            .eq("id", r.id);
+        }
+      }
+    }
+
     return jsonResponse({
       ok: true,
       nowSec,
@@ -173,6 +305,10 @@ export async function GET(req: NextRequest) {
       recentForfeitedFound: recent.length,
       synced,
       notified,
+      friendRewardsFound: friendRewards.length,
+      friendRewardsSynced,
+      friendRewardsNotified,
+      friendRewardsEmailed,
     });
   } catch (e: any) {
     return errorResponse(e?.message ?? "Cron failed", 500);

@@ -211,7 +211,7 @@ function ProfileHeader({
             type="button"
             onClick={openPfpPicker}
             disabled={isPfpUploading}
-            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#35d07f] border-2 border-background flex items-center justify-center shadow"
+            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-delulu-green border-2 border-background flex items-center justify-center shadow"
             aria-label="Change photo"
           >
             <Camera className="w-3 h-3 text-white" />
@@ -237,7 +237,7 @@ function ProfileHeader({
           >
             <span className="font-mono">{formatAddress(address)}</span>
             {copied ? (
-              <Check className="w-3 h-3 text-[#35d07f]" />
+              <Check className="w-3 h-3 text-delulu-green" />
             ) : (
               <Copy className="w-3 h-3" />
             )}

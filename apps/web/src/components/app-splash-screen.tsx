@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { AppLogo } from "@/components/app-logo";
 import { cn } from "@/lib/utils";
 
 // Keeps the splash up long enough to read as intentional even on a fast
@@ -12,10 +12,9 @@ const FADE_MS = 300;
 
 /**
  * Brand splash shown while the app boots on every launch, like a native
- * app's launch screen. Swaps light/dark logo via Tailwind's `dark:` class
- * variant (same mechanism next-themes drives the rest of the app with), so
- * it stays correct even though dark mode is currently forced off sitewide —
- * no extra work needed when that's re-enabled.
+ * app's launch screen. Uses the SVG app mark (theme-aware via CSS vars),
+ * so it stays correct even though dark mode is currently forced off
+ * sitewide — no extra work needed when that's re-enabled.
  */
 export function AppSplashScreen() {
   const [visible, setVisible] = useState(true);
@@ -58,22 +57,7 @@ export function AppSplashScreen() {
       )}
       style={{ transitionDuration: `${FADE_MS}ms` }}
     >
-      <Image
-        src="/logo-light-mode.png"
-        alt="Delulu"
-        width={240}
-        height={240}
-        priority
-        className="h-24 w-24 animate-logo-pulse dark:hidden"
-      />
-      <Image
-        src="/logo-dark-mode.png"
-        alt="Delulu"
-        width={240}
-        height={240}
-        priority
-        className="hidden h-24 w-24 animate-logo-pulse dark:block"
-      />
+      <AppLogo size={96} className="h-24 w-24 animate-logo-pulse" />
     </div>
   );
 }

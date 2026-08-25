@@ -5,9 +5,10 @@ import {
   ProofSubmitted as ProofSubmittedEvent,
   PeriodResolvedSuccess as PeriodResolvedSuccessEvent,
   PeriodResolvedForfeited as PeriodResolvedForfeitedEvent,
+  FriendRewardCredited as FriendRewardCreditedEvent,
   CommitmentCancelled as CommitmentCancelledEvent,
 } from "../generated/ForfeitMarket/ForfeitMarket"
-import { ForfeitCommitment, ForfeitPeriodResolution, User } from "../generated/schema"
+import { ForfeitCommitment, ForfeitPeriodResolution, ForfeitFriendReward, User } from "../generated/schema"
 
 // Entity IDs for ForfeitMarket are prefixed with "fm1-", following the same
 // per-datasource convention CommunityMarketV1 uses ("cm1-"), so a Forfeit
@@ -141,6 +142,27 @@ export function handleFMPeriodResolvedForfeited(event: PeriodResolvedForfeitedEv
   // A single forfeited period ends the whole commitment (see ForfeitMarket.sol).
   commitment.active = false
   commitment.save()
+}
+
+// Fires from _distributeForfeitedStake for Friend destinations, regardless of
+// whether the forfeiture came from resolveCommitmentForfeited (deadline miss)
+// or cancelCommitment (voluntary) — unlike ForfeitPeriodResolution, which
+// cancelCommitment never creates, so this is the only reliable place to catch
+// "a friend was just credited" for both paths.
+export function handleFMFriendRewardCredited(event: FriendRewardCreditedEvent): void {
+  let commitment = ForfeitCommitment.load(fmId(event.params.commitmentId))
+  if (commitment == null) return
+
+  let rewardId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  let reward = new ForfeitFriendReward(rewardId)
+  reward.commitment = commitment.id
+  reward.commitmentId = event.params.commitmentId
+  reward.recipientAddress = event.params.recipient.toHexString().toLowerCase()
+  reward.token = event.params.token
+  reward.amount = event.params.amount
+  reward.txHash = event.transaction.hash
+  reward.createdAt = event.block.timestamp
+  reward.save()
 }
 
 export function handleFMCommitmentCancelled(event: CommitmentCancelledEvent): void {

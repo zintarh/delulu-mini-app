@@ -68,3 +68,10 @@ export const FORFEIT_CAMPAIGN_END_UNIX = Math.floor(
 export const FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE = 1_000;
 export const FORFEIT_CAMPAIGN_POOL_USD = 50;
 export const FORFEIT_CAMPAIGN_TOP_N = 5;
+
+/**
+ * Leaderboard "Forfeit" tab: wallets with FORFEIT_STAKED_MIN_WHOLE+ G$ currently
+ * locked across their active (non-cancelled) Forfeit commitments — summed per
+ * wallet across multiple commitments, not a single-commitment minimum.
+ */
+export const FORFEIT_STAKED_MIN_WHOLE = 20_000;

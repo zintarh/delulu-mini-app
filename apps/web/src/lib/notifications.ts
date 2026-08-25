@@ -15,7 +15,8 @@ export type NotificationType =
   | "forfeit_resolved"
   | "forfeit_verifier_tagged"
   | "forfeit_proof_submitted"
-  | "forfeit_destination_tagged";
+  | "forfeit_destination_tagged"
+  | "forfeit_friend_reward";
 
 export interface CreateNotificationInput {
   recipientAddress: string;

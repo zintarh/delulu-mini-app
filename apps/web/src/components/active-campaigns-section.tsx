@@ -103,7 +103,7 @@ export function ActiveCampaignsSection({
   if (all.length === 0) {
     if (!showEmpty) return null;
     return (
-      <div className="flex flex-col items-center rounded-3xl border border-white bg-white px-5 py-12 text-center shadow-sm">
+      <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 py-12 text-center shadow-sm">
         <p
           className="text-lg font-bold tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-manrope)" }}
@@ -112,7 +112,7 @@ export function ActiveCampaignsSection({
         </p>
         <Link
           href="/explore"
-          className="mt-5 rounded-full bg-delulu-charcoal px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          className="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90"
         >
           Explore campaigns
         </Link>

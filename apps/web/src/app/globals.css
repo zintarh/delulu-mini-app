@@ -81,25 +81,28 @@ body {
   --delulu-blue-light: #eff6ff;
   --delulu-blue-border: #bfdbfe;
 
-  --background: #f9f8f4;
-  --foreground: #1a1a19;
-  --card: #f9f8f4;
-  --card-foreground: #1a1a19;
-  --popover: #f9f8f4;
-  --popover-foreground: #1a1a19;
-  --primary: #1a1a19;
-  --primary-foreground: #f9f8f4;
-  --secondary: #dfdfd9;
-  --secondary-foreground: #1a1a19;
-  --muted: #dfdfd9;
-  --muted-foreground: #5c5c58;
-  --accent: var(--delulu-blue-light);
-  --accent-foreground: #1d4ed8;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #d4d4ce;
-  --input: #d4d4ce;
-  --ring: var(--delulu-blue);
+  /* Semantic tokens below are space-separated RGB triplets (not hex) — see
+     the comment in tailwind.config.js. Any raw `var(--x)` usage in CSS
+     (rather than through a Tailwind class) must wrap it as `rgb(var(--x))`. */
+  --background: 249 248 244;
+  --foreground: 26 26 25;
+  --card: 249 248 244;
+  --card-foreground: 26 26 25;
+  --popover: 249 248 244;
+  --popover-foreground: 26 26 25;
+  --primary: 26 26 25;
+  --primary-foreground: 249 248 244;
+  --secondary: 223 223 217;
+  --secondary-foreground: 26 26 25;
+  --muted: 223 223 217;
+  --muted-foreground: 92 92 88;
+  --accent: 239 246 255; /* = --delulu-blue-light (#eff6ff); inlined since this var is now RGB-triplet-only */
+  --accent-foreground: 29 78 216;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 212 212 206;
+  --input: 212 212 206;
+  --ring: 37 99 235; /* = --delulu-blue (#2563eb); inlined for the same reason */
   --chart-1: var(--delulu-blue);
   --chart-2: #1d4ed8;
   --chart-3: #1e40af;
@@ -140,32 +143,42 @@ body {
 }
 
 .dark {
-  --background: #121211;
-  --foreground: #f2f1ec;
-  --card: #1c1c1a;
-  --card-foreground: #f2f1ec;
-  --popover: #1c1c1a;
-  --popover-foreground: #f2f1ec;
-  --primary: #f2f1ec;
-  --primary-foreground: #1a1a19;
-  --secondary: #2a2a27;
-  --secondary-foreground: #f2f1ec;
-  --muted: #2a2a27;
-  --muted-foreground: #a3a39c;
-  --accent: #1e2a3f;
-  --accent-foreground: #93c5fd;
-  --destructive: #f87171;
-  --destructive-foreground: #1a1a19;
-  --border: #33332f;
-  --input: #33332f;
-  --ring: #3b82f6;
+  --background: 18 18 17;
+  /* Dimmed from 242 241 236 (#f2f1ec) — full-brightness text (esp. bold
+     800-weight headings) read as too harsh/glowing against the near-black
+     background. */
+  --foreground: 228 225 215;
+  --card: 28 28 26;
+  --card-foreground: 228 225 215;
+  --popover: 28 28 26;
+  --popover-foreground: 228 225 215;
+  --primary: 242 241 236;
+  --primary-foreground: 26 26 25;
+  --secondary: 42 42 39;
+  --secondary-foreground: 242 241 236;
+  --muted: 42 42 39;
+  --muted-foreground: 163 163 156;
+  --accent: 30 42 63;
+  --accent-foreground: 147 197 253;
+  --destructive: 248 113 113;
+  --destructive-foreground: 26 26 25;
+  --border: 51 51 47;
+  --input: 51 51 47;
+  --ring: 59 130 246;
+  /* Delulu brand blue's pale tint/border, redefined for dark surfaces —
+     used throughout as a "selected/highlighted" fill (SheetListRow, status
+     badges, active nav items). Without this override it stays #eff6ff in
+     dark mode since delulu-blue-light/border are brand colors, not part of
+     the semantic light/dark token set. */
+  --delulu-blue-light: #1e2a3f;
+  --delulu-blue-border: #33475f;
   --chart-1: #3b82f6;
   --chart-2: #60a5fa;
   --chart-3: #93c5fd;
   --chart-4: #bfdbfe;
   --chart-5: #dbeafe;
   --sidebar: #1c1c1a;
-  --sidebar-foreground: #f2f1ec;
+  --sidebar-foreground: #e4e1d7;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #0b1220;
   --sidebar-accent: #1e2a3f;
@@ -200,7 +213,7 @@ body {
   font-size: 14px;
   font-weight: 400;
   line-height: 24px;
-  color: var(--foreground);
+  color: rgb(var(--foreground));
 }
 
 @media (min-width: 1024px) {
@@ -229,7 +242,7 @@ h6 {
   font-size: 20px;
   font-weight: 800;
   line-height: 24px;
-  color: var(--foreground);
+  color: rgb(var(--foreground));
 }
 
 /* Custom color utilities for Tailwind */
@@ -257,6 +270,9 @@ h6 {
   }
   .bg-delulu-blue-light {
     background-color: var(--delulu-blue-light);
+  }
+  .border-delulu-blue-border {
+    border-color: var(--delulu-blue-border);
   }
   .text-delulu-blue {
     color: var(--delulu-blue);
@@ -305,16 +321,16 @@ h6 {
 
   /* Neo-brutalist shadow (uses --border) */
   .shadow-neo {
-    box-shadow: 3px 3px 0 0 var(--border);
+    box-shadow: 3px 3px 0 0 rgb(var(--border));
   }
   .shadow-neo-sm {
-    box-shadow: 2px 2px 0 0 var(--border);
+    box-shadow: 2px 2px 0 0 rgb(var(--border));
   }
   .hover\:shadow-neo:hover {
-    box-shadow: 4px 4px 0 0 var(--border);
+    box-shadow: 4px 4px 0 0 rgb(var(--border));
   }
   .hover\:shadow-neo-sm:hover {
-    box-shadow: 3px 3px 0 0 var(--border);
+    box-shadow: 3px 3px 0 0 rgb(var(--border));
   }
 
   /* Home page gradient background - Light version */
@@ -538,10 +554,10 @@ textarea {
 /* Custom Date Picker Styles */
 .rdp {
   --rdp-cell-size: 32px;
-  --rdp-accent-color: var(--foreground);
-  --rdp-background-color: var(--card);
-  --rdp-outline: 2px solid var(--foreground);
-  --rdp-outline-selected: 2px solid var(--foreground);
+  --rdp-accent-color: rgb(var(--foreground));
+  --rdp-background-color: rgb(var(--card));
+  --rdp-outline: 2px solid rgb(var(--foreground));
+  --rdp-outline-selected: 2px solid rgb(var(--foreground));
   margin: 0;
 }
 
@@ -563,20 +579,20 @@ textarea {
 .rdp-day {
   width: var(--rdp-cell-size);
   height: var(--rdp-cell-size);
-  color: var(--foreground);
+  color: rgb(var(--foreground));
 }
 
 /* Override any blue colors to yellow */
 .rdp-day_selected,
 .rdp-day_selected:focus-visible,
 .rdp-day_selected:hover {
-  background-color: var(--foreground) !important;
-  color: var(--background) !important;
+  background-color: rgb(var(--foreground)) !important;
+  color: rgb(var(--background)) !important;
 }
 
 .rdp-day:focus-visible {
-  background-color: var(--foreground) !important;
-  color: var(--background) !important;
+  background-color: rgb(var(--foreground)) !important;
+  color: rgb(var(--background)) !important;
 }
 
 .rdp-selected .rdp-day_button {
@@ -589,7 +605,7 @@ textarea {
   font-size: 1.5rem;
   line-height: 1;
   /* Use theme foreground color for nav icons */
-  color: var(--foreground);
+  color: rgb(var(--foreground));
 }
 
 .rdp-nav_button_next::before {
@@ -597,7 +613,7 @@ textarea {
   font-size: 1.5rem;
   line-height: 1;
   /* Use theme foreground color for nav icons */
-  color: var(--foreground);
+  color: rgb(var(--foreground));
 }
 
 .rdp-nav_button_previous svg,
@@ -607,15 +623,15 @@ textarea {
 
 /* Override chevron fill color - charcoal for visibility */
 .rdp-chevron {
-  fill: var(--foreground) !important;
+  fill: rgb(var(--foreground)) !important;
 }
 
 /* Override today indicator - charcoal underline instead of yellow text */
 .rdp-today:not(.rdp-outside) {
   font-weight: bold;
   text-decoration: underline;
-  text-decoration-color: var(--border);
-  color: var(--foreground) !important;
+  text-decoration-color: rgb(var(--border));
+  color: rgb(var(--foreground)) !important;
 }
 
 /* Custom Slider Styles - Light Theme */

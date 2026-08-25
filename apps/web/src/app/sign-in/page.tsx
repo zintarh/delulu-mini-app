@@ -10,6 +10,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
+import { Wordmark } from "@/components/wordmark";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
@@ -157,7 +158,7 @@ export default function SignInPage() {
 
   if (authenticated && routeState === "needs_ubi_claim") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-delulu-blue-light to-white p-6">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-delulu-blue-light to-white dark:from-background dark:to-background p-6">
         <div className="w-full max-w-md space-y-5">
           <div className="flex flex-col items-center gap-3 text-center">
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
@@ -194,14 +195,13 @@ export default function SignInPage() {
   // ── Sign-in form ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-delulu-blue-light to-white lg:grid lg:grid-cols-2">
+    <div className="min-h-screen bg-gradient-to-b from-delulu-blue-light to-white dark:from-background dark:to-background lg:grid lg:grid-cols-2">
       {/* Left panel — desktop only */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:bg-[#1a1a19] lg:p-12">
         <img src="/bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/50 to-[#1a1a19]" />
         <div className="relative z-10 flex items-center gap-2">
-          <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-9 w-9 rounded-xl" />
-          <span className="text-lg font-black text-white" style={{ fontFamily: '"Clash Display", sans-serif' }}>Delulu</span>
+          <Wordmark size={22} className="text-white" />
         </div>
         <div className="relative z-10 max-w-md">
           <h1 className="text-4xl font-black leading-tight text-white">

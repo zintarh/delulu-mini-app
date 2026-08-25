@@ -111,7 +111,7 @@ export default function JoinCommunityPage() {
           <button
             type="button"
             onClick={goToCommunity}
-            className="mt-2 rounded-xl bg-[#f6c324] px-6 py-2.5 text-sm font-black text-[#1a1a19]"
+            className="mt-2 rounded-xl bg-delulu-yellow px-6 py-2.5 text-sm font-black text-[#1a1a19]"
           >
             Continue to community
           </button>

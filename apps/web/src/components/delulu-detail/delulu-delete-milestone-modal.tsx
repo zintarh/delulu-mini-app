@@ -37,7 +37,7 @@ export function DeluluDeleteMilestoneModal({
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent className="max-w-md">
         <ModalHeader>
-          <ModalTitle className="text-delulu-charcoal text-xl font-bold">
+          <ModalTitle className="text-foreground text-xl font-bold">
             Delete
           </ModalTitle>
           <ModalDescription className="mt-2">

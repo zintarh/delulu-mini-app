@@ -389,7 +389,7 @@ export function CreateDelusionContent({
                         className={cn(
                           "rounded-full px-2 py-1.5 text-center text-[11px] font-semibold leading-tight transition-all sm:px-3 sm:py-2 sm:text-xs",
                           selected
-                            ? "bg-delulu-blue text-white"
+                            ? "bg-delulu-yellow-reserved text-delulu-charcoal"
                             : "bg-secondary text-foreground hover:bg-secondary/80",
                         )}
                       >

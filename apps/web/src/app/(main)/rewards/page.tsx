@@ -35,6 +35,7 @@ import {
   GOODDOLLAR_ADDRESSES,
   USDT_ADDRESSES,
   KNOWN_TOKEN_SYMBOLS,
+  REWARD_CLAIM_ENABLED,
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
 import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
@@ -396,7 +397,7 @@ export default function RewardsPage() {
               <div className="mt-5 flex gap-2.5">
                 <button
                   type="button"
-                  disabled={!hasAdminPending || isClaimingAdmin}
+                  disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
                   onClick={() => {
                     setSendOpen(false);
                     // Confetti fires inside claimAll on the first mined success.
@@ -404,7 +405,7 @@ export default function RewardsPage() {
                   }}
                   className={cn(
                     "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black text-white transition-all",
-                    hasAdminPending && !isClaimingAdmin
+                    REWARD_CLAIM_ENABLED && hasAdminPending && !isClaimingAdmin
                       ? "bg-delulu-blue active:scale-[0.98] hover:opacity-90"
                       : "bg-delulu-blue/40 cursor-not-allowed",
                   )}

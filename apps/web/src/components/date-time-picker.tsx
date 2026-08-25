@@ -89,22 +89,33 @@ export function DateTimePicker({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[280px] rounded-2xl border border-border/60 bg-card p-3 shadow-sm",
+        "relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[28px] border border-border/50 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]",
+        "bg-gradient-to-b from-delulu-blue-light/70 via-card to-card dark:from-delulu-blue/10 dark:via-card dark:to-card",
         className,
       )}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
+      {/* Soft accent glow — the thing that keeps this from reading as a plain OS calendar grid. */}
+      <div
+        className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full opacity-60 blur-2xl"
+        style={{
+          background:
+            "radial-gradient(circle, var(--delulu-blue) 0%, transparent 70%)",
+        }}
+        aria-hidden
+      />
+
+      <div className="relative mb-4 flex items-center justify-between gap-2">
         <button
           type="button"
           aria-label="Previous month"
           disabled={!canGoPrev}
           onClick={() => setVisibleMonth((m) => addMonths(m, -1))}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-delulu-charcoal text-white shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:pointer-events-none disabled:opacity-25"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
         </button>
         <p
-          className="text-[13px] font-bold tracking-tight text-foreground"
+          className="text-[15px] font-black tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
           {format(visibleMonth, "MMMM yyyy")}
@@ -114,24 +125,24 @@ export function DateTimePicker({
           aria-label="Next month"
           disabled={!canGoNext}
           onClick={() => setVisibleMonth((m) => addMonths(m, 1))}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-delulu-charcoal text-white shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:pointer-events-none disabled:opacity-25"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
 
-      <div className="mb-1 grid grid-cols-7 gap-0.5">
+      <div className="relative mb-1.5 grid grid-cols-7">
         {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
           <div
             key={`${label}-${i}`}
-            className="flex h-6 items-center justify-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70"
+            className="flex h-6 items-center justify-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/50"
           >
             {label}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="relative grid grid-cols-7 gap-y-1">
         {weeks.flatMap((week) =>
           week.map((day) => {
             const inMonth = isSameMonth(day, visibleMonth);
@@ -140,31 +151,35 @@ export function DateTimePicker({
             const today = isToday(day);
 
             return (
-              <button
-                key={day.toISOString()}
-                type="button"
-                disabled={disabled}
-                aria-label={format(day, "PPP")}
-                aria-pressed={selectedDay}
-                onClick={() => {
-                  if (disabled) return;
-                  onChange(toLocalEndOfDay(day));
-                  if (!isSameMonth(day, visibleMonth)) {
-                    setVisibleMonth(startOfMonth(day));
-                  }
-                }}
-                className={cn(
-                  "flex h-8 w-full items-center justify-center rounded-full text-[12px] font-semibold transition-colors",
-                  !inMonth && "text-muted-foreground/35",
-                  inMonth && !selectedDay && !disabled && "text-foreground hover:bg-muted",
-                  today && !selectedDay && inMonth && "ring-1 ring-delulu-charcoal/80",
-                  selectedDay &&
-                    "bg-delulu-charcoal font-bold text-white hover:bg-delulu-charcoal",
-                  disabled && "cursor-not-allowed text-muted-foreground/30",
-                )}
-              >
-                {format(day, "d")}
-              </button>
+              <div key={day.toISOString()} className="flex items-center justify-center">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-label={format(day, "PPP")}
+                  aria-pressed={selectedDay}
+                  onClick={() => {
+                    if (disabled) return;
+                    onChange(toLocalEndOfDay(day));
+                    if (!isSameMonth(day, visibleMonth)) {
+                      setVisibleMonth(startOfMonth(day));
+                    }
+                  }}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-bold transition-all duration-150",
+                    !inMonth && "text-muted-foreground/25",
+                    inMonth && !selectedDay && !disabled && "text-foreground hover:scale-105 hover:bg-delulu-blue/10",
+                    today && !selectedDay && inMonth && "bg-delulu-yellow-reserved/20 text-foreground",
+                    selectedDay &&
+                      "scale-105 bg-delulu-blue font-black text-white shadow-lg shadow-delulu-blue/40 hover:bg-delulu-blue",
+                    disabled && "cursor-not-allowed text-muted-foreground/20",
+                  )}
+                >
+                  {format(day, "d")}
+                  {today && !selectedDay ? (
+                    <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-delulu-blue" aria-hidden />
+                  ) : null}
+                </button>
+              </div>
             );
           }),
         )}

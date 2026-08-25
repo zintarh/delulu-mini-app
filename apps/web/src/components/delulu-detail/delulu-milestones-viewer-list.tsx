@@ -19,10 +19,10 @@ function statusMeta(
     return { label: "Completed", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
   }
   if (isOngoing && m.isSubmitted) {
-    return { label: "Under review", className: "bg-delulu-blue-light/80 text-delulu-blue border-delulu-blue-border" };
+    return { label: "Under review", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
   }
   if (isPast && m.isSubmitted) {
-    return { label: "In review", className: "bg-delulu-blue-light/80 text-delulu-blue border-delulu-blue-border" };
+    return { label: "In review", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
   }
   if (isPast) {
     return { label: "Expired", className: "bg-muted text-muted-foreground border-border" };
@@ -142,9 +142,9 @@ export function DeluluMilestonesViewerList({
                 className={cn(
                   "mb-4 min-w-0 flex-1 rounded-xl border p-3",
                   isOngoing
-                    ? "border-delulu-blue-border bg-delulu-blue-light/50"
+                    ? "border-delulu-blue-border bg-delulu-blue-light/50 dark:bg-accent"
                     : m.isVerified
-                      ? "border-delulu-blue-border/60 bg-card"
+                      ? "border-delulu-blue-border/60 bg-card dark:border-delulu-blue/20"
                       : "border-border/50 bg-muted/20",
                 )}
               >

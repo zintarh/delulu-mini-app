@@ -13,19 +13,20 @@ import {
   Image as ImageIcon,
   Loader2,
   MapPin,
-  ShieldCheck,
   Hourglass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
-import { DateTimePicker } from "@/components/date-time-picker";
+import { DurationDayStrip } from "@/components/forfeit/duration-day-strip";
 import { DeluluDetailHeader } from "@/components/delulu-detail/delulu-detail-header";
 import { useSupportedTokens } from "@/hooks/use-supported-tokens";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenMetadata } from "@/hooks/use-token-metadata";
 import { getForfeitMarketAddress, FORFEIT_CREATION_ENABLED } from "@/lib/constant";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
+import { formatUsdEquivalent } from "@/lib/token-amounts";
 import { TokenBadge } from "@/components/token-badge";
 import { FeedbackModal } from "@/components/feedback-modal";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -43,9 +44,7 @@ import {
   type PendingForfeitConfirm,
 } from "@/lib/forfeit/pending-forfeit-confirm";
 import {
-  FORFEIT_DEADLINE_PRESETS,
   addDays,
-  deadlineFromPreset,
   endOfDay,
   scheduleFromDeadline,
   startOfDay,
@@ -58,7 +57,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CLASH = { fontFamily: '"Clash Display", sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
 
-const DEADLINE_PRESETS = FORFEIT_DEADLINE_PRESETS;
+/** Adds thousands separators to a raw (unformatted) numeric string as the user types. */
+function formatAmountDraft(raw: string): string {
+  if (!raw) return "";
+  const [intPart, decPart] = raw.split(".");
+  const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decPart !== undefined ? `${intFormatted}.${decPart}` : intFormatted;
+}
 
 function formatAnytimeLabel(date: Date) {
   const today = startOfDay(new Date());
@@ -80,7 +85,6 @@ function formatAnytimeLabel(date: Date) {
 
 function normalizeEvidenceTypeForApi(evidenceId: string): string {
   if (evidenceId === "gps-checkin") return "gps";
-  if (evidenceId === "self") return "photo";
   return evidenceId;
 }
 
@@ -120,16 +124,6 @@ const EVIDENCE_TYPES: EvidenceType[] = [
     pillLabel: "live photo",
     sentenceSuffix: "of",
     placeholder: "Finishing a 20-minute workout",
-  },
-  {
-    id: "self",
-    title: "Self verify",
-    description: "Honestly confirm completion yourself",
-    icon: ShieldCheck,
-    sentencePrefix: "I'll",
-    pillLabel: "self-verify",
-    sentenceSuffix: "that I did",
-    placeholder: "Read for 30 minutes",
   },
   {
     id: "gps-checkin",
@@ -198,15 +192,6 @@ const DESTINATION_TYPE_BY_ID: Record<ForfeitDestinationId, number> = {
 
 const REPEAT_EVERY = ["day", "weekday", "week"] as const;
 
-const REPEAT_EVERY_OPTIONS: ReadonlyArray<{
-  id: (typeof REPEAT_EVERY)[number];
-  label: string;
-}> = [
-  { id: "day", label: "every day" },
-  { id: "weekday", label: "every weekday" },
-  { id: "week", label: "every week" },
-];
-
 const CADENCE_BY_REPEAT: Record<(typeof REPEAT_EVERY)[number], number> = {
   day: ForfeitCadence.Daily,
   weekday: ForfeitCadence.Weekday,
@@ -221,16 +206,12 @@ const ADDITIONAL_OPTIONS: ReadonlyArray<{
   {
     id: "remind",
     label: "Remind me 1 hour before deadline",
-    // Self-verify still has the same on-chain deadline as any other commitment
-    // (miss it and it forfeits, same as everyone else) — if anything, self-verify
-    // needs the reminder more, since there's no friend around to nudge you.
     excludeEvidence: [],
   },
   {
     id: "friend-verifier",
     label: "Allow friend as verifier",
-    // Self-verify already is the user confirming — no third-party verifier.
-    excludeEvidence: ["self"],
+    excludeEvidence: [],
   },
 ];
 
@@ -288,7 +269,7 @@ function SheetListRow({
         disabled
           ? "cursor-not-allowed border-border/40 bg-muted/30 opacity-70"
           : selected
-            ? "border-delulu-blue bg-delulu-blue-light/60"
+            ? "border-delulu-blue bg-accent"
             : "border-border/60 bg-card hover:bg-muted/40",
       )}
     >
@@ -356,7 +337,17 @@ export function ForfeitCreatePage() {
     endOfDay(addDays(new Date(), 6)),
   );
   const [deadlineLabel, setDeadlineLabel] = useState<string>("7 days");
-  const [submitAnytime, setSubmitAnytime] = useState(true);
+  // A short (sub-day) one-off duration, e.g. "30 min" — mutually exclusive
+  // with deadlineDate/cutoffTime; only offered when !isRepeat.
+  const [shortDurationSeconds, setShortDurationSeconds] = useState<number | null>(null);
+  // Raw input backing the short-goal duration — free-form value + unit
+  // instead of fixed presets, so any goal length is expressible.
+  const [shortGoalValue, setShortGoalValue] = useState("");
+  const [shortGoalUnit, setShortGoalUnit] = useState<"minutes" | "hours">("minutes");
+  // "Submit before HH:MM" — null means "submit anytime" (the default,
+  // rolling/end-of-day behavior). Only meaningful when shortDurationSeconds is null.
+  const [cutoffTime, setCutoffTime] = useState<{ hours: number; minutes: number } | null>(null);
+  const submitAnytime = cutoffTime === null;
   const minDeadlineDate = useMemo(() => startOfDay(new Date()), []);
   // Frozen at mount so the "cutoff each period" preview doesn't drift as the
   // user fills out the form — it should reflect when the schedule would start.
@@ -390,6 +381,23 @@ export function ForfeitCreatePage() {
   const [selectedToken, setSelectedToken] = useState<string>(
     () => supportedTokens.find((t) => t.symbol === "G$")?.address ?? supportedTokens[0]?.address ?? "",
   );
+  const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
+  const tokenDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        tokenDropdownRef.current &&
+        !tokenDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsTokenDropdownOpen(false);
+      }
+    };
+    if (isTokenDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isTokenDropdownOpen]);
 
   const [remindEnabled, setRemindEnabled] = useState(true);
   const [friendVerifierEnabled, setFriendVerifierEnabled] = useState(false);
@@ -415,7 +423,6 @@ export function ForfeitCreatePage() {
 
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [deadlineOpen, setDeadlineOpen] = useState(false);
-  const [everyOpen, setEveryOpen] = useState(false);
   const [amountOpen, setAmountOpen] = useState(false);
   const [destinationOpen, setDestinationOpen] = useState(false);
 
@@ -452,26 +459,26 @@ export function ForfeitCreatePage() {
 
   const additionalOptions = useMemo(
     () =>
-      ADDITIONAL_OPTIONS.filter((opt) => !opt.excludeEvidence.includes(evidenceId)),
-    [evidenceId],
+      ADDITIONAL_OPTIONS.filter((opt) => !opt.excludeEvidence.includes(evidenceId)).filter((opt) => {
+        if (shortDurationSeconds == null) return true;
+        // "Remind me 1 hour before deadline" can't work for a goal whose whole
+        // duration is under an hour — the reminder moment would land before
+        // (or at) creation. A named friend-verifier needs to notice and act
+        // inside the same short window as the creator — restrict both rather
+        // than offer something that won't realistically work.
+        if (opt.id === "remind") return false;
+        if (opt.id === "friend-verifier") return false;
+        return true;
+      }),
+    [evidenceId, shortDurationSeconds],
   );
-
-  // Self-verify clears friend-verifier state so it doesn't leak into submit —
-  // reminders stay available, since self-verify has the same real deadline.
-  useEffect(() => {
-    if (evidenceId !== "self") return;
-    setFriendVerifierEnabled(false);
-    setResolvedVerifier(null);
-    setVerifierUsername("");
-    setVerifierEmail("");
-  }, [evidenceId]);
 
   const { decimals: selectedTokenDecimals } = useTokenMetadata(selectedToken);
   const selectedTokenSymbol =
     supportedTokens.find((t) => t.address === selectedToken)?.symbol ?? "";
+  const { usd: gDollarUsdPrice } = useGoodDollarPrice();
 
-  const verificationMethod: "self" | "friend" | "ai" =
-    evidenceId === "self" ? "self" : friendVerifierEnabled ? "friend" : "ai";
+  const verificationMethod: "friend" | "ai" = friendVerifierEnabled ? "friend" : "ai";
 
   // Conflict of interest: if your verifier is also who your stake goes to on a
   // miss, they're financially better off never approving your proof. Not blocked
@@ -617,12 +624,11 @@ export function ForfeitCreatePage() {
   const amountLabel = `${forfeitAmount.toLocaleString()} ${selectedTokenSymbol}`;
   const placeholder = evidence.placeholder;
 
-  const repeatEveryLabel =
-    REPEAT_EVERY_OPTIONS.find((o) => o.id === repeatEvery)?.label ?? "every day";
-
   // Each period's on-chain cutoff lands one full period after creation, so its
   // time-of-day matches when the form was opened — not the final deadline's
-  // time-of-day (those only coincide for the last period).
+  // time-of-day (those only coincide for the last period). Once a specific
+  // "submit before" time is chosen, every period lands on that clock time
+  // instead, regardless of when the form was opened.
   const periodCutoffLabel = useMemo(() => {
     const schedule = scheduleFromDeadline({
       deadlineDate,
@@ -630,12 +636,13 @@ export function ForfeitCreatePage() {
       repeatEvery,
       now: formStartedAtRef.current,
       cadenceByRepeat: CADENCE_BY_REPEAT,
+      cutoffTime,
     });
     return new Date(schedule.firstDeadline * 1000).toLocaleTimeString(undefined, {
       hour: "numeric",
       minute: "2-digit",
     });
-  }, [deadlineDate, repeatEvery]);
+  }, [deadlineDate, repeatEvery, cutoffTime]);
 
   const openAmountSheet = () => {
     setAmountDraft(String(forfeitAmount));
@@ -647,6 +654,26 @@ export function ForfeitCreatePage() {
     if (!Number.isFinite(parsed) || parsed < minForfeitAmount) return;
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
+  };
+
+  const shortGoalMin = shortGoalUnit === "minutes" ? 5 : 1;
+
+  // Commits a short-goal value once it clears the minimum for its unit —
+  // called on every keystroke and on unit switch, so it silently no-ops
+  // while the field is empty or still below minimum rather than erroring.
+  const applyShortGoal = (raw: string, unit: "minutes" | "hours") => {
+    const n = Number(raw);
+    const min = unit === "minutes" ? 5 : 1;
+    if (raw === "" || !Number.isFinite(n) || n < min) return;
+    setShortDurationSeconds(unit === "minutes" ? n * 60 : n * 3600);
+    setCutoffTime(null);
+    setDeadlineLabel(`${n} ${unit === "minutes" ? "min" : n === 1 ? "hr" : "hrs"}`);
+    // A short one-off duration implies non-repeating — and "Remind 1 hour
+    // before deadline" / friend-verify are both hidden at this duration, so
+    // keep their stored values from quietly claiming otherwise.
+    setIsRepeat(false);
+    setRemindEnabled(false);
+    setFriendVerifierEnabled(false);
   };
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -661,7 +688,8 @@ export function ForfeitCreatePage() {
     setDescription("");
     setDeadlineDate(endOfDay(addDays(new Date(), 6)));
     setDeadlineLabel("7 days");
-    setSubmitAnytime(true);
+    setShortDurationSeconds(null);
+    setCutoffTime(null);
     setRepeatEvery("day");
     setForfeitAmount(1000);
     setAmountDraft("1000");
@@ -685,7 +713,6 @@ export function ForfeitCreatePage() {
     setFriendSearchLoading(false);
     setEvidenceOpen(false);
     setDeadlineOpen(false);
-    setEveryOpen(false);
     setAmountOpen(false);
     setDestinationOpen(false);
     setSubmitError(null);
@@ -810,6 +837,8 @@ export function ForfeitCreatePage() {
         isRepeat,
         repeatEvery,
         cadenceByRepeat: CADENCE_BY_REPEAT,
+        shortDurationSeconds: isRepeat ? undefined : (shortDurationSeconds ?? undefined),
+        cutoffTime,
       });
 
       const destinationAddr =
@@ -921,7 +950,11 @@ export function ForfeitCreatePage() {
           </p>
         </div>
 
-        {/* Repeat toggle + Every pill (same pattern as Duration) */}
+        {/* Repeat toggle + Every pill (same pattern as Duration) — a short
+            (sub-day) goal is inherently one-off, so repeating has no
+            meaning here and the whole section is hidden rather than just
+            defaulted off. */}
+        {shortDurationSeconds == null ? (
         <div className="mt-6 space-y-4">
           <label className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm">
             <div className="min-w-0">
@@ -952,9 +985,12 @@ export function ForfeitCreatePage() {
             <>
               <p className="text-[17px] font-semibold leading-relaxed text-foreground" style={MANROPE}>
                 Every{" "}
-                <PillButton onClick={() => setEveryOpen(true)}>
-                  {repeatEveryLabel.replace(/^every\s+/i, "")}
-                </PillButton>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-delulu-blue px-3 py-1.5 text-sm font-bold text-white shadow-sm"
+                  style={MANROPE}
+                >
+                  day
+                </span>
               </p>
               <p className="text-xs text-muted-foreground" style={MANROPE}>
                 <span className="font-semibold text-foreground/80">{deadlineLabel}</span>.
@@ -963,6 +999,7 @@ export function ForfeitCreatePage() {
             </>
           ) : null}
         </div>
+        ) : null}
 
         {additionalOptions.length > 0 ? (
           <div className="mt-6 space-y-2">
@@ -1009,7 +1046,7 @@ export function ForfeitCreatePage() {
               <div className="space-y-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm">
                 {resolvedVerifier ? (
                   <>
-                    <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
+                    <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-accent px-3.5 py-2.5">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <UserAvatar
                           address={resolvedVerifier.address}
@@ -1187,11 +1224,9 @@ export function ForfeitCreatePage() {
 
         <div className="mt-6 space-y-3 text-[12px] leading-relaxed text-muted-foreground" style={MANROPE}>
           <p>
-            {verificationMethod === "self"
-              ? "You confirm completion yourself — no AI check, no verifier."
-              : verificationMethod === "friend"
-                ? "Your named friend reviews your proof and confirms completion — not AI."
-                : "AI will verify your forfeit instantly."}
+            {verificationMethod === "friend"
+              ? "Your named friend reviews your proof and confirms completion — not AI."
+              : "AI will verify your forfeit instantly."}
           </p>
           
         </div>
@@ -1227,7 +1262,7 @@ export function ForfeitCreatePage() {
           className={cn(
             "mt-8 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-opacity",
             !isConnected || (canNext && !isBusy)
-              ? "bg-delulu-charcoal text-white hover:opacity-90"
+              ? "bg-primary text-primary-foreground hover:opacity-90"
               : "bg-muted text-muted-foreground opacity-60",
           )}
           style={MANROPE}
@@ -1299,108 +1334,127 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-4 text-center text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-3 text-center text-lg font-black text-foreground" style={CLASH}>
             Set duration
           </h2>
 
-          <div className="grid grid-cols-3 gap-2">
-            {DEADLINE_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => {
-                  const next = deadlineFromPreset(preset);
-                  setDeadlineDate(next);
-                  setDeadlineLabel(preset);
-                }}
-                className={cn(
-                  "rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors",
-                  deadlineLabel === preset
-                    ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                    : "border-border/60 bg-card text-foreground hover:bg-muted/40",
-                )}
-                style={MANROPE}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 flex flex-col items-center">
-            <p
-              className="mb-2 w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              style={MANROPE}
-            >
-              Or pick an end date
-            </p>
-            <DateTimePicker
-              value={deadlineDate}
-              onChange={(date) => {
-                if (!date) return;
-                setDeadlineDate(date);
-                setDeadlineLabel(formatAnytimeLabel(date));
+          <p
+            className="mb-1.5 w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            style={MANROPE}
+          >
+            Short goal
+          </p>
+          <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 focus-within:border-delulu-blue">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={shortGoalValue}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/\D/g, "");
+                setShortGoalValue(cleaned);
+                applyShortGoal(cleaned, shortGoalUnit);
               }}
-              minDate={minDeadlineDate}
-              className="max-w-[280px]"
+              placeholder={shortGoalUnit === "minutes" ? "15" : "1"}
+              className="w-full bg-transparent text-base font-bold text-foreground outline-none"
+              style={MANROPE}
             />
+            <div className="flex shrink-0 items-center gap-1 rounded-full bg-secondary p-1">
+              {(["minutes", "hours"] as const).map((unit) => (
+                <button
+                  key={unit}
+                  type="button"
+                  onClick={() => {
+                    setShortGoalUnit(unit);
+                    applyShortGoal(shortGoalValue, unit);
+                  }}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
+                    shortGoalUnit === unit
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  style={MANROPE}
+                >
+                  {unit === "minutes" ? "Min" : "Hr"}
+                </button>
+              ))}
+            </div>
           </div>
+          {shortGoalValue !== "" && Number(shortGoalValue) < shortGoalMin ? (
+            <p className="mt-1.5 text-xs font-medium text-destructive">
+              Minimum is {shortGoalUnit === "minutes" ? "5 minutes" : "1 hour"}
+            </p>
+          ) : null}
 
-          <label className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-            <span className="flex items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              Submit anytime
-            </span>
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={submitAnytime}
-              onClick={() => setSubmitAnytime((v) => !v)}
-              className={cn(
-                "flex h-5 w-5 items-center justify-center border transition-colors",
-                submitAnytime
-                  ? "border-delulu-blue bg-delulu-blue text-white"
-                  : "border-border bg-background",
-              )}
-            >
-              {submitAnytime ? <Check className="h-3.5 w-3.5" /> : null}
-            </button>
-          </label>
+          <p
+            className="mb-1.5 mt-3.5 w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            style={MANROPE}
+          >
+            Or ends on
+          </p>
+          <DurationDayStrip
+            value={deadlineDate}
+            onChange={(date) => {
+              setDeadlineDate(date);
+              setDeadlineLabel(formatAnytimeLabel(date));
+              if (shortDurationSeconds != null) setRemindEnabled(true);
+              setShortDurationSeconds(null);
+            }}
+            minDate={minDeadlineDate}
+            className="-mx-1 px-1"
+          />
+
+          {shortDurationSeconds == null ? (
+            <div className="mt-3.5 flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3">
+              <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-foreground" style={MANROPE}>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Submit anytime
+              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                {!submitAnytime ? (
+                  <input
+                    type="time"
+                    value={
+                      cutoffTime
+                        ? `${String(cutoffTime.hours).padStart(2, "0")}:${String(cutoffTime.minutes).padStart(2, "0")}`
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const [h, m] = e.target.value.split(":").map(Number);
+                      if (Number.isFinite(h) && Number.isFinite(m)) {
+                        setCutoffTime({ hours: h, minutes: m });
+                      }
+                    }}
+                    className="w-[92px] rounded-lg border border-border/60 bg-background px-2 py-1 text-sm font-semibold text-foreground outline-none focus:border-delulu-blue"
+                    style={MANROPE}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={submitAnytime}
+                  onClick={() => setCutoffTime((v) => (v === null ? { hours: 18, minutes: 0 } : null))}
+                  className={cn(
+                    "flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
+                    submitAnytime
+                      ? "border-delulu-blue bg-delulu-blue text-white"
+                      : "border-border bg-background",
+                  )}
+                >
+                  {submitAnytime ? <Check className="h-3.5 w-3.5" /> : null}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <button
             type="button"
             onClick={() => setDeadlineOpen(false)}
-            className="mt-5 w-full rounded-full bg-delulu-blue py-3 text-sm font-bold text-white"
+            className="mt-4 w-full rounded-full bg-delulu-blue py-3 text-sm font-bold text-white"
             style={MANROPE}
           >
             Save
           </button>
-        </div>
-      </ResponsiveSheet>
-
-      {/* Every sheet — same pill/dropdown pattern as Duration */}
-      <ResponsiveSheet
-        open={everyOpen}
-        onOpenChange={setEveryOpen}
-        title="Repeat every"
-        hideTitleVisually
-      >
-        <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-4 text-lg font-black text-foreground" style={CLASH}>
-            Repeat every
-          </h2>
-          <div className="space-y-2">
-            {REPEAT_EVERY_OPTIONS.map((opt) => (
-              <SheetListRow
-                key={opt.id}
-                title={opt.label}
-                selected={repeatEvery === opt.id}
-                onClick={() => {
-                  setRepeatEvery(opt.id);
-                  setEveryOpen(false);
-                }}
-              />
-            ))}
-          </div>
         </div>
       </ResponsiveSheet>
 
@@ -1439,7 +1493,7 @@ export function ForfeitCreatePage() {
           {destinationId === "friend" ? (
             <div className="mt-4 space-y-3">
               {destinationFriend ? (
-                <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-delulu-blue-light/50 px-3.5 py-2.5">
+                <div className="flex items-start justify-between gap-3 rounded-xl border border-delulu-blue/40 bg-accent px-3.5 py-2.5">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <UserAvatar
                       address={destinationFriend.address}
@@ -1572,36 +1626,124 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-1 text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-3 text-lg font-black text-foreground" style={CLASH}>
             Forfeit amount
           </h2>
-          <p className="mb-4 text-xs text-muted-foreground" style={MANROPE}>
-            Choose the token and how much you&apos;re willing to forfeit if you miss the goal.
-          </p>
 
-          {supportedTokens.length > 1 ? (
-            <div className="mb-4 flex gap-2">
-              {supportedTokens.map((t) => (
+          {/* Hero card — same gradient-glow treatment as the duration picker. */}
+          <div className="relative overflow-hidden rounded-[28px] border border-border/50 bg-gradient-to-b from-delulu-blue-light/70 via-card to-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:from-delulu-blue/10 dark:via-card dark:to-card">
+            <div
+              className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full opacity-60 blur-2xl"
+              style={{ background: "radial-gradient(circle, var(--delulu-blue) 0%, transparent 70%)" }}
+              aria-hidden
+            />
+
+            <div className="relative flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={formatAmountDraft(amountDraft)}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/,/g, "");
+                  if (cleaned === "" || /^\d*\.?\d*$/.test(cleaned)) {
+                    setAmountDraft(cleaned);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveAmount();
+                  }
+                }}
+                className="w-full min-w-0 flex-1 bg-transparent text-3xl font-black tabular-nums text-foreground outline-none"
+                style={MANROPE}
+                placeholder="1,000"
+              />
+              <div ref={tokenDropdownRef} className="relative shrink-0">
                 <button
-                  key={t.address}
                   type="button"
-                  onClick={() => setSelectedToken(t.address)}
+                  onClick={() => setIsTokenDropdownOpen((o) => !o)}
+                  disabled={supportedTokens.length <= 1}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
-                    selectedToken === t.address
-                      ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
-                      : "border-border/60 bg-card text-foreground hover:bg-muted/40",
+                    "flex items-center gap-1 rounded-full bg-background/80 px-2.5 py-1.5 text-sm font-bold text-foreground shadow-sm transition-colors",
+                    supportedTokens.length > 1 && "hover:bg-muted",
                   )}
                   style={MANROPE}
                 >
-                  <TokenBadge tokenAddress={t.address} size="sm" showText={false} />
-                  {t.symbol}
+                  <TokenBadge tokenAddress={selectedToken} size="sm" showText={false} />
+                  {selectedTokenSymbol}
+                  {supportedTokens.length > 1 ? (
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 text-muted-foreground transition-transform",
+                        isTokenDropdownOpen && "rotate-180",
+                      )}
+                    />
+                  ) : null}
                 </button>
-              ))}
-            </div>
-          ) : null}
 
-          <div className="grid grid-cols-3 gap-2">
+                {isTokenDropdownOpen && supportedTokens.length > 1 ? (
+                  <div className="absolute right-0 top-full z-10 mt-1.5 min-w-[130px] overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
+                    {supportedTokens.map((t) => (
+                      <button
+                        key={t.address}
+                        type="button"
+                        onClick={() => {
+                          setSelectedToken(t.address);
+                          setIsTokenDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-bold transition-colors",
+                          selectedToken === t.address
+                            ? "bg-secondary text-foreground"
+                            : "text-foreground hover:bg-secondary/60",
+                        )}
+                        style={MANROPE}
+                      >
+                        <TokenBadge tokenAddress={t.address} size="sm" showText={false} />
+                        {t.symbol}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {isConnected ? (
+              <div className="relative mt-2 flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground" style={MANROPE}>
+                  {selectedTokenBalance.isLoading ? (
+                    <span className="inline-block h-3 w-16 animate-pulse rounded bg-muted align-middle" />
+                  ) : (
+                    <>Balance: {Number(selectedTokenBalance.formatted).toLocaleString(undefined, { maximumFractionDigits: 2 })} {selectedTokenSymbol}</>
+                  )}
+                </span>
+                {!selectedTokenBalance.isLoading && Number(selectedTokenBalance.formatted) > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAmountDraft(String(Math.floor(Number(selectedTokenBalance.formatted) || 0)))
+                    }
+                    className="rounded-full bg-delulu-blue/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-delulu-blue transition-colors hover:bg-delulu-blue/20"
+                  >
+                    Max
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {Number(amountDraft) > 0 && Number(amountDraft) < minForfeitAmount ? (
+              <p className="relative mt-1.5 text-xs font-medium text-destructive">
+                Minimum forfeit is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}
+              </p>
+            ) : formatUsdEquivalent(Number(amountDraft), selectedToken, gDollarUsdPrice) ? (
+              <p className="relative mt-1.5 text-xs font-medium text-muted-foreground" style={MANROPE}>
+                ≈ ${formatUsdEquivalent(Number(amountDraft), selectedToken, gDollarUsdPrice)} USD
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-3.5 grid grid-cols-3 gap-2">
             {PENALTY_AMOUNT_PRESETS.map((amount) => (
               <button
                 key={amount}
@@ -1612,9 +1754,9 @@ export function ForfeitCreatePage() {
                   setAmountOpen(false);
                 }}
                 className={cn(
-                  "rounded-full border px-3 py-2.5 text-center text-sm font-semibold transition-colors",
+                  "rounded-2xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors",
                   forfeitAmount === amount
-                    ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
+                    ? "border-delulu-blue bg-accent text-accent-foreground"
                     : "border-border/60 bg-card text-foreground hover:bg-muted/40",
                 )}
                 style={MANROPE}
@@ -1624,45 +1766,12 @@ export function ForfeitCreatePage() {
             ))}
           </div>
 
-          <label className="mt-4 block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground" style={MANROPE}>
-              Or enter any amount
-            </span>
-            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 focus-within:border-delulu-blue focus-within:ring-2 focus-within:ring-delulu-blue/20">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={minForfeitAmount}
-                step={1}
-                value={amountDraft}
-                onChange={(e) => setAmountDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveAmount();
-                  }
-                }}
-                className="w-full bg-transparent text-base font-bold text-foreground outline-none"
-                style={MANROPE}
-                placeholder="1000"
-              />
-              <span className="shrink-0 text-sm font-bold text-muted-foreground" style={MANROPE}>
-                {selectedTokenSymbol}
-              </span>
-            </div>
-            {Number(amountDraft) > 0 && Number(amountDraft) < minForfeitAmount ? (
-              <p className="mt-1.5 text-xs font-medium text-destructive">
-                Minimum forfeit is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}
-              </p>
-            ) : null}
-          </label>
-
           <button
             type="button"
             onClick={saveAmount}
             disabled={!Number.isFinite(Number(amountDraft)) || Number(amountDraft) < minForfeitAmount}
             className={cn(
-              "mt-5 w-full rounded-full py-3 text-sm font-bold text-white",
+              "mt-4 w-full rounded-full py-3 text-sm font-bold text-white",
               Number(amountDraft) >= minForfeitAmount
                 ? "bg-delulu-blue"
                 : "bg-muted text-muted-foreground",

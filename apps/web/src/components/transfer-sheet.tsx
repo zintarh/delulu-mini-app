@@ -382,7 +382,7 @@ export function TransferSheet({
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl border bg-secondary px-4 py-3 text-left transition-colors",
                 dropdownOpen
-                  ? "border-[#35d07f]/60 ring-1 ring-[#35d07f]/40"
+                  ? "border-delulu-green/60 ring-1 ring-delulu-green/40"
                   : "border-border/40 hover:border-border",
               )}
             >
@@ -463,7 +463,7 @@ export function TransferSheet({
               "w-full rounded-xl border bg-secondary px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !recipientValid
                 ? "border-rose-500/60 focus:ring-rose-500/40"
-                : "border-border/40 focus:border-[#35d07f]/60 focus:ring-[#35d07f]/40",
+                : "border-border/40 focus:border-delulu-green/60 focus:ring-delulu-green/40",
             )}
           />
           {!recipientValid && (
@@ -497,7 +497,7 @@ export function TransferSheet({
               "w-full rounded-xl border bg-secondary px-4 py-3 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 transition-colors focus:outline-none focus:ring-1",
               !amountValid
                 ? "border-rose-500/60 focus:ring-rose-500/40"
-                : "border-border/40 focus:border-[#35d07f]/60 focus:ring-[#35d07f]/40",
+                : "border-border/40 focus:border-delulu-green/60 focus:ring-delulu-green/40",
             )}
           />
           {!hasTokenBalance && !selectedBalanceRaw.isLoading ? (
@@ -528,7 +528,7 @@ export function TransferSheet({
           className={cn(
             "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all",
             canSubmit
-              ? "bg-[#35d07f] text-white shadow-sm hover:brightness-105 active:scale-[0.99]"
+              ? "bg-delulu-green text-white shadow-sm hover:brightness-105 active:scale-[0.99]"
               : "cursor-not-allowed bg-secondary text-muted-foreground",
           )}
         >

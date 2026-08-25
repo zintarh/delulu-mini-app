@@ -180,7 +180,7 @@ export default function SettingsPage() {
                       <Wallet className="h-3 w-3 shrink-0" />
                       {formatAddress(address)}
                       {copied ? (
-                        <Check className="h-3 w-3 shrink-0 text-[#35d07f]" />
+                        <Check className="h-3 w-3 shrink-0 text-delulu-green" />
                       ) : (
                         <Copy className="h-3 w-3 shrink-0" />
                       )}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setAddEmailSheetOpen(true)}
-                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-[#35d07f] transition-colors hover:bg-[#35d07f]/5"
+                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-delulu-green transition-colors hover:bg-delulu-green/5"
                     >
                       <Mail className="h-3.5 w-3.5 shrink-0" />
                       Add email
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     href="/leaderboard"
                   />
                   <LinkRow
-                    icon={<Send className="w-4 h-4 text-[#35d07f]" />}
+                    icon={<Send className="w-4 h-4 text-delulu-green" />}
                     title="Join Telegram"
                     description="Talk to the community"
                     href={TG_GROUP_URL}
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                           "shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-60",
                           pushState.state === "ready" && pushState.subscribed
                             ? "border border-border bg-secondary text-foreground hover:bg-secondary/80"
-                            : "bg-[#35d07f] text-white hover:bg-[#35d07f]/90",
+                            : "bg-delulu-green text-white hover:bg-delulu-green/90",
                         )}
                       >
                         {pushBusy ? (

@@ -2,10 +2,6 @@
 
 import { cn } from "@/lib/utils";
 
-// Neutral fallback circle — same for every user, regardless of address/username.
-const FALLBACK_BG = "#e5e7eb";
-const FALLBACK_FG = "#6b7280";
-
 function initials(address: string, username?: string | null): string {
   if (username) return username.slice(0, 2).toUpperCase();
   // Use chars 2-4 of hex address (after "0x")
@@ -51,14 +47,17 @@ export function UserAvatar({
     );
   }
 
-  // Initials fallback (no pfp)
+  // Initials fallback (no pfp) — theme-aware muted tokens, not a hardcoded
+  // light-gray hex that used to wash out against a dark background.
   const InitialsCircle = (
     <div
-      className={cn(sizeClass, "flex items-center justify-center font-bold select-none", className)}
+      className={cn(
+        sizeClass,
+        "flex items-center justify-center bg-muted font-bold text-muted-foreground select-none",
+        className,
+      )}
       style={{
         ...style,
-        background: FALLBACK_BG,
-        color: FALLBACK_FG,
         fontSize: Math.max(9, Math.floor(size * 0.36)),
       }}
     >
@@ -80,7 +79,7 @@ export function UserAvatar({
           e.currentTarget.remove();
           el.style.cssText = `
             width:${size}px;height:${size}px;min-width:${size}px;
-            background:${FALLBACK_BG};color:${FALLBACK_FG};
+            background:rgb(var(--muted));color:rgb(var(--muted-foreground));
             border-radius:9999px;display:flex;align-items:center;
             justify-content:center;font-weight:700;font-size:${Math.max(9, Math.floor(size * 0.36))}px;
             user-select:none;overflow:hidden;flex-shrink:0;

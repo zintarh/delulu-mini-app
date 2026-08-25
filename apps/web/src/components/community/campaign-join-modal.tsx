@@ -125,8 +125,8 @@ export function CampaignJoinModal({
 
           {/* Claimable prize pool (always G$) */}
           {hasPool ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-[#f6c324]/30 bg-[#fffbeb] px-3 py-2.5">
-              <Trophy className="h-4 w-4 shrink-0 text-[#9a7b0a]" />
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-delulu-yellow/30 bg-delulu-yellow/10 px-3 py-2.5 dark:bg-delulu-yellow/[0.08]">
+              <Trophy className="h-4 w-4 shrink-0 text-[#9a7b0a] dark:text-delulu-yellow" />
               <div className="min-w-0">
                 <p className="text-sm font-black text-foreground">
                   {claimablePrize} G$ prize pool

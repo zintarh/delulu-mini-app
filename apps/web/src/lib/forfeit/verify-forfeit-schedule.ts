@@ -7,6 +7,7 @@ import {
   buildForfeitCalendarSlots,
   dayKey,
   deadlineFromPreset,
+  nextOccurrenceOfTimeOfDay,
   resolvePeriodOutcome,
   scheduleFromDeadline,
 } from "./forfeit-schedule";
@@ -377,6 +378,76 @@ function main() {
   ];
   if (yearEndDays.join(",") !== expectedYearEndDays.join(",")) {
     fail(`Year-boundary slots=${yearEndDays.join(",")}, want ${expectedYearEndDays.join(",")}`);
+  }
+
+  // --- nextOccurrenceOfTimeOfDay: later today stays today ---
+  const laterToday = nextOccurrenceOfTimeOfDay(18, 0, sunday);
+  if (dayKey(laterToday) !== "2026-07-26" || laterToday.getHours() !== 18) {
+    fail(`6pm from 3pm same day should stay today at 18:00, got ${laterToday.toISOString()}`);
+  }
+
+  // --- nextOccurrenceOfTimeOfDay: already passed today bumps to tomorrow ---
+  const alreadyPassed = nextOccurrenceOfTimeOfDay(10, 0, sunday);
+  if (dayKey(alreadyPassed) !== "2026-07-27" || alreadyPassed.getHours() !== 10) {
+    fail(`10am from 3pm same day should bump to tomorrow 10:00, got ${alreadyPassed.toISOString()}`);
+  }
+
+  // --- nextOccurrenceOfTimeOfDay: within the minimum lead window bumps too,
+  // even though it's technically still later today ---
+  const tooSoon = nextOccurrenceOfTimeOfDay(15, 2, sunday); // 2 min out, default lead is 5 min
+  if (dayKey(tooSoon) !== "2026-07-27") {
+    fail(`Cutoff 2 min out (under the 5 min lead) should bump to tomorrow, got ${tooSoon.toISOString()}`);
+  }
+
+  // --- shortDurationSeconds: deadline is simply now + duration, one-off ---
+  const shortSchedule = scheduleFromDeadline({
+    deadlineDate: sunday, // ignored when shortDurationSeconds is set
+    isRepeat: false,
+    repeatEvery: "day",
+    now: sunday,
+    cadenceByRepeat: CADENCE,
+    shortDurationSeconds: 30 * 60,
+  });
+  const sundaySec = Math.floor(sunday.getTime() / 1000);
+  if (shortSchedule.firstDeadline !== sundaySec + 30 * 60) {
+    fail(`30-min short duration firstDeadline=${shortSchedule.firstDeadline}, want ${sundaySec + 30 * 60}`);
+  }
+  if (shortSchedule.cadence !== 0 || shortSchedule.totalPeriods !== 1 || shortSchedule.periodSeconds !== undefined) {
+    fail(`30-min short duration schedule shape wrong: ${JSON.stringify(shortSchedule)}`);
+  }
+
+  // --- cutoffTime, repeating daily: firstDeadline pins to the chosen clock
+  // time (later today, since 6pm is still ahead of the 3pm fixture) instead
+  // of the rolling now+24h window. totalPeriods stays calendar-day-based. ---
+  const cutoffDaily = scheduleFromDeadline({
+    deadlineDate: in7,
+    isRepeat: true,
+    repeatEvery: "day",
+    now: sunday,
+    cadenceByRepeat: CADENCE,
+    cutoffTime: { hours: 18, minutes: 0 },
+  });
+  const cutoffDailyDeadline = new Date(cutoffDaily.firstDeadline * 1000);
+  if (dayKey(cutoffDailyDeadline) !== "2026-07-26" || cutoffDailyDeadline.getHours() !== 18) {
+    fail(`Daily cutoff 6pm should land today at 18:00, got ${cutoffDailyDeadline.toISOString()}`);
+  }
+  if (cutoffDaily.totalPeriods !== 7) {
+    fail(`Daily cutoff totalPeriods=${cutoffDaily.totalPeriods}, want 7 (unaffected by cutoffTime)`);
+  }
+
+  // --- cutoffTime, non-repeating: deadline lands on the selected end day at
+  // the chosen time, not end-of-day. ---
+  const cutoffOnce = scheduleFromDeadline({
+    deadlineDate: in3,
+    isRepeat: false,
+    repeatEvery: "day",
+    now: sunday,
+    cadenceByRepeat: CADENCE,
+    cutoffTime: { hours: 9, minutes: 30 },
+  });
+  const cutoffOnceDeadline = new Date(cutoffOnce.firstDeadline * 1000);
+  if (dayKey(cutoffOnceDeadline) !== dayKey(in3) || cutoffOnceDeadline.getHours() !== 9 || cutoffOnceDeadline.getMinutes() !== 30) {
+    fail(`Once cutoff 9:30am should land on ${dayKey(in3)} at 09:30, got ${cutoffOnceDeadline.toISOString()}`);
   }
 
   void longDeadline;

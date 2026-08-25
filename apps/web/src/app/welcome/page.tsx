@@ -330,8 +330,8 @@ export default function WelcomePage() {
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8">
         <div className="mb-6 flex items-center gap-2">
-          <span className={cn("h-1.5 w-7 rounded-full", step === "profile" ? "bg-[#f6c324]" : "bg-[#f6c324]/40")} />
-          <span className={cn("h-1.5 w-7 rounded-full", step === "community" ? "bg-[#f6c324]" : "bg-muted-foreground/20")} />
+          <span className={cn("h-1.5 w-7 rounded-full", step === "profile" ? "bg-delulu-yellow" : "bg-delulu-yellow/40")} />
+          <span className={cn("h-1.5 w-7 rounded-full", step === "community" ? "bg-delulu-yellow" : "bg-muted-foreground/20")} />
         </div>
 
         {step === "profile" ? (
@@ -356,7 +356,7 @@ export default function WelcomePage() {
                   disabled={isSubmittingProfile || isUploading}
                   className={cn(
                     "relative h-32 w-32 overflow-hidden rounded-full ring-[3px] ring-offset-4 ring-offset-background transition-all",
-                    missingPfp ? "ring-rose-500" : pfpPreview ? "ring-[#f6c324]" : "ring-border hover:ring-muted-foreground/60",
+                    missingPfp ? "ring-rose-500" : pfpPreview ? "ring-delulu-yellow" : "ring-border hover:ring-muted-foreground/60",
                   )}
                 >
                   {pfpPreview ? (
@@ -453,7 +453,7 @@ export default function WelcomePage() {
                 type="submit"
                 disabled={!canSubmitProfile}
                 className={cn(
-                  "w-full rounded-2xl border-2 border-[#1a1a19] bg-[#f6c324] py-4 text-sm font-black text-[#1a1a19]",
+                  "w-full rounded-2xl border-2 border-[#1a1a19] bg-delulu-yellow py-4 text-sm font-black text-[#1a1a19]",
                   "shadow-[4px_4px_0px_0px_#1a1a19] transition-all disabled:cursor-not-allowed disabled:opacity-40",
                 )}
               >
@@ -476,7 +476,7 @@ export default function WelcomePage() {
                 >
                   <span className="font-mono">{formatAddress(address)}</span>
                   {addressCopied ? (
-                    <Check className="w-3 h-3 text-[#35d07f]" />
+                    <Check className="w-3 h-3 text-delulu-green" />
                   ) : (
                     <Copy className="w-3 h-3" />
                   )}
@@ -520,7 +520,7 @@ export default function WelcomePage() {
                 type="button"
                 disabled={isJoiningCommunity || isValidatingCode || !communityCode.trim() || !!communityError}
                 onClick={() => void finishOnboarding(true)}
-                className="w-full rounded-2xl border-2 border-[#1a1a19] bg-[#f6c324] py-4 text-sm font-black text-[#1a1a19] shadow-[4px_4px_0px_0px_#1a1a19] disabled:cursor-not-allowed disabled:opacity-40"
+                className="w-full rounded-2xl border-2 border-[#1a1a19] bg-delulu-yellow py-4 text-sm font-black text-[#1a1a19] shadow-[4px_4px_0px_0px_#1a1a19] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isJoiningCommunity ? (
                   <span className="inline-flex items-center justify-center gap-2">

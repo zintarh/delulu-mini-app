@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
-import { Flame, Plus, TriangleAlert } from "lucide-react";
+import { Flame, TriangleAlert } from "lucide-react";
 import {
   useCreatorForfeits,
   hasConfirmedForfeitState,
@@ -11,7 +11,6 @@ import {
   type ForfeitFeedItem,
 } from "@/hooks/use-creator-forfeits";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
-import { FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
 import { FEED_CARD_EYEBROW_CLASS, FEED_CARD_SUBTITLE_CLASS } from "@/components/feed-card-layout";
 
@@ -21,18 +20,22 @@ type TokenGroup = {
   totalAmount: number;
 };
 
+type ActiveStakesSummary = {
+  groups: TokenGroup[];
+  soonestDeadlineSec: number | null;
+  activeCount: number;
+};
+
 /**
  * Sums currently-at-risk stake per token across a creator's active forfeits,
  * and finds the soonest upcoming deadline among them. Reuses the same
  * unit-conversion helpers (getTokenDecimals/getTokenSymbol) forfeit-day-card
  * already uses per-item — this just aggregates across items.
  */
-function aggregateActiveStakes(items: ForfeitFeedItem[]): {
-  groups: TokenGroup[];
-  soonestDeadlineSec: number | null;
-} {
+function aggregateActiveStakes(items: ForfeitFeedItem[]): ActiveStakesSummary {
   const byToken = new Map<string, { totalRaw: bigint; decimals: number }>();
   let soonestDeadlineSec: number | null = null;
+  let activeCount = 0;
 
   for (const item of items) {
     if (!hasConfirmedForfeitState(item) || !isActiveForfeit(item)) continue;
@@ -46,6 +49,8 @@ function aggregateActiveStakes(items: ForfeitFeedItem[]): {
       continue;
     }
     if (raw <= 0n) continue;
+
+    activeCount += 1;
 
     const tokenKey = chain.token.toLowerCase();
     const existing = byToken.get(tokenKey);
@@ -73,7 +78,26 @@ function aggregateActiveStakes(items: ForfeitFeedItem[]): {
     // a reasonable stand-in: pick whichever group is largest in its own units.
     .sort((a, b) => b.totalAmount - a.totalAmount);
 
-  return { groups, soonestDeadlineSec };
+  return { groups, soonestDeadlineSec, activeCount };
+}
+
+/**
+ * Shared source of truth for "does this user currently have anything at
+ * stake" — used by HomeStakesHero itself, and by home-dashboard.tsx to
+ * decide whether the onboarding feature carousel still earns its space.
+ * `hasActiveStakes` defaults to true while loading so nothing gets
+ * prematurely suppressed before we actually know the answer.
+ */
+export function useActiveForfeitStakes(address: string | undefined) {
+  const { data, isLoading } = useCreatorForfeits(address);
+
+  const summary = useMemo(() => aggregateActiveStakes(data ?? []), [data]);
+
+  return {
+    ...summary,
+    isLoading,
+    hasActiveStakes: isLoading || summary.activeCount > 0,
+  };
 }
 
 function formatCountdown(remainingSec: number): { label: string; overdue: boolean } {
@@ -86,29 +110,6 @@ function formatCountdown(remainingSec: number): { label: string; overdue: boolea
   return { label: `${hours}h ${minutes}m`, overdue: false };
 }
 
-function ZeroStakeCard() {
-  return (
-    <div className="mx-4 rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
-      <p className={FEED_CARD_EYEBROW_CLASS}>At risk</p>
-      <p className="mt-1 text-2xl font-black leading-tight text-foreground">
-        Nothing on the line
-      </p>
-      <p className={cn("mt-1", FEED_CARD_SUBTITLE_CLASS)}>
-        Stake G$ on a goal — miss it and you lose the stake.
-      </p>
-      {FORFEIT_CREATION_ENABLED ? (
-        <Link
-          href="/forfeit"
-          className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-bold text-background transition-opacity hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Put something at stake
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
 /**
  * The loss-aversion hero: total G$ currently at risk + a live countdown to
  * the soonest deadline, visible the instant the app opens — no tapping into
@@ -116,14 +117,14 @@ function ZeroStakeCard() {
  * detail card lower on this same page (there's no dedicated, URL-addressable
  * "forfeit tab" route to link out to — /profile's tabs are local component
  * state, not URL-driven — so an in-page anchor is the honest destination).
+ *
+ * The eyebrow spells out "N active" deliberately — this figure is a *total*
+ * across every active forfeit, while the detail card below shows one
+ * specific item's amount. Without that label the two numbers just look like
+ * the same fact repeated twice.
  */
 export function HomeStakesHero({ address }: { address: string }) {
-  const { data, isLoading } = useCreatorForfeits(address);
-
-  const { groups, soonestDeadlineSec } = useMemo(
-    () => aggregateActiveStakes(data ?? []),
-    [data],
-  );
+  const { groups, soonestDeadlineSec, activeCount, isLoading } = useActiveForfeitStakes(address);
 
   // Ticks the countdown forward once a minute — a home-screen digit clock
   // doesn't need per-second precision, and 60s keeps this cheap.
@@ -144,8 +145,11 @@ export function HomeStakesHero({ address }: { address: string }) {
     );
   }
 
+  // Nothing at stake — stay out of the way entirely. ForfeitDayCard right
+  // below already owns "put something at stake" as its empty-state CTA;
+  // this banner only earns its place once there's a real number to show.
   if (groups.length === 0 || soonestDeadlineSec == null) {
-    return <ZeroStakeCard />;
+    return null;
   }
 
   const dominant = groups[0]!;
@@ -166,7 +170,7 @@ export function HomeStakesHero({ address }: { address: string }) {
         <div className="flex items-center gap-1.5">
           <TriangleAlert className="h-3.5 w-3.5 text-red-600 dark:text-red-500" strokeWidth={2.5} />
           <p className={cn(FEED_CARD_EYEBROW_CLASS, "text-red-600 dark:text-red-500")}>
-            At risk
+            At risk · {activeCount} active
           </p>
         </div>
 

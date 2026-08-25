@@ -68,6 +68,26 @@ export function deadlineFromPreset(
   }
 }
 
+/**
+ * Next moment local `hours:minutes` occurs at/after `now + minLeadSeconds`.
+ * Bumps to the following day if that time today has already passed, or is
+ * too close to now to leave a reasonable window to act on it.
+ */
+export function nextOccurrenceOfTimeOfDay(
+  hours: number,
+  minutes: number,
+  now: Date = new Date(),
+  minLeadSeconds = 300,
+): Date {
+  const candidate = new Date(now);
+  candidate.setHours(hours, minutes, 0, 0);
+  const minMoment = new Date(now.getTime() + minLeadSeconds * 1000);
+  if (candidate.getTime() < minMoment.getTime()) {
+    candidate.setDate(candidate.getDate() + 1);
+  }
+  return candidate;
+}
+
 export type ForfeitRepeatEvery = "day" | "weekday" | "week";
 
 export const PERIOD_SECONDS_BY_CADENCE: Record<ForfeitRepeatEvery, number> = {
@@ -103,16 +123,45 @@ export function scheduleFromDeadline(input: {
   now?: Date;
   /** Injected cadence map so UI can pass real ForfeitCadence enums. */
   cadenceByRepeat?: Record<ForfeitRepeatEvery, number>;
+  /**
+   * A short (sub-day) one-off duration, e.g. "30 min" — deadline is simply
+   * now + this many seconds. Only meaningful for a non-repeating forfeit;
+   * overrides deadlineDate/cutoffTime entirely when set.
+   */
+  shortDurationSeconds?: number;
+  /**
+   * "Submit before HH:MM" instead of the default rolling/end-of-day cutoff —
+   * null/undefined means "submit anytime" (today's existing behavior).
+   */
+  cutoffTime?: { hours: number; minutes: number } | null;
 }): ForfeitSchedule {
   const now = input.now ?? new Date();
-  const endSec = Math.floor(input.deadlineDate.getTime() / 1000);
   const nowSec = Math.floor(now.getTime() / 1000);
+
+  if (input.shortDurationSeconds != null) {
+    return {
+      cadence: 0, // Once
+      firstDeadline: nowSec + Math.max(60, Math.floor(input.shortDurationSeconds)),
+      totalPeriods: 1,
+      periodSeconds: undefined,
+    };
+  }
+
+  const endSec = Math.floor(input.deadlineDate.getTime() / 1000);
   const cadenceMap = input.cadenceByRepeat ?? CADENCE_BY_REPEAT;
 
   if (!input.isRepeat) {
+    let onceDeadlineSec = endSec;
+    if (input.cutoffTime) {
+      // Same calendar day as deadlineDate, but at the chosen clock time
+      // instead of end-of-day.
+      const day = new Date(input.deadlineDate);
+      day.setHours(input.cutoffTime.hours, input.cutoffTime.minutes, 0, 0);
+      onceDeadlineSec = Math.floor(day.getTime() / 1000);
+    }
     return {
       cadence: 0, // Once
-      firstDeadline: Math.max(endSec, nowSec + 60),
+      firstDeadline: Math.max(onceDeadlineSec, nowSec + 60),
       totalPeriods: 1,
       periodSeconds: undefined,
     };
@@ -125,7 +174,22 @@ export function scheduleFromDeadline(input: {
   // full 24h for daily/weekday) — never "end of today", which could give a
   // creator as little as a few minutes if they set it up late in the day.
   // Still capped by the chosen final deadline, in case that's sooner.
-  let firstDeadline = Math.min(nowSec + periodSeconds, endSec);
+  // "Submit before HH:MM" replaces the rolling window with the next
+  // occurrence of that clock time instead — Daily/Weekly periodSeconds are
+  // exact day/week multiples, so every later period keeps landing on the
+  // same clock time automatically.
+  let firstDeadline = input.cutoffTime
+    ? Math.min(
+        Math.floor(
+          nextOccurrenceOfTimeOfDay(
+            input.cutoffTime.hours,
+            input.cutoffTime.minutes,
+            now,
+          ).getTime() / 1000,
+        ),
+        endSec,
+      )
+    : Math.min(nowSec + periodSeconds, endSec);
   if (firstDeadline <= nowSec) {
     firstDeadline = nowSec + 60;
   }

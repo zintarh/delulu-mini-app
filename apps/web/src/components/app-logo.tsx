@@ -1,4 +1,4 @@
-/** App mark: a bold "D" with a small blue dot subscript. */
+/** App mark: a bold "D" with a small brand-yellow dot subscript, close behind the glyph. */
 export function AppLogo({
   size = 32,
   className,
@@ -21,11 +21,11 @@ export function AppLogo({
         fontSize="25"
         fontWeight="800"
         fontFamily="var(--font-manrope), sans-serif"
-        fill="var(--foreground, #1a1a19)"
+        fill="rgb(var(--foreground))"
       >
         D
       </text>
-      <circle cx="25.5" cy="25.5" r="3.5" fill="var(--delulu-blue, #2563eb)" />
+      <circle cx="22.5" cy="25.5" r="3.5" fill="var(--delulu-yellow, #f6c324)" />
     </svg>
   );
 }

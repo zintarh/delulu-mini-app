@@ -167,7 +167,7 @@ export function DailyBreakdownBarChart({
   );
 
   return (
-    <div className="h-[148px] w-full" role="img" aria-label="Weekly submission bar chart">
+    <div className="h-[100px] w-full" role="img" aria-label="Weekly submission bar chart">
       <Bar data={chartData} options={options} />
     </div>
   );

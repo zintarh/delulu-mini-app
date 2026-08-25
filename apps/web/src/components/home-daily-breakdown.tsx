@@ -1,17 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import {
   startOfWeekMonday,
   toIsoDateLocal,
   useDailyActivity,
 } from "@/hooks/use-daily-activity";
 import { cn } from "@/lib/utils";
-import {
-  FEED_CARD_EYEBROW_CLASS,
-  FEED_CARD_SUBTITLE_CLASS,
-} from "@/components/feed-card-layout";
+import { FEED_CARD_EYEBROW_CLASS } from "@/components/feed-card-layout";
 
 /** Chart.js is heavy — load only when the breakdown has data to show. */
 const DailyBreakdownBarChart = dynamic(
@@ -20,7 +18,7 @@ const DailyBreakdownBarChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[148px] items-end gap-3 px-1 pb-5 pt-3">
+      <div className="flex h-[100px] items-end gap-2.5 px-1 pb-3 pt-2">
         {Array.from({ length: 7 }).map((_, i) => (
           <div
             key={i}
@@ -37,34 +35,59 @@ function StatPill({
   label,
   value,
   accent,
+  href,
+  icon,
 }: {
   label: string;
   value: string;
   accent?: boolean;
+  /** Renders the pill as a link instead of a static div — used for the points pill. */
+  href?: string;
+  icon?: React.ReactNode;
 }) {
-  return (
-    <div
-      className={cn(
-        "min-w-0 flex-1 rounded-xl px-2.5 py-2",
-        accent ? "bg-delulu-blue/10" : "bg-muted/70",
-      )}
-    >
-      <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+  const pillClassName = cn(
+    "min-w-0 flex-1 rounded-xl px-2 py-1.5",
+    accent ? "bg-delulu-blue/10" : "bg-muted/70",
+    href && "transition-opacity active:opacity-70",
+  );
+  const content = (
+    <>
+      <p className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-wider text-muted-foreground">
+        {icon}
         {label}
       </p>
       <p
         className={cn(
-          "mt-0.5 truncate text-base font-black tabular-nums leading-none",
+          "mt-0.5 truncate text-sm font-black tabular-nums leading-none",
           accent ? "text-delulu-blue" : "text-foreground",
         )}
       >
         {value}
       </p>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={pillClassName}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={pillClassName}>{content}</div>;
 }
 
-export function HomeDailyBreakdown({ address }: { address: string }) {
+export function HomeDailyBreakdown({
+  address,
+  points,
+  pointsLoading,
+}: {
+  address: string;
+  /** Rewards points — folded in here as a 4th stat instead of a standalone
+   *  header pill, since this is where "your numbers" content already lives. */
+  points?: number;
+  pointsLoading?: boolean;
+}) {
   const {
     weekStart,
     weekLabel,
@@ -88,15 +111,15 @@ export function HomeDailyBreakdown({ address }: { address: string }) {
 
   return (
     <section className="mb-6 px-4">
-      <div className="overflow-hidden rounded-3xl border border-border/40 bg-gradient-to-b from-delulu-blue-light/60 to-white shadow-sm dark:to-card">
+      <div className="overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-b from-delulu-blue-light/60 to-white shadow-sm dark:from-delulu-blue/10 dark:to-card">
         <div className="relative">
-          <div className="relative px-4 pb-1 pt-3.5">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="relative px-3.5 pb-2.5 pt-3">
+            <div className="mb-2 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className={FEED_CARD_EYEBROW_CLASS}>
                   Daily Breakdown
                 </p>
-                <p className={cn("mt-0.5 font-bold text-foreground", FEED_CARD_SUBTITLE_CLASS)}>
+                <p className="mt-0.5 truncate text-xs font-bold text-foreground">
                   {weekLabel}
                 </p>
               </div>
@@ -106,33 +129,41 @@ export function HomeDailyBreakdown({ address }: { address: string }) {
                   type="button"
                   onClick={goPrevWeek}
                   aria-label="Previous week"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-3 w-3" />
                 </button>
                 <button
                   type="button"
                   onClick={goNextWeek}
                   disabled={!canGoForward}
                   aria-label="Next week"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
                 >
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
 
-            <div className="mb-3 flex gap-2">
+            <div className="mb-2 flex gap-1.5">
               <StatPill label="Total" value={isLoading ? "—" : String(total)} accent />
               <StatPill label="Avg / day" value={isLoading ? "—" : avg} />
               <StatPill
                 label="Best day"
                 value={isLoading ? "—" : peak > 0 ? `${peakDay} · ${peak}` : "—"}
               />
+              {points != null ? (
+                <StatPill
+                  label="Points"
+                  value={pointsLoading ? "—" : points.toLocaleString()}
+                  href="/rewards"
+                  icon={<Star className="h-2.5 w-2.5 fill-delulu-blue text-delulu-blue" />}
+                />
+              ) : null}
             </div>
 
             {isLoading ? (
-              <div className="flex h-[148px] items-end gap-3 px-1 pb-5 pt-3">
+              <div className="flex h-[100px] items-end gap-2.5 px-1 pb-3 pt-2">
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div
                     key={i}
@@ -142,8 +173,8 @@ export function HomeDailyBreakdown({ address }: { address: string }) {
                 ))}
               </div>
             ) : isError ? (
-              <div className="flex h-[148px] items-center justify-center px-4 text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex h-[100px] items-center justify-center px-4 text-center">
+                <p className="text-xs text-muted-foreground">
                   Couldn&apos;t load activity. Try again in a moment.
                 </p>
               </div>

@@ -314,9 +314,9 @@ export function DeluluDetailPinCard({
                     aria-label={userAddress ? "Tip" : "Sign in to tip"}
                     title={userAddress ? "Tip" : "Sign in to tip"}
                     className={cn(
-                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-all duration-150",
-                      "bg-delulu-charcoal shadow-[0_4px_14px_rgba(0,0,0,0.35)]",
-                      "hover:shadow-[0_6px_18px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 hover:bg-delulu-charcoal/90",
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary-foreground transition-all duration-150",
+                      "bg-primary shadow-[0_4px_14px_rgba(0,0,0,0.35)]",
+                      "hover:shadow-[0_6px_18px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 hover:bg-primary/90",
                       "active:shadow-[0_2px_8px_rgba(0,0,0,0.25)] active:scale-[0.97]",
                       tipDisabled && "cursor-not-allowed opacity-50",
                     )}

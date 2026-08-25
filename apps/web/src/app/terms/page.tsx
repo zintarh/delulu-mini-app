@@ -99,7 +99,7 @@ export default function TermsPage() {
               </div>
 
               {s.highlight && (
-                <div className="mb-4 rounded-xl border border-delulu-blue-border bg-delulu-blue-light/40 px-4 py-3">
+                <div className="mb-4 rounded-xl border border-delulu-blue-border bg-delulu-blue-light/40 px-4 py-3 dark:bg-accent">
                   <p className="text-xs font-semibold uppercase tracking-wider text-delulu-blue">
                     Important
                   </p>

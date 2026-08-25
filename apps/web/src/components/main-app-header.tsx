@@ -8,30 +8,25 @@ import { cn } from "@/lib/utils";
 export type HeaderConfig = {
   mobile: boolean;
   desktop: boolean;
-  wideSearch: boolean;
 };
 
 function getHeaderConfig(pathname: string): HeaderConfig | null {
-  // Delulu detail renders its own mobile + desktop header (back, share, search).
+  // Delulu detail renders its own mobile + desktop header (back, share).
   if (/^\/delulu\/[^/]+$/.test(pathname)) {
     return null;
   }
 
-  // Create flow: custom mobile title bar; desktop still gets search.
+  // Create flow: custom mobile title bar; desktop still gets the header.
   if (pathname.startsWith("/board")) {
-    return { mobile: false, desktop: true, wideSearch: false };
+    return { mobile: false, desktop: true };
   }
 
   // Forfeit create flow owns its own back / Next header.
   if (pathname.startsWith("/forfeit")) {
-    return { mobile: false, desktop: false, wideSearch: false };
+    return { mobile: false, desktop: false };
   }
 
-  if (pathname.startsWith("/explore") || pathname.startsWith("/goals")) {
-    return { mobile: true, desktop: true, wideSearch: true };
-  }
-
-  return { mobile: true, desktop: true, wideSearch: false };
+  return { mobile: true, desktop: true };
 }
 
 /** Routes that own an inner scroll container (infinite scroll, PTR, create flow). */
@@ -66,7 +61,7 @@ export function MobileBottomNavSpacer() {
   );
 }
 
-/** Shared mobile navbar + desktop search bar for main app routes. */
+/** Shared mobile navbar + desktop header for main app routes. */
 export function MainAppHeader() {
   const pathname = usePathname() ?? "";
   const config = getHeaderConfig(pathname);
@@ -79,13 +74,7 @@ export function MainAppHeader() {
           <Navbar />
         </div>
       ) : null}
-      {config.desktop ? (
-        <MainDesktopHeader
-          searchClassName={
-            config.wideSearch ? "min-w-0 w-full flex-1 max-w-none" : undefined
-          }
-        />
-      ) : null}
+      {config.desktop ? <MainDesktopHeader /> : null}
     </>
   );
 }

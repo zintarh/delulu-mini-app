@@ -38,7 +38,7 @@ export function TokenBadge({
     <span
       className={cn(
         "inline-flex items-center",
-        showText && "rounded-md border border-gray-200 bg-white/80 font-medium text-gray-700",
+        showText && "rounded-md border border-border bg-card/80 font-medium text-muted-foreground",
         sizeClasses,
         className
       )}

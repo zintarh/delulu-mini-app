@@ -119,6 +119,7 @@ dataSources:
       entities:
         - ForfeitCommitment
         - ForfeitPeriodResolution
+        - ForfeitFriendReward
         - User
       abis:
         - name: ForfeitMarket
@@ -134,6 +135,8 @@ dataSources:
           handler: handleFMPeriodResolvedSuccess
         - event: PeriodResolvedForfeited(indexed uint256,indexed uint32,indexed address,uint256,uint256,uint8,address,uint256)
           handler: handleFMPeriodResolvedForfeited
+        - event: FriendRewardCredited(indexed uint256,indexed address,indexed address,uint256)
+          handler: handleFMFriendRewardCredited
         - event: CommitmentCancelled(indexed uint256,uint256)
           handler: handleFMCommitmentCancelled
       file: ./src/forfeit-market.ts

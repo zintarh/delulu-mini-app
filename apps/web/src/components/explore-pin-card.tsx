@@ -327,7 +327,7 @@ export function ExplorePinCard({
             </div>
           ) : (
             <h3
-              className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-foreground transition-colors group-hover/pin:text-delulu-charcoal/80 sm:text-lg"
+              className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-foreground transition-colors group-hover/pin:text-foreground/70 sm:text-lg"
             >
               {headline}
             </h3>

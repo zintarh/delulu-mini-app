@@ -209,6 +209,7 @@ type ForfeitCommitment @entity(immutable: false) {
   cancelled: Boolean!
   createdAt: BigInt!
   resolutions: [ForfeitPeriodResolution!]! @derivedFrom(field: "commitment")
+  friendRewards: [ForfeitFriendReward!]! @derivedFrom(field: "commitment")
 }
 
 # Immutable per-period outcome log — the rich history the contract itself doesn't store.
@@ -227,6 +228,23 @@ type ForfeitPeriodResolution @entity(immutable: true) {
   destinationType: Int # forfeiture only
   destinationAddr: Bytes # forfeiture only
   amountToDestination: BigInt # forfeiture only
+  txHash: Bytes!
+  createdAt: BigInt!
+}
+
+# Immutable log of Friend-destination forfeitures credited to pendingFriendReward —
+# separate from ForfeitPeriodResolution because cancelCommitment (a valid forfeiture
+# path) never creates one of those, so a query relying on it would silently miss
+# friend rewards from voluntary cancellations. The claimable balance itself is
+# read live from the contract (pendingFriendReward); this entity is history/
+# notification-trigger only, not a running balance.
+type ForfeitFriendReward @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  commitment: ForfeitCommitment!
+  commitmentId: BigInt!
+  recipientAddress: String!
+  token: Bytes!
+  amount: BigInt!
   txHash: Bytes!
   createdAt: BigInt!
 }

@@ -87,7 +87,7 @@ export function CampaignExploreCard({
     <Link
       href={href}
       className={cn(
-        "group relative block overflow-hidden rounded-2xl bg-delulu-blue-light/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm",
+        "group relative block overflow-hidden rounded-2xl bg-delulu-blue-light/40 dark:bg-accent shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm",
         compact
           ? "aspect-[4/3] h-full min-h-0 rounded-xl lg:aspect-auto"
           : "aspect-[1/1] sm:aspect-[4/5]",

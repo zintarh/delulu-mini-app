@@ -36,6 +36,7 @@ import {
 } from "@/hooks/use-create-forfeit-commitment";
 import { submitForfeitProofWithWallet } from "@/lib/forfeit/submit-forfeit-proof-client";
 import { usePendingForfeitSync } from "@/lib/forfeit/use-pending-forfeit-sync";
+import { useFastResolveForfeit } from "@/lib/forfeit/use-fast-resolve-forfeit";
 import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { useUserStore } from "@/stores/useUserStore";
@@ -510,7 +511,7 @@ function ForfeitTaskCard({
           onClick={onSubmitProof}
           disabled={proofBusy}
           className={cn(
-            "ml-auto inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-full bg-delulu-charcoal px-4 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+            "ml-auto inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-1 text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60",
             FEED_CARD_CTA_CLASS,
             "text-xs",
           )}
@@ -582,7 +583,7 @@ function ForfeitTaskCard({
   const showMenu = !isPendingSync && outcome !== "failed" && outcome !== "overdue";
 
   return (
-    <div className="relative rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
+    <div className="relative rounded-3xl bg-white dark:bg-card p-4 shadow-sm">
       {showProgress ? (
         <div className="flex items-center gap-1.5 pr-7">
           <DotProgress
@@ -714,7 +715,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
         </p>
         <Link
           href={`/forfeit/verify/${item.onChainCommitmentId ?? ""}`}
-          className="ml-auto w-fit shrink-0 rounded-full bg-delulu-charcoal px-4 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+          className="ml-auto w-fit shrink-0 rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90"
         >
           {outcome === "pending" && hasProof ? "Review" : "View"}
         </Link>
@@ -901,6 +902,11 @@ export function ForfeitDayCard({
   const { optimisticItem, justSynced } = usePendingForfeitSync(address);
   const isLoading = creatorLoading || verifierLoading || destinationLoading;
 
+  useFastResolveForfeit(creatorData ?? [], () => {
+    if (!address) return;
+    void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.creator(address) });
+  });
+
   const { submitProofAndWait } = useSubmitForfeitProof();
   const { resolveCommitmentSuccessAndWait } =
     useResolveForfeitCommitmentSuccess();
@@ -1080,7 +1086,7 @@ export function ForfeitDayCard({
           <div className="h-4 w-32 rounded bg-muted" />
           <div className="h-8 w-8 rounded-full bg-muted" />
         </div>
-        <div className="animate-pulse rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
+        <div className="animate-pulse rounded-3xl bg-white dark:bg-card p-4 shadow-sm">
           <div className="h-4 w-2/3 rounded bg-muted" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="h-3.5 w-28 rounded bg-muted" />
@@ -1121,7 +1127,7 @@ export function ForfeitDayCard({
           type="button"
           onClick={goPrev}
           aria-label="Previous day"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-colors hover:opacity-90"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -1139,7 +1145,7 @@ export function ForfeitDayCard({
           type="button"
           onClick={goNext}
           aria-label="Next day"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0d0d0d] text-white shadow-sm transition-colors hover:bg-black"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-colors hover:opacity-90"
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>

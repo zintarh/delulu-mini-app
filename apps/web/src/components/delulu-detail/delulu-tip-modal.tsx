@@ -179,8 +179,8 @@ export function DeluluTipModal({
             onClick={onSubmit}
             disabled={submitDisabled}
             className={cn(
-              "w-full h-13 rounded-full py-3.5 text-sm font-black text-white transition-all",
-              "bg-delulu-charcoal hover:bg-delulu-charcoal/90 active:scale-[0.98]",
+              "w-full h-13 rounded-full py-3.5 text-sm font-black text-primary-foreground transition-all",
+              "bg-primary hover:bg-primary/90 active:scale-[0.98]",
               "disabled:opacity-40 disabled:cursor-not-allowed",
             )}
           >

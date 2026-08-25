@@ -62,8 +62,8 @@ export function CommunityCampaignMilestoneList({
 }) {
   if (milestones.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-[#f6c324]/35 bg-gradient-to-br from-[#fffbeb] to-white px-6 py-10 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f6c324]/25 text-[#9a7b0a]">
+      <div className="relative overflow-hidden rounded-2xl border border-delulu-yellow/35 bg-gradient-to-br from-delulu-yellow/10 to-card px-6 py-10 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-delulu-yellow/25 text-[#9a7b0a] dark:text-delulu-yellow">
           <Sparkles className="h-6 w-6" />
         </div>
         <p className="text-base font-bold text-foreground">Milestones coming soon</p>
@@ -120,7 +120,7 @@ export function CommunityCampaignMilestoneList({
               className={cn(
                 "min-w-0 flex-1 rounded-2xl border px-4 py-3.5 transition-colors",
                 isNext && !m.completed
-                  ? "border-delulu-blue/40 bg-delulu-blue-light/50 shadow-sm"
+                  ? "border-delulu-blue/40 bg-delulu-blue-light/50 shadow-sm dark:bg-accent"
                   : "border-border/60 bg-card",
               )}
             >

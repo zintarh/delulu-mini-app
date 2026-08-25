@@ -51,7 +51,7 @@ function stepStatusClasses(status: MilestoneStepStatus) {
     case "due":
       return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
     case "review":
-      return "bg-delulu-blue-light/90 text-delulu-blue border-delulu-blue-border";
+      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
     case "upcoming":
       return "bg-muted/50 text-muted-foreground border-border/60";
     case "expired":
@@ -302,9 +302,9 @@ function TimelineStepRow({
           "min-w-0 flex-1 rounded-xl border transition-colors",
           compact ? "mb-2.5 p-3" : "mb-3 rounded-2xl p-3.5",
           step.status === "due"
-            ? "border-delulu-blue-border bg-delulu-blue-light/60 shadow-sm"
+            ? "border-delulu-blue-border bg-delulu-blue-light/60 shadow-sm dark:bg-accent"
             : step.status === "completed"
-              ? "border-delulu-blue-border/50 bg-card"
+              ? "border-delulu-blue-border/50 bg-card dark:border-delulu-blue/20"
               : "border-border/50 bg-muted/15",
         )}
       >
@@ -405,7 +405,7 @@ export function DeluluJourneyCard({
     >
       <div
         className={cn(
-          "border-b border-border/40 bg-gradient-to-br from-delulu-blue-light/80 via-card to-card",
+          "border-b border-border/40 bg-gradient-to-br from-delulu-blue-light/80 via-card to-card dark:from-delulu-blue/10",
           compact ? "px-3.5 py-3" : "px-4 py-4 sm:px-5",
         )}
       >
@@ -451,7 +451,7 @@ export function DeluluJourneyCard({
           </div>
           {!compact ? (
             <div
-              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-white/80 shadow-sm"
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-card/80 shadow-sm"
               aria-label={`${tracker.completed} of ${tracker.total} milestones`}
             >
               <span

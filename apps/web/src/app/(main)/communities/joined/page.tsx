@@ -54,7 +54,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
       className="group block overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-sm hover:border-border"
     >
       {/* Cover image with overlay title */}
-      <div className="relative aspect-[4/1] overflow-hidden bg-delulu-blue-light/40">
+      <div className="relative aspect-[4/1] overflow-hidden bg-delulu-blue-light/40 dark:bg-accent">
         {c.cover_image_url ? (
           <Image
             src={c.cover_image_url}
@@ -127,8 +127,8 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
         {/* Stat chips row */}
         <div className="flex items-center gap-2 flex-wrap">
           {pts > 0 ? (
-            <span className="flex items-center gap-1 rounded-full bg-[#fffbeb] px-2.5 py-1 text-[11px] font-black text-[#9a7b0a]">
-              <Star className="h-3 w-3 fill-[#f6c324] text-[#f6c324]" />
+            <span className="flex items-center gap-1 rounded-full bg-delulu-yellow/15 px-2.5 py-1 text-[11px] font-black text-[#9a7b0a] dark:text-delulu-yellow">
+              <Star className="h-3 w-3 fill-delulu-yellow text-delulu-yellow" />
               +{pts.toLocaleString()} pts
             </span>
           ) : null}
@@ -217,15 +217,15 @@ export default function JoinedCampaignsPage() {
         <>
           {/* Global stats banner */}
           <div className="mx-4 mb-5 grid grid-cols-3 gap-2">
-            <div className="flex flex-col items-center justify-center rounded-2xl bg-[#fffbeb] px-3 py-4 text-center">
-              <Star className="mb-1.5 h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-delulu-yellow/15 px-3 py-4 text-center">
+              <Star className="mb-1.5 h-5 w-5 fill-delulu-yellow text-delulu-yellow" />
               <p
                 className="text-xl font-black tabular-nums text-foreground"
                 style={{ fontFamily: '"Clash Display", sans-serif' }}
               >
                 {totalPts.toLocaleString()}
               </p>
-              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[#9a7b0a]">
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[#9a7b0a] dark:text-delulu-yellow">
                 pts earned
               </p>
             </div>

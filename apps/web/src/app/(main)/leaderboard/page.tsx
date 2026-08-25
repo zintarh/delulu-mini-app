@@ -7,29 +7,28 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useForfeitCampaignLeaderboard } from "@/hooks/graph/useForfeitCampaignLeaderboard";
+import { useForfeitStakedLeaderboard } from "@/hooks/graph/useForfeitStakedLeaderboard";
 import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
 import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
-import {
-  FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE,
-  FORFEIT_CAMPAIGN_TOP_N,
-} from "@/lib/dashboard/campaign-constants";
+import { FORFEIT_STAKED_MIN_WHOLE } from "@/lib/dashboard/campaign-constants";
 import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  Clock,
   ExternalLink,
   Flame,
+  HeartHandshake,
   Plus,
   Sparkles,
   Trophy,
+  Undo2,
   Users,
 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
-import { HomeTop10Banner } from "@/components/home-top10-banner";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 
 import { usePfps } from "@/hooks/use-profile-pfp";
@@ -90,6 +89,55 @@ function YouBadge() {
   return (
     <span className="shrink-0 rounded-full bg-delulu-yellow-reserved/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
       You
+    </span>
+  );
+}
+
+function formatForfeitDuration(seconds: number) {
+  if (!(seconds > 0)) return "—";
+  const days = Math.round(seconds / 86400);
+  if (days < 1) return `${Math.max(1, Math.round(seconds / 3600))}h`;
+  if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
+  if (days >= 7 && days % 7 === 0) return `${days / 7}w`;
+  return `${days}d`;
+}
+
+function ForfeitStatusBadge({ status }: { status: "active" | "failed" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+        status === "active"
+          ? "bg-delulu-green/15 text-delulu-green"
+          : "bg-destructive/10 text-destructive",
+      )}
+    >
+      {status === "active" ? "Active" : "Failed"}
+    </span>
+  );
+}
+
+const FORFEIT_DESTINATION_ICON = {
+  self: Undo2,
+  charity: HeartHandshake,
+  friend: Users,
+  delulu: Sparkles,
+} as const;
+
+function ForfeitDestinationBadge({
+  kind,
+  label,
+  name,
+}: {
+  kind: "self" | "charity" | "friend" | "delulu";
+  label: string;
+  name?: string | null;
+}) {
+  const Icon = FORFEIT_DESTINATION_ICON[kind];
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+      <Icon className="h-3 w-3" />
+      {kind === "friend" && name ? `${label}: ${name}` : label}
     </span>
   );
 }
@@ -649,15 +697,15 @@ function DreamersLeaderboard({
   );
 }
 
-function ForfeitCampaignEmptyState() {
+function ForfeitStakedEmptyState() {
   return (
     <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 pt-14 pb-20 text-center">
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
         <Flame className="h-7 w-7 text-muted-foreground/35" strokeWidth={1.5} />
       </div>
       <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-        No one has forfeited {FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE.toLocaleString()}+ G$ to charity or
-        Delulu yet this campaign.
+        No one has {FORFEIT_STAKED_MIN_WHOLE.toLocaleString()}+ G$ staked in an active or forfeited
+        commitment yet.
       </p>
       <div className="mt-8 flex justify-center">
         <Link
@@ -672,11 +720,11 @@ function ForfeitCampaignEmptyState() {
   );
 }
 
-function ForfeitCampaignLeaderboard() {
+function ForfeitStakedLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } =
-    useForfeitCampaignLeaderboard(page, address);
+  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, error, refetch } =
+    useForfeitStakedLeaderboard(page, address);
 
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
@@ -689,16 +737,16 @@ function ForfeitCampaignLeaderboard() {
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) return <ForfeitCampaignEmptyState />;
+  if (entries.length === 0) return <ForfeitStakedEmptyState />;
 
-  const isOnCurrentPage =
+  const isMyEntryOnCurrentPage =
     !!address &&
-    entries.some((e) => e.wallet_address.toLowerCase() === address.toLowerCase());
-  const showPinnedMe = address && myRankEntry && !isOnCurrentPage;
+    !!myRankEntry &&
+    entries.some((e) => e.commitment_id === myRankEntry.commitment_id);
+  const showPinnedMe = address && myRankEntry && !isMyEntryOnCurrentPage;
 
   const listEntries = entries.filter(
-    (entry) =>
-      !showPinnedMe || entry.wallet_address.toLowerCase() !== address!.toLowerCase(),
+    (entry) => !showPinnedMe || entry.commitment_id !== myRankEntry!.commitment_id,
   );
 
   return (
@@ -708,7 +756,7 @@ function ForfeitCampaignLeaderboard() {
           <HeadCell className="w-8 shrink-0">#</HeadCell>
           <HeadCell className="w-10 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-24 text-right">G$ forfeited</HeadCell>
+          <HeadCell className="w-24 text-right">G$ staked</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -717,33 +765,47 @@ function ForfeitCampaignLeaderboard() {
               <RankBadge rank={myRankEntry!.rank} />
               <UserAvatar
                 address={address!}
-                username={myPageEntry?.username ?? null}
+                username={myRankEntry!.username ?? null}
                 pfpUrl={pfpMap[address!.toLowerCase()]}
                 size={44}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">
-                    {myPageEntry?.username
-                      ? `@${myPageEntry.username}`
-                      : formatAddr(address!)}
+                    {myRankEntry!.username ? `@${myRankEntry!.username}` : formatAddr(address!)}
                   </p>
                   <YouBadge />
                 </div>
-                <p className="font-mono text-xs text-muted-foreground">{formatAddr(address!)}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <ForfeitStatusBadge status={myRankEntry!.status} />
+                  <ForfeitDestinationBadge
+                    kind={myRankEntry!.destination_kind}
+                    label={myRankEntry!.destination_label}
+                    name={myRankEntry!.destination_name}
+                  />
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {formatForfeitDuration(myRankEntry!.duration_seconds)}
+                  </span>
+                </div>
               </div>
               <span className="w-24 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                {formatGAmount(myRankEntry!.forfeitedAmount)} G$
+                {formatGAmount(myRankEntry!.staked_amount)} G$
               </span>
             </div>
           )}
 
           {listEntries.map((entry) => {
+            const isMe =
+              !!address && entry.wallet_address.toLowerCase() === address.toLowerCase();
             const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
             return (
               <div
-                key={entry.wallet_address}
-                className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60"
+                key={entry.commitment_id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60",
+                  isMe && "bg-delulu-yellow-reserved/10",
+                )}
               >
                 <RankBadge rank={entry.rank} />
                 <UserAvatar
@@ -753,13 +815,25 @@ function ForfeitCampaignLeaderboard() {
                   size={44}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {formatAddr(entry.wallet_address)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                    {isMe && <YouBadge />}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <ForfeitStatusBadge status={entry.status} />
+                    <ForfeitDestinationBadge
+                      kind={entry.destination_kind}
+                      label={entry.destination_label}
+                      name={entry.destination_name}
+                    />
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {formatForfeitDuration(entry.duration_seconds)}
+                    </span>
+                  </div>
                 </div>
                 <span className="w-24 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                  {formatGAmount(entry.forfeited_amount)} G$
+                  {formatGAmount(entry.staked_amount)} G$
                 </span>
               </div>
             );
@@ -789,8 +863,7 @@ function LeaderboardTabs({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {/* Forfeit campaign tab paused for now */}
-      {(["monthly", "global"] as Tab[]).map((tab) => (
+      {(["monthly", "global", "forfeit"] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"
@@ -830,7 +903,7 @@ export default function LeaderboardPage() {
     activeTab === "monthly"
       ? "Campaign points earned by everyone participating this month"
       : activeTab === "forfeit"
-        ? `Forfeit ${FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE.toLocaleString()}+ G$ to charity or Delulu — top ${FORFEIT_CAMPAIGN_TOP_N} share the pool`
+        ? `Active & forfeited commitments of ${FORFEIT_STAKED_MIN_WHOLE.toLocaleString()}+ G$`
         : "All-time points, accumulated across everything";
 
   return (
@@ -904,11 +977,7 @@ function LeaderboardContent({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
-      {activeTab === "forfeit" ? (
-        <div className="mb-6">
-          <HomeTop10Banner />
-        </div>
-      ) : (
+      {activeTab === "forfeit" ? null : (
         <LeaderboardStatsRow
           activeTab={activeTab}
           formattedGAmount={formattedGAmount}
@@ -955,7 +1024,7 @@ function LeaderboardContent({
           {activeTab === "monthly" ? (
             <MonthlyLeaderboard />
           ) : activeTab === "forfeit" ? (
-            <ForfeitCampaignLeaderboard />
+            <ForfeitStakedLeaderboard />
           ) : (
             <DreamersLeaderboard onCreateClick={handleCreateClick} />
           )}

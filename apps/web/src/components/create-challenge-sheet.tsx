@@ -234,16 +234,16 @@ export function CreateChallengeSheet({
   return (
     <>
       <Modal open={open} onOpenChange={handleClose}>
-        <ModalContent className="max-w-2xl max-h-auto overflow-y-auto bg-white">
+        <ModalContent className="max-w-2xl max-h-auto overflow-y-auto bg-card">
           <ModalHeader>
-            <ModalTitle className="text-2xl font-black text-delulu-charcoal mb-2">
+            <ModalTitle className="text-2xl font-black text-foreground mb-2">
               Create Campaign
             </ModalTitle>
           </ModalHeader>
 
           <div className="pt-4">
             <div>
-              <label className="block text-sm font-bold text-delulu-charcoal mb-2">
+              <label className="block text-sm font-bold text-foreground mb-2">
                 Title
               </label>
               <input
@@ -256,18 +256,18 @@ export function CreateChallengeSheet({
                 }}
                 maxLength={100}
                 placeholder="#CampaignName"
-                className="w-full bg-white border capitalize border-gray-400 rounded-sm px-4 py-3 text-delulu-charcoal placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                className="w-full bg-card border capitalize border-border rounded-sm px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground"
                 autoFocus
               />
               <div className="text-right mt-1">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {challengeTitle.length}/100
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-delulu-charcoal mb-2">
+              <label className="block text-sm font-bold text-foreground mb-2">
                 Description
               </label>
               <TextareaAutosize
@@ -279,11 +279,11 @@ export function CreateChallengeSheet({
                 }}
                 maxLength={500}
                 placeholder="Describe the campaign... What do participants need to achieve?"
-                className="w-full bg-white border border-gray-400 rounded-lg px-4 py-3 text-delulu-charcoal placeholder:text-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600"
+                className="w-full bg-card border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground"
                 minRows={4}
               />
               <div className="text-right mt-1">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {challengeDescription.length}/500
                 </span>
               </div>
@@ -292,16 +292,16 @@ export function CreateChallengeSheet({
             <div>
               <div
                 className={cn(
-                  "bg-gray-50 rounded-2xl p-4 border transition-colors",
+                  "bg-muted rounded-2xl p-4 border transition-colors",
                   hasInsufficientBalance || currentPoolAmount < 1
                     ? "border-red-400"
-                    : "border-gray-400"
+                    : "border-border"
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500">Prize Pool</span>
+                  <span className="text-xs text-muted-foreground">Prize Pool</span>
                   {isConnected && selectedTokenBalance && (
-                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       Balance: {parseFloat(selectedTokenBalance.formatted).toFixed(2)}{" "}
                       <TokenBadge tokenAddress={selectedToken} size="sm" showText={false} />
                     </span>
@@ -340,10 +340,10 @@ export function CreateChallengeSheet({
                     max={100000}
                     step="0.01"
                     className={cn(
-                      "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-gray-300",
+                      "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-muted-foreground/50",
                       hasInsufficientBalance || currentPoolAmount < 1
                         ? "text-red-500"
-                        : "text-delulu-charcoal"
+                        : "text-foreground"
                     )}
                   />
                   <div ref={tokenDropdownRef} className="relative flex-shrink-0">
@@ -351,8 +351,8 @@ export function CreateChallengeSheet({
                       type="button"
                       onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-400 bg-white hover:bg-gray-50 transition-colors",
-                        isTokenDropdownOpen && "bg-gray-50"
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted transition-colors",
+                        isTokenDropdownOpen && "bg-muted"
                       )}
                     >
                       {(() => {
@@ -371,12 +371,12 @@ export function CreateChallengeSheet({
                                 className="h-5 w-5 rounded-full"
                               />
                             )}
-                            <span className="text-sm font-bold text-delulu-charcoal">
+                            <span className="text-sm font-bold text-foreground">
                               {selectedTokenInfo?.symbol || "Select"}
                             </span>
                             <ChevronDown
                               className={cn(
-                                "h-4 w-4 text-gray-500 transition-transform",
+                                "h-4 w-4 text-muted-foreground transition-transform",
                                 isTokenDropdownOpen && "rotate-180"
                               )}
                             />
@@ -386,7 +386,7 @@ export function CreateChallengeSheet({
                     </button>
 
                     {isTokenDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-2 bg-white rounded-lg border border-gray-400 shadow-lg z-50 overflow-hidden min-w-[200px]">
+                      <div className="absolute top-full right-0 mt-2 bg-card rounded-lg border border-border shadow-lg z-50 overflow-hidden min-w-[200px]">
                         {supportedTokens.map((t) => {
                           const tokenBalanceInfo = tokenBalances.find(
                             (tb) => tb.token.address.toLowerCase() === t.address.toLowerCase()
@@ -408,8 +408,8 @@ export function CreateChallengeSheet({
                               className={cn(
                                 "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
                                 isSelected
-                                  ? "bg-gray-100 text-delulu-charcoal font-bold"
-                                  : "bg-white text-delulu-charcoal hover:bg-gray-50"
+                                  ? "bg-secondary text-foreground font-bold"
+                                  : "bg-card text-foreground hover:bg-muted"
                               )}
                             >
                               {logoUrl && (
@@ -422,7 +422,7 @@ export function CreateChallengeSheet({
                               <div className="flex-1 flex items-center justify-between gap-2">
                                 <span className="font-bold">{t.symbol}</span>
                                 {isConnected && (
-                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                                     {isLoading
                                       ? "..."
                                       : `${balance.toFixed(2)}`}
@@ -453,7 +453,7 @@ export function CreateChallengeSheet({
             <div className="mt-4">
 
 
-              <label className="block text-sm font-bold text-delulu-charcoal mb-2 ">
+              <label className="block text-sm font-bold text-foreground mb-2 ">
                 Duration
               </label>
 
@@ -463,7 +463,7 @@ export function CreateChallengeSheet({
                   setSelectedDuration(Number(value));
                 }}
               >
-                <Select.Trigger className="w-full px-4 py-3 rounded-md bg-white border border-gray-400 text-delulu-charcoal font-normal text-base focus:outline-none focus:ring-1 focus:ring-delulu-charcoal/20 focus:border-gray-600 cursor-pointer flex items-center justify-between">
+                <Select.Trigger className="w-full px-4 py-3 rounded-md bg-card border border-border text-foreground font-normal text-base focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground cursor-pointer flex items-center justify-between">
                   <Select.Value>
                     {DURATION_OPTIONS.find((opt) => opt.value === selectedDuration)?.display || "Select duration"}
                   </Select.Value>
@@ -472,13 +472,13 @@ export function CreateChallengeSheet({
                   </Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
-                  <Select.Content className="overflow-hidden bg-white rounded-lg border border-gray-400 shadow-lg z-50">
+                  <Select.Content className="overflow-hidden bg-card rounded-lg border border-border shadow-lg z-50">
                     <Select.Viewport className="p-1">
                       {DURATION_OPTIONS.map((option) => (
                         <Select.Item
                           key={option.value}
                           value={option.value.toString()}
-                          className="relative flex items-center px-4 py-2 text-delulu-charcoal font-normal text-sm cursor-pointer outline-none hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100"
+                          className="relative flex items-center px-4 py-2 text-foreground font-normal text-sm cursor-pointer outline-none hover:bg-secondary focus:bg-secondary data-[highlighted]:bg-secondary"
                         >
                           <Select.ItemIndicator className="absolute left-0 w-6 inline-flex items-center justify-center">
                           </Select.ItemIndicator>
@@ -492,7 +492,7 @@ export function CreateChallengeSheet({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-border">
             <button
               onClick={handleCreate}
               disabled={

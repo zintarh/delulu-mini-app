@@ -69,7 +69,7 @@ export function IdentityModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#f6c324]/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-delulu-yellow/20 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-foreground" />
             </div>
             <p className="text-sm font-black text-foreground">Verify your identity</p>

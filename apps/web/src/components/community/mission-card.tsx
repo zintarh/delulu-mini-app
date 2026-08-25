@@ -121,7 +121,7 @@ export function MissionCard({
     <div className="group rounded-3xl bg-white dark:bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex items-start gap-4">
         <Link href={href} className="relative shrink-0">
-          <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40">
+          <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40 dark:bg-accent">
             {coverImageUrl ? (
               <Image
                 src={coverImageUrl}
