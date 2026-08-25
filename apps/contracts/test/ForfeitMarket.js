@@ -216,7 +216,7 @@ describe("ForfeitMarket", function () {
       );
     });
 
-    it("pays the keeper bounty and the platform fee, then routes the remainder to a Friend destination", async function () {
+    it("pays the keeper bounty and the platform fee, then credits the remainder to a Friend destination's pending reward (not an instant transfer)", async function () {
       const { market, token, creator, friend, stranger, platformFeeRecipient } =
         await loadFixture(deployFixture);
       const { stakeAmount } = await approveAndCreate(market, token, creator, {
@@ -241,9 +241,12 @@ describe("ForfeitMarket", function () {
       expect(
         (await token.read.balanceOf([platformFeeRecipient.account.address])) - feeBalBefore,
       ).to.equal(fee);
-      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
-        remainder,
-      );
+      // Friend's wallet balance does not change yet — the reward sits in
+      // pendingFriendReward until they call claimFriendReward themselves.
+      expect(await token.read.balanceOf([friend.account.address])).to.equal(friendBalBefore);
+      expect(
+        await market.read.pendingFriendReward([friend.account.address, token.address]),
+      ).to.equal(remainder);
     });
 
     it("routes the remainder to an approved Charity destination", async function () {
@@ -351,7 +354,7 @@ describe("ForfeitMarket", function () {
   });
 
   describe("cancelCommitment", function () {
-    it("forfeits the stake to a Friend destination, minus the platform fee — no refund to the creator", async function () {
+    it("forfeits the stake to a Friend destination's pending reward, minus the platform fee — no refund to the creator", async function () {
       const { market, token, creator, friend } = await loadFixture(deployFixture);
       const { stakeAmount } = await approveAndCreate(market, token, creator, {
         destinationType: DestinationType.Friend,
@@ -365,9 +368,10 @@ describe("ForfeitMarket", function () {
       await market.write.cancelCommitment([0n], { account: creator.account });
 
       expect(await token.read.balanceOf([creator.account.address])).to.equal(creatorBalBefore);
-      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
-        remainder,
-      );
+      expect(await token.read.balanceOf([friend.account.address])).to.equal(friendBalBefore);
+      expect(
+        await market.read.pendingFriendReward([friend.account.address, token.address]),
+      ).to.equal(remainder);
       expect(await market.read.getCommitmentState([0n])).to.equal("CANCELLED");
     });
 
@@ -391,11 +395,10 @@ describe("ForfeitMarket", function () {
       const fee = (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
       const remainder = stakeAmount - fee;
 
-      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
       await market.write.cancelCommitment([0n], { account: creator.account });
-      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
-        remainder,
-      );
+      expect(
+        await market.read.pendingFriendReward([friend.account.address, token.address]),
+      ).to.equal(remainder);
     });
 
     it("rejects a non-creator cancelling", async function () {
@@ -574,13 +577,16 @@ describe("ForfeitMarket", function () {
   });
 
   describe("forfeiture destination fallback", function () {
-    it("routes the remainder to the community pool if the Friend destination is blacklisted by the token", async function () {
-      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+    it("routes the remainder to the community pool if the Charity destination is blacklisted by the token", async function () {
+      // Friend destinations no longer transfer at forfeiture time (see
+      // "friend reward claiming" below) — crediting pendingFriendReward can't
+      // fail, so this fallback path only still applies to Charity/SelfReturn.
+      const { market, token, creator, charity, stranger } = await loadFixture(deployFixture);
       const { stakeAmount } = await approveAndCreate(market, token, creator, {
-        destinationType: DestinationType.Friend,
-        destinationAddr: friend.account.address,
+        destinationType: DestinationType.Charity,
+        destinationAddr: charity.account.address,
       });
-      await token.write.setBlacklisted([friend.account.address, true]);
+      await token.write.setBlacklisted([charity.account.address, true]);
       await time.increase(ONE_DAY + 1n);
 
       const bounty = (stakeAmount * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
@@ -588,15 +594,80 @@ describe("ForfeitMarket", function () {
       const remainder = stakeAmount - bounty - fee;
 
       const keeperBalBefore = await token.read.balanceOf([stranger.account.address]);
-      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
+      const charityBalBefore = await token.read.balanceOf([charity.account.address]);
       // Must not revert even though the intended destination can't receive funds.
       await market.write.resolveCommitmentForfeited([0n], { account: stranger.account });
 
       expect(
         (await token.read.balanceOf([stranger.account.address])) - keeperBalBefore,
       ).to.equal(bounty);
-      expect(await token.read.balanceOf([friend.account.address])).to.equal(friendBalBefore);
+      expect(await token.read.balanceOf([charity.account.address])).to.equal(charityBalBefore);
       expect(await market.read.communityPoolBalance([token.address])).to.equal(remainder);
+    });
+  });
+
+  describe("friend reward claiming", function () {
+    it("lets the friend claim their accumulated pending reward, zeroing the balance", async function () {
+      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+      const { stakeAmount } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+      });
+      await time.increase(ONE_DAY + 1n);
+      const bounty = (stakeAmount * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
+      const fee = (stakeAmount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const remainder = stakeAmount - bounty - fee;
+      await market.write.resolveCommitmentForfeited([0n], { account: stranger.account });
+
+      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
+      await market.write.claimFriendReward([token.address], { account: friend.account });
+
+      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
+        remainder,
+      );
+      expect(
+        await market.read.pendingFriendReward([friend.account.address, token.address]),
+      ).to.equal(0n);
+    });
+
+    it("reverts NothingToClaim when the caller has no pending reward for that token", async function () {
+      const { market, token, friend } = await loadFixture(deployFixture);
+      await assertRevert(
+        market.write.claimFriendReward([token.address], { account: friend.account }),
+        /NothingToClaim/,
+      );
+    });
+
+    it("accumulates multiple Friend-destination forfeitures to the same friend/token before a single claim", async function () {
+      const { market, token, creator, friend, stranger } = await loadFixture(deployFixture);
+      const { stakeAmount: stake1 } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+      });
+      const { stakeAmount: stake2 } = await approveAndCreate(market, token, creator, {
+        destinationType: DestinationType.Friend,
+        destinationAddr: friend.account.address,
+      });
+      await time.increase(ONE_DAY + 1n);
+
+      const bounty1 = (stake1 * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
+      const fee1 = (stake1 * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const bounty2 = (stake2 * KEEPER_BOUNTY_BPS) / BPS_DENOMINATOR;
+      const fee2 = (stake2 * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+      const totalRemainder = stake1 - bounty1 - fee1 + (stake2 - bounty2 - fee2);
+
+      await market.write.resolveCommitmentForfeited([0n], { account: stranger.account });
+      await market.write.resolveCommitmentForfeited([1n], { account: stranger.account });
+
+      expect(
+        await market.read.pendingFriendReward([friend.account.address, token.address]),
+      ).to.equal(totalRemainder);
+
+      const friendBalBefore = await token.read.balanceOf([friend.account.address]);
+      await market.write.claimFriendReward([token.address], { account: friend.account });
+      expect((await token.read.balanceOf([friend.account.address])) - friendBalBefore).to.equal(
+        totalRemainder,
+      );
     });
   });
 

@@ -41,6 +41,7 @@ contract ForfeitMarket is
     error StakeBelowMinimum();
     error VerifierInvitePending();
     error TokenNotApproved();
+    error NothingToClaim();
 
     // --- CONSTANTS ---
     uint256 public constant BPS_DENOMINATOR = 10000;
@@ -123,6 +124,15 @@ contract ForfeitMarket is
 
     address public platformFeeAddress;
 
+    /// @dev Friend-destination forfeitures are credited here instead of transferred
+    ///      immediately — recipient must call claimFriendReward to withdraw. Charity/
+    ///      CommunityPool/SelfReturn are unaffected and still pay out instantly.
+    ///      Declared after platformFeeAddress (not before) — inserting a new variable
+    ///      ahead of an existing one on a live UUPS proxy would shift platformFeeAddress
+    ///      to a storage slot the deployed proxy doesn't have set, reading back as
+    ///      address(0) and breaking every fee transfer in _distributeForfeitedStake.
+    mapping(address => mapping(address => uint256)) public pendingFriendReward; // recipient => token => amount
+
     // --- EVENTS ---
     event CommitmentCreated(
         uint256 indexed commitmentId,
@@ -161,6 +171,13 @@ contract ForfeitMarket is
         uint256 amountToDestination
     );
     event CommitmentCancelled(uint256 indexed commitmentId, uint256 refundAmount);
+    event FriendRewardCredited(
+        uint256 indexed commitmentId,
+        address indexed recipient,
+        address indexed token,
+        uint256 amount
+    );
+    event FriendRewardClaimed(address indexed recipient, address indexed token, uint256 amount);
     event ApprovedCharityUpdated(address indexed charity, bool approved);
     event ApprovedTokenUpdated(address indexed token, bool approved);
     event MinStakeUpdated(address indexed token, uint256 minStake);
@@ -466,9 +483,18 @@ contract ForfeitMarket is
 
         if (c.destinationType == DestinationType.CommunityPool) {
             communityPoolBalance[c.token] += remainder;
+        } else if (c.destinationType == DestinationType.Friend) {
+            // Credited, not transferred — the recipient claims it themselves via
+            // claimFriendReward. Unlike an instant transfer this can never fail
+            // (a blacklisted/paused recipient just can't claim yet), so there's no
+            // fallback-to-community-pool case to handle here.
+            if (remainder > 0) {
+                pendingFriendReward[c.destinationAddr][c.token] += remainder;
+                emit FriendRewardCredited(commitmentId, c.destinationAddr, c.token, remainder);
+            }
         } else if (remainder > 0) {
             // SelfReturn never reaches forfeiture with a nonzero remainder recipient other
-            // than the creator; Charity/Friend transfer directly to the validated address.
+            // than the creator; Charity transfers directly to the validated address.
             address to = c.destinationType == DestinationType.SelfReturn
                 ? c.creator
                 : c.destinationAddr;
@@ -517,6 +543,19 @@ contract ForfeitMarket is
         );
     }
 
+    /// @notice Claim the caller's full pending Friend-forfeiture reward balance for `token`.
+    ///         Separate from resolution — the recipient (not the creator/keeper) decides
+    ///         when to pull the funds, same pattern as RewardVault.claimReward.
+    function claimFriendReward(address token) external nonReentrant {
+        uint256 amount = pendingFriendReward[msg.sender][token];
+        if (amount == 0) revert NothingToClaim();
+
+        pendingFriendReward[msg.sender][token] = 0;
+        IERC20(token).safeTransfer(msg.sender, amount);
+
+        emit FriendRewardClaimed(msg.sender, token, amount);
+    }
+
     /// @notice Creator-only. Voluntarily discontinuing is a forfeiture, not a refund —
     ///         same fee + destination routing as a missed deadline, minus the keeper
     ///         bounty (no permissionless caller to pay here). Callable any time the
@@ -561,5 +600,5 @@ contract ForfeitMarket is
     }
 
     /// @dev Reserved for future storage without breaking upgrades.
-    uint256[45] private __gap;
+    uint256[44] private __gap;
 }

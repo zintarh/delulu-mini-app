@@ -8,6 +8,10 @@
     {
       "address": "0xE652E0cA7DACb6489928C6801D83356a016DcfE1",
       "kind": "uups"
+    },
+    {
+      "address": "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -2654,6 +2658,378 @@
           }
         },
         "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "72e547f4fa8c34d5a914fe992d4116e43da91b13fbbfa2ed5342e62d0687fed6": {
+      "address": "0xB2927E311Ac0dED4CbbEf2754Ad80c556cd3cc4b",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "nextCommitmentId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:93"
+          },
+          {
+            "label": "commitments",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_struct(Commitment)11630_storage)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:94"
+          },
+          {
+            "label": "periodOutcome",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint32,t_enum(PeriodOutcome)11601))",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:99"
+          },
+          {
+            "label": "pendingVerifierCodeHash",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_uint256,t_bytes32)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:104"
+          },
+          {
+            "label": "approvedCharities",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:108"
+          },
+          {
+            "label": "approvedTokens",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:116"
+          },
+          {
+            "label": "minStakeForToken",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:120"
+          },
+          {
+            "label": "communityPoolBalance",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:123"
+          },
+          {
+            "label": "platformFeeAddress",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_address",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:125"
+          },
+          {
+            "label": "pendingFriendReward",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:134"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_array(t_uint256)44_storage",
+            "contract": "ForfeitMarket",
+            "src": "contracts/ForfeitMarket.sol:605"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)44_storage": {
+            "label": "uint256[44]",
+            "numberOfBytes": "1408"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_enum(Cadence)11597": {
+            "label": "enum ForfeitMarket.Cadence",
+            "members": [
+              "Once",
+              "Daily",
+              "Weekday",
+              "Weekly",
+              "Monthly"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(DestinationType)11591": {
+            "label": "enum ForfeitMarket.DestinationType",
+            "members": [
+              "SelfReturn",
+              "Charity",
+              "Friend",
+              "CommunityPool"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(PeriodOutcome)11601": {
+            "label": "enum ForfeitMarket.PeriodOutcome",
+            "members": [
+              "Pending",
+              "Success",
+              "Forfeited"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bytes32)": {
+            "label": "mapping(uint256 => bytes32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint32,t_enum(PeriodOutcome)11601))": {
+            "label": "mapping(uint256 => mapping(uint32 => enum ForfeitMarket.PeriodOutcome))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Commitment)11630_storage)": {
+            "label": "mapping(uint256 => struct ForfeitMarket.Commitment)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_enum(PeriodOutcome)11601)": {
+            "label": "mapping(uint32 => enum ForfeitMarket.PeriodOutcome)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Commitment)11630_storage": {
+            "label": "struct ForfeitMarket.Commitment",
+            "members": [
+              {
+                "label": "creator",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "token",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "stakeAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "destinationType",
+                "type": "t_enum(DestinationType)11591",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "destinationAddr",
+                "type": "t_address",
+                "offset": 1,
+                "slot": "3"
+              },
+              {
+                "label": "cadence",
+                "type": "t_enum(Cadence)11597",
+                "offset": 21,
+                "slot": "3"
+              },
+              {
+                "label": "periodSeconds",
+                "type": "t_uint64",
+                "offset": 22,
+                "slot": "3"
+              },
+              {
+                "label": "currentPeriodDeadline",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "currentPeriodIndex",
+                "type": "t_uint32",
+                "offset": 8,
+                "slot": "4"
+              },
+              {
+                "label": "totalPeriods",
+                "type": "t_uint32",
+                "offset": 12,
+                "slot": "4"
+              },
+              {
+                "label": "verifier",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "active",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "5"
+              },
+              {
+                "label": "cancelled",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
           "erc7201:openzeppelin.storage.ReentrancyGuard": [
             {
               "contract": "ReentrancyGuardUpgradeable",
