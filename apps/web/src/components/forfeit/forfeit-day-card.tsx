@@ -579,6 +579,7 @@ function ForfeitTaskCard({
   // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
   // finished item from one still in progress, not just repeating plans.
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
+  const showMenu = !isPendingSync && outcome !== "failed" && outcome !== "overdue";
 
   return (
     <div className="relative rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
@@ -594,7 +595,7 @@ function ForfeitTaskCard({
           </span>
         </div>
       ) : null}
-      {!isPendingSync && outcome !== "failed" && outcome !== "overdue" ? (
+      {showMenu ? (
         <div className="absolute right-1.5 top-1.5">
           <ForfeitCardMenu onDiscontinue={onDiscontinue} />
         </div>
@@ -603,18 +604,22 @@ function ForfeitTaskCard({
       {/* Title and the sentence below it are siblings — one thought split
           across two lines — so they sit close together. The progress row
           above is a different kind of information (which day this is, not
-          what happened), so it gets more room before the title starts. */}
+          what happened), so it gets more room before the title starts.
+          No truncate on either line: the card grows to fit long text on a
+          second line instead of clipping it, and the menu button (when shown
+          without a progress row above it) gets right padding so wrapped
+          title text never runs under it. */}
       <p
         className={cn(
-          showProgress ? "mt-0.5" : "",
-          "truncate text-xl font-black leading-tight text-foreground",
+          showProgress ? "mt-0.5" : showMenu ? "pr-8" : "",
+          "text-base font-black leading-snug text-foreground",
         )}
       >
         {item.title || "Untitled forfeit"}
       </p>
 
-      <div className="mt-0.5 flex items-center justify-between gap-2">
-        <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+      <div className="mt-0.5 flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
           {stakeLine.lead}{" "}
           <span className={cn("font-bold tabular-nums", stateColor)}>
             {stakeLine.amountText ?? "—"}
@@ -671,7 +676,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
 
   return (
     <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className="relative shrink-0">
           <UserAvatar
             address={item.creatorWallet}
@@ -688,14 +693,14 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           <p className={cn("text-[10px] font-black uppercase tracking-wide", labelColor)}>
             {label}
           </p>
-          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-sm text-muted-foreground">
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <p className="min-w-0 text-sm text-muted-foreground">
           {amount ? (
             <>
               <span className="font-bold text-foreground">
@@ -784,7 +789,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
 
   return (
     <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <UserAvatar
           address={item.creatorWallet}
           username={item.otherPartyUsername}
@@ -795,13 +800,13 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
           <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
             If they miss it
           </p>
-          <p className="mt-0.5 truncate text-lg font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
         <FriendProgressRing index={completedPeriods} count={totalPeriods} />
       </div>
-      <p className="mt-1.5 truncate text-sm text-muted-foreground">
+      <p className="mt-1.5 text-sm text-muted-foreground">
         {amount ? (
           <>
             <span className="font-bold text-foreground">
