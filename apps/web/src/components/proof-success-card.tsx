@@ -87,10 +87,10 @@ export function ProofSuccessCard({
   return (
     <div className="flex flex-col items-center py-2">
       {/* Achievement card */}
-      <div className="w-full rounded-3xl border border-border/60 bg-[#f9f8f4] p-5 shadow-sm">
+      <div className="w-full rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
         {/* Wordmark row */}
         <div className="mb-5 flex items-center justify-between">
-          <span className="text-[13px] font-black tracking-tight text-[#1a1a19]">
+          <span className="text-[13px] font-black tracking-tight text-card-foreground">
             delulu<span className="text-[#f6c324]">.</span>
           </span>
           <span className="h-2 w-2 rounded-full bg-[#f6c324]" />
@@ -110,7 +110,7 @@ export function ProofSuccessCard({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-[#1a1a19]">
+            <p className="truncate text-sm font-black text-card-foreground">
               {myUsername ? `@${myUsername}` : "You"}
             </p>
             {campaignTitle ? (
@@ -148,7 +148,7 @@ export function ProofSuccessCard({
                 key={i}
                 className={cn(
                   "h-2 w-2 rounded-full transition-colors",
-                  i <= milestoneIndex ? "bg-[#1a1a19]" : "bg-[#dfdfd9]",
+                  i <= milestoneIndex ? "bg-card-foreground" : "bg-muted",
                 )}
               />
             ))}
@@ -162,12 +162,12 @@ export function ProofSuccessCard({
         {((myStreak ?? 0) > 0 || (myPoints ?? 0) > 0) ? (
           <div className="flex flex-wrap items-center justify-center gap-2">
             {(myStreak ?? 0) > 0 ? (
-              <span className="rounded-full border border-border/60 bg-white px-3 py-1 text-xs font-bold text-[#1a1a19]">
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-bold text-card-foreground">
                 🔥 {myStreak}-milestone streak
               </span>
             ) : null}
             {(myPoints ?? 0) > 0 ? (
-              <span className="rounded-full border border-border/60 bg-white px-3 py-1 text-xs font-bold text-[#1a1a19]">
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-bold text-card-foreground">
                 💫 {myPoints} pts
               </span>
             ) : null}

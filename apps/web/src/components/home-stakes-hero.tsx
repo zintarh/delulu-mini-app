@@ -10,6 +10,7 @@ import {
   isActiveForfeit,
   type ForfeitFeedItem,
 } from "@/hooks/use-creator-forfeits";
+import { usePendingForfeitSync } from "@/lib/forfeit/use-pending-forfeit-sync";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
 import { cn, formatGAmount } from "@/lib/utils";
 import { FEED_CARD_EYEBROW_CLASS, FEED_CARD_SUBTITLE_CLASS } from "@/components/feed-card-layout";
@@ -90,8 +91,28 @@ function aggregateActiveStakes(items: ForfeitFeedItem[]): ActiveStakesSummary {
  */
 export function useActiveForfeitStakes(address: string | undefined) {
   const { data, isLoading } = useCreatorForfeits(address);
+  const { optimisticItem } = usePendingForfeitSync(address);
 
-  const summary = useMemo(() => aggregateActiveStakes(data ?? []), [data]);
+  const summary = useMemo(() => {
+    const items = data ?? [];
+    // A just-staked forfeit can lag Supabase indexing by up to ~2-3 minutes
+    // (see ensurePendingForfeitConfirmed's backoff). Without merging in the
+    // optimistic item here, a second forfeit created right after the first
+    // is invisible to this hero's "soonest deadline" countdown until that
+    // sync completes — the badge would keep showing only the first forfeit's
+    // deadline as if the second didn't exist. ForfeitDayCard already does
+    // this same merge for its own item list.
+    const alreadyIndexed = optimisticItem
+      ? items.some(
+          (c) =>
+            c.title === optimisticItem.title &&
+            c.onChain?.stakeAmount === optimisticItem.onChain?.stakeAmount,
+        )
+      : false;
+    const merged =
+      optimisticItem && !alreadyIndexed ? [...items, optimisticItem] : items;
+    return aggregateActiveStakes(merged);
+  }, [data, optimisticItem]);
 
   return {
     ...summary,
@@ -137,7 +158,7 @@ export function HomeStakesHero({ address }: { address: string }) {
 
   if (isLoading) {
     return (
-      <div className="mx-4 animate-pulse rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
+      <div className="mx-4 mb-6 animate-pulse rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
         <div className="h-3 w-16 rounded bg-muted" />
         <div className="mt-2 h-9 w-40 rounded bg-muted" />
         <div className="mt-2 h-4 w-24 rounded bg-muted" />
@@ -158,7 +179,7 @@ export function HomeStakesHero({ address }: { address: string }) {
   const countdown = formatCountdown(remainingSec);
 
   return (
-    <Link href="#forfeit-day-card" className="mx-4 block">
+    <Link href="#forfeit-day-card" className="mx-4 mb-6 block">
       <div
         className={cn(
           "rounded-3xl border p-4 shadow-sm transition-opacity active:opacity-90",
