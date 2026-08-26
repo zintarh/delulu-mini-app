@@ -158,7 +158,7 @@ body {
   --secondary-foreground: 242 241 236;
   --muted: 42 42 39;
   --muted-foreground: 163 163 156;
-  --accent: 30 42 63;
+  --accent: 33 38 45;
   --accent-foreground: 147 197 253;
   --destructive: 248 113 113;
   --destructive-foreground: 26 26 25;
@@ -167,11 +167,14 @@ body {
   --ring: 59 130 246;
   /* Delulu brand blue's pale tint/border, redefined for dark surfaces —
      used throughout as a "selected/highlighted" fill (SheetListRow, status
-     badges, active nav items). Without this override it stays #eff6ff in
-     dark mode since delulu-blue-light/border are brand colors, not part of
-     the semantic light/dark token set. */
-  --delulu-blue-light: #1e2a3f;
-  --delulu-blue-border: #33475f;
+     badges, active nav items). A neutral charcoal-slate rather than a navy
+     tint — the earlier #1e2a3f/#33475f read as an overtly "dark blue" theme
+     when these fills covered large panels; the blue accent text/icons on
+     top now carry the brand color instead of the whole surface. Without
+     this override it stays #eff6ff in dark mode since delulu-blue-light/
+     border are brand colors, not part of the semantic light/dark token set. */
+  --delulu-blue-light: #21262d;
+  --delulu-blue-border: #3a3f47;
   --chart-1: #3b82f6;
   --chart-2: #60a5fa;
   --chart-3: #93c5fd;
@@ -181,7 +184,7 @@ body {
   --sidebar-foreground: #e4e1d7;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #0b1220;
-  --sidebar-accent: #1e2a3f;
+  --sidebar-accent: #21262d;
   --sidebar-accent-foreground: #93c5fd;
   --sidebar-border: #33332f;
   --sidebar-ring: #3b82f6;
