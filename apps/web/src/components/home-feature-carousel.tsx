@@ -40,7 +40,7 @@ const CARDS: FeatureCard[] = [
     bgClassName: "bg-[#071593]",
     accentClassName: "bg-white/15 text-white",
     glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
-    action: { label: "Start now", href: "/explore" },
+    action: { label: "Create forfeit today", href: "/forfeit" },
     light: true,
   },
   {
@@ -273,7 +273,7 @@ export function HomeFeatureCarousel({
                           "mt-auto inline-flex w-fit items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 transition-transform hover:scale-[1.04] active:scale-[0.97]",
                           FEED_CARD_CTA_CLASS,
                           card.light
-                            ? "bg-white text-foreground"
+                            ? "bg-white text-[#1a1a19]"
                             : "bg-delulu-blue text-white",
                         )}
                       >

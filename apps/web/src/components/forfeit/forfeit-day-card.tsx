@@ -844,17 +844,19 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
           disabled
           aria-label="Creating forfeits is temporarily paused"
           title="Creating forfeits is temporarily paused"
-          className="mt-5 flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full bg-muted text-muted-foreground"
+          className="mt-5 flex h-11 cursor-not-allowed items-center gap-1.5 rounded-full bg-muted px-5 text-sm font-bold text-muted-foreground"
         >
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          Create a forfeit
         </button>
       ) : authenticated ? (
         <Link
           href="/forfeit"
           aria-label="Create a forfeit"
-          className="mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
+          className="mt-5 flex h-11 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-bold text-background transition-transform hover:scale-105 active:scale-95"
         >
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          Create a forfeit
         </Link>
       ) : (
         <button
@@ -864,9 +866,10 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
             persistSignInRedirect("/forfeit");
             router.push(buildSignInUrl("/forfeit"));
           }}
-          className="mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
+          className="mt-5 flex h-11 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-bold text-background transition-transform hover:scale-105 active:scale-95"
         >
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          Get started
         </button>
       )}
     </div>
