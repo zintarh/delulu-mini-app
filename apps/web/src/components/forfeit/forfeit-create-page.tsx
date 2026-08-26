@@ -503,7 +503,7 @@ export function ForfeitCreatePage() {
   useEffect(() => {
     if (resolvedVerifier) return;
     const query = verifierUsername.trim();
-    if (query.length < 2) {
+    if (query.length < 3) {
       setFriendSearchResults([]);
       setFriendSearchLoading(false);
       return;
@@ -542,7 +542,7 @@ export function ForfeitCreatePage() {
   useEffect(() => {
     if (destinationId !== "friend" || destinationFriend) return;
     const query = destinationFriendQuery.trim();
-    if (query.length < 2 || ADDRESS_RE.test(query)) {
+    if (query.length < 3 || ADDRESS_RE.test(query)) {
       setDestinationSearchResults([]);
       setDestinationSearchLoading(false);
       return;

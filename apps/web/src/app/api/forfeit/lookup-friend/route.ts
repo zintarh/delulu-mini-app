@@ -32,15 +32,19 @@ function isRealEmail(email: string | null | undefined): email is string {
  * search_forfeit_friends() Postgres function (pg_trgm `%` operator + a GIN trigram
  * index on profiles.username — see apps/web/src/lib/migrations for the SQL) so
  * substring/typo matches are an indexed lookup instead of a `%query%` table scan.
- * Email search is a substring match on the email trigram index, with no username
- * requirement, so a user without a username is still findable by email.
+ * Email search is a substring match on the email trigram index (see
+ * docs/migrations/20260826_search_forfeit_friends_email_trgm.sql), with no
+ * username requirement, so a user without a username is still findable by
+ * email.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
   const excludeAddress = searchParams.get("excludeAddress")?.trim().toLowerCase() ?? null;
 
-  if (query.length < 2) {
+  // pg_trgm trigrams are 3-character sequences — a 2-char query can't build
+  // one, so the GIN index buys nothing below this length anyway.
+  if (query.length < 3) {
     return NextResponse.json({ results: [] });
   }
 
@@ -56,7 +60,11 @@ export async function GET(request: NextRequest) {
   const usernameQ = query.replace(/^@/, "");
 
   const [usernameRes, emailRes] = await Promise.all([
-    admin.rpc("search_forfeit_friends", { q: usernameQ, exclude_addr: excludeAddress }),
+    admin.rpc("search_forfeit_friends", {
+      q: usernameQ,
+      exclude_addr: excludeAddress,
+      limit_count: MAX_RESULTS,
+    }),
     admin
       .from("profiles")
       .select("address, username, email, pfp_url")
