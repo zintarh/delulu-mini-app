@@ -9,12 +9,16 @@ import {
   Flag,
   UserPlus,
   Wallet,
+  Sparkles,
 } from "lucide-react";
 import { usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
 import { useDashboardOverview } from "@/hooks/dashboard/use-dashboard-overview";
 import {
   DashboardPage,
   DashboardStatGrid,
+  DashboardCardGrid,
+  DashboardCard,
+  DashboardCardAvatar,
 } from "@/components/dashboard/dashboard-ui";
 import {
   DashboardChartCard,
@@ -94,6 +98,32 @@ const CAMPAIGN_STATUS_COLORS: Record<string, string> = {
   ended: "#64748b",
   rejected: "#ef4444",
 };
+
+// Hand-picked, not derived from a metric — the delulus that stood out most
+// when we went looking through the Goldsky subgraph + Supabase content.
+const SPOTLIGHT_DELULUS = [
+  {
+    id: "33",
+    name: "7 Days, No Bread: Discipline Challenge",
+    username: "Cecilia",
+    gStaked: "50,000",
+    tag: "Largest stake on-chain",
+  },
+  {
+    id: "6",
+    name: "Participate in 2 Hackathons — Starknet & Celo Build Agents",
+    username: "dotty",
+    gStaked: "27,234",
+    tag: "Fully matched by backers",
+  },
+  {
+    id: "7",
+    name: "Scaling from 420 to 1,000 followers on X",
+    username: "soniadelulu",
+    gStaked: "3,456",
+    tag: "Username checks out",
+  },
+] as const;
 
 export function DashboardOverview() {
   const { milestones: pendingMilestones, isLoading: loadingMilestones } =
@@ -235,6 +265,31 @@ export function DashboardOverview() {
           </div>
         </div>
       </div>
+
+      <div className="mb-3 flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-delulu-blue" />
+        <h3 className="text-sm font-bold text-foreground">Most interesting delulus</h3>
+      </div>
+      <DashboardCardGrid className="lg:grid-cols-3">
+        {SPOTLIGHT_DELULUS.map((d) => (
+          <DashboardCard key={d.id} href={`/delulu/${d.id}`}>
+            <div className="flex items-start gap-3">
+              <DashboardCardAvatar label={d.username} />
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
+                  {d.name}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {d.username} · {d.gStaked} G$ staked
+                </p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex rounded-full bg-delulu-blue-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-delulu-blue">
+              {d.tag}
+            </span>
+          </DashboardCard>
+        ))}
+      </DashboardCardGrid>
     </DashboardPage>
   );
 }
