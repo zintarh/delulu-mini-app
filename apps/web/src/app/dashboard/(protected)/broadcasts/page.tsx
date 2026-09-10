@@ -147,7 +147,7 @@ export default function AdminBroadcastsPage() {
               type="button"
               onClick={selectAll}
               disabled={allCreatorAddresses.length === 0}
-              className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 transition-colors"
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 transition-colors"
             >
               Select all ({allCreatorAddresses.length})
             </button>
@@ -155,7 +155,7 @@ export default function AdminBroadcastsPage() {
               <button
                 type="button"
                 onClick={clearAll}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
               >
                 Clear
               </button>
@@ -249,7 +249,7 @@ export default function AdminBroadcastsPage() {
                           href={`/delulu/${d.onChainId ?? d.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#e8e8e3] px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-delulu-blue-border hover:bg-delulu-blue-light hover:text-delulu-blue transition-colors"
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-delulu-blue-border hover:bg-delulu-blue-light hover:text-delulu-blue transition-colors"
                         >
                           Open <ExternalLink className="h-3 w-3" />
                         </a>

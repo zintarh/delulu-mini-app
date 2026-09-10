@@ -136,7 +136,7 @@ export function RewardUserModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+      <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground">Reward user</h3>
           <button
@@ -150,9 +150,9 @@ export function RewardUserModal({
         </div>
 
         {!isAuthorizedSigner ? (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/12 px-3 py-2">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-            <p className="text-[11px] leading-relaxed text-amber-700">
+            <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
               Your connected wallet isn&apos;t the vault&apos;s rewarder or owner — this would fail
               on-chain. Connect the rewarder wallet to send.
             </p>
@@ -211,7 +211,7 @@ export function RewardUserModal({
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
           className={cn(
-            "mb-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "mb-1 w-full rounded-lg border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
             exceedsBalance ? "border-destructive" : "border-border",
           )}
         />
@@ -254,7 +254,7 @@ export function RewardUserModal({
           onChange={(e) => setReason(e.target.value.slice(0, 120))}
           placeholder="e.g. Top 10 this month, completed onboarding…"
           maxLength={120}
-          className="mb-4 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-ring"
+          className="mb-4 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-ring"
         />
 
         {(localError || error) && (

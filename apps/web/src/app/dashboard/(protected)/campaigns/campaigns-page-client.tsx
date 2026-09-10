@@ -82,7 +82,7 @@ export function CampaignsPageClient() {
             placeholder="Search by title…"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {search ? (
             <button
@@ -261,7 +261,7 @@ export function CampaignsPageClient() {
 
                         <Link
                           href={`/dashboard/communities/${c.community_id}/campaigns/${c.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#e8e8e3] px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
                         >
                           <ExternalLink className="h-3 w-3" />
                           Details

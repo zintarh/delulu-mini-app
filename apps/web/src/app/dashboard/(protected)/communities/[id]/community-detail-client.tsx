@@ -89,7 +89,7 @@ function HubTabs({
   ];
 
   return (
-    <div className="mb-4 flex gap-2 border-b border-[#e8e8e3]">
+    <div className="mb-4 flex gap-2 border-b border-border">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -159,7 +159,7 @@ function ActionButtons({
 
       <Link
         href={`/dashboard/communities/${communityId}/campaigns/${campaign.id}`}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#e8e8e3] px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
       >
         <ExternalLink className="h-3 w-3" />
         Details

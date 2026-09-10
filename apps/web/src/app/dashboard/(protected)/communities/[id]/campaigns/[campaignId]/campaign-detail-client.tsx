@@ -674,7 +674,7 @@ export function CampaignDetailClient({
       </DashboardModal>
 
       {campaign.cover_image_url ? (
-        <div className="relative mb-6 h-32 w-full overflow-hidden rounded-xl border border-[#e8e8e3]">
+        <div className="relative mb-6 h-32 w-full overflow-hidden rounded-xl border border-border">
           <Image
             src={campaign.cover_image_url}
             alt=""
@@ -686,7 +686,7 @@ export function CampaignDetailClient({
         </div>
       ) : null}
 
-      <div className="mb-6 flex gap-2 border-b border-[#e8e8e3]">
+      <div className="mb-6 flex gap-2 border-b border-border">
         {(["overview", "settings"] as DetailTab[]).map((tab) => (
           <button
             key={tab}
@@ -820,12 +820,12 @@ export function CampaignDetailClient({
               <div key={step} className="flex items-center gap-2">
                 <div
                   className={`h-2.5 w-2.5 rounded-full ${
-                    timelineIndex >= i ? "bg-delulu-blue" : "bg-[#e8e8e3]"
+                    timelineIndex >= i ? "bg-delulu-blue" : "bg-border"
                   }`}
                   title={step.replace(/_/g, " ")}
                 />
                 {i < TIMELINE.length - 1 ? (
-                  <div className="h-px w-8 bg-[#e8e8e3] sm:w-12" />
+                  <div className="h-px w-8 bg-border sm:w-12" />
                 ) : null}
               </div>
             ))}

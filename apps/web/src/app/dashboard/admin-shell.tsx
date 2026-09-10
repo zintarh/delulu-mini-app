@@ -168,7 +168,7 @@ export function AdminShell({
   const closeMobile = () => setSidebarOpen(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f3f2ed] text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       {sidebarOpen ? (
         <div
           className="fixed inset-0 z-30 bg-black/20 lg:hidden"
@@ -178,7 +178,7 @@ export function AdminShell({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-[212px] flex-col bg-white shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)] transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-[212px] flex-col bg-card shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)] transition-transform duration-200 lg:static lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -241,8 +241,8 @@ export function AdminShell({
           ) : null}
         </nav>
 
-        <div className="shrink-0 space-y-2 bg-[#fafaf7] p-3">
-          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(26,26,25,0.04)]">
+        <div className="shrink-0 space-y-2 bg-muted p-3">
+          <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-[0_1px_2px_rgba(26,26,25,0.04)]">
             <div
               className={cn(
                 "h-2 w-2 rounded-full",
@@ -256,7 +256,7 @@ export function AdminShell({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white/80 hover:text-foreground"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-card/80 hover:text-foreground"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -265,7 +265,7 @@ export function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)] sm:px-6">
+        <header className="relative z-20 flex h-14 shrink-0 items-center justify-between bg-card px-4 shadow-[0_4px_14px_-10px_rgba(26,26,25,0.08)] sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -292,7 +292,7 @@ export function AdminShell({
             {isConnected && address ? (
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-xl border border-[#e8e8e3] px-2.5 py-1.5 text-xs font-medium hover:bg-muted/40"
+                className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted/40"
               >
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">{formatAddress(address)}</span>
@@ -301,7 +301,7 @@ export function AdminShell({
               <button
                 type="button"
                 onClick={() => setShowLoginSheet(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#e8e8e3] px-3 py-2 text-xs font-bold hover:bg-muted/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-muted/40"
               >
                 <LogIn className="h-4 w-4" />
                 Connect

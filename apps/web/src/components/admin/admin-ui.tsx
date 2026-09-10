@@ -8,7 +8,7 @@ export const adminPillActive =
   "border-delulu-blue bg-delulu-blue text-white";
 
 export const adminPillInactive =
-  "border-border bg-white text-foreground hover:bg-muted";
+  "border-border bg-card text-foreground hover:bg-muted";
 
 export function AdminKpiStrip({
   icon: Icon,
@@ -18,7 +18,7 @@ export function AdminKpiStrip({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 shadow-sm">
+    <div className="mb-6 inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
       <Icon className="h-4 w-4 text-delulu-blue" />
       {children}
     </div>
@@ -96,7 +96,7 @@ export function AdminPagination({
           type="button"
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
-          className="inline-flex items-center justify-center rounded-lg border border-border bg-white p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -130,7 +130,7 @@ export function AdminPagination({
           type="button"
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
-          className="inline-flex items-center justify-center rounded-lg border border-border bg-white p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-1.5 text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -178,7 +178,7 @@ export function AdminRowCheckbox({
         "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
         checked || indeterminate
           ? "border-delulu-blue bg-delulu-blue"
-          : "border-border bg-white hover:border-delulu-blue/50",
+          : "border-border bg-card hover:border-delulu-blue/50",
       )}
     >
       {checked ? (

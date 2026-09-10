@@ -141,7 +141,7 @@ export default function AdminRewardTransactionsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search recipient, tx, token, staff…"
-          className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-xl border border-border bg-card py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {search ? (
           <button
@@ -227,7 +227,7 @@ export default function AdminRewardTransactionsPage() {
                             href={`https://celoscan.io/tx/${grant.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-delulu-blue transition-colors hover:bg-delulu-blue-light"
+                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-delulu-blue transition-colors hover:bg-delulu-blue-light"
                           >
                             View
                             <ExternalLink className="h-3 w-3" />

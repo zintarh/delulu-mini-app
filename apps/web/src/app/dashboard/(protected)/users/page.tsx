@@ -246,7 +246,7 @@ export default function AdminUsersPage() {
             placeholder="Search by username or email…"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {search && (
             <button
@@ -346,7 +346,7 @@ export default function AdminUsersPage() {
                             }}
                             autoFocus
                             maxLength={32}
-                            className="w-32 rounded-lg border border-border bg-white px-2 py-1 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="w-32 rounded-lg border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           />
                           <button
                             type="button"

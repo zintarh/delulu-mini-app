@@ -151,7 +151,7 @@ export default function AdminLeaderboardPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search username, email, or wallet…"
-            className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border bg-card py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {search ? (
             <button

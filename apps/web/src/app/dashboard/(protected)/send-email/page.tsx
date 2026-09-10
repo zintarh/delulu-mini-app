@@ -86,7 +86,7 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
 
   return (
     <div className="rounded-xl border border-border overflow-hidden shadow-lg ring-1 ring-black/5">
-      <div className="email-preview-frame max-h-[min(78vh,860px)] overflow-y-auto overscroll-contain bg-[#f5f5f5]">
+      <div className="email-preview-frame max-h-[min(78vh,860px)] overflow-y-auto overscroll-contain bg-muted">
         <div dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     </div>
@@ -400,7 +400,7 @@ export default function AdminSendEmailPage() {
       )}
 
       {/* ── Composer ─────────────────────────────────────────────────────── */}
-      <div className="mb-6 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+      <div className="mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center gap-1 border-b border-border px-4 pt-3 pb-0">
           <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-delulu-blue">
             <Mail className="h-4 w-4 text-white" />
@@ -619,7 +619,7 @@ export default function AdminSendEmailPage() {
                         {creatorEmail ? (
                           <AdminRowCheckbox checked={isChecked} onChange={() => toggleEmail(creatorEmail)} />
                         ) : (
-                          <span className="inline-block h-4 w-4 shrink-0 rounded border border-[#e8e8e3] opacity-40" title="No email on file" />
+                          <span className="inline-block h-4 w-4 shrink-0 rounded border border-border opacity-40" title="No email on file" />
                         )}
                       </DashboardTableCell>
                       <DashboardTableCell className="font-mono font-semibold tabular-nums">
@@ -760,7 +760,7 @@ export default function AdminSendEmailPage() {
       </DashboardTableCard>
 
       {/* Sticky send footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-white/95 backdrop-blur-sm px-5 py-4 lg:left-60">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur-sm px-5 py-4 lg:left-60">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {selectedEmails.size === 0 ? (

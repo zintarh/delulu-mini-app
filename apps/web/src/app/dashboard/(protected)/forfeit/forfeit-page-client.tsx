@@ -130,7 +130,7 @@ function KpiCard({
   accent?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#e8e8e3] bg-white px-4 py-4 shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -172,7 +172,7 @@ function DetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] gap-3 border-b border-[#f0f0eb] py-2.5 text-sm last:border-0">
+    <div className="grid grid-cols-[140px_1fr] gap-3 border-b border-border py-2.5 text-sm last:border-0">
       <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
@@ -283,7 +283,7 @@ function ForfeitDetailModal({
               {item.periods.map((p) => (
                 <li
                   key={p.id}
-                  className="rounded-xl border border-[#e8e8e3] bg-[#fafaf7] p-3"
+                  className="rounded-xl border border-border bg-muted p-3"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-bold text-foreground">
@@ -332,7 +332,7 @@ function ForfeitDetailModal({
                     {p.aiVerdict != null ? (
                       <div className="pt-1">
                         <p className="font-semibold text-foreground">AI verdict</p>
-                        <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-white p-2 text-[10px] text-foreground">
+                        <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-card p-2 text-[10px] text-foreground">
                           {JSON.stringify(p.aiVerdict, null, 2)}
                         </pre>
                       </div>
@@ -602,7 +602,7 @@ export function ForfeitAdminPageClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title, wallet, friend, on-chain id…"
-            className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border bg-card py-2.5 pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {search ? (
             <button

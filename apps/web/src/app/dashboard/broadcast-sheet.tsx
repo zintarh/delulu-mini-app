@@ -77,7 +77,7 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
   </div>`;
 
   return (
-    <div className="overflow-y-auto rounded-xl border border-border bg-[#f8fafc] p-4">
+    <div className="overflow-y-auto rounded-xl border border-border bg-muted p-4">
       <div
         className="mx-auto"
         dangerouslySetInnerHTML={{ __html: html }}
@@ -203,7 +203,7 @@ export function BroadcastSheet({ open, onOpenChange, delulus, isLoading }: Broad
           className={cn(
             "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
             "w-[calc(100vw-2rem)] max-w-6xl max-h-[92vh]",
-            "flex flex-col rounded-2xl border border-border bg-white shadow-2xl",
+            "flex flex-col rounded-2xl border border-border bg-card shadow-2xl",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -358,7 +358,7 @@ export function BroadcastSheet({ open, onOpenChange, delulus, isLoading }: Broad
                               "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
                               isChecked
                                 ? "border-delulu-blue bg-delulu-blue"
-                                : "border-border bg-white",
+                                : "border-border bg-card",
                             )}
                           >
                             {isChecked && (
