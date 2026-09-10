@@ -68,7 +68,7 @@ export function DashboardStat({
   isLoading?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-[#e8e8e3] bg-white px-4 py-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
@@ -114,7 +114,7 @@ export function DashboardCard({
   className?: string;
 }) {
   const classes = cn(
-    "group block rounded-2xl border border-[#e8e8e3] bg-white p-4 shadow-sm transition-all",
+    "group block rounded-2xl border border-border bg-card p-4 shadow-sm transition-all",
     "hover:border-delulu-blue/30 hover:shadow-sm",
     onClick && "cursor-pointer text-left w-full",
     className,
@@ -170,7 +170,7 @@ export function DashboardEmpty({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#e8e8e3] bg-white py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
       <Icon className="mb-3 h-10 w-10 text-muted-foreground/25" />
       <p className="text-sm font-semibold text-foreground">{title}</p>
       {action ? <div className="mt-4">{action}</div> : null}
@@ -221,7 +221,7 @@ export function DashboardNavCard({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-2xl border border-[#e8e8e3] bg-white px-4 py-4 shadow-sm hover:border-delulu-blue/30 transition-all"
+      className="group flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-sm hover:border-delulu-blue/30 transition-all"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-delulu-blue-light text-delulu-blue">
         <Icon className="h-5 w-5" />
@@ -269,7 +269,7 @@ export function DashboardIconButton({
       type="button"
       title={title}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e8e8e3] bg-white text-muted-foreground hover:text-foreground hover:border-delulu-blue/30 transition-colors",
+        "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:border-delulu-blue/30 transition-colors",
         className,
       )}
       {...props}
@@ -289,7 +289,7 @@ export function hasTableCellValue(value: unknown): boolean {
 
 export function DashboardTableCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e8e8e3] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {children}
     </div>
   );
@@ -298,7 +298,7 @@ export function DashboardTableCard({ children }: { children: React.ReactNode }) 
 export function DashboardTableLoading() {
   return (
     <div className="flex justify-center py-20">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#e8e8e3] border-t-delulu-blue" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-delulu-blue" />
     </div>
   );
 }
@@ -345,7 +345,7 @@ export function DashboardTableHead({ children }: { children: React.ReactNode }) 
 
 export function DashboardTableHeadRow({ children }: { children: React.ReactNode }) {
   return (
-    <tr className="border-b border-[#e8e8e3] bg-gradient-to-b from-[#fafaf8] to-[#f5f5f2]">
+    <tr className="border-b border-border bg-muted/40">
       {children}
     </tr>
   );
@@ -443,7 +443,7 @@ export function DashboardToast({
   onDismiss?: () => void;
 }) {
   return (
-    <div className="fixed bottom-6 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#e8e8e3] bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-lg">
+    <div className="fixed bottom-6 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-lg">
       {message}
       {onDismiss ? (
         <button type="button" onClick={onDismiss} className="ml-1 text-muted-foreground hover:text-foreground">

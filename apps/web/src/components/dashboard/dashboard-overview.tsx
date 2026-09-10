@@ -46,7 +46,7 @@ function EnhancedStat({
   accent?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#e8e8e3] bg-white px-4 py-4 shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -217,7 +217,7 @@ export function DashboardOverview() {
         </DashboardChartCard>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#e8e8e3] bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Wallet className="h-4 w-4 text-delulu-blue" />
               <h3 className="text-sm font-bold text-foreground">Community members</h3>
@@ -247,7 +247,7 @@ export function DashboardOverview() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-[#e8e8e3] bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <UserPlus className="h-4 w-4 text-emerald-600" />
               <h3 className="text-sm font-bold text-foreground">New signups</h3>

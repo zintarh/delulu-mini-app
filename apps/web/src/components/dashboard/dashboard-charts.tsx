@@ -15,6 +15,7 @@ import {
   type Plugin,
 } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 ChartJS.register(
@@ -44,6 +45,15 @@ function colorFor(d: ChartDatum, i: number) {
   return d.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
 }
 
+// Chart.js/canvas can't read CSS variables, so axis/label colors are
+// resolved per-theme here — same pattern as home-daily-breakdown-chart.tsx.
+const GRID_LIGHT = "rgba(26, 26, 25, 0.06)";
+const GRID_DARK = "rgba(242, 241, 236, 0.1)";
+const TICK_LIGHT = "#8a8a82";
+const TICK_DARK = "#a3a39c";
+const LABEL_LIGHT = "#1a1a19";
+const LABEL_DARK = "#e4e1d7";
+
 export function DashboardChartCard({
   title,
   subtitle,
@@ -58,7 +68,7 @@ export function DashboardChartCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[#e8e8e3] bg-white p-5 shadow-sm",
+        "rounded-2xl border border-border bg-card p-5 shadow-sm",
         className,
       )}
     >
@@ -80,6 +90,9 @@ export function DashboardBarChart({
   data: ChartDatum[];
   height?: number;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const chartData: ChartData<"bar"> = {
     labels: data.map((d) => d.label),
     datasets: [
@@ -101,12 +114,12 @@ export function DashboardBarChart({
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 10 }, color: "#6b7280" },
+        ticks: { font: { size: 10 }, color: isDark ? TICK_DARK : TICK_LIGHT },
       },
       y: {
         beginAtZero: true,
-        ticks: { precision: 0, font: { size: 10 }, color: "#6b7280" },
-        grid: { color: "#f0f0eb" },
+        ticks: { precision: 0, font: { size: 10 }, color: isDark ? TICK_DARK : TICK_LIGHT },
+        grid: { color: isDark ? GRID_DARK : GRID_LIGHT },
       },
     },
   };
@@ -121,8 +134,9 @@ export function DashboardBarChart({
 const centerTextPlugin: Plugin<"doughnut"> = {
   id: "centerText",
   afterDraw(chart) {
-    const total = (chart.options.plugins as any)?.centerText?.total;
-    if (total == null) return;
+    const cfg = (chart.options.plugins as any)?.centerText;
+    if (cfg?.total == null) return;
+    const { total, labelColor = LABEL_LIGHT, tickColor = TICK_LIGHT } = cfg;
     const { ctx, chartArea } = chart;
     if (!chartArea) return;
     const cx = (chartArea.left + chartArea.right) / 2;
@@ -130,10 +144,10 @@ const centerTextPlugin: Plugin<"doughnut"> = {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#1a1a19";
+    ctx.fillStyle = labelColor;
     ctx.font = "700 18px Inter, sans-serif";
     ctx.fillText(String(total), cx, cy - 6);
-    ctx.fillStyle = "#6b7280";
+    ctx.fillStyle = tickColor;
     ctx.font = "400 9px Inter, sans-serif";
     ctx.fillText("total", cx, cy + 12);
     ctx.restore();
@@ -147,6 +161,8 @@ export function DashboardDonutChart({
   data: ChartDatum[];
   size?: number;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const total = data.reduce((s, d) => s + d.value, 0);
 
   if (total === 0) {
@@ -182,7 +198,11 @@ export function DashboardDonutChart({
       legend: { display: false },
       tooltip: { enabled: true },
       // @ts-expect-error custom plugin option
-      centerText: { total },
+      centerText: {
+        total,
+        labelColor: isDark ? LABEL_DARK : LABEL_LIGHT,
+        tickColor: isDark ? TICK_DARK : TICK_LIGHT,
+      },
     },
   };
 
@@ -210,6 +230,9 @@ export function DashboardDonutChart({
 }
 
 export function DashboardHorizontalBars({ data, height }: { data: ChartDatum[]; height?: number }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const chartData: ChartData<"bar"> = {
     labels: data.map((d) => d.label),
     datasets: [
@@ -232,12 +255,12 @@ export function DashboardHorizontalBars({ data, height }: { data: ChartDatum[]; 
     scales: {
       x: {
         beginAtZero: true,
-        ticks: { precision: 0, font: { size: 10 }, color: "#6b7280" },
-        grid: { color: "#f0f0eb" },
+        ticks: { precision: 0, font: { size: 10 }, color: isDark ? TICK_DARK : TICK_LIGHT },
+        grid: { color: isDark ? GRID_DARK : GRID_LIGHT },
       },
       y: {
         grid: { display: false },
-        ticks: { font: { size: 11 }, color: "#1a1a19" },
+        ticks: { font: { size: 11 }, color: isDark ? LABEL_DARK : LABEL_LIGHT },
       },
     },
   };
