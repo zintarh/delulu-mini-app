@@ -54,8 +54,8 @@ export function ReferralBanner() {
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
               {unlocked
-                ? "Unlocked — counts once they verify and join a campaign or start a Forfeit."
-                : `Refer ${REFERRAL_UNLOCK_THRESHOLD} friends to unlock 6,000 G$ per referral.`}
+                ? "Unlocked — every valid referral pays 6,000 G$ straight to your wallet."
+                : `6,000 G$ per valid referral, paid to your wallet once you've referred ${REFERRAL_UNLOCK_THRESHOLD}.`}
             </p>
           </div>
         </div>
