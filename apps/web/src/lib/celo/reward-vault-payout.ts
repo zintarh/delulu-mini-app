@@ -1,9 +1,19 @@
-import { createPublicClient, createWalletClient, http, keccak256, maxUint256, toHex } from "viem";
+import { createPublicClient, createWalletClient, formatEther, formatUnits, http, keccak256, maxUint256, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { REWARD_VAULT_ABI } from "@/lib/abi/reward-vault";
 import { GOODDOLLAR_ADDRESSES, getRewardVaultAddress, CELO_MAINNET_ID } from "@/lib/constant";
 import { parseTokenAmount } from "@/lib/token-amounts";
+
+const ERC20_BALANCE_ABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 const ERC20_ALLOWANCE_ABI = [
   {
@@ -135,4 +145,47 @@ export async function payoutReferralReward(params: {
     throw new Error(`depositReward reverted for referral credit ${params.referralCreditId}`);
   }
   return { txHash: hash, amountWei: amountWei.toString(), rewardId, alreadyUsed: false };
+}
+
+export type RewarderStatus = {
+  address: string;
+  celoBalance: string;
+  gdollarsBalance: string;
+  gdollarsAllowance: string;
+};
+
+/**
+ * Diagnostic for the admin dashboard — never exposes the key itself, just
+ * enough to tell "wallet needs topping up" apart from "something else is
+ * wrong" without needing RPC/log access.
+ */
+export async function getRewarderStatus(): Promise<RewarderStatus> {
+  const account = getRewarderAccount();
+  const rpc = getRpcUrl();
+  const vault = getRewardVaultAddress(CELO_MAINNET_ID);
+  const token = GOODDOLLAR_ADDRESSES.mainnet;
+  const publicClient = createPublicClient({ chain: celo, transport: http(rpc) });
+
+  const [celoWei, gdollarsWei, allowanceWei] = await Promise.all([
+    publicClient.getBalance({ address: account.address }),
+    publicClient.readContract({
+      address: token,
+      abi: ERC20_BALANCE_ABI,
+      functionName: "balanceOf",
+      args: [account.address],
+    }) as Promise<bigint>,
+    publicClient.readContract({
+      address: token,
+      abi: ERC20_ALLOWANCE_ABI,
+      functionName: "allowance",
+      args: [account.address, vault],
+    }) as Promise<bigint>,
+  ]);
+
+  return {
+    address: account.address,
+    celoBalance: formatEther(celoWei),
+    gdollarsBalance: formatUnits(gdollarsWei, 18),
+    gdollarsAllowance: formatUnits(allowanceWei, 18),
+  };
 }

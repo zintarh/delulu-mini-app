@@ -32,9 +32,11 @@ async function requirePlatformAdminSession() {
   return { error: null };
 }
 
+const VALID_STATUSES = new Set(["not_eligible", "sent", "failed"]);
+
 /**
  * List every counted referral for ops visibility.
- * GET /api/dashboard/referrals?query=&page=1&pageSize=25
+ * GET /api/dashboard/referrals?query=&status=&page=1&pageSize=25
  */
 export async function GET(request: NextRequest) {
   const { error: authError } = await requirePlatformAdminSession();
@@ -47,6 +49,8 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const query = (params.get("query") ?? "").trim();
+  const statusParam = params.get("status") ?? "";
+  const status = VALID_STATUSES.has(statusParam) ? statusParam : null;
   const page = Math.max(1, Number(params.get("page")) || 1);
   const pageSize = Math.min(
     MAX_PAGE_SIZE,
@@ -72,6 +76,7 @@ export async function GET(request: NextRequest) {
     .order("credited_at", { ascending: false })
     .range(from, to);
   if (searchFilter) q = q.or(searchFilter);
+  if (status) q = q.eq("payout_status", status);
 
   const { data, error, count } = await q;
   if (error) {
@@ -79,7 +84,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Total G$ paid out across ALL matching rows (not just this page).
+  // Total G$ paid out across ALL matching rows (not just this page) — always
+  // scoped to 'sent' regardless of the status filter, since that's the only
+  // status carrying a real gdollars_amount.
   let gdollarsQuery = admin.from("referral_credits").select("gdollars_amount").eq("payout_status", "sent");
   if (searchFilter) gdollarsQuery = gdollarsQuery.or(searchFilter);
   const { data: gdollarsRows } = await gdollarsQuery;
