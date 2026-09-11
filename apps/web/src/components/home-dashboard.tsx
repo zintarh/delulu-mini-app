@@ -51,16 +51,17 @@ function HomeSignedInFeed({ address }: { address: string }) {
       <div className="mb-4 mt-6 px-4">
         <HomeFeatureCarousel showOnboardingCards={!hasActiveStakes} />
       </div>
+
+      <div className="mb-4 px-4">
+        <ReferralBanner />
+      </div>
+
       <HomeDailyBreakdown address={address} points={points} pointsLoading={pointsLoading} />
 
       {/* 2. Loss aversion: visible the instant the app opens. Stays out of
           the way entirely when there's nothing at stake — ForfeitDayCard's
           own empty state already owns that CTA, no need to say it twice. */}
       <HomeStakesHero address={address} />
-
-      <div className="mb-4 px-4">
-        <ReferralBanner />
-      </div>
 
       {/* 3. The forfeit section — Hero links here when there's something to see. */}
       <div id="forfeit-day-card" className="mb-6 px-4">
