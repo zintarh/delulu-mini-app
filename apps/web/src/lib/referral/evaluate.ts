@@ -1,5 +1,6 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
+import { processReferralPayouts } from "@/lib/referral/payout";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -70,6 +71,15 @@ export async function evaluateAndCreditReferral(
     points_awarded: REFERRAL_POINTS,
   });
   if (error && !/duplicate|unique/i.test(error.message)) throw error;
+
+  // Best-effort — the referral is already credited above regardless of
+  // on-chain outcome; a failed/slow RPC call must never fail this function
+  // or block whatever action (forfeit/campaign join) triggered it.
+  try {
+    await processReferralPayouts(admin, profile.referred_by);
+  } catch (err) {
+    console.error(`[referral/evaluate] payout pass failed for ${profile.referred_by}:`, err);
+  }
 
   return { credited: true };
 }

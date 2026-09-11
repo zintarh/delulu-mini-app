@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const { data: rows, error } = await admin
     .from("referral_leaderboard_v")
-    .select("wallet_address, referral_count, points, last_referral_at");
+    .select("wallet_address, referral_count, gdollars_amount, last_referral_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const filtered = (rows ?? []).filter((row) => !isLeaderboardBlacklisted(row.wallet_address));
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     wallet_address: row.wallet_address,
     username: row.username,
     referral_count: row.referral_count,
-    points: row.points,
+    gdollars_amount: row.gdollars_amount,
   }));
 
   let myEntry: (typeof pageRows)[number] | null = null;
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         wallet_address: row.wallet_address,
         username: row.username,
         referral_count: row.referral_count,
-        points: row.points,
+        gdollars_amount: row.gdollars_amount,
       };
     }
   }

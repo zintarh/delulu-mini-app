@@ -706,7 +706,7 @@ function ReferralLeaderboard() {
           <HeadCell className="w-10 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
           <HeadCell className="w-20 text-right">Referrals</HeadCell>
-          <HeadCell className="w-20 text-right">Points</HeadCell>
+          <HeadCell className="w-20 text-right">G$ Earned</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -731,7 +731,7 @@ function ReferralLeaderboard() {
                 {myRankEntry!.referral_count}
               </span>
               <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
-                {myRankEntry!.points}
+                {myRankEntry!.gdollars_amount.toLocaleString()}
               </span>
             </div>
           )}
@@ -765,7 +765,7 @@ function ReferralLeaderboard() {
                   {entry.referral_count}
                 </span>
                 <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
-                  {entry.points}
+                  {entry.gdollars_amount.toLocaleString()}
                 </span>
               </div>
             );

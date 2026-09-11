@@ -5,10 +5,13 @@ import { Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralCode } from "@/hooks/use-referral-code";
 
+const REFERRAL_UNLOCK_THRESHOLD = 5;
+
 export function ReferralBanner() {
   const { address } = useAuth();
-  const { referralCode } = useReferralCode(address);
+  const { referralCode, referralCount } = useReferralCode(address);
   const [copied, setCopied] = useState(false);
+  const unlocked = referralCount >= REFERRAL_UNLOCK_THRESHOLD;
 
   const handleCopy = async () => {
     if (!referralCode) return;
@@ -37,17 +40,22 @@ export function ReferralBanner() {
                 Invite a friend
               </p>
               <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
-                +100 PTS
+                6,000 G$
+              </span>
+              <span className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
+                {Math.min(referralCount, REFERRAL_UNLOCK_THRESHOLD)}/{REFERRAL_UNLOCK_THRESHOLD}
               </span>
             </div>
             <p
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
-              Share your link, earn points
+              Share your link, earn G$
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
-              Counts once they verify and join a campaign or start a Forfeit.
+              {unlocked
+                ? "Unlocked — counts once they verify and join a campaign or start a Forfeit."
+                : `Refer ${REFERRAL_UNLOCK_THRESHOLD} friends to unlock 6,000 G$ per referral.`}
             </p>
           </div>
         </div>

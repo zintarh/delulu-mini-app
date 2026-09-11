@@ -29,14 +29,16 @@ type ReferralRow = {
   referredAddress: string;
   referredUsername: string | null;
   qualifyingAction: "forfeit" | "campaign_join";
-  pointsAwarded: number;
+  gdollarsAmount: number;
+  payoutStatus: "not_eligible" | "sent" | "failed";
+  payoutTxHash: string | null;
   creditedAt: string;
 };
 
 type ReferralsResponse = {
   referrals: ReferralRow[];
   total: number;
-  totalPoints: number;
+  totalGDollars: number;
   page: number;
   pageSize: number;
 };
@@ -45,6 +47,28 @@ const ACTION_LABEL: Record<ReferralRow["qualifyingAction"], string> = {
   forfeit: "Started a Forfeit",
   campaign_join: "Joined a campaign",
 };
+
+const PAYOUT_STATUS_STYLE: Record<ReferralRow["payoutStatus"], string> = {
+  sent: "bg-delulu-green/10 text-delulu-green",
+  failed: "bg-destructive/10 text-destructive",
+  not_eligible: "bg-muted text-muted-foreground",
+};
+
+const PAYOUT_STATUS_LABEL: Record<ReferralRow["payoutStatus"], string> = {
+  sent: "Sent",
+  failed: "Failed",
+  not_eligible: "Locked",
+};
+
+function PayoutStatusBadge({ status }: { status: ReferralRow["payoutStatus"] }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${PAYOUT_STATUS_STYLE[status]}`}
+    >
+      {PAYOUT_STATUS_LABEL[status]}
+    </span>
+  );
+}
 
 function formatWhen(iso: string) {
   const d = new Date(iso);
@@ -142,8 +166,8 @@ export default function AdminReferralsPage() {
     <DashboardPage className="max-w-none px-5 sm:px-7">
       <DashboardSectionTabs items={PEOPLE_SECTION_TABS} />
       <p className="mb-5 text-sm text-muted-foreground">
-        Every counted referral — verified, then joined a campaign or started a Forfeit. 100 points
-        each.
+        Every counted referral — verified, then joined a campaign or started a Forfeit. 6,000 G$
+        each, unlocked once a wallet has 5 counted referrals.
       </p>
 
       {data ? (
@@ -158,9 +182,9 @@ export default function AdminReferralsPage() {
           </AdminKpiStrip>
           <AdminKpiStrip icon={Sparkles}>
             <span className="text-sm font-bold tabular-nums text-foreground">
-              {data.totalPoints.toLocaleString()}
+              {data.totalGDollars.toLocaleString()}
             </span>
-            <span className="text-sm text-muted-foreground">points awarded</span>
+            <span className="text-sm text-muted-foreground">G$ sent</span>
           </AdminKpiStrip>
         </div>
       ) : null}
@@ -199,13 +223,14 @@ export default function AdminReferralsPage() {
         ) : (
           <>
             <DashboardTableScroll>
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[980px] text-left text-sm">
                 <DashboardTableHead>
                   <DashboardTableHeadRow>
                     <DashboardTableHeadCell>Referrer</DashboardTableHeadCell>
                     <DashboardTableHeadCell>Referred user</DashboardTableHeadCell>
                     <DashboardTableHeadCell>How</DashboardTableHeadCell>
-                    <DashboardTableHeadCell className="text-right">Points</DashboardTableHeadCell>
+                    <DashboardTableHeadCell className="text-right">G$</DashboardTableHeadCell>
+                    <DashboardTableHeadCell>Payout</DashboardTableHeadCell>
                     <DashboardTableHeadCell>When</DashboardTableHeadCell>
                   </DashboardTableHeadRow>
                 </DashboardTableHead>
@@ -222,7 +247,21 @@ export default function AdminReferralsPage() {
                         {ACTION_LABEL[r.qualifyingAction]}
                       </DashboardTableCell>
                       <DashboardTableCell className="text-right font-semibold tabular-nums text-delulu-green">
-                        +{r.pointsAwarded}
+                        {r.payoutStatus === "sent" ? `+${r.gdollarsAmount.toLocaleString()}` : "—"}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        {r.payoutTxHash ? (
+                          <a
+                            href={`https://celoscan.io/tx/${r.payoutTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            <PayoutStatusBadge status={r.payoutStatus} />
+                          </a>
+                        ) : (
+                          <PayoutStatusBadge status={r.payoutStatus} />
+                        )}
                       </DashboardTableCell>
                       <DashboardTableCell className="whitespace-nowrap text-muted-foreground">
                         {formatWhen(r.creditedAt)}

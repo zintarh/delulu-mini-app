@@ -15,7 +15,9 @@ export type AdminReferralListItem = {
   referredAddress: string;
   referredUsername: string | null;
   qualifyingAction: "forfeit" | "campaign_join";
-  pointsAwarded: number;
+  gdollarsAmount: number;
+  payoutStatus: "not_eligible" | "sent" | "failed";
+  payoutTxHash: string | null;
   creditedAt: string;
 };
 
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
   let q = admin
     .from("referral_credits")
     .select(
-      "id, referrer_wallet, referred_wallet, qualifying_action, points_awarded, credited_at",
+      "id, referrer_wallet, referred_wallet, qualifying_action, gdollars_amount, payout_status, payout_tx_hash, credited_at",
       { count: "exact" },
     )
     .order("credited_at", { ascending: false })
@@ -77,12 +79,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Total points across ALL matching rows (not just this page).
-  let pointsQuery = admin.from("referral_credits").select("points_awarded");
-  if (searchFilter) pointsQuery = pointsQuery.or(searchFilter);
-  const { data: pointsRows } = await pointsQuery;
-  const totalPoints = (pointsRows ?? []).reduce(
-    (sum, r) => sum + (Number(r.points_awarded) || 0),
+  // Total G$ paid out across ALL matching rows (not just this page).
+  let gdollarsQuery = admin.from("referral_credits").select("gdollars_amount").eq("payout_status", "sent");
+  if (searchFilter) gdollarsQuery = gdollarsQuery.or(searchFilter);
+  const { data: gdollarsRows } = await gdollarsQuery;
+  const totalGDollars = (gdollarsRows ?? []).reduce(
+    (sum, r) => sum + (Number(r.gdollars_amount) || 0),
     0,
   );
 
@@ -105,14 +107,16 @@ export async function GET(request: NextRequest) {
     referredAddress: String(row.referred_wallet),
     referredUsername: usernameByAddress.get(row.referred_wallet.toLowerCase()) ?? null,
     qualifyingAction: row.qualifying_action as "forfeit" | "campaign_join",
-    pointsAwarded: Number(row.points_awarded) || 0,
+    gdollarsAmount: Number(row.gdollars_amount) || 0,
+    payoutStatus: row.payout_status as "not_eligible" | "sent" | "failed",
+    payoutTxHash: row.payout_tx_hash ?? null,
     creditedAt: String(row.credited_at ?? new Date().toISOString()),
   }));
 
   return NextResponse.json({
     referrals,
     total: count ?? referrals.length,
-    totalPoints,
+    totalGDollars,
     page,
     pageSize,
   });

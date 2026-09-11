@@ -30,7 +30,16 @@ export async function GET(
     }
   }
 
-  return NextResponse.json({ profile: data }, {
+  let referralCount = 0;
+  if (data) {
+    const { count } = await supabase
+      .from("referral_credits")
+      .select("id", { count: "exact", head: true })
+      .eq("referrer_wallet", (data.address as string).toLowerCase());
+    referralCount = count ?? 0;
+  }
+
+  return NextResponse.json({ profile: data, referralCount }, {
     headers: { "Cache-Control": "no-store" },
   });
 }

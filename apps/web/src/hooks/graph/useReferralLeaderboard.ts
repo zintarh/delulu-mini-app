@@ -7,7 +7,7 @@ export type ReferralLeaderboardEntry = {
   wallet_address: string;
   username: string | null;
   referral_count: number;
-  points: number;
+  gdollars_amount: number;
 };
 
 type ApiResponse = {

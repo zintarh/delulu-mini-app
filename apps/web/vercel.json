@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/forfeit-deadline-check",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/referral-payout-retry",
+      "schedule": "0 * * * *"
     }
   ]
 }
