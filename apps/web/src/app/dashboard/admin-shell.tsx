@@ -88,7 +88,8 @@ function pageTitle(pathname: string): string {
   if (
     pathname.startsWith(`${BASE}/users`) ||
     pathname.startsWith(`${BASE}/leaderboard`) ||
-    pathname.startsWith(`${BASE}/rewards`)
+    pathname.startsWith(`${BASE}/rewards`) ||
+    pathname.startsWith(`${BASE}/referrals`)
   ) {
     return "People";
   }
@@ -122,7 +123,8 @@ function isPeoplePath(pathname: string) {
   return (
     pathname.startsWith(`${BASE}/users`) ||
     pathname.startsWith(`${BASE}/leaderboard`) ||
-    pathname.startsWith(`${BASE}/rewards`)
+    pathname.startsWith(`${BASE}/rewards`) ||
+    pathname.startsWith(`${BASE}/referrals`)
   );
 }
 

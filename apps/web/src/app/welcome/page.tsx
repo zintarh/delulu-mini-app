@@ -15,6 +15,8 @@ import {
   consumeCommunityReferral,
   consumeSignInRedirect,
   peekCommunityReferral,
+  peekReferralCode,
+  consumeReferralCode,
 } from "@/lib/auth-redirect";
 import { getEmailValidationMessage } from "@/lib/email-validation";
 
@@ -205,6 +207,7 @@ export default function WelcomePage() {
 
     (async () => {
       setProfileSaveError(null);
+      const referredByCode = peekReferralCode();
       try {
         const profileRes = await fetch("/api/profile", {
           method: "POST",
@@ -216,6 +219,7 @@ export default function WelcomePage() {
             email: normalizedEmail,
             pfpUrl: pfpUrl ?? undefined,
             auth_provider: authProvider ?? "web3auth",
+            referredByCode: referredByCode ?? undefined,
           }),
         });
         if (!profileRes.ok) {
@@ -232,6 +236,7 @@ export default function WelcomePage() {
 
       updateUsername(username.trim(), normalizedEmail);
       updateProfile({ email: normalizedEmail, pfpUrl: pfpUrl ?? undefined });
+      consumeReferralCode();
 
       try {
         window.sessionStorage.setItem("delulu:new-user", "1");

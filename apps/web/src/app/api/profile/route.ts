@@ -4,6 +4,8 @@ import {
   requireAuthenticatedWallet,
   walletAuthErrorResponse,
 } from "@/lib/auth/wallet-session";
+import { ensureReferralCode } from "@/lib/referral/code";
+import { attributeReferral } from "@/lib/referral/attribution";
 
 // Required Supabase table (run once in your Supabase SQL editor):
 //
@@ -12,7 +14,8 @@ import {
 //   username text,
 //   email text not null unique,
 //   pfp_url text,
-//   referral_code text,
+//   referral_code text,        -- server-generated only; see lib/referral/code.ts
+//   referred_by text,          -- set once, immutably; see lib/referral/attribution.ts
 //   created_at timestamptz default now(),
 //   updated_at timestamptz default now()
 // );
@@ -132,7 +135,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { address, username, email, pfpUrl, referralCode, auth_provider } = await request.json();
+    const { address, username, email, pfpUrl, referredByCode, auth_provider } = await request.json();
 
     if (!address || typeof address !== "string") {
       return NextResponse.json({ error: "address is required" }, { status: 400 });
@@ -162,7 +165,6 @@ export async function POST(request: NextRequest) {
         username: username || null,
         email: normalizedEmail,
         pfp_url: pfpUrl || null,
-        referral_code: referralCode || null,
         auth_provider: auth_provider ?? "web3auth",
         updated_at: new Date().toISOString(),
       },
@@ -174,6 +176,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Email already in use" }, { status: 409 });
       }
       throw error;
+    }
+
+    // Best-effort side effects — never fail the profile save over these.
+    try {
+      await attributeReferral(supabase, normalizedAddress, referredByCode);
+    } catch (err) {
+      console.error("[profile] referral attribution failed", err);
+    }
+    try {
+      await ensureReferralCode(supabase, normalizedAddress);
+    } catch (err) {
+      console.error("[profile] ensureReferralCode failed", err);
     }
 
     return NextResponse.json({ success: true });

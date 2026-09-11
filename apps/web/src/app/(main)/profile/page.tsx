@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { formatAddress, cn } from "@/lib/utils";
-import { Copy, Check, Camera, Loader2, Star, Coins } from "lucide-react";
+import { Copy, Check, Camera, Loader2, Star, Coins, Share2 } from "lucide-react";
+import { useReferralCode } from "@/hooks/use-referral-code";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -129,6 +130,8 @@ function ProfileHeader({
 }) {
   const { user, updateProfile } = useUserStore();
   const [copied, setCopied] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
+  const { referralCode } = useReferralCode(address);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
@@ -167,6 +170,14 @@ function ProfileHeader({
     await navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyReferralLink = async () => {
+    if (!referralCode) return;
+    const referralUrl = `${window.location.origin}/sign-in?ref=${referralCode}`;
+    await navigator.clipboard.writeText(referralUrl);
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 2000);
   };
 
   if (!address) return null;
@@ -242,6 +253,26 @@ function ProfileHeader({
               <Copy className="w-3 h-3" />
             )}
           </button>
+
+          {referralCode ? (
+            <div className="mt-3 flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleCopyReferralLink}
+                className="inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-xs font-bold text-delulu-charcoal shadow-sm transition-opacity active:opacity-70"
+              >
+                {referralCopied ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5" />
+                )}
+                {referralCopied ? "Link copied!" : "Copy referral link"}
+              </button>
+              <p className="max-w-[260px] text-[11px] leading-snug text-muted-foreground">
+                Counts once they verify and join a campaign or start a Forfeit · +100 pts each
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-3 flex items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5 shadow-sm">

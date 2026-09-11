@@ -2,36 +2,27 @@
 
 import { useEffect, useState } from "react";
 
-export type ForfeitStakedEntryStatus = "active" | "failed";
-export type ForfeitStakedDestinationKind = "self" | "charity" | "friend" | "delulu";
-
-export type ForfeitStakedLeaderboardEntry = {
+export type ReferralLeaderboardEntry = {
   rank: number;
-  commitment_id: number;
   wallet_address: string;
   username: string | null;
-  staked_amount: number;
-  status: ForfeitStakedEntryStatus;
-  destination_kind: ForfeitStakedDestinationKind;
-  destination_label: string;
-  /** Friend's @username, or a shortened address if they have no username — null for non-friend destinations. */
-  destination_name: string | null;
-  duration_seconds: number;
+  referral_count: number;
+  points: number;
 };
 
 type ApiResponse = {
-  leaderboard: ForfeitStakedLeaderboardEntry[];
+  leaderboard: ReferralLeaderboardEntry[];
   hasMore: boolean;
   totalCount: number;
-  myEntry: ForfeitStakedLeaderboardEntry | null;
+  myEntry: ReferralLeaderboardEntry | null;
 };
 
-/** G$ Forfeit commitments (20,000+ G$ stake) that are active or already forfeited. */
-export function useForfeitStakedLeaderboard(page: number, currentUserAddress?: string) {
-  const [entries, setEntries] = useState<ForfeitStakedLeaderboardEntry[]>([]);
+/** Wallets ranked by successful referrals (verified + joined a campaign or created a Forfeit). */
+export function useReferralLeaderboard(page: number, currentUserAddress?: string) {
+  const [entries, setEntries] = useState<ReferralLeaderboardEntry[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState<number | null>(null);
-  const [myRankEntry, setMyRankEntry] = useState<ForfeitStakedLeaderboardEntry | null>(null);
+  const [myRankEntry, setMyRankEntry] = useState<ReferralLeaderboardEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -45,7 +36,7 @@ export function useForfeitStakedLeaderboard(page: number, currentUserAddress?: s
       try {
         const qs = new URLSearchParams({ page: String(page) });
         if (currentUserAddress) qs.set("address", currentUserAddress);
-        const res = await fetch(`/api/leaderboard/forfeit-staked?${qs}`);
+        const res = await fetch(`/api/leaderboard/referrals?${qs}`);
         const json = (await res.json()) as ApiResponse & { error?: string };
         if (cancelled) return;
         if (!res.ok) throw new Error(json.error ?? "Failed to load leaderboard");
@@ -65,11 +56,6 @@ export function useForfeitStakedLeaderboard(page: number, currentUserAddress?: s
     };
   }, [page, currentUserAddress, reloadToken]);
 
-  const myPageEntry =
-    currentUserAddress != null
-      ? (entries.find((e) => e.wallet_address.toLowerCase() === currentUserAddress.toLowerCase()) ?? null)
-      : null;
-
   return {
     entries,
     hasNextPage: hasMore,
@@ -78,6 +64,5 @@ export function useForfeitStakedLeaderboard(page: number, currentUserAddress?: s
     isLoading,
     error,
     refetch: () => setReloadToken((t) => t + 1),
-    myPageEntry,
   };
 }

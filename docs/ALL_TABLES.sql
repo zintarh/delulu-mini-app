@@ -38,6 +38,43 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists admin_verified boolean not null default false;
 
+-- Referral system — see docs/migrations/20260911_referral_system.sql for the
+-- full migration (backfill, comments, RLS). referral_code is server-generated
+-- only (lib/referral/code.ts); referred_by is set once, immutably.
+create unique index if not exists profiles_referral_code_unique_idx
+  on public.profiles (referral_code)
+  where referral_code is not null;
+
+alter table public.profiles
+  add column if not exists referred_by text;
+
+create index if not exists profiles_referred_by_idx
+  on public.profiles (referred_by);
+
+create table if not exists public.referral_credits (
+  id                      uuid        primary key default gen_random_uuid(),
+  referrer_wallet         text        not null,
+  referred_wallet         text        not null unique,
+  qualifying_action       text        not null check (qualifying_action in ('forfeit', 'campaign_join')),
+  forfeit_commitment_id   uuid        references public.forfeit_commitments (id),
+  campaign_participant_id uuid        references public.campaign_participants (id),
+  points_awarded          integer     not null default 100,
+  credited_at             timestamptz not null default now()
+);
+
+create index if not exists referral_credits_referrer_idx
+  on public.referral_credits (referrer_wallet);
+
+alter table public.referral_credits enable row level security;
+
+create or replace view public.referral_leaderboard_v as
+  select referrer_wallet          as wallet_address,
+         count(*)::int            as referral_count,
+         sum(points_awarded)::int as points,
+         max(credited_at)         as last_referral_at
+  from public.referral_credits
+  group by referrer_wallet;
+
 
 -- ── delulu_metadata ─────────────────────────────────────────
 create table if not exists public.delulu_metadata (

@@ -10,6 +10,7 @@ import {
 import { normalizeMarketingAppUrl } from "@/lib/marketing-email-template";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { resolveUsernameForAddress } from "@/lib/resolve-username";
+import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 
 export const dynamic = "force-dynamic";
 /** Allow RPC retries — stake is already locked; finishing the save can take a bit. */
@@ -259,6 +260,10 @@ export async function POST(request: NextRequest) {
   }
 
   // ---- Best-effort side effects (never fail the request) ----
+  void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
+    console.error("[forfeit/confirm-create] referral credit check failed", err),
+  );
+
   const appUrl = normalizeMarketingAppUrl(
     process.env.NEXT_PUBLIC_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://www.staydelulu.xyz",
   );

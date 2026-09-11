@@ -6,6 +6,7 @@ import {
   CAMPAIGN_JOIN_LIMIT,
   countActiveJoinedCampaigns,
 } from "@/lib/community/campaign-join-limit";
+import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,11 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Best-effort side effect — never fail the join over this.
+  void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
+    console.error("[campaigns/confirm-join] referral credit check failed", err),
+  );
 
   return NextResponse.json({ ok: true, participantId: participant.id });
 }

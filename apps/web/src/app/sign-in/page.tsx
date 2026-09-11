@@ -7,7 +7,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
 import { usePrivy } from "@privy-io/react-auth";
-import { normalizeCommunityCode, peekCommunityReferral, persistCommunityReferral } from "@/lib/auth-redirect";
+import {
+  normalizeCommunityCode,
+  peekCommunityReferral,
+  persistCommunityReferral,
+  normalizeReferralCode,
+  persistReferralCode,
+} from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { Wordmark } from "@/components/wordmark";
@@ -26,6 +32,9 @@ export default function SignInPage() {
   const communityCode = normalizeCommunityCode(searchParams.get("community"));
   const [referralCode, setReferralCode] = useState<string | null>(communityCode);
   const [communityName, setCommunityName] = useState<string | null>(null);
+
+  // User-level referral link (?ref=CODE) — distinct from the community code above.
+  const refCode = normalizeReferralCode(searchParams.get("ref"));
   const [isLoadingCommunityName, setIsLoadingCommunityName] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -60,6 +69,11 @@ export default function SignInPage() {
     if (communityCode) persistCommunityReferral(communityCode);
     setReferralCode(communityCode ?? peekCommunityReferral());
   }, [communityCode]);
+
+  // User-level referral link
+  useEffect(() => {
+    if (refCode) persistReferralCode(refCode);
+  }, [refCode]);
 
   useEffect(() => {
     if (!referralCode) { setCommunityName(null); setIsLoadingCommunityName(false); return; }

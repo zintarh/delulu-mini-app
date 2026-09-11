@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { useIdentitySDK, IdentitySDK } from "@goodsdks/identity-sdk";
 import { ClaimSDK } from "@goodsdks/citizen-sdk";
@@ -111,6 +111,22 @@ export function useIdentity() {
   useEffect(() => {
     checkVerification();
   }, [address, !!publicClient, !!identitySDK, !!walletClient?.account?.address]);
+
+  // Referral credit check: fire once per address when verification lands, in
+  // case a referral is only waiting on this to be counted (the forfeit/campaign
+  // side is checked independently at forfeit-creation / campaign-join time).
+  const referralCheckFiredForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== "verified" || !address) return;
+    if (referralCheckFiredForRef.current === address) return;
+    referralCheckFiredForRef.current = address;
+    fetch("/api/referral/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ walletAddress: address }),
+    }).catch(() => {});
+  }, [status, address]);
 
   // Generate link only once when verification process starts
   useEffect(() => {

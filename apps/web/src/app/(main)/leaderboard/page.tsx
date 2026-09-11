@@ -7,25 +7,21 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useForfeitStakedLeaderboard } from "@/hooks/graph/useForfeitStakedLeaderboard";
+import { useReferralLeaderboard } from "@/hooks/graph/useReferralLeaderboard";
 import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
 import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { cn, formatGAmount } from "@/lib/utils";
 import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
-import { FORFEIT_STAKED_MIN_WHOLE } from "@/lib/dashboard/campaign-constants";
 import {
   ArrowLeft,
   ArrowRight,
   Calendar,
-  Clock,
   ExternalLink,
-  Flame,
-  HeartHandshake,
   Plus,
+  Share2,
   Sparkles,
   Trophy,
-  Undo2,
   Users,
 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
@@ -36,7 +32,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PAGE_SIZE = 10;
 
-type Tab = "monthly" | "global" | "forfeit";
+type Tab = "monthly" | "global" | "referral";
 
 /** Dreamer leaderboard points — sourced from Delulu-v3.sol `userDeluluPoints`. */
 const DREAMER_POINTS = {
@@ -89,55 +85,6 @@ function YouBadge() {
   return (
     <span className="shrink-0 rounded-full bg-delulu-yellow-reserved/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
       You
-    </span>
-  );
-}
-
-function formatForfeitDuration(seconds: number) {
-  if (!(seconds > 0)) return "—";
-  const days = Math.round(seconds / 86400);
-  if (days < 1) return `${Math.max(1, Math.round(seconds / 3600))}h`;
-  if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
-  if (days >= 7 && days % 7 === 0) return `${days / 7}w`;
-  return `${days}d`;
-}
-
-function ForfeitStatusBadge({ status }: { status: "active" | "failed" }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-        status === "active"
-          ? "bg-delulu-green/15 text-delulu-green"
-          : "bg-destructive/10 text-destructive",
-      )}
-    >
-      {status === "active" ? "Active" : "Failed"}
-    </span>
-  );
-}
-
-const FORFEIT_DESTINATION_ICON = {
-  self: Undo2,
-  charity: HeartHandshake,
-  friend: Users,
-  delulu: Sparkles,
-} as const;
-
-function ForfeitDestinationBadge({
-  kind,
-  label,
-  name,
-}: {
-  kind: "self" | "charity" | "friend" | "delulu";
-  label: string;
-  name?: string | null;
-}) {
-  const Icon = FORFEIT_DESTINATION_ICON[kind];
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-      <Icon className="h-3 w-3" />
-      {kind === "friend" && name ? `${label}: ${name}` : label}
     </span>
   );
 }
@@ -697,34 +644,34 @@ function DreamersLeaderboard({
   );
 }
 
-function ForfeitStakedEmptyState() {
+function ReferralEmptyState() {
   return (
     <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 pt-14 pb-20 text-center">
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
-        <Flame className="h-7 w-7 text-muted-foreground/35" strokeWidth={1.5} />
+        <Share2 className="h-7 w-7 text-muted-foreground/35" strokeWidth={1.5} />
       </div>
       <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-        No one has {FORFEIT_STAKED_MIN_WHOLE.toLocaleString()}+ G$ staked in an active or forfeited
-        commitment yet.
+        No successful referrals yet. Share your link — it counts once your friend verifies and
+        joins a campaign or starts a Forfeit.
       </p>
       <div className="mt-8 flex justify-center">
         <Link
-          href="/forfeit"
+          href="/profile"
           className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
         >
-          <Plus className="h-4 w-4" />
-          Create a forfeit
+          <Share2 className="h-4 w-4" />
+          Get your referral link
         </Link>
       </div>
     </div>
   );
 }
 
-function ForfeitStakedLeaderboard() {
+function ReferralLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
   const { entries, hasNextPage, isLoading, totalCount, myRankEntry, error, refetch } =
-    useForfeitStakedLeaderboard(page, address);
+    useReferralLeaderboard(page, address);
 
   const rangeStart = page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + entries.length;
@@ -737,16 +684,18 @@ function ForfeitStakedLeaderboard() {
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) return <ForfeitStakedEmptyState />;
+  if (entries.length === 0) return <ReferralEmptyState />;
 
   const isMyEntryOnCurrentPage =
     !!address &&
     !!myRankEntry &&
-    entries.some((e) => e.commitment_id === myRankEntry.commitment_id);
+    entries.some((e) => e.wallet_address.toLowerCase() === myRankEntry.wallet_address.toLowerCase());
   const showPinnedMe = address && myRankEntry && !isMyEntryOnCurrentPage;
 
   const listEntries = entries.filter(
-    (entry) => !showPinnedMe || entry.commitment_id !== myRankEntry!.commitment_id,
+    (entry) =>
+      !showPinnedMe ||
+      entry.wallet_address.toLowerCase() !== myRankEntry!.wallet_address.toLowerCase(),
   );
 
   return (
@@ -756,7 +705,8 @@ function ForfeitStakedLeaderboard() {
           <HeadCell className="w-8 shrink-0">#</HeadCell>
           <HeadCell className="w-10 shrink-0">{""}</HeadCell>
           <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-24 text-right">G$ staked</HeadCell>
+          <HeadCell className="w-20 text-right">Referrals</HeadCell>
+          <HeadCell className="w-20 text-right">Points</HeadCell>
         </TableHead>
 
         <div className="divide-y divide-border/40">
@@ -776,21 +726,12 @@ function ForfeitStakedLeaderboard() {
                   </p>
                   <YouBadge />
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <ForfeitStatusBadge status={myRankEntry!.status} />
-                  <ForfeitDestinationBadge
-                    kind={myRankEntry!.destination_kind}
-                    label={myRankEntry!.destination_label}
-                    name={myRankEntry!.destination_name}
-                  />
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {formatForfeitDuration(myRankEntry!.duration_seconds)}
-                  </span>
-                </div>
               </div>
-              <span className="w-24 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                {formatGAmount(myRankEntry!.staked_amount)} G$
+              <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                {myRankEntry!.referral_count}
+              </span>
+              <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
+                {myRankEntry!.points}
               </span>
             </div>
           )}
@@ -801,7 +742,7 @@ function ForfeitStakedLeaderboard() {
             const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
             return (
               <div
-                key={entry.commitment_id}
+                key={entry.wallet_address}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60",
                   isMe && "bg-delulu-yellow-reserved/10",
@@ -819,21 +760,12 @@ function ForfeitStakedLeaderboard() {
                     <p className="truncate text-sm font-semibold text-foreground">{name}</p>
                     {isMe && <YouBadge />}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <ForfeitStatusBadge status={entry.status} />
-                    <ForfeitDestinationBadge
-                      kind={entry.destination_kind}
-                      label={entry.destination_label}
-                      name={entry.destination_name}
-                    />
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {formatForfeitDuration(entry.duration_seconds)}
-                    </span>
-                  </div>
                 </div>
-                <span className="w-24 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                  {formatGAmount(entry.staked_amount)} G$
+                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                  {entry.referral_count}
+                </span>
+                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
+                  {entry.points}
                 </span>
               </div>
             );
@@ -863,7 +795,7 @@ function LeaderboardTabs({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {(["monthly", "global", "forfeit"] as Tab[]).map((tab) => (
+      {(["monthly", "global", "referral"] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"
@@ -877,12 +809,12 @@ function LeaderboardTabs({
         >
           {tab === "monthly" ? (
             <Trophy className="h-4 w-4" strokeWidth={2} />
-          ) : tab === "forfeit" ? (
-            <Flame className="h-4 w-4" strokeWidth={2} />
+          ) : tab === "referral" ? (
+            <Share2 className="h-4 w-4" strokeWidth={2} />
           ) : (
             <Users className="h-4 w-4" strokeWidth={2} />
           )}
-          {tab === "monthly" ? "This month" : tab === "forfeit" ? "Forfeit" : "Global"}
+          {tab === "monthly" ? "This month" : tab === "referral" ? "Referral" : "Global"}
         </button>
       ))}
     </div>
@@ -902,8 +834,8 @@ export default function LeaderboardPage() {
   const subtitle =
     activeTab === "monthly"
       ? "Campaign points earned by everyone participating this month"
-      : activeTab === "forfeit"
-        ? `Active & forfeited commitments of ${FORFEIT_STAKED_MIN_WHOLE.toLocaleString()}+ G$`
+      : activeTab === "referral"
+        ? "Successful referrals — verified, then joined a campaign or started a Forfeit"
         : "All-time points, accumulated across everything";
 
   return (
@@ -977,7 +909,7 @@ function LeaderboardContent({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
-      {activeTab === "forfeit" ? null : (
+      {activeTab === "referral" ? null : (
         <LeaderboardStatsRow
           activeTab={activeTab}
           formattedGAmount={formattedGAmount}
@@ -1023,8 +955,8 @@ function LeaderboardContent({
         <div className="min-w-0">
           {activeTab === "monthly" ? (
             <MonthlyLeaderboard />
-          ) : activeTab === "forfeit" ? (
-            <ForfeitStakedLeaderboard />
+          ) : activeTab === "referral" ? (
+            <ReferralLeaderboard />
           ) : (
             <DreamersLeaderboard onCreateClick={handleCreateClick} />
           )}

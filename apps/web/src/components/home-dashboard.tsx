@@ -7,6 +7,7 @@ import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { HomeFeatureCarousel } from "@/components/home-feature-carousel";
 // import { HomeTop10Banner } from "@/components/home-top10-banner";
 // import { HomeCampaignsSection } from "@/components/home-campaigns-section";
+import { ReferralBanner } from "@/components/referral-banner";
 import { HomeDailyBreakdown } from "@/components/home-daily-breakdown";
 import { HomeStakesHero, useActiveForfeitStakes } from "@/components/home-stakes-hero";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
@@ -57,10 +58,9 @@ function HomeSignedInFeed({ address }: { address: string }) {
           own empty state already owns that CTA, no need to say it twice. */}
       <HomeStakesHero address={address} />
 
-      {/* Forfeit campaign banner paused for now */}
-      {/* <div className="mb-4 px-4">
-        <HomeTop10Banner />
-      </div> */}
+      <div className="mb-4 px-4">
+        <ReferralBanner />
+      </div>
 
       {/* 3. The forfeit section — Hero links here when there's something to see. */}
       <div id="forfeit-day-card" className="mb-6 px-4">

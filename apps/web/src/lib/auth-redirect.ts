@@ -1,5 +1,6 @@
 const POST_SIGN_IN_REDIRECT_KEY = "delulu:post_sign_in_redirect";
 const COMMUNITY_REFERRAL_KEY = "delulu:community_referral";
+const REFERRAL_CODE_KEY = "delulu:referral_code";
 
 /** Standard label for action buttons when the user is not signed in. */
 export const SIGN_IN_BUTTON_LABEL = "Sign in";
@@ -83,6 +84,42 @@ export function consumeCommunityReferral(): string | null {
     const value = sessionStorage.getItem(COMMUNITY_REFERRAL_KEY);
     sessionStorage.removeItem(COMMUNITY_REFERRAL_KEY);
     return normalizeCommunityCode(value);
+  } catch {
+    return null;
+  }
+}
+
+/** User-level referral (?ref=CODE) — distinct from the community invite code above. */
+export function normalizeReferralCode(code: string | null | undefined): string | null {
+  const normalized = code?.trim().toUpperCase();
+  return normalized && normalized.length > 0 ? normalized : null;
+}
+
+export function persistReferralCode(code: string | null | undefined): void {
+  const normalized = normalizeReferralCode(code);
+  if (!normalized || typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(REFERRAL_CODE_KEY, normalized);
+  } catch {
+    // private mode / quota
+  }
+}
+
+export function peekReferralCode(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return normalizeReferralCode(sessionStorage.getItem(REFERRAL_CODE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function consumeReferralCode(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = sessionStorage.getItem(REFERRAL_CODE_KEY);
+    sessionStorage.removeItem(REFERRAL_CODE_KEY);
+    return normalizeReferralCode(value);
   } catch {
     return null;
   }
