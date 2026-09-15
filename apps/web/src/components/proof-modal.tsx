@@ -38,6 +38,7 @@ interface ProofModalProps {
   myAvatar?: string | null;
   myStreak?: number;
   myPoints?: number;
+  pointsAwarded?: number;
   milestoneIndex?: number | null;
   milestoneCount?: number;
   shareUrl?: string | null;
@@ -64,6 +65,7 @@ export function ProofModal({
   myAvatar,
   myStreak,
   myPoints,
+  pointsAwarded,
   milestoneIndex,
   milestoneCount,
   shareUrl,
@@ -209,6 +211,7 @@ export function ProofModal({
           myAvatar={myAvatar}
           myStreak={myStreak}
           myPoints={myPoints}
+          pointsAwarded={pointsAwarded}
           milestoneIndex={milestoneIndex}
           milestoneCount={milestoneCount}
           milestoneName={milestoneName}

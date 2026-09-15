@@ -30,6 +30,7 @@ export interface ProofSuccessCardProps {
   myAvatar?: string | null;
   myStreak?: number;
   myPoints?: number;
+  pointsAwarded?: number;
   milestoneIndex?: number | null;
   milestoneCount?: number;
   milestoneName?: string | null;
@@ -44,6 +45,7 @@ export function ProofSuccessCard({
   myAvatar,
   myStreak,
   myPoints,
+  pointsAwarded = BASE_PROOF_POINTS,
   milestoneIndex,
   milestoneCount,
   milestoneName,
@@ -132,7 +134,7 @@ export function ProofSuccessCard({
           {/* Points earned — loud and unmissable */}
           <div className="mt-2.5 flex items-center justify-center gap-1.5">
             <span className="text-2xl font-black tracking-tight text-[#1a1a19]">
-              +{BASE_PROOF_POINTS.toLocaleString()}
+              +{pointsAwarded.toLocaleString()}
             </span>
             <span className="rounded-full bg-[#1a1a19] px-2.5 py-0.5 text-[11px] font-black text-[#f6c324]">
               pts earned

@@ -28,6 +28,7 @@ interface SubmitProofModalProps {
   myAvatar?: string | null;
   myStreak?: number;
   myPoints?: number;
+  pointsAwarded?: number;
   milestoneIndex?: number | null;
   milestoneCount?: number;
   shareUrl?: string | null;

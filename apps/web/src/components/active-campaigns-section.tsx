@@ -16,6 +16,7 @@ import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
 import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility";
+import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 
 export function ActiveCampaignsSection({
   address,
@@ -51,6 +52,7 @@ export function ActiveCampaignsSection({
     communitySlug?: string;
     proofType?: string;
     liveCameraDurationSeconds?: number | null;
+    pointsPerMilestone: number;
   } | null>(null);
 
   const invalidate = useCallback(() => {
@@ -170,6 +172,9 @@ export function ActiveCampaignsSection({
                   communitySlug: c.community.slug,
                   proofType: c.proof_type,
                   liveCameraDurationSeconds: c.live_camera_duration_seconds,
+                  pointsPerMilestone: pointsPerMilestoneForJoinAmount(
+                    c.is_free_to_join ? 0 : c.join_amount,
+                  ),
                 });
                 setProofSuccess(false);
                 setProofError(null);
@@ -207,6 +212,7 @@ export function ActiveCampaignsSection({
         }}
         isOnChain
         campaignTitle={activeProof?.campaignTitle}
+        pointsAwarded={activeProof?.pointsPerMilestone}
         myUsername={user?.username}
         myAvatar={user?.pfpUrl}
         shareUrl={

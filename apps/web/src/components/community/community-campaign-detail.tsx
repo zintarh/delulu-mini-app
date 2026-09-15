@@ -35,7 +35,7 @@ import {
   isCampaignExpired,
   getEffectiveDisplayEndsAt,
 } from "@/lib/community/campaign-types";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 import { useClaimCommunityCampaignReward } from "@/hooks/use-community-campaign-onchain";
 
 export type CommunityCampaignDetailData = {
@@ -392,6 +392,9 @@ export function CommunityCampaignDetail({
     (campaign.is_free_to_join === false && Number(campaign.join_amount ?? 0) > 0);
   const joinStakeAmount =
     poolStats?.joinAmountOnChain ?? Number(campaign.join_amount ?? 0);
+  const pointsPerMilestone = pointsPerMilestoneForJoinAmount(
+    isPaidJoin ? joinStakeAmount : 0,
+  );
 
   const myLeaderboardRow = address
     ? leaderboard.find((r) => r.wallet_address.toLowerCase() === address.toLowerCase())
@@ -629,7 +632,7 @@ export function CommunityCampaignDetail({
                   </h2>
                   {milestoneCount > 0 ? (
                     <span className="text-sm font-semibold text-delulu-blue lg:text-xs">
-                      {(completedCount * BASE_PROOF_POINTS).toLocaleString()} / {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                      {(completedCount * pointsPerMilestone).toLocaleString()} / {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
                     </span>
                   ) : null}
                 </div>
@@ -639,6 +642,7 @@ export function CommunityCampaignDetail({
                   proofBusy={proofBusy}
                   activeMilestoneId={activeMilestoneId}
                   onSubmitMilestone={onOpenProof}
+                  pointsPerMilestone={pointsPerMilestone}
                 />
                 {milestones.length > MILESTONES_PREVIEW ? (
                   <button
@@ -935,7 +939,7 @@ export function CommunityCampaignDetail({
                   </h2>
                   {milestoneCount > 0 ? (
                     <span className="text-sm font-semibold text-delulu-blue lg:text-xs">
-                      Earn up to {(milestoneCount * BASE_PROOF_POINTS).toLocaleString()} pts
+                      Earn up to {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
                     </span>
                   ) : null}
                 </div>
@@ -945,6 +949,7 @@ export function CommunityCampaignDetail({
                   proofBusy={proofBusy}
                   activeMilestoneId={activeMilestoneId}
                   onSubmitMilestone={onOpenProof}
+                  pointsPerMilestone={pointsPerMilestone}
                 />
                 {milestones.length > MILESTONES_PREVIEW ? (
                   <button
@@ -1232,6 +1237,7 @@ export function CommunityCampaignDetail({
         myAvatar={myAvatar}
         myStreak={myStreak}
         myPoints={myPoints}
+        pointsAwarded={pointsPerMilestone}
         milestoneIndex={activeMilestoneIndex ?? undefined}
         milestoneCount={milestoneCount}
         shareUrl={campaignShareUrl}

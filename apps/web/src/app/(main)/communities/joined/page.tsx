@@ -10,7 +10,7 @@ import {
 } from "@/hooks/use-user-campaign-milestones";
 import { MainPage } from "@/components/main-app-header";
 import { isCampaignEndedByDate } from "@/lib/community/campaign-types";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 import { cn } from "@/lib/utils";
 
 function daysLeft(displayEndsAt: string | null, durationDays: number) {
@@ -44,7 +44,9 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
   const href = `/communities/${c.community.slug}/campaigns/${c.campaign_id}`;
   const isClosed = isCampaignEndedByDate(c.display_ends_at);
   const overdueCount = c.next_milestones.filter((m) => m.is_overdue && !m.completed).length;
-  const pts = c.completed_count * BASE_PROOF_POINTS;
+  const pts =
+    c.completed_count *
+    pointsPerMilestoneForJoinAmount(c.is_free_to_join ? 0 : c.join_amount);
   const left = daysLeft(c.display_ends_at, c.duration_days);
   const pct = c.milestone_count > 0 ? (c.completed_count / c.milestone_count) * 100 : 0;
 
@@ -174,7 +176,12 @@ export default function JoinedCampaignsPage() {
   const active = campaigns.filter((c) => !isCampaignEndedByDate(c.display_ends_at));
   const ended = campaigns.filter((c) => isCampaignEndedByDate(c.display_ends_at));
 
-  const totalPts = campaigns.reduce((sum, c) => sum + c.completed_count * BASE_PROOF_POINTS, 0);
+  const totalPts = campaigns.reduce(
+    (sum, c) =>
+      sum +
+      c.completed_count * pointsPerMilestoneForJoinAmount(c.is_free_to_join ? 0 : c.join_amount),
+    0,
+  );
   const totalWins = campaigns.reduce((sum, c) => sum + c.completed_count, 0);
   const totalMissed = campaigns.reduce(
     (sum, c) => sum + c.next_milestones.filter((m) => m.is_overdue && !m.completed).length,

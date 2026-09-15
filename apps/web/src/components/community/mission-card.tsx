@@ -8,7 +8,7 @@ import {
   canSubmitMilestone,
   formatMilestoneOpensAt,
 } from "@/lib/community/milestone-submit-eligibility";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import {
   AvatarStack,
@@ -115,6 +115,7 @@ export function MissionCard({
     : "Opens soon";
   const countdown = countdownLabel(milestone.deadline);
   const hasStake = !isFreeToJoin && joinAmount > 0;
+  const pointsPerMilestone = pointsPerMilestoneForJoinAmount(isFreeToJoin ? 0 : joinAmount);
   const atRisk = hasStake && forfeitPct > 0 && Boolean(countdown?.urgent);
 
   return (
@@ -179,7 +180,7 @@ export function MissionCard({
 
         <span className="flex items-center gap-1 font-semibold text-delulu-blue">
           <Star className="h-3.5 w-3.5 fill-delulu-blue" />+
-          {BASE_PROOF_POINTS.toLocaleString()} pts
+          {pointsPerMilestone.toLocaleString()} pts
         </span>
 
         {atRisk ? (

@@ -47,6 +47,11 @@ contract CommunityMarketV1 is
     // --- CONSTANTS ---
     uint256 public constant DAY = 86400;
     uint256 public constant BASE_PROOF_POINTS = 1000;
+    /// @dev Awarded instead of BASE_PROOF_POINTS when the campaign's join stake is
+    ///      below LOW_STAKE_JOIN_THRESHOLD (free-to-join campaigns included, since
+    ///      their unset campaignJoinAmount is 0).
+    uint256 public constant REDUCED_PROOF_POINTS = 100;
+    uint256 public constant LOW_STAKE_JOIN_THRESHOLD = 1000 ether; // 1000 G$ (18 decimals)
     uint256 public constant STREAK_BONUS = 1;
     uint256 public constant MAX_STREAK_BONUS = 7;
 
@@ -303,7 +308,9 @@ contract CommunityMarketV1 is
         participantStreak[campaignId][msg.sender] = streak;
         participantLastProofAt[campaignId][msg.sender] = block.timestamp;
 
-        uint256 points = BASE_PROOF_POINTS;
+        uint256 points = campaignJoinAmount[campaignId] >= LOW_STAKE_JOIN_THRESHOLD
+            ? BASE_PROOF_POINTS
+            : REDUCED_PROOF_POINTS;
 
         uint256 newTotal = participantPoints[campaignId][msg.sender] + points;
         participantPoints[campaignId][msg.sender] = newTotal;

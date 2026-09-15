@@ -56,6 +56,7 @@ interface LiveCameraProofModalProps {
   myAvatar?: string | null;
   myStreak?: number;
   myPoints?: number;
+  pointsAwarded?: number;
   milestoneIndex?: number | null;
   milestoneCount?: number;
   shareUrl?: string | null;
@@ -114,6 +115,7 @@ export function LiveCameraProofModal({
   myAvatar,
   myStreak,
   myPoints,
+  pointsAwarded,
   milestoneIndex,
   milestoneCount,
   shareUrl,
@@ -481,6 +483,7 @@ export function LiveCameraProofModal({
           myAvatar={myAvatar}
           myStreak={myStreak}
           myPoints={myPoints}
+          pointsAwarded={pointsAwarded}
           milestoneIndex={milestoneIndex}
           milestoneCount={milestoneCount}
           milestoneName={milestoneName}

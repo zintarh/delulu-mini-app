@@ -1,5 +1,5 @@
 import { isCampaignFunded } from "@/lib/community/campaign-types";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 import type { CampaignJoinInfo } from "@/components/community/campaign-join-modal";
 import { formatJoinTokenLabel } from "@/lib/community/join-token";
 
@@ -83,7 +83,7 @@ export function buildCampaignJoinInfo(campaign: CampaignJoinSource): CampaignJoi
     proofCadence: campaign.proof_cadence ?? campaign.proofCadence ?? "daily",
     proofInstructions:
       campaign.proof_instructions ?? campaign.proofInstructions ?? null,
-    pointsPerMilestone: BASE_PROOF_POINTS,
+    pointsPerMilestone: pointsPerMilestoneForJoinAmount(isFreeToJoin ? 0 : joinAmount),
     maxForfeitTotal,
     fundedPoolAmount: campaign.funded_pool_amount,
     totalParticipantStakes: campaign.total_participant_stakes,

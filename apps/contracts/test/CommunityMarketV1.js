@@ -59,7 +59,7 @@ describe("CommunityMarketV1", function () {
     expect(contractOwner.toLowerCase()).to.equal(owner.account.address.toLowerCase());
   });
 
-  it("awards flat 1000 points per milestone", async function () {
+  it("awards reduced 100 points per milestone for free-to-join campaigns", async function () {
     const { market, creator, participant } = await loadFixture(deployFixture);
     await createCampaignWithMilestones(market, creator);
 
@@ -73,7 +73,7 @@ describe("CommunityMarketV1", function () {
     );
 
     const points = await market.read.participantPoints([0n, participant.account.address]);
-    expect(points).to.equal(1000n);
+    expect(points).to.equal(100n);
 
     await time.increase(ONE_DAY + 1n);
 
@@ -83,7 +83,57 @@ describe("CommunityMarketV1", function () {
     );
 
     const total = await market.read.participantPoints([0n, participant.account.address]);
-    expect(total).to.equal(2000n);
+    expect(total).to.equal(200n);
+  });
+
+  it("awards reduced 100 points when the join stake is below 1000 G$", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    const joinAmount = parseEther("50");
+    await market.write.setCommunityCampaignEconomics(
+      [0n, true, currency.address, joinAmount, 0],
+      { account: creator.account },
+    );
+    await currency.write.approve([market.address, joinAmount], {
+      account: participant.account,
+    });
+    await market.write.joinCommunityCampaign([0n], {
+      account: participant.account,
+    });
+
+    await market.write.submitCommunityCampaignMilestoneProof(
+      [0n, 0n, "https://proof.example/1"],
+      { account: participant.account },
+    );
+
+    const points = await market.read.participantPoints([0n, participant.account.address]);
+    expect(points).to.equal(100n);
+  });
+
+  it("awards flat 1000 points when the join stake is at least 1000 G$", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    const joinAmount = parseEther("1000");
+    await market.write.setCommunityCampaignEconomics(
+      [0n, true, currency.address, joinAmount, 0],
+      { account: creator.account },
+    );
+    await currency.write.approve([market.address, joinAmount], {
+      account: participant.account,
+    });
+    await market.write.joinCommunityCampaign([0n], {
+      account: participant.account,
+    });
+
+    await market.write.submitCommunityCampaignMilestoneProof(
+      [0n, 0n, "https://proof.example/1"],
+      { account: participant.account },
+    );
+
+    const points = await market.read.participantPoints([0n, participant.account.address]);
+    expect(points).to.equal(1000n);
   });
 
   it("rejects proof before milestone start time", async function () {

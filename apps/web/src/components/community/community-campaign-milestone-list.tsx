@@ -8,7 +8,6 @@ import {
   formatMilestoneOpensAt,
   getActiveMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
 function fmtPts(n: number) {
   return n.toLocaleString();
@@ -53,12 +52,14 @@ export function CommunityCampaignMilestoneList({
   proofBusy,
   activeMilestoneId,
   onSubmitMilestone,
+  pointsPerMilestone,
 }: {
   milestones: CommunityCampaignMilestoneRow[];
   isJoined: boolean;
   proofBusy: boolean;
   activeMilestoneId?: number | null;
   onSubmitMilestone: (milestoneId: number) => void;
+  pointsPerMilestone: number;
 }) {
   if (milestones.length === 0) {
     return (
@@ -146,18 +147,18 @@ export function CommunityCampaignMilestoneList({
                 {/* Right side — points reward or submit button */}
                 {m.completed ? (
                   <span className="shrink-0 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-black text-emerald-700">
-                    +{fmtPts(BASE_PROOF_POINTS)} pts ✓
+                    +{fmtPts(pointsPerMilestone)} pts ✓
                   </span>
                 ) : !isJoined ? (
                   <span className="shrink-0 rounded-lg bg-delulu-blue-light px-3 py-1.5 text-[11px] font-black text-delulu-blue">
-                    +{fmtPts(BASE_PROOF_POINTS)} pts
+                    +{fmtPts(pointsPerMilestone)} pts
                   </span>
                 ) : isJoined ? (
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {canSubmit || submitting ? (
                       <>
                         <span className="text-[11px] font-black text-delulu-blue">
-                          +{fmtPts(BASE_PROOF_POINTS)} pts
+                          +{fmtPts(pointsPerMilestone)} pts
                         </span>
                         <button
                           type="button"
@@ -177,11 +178,11 @@ export function CommunityCampaignMilestoneList({
                       </>
                     ) : m.is_overdue ? (
                       <span className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-sm font-semibold text-muted-foreground">
-                        −{fmtPts(BASE_PROOF_POINTS)} pts missed
+                        −{fmtPts(pointsPerMilestone)} pts missed
                       </span>
                     ) : (
                       <span className="text-[11px] font-semibold text-muted-foreground/60">
-                        +{fmtPts(BASE_PROOF_POINTS)} pts
+                        +{fmtPts(pointsPerMilestone)} pts
                       </span>
                     )}
                   </div>

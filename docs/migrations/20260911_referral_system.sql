@@ -8,18 +8,12 @@ create unique index if not exists profiles_referral_code_unique_idx
   on public.profiles (referral_code)
   where referral_code is not null;
 
--- 2. Attribution — who referred this profile. Set once, immutable, plain text
---    (no FK — matches existing convention: forfeit_commitments.creator_wallet etc. are also plain text).
 alter table public.profiles
   add column if not exists referred_by text;
 
 create index if not exists profiles_referred_by_idx
   on public.profiles (referred_by);
 
--- 3. Append-only ledger of COUNTED referrals: verified AND (joined a campaign OR
---    created a first Forfeit). Unique on referred_wallet = hard double-credit
---    guard and "already credited?" check. qualifying_action records which of the
---    two paths satisfied the credit, for support/debugging.
 create table if not exists public.referral_credits (
   id                      uuid        primary key default gen_random_uuid(),
   referrer_wallet         text        not null,

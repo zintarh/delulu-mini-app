@@ -32,6 +32,20 @@ export function canPublishDashboardPayouts(
 export const BASE_PROOF_POINTS = 1000;
 
 /**
+ * Campaigns whose join stake is below this many G$ award REDUCED_PROOF_POINTS
+ * per milestone instead of BASE_PROOF_POINTS — free-to-join campaigns included,
+ * since their join amount is 0. Mirrors CommunityMarketV1's
+ * LOW_STAKE_JOIN_THRESHOLD (1000 ether) and REDUCED_PROOF_POINTS (100).
+ */
+export const LOW_STAKE_JOIN_THRESHOLD_WHOLE = 1_000;
+export const REDUCED_PROOF_POINTS = 100;
+
+/** Points awarded per completed milestone for a campaign with this join amount (whole G$). */
+export function pointsPerMilestoneForJoinAmount(joinAmount: number): number {
+  return joinAmount >= LOW_STAKE_JOIN_THRESHOLD_WHOLE ? BASE_PROOF_POINTS : REDUCED_PROOF_POINTS;
+}
+
+/**
  * Season reset for the public/admin monthly campaign leaderboard.
  * Ignore proofs before this instant so a prior ended campaign does not dominate
  * the new month. From the next calendar month onward, max(monthStart, epoch)
