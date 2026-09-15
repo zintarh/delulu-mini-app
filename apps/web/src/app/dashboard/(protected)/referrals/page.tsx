@@ -290,8 +290,8 @@ export default function AdminReferralsPage() {
     <DashboardPage className="max-w-none px-5 sm:px-7">
       <DashboardSectionTabs items={PEOPLE_SECTION_TABS} />
       <p className="mb-5 text-sm text-muted-foreground">
-        Every counted referral — verified, then joined a campaign or started a Forfeit. 6,000 G$
-        each, unlocked once a wallet has 5 counted referrals.
+        Every counted referral — verified, then earned 1,000+ points on a campaign or Forfeit
+        proof. 6,000 G$ each, unlocked once a wallet has 5 counted referrals.
       </p>
 
       {data ? (

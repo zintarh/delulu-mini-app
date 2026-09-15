@@ -5,6 +5,7 @@ import {
 } from "@/lib/dashboard/parse-forfeit-tx";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
+import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,12 @@ export async function POST(request: NextRequest) {
     if (commitmentEnded) {
       await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
     }
+
+    // Best-effort: this period just earned its FORFEIT_PROOF_POINTS (1000) — the
+    // bar evaluateAndCreditReferral now requires for a referral to count.
+    void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
+      console.error("[forfeit/confirm-proof] referral credit check failed", err),
+    );
   } else if (commitment.verifier_wallet) {
     // Friend-verified: notify the verifier that proof is waiting for their review.
     await notifyManyRecipients(admin, [commitment.verifier_wallet], {
@@ -162,7 +169,7 @@ async function confirmResolveOnly(
 
   const { data: commitment } = await admin
     .from("forfeit_commitments")
-    .select("id")
+    .select("id, creator_wallet")
     .eq("on_chain_commitment_id", Number(resolveEvent.commitmentId))
     .maybeSingle();
   if (!commitment) return NextResponse.json({ error: "Commitment not found" }, { status: 404 });
@@ -188,6 +195,12 @@ async function confirmResolveOnly(
   if (resolveEvent.commitmentEnded) {
     await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
   }
+
+  // Best-effort: points go to the creator, not the friend-verifier who resolved
+  // this — same bar evaluateAndCreditReferral now requires for a referral to count.
+  void evaluateAndCreditReferral(admin, commitment.creator_wallet).catch((err) =>
+    console.error("[forfeit/confirm-proof] referral credit check failed", err),
+  );
 
   return NextResponse.json({
     ok: true,

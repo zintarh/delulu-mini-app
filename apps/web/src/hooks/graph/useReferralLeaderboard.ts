@@ -17,7 +17,7 @@ type ApiResponse = {
   myEntry: ReferralLeaderboardEntry | null;
 };
 
-/** Wallets ranked by successful referrals (verified + joined a campaign or created a Forfeit). */
+/** Wallets ranked by successful referrals (verified + earned proof points on a campaign or Forfeit). */
 export function useReferralLeaderboard(page: number, currentUserAddress?: string) {
   const [entries, setEntries] = useState<ReferralLeaderboardEntry[]>([]);
   const [hasMore, setHasMore] = useState(false);

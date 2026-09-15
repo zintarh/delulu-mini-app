@@ -788,6 +788,75 @@ export async function isJoinedCommunityCampaignOnGraph(
   }
 }
 
+const WALLET_CAMPAIGN_PROOF_POINTS_QUERY = `
+  query WalletCampaignProofPoints($address: String!, $minPoints: BigInt!) {
+    communityCampaignParticipants(
+      where: { participantAddress: $address, pointsTotal_gte: $minPoints }
+      first: 1
+    ) {
+      id
+    }
+  }
+`;
+
+/**
+ * Whether a wallet has ever earned at least `minPoints` on any single
+ * community campaign — i.e. actually had a milestone proof approved, not
+ * just joined. Used to gate referral crediting on real proof, not just
+ * participation. Live (uncached) since referral evaluation needs the
+ * current on-chain state, not a 15s-stale read.
+ */
+export async function hasEarnedCampaignProofPointsOnGraph(
+  walletAddress: string,
+  minPoints: number,
+): Promise<boolean> {
+  try {
+    const data = await fetchSubgraph<{
+      communityCampaignParticipants?: Array<{ id: string }>;
+    }>(
+      WALLET_CAMPAIGN_PROOF_POINTS_QUERY,
+      { address: walletAddress.toLowerCase(), minPoints: String(minPoints) },
+      { fresh: true },
+    );
+    return (data.communityCampaignParticipants ?? []).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+const WALLET_FORFEIT_PROOF_QUERY = `
+  query WalletForfeitProof($address: String!) {
+    forfeitPeriodResolutions(
+      where: { creatorAddress: $address, outcome: "success" }
+      first: 1
+    ) {
+      id
+    }
+  }
+`;
+
+/**
+ * Whether a wallet has ever had a Forfeit period resolved successfully —
+ * i.e. actually submitted (and got approved) proof, not just created a
+ * commitment. Every successful resolution awards FORFEIT_PROOF_POINTS
+ * (1000, see apps/delulu-subgraph/src/forfeit-market.ts), so this mirrors
+ * hasEarnedCampaignProofPointsOnGraph's "earned the points" bar.
+ */
+export async function hasQualifyingForfeitProofOnGraph(walletAddress: string): Promise<boolean> {
+  try {
+    const data = await fetchSubgraph<{
+      forfeitPeriodResolutions?: Array<{ id: string }>;
+    }>(
+      WALLET_FORFEIT_PROOF_QUERY,
+      { address: walletAddress.toLowerCase() },
+      { fresh: true },
+    );
+    return (data.forfeitPeriodResolutions ?? []).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchCommunityCampaignParticipantCountFromGraph(
   challengeId: number,
 ): Promise<number> {

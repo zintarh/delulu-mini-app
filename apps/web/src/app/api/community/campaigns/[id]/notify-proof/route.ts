@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
+import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,12 @@ export async function POST(
       // non-blocking
     }
   }
+
+  // Best-effort: this proof may have just crossed the points bar
+  // evaluateAndCreditReferral requires for a referral to count.
+  void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
+    console.error("[notify-proof] referral credit check failed", err),
+  );
 
   const { data: participants } = await admin
     .from("campaign_participants")

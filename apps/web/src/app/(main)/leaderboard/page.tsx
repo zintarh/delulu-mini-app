@@ -835,7 +835,7 @@ export default function LeaderboardPage() {
     activeTab === "monthly"
       ? "Campaign points earned by everyone participating this month"
       : activeTab === "referral"
-        ? "Successful referrals — verified, then joined a campaign or started a Forfeit"
+        ? "Successful referrals — verified, then earned points on a campaign or Forfeit proof"
         : "All-time points, accumulated across everything";
 
   return (
