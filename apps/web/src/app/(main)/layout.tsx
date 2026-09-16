@@ -56,6 +56,13 @@ const EnableNotificationsBanner = dynamic(
     ),
   { ssr: false },
 );
+const RewardsClaimBanner = dynamic(
+  () =>
+    import("@/components/rewards-claim-banner").then(
+      (m) => m.RewardsClaimBanner,
+    ),
+  { ssr: false },
+);
 
 const NotificationsPanel = dynamic(
   () =>
@@ -100,6 +107,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <AppToast />
           <NoGasBanner />
           <EnableNotificationsBanner />
+          <RewardsClaimBanner />
 
           <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
             <MainAppHeader />

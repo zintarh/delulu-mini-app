@@ -22,6 +22,9 @@ import Link from "next/link";
 
 type TabType = "milestones" | "active" | "ended";
 
+const REFERRAL_UNLOCK_THRESHOLD = 5;
+const REFERRAL_GDOLLARS_REWARD = 6000;
+
 const PROFILE_TABS: { id: TabType; label: string }[] = [
   { id: "milestones", label: "Campaigns" },
   { id: "active", label: "Forfeit" },
@@ -131,7 +134,7 @@ function ProfileHeader({
   const { user, updateProfile } = useUserStore();
   const [copied, setCopied] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
-  const { referralCode } = useReferralCode(address);
+  const { referralCode, referralCount } = useReferralCode(address);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
@@ -269,7 +272,20 @@ function ProfileHeader({
                 {referralCopied ? "Link copied!" : "Copy referral link"}
               </button>
               <p className="max-w-[260px] text-[11px] leading-snug text-muted-foreground">
-                Counts once they verify and join a campaign or start a Forfeit · +100 pts each
+                {referralCount >= REFERRAL_UNLOCK_THRESHOLD ? (
+                  <>
+                    <span className="font-bold text-delulu-green">
+                      {(referralCount * REFERRAL_GDOLLARS_REWARD).toLocaleString()} G$
+                    </span>{" "}
+                    earned from {referralCount} referral{referralCount === 1 ? "" : "s"}
+                  </>
+                ) : (
+                  <>
+                    Counts once they verify and join a campaign or start a Forfeit ·{" "}
+                    {REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$ per referral after{" "}
+                    {REFERRAL_UNLOCK_THRESHOLD}
+                  </>
+                )}
               </p>
             </div>
           ) : null}

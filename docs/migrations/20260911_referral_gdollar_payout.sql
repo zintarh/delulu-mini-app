@@ -24,11 +24,15 @@ comment on column public.referral_credits.payout_status is
 
 -- Read-optimized aggregate for the leaderboard route — now surfaces G$ paid
 -- alongside the historical points figure (kept for now, no longer awarded).
+-- gdollars_amount must be appended AFTER last_referral_at: CREATE OR REPLACE
+-- VIEW can only add columns at the end, not insert them before existing ones
+-- (Postgres error 42P16 otherwise, since it would shift last_referral_at's
+-- ordinal position).
 create or replace view public.referral_leaderboard_v as
   select referrer_wallet                        as wallet_address,
          count(*)::int                          as referral_count,
          sum(points_awarded)::int               as points,
-         coalesce(sum(gdollars_amount), 0)::int as gdollars_amount,
-         max(credited_at)                       as last_referral_at
+         max(credited_at)                       as last_referral_at,
+         coalesce(sum(gdollars_amount), 0)::int as gdollars_amount
   from public.referral_credits
   group by referrer_wallet;
