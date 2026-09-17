@@ -5,13 +5,10 @@ import { Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralCode } from "@/hooks/use-referral-code";
 
-const REFERRAL_UNLOCK_THRESHOLD = 5;
-
 export function ReferralBanner() {
   const { address } = useAuth();
   const { referralCode, referralCount } = useReferralCode(address);
   const [copied, setCopied] = useState(false);
-  const unlocked = referralCount >= REFERRAL_UNLOCK_THRESHOLD;
 
   const handleCopy = async () => {
     if (!referralCode) return;
@@ -42,9 +39,11 @@ export function ReferralBanner() {
               <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
                 6,000 G$
               </span>
-              <span className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
-                {Math.min(referralCount, REFERRAL_UNLOCK_THRESHOLD)}/{REFERRAL_UNLOCK_THRESHOLD}
-              </span>
+              {referralCount > 0 ? (
+                <span className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
+                  {referralCount} referred
+                </span>
+              ) : null}
             </div>
             <p
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
@@ -53,9 +52,7 @@ export function ReferralBanner() {
               Share your link, earn G$
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
-              {unlocked
-                ? "Unlocked — every valid referral pays 6,000 G$ straight to your wallet."
-                : `6,000 G$ per valid referral, paid to your wallet once you've referred ${REFERRAL_UNLOCK_THRESHOLD}.`}
+              Every valid referral pays 6,000 G$, claimable right away.
             </p>
           </div>
         </div>

@@ -22,11 +22,10 @@ import {
   PEOPLE_SECTION_TABS,
 } from "@/components/dashboard/dashboard-section-tabs";
 
-const REFERRAL_UNLOCK_THRESHOLD = 5;
 const REFERRAL_GDOLLARS_REWARD = 6000;
-// Below one full 5-referral unlock lump sum, the wallet can't cover the next
-// burst payout — worth flagging before it actually fails a deposit.
-const LOW_BALANCE_THRESHOLD = REFERRAL_UNLOCK_THRESHOLD * REFERRAL_GDOLLARS_REWARD;
+// Buffer covering a burst of simultaneous referral payouts — worth flagging
+// before the wallet actually fails a deposit.
+const LOW_BALANCE_THRESHOLD = 10 * REFERRAL_GDOLLARS_REWARD;
 
 type ReferralRow = {
   id: string;
@@ -56,20 +55,13 @@ type RewarderStatus = {
   gdollarsAllowance: string;
 };
 
-type AlmostUnlockedWallet = {
-  wallet_address: string;
-  username: string | null;
-  referral_count: number;
-  remaining: number;
-};
-
 type StatusFilter = "all" | ReferralRow["payoutStatus"];
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "sent", label: "Sent" },
   { value: "failed", label: "Failed" },
-  { value: "not_eligible", label: "Locked" },
+  { value: "not_eligible", label: "Pending" },
 ];
 
 const ACTION_LABEL: Record<ReferralRow["qualifyingAction"], string> = {
@@ -86,7 +78,7 @@ const PAYOUT_STATUS_STYLE: Record<ReferralRow["payoutStatus"], string> = {
 const PAYOUT_STATUS_LABEL: Record<ReferralRow["payoutStatus"], string> = {
   sent: "Sent",
   failed: "Failed",
-  not_eligible: "Locked",
+  not_eligible: "Pending",
 };
 
 function PayoutStatusBadge({ status }: { status: ReferralRow["payoutStatus"] }) {
@@ -168,30 +160,6 @@ function RewarderStatusKpi({ status }: { status: RewarderStatus | null }) {
   );
 }
 
-function AlmostUnlockedPanel({ wallets }: { wallets: AlmostUnlockedWallet[] }) {
-  if (wallets.length === 0) return null;
-  return (
-    <div className="mb-6 rounded-xl border border-border bg-card p-4">
-      <p className="mb-3 text-sm font-semibold text-foreground">Close to unlocking</p>
-      <div className="flex flex-wrap gap-2">
-        {wallets.map((w) => (
-          <div
-            key={w.wallet_address}
-            className="flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs"
-          >
-            <span className="font-semibold text-foreground">
-              {w.username ? `@${w.username}` : formatAddress(w.wallet_address as `0x${string}`)}
-            </span>
-            <span className="rounded-full bg-delulu-yellow-reserved/20 px-1.5 py-0.5 font-bold text-foreground">
-              {w.referral_count}/{REFERRAL_UNLOCK_THRESHOLD}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function AdminReferralsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -201,7 +169,6 @@ export default function AdminReferralsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rewarderStatus, setRewarderStatus] = useState<RewarderStatus | null>(null);
-  const [almostUnlocked, setAlmostUnlocked] = useState<AlmostUnlockedWallet[]>([]);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -250,17 +217,6 @@ export default function AdminReferralsPage() {
         // Non-critical — the main table still works without this.
       }
     })();
-    void (async () => {
-      try {
-        const res = await fetch("/api/dashboard/referrals/almost-unlocked", { cache: "no-store" });
-        if (res.ok) {
-          const json = (await res.json()) as { wallets: AlmostUnlockedWallet[] };
-          setAlmostUnlocked(json.wallets ?? []);
-        }
-      } catch {
-        // Non-critical — the main table still works without this.
-      }
-    })();
   }, []);
 
   const retry = useCallback(
@@ -291,7 +247,7 @@ export default function AdminReferralsPage() {
       <DashboardSectionTabs items={PEOPLE_SECTION_TABS} />
       <p className="mb-5 text-sm text-muted-foreground">
         Every counted referral — verified, then earned 1,000+ points on a campaign or Forfeit
-        proof. 6,000 G$ each, unlocked once a wallet has 5 counted referrals.
+        proof. 6,000 G$ each, paid the moment it's counted.
       </p>
 
       {data ? (
@@ -314,7 +270,6 @@ export default function AdminReferralsPage() {
         </div>
       ) : null}
 
-      <AlmostUnlockedPanel wallets={almostUnlocked} />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">

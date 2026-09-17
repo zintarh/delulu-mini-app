@@ -22,7 +22,6 @@ import Link from "next/link";
 
 type TabType = "milestones" | "active" | "ended";
 
-const REFERRAL_UNLOCK_THRESHOLD = 5;
 const REFERRAL_GDOLLARS_REWARD = 6000;
 
 const PROFILE_TABS: { id: TabType; label: string }[] = [
@@ -272,7 +271,7 @@ function ProfileHeader({
                 {referralCopied ? "Link copied!" : "Copy referral link"}
               </button>
               <p className="max-w-[260px] text-[11px] leading-snug text-muted-foreground">
-                {referralCount >= REFERRAL_UNLOCK_THRESHOLD ? (
+                {referralCount > 0 ? (
                   <>
                     <span className="font-bold text-delulu-green">
                       {(referralCount * REFERRAL_GDOLLARS_REWARD).toLocaleString()} G$
@@ -282,8 +281,7 @@ function ProfileHeader({
                 ) : (
                   <>
                     Counts once they verify and join a campaign or start a Forfeit ·{" "}
-                    {REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$ per referral after{" "}
-                    {REFERRAL_UNLOCK_THRESHOLD}
+                    {REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$ per referral
                   </>
                 )}
               </p>
