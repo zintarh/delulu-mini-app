@@ -63,30 +63,40 @@ export function referralRewardId(referralCreditId: string): `0x${string}` {
   return keccak256(toHex(`referral-credit:${referralCreditId}`));
 }
 
-export type ReferralPayoutResult = {
+/** Deterministic per-wallet rewardId for the one-time onboarding gift — one ever, per wallet. */
+export function onboardingGiftRewardId(wallet: `0x${string}`): `0x${string}` {
+  return keccak256(toHex(`onboarding-gift:${wallet.toLowerCase()}`));
+}
+
+export type VaultDepositResult = {
   txHash: `0x${string}` | null;
   amountWei: string;
   rewardId: `0x${string}`;
   alreadyUsed: boolean;
 };
 
+export type ReferralPayoutResult = VaultDepositResult;
+
 /**
  * Deposits `amountWhole` G$ into RewardVault as a claimable reward for
- * `referrerWallet`. The reward stays in the vault until the user claims it
- * themselves (existing /rewards claim flow) — this call only moves funds
- * from the rewarder wallet into the vault, never directly to the user.
+ * `recipientWallet`, keyed by `rewardId` for idempotency (checked on-chain
+ * before sending, so a retried call can't double-credit). The reward stays
+ * in the vault until the user claims it themselves (existing claim flow) —
+ * this only moves funds from the rewarder wallet into the vault, never
+ * directly to the user.
  */
-export async function payoutReferralReward(params: {
-  referrerWallet: `0x${string}`;
-  referralCreditId: string;
+async function depositToRewardVault(params: {
+  recipientWallet: `0x${string}`;
   amountWhole: number;
-}): Promise<ReferralPayoutResult> {
+  rewardId: `0x${string}`;
+  revertContext: string;
+}): Promise<VaultDepositResult> {
   const account = getRewarderAccount();
   const rpc = getRpcUrl();
   const vault = getRewardVaultAddress(CELO_MAINNET_ID);
   const token = GOODDOLLAR_ADDRESSES.mainnet;
   const amountWei = parseTokenAmount(params.amountWhole, token, 18);
-  const rewardId = referralRewardId(params.referralCreditId);
+  const { rewardId } = params;
 
   const publicClient = createPublicClient({ chain: celo, transport: http(rpc) });
 
@@ -134,7 +144,7 @@ export async function payoutReferralReward(params: {
     address: vault,
     abi: REWARD_VAULT_ABI,
     functionName: "depositReward",
-    args: [params.referrerWallet, token, amountWei, rewardId],
+    args: [params.recipientWallet, token, amountWei, rewardId],
   });
   const receipt = await publicClient.waitForTransactionReceipt({
     hash,
@@ -142,9 +152,35 @@ export async function payoutReferralReward(params: {
     timeout: 60_000,
   });
   if (receipt.status !== "success") {
-    throw new Error(`depositReward reverted for referral credit ${params.referralCreditId}`);
+    throw new Error(`depositReward reverted for ${params.revertContext}`);
   }
   return { txHash: hash, amountWei: amountWei.toString(), rewardId, alreadyUsed: false };
+}
+
+export async function payoutReferralReward(params: {
+  referrerWallet: `0x${string}`;
+  referralCreditId: string;
+  amountWhole: number;
+}): Promise<ReferralPayoutResult> {
+  return depositToRewardVault({
+    recipientWallet: params.referrerWallet,
+    amountWhole: params.amountWhole,
+    rewardId: referralRewardId(params.referralCreditId),
+    revertContext: `referral credit ${params.referralCreditId}`,
+  });
+}
+
+/** Deposits the one-time 1000 G$ onboarding gift into RewardVault for `wallet`. */
+export async function payoutOnboardingGift(params: {
+  wallet: `0x${string}`;
+  amountWhole: number;
+}): Promise<VaultDepositResult> {
+  return depositToRewardVault({
+    recipientWallet: params.wallet,
+    amountWhole: params.amountWhole,
+    rewardId: onboardingGiftRewardId(params.wallet),
+    revertContext: `onboarding gift for ${params.wallet}`,
+  });
 }
 
 export type RewarderStatus = {

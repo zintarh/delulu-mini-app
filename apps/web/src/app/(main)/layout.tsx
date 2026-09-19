@@ -63,6 +63,13 @@ const RewardsClaimBanner = dynamic(
     ),
   { ssr: false },
 );
+const OnboardingGiftModal = dynamic(
+  () =>
+    import("@/components/onboarding-gift-modal").then(
+      (m) => m.OnboardingGiftModal,
+    ),
+  { ssr: false },
+);
 
 const NotificationsPanel = dynamic(
   () =>
@@ -108,6 +115,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <NoGasBanner />
           <EnableNotificationsBanner />
           <RewardsClaimBanner />
+          <OnboardingGiftModal />
 
           <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
             <MainAppHeader />

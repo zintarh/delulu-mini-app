@@ -138,6 +138,18 @@ export function ClaimPanelContent({
     ) {
       await claim();
     }
+
+    // Verification may be the condition that newly completes onboarding
+    // (join-before-verify is a common order) — best-effort, never blocks the UBI claim above.
+    if (status.isWhitelisted && address) {
+      fetch("/api/onboarding/gift/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      }).catch(() => {
+        // Non-critical — campaign join already re-checks this independently.
+      });
+    }
   };
 
   return (
