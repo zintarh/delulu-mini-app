@@ -800,7 +800,7 @@ function LeaderboardTabs({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {(["monthly", "global", "referral"] as Tab[]).map((tab) => (
+      {(["referral", "monthly", "global"] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"
@@ -861,7 +861,7 @@ function ValidReferralInfo() {
 }
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("monthly");
+  const [activeTab, setActiveTab] = useState<Tab>("referral");
   const { address, authenticated } = useAuth();
   const { navigateToCreate } = useNavigateToCreate();
   const handleCreateClick = () => void navigateToCreate();
