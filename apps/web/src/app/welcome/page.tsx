@@ -164,18 +164,8 @@ export default function WelcomePage() {
 
       consumeCommunityReferral();
 
-      const onboardingRes = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
-      });
-      if (!onboardingRes.ok) {
-        setCommunityError("Failed to complete setup. Please try again.");
-        setIsJoiningCommunity(false);
-        return;
-      }
-
+      // onboarded_at is already recorded right after the profile step —
+      // this screen only handles the optional community join from here.
       const redirect = consumeSignInRedirect() ?? "/";
       if (joinedSlug) {
         router.replace(`/communities/${joinedSlug}`);
@@ -241,6 +231,18 @@ export default function WelcomePage() {
       try {
         window.sessionStorage.setItem("delulu:new-user", "1");
       } catch {}
+
+      // Profile (username + photo) is what actually defines "onboarded" —
+      // the community step after this is optional/skippable and shouldn't
+      // gate it. Best-effort: the profile is already saved above regardless
+      // of this call's outcome, and the dashboard's onboarding-gift check
+      // re-evaluates on every load, so a dropped request here self-heals.
+      fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
+      }).catch(() => {});
 
       setStep("community");
     })();
