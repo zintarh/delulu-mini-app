@@ -21,7 +21,7 @@ export default function IdentityFlow({
   /** Plain inline block instead of a fixed-overlay modal — see IdentityModal. */
   inline?: boolean;
 }) {
-  const { status, isVerified, fvLink, setIsVerifying, generateLink, isGeneratingLink } =
+  const { status, isVerified, isLapsed, fvLink, setIsVerifying, generateLink, isGeneratingLink } =
     useIdentity();
 
   // Keep hook-driven verifying state in sync with our open prop.
@@ -42,6 +42,7 @@ export default function IdentityFlow({
       onClose={() => onOpenChange(false)}
       fvLink={fvLink}
       status={status}
+      isLapsed={isLapsed}
       onRegenerate={generateLink}
       isGeneratingLink={isGeneratingLink}
       inline={inline}

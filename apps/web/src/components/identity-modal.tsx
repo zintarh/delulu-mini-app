@@ -19,6 +19,8 @@ interface IdentityModalProps {
   /** Requests a fresh FV link from GoodDollar; resolves to the new link (or null on failure). */
   onRegenerate: () => Promise<string | null>;
   isGeneratingLink?: boolean;
+  /** Verified before, but GoodDollar's window lapsed — a quick re-check, not a first-time verification. Adjusts copy only; the flow itself is identical. */
+  isLapsed?: boolean;
   /**
    * Renders the same status content as a plain inline block instead of a
    * fixed-overlay modal — no backdrop, no close button, no iframe. Used on
@@ -36,6 +38,7 @@ export function IdentityModal({
   status,
   onRegenerate,
   isGeneratingLink = false,
+  isLapsed = false,
   inline = false,
 }: IdentityModalProps) {
   // Auto-close on verified (modal presentation only — inline has no "close").
@@ -163,10 +166,12 @@ export function IdentityModal({
         <img src="/gooddollar-logo.png" alt="GoodDollar" className="w-10 h-10 rounded-full" />
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">
-            Verification opened in a new tab
+            {isLapsed ? "Quick re-check opened in a new tab" : "Verification opened in a new tab"}
           </p>
           <p className="text-xs text-muted-foreground">
-            Finish it there, then come back here — we&apos;ll pick it up automatically.
+            {isLapsed
+              ? "Your last verification expired — this refreshes it, only takes a minute."
+              : "Finish it there, then come back here — we'll pick it up automatically."}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -210,7 +215,9 @@ export function IdentityModal({
             <div className="w-8 h-8 rounded-xl bg-delulu-yellow/20 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-foreground" />
             </div>
-            <p className="text-sm font-black text-foreground">Verify your identity</p>
+            <p className="text-sm font-black text-foreground">
+              {isLapsed ? "Quick re-verify" : "Verify your identity"}
+            </p>
           </div>
           <div className="flex items-center gap-1">
             {fvLink && status !== "verified" && (

@@ -12,7 +12,7 @@ export default function VerifyGoodDollarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isConnected } = useAuth();
-  const { status, isVerified, fvLink, setIsVerifying, generateLink } = useIdentity();
+  const { status, isVerified, isLapsed, fvLink, setIsVerifying, generateLink } = useIdentity();
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
   );
@@ -82,10 +82,12 @@ export default function VerifyGoodDollarPage() {
           {fvLink ? (
             <>
               <p className="text-sm font-semibold text-foreground">
-                Verification opened in a new tab
+                {isLapsed ? "Quick re-check opened in a new tab" : "Verification opened in a new tab"}
               </p>
               <p className="text-xs text-muted-foreground">
-                Finish it there, then come back here — we&apos;ll pick it up automatically.
+                {isLapsed
+                  ? "Your last verification expired — this refreshes it, only takes a minute."
+                  : "Finish it there, then come back here — we’ll pick it up automatically."}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

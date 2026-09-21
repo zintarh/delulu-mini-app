@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { useIdentitySDK, IdentitySDK } from "@goodsdks/identity-sdk";
-import { ClaimSDK } from "@goodsdks/citizen-sdk";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnifiedWalletClient } from "@/hooks/use-unified-wallet-client";
+import { NONE, readIdentityStatus, type IdentityStatus as GoodDollarIdentityStatus } from "@/lib/identity/status";
 
 export type IdentityStatus = "loading" | "verified" | "not_verified" | "error";
 
@@ -21,38 +21,51 @@ export function useIdentity() {
   }, [identitySDKFromHook, publicClient, walletClient]);
 
   const [status, setStatus] = useState<IdentityStatus>("loading");
+  const [identityState, setIdentityState] = useState<GoodDollarIdentityStatus>(NONE);
   const [fvLink, setFvLink] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
+  // How many times generateLink has bailed out because the wallet wasn't
+  // live-ready yet, since this verification attempt started. Resets whenever
+  // a fresh attempt begins (see the effect below) so a slow-but-real settle
+  // doesn't get penalized by an earlier attempt's count.
+  const walletNotReadyAttemptsRef = useRef(0);
+  const MAX_WALLET_NOT_READY_ATTEMPTS = 8;
+
+  useEffect(() => {
+    if (isVerifying) walletNotReadyAttemptsRef.current = 0;
+  }, [isVerifying]);
+
+  // Reads GoodDollar's actual re-verification ladder (lib/identity/status.ts)
+  // instead of a plain whitelisted/not-whitelisted boolean, so the UI can
+  // tell "never verified" apart from "verified before, window lapsed" —
+  // those need different copy and different urgency, not the same "you
+  // aren't verified" message. Only needs `publicClient` — no wallet client
+  // or signing involved, so unlike generateLink this can run the moment an
+  // address is known, no settling wait required. GoodDollar's UBI claim
+  // itself only works while state is "verified" (their own contract's
+  // current-window requirement), so that's what "verified"/"not_verified"
+  // below still track; identityState carries the richer picture.
   const checkVerification = async () => {
-    if (!address || !publicClient || !identitySDK || !walletClient?.account?.address) {
+    if (!address || !publicClient) {
       setStatus("not_verified");
+      setIdentityState(NONE);
       return;
     }
-
 
     try {
       // Don't set loading if we're polling in the background
       if (!isVerifying) setStatus("loading");
 
-      const claimSDK = new ClaimSDK({
-        account: address,
-        publicClient: publicClient as any,
-        walletClient: walletClient as any,
-        identitySDK: identitySDK as any,
-        env: "production",
-      });
+      const result = await readIdentityStatus(publicClient as any, address);
+      setIdentityState(result);
 
-      await claimSDK.checkEntitlement();
-      const walletStatus = await claimSDK.getWalletClaimStatus();
-
-
-      if (walletStatus.status === "not_whitelisted") {
-        setStatus("not_verified");
-      } else {
+      if (result.state === "verified") {
         setStatus("verified");
         setIsVerifying(false); // Stop verifying if we're now verified
+      } else {
+        setStatus("not_verified");
       }
     } catch (error) {
       console.error("Identity check failed:", error);
@@ -78,21 +91,47 @@ export function useIdentity() {
     )
       return null;
 
-    // walletClient resolves independently across our three auth providers
-    // (wagmi/Web3Auth/Privy) and can briefly lag behind `address` (e.g. right
-    // after switching accounts). Signing an FV link for whatever account
-    // walletClient currently holds — instead of the one the rest of the app
-    // (and checkVerification, via `account: address` above) is tracking —
-    // would whitelist a wallet we're not even checking status for, so the
-    // user could "verify" and still show as not_verified forever. Wait for
-    // them to line up instead of generating against a mismatch.
-    const walletAddress = walletClient.account?.address;
-    if (!walletAddress || walletAddress.toLowerCase() !== address.toLowerCase()) {
-      return null;
-    }
-
     try {
       setIsGeneratingLink(true);
+
+      // walletClient resolves independently across our three auth providers
+      // (wagmi/Web3Auth/Privy) and can briefly lag behind `address` (e.g.
+      // right after switching accounts, or — most commonly — right after
+      // Web3Auth's own login finishes but before we've finished registering
+      // it as a wagmi connector, during which this hook falls back to a
+      // hand-built client that can still be settling). GoodDollar's SDK
+      // asks the wallet for its address and silently signs with it
+      // internally (via getAddresses() + signMessage()) — if that live
+      // answer disagrees with `address`, or the wallet isn't fully ready to
+      // sign yet, GoodDollar's page gets a link it can't validate and shows
+      // its own "login information is missing" error. So this checks the
+      // SAME live getAddresses() call the SDK itself is about to make, not
+      // just our cached `.account.address`, and gives it a few short
+      // retries to settle before generating anything. Guarded by
+      // isGeneratingLink (set above) so a dependency change mid-check can't
+      // start a second, concurrent attempt.
+      let liveAddress: string | undefined;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const [addr] = await walletClient.getAddresses();
+          liveAddress = addr;
+        } catch {
+          liveAddress = undefined;
+        }
+        if (liveAddress && liveAddress.toLowerCase() === address.toLowerCase()) break;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      if (!liveAddress || liveAddress.toLowerCase() !== address.toLowerCase()) {
+        walletNotReadyAttemptsRef.current += 1;
+        if (walletNotReadyAttemptsRef.current >= MAX_WALLET_NOT_READY_ATTEMPTS) {
+          // Genuinely stuck, not just settling — surface it instead of
+          // spinning on "Preparing verification…" forever. A fresh "Verify"
+          // attempt (isVerifying false→true) resets the budget above.
+          setStatus("error");
+        }
+        return null;
+      }
+      walletNotReadyAttemptsRef.current = 0;
 
       const idSDK = new (IdentitySDK as any)(
         publicClient,
@@ -133,7 +172,7 @@ export function useIdentity() {
 
   useEffect(() => {
     checkVerification();
-  }, [address, !!publicClient, !!identitySDK, !!walletClient?.account?.address]);
+  }, [address, !!publicClient]);
 
   // Referral credit check: fire once per address when verification lands, in
   // case a referral is only waiting on this to be counted (the forfeit/campaign
@@ -179,11 +218,15 @@ export function useIdentity() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isVerifying, status, address, publicClient, identitySDK]);
+  }, [isVerifying, status, address, publicClient]);
 
   return {
     status,
     isVerified: status === "verified",
+    /** Full ladder detail (state/daysLeft/isProbation/...) — see lib/identity/status.ts. */
+    identityState,
+    /** Verified before, but the current window lapsed — needs a quick re-check, not a first-time verification. */
+    isLapsed: identityState.state === "lapsed",
     fvLink,
     refresh: checkVerification,
     generateLink,

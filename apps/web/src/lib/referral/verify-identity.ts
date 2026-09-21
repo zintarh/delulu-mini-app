@@ -1,8 +1,10 @@
-import { createPublicClient, http, parseAbi, zeroAddress } from "viem";
+import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
+import { hasEverVerified, readIdentityStatus } from "@/lib/identity/status";
 
 const CELO_RPC =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ??
+  process.env.NEXT_PUBLIC_RPC_URL ??
   process.env.CELO_RPC_URL ??
   "https://forno.celo.org";
 
@@ -11,33 +13,25 @@ const publicClient = createPublicClient({
   transport: http(CELO_RPC),
 });
 
-// Same address/ABI @goodsdks/identity-sdk uses for env "production"
-// (identityContractAddresses.production in that package's src/constants.ts).
-// Copied locally rather than imported — that package pulls in wagmi/React,
-// which a server route shouldn't depend on. Keep this in sync manually if
-// the SDK ever changes it.
-const GOOD_DOLLAR_IDENTITY_ADDRESS = "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42" as const;
-
-const identityV2ABI = parseAbi([
-  "function getWhitelistedRoot(address account) view returns (address)",
-]);
-
 /**
  * Server-side, non-client-trusted GoodDollar face-verification check —
- * mirrors what apps/web/src/hooks/identityHook.ts does client-side via the
- * GoodDollar SDK, but as a direct read-only contract call so it can run in
- * an API route. Fails closed: any RPC error returns false, never credits a
- * referral on an uncertain check.
+ * mirrors what apps/web/src/hooks/identityHook.ts does client-side. Reads
+ * the actual re-verification ladder (see lib/identity/status.ts) rather
+ * than just `getWhitelistedRoot() != 0`, which goes to zero the moment a
+ * wallet's current window lapses and makes someone who verified last week
+ * look identical to someone who never verified at all.
+ *
+ * Returns true for "verified" AND "lapsed" — every caller of this (referral
+ * crediting, referral-link eligibility, the onboarding gift) cares whether
+ * this wallet ever genuinely proved it's a real person, not whether it
+ * happens to be inside its current rolling window right now. Only "none"
+ * (never verified) and "blacklisted" return false. Fails closed: any RPC
+ * error returns false, never credits anything on an uncertain check.
  */
 export async function isGoodDollarVerified(address: string): Promise<boolean> {
   try {
-    const root = await publicClient.readContract({
-      address: GOOD_DOLLAR_IDENTITY_ADDRESS,
-      abi: identityV2ABI,
-      functionName: "getWhitelistedRoot",
-      args: [address as `0x${string}`],
-    });
-    return root !== zeroAddress;
+    const status = await readIdentityStatus(publicClient, address);
+    return hasEverVerified(status);
   } catch (err) {
     console.error("[referral] GoodDollar verification check failed", err);
     return false;
