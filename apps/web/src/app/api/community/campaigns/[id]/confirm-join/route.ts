@@ -7,7 +7,6 @@ import {
   countActiveJoinedCampaigns,
 } from "@/lib/community/campaign-join-limit";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
-import { evaluateAndCreditOnboardingGift } from "@/lib/onboarding/gift";
 
 export const dynamic = "force-dynamic";
 
@@ -91,12 +90,9 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Best-effort side effects — never fail the join over either of these.
+  // Best-effort side effect — never fail the join over this.
   void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
     console.error("[campaigns/confirm-join] referral credit check failed", err),
-  );
-  void evaluateAndCreditOnboardingGift(admin, walletAddress).catch((err) =>
-    console.error("[campaigns/confirm-join] onboarding gift check failed", err),
   );
 
   return NextResponse.json({ ok: true, participantId: participant.id });

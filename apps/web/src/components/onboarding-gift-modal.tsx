@@ -94,8 +94,8 @@ export function OnboardingGiftModal() {
           {amount.toLocaleString()} <span className="text-lg font-bold text-muted-foreground">G$</span>
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          You verified your identity and joined a campaign — this one's on us. Claim it to keep
-          using the app.
+          You verified your identity — this one's on us. Claim it to fund joining your first
+          campaign.
         </p>
 
         {error ? (

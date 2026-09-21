@@ -4,6 +4,7 @@ import {
   requireAuthenticatedWallet,
   walletAuthErrorResponse,
 } from "@/lib/auth/wallet-session";
+import { evaluateAndCreditOnboardingGift } from "@/lib/onboarding/gift";
 
 /** POST — mark a wallet address as onboarded */
 export async function POST(request: NextRequest) {
@@ -64,6 +65,13 @@ export async function POST(request: NextRequest) {
         if (retryError) throw retryError;
       }
     }
+
+    // Best-effort — account setup may be the condition that newly completes
+    // onboarding-gift eligibility (verify-before-signup is the other order,
+    // already handled after identity verification). Never fails this route.
+    void evaluateAndCreditOnboardingGift(supabase, normalizedAddress).catch((err) =>
+      console.error("[onboarding] onboarding gift check failed", err),
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

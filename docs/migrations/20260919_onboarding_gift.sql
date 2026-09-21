@@ -1,6 +1,8 @@
 -- One-time onboarding gift: 1000 G$ via RewardVault for any wallet that is
--- both GoodDollar-verified AND has joined at least one community campaign.
--- Granted automatically the moment both conditions are first true (see
+-- both GoodDollar-verified AND has finished account setup (onboarded_at) —
+-- seed funding they can use to join a paid campaign, granted before any
+-- campaign join rather than as a reward for one. Granted automatically the
+-- moment both conditions are first true (see
 -- apps/web/src/lib/onboarding/gift.ts); the user must claim it from the
 -- vault themselves (existing claim flow) before the blocking claim modal
 -- stops showing.

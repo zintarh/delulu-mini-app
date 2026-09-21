@@ -16,11 +16,13 @@ export type OnboardingGiftEvaluation = {
 
 /**
  * One-time 1000 G$ gift for any wallet that is both GoodDollar-verified and
- * has joined at least one community campaign. Safe to call redundantly from
- * multiple trigger points (campaign join, identity verification) — it
- * re-checks live state every time, so it converges regardless of call order,
- * and never re-grants a wallet already at 'sent' (the on-chain rewardId is
- * also keyed per-wallet, so even a racing double-call can't double-deposit).
+ * has finished account setup (profiles.onboarded_at) — seed funding they can
+ * use to join a paid campaign, granted before any campaign join rather than
+ * as a reward for one. Safe to call redundantly from multiple trigger points
+ * (account setup, identity verification) — it re-checks live state every
+ * time, so it converges regardless of call order, and never re-grants a
+ * wallet already at 'sent' (the on-chain rewardId is also keyed per-wallet,
+ * so even a racing double-call can't double-deposit).
  */
 export async function evaluateAndCreditOnboardingGift(
   admin: SupabaseAdmin,
@@ -30,7 +32,7 @@ export async function evaluateAndCreditOnboardingGift(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("onboarding_gift_status, onboarding_gift_claimed_at")
+    .select("onboarding_gift_status, onboarding_gift_claimed_at, onboarded_at")
     .eq("address", wallet)
     .maybeSingle();
 
@@ -42,15 +44,12 @@ export async function evaluateAndCreditOnboardingGift(
     };
   }
 
-  const [verified, { count: campaignCount }] = await Promise.all([
-    isGoodDollarVerified(wallet),
-    admin
-      .from("campaign_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("wallet_address", wallet),
-  ]);
+  if (!profile.onboarded_at) {
+    return { status: "not_eligible", claimedAt: null, justGranted: false };
+  }
 
-  if (!verified || !campaignCount) {
+  const verified = await isGoodDollarVerified(wallet);
+  if (!verified) {
     return { status: "not_eligible", claimedAt: null, justGranted: false };
   }
 
