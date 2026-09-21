@@ -190,6 +190,7 @@ export default function SignInPage() {
               onClose={() => {}}
               showCloseButton={false}
               onWhitelisted={() => void refreshGoodDollarStatus()}
+              inlineIdentityFlow
             />
           </div>
         </div>

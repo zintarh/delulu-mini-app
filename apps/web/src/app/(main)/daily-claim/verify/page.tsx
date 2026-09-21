@@ -12,7 +12,7 @@ export default function VerifyGoodDollarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isConnected } = useAuth();
-  const { status, isVerified, fvLink, setIsVerifying } = useIdentity();
+  const { status, isVerified, fvLink, setIsVerifying, generateLink } = useIdentity();
   const { formatted: gDollarBalance, isLoading: isGdLoading } = useTokenBalance(
     GOODDOLLAR_ADDRESSES.mainnet,
   );
@@ -41,6 +41,20 @@ export default function VerifyGoodDollarPage() {
     autoOpenedForRef.current = fvLink;
     window.open(fvLink, "_blank", "noopener,noreferrer");
   }, [fvLink, isVerified]);
+
+  // Reopening the same fvLink just resends whatever already failed/expired
+  // on GoodDollar's side (e.g. FVFlowError) — request a fresh one instead.
+  // The blank tab is opened synchronously in the click handler so browsers
+  // don't treat the later navigation (after the async regenerate) as an
+  // unrequested popup.
+  const handleReopen = async () => {
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    const link = await generateLink();
+    if (win) {
+      if (link) win.location.href = link;
+      else win.close();
+    }
+  };
 
   // Redirect once verified (even if G$ hasn't arrived yet — they'll claim on the next page)
   useEffect(() => {
@@ -79,7 +93,7 @@ export default function VerifyGoodDollarPage() {
               </div>
               <button
                 type="button"
-                onClick={() => window.open(fvLink, "_blank", "noopener,noreferrer")}
+                onClick={() => void handleReopen()}
                 className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
               >
                 Reopen the link

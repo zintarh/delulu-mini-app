@@ -13,12 +13,16 @@ export default function IdentityFlow({
   open,
   onOpenChange,
   onVerified,
+  inline = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onVerified: () => void;
+  /** Plain inline block instead of a fixed-overlay modal — see IdentityModal. */
+  inline?: boolean;
 }) {
-  const { status, isVerified, fvLink, refresh, setIsVerifying } = useIdentity();
+  const { status, isVerified, fvLink, setIsVerifying, generateLink, isGeneratingLink } =
+    useIdentity();
 
   // Keep hook-driven verifying state in sync with our open prop.
   useEffect(() => {
@@ -38,7 +42,9 @@ export default function IdentityFlow({
       onClose={() => onOpenChange(false)}
       fvLink={fvLink}
       status={status}
-      onRefresh={refresh}
+      onRegenerate={generateLink}
+      isGeneratingLink={isGeneratingLink}
+      inline={inline}
     />
   );
 }

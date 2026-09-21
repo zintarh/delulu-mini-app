@@ -33,12 +33,20 @@ interface ClaimPanelContentProps {
   showCloseButton?: boolean;
   /** Fired once GoodDollar identity verification is confirmed, regardless of claim outcome. */
   onWhitelisted?: () => void;
+  /**
+   * Renders identity verification as a plain inline block in place of the
+   * button, instead of a fixed-overlay modal on top of this content — used
+   * on the sign-in page, which is already a full standalone screen and
+   * shouldn't pop another layer on top of itself.
+   */
+  inlineIdentityFlow?: boolean;
 }
 
 export function ClaimPanelContent({
   onClose,
   showCloseButton = true,
   onWhitelisted,
+  inlineIdentityFlow = false,
 }: ClaimPanelContentProps) {
   const { address, isReady } = useAuth();
   const { redirectToSignIn, authenticated } = useRedirectToSignIn();
@@ -257,14 +265,25 @@ export function ClaimPanelContent({
             Checking eligibility…
           </div>
         ) : needsWhitelist ? (
-          <button
-            type="button"
-            onClick={openIdentityFlow}
-            className={primaryButtonClass}
-          >
-            <ShieldCheck className="w-4 h-4" strokeWidth={2} />
-            {verifyButtonLabel}
-          </button>
+          inlineIdentityFlow && showIdentityFlow ? (
+            <IdentityFlow
+              open={showIdentityFlow}
+              onOpenChange={closeIdentityFlow}
+              onVerified={() => {
+                void handleVerified();
+              }}
+              inline
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={openIdentityFlow}
+              className={primaryButtonClass}
+            >
+              <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+              {verifyButtonLabel}
+            </button>
+          )
         ) : hasClaimed ? (
           <div className="rounded-xl bg-secondary px-4 py-4 text-center">
             <p className="text-sm font-semibold text-foreground mb-1">
@@ -315,13 +334,15 @@ export function ClaimPanelContent({
         )}
       </div>
 
-      <IdentityFlow
-        open={showIdentityFlow}
-        onOpenChange={closeIdentityFlow}
-        onVerified={() => {
-          void handleVerified();
-        }}
-      />
+      {!inlineIdentityFlow ? (
+        <IdentityFlow
+          open={showIdentityFlow}
+          onOpenChange={closeIdentityFlow}
+          onVerified={() => {
+            void handleVerified();
+          }}
+        />
+      ) : null}
     </>
   );
 }

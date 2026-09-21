@@ -60,7 +60,15 @@ export function useIdentity() {
     }
   };
 
-  const generateLink = async () => {
+  /**
+   * Always requests a brand-new FV link from GoodDollar — never reuses
+   * `fvLink`. Callers that want to retry after a failed/expired attempt
+   * (FVFlowError on GoodDollar's side, or just a stale link sitting around
+   * too long) must call this again rather than reopening the old string, or
+   * they'll just resend whatever already failed. Returns the new link (or
+   * null on failure) so a caller can navigate a tab it already opened.
+   */
+  const generateLink = async (): Promise<string | null> => {
     if (
       !address ||
       !publicClient ||
@@ -68,7 +76,20 @@ export function useIdentity() {
       !walletClient ||
       isGeneratingLink
     )
-      return;
+      return null;
+
+    // walletClient resolves independently across our three auth providers
+    // (wagmi/Web3Auth/Privy) and can briefly lag behind `address` (e.g. right
+    // after switching accounts). Signing an FV link for whatever account
+    // walletClient currently holds — instead of the one the rest of the app
+    // (and checkVerification, via `account: address` above) is tracking —
+    // would whitelist a wallet we're not even checking status for, so the
+    // user could "verify" and still show as not_verified forever. Wait for
+    // them to line up instead of generating against a mismatch.
+    const walletAddress = walletClient.account?.address;
+    if (!walletAddress || walletAddress.toLowerCase() !== address.toLowerCase()) {
+      return null;
+    }
 
     try {
       setIsGeneratingLink(true);
@@ -97,12 +118,14 @@ export function useIdentity() {
       if (finalLink) {
         setFvLink(finalLink);
         setStatus("not_verified");
-      } else {
-        setStatus("error");
+        return finalLink;
       }
+      setStatus("error");
+      return null;
     } catch (e: any) {
       console.error("❌ Failed to generate FV link:", e);
       setStatus("error");
+      return null;
     } finally {
       setIsGeneratingLink(false);
     }
