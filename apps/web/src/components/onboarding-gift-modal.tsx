@@ -12,8 +12,6 @@ import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-fl
 import type { CampaignJoinSource } from "@/lib/community/campaign-join-info";
 
 const GOOD_DOLLAR = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
-/** Set once the dedicated "welcome gift" campaign exists — see gift.ts for eligibility. */
-const UPSELL_CAMPAIGN_ID = process.env.NEXT_PUBLIC_ONBOARDING_UPSELL_CAMPAIGN_ID || null;
 
 type Step = "claim" | "upsell" | "done";
 
@@ -21,9 +19,11 @@ type Step = "claim" | "upsell" | "done";
  * Fully blocking at the claim step (no close button, no backdrop dismiss) —
  * shows the moment a wallet has been granted the one-time onboarding gift
  * and hasn't claimed it yet. Once claimed, offers (skippable) to put it
- * straight to work joining a specific campaign priced at the same amount,
- * so the gift doesn't just sit idle in a wallet that never comes back.
- * Mounted app-wide in the main layout.
+ * straight to work joining a live campaign priced at the same amount
+ * (whichever one /api/onboarding/gift/upsell-campaign finds — create as many
+ * as you like, no fixed campaign is hardcoded here), so the gift doesn't
+ * just sit idle in a wallet that never comes back. Mounted app-wide in the
+ * main layout.
  */
 export function OnboardingGiftModal() {
   const { address, authenticated } = useAuth();
@@ -32,6 +32,7 @@ export function OnboardingGiftModal() {
   const [amount, setAmount] = useState(1000);
   const [checked, setChecked] = useState(false);
   const [step, setStep] = useState<Step>("claim");
+  const [upsellCampaignId, setUpsellCampaignId] = useState<string | null>(null);
   const [campaignSource, setCampaignSource] = useState<CampaignJoinSource | null>(null);
   const [gasTopupPending, setGasTopupPending] = useState(false);
 
@@ -73,17 +74,21 @@ export function OnboardingGiftModal() {
     };
   }, [authenticated, address]);
 
-  // Preload the upsell campaign's info so it's ready the instant they claim.
+  // Preload a live upsell campaign so it's ready the instant they claim.
   useEffect(() => {
-    if (!UPSELL_CAMPAIGN_ID || !mustClaim || !address) return;
+    if (!mustClaim || !address) return;
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/community/campaigns/${UPSELL_CAMPAIGN_ID}?address=${address}`,
-        );
+        const pickRes = await fetch("/api/onboarding/gift/upsell-campaign");
+        const pickJson = (await pickRes.json()) as { campaignId?: string | null };
+        const campaignId = pickJson.campaignId;
+        if (cancelled || !campaignId) return;
+
+        const res = await fetch(`/api/community/campaigns/${campaignId}?address=${address}`);
         const json = await res.json();
         if (cancelled || !json.campaign) return;
+        setUpsellCampaignId(campaignId);
         setCampaignSource({
           ...json.campaign,
           community: json.campaign.communities,
@@ -109,14 +114,14 @@ export function OnboardingGiftModal() {
       });
       setMustClaim(false);
       await refetchPending();
-      setStep(UPSELL_CAMPAIGN_ID && campaignSource ? "upsell" : "done");
+      setStep(upsellCampaignId && campaignSource ? "upsell" : "done");
     } catch {
       // Surfaced below via `error` from useClaimReward.
     }
   };
 
   const handleJoinCampaign = async () => {
-    if (!UPSELL_CAMPAIGN_ID || !campaignSource || !address) return;
+    if (!upsellCampaignId || !campaignSource || !address) return;
     if (isLowGas) {
       setGasTopupPending(true);
       try {
@@ -130,12 +135,12 @@ export function OnboardingGiftModal() {
         setGasTopupPending(false);
       }
     }
-    joinFlow.openJoinModal(UPSELL_CAMPAIGN_ID, campaignSource);
+    joinFlow.openJoinModal(upsellCampaignId, campaignSource);
   };
 
   if (!mounted || !checked) return null;
 
-  if (step === "upsell" && UPSELL_CAMPAIGN_ID && campaignSource) {
+  if (step === "upsell" && upsellCampaignId && campaignSource) {
     return createPortal(
       <>
         {!joinFlow.joinModalOpen ? (
