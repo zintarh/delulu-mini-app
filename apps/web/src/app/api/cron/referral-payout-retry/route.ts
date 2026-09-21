@@ -9,9 +9,11 @@ import { payReferralCredit } from "@/lib/referral/payout";
 
 /**
  * Retries any referral G$ payout whose on-chain deposit previously failed
- * (RPC hiccup, low rewarder balance, etc). Run on a schedule (see vercel.json).
- * payReferralCredit re-checks usedRewardId before sending, so this can never
- * double-credit a referral that actually succeeded despite an earlier error.
+ * (RPC hiccup, low rewarder balance, etc). Hit hourly by GitHub Actions
+ * (.github/workflows/referral-payout-retry.yml), with the once-a-day Vercel
+ * cron (vercel.json) as a fallback. payReferralCredit re-checks usedRewardId
+ * before sending, so this can never double-credit a referral that actually
+ * succeeded despite an earlier error.
  */
 export async function GET(req: NextRequest) {
   try {
