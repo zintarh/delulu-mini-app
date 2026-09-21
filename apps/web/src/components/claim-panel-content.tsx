@@ -130,17 +130,12 @@ export function ClaimPanelContent({
 
     const status = await refreshStatus();
     if (status.isWhitelisted) onWhitelisted?.();
-    if (
-      status.isWhitelisted &&
-      !status.hasClaimed &&
-      status.entitlement !== null &&
-      status.entitlement > 0n
-    ) {
-      await claim();
-    }
+    // The daily G$ claim itself now happens together with the onboarding
+    // gift in OnboardingGiftModal (one combined claim moment), not silently
+    // here — this just refreshes status so the panel shows the right state.
 
     // Verification may be the condition that newly completes onboarding
-    // (join-before-verify is a common order) — best-effort, never blocks the UBI claim above.
+    // (join-before-verify is a common order) — best-effort, never blocks anything above.
     if (status.isWhitelisted && address) {
       fetch("/api/onboarding/gift/evaluate", {
         method: "POST",

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { formatUnits } from "viem";
 import { Gift, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useHasGas } from "@/hooks/use-has-gas";
 import { usePendingReward, useClaimReward } from "@/hooks/use-reward-vault";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
@@ -43,6 +45,7 @@ export function OnboardingGiftModal() {
   const { claimReward, isPending, error } = useClaimReward();
   const { isLowGas } = useHasGas();
   const joinFlow = useCampaignJoinFlow();
+  const ubi = useGoodDollarClaim();
 
   useEffect(() => {
     setMounted(true);
@@ -152,9 +155,26 @@ export function OnboardingGiftModal() {
     }
   }, [step, upsellCheckDone, campaignSource]);
 
+  const canClaimUbi =
+    ubi.isInitialized &&
+    ubi.isWhitelisted &&
+    !ubi.hasClaimed &&
+    ubi.entitlement !== null &&
+    ubi.entitlement > 0n;
+  const ubiAmount = ubi.entitlement !== null ? parseFloat(formatUnits(ubi.entitlement, 18)) : 0;
+
   const handleClaim = async () => {
     if (!address) return;
     try {
+      if (canClaimUbi) {
+        try {
+          await ubi.claim();
+        } catch {
+          // Best-effort — the gift claim below is the one that actually
+          // unblocks the app, so a UBI failure (e.g. already claimed on
+          // another device a second ago) never stalls it.
+        }
+      }
       await claimReward(GOOD_DOLLAR);
       await fetch("/api/onboarding/gift/mark-claimed", {
         method: "POST",
@@ -254,7 +274,27 @@ export function OnboardingGiftModal() {
 
   if (!mustClaim) return null;
 
+  // Wait for the UBI status to load too, so the combined total doesn't
+  // change out from under the user right after the card first appears.
+  if (!ubi.isInitialized) {
+    return createPortal(
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      >
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-background p-6 text-center shadow-xl">
+          <Loader2 className="h-6 w-6 animate-spin text-delulu-green" />
+          <p className="text-sm text-muted-foreground">Loading your G$…</p>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   const rewardNotYetOnChain = pending <= 0n;
+  const totalAmount = amount + (canClaimUbi ? ubiAmount : 0);
+  const isBusy = isPending || ubi.isClaiming;
 
   return createPortal(
     <div
@@ -269,35 +309,43 @@ export function OnboardingGiftModal() {
 
         <h2 className="mt-4 text-xl font-black text-foreground">Welcome gift</h2>
         <p className="mt-4 text-4xl font-black tabular-nums text-foreground">
-          {amount.toLocaleString()} <span className="text-lg font-bold text-muted-foreground">G$</span>
+          {totalAmount.toLocaleString()}{" "}
+          <span className="text-lg font-bold text-muted-foreground">G$</span>
         </p>
+        {canClaimUbi ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {amount.toLocaleString()} welcome gift + {ubiAmount.toLocaleString()} today's G$ claim
+          </p>
+        ) : null}
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           You verified your identity — this one's on us. Claim it to fund joining your first
           campaign.
         </p>
 
-        {error ? (
+        {error || ubi.error ? (
           <p className="mt-3 text-xs text-destructive">
-            {error instanceof Error ? error.message : "Claim failed — try again"}
+            {(error instanceof Error ? error.message : null) ??
+              ubi.error?.message ??
+              "Claim failed — try again"}
           </p>
         ) : null}
 
         <button
           type="button"
           onClick={handleClaim}
-          disabled={isPending || rewardNotYetOnChain}
+          disabled={isBusy || rewardNotYetOnChain}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-delulu-green px-4 py-3.5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? (
+          {isBusy ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Gift className="h-4 w-4" strokeWidth={2} />
           )}
-          {isPending
+          {isBusy
             ? "Claiming…"
             : rewardNotYetOnChain
               ? "Preparing your gift…"
-              : `Claim ${amount.toLocaleString()} G$`}
+              : `Claim ${totalAmount.toLocaleString()} G$`}
         </button>
       </div>
     </div>,
