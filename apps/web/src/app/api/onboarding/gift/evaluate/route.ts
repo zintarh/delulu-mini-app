@@ -5,11 +5,13 @@ import { evaluateAndCreditOnboardingGift, ONBOARDING_GIFT_GDOLLARS } from "@/lib
 export const dynamic = "force-dynamic";
 
 /**
- * Re-checks live eligibility (GoodDollar-verified + joined a campaign) and
- * grants the one-time onboarding gift if both are now true. Safe to call
+ * Re-checks live eligibility (GoodDollar-verified + finished account setup)
+ * and grants the one-time onboarding gift if both are now true. Safe to call
  * repeatedly/redundantly — see evaluateAndCreditOnboardingGift. Called from
- * campaign-join confirmation and right after identity verification
- * completes, since either can be the condition that newly satisfies both.
+ * account-setup completion, right after identity verification completes,
+ * and as a fallback re-check on every dashboard load (onboarding-gift-modal)
+ * so a missed timing race in the first two never permanently sticks a wallet
+ * at not_eligible/failed.
  */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));

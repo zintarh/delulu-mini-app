@@ -19,7 +19,9 @@ export type OnboardingGiftEvaluation = {
  * has finished account setup (profiles.onboarded_at) — seed funding they can
  * use to join a paid campaign, granted before any campaign join rather than
  * as a reward for one. Safe to call redundantly from multiple trigger points
- * (account setup, identity verification) — it re-checks live state every
+ * (account setup, identity verification, and a fallback re-check on every
+ * dashboard load in onboarding-gift-modal.tsx that catches whatever the
+ * one-shot triggers above missed) — it re-checks live state every
  * time, so it converges regardless of call order, and never re-grants a
  * wallet already at 'sent' (the on-chain rewardId is also keyed per-wallet,
  * so even a racing double-call can't double-deposit).

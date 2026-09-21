@@ -58,10 +58,48 @@ export function OnboardingGiftModal() {
     void (async () => {
       try {
         const res = await fetch(`/api/onboarding/gift/status?address=${address}`);
-        const json = (await res.json()) as { mustClaim?: boolean; amount?: number };
+        const json = (await res.json()) as {
+          mustClaim?: boolean;
+          amount?: number;
+          status?: string;
+        };
         if (cancelled) return;
-        setMustClaim(Boolean(json.mustClaim));
-        if (json.amount) setAmount(json.amount);
+        if (json.mustClaim) {
+          setMustClaim(true);
+          if (json.amount) setAmount(json.amount);
+          return;
+        }
+
+        // The cached DB status says not eligible/claimed yet. That can be
+        // stale — the two places that normally grant this (post-signup,
+        // post-identity-verification) each run once and never retry, so a
+        // timing race (e.g. GoodDollar's whitelist tx not yet confirmed at
+        // that moment) or a transient RewardVault payout failure leaves it
+        // stuck at "not_eligible"/"failed" forever with nothing else to
+        // catch it. Landing on the dashboard re-checks live eligibility and
+        // self-heals — cheap when still ineligible, and idempotent (the
+        // on-chain rewardId guard prevents any double-deposit) once it isn't.
+        if (json.status !== "sent") {
+          try {
+            const evalRes = await fetch("/api/onboarding/gift/evaluate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ address }),
+            });
+            const evalJson = (await evalRes.json()) as {
+              mustClaim?: boolean;
+              amount?: number;
+            };
+            if (!cancelled) {
+              setMustClaim(Boolean(evalJson.mustClaim));
+              if (evalJson.amount) setAmount(evalJson.amount);
+            }
+            return;
+          } catch {
+            // Fall through to not-eligible below.
+          }
+        }
+        if (!cancelled) setMustClaim(false);
       } catch {
         // Fails closed — never block the app over a status-check network error.
         if (!cancelled) setMustClaim(false);
