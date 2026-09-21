@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { usePendingMilestones } from "@/hooks/graph/useAdminDashboard";
-import { ConnectorSelectionSheet } from "@/components/connector-selection-sheet";
 import {
   LayoutDashboard,
   Target,
@@ -149,14 +148,13 @@ export function AdminShell({
   communityIds?: string[];
 }) {
   const pathname = usePathname();
-  const { address, isConnected } = useAuth();
+  const { address, isConnected, login } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { milestones: pendingMilestones } = usePendingMilestones();
   const router = useRouter();
   const isPlatformAdmin = isPlatformAdminRole(staffRole ?? null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showLoginSheet, setShowLoginSheet] = useState(false);
 
   const handleLogout = async () => {
     await fetch("/api/dashboard/auth/logout", { method: "POST" });
@@ -302,7 +300,7 @@ export function AdminShell({
             ) : (
               <button
                 type="button"
-                onClick={() => setShowLoginSheet(true)}
+                onClick={() => login()}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-muted/40"
               >
                 <LogIn className="h-4 w-4" />
@@ -316,8 +314,6 @@ export function AdminShell({
           <DashboardToastProvider>{children}</DashboardToastProvider>
         </main>
       </div>
-
-      <ConnectorSelectionSheet open={showLoginSheet} onOpenChange={setShowLoginSheet} />
     </div>
   );
 }
