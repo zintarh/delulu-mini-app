@@ -50,9 +50,8 @@ export default function SignInPage() {
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  const [skippedUbiClaim, setSkippedUbiClaim] = useState(false);
   const { routeState, address, isCheckingAccount, refreshGoodDollarStatus } =
-    usePostAuthRoute({ skipUbiGate: skippedUbiClaim });
+    usePostAuthRoute();
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -193,14 +192,6 @@ export default function SignInPage() {
               onWhitelisted={() => void refreshGoodDollarStatus()}
             />
           </div>
-
-          <button
-            type="button"
-            onClick={() => setSkippedUbiClaim(true)}
-            className="mx-auto block py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Skip for now
-          </button>
         </div>
       </div>
     );

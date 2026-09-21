@@ -23,8 +23,7 @@ export type PostAuthRouteState =
   | "redirecting_welcome"
   | "needs_ubi_claim";
 
-export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
-  const skipUbiGate = options?.skipUbiGate ?? false;
+export function usePostAuthRoute() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authenticated, isReady, address } = useAuth();
@@ -95,7 +94,7 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
       return;
     }
 
-    if (!isWhitelisted && !skipUbiGate) {
+    if (!isWhitelisted) {
       setRouteState("needs_ubi_claim");
       return;
     }
@@ -111,7 +110,6 @@ export function usePostAuthRoute(options?: { skipUbiGate?: boolean }) {
     isFetchingUsername,
     isGoodDollarInitialized,
     isWhitelisted,
-    skipUbiGate,
     hasProfile,
     router,
     redirectTarget,
