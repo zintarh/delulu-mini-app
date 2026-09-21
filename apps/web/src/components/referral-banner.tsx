@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralCode } from "@/hooks/use-referral-code";
+import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
+import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-checklist";
 
 export function ReferralBanner() {
   const { address } = useAuth();
   const { referralCode, referralCount } = useReferralCode(address);
+  const { isLoading: isLoadingEligibility, eligible, steps } = useReferralEligibility(address);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -18,7 +21,7 @@ export function ReferralBanner() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!referralCode) return null;
+  if (!referralCode || isLoadingEligibility) return null;
 
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-[#D1E822] px-3.5 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
@@ -39,7 +42,7 @@ export function ReferralBanner() {
               <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
                 6,000 G$
               </span>
-              {referralCount > 0 ? (
+              {eligible && referralCount > 0 ? (
                 <span className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
                   {referralCount} referred
                 </span>
@@ -49,15 +52,31 @@ export function ReferralBanner() {
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
-              Share your link, earn G$
+              {eligible ? "Share your link, earn G$" : "Finish onboarding to unlock referrals"}
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
-              Every valid referral pays 6,000 G$, claimable right away.
+              {eligible
+                ? "Every valid referral pays 6,000 G$, claimable right away."
+                : "Complete your own onboarding first — your referral link unlocks once you have."}
             </p>
           </div>
         </div>
 
-        <div className="hidden sm:flex justify-end">
+        {eligible ? (
+          <div className="hidden sm:flex justify-end">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+            >
+              {copied ? "Link copied!" : "Copy link →"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {eligible ? (
+        <div className="sm:hidden flex justify-end mt-2">
           <button
             type="button"
             onClick={handleCopy}
@@ -66,17 +85,9 @@ export function ReferralBanner() {
             {copied ? "Link copied!" : "Copy link →"}
           </button>
         </div>
-      </div>
-
-      <div className="sm:hidden flex justify-end mt-2">
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
-        >
-          {copied ? "Link copied!" : "Copy link →"}
-        </button>
-      </div>
+      ) : (
+        <ReferralOnboardingChecklist steps={steps} />
+      )}
     </div>
   );
 }

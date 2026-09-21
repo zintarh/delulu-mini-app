@@ -6,6 +6,8 @@ import { useUserStore } from "@/stores/useUserStore";
 import { formatAddress, cn } from "@/lib/utils";
 import { Copy, Check, Camera, Loader2, Star, Coins, Share2 } from "lucide-react";
 import { useReferralCode } from "@/hooks/use-referral-code";
+import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
+import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-checklist";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -134,6 +136,7 @@ function ProfileHeader({
   const [copied, setCopied] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const { referralCode, referralCount } = useReferralCode(address);
+  const { eligible: referralEligible, steps: referralSteps } = useReferralEligibility(address);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
@@ -256,7 +259,7 @@ function ProfileHeader({
             )}
           </button>
 
-          {referralCode ? (
+          {referralCode && referralEligible ? (
             <div className="mt-3 flex flex-col items-center gap-1.5">
               <button
                 type="button"
@@ -286,6 +289,8 @@ function ProfileHeader({
                 )}
               </p>
             </div>
+          ) : referralCode ? (
+            <ReferralOnboardingChecklist steps={referralSteps} />
           ) : null}
 
           <div className="mt-3 flex items-center justify-center gap-2">
