@@ -12,6 +12,7 @@ import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import type { CampaignJoinSource } from "@/lib/community/campaign-join-info";
+import { useOnboardingGiftRecheck } from "@/contexts/onboarding-gift-context";
 
 const GOOD_DOLLAR = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
 
@@ -46,6 +47,7 @@ export function OnboardingGiftModal() {
   const { isLowGas } = useHasGas();
   const joinFlow = useCampaignJoinFlow();
   const ubi = useGoodDollarClaim();
+  const { recheckToken } = useOnboardingGiftRecheck();
 
   useEffect(() => {
     setMounted(true);
@@ -113,7 +115,10 @@ export function OnboardingGiftModal() {
     return () => {
       cancelled = true;
     };
-  }, [authenticated, address]);
+    // recheckToken: bumped by requestRecheck() right after an event that
+    // could newly grant the gift within an already-mounted session (e.g.
+    // identity verification via the claim panel) — see onboarding-gift-context.
+  }, [authenticated, address, recheckToken]);
 
   // Preload a live upsell campaign so it's ready the instant they claim.
   useEffect(() => {

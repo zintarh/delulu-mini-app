@@ -9,6 +9,7 @@ import {
 } from "@/components/main-app-header";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
+import { OnboardingGiftProvider } from "@/contexts/onboarding-gift-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
@@ -81,9 +82,11 @@ const NotificationsPanel = dynamic(
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <RightPanelProvider>
-      <MainLayoutShell>{children}</MainLayoutShell>
-    </RightPanelProvider>
+    <OnboardingGiftProvider>
+      <RightPanelProvider>
+        <MainLayoutShell>{children}</MainLayoutShell>
+      </RightPanelProvider>
+    </OnboardingGiftProvider>
   );
 }
 

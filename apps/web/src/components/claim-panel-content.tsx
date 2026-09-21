@@ -13,6 +13,7 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useClaimPanel } from "@/contexts/right-panel-context";
 import { WHITELIST_CLAIM_MESSAGES } from "@/lib/gooddollar-whitelist";
+import { useOnboardingGiftRecheck } from "@/contexts/onboarding-gift-context";
 
 const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow"), {
   ssr: false,
@@ -42,6 +43,7 @@ export function ClaimPanelContent({
   const { address, isReady } = useAuth();
   const { redirectToSignIn, authenticated } = useRedirectToSignIn();
   const { whitelistIntent, clearWhitelistIntent } = useClaimPanel();
+  const { requestRecheck } = useOnboardingGiftRecheck();
   const {
     isLoading: isClaimDataLoading,
     isClaiming,
@@ -135,15 +137,24 @@ export function ClaimPanelContent({
     // here — this just refreshes status so the panel shows the right state.
 
     // Verification may be the condition that newly completes onboarding
-    // (join-before-verify is a common order) — best-effort, never blocks anything above.
+    // (profile-setup-before-verify is the common order for new users via
+    // sign-in, but an existing user can also hit this from the claim panel
+    // mid-session) — awaited so requestRecheck() below reflects the actual
+    // outcome instead of firing before the grant lands.
     if (status.isWhitelisted && address) {
-      fetch("/api/onboarding/gift/evaluate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      }).catch(() => {
-        // Non-critical — campaign join already re-checks this independently.
-      });
+      try {
+        await fetch("/api/onboarding/gift/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address }),
+        });
+      } catch {
+        // Non-critical — OnboardingGiftModal's own self-heal re-check covers this too.
+      }
+      // Nudges OnboardingGiftModal to re-check right now instead of waiting
+      // for its next fresh mount — matters for an existing user verifying
+      // mid-session, since the modal already ran its one-time check earlier.
+      requestRecheck();
     }
   };
 
