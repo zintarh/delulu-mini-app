@@ -17,11 +17,16 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronDown,
+  Coins,
   ExternalLink,
+  Gift,
   Plus,
   Share2,
+  ShieldCheck,
   Sparkles,
   Trophy,
+  UserCheck,
   Users,
 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
@@ -821,6 +826,40 @@ function LeaderboardTabs({
   );
 }
 
+const VALID_REFERRAL_CHECKLIST = [
+  { icon: ShieldCheck, label: "Verified with GoodDollar" },
+  { icon: Coins, label: "Claimed their daily G$ UBI" },
+  { icon: UserCheck, label: "Finished account setup" },
+  { icon: Gift, label: "Claimed the 1,000 G$ welcome gift" },
+  { icon: Trophy, label: "Joined a campaign and earned 1,000+ proof points (or a Forfeit equivalent)" },
+];
+
+function ValidReferralInfo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+      >
+        What makes a referral count?
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <ul className="mt-2.5 space-y-1.5 rounded-xl border border-border/60 bg-secondary/30 p-3">
+          {VALID_REFERRAL_CHECKLIST.map(({ icon: Icon, label }) => (
+            <li key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Icon className="h-3.5 w-3.5 shrink-0 text-delulu-green" strokeWidth={2} />
+              {label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("monthly");
   const { address, authenticated } = useAuth();
@@ -835,7 +874,7 @@ export default function LeaderboardPage() {
     activeTab === "monthly"
       ? "Campaign points earned by everyone participating this month"
       : activeTab === "referral"
-        ? "Successful referrals — verified, then earned points on a campaign or Forfeit proof"
+        ? "Referrers who are fully active themselves — not just a shared link"
         : "All-time points, accumulated across everything";
 
   return (
@@ -854,6 +893,7 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          {activeTab === "referral" ? <ValidReferralInfo /> : null}
 
           <div className="mt-5">
             <LeaderboardTabs activeTab={activeTab} onChange={setActiveTab} />
