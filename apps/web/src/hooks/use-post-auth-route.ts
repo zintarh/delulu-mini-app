@@ -46,7 +46,38 @@ export function usePostAuthRoute() {
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
 
-  const hasProfile = typeof username === "string" && username.trim().length > 0;
+  const hasOnChainUsername = typeof username === "string" && username.trim().length > 0;
+
+  // Nothing writes the on-chain username anymore — /welcome saves it to
+  // Supabase (profiles.onboarded_at) instead — so on-chain alone would send
+  // every already-onboarded returning user back through the whole
+  // verify/welcome flow on their next sign-in. Check the real signal too.
+  const [isSupabaseOnboarded, setIsSupabaseOnboarded] = useState(false);
+  const [isFetchingOnboarded, setIsFetchingOnboarded] = useState(true);
+  useEffect(() => {
+    if (!authenticated || !address) {
+      setIsFetchingOnboarded(false);
+      return;
+    }
+    let cancelled = false;
+    setIsFetchingOnboarded(true);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/onboarding?address=${address}`);
+        const json = (await res.json()) as { onboarded?: boolean };
+        if (!cancelled) setIsSupabaseOnboarded(Boolean(json.onboarded));
+      } catch {
+        if (!cancelled) setIsSupabaseOnboarded(false);
+      } finally {
+        if (!cancelled) setIsFetchingOnboarded(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated, address]);
+
+  const hasProfile = isSupabaseOnboarded || hasOnChainUsername;
 
   const {
     isWhitelisted,
@@ -71,7 +102,7 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || !isGoodDollarInitialized) {
+    if (isFetchingUsername || isFetchingOnboarded || !isGoodDollarInitialized) {
       setRouteState("loading");
       return;
     }
@@ -108,12 +139,12 @@ export function usePostAuthRoute() {
     authenticated,
     address,
     isFetchingUsername,
+    isFetchingOnboarded,
     isGoodDollarInitialized,
     isWhitelisted,
     hasProfile,
     router,
     redirectTarget,
-    address,
   ]);
 
   return {
