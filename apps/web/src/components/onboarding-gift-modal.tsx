@@ -16,14 +16,13 @@ const GOOD_DOLLAR = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
 type Step = "claim" | "upsell" | "done";
 
 /**
- * Fully blocking at the claim step (no close button, no backdrop dismiss) —
- * shows the moment a wallet has been granted the one-time onboarding gift
- * and hasn't claimed it yet. Once claimed, offers (skippable) to put it
- * straight to work joining a live campaign priced at the same amount
- * (whichever one /api/onboarding/gift/upsell-campaign finds — create as many
- * as you like, no fixed campaign is hardcoded here), so the gift doesn't
- * just sit idle in a wallet that never comes back. Mounted app-wide in the
- * main layout.
+ * Fully blocking throughout, both steps — no close button, no backdrop
+ * dismiss. Shows the moment a wallet has been granted the one-time
+ * onboarding gift and hasn't claimed it yet; once claimed, blocks again
+ * until they join a live campaign priced at the same amount (whichever one
+ * /api/onboarding/gift/upsell-campaign finds — create as many as you like,
+ * no fixed campaign is hardcoded here), so the gift can't just be claimed
+ * and left idle. Mounted app-wide in the main layout.
  */
 export function OnboardingGiftModal() {
   const { address, authenticated } = useAuth();
@@ -34,6 +33,7 @@ export function OnboardingGiftModal() {
   const [step, setStep] = useState<Step>("claim");
   const [upsellCampaignId, setUpsellCampaignId] = useState<string | null>(null);
   const [campaignSource, setCampaignSource] = useState<CampaignJoinSource | null>(null);
+  const [upsellCheckDone, setUpsellCheckDone] = useState(false);
   const [gasTopupPending, setGasTopupPending] = useState(false);
 
   const { pending, refetch: refetchPending } = usePendingReward(
@@ -95,13 +95,24 @@ export function OnboardingGiftModal() {
           milestone_count: json.milestoneCount,
         });
       } catch {
-        // If this fails, the upsell step is silently skipped after claim.
+        // If this fails, no campaign will be found below — the upsell step
+        // is skipped after claim rather than forcing a join that can't happen.
+      } finally {
+        if (!cancelled) setUpsellCheckDone(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [mustClaim, address]);
+
+  // Claiming a fast on-chain tx can (rarely) resolve before the campaign
+  // preload fetch does — don't let that race skip the mandatory join step.
+  useEffect(() => {
+    if (step === "upsell" && upsellCheckDone && !campaignSource) {
+      setStep("done");
+    }
+  }, [step, upsellCheckDone, campaignSource]);
 
   const handleClaim = async () => {
     if (!address) return;
@@ -114,7 +125,10 @@ export function OnboardingGiftModal() {
       });
       setMustClaim(false);
       await refetchPending();
-      setStep(upsellCampaignId && campaignSource ? "upsell" : "done");
+      // If the campaign preload already resolved to "none", go straight to
+      // done; otherwise wait in "upsell" (which shows a loading state until
+      // the preload settles, then the effect above resolves it either way).
+      setStep(upsellCheckDone && !campaignSource ? "done" : "upsell");
     } catch {
       // Surfaced below via `error` from useClaimReward.
     }
@@ -139,6 +153,24 @@ export function OnboardingGiftModal() {
   };
 
   if (!mounted || !checked) return null;
+
+  if (step === "upsell" && !(upsellCampaignId && campaignSource)) {
+    // Claimed, waiting on the campaign preload to settle — the effect above
+    // moves on to "done" automatically if it resolves to no campaign.
+    return createPortal(
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      >
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-background p-6 text-center shadow-xl">
+          <Loader2 className="h-6 w-6 animate-spin text-delulu-green" />
+          <p className="text-sm text-muted-foreground">Finding a campaign for you…</p>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
 
   if (step === "upsell" && upsellCampaignId && campaignSource) {
     return createPortal(
@@ -172,13 +204,6 @@ export function OnboardingGiftModal() {
                   <Gift className="h-4 w-4" strokeWidth={2} />
                 )}
                 {gasTopupPending ? "Getting you set up…" : `Join with my ${amount.toLocaleString()} G$`}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("done")}
-                className="mt-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Maybe later
               </button>
             </div>
           </div>
