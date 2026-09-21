@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ProfileLoader } from "@/components/profile-loader";
 import {
@@ -11,6 +12,7 @@ import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { OnboardingGiftProvider } from "@/contexts/onboarding-gift-context";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
@@ -84,10 +86,83 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <OnboardingGiftProvider>
       <RightPanelProvider>
-        <MainLayoutShell>{children}</MainLayoutShell>
+        <OnboardingGate>
+          <MainLayoutShell>{children}</MainLayoutShell>
+        </OnboardingGate>
       </RightPanelProvider>
     </OnboardingGiftProvider>
   );
+}
+
+/**
+ * Blocks the entire main app behind full onboarding — an authenticated
+ * wallet address alone isn't enough. usePostAuthRoute only decides where a
+ * *fresh* sign-in lands; nothing stopped an authenticated-but-incomplete
+ * session from reaching any (main) page directly (deep link, stale
+ * bookmark, back button). Sends anyone who isn't fully set up back to
+ * /sign-in, which re-runs that same routing logic (verify → welcome) to
+ * finish the job. Unauthenticated visitors pass through untouched — this
+ * only gates people who are logged in but incomplete.
+ */
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const { authenticated, address, isReady } = useAuth();
+  const router = useRouter();
+  const { isWhitelisted, isInitialized: isGoodDollarInitialized } = useGoodDollarClaim();
+
+  const [onboardedChecked, setOnboardedChecked] = useState(false);
+  const [isOnboarded, setIsOnboarded] = useState(false);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!authenticated || !address) {
+      setOnboardedChecked(true);
+      return;
+    }
+    let cancelled = false;
+    setOnboardedChecked(false);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/onboarding?address=${address}`);
+        const json = (await res.json()) as { onboarded?: boolean };
+        if (!cancelled) setIsOnboarded(Boolean(json.onboarded));
+      } catch {
+        if (!cancelled) setIsOnboarded(false);
+      } finally {
+        if (!cancelled) setOnboardedChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, authenticated, address]);
+
+  // Also covers the brief window before auth finishes initializing — we
+  // don't yet know if there's a session to gate, so hold off rendering
+  // protected content rather than risk a flash of it either way.
+  const stillChecking =
+    !isReady ||
+    (authenticated && address && (!onboardedChecked || !isGoodDollarInitialized));
+  const incomplete =
+    isReady &&
+    authenticated &&
+    address &&
+    onboardedChecked &&
+    isGoodDollarInitialized &&
+    (!isOnboarded || !isWhitelisted);
+
+  useEffect(() => {
+    if (incomplete) router.replace("/sign-in");
+  }, [incomplete, router]);
+
+  if (stillChecking || incomplete) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 function MainLayoutShell({ children }: { children: React.ReactNode }) {
