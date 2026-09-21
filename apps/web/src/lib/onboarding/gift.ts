@@ -6,6 +6,15 @@ type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 export const ONBOARDING_GIFT_GDOLLARS = 1000;
 
+/**
+ * New-users-only cutoff — an account that signed up before this never
+ * qualifies, no matter what it does now. Matches the referral leaderboard's
+ * own grandfather cutoff (api/leaderboard/referrals/route.ts) since both
+ * regimes started together. Frozen on purpose (not `new Date()`), so it
+ * doesn't drift forward on every redeploy.
+ */
+const NEW_USER_CUTOFF_ISO = "2026-09-21T00:00:00+01:00";
+
 export type OnboardingGiftStatus = "not_eligible" | "sent" | "failed";
 
 export type OnboardingGiftEvaluation = {
@@ -34,7 +43,7 @@ export async function evaluateAndCreditOnboardingGift(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("onboarding_gift_status, onboarding_gift_claimed_at, onboarded_at")
+    .select("onboarding_gift_status, onboarding_gift_claimed_at, onboarded_at, created_at")
     .eq("address", wallet)
     .maybeSingle();
 
@@ -44,6 +53,10 @@ export async function evaluateAndCreditOnboardingGift(
       claimedAt: profile?.onboarding_gift_claimed_at ?? null,
       justGranted: false,
     };
+  }
+
+  if (!profile.created_at || profile.created_at < NEW_USER_CUTOFF_ISO) {
+    return { status: "not_eligible", claimedAt: null, justGranted: false };
   }
 
   if (!profile.onboarded_at) {
