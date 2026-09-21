@@ -139,8 +139,13 @@ function ProfileHeader({
   const { eligible: referralEligible, steps: referralSteps } = useReferralEligibility(address);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
   
+  // profiles.username (Supabase, set during /welcome) is the actual source of
+  // truth — nothing writes the on-chain username anymore, so a wallet that
+  // signed up post-welcome-redesign has a real Supabase username but an
+  // always-empty on-chain one. Falls back to on-chain only for any legacy
+  // account that set it there before this changed.
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
-  const displayUsername = contractUsername || null;
+  const displayUsername = user?.username || contractUsername || null;
   const pfpFromSupabase = usePfp(address);
   const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address ?? undefined);
