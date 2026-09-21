@@ -1,4 +1,3 @@
-/** App mark: a bold "D" with a small brand-yellow dot subscript, close behind the glyph. */
 export function AppLogo({
   size = 32,
   className,
