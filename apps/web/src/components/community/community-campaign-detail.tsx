@@ -444,7 +444,7 @@ export function CommunityCampaignDetail({
   const phaseClass = {
     closed: "bg-muted text-muted-foreground border-border/60",
     setup: "bg-[#fffbeb] dark:bg-amber-950/30 text-[#9a7b0a] dark:text-amber-300 border-[#f6c324]/40 dark:border-amber-800/40",
-    open: "bg-delulu-blue-light text-delulu-blue border-delulu-blue/30",
+    open: "bg-secondary text-foreground border-border",
     active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
   }[campaignPhase];
 
@@ -481,7 +481,7 @@ export function CommunityCampaignDetail({
             ) : (
               <div
                 className={cn(
-                  "w-full bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]",
+                  "w-full bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900",
                   heroAspect,
                 )}
               />
@@ -535,7 +535,7 @@ export function CommunityCampaignDetail({
                 {completedCount}/{milestoneCount} done
               </span>
               {myPoints > 0 ? (
-                <span className="rounded-lg bg-delulu-blue-light px-3 py-2 text-sm font-bold tabular-nums text-delulu-blue">
+                <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold tabular-nums text-foreground">
                   {myPoints} pts earned
                 </span>
               ) : null}
@@ -623,7 +623,7 @@ export function CommunityCampaignDetail({
 
             {/* ── MILESTONES — front and centre ── */}
             <section className="mt-6 px-5 lg:px-3">
-              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5 dark:bg-accent">
+              <div className="rounded-3xl border border-border/60 bg-card p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -631,7 +631,7 @@ export function CommunityCampaignDetail({
                     Milestones
                   </h2>
                   {milestoneCount > 0 ? (
-                    <span className="text-sm font-semibold text-delulu-blue lg:text-xs">
+                    <span className="text-sm font-semibold text-foreground lg:text-xs">
                       {(completedCount * pointsPerMilestone).toLocaleString()} / {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
                     </span>
                   ) : null}
@@ -648,7 +648,7 @@ export function CommunityCampaignDetail({
                   <button
                     type="button"
                     onClick={() => setShowAllMilestones((v) => !v)}
-                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-delulu-blue/20 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
                   >
                     {showAllMilestones
                       ? "Show less"
@@ -671,10 +671,10 @@ export function CommunityCampaignDetail({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-base">
                     <span className="flex items-center gap-2 text-foreground">
-                      <Star className="h-4 w-4 text-delulu-blue" />
+                      <Star className="h-4 w-4 text-foreground" />
                       Complete a milestone
                     </span>
-                    <span className="font-bold text-delulu-blue">+1,000 pts</span>
+                    <span className="font-bold text-foreground">+1,000 pts</span>
                   </div>
                   {showPrizePool ? (
                     <div className="flex items-center justify-between text-base">
@@ -740,7 +740,7 @@ export function CommunityCampaignDetail({
               ════════════════════════════════════════════ */
           <>
             {/* Action card — simplified for non-joined */}
-            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-6 shadow-lg lg:mx-3 dark:bg-accent">
+            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-border/60 bg-card p-6 shadow-lg lg:mx-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -930,7 +930,7 @@ export function CommunityCampaignDetail({
 
             {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
             <section className="mt-8 px-5 lg:px-3">
-              <div className="rounded-3xl border border-delulu-blue/15 bg-delulu-blue-light/30 p-5 dark:bg-accent">
+              <div className="rounded-3xl border border-border/60 bg-card p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -938,7 +938,7 @@ export function CommunityCampaignDetail({
                     Milestones
                   </h2>
                   {milestoneCount > 0 ? (
-                    <span className="text-sm font-semibold text-delulu-blue lg:text-xs">
+                    <span className="text-sm font-semibold text-foreground lg:text-xs">
                       Earn up to {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
                     </span>
                   ) : null}
@@ -955,7 +955,7 @@ export function CommunityCampaignDetail({
                   <button
                     type="button"
                     onClick={() => setShowAllMilestones((v) => !v)}
-                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-delulu-blue/20 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
                   >
                     {showAllMilestones
                       ? "Show less"
@@ -972,8 +972,8 @@ export function CommunityCampaignDetail({
               </h2>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {/* 1 — Earn points (lead with the win) */}
-                <div className="rounded-2xl border border-delulu-blue/20 bg-delulu-blue-light/40 p-5 dark:bg-accent">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-delulu-blue-light text-delulu-blue">
+                <div className="rounded-2xl border border-border/60 bg-card p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
                     <Star className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Earn points</p>
@@ -1058,9 +1058,9 @@ export function CommunityCampaignDetail({
                 className="flex items-center gap-2.5 text-lg font-black text-foreground lg:text-base"
               >
                 {showPrizePool ? (
-                  <Trophy className="h-5 w-5 text-delulu-blue" />
+                  <Trophy className="h-5 w-5 text-foreground" />
                 ) : (
-                  <Users className="h-5 w-5 text-delulu-blue" />
+                  <Users className="h-5 w-5 text-foreground" />
                 )}
                 Leaderboard
               </h2>
@@ -1073,7 +1073,7 @@ export function CommunityCampaignDetail({
 
           {leaderboard.length === 0 ? (
             <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-muted/30 to-card px-6 py-12 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-delulu-blue-light text-delulu-blue">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-foreground">
                 <Users className="h-6 w-6" />
               </div>
               <p className="text-base font-bold text-foreground">
@@ -1109,7 +1109,7 @@ export function CommunityCampaignDetail({
                     key={row.wallet_address}
                     className={cn(
                       "flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4 last:border-0",
-                      isMe && "bg-delulu-blue-light/50 dark:bg-accent",
+                      isMe && "bg-secondary/60",
                       inZone && !isMe && "bg-[#fffbeb]/60 dark:bg-amber-950/25",
                     )}
                   >
@@ -1142,7 +1142,7 @@ export function CommunityCampaignDetail({
                             })}
                           </span>
                           {row.is_community_member ? (
-                            <span className="rounded-full bg-delulu-blue-light px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-delulu-blue">
+                            <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-foreground">
                               Member
                             </span>
                           ) : null}

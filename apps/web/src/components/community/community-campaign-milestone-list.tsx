@@ -28,7 +28,7 @@ function statusMeta(m: CommunityCampaignMilestoneRow) {
     return { label: "Complete", dot: "bg-emerald-500", ring: "border-emerald-500/30 bg-emerald-500/10" };
   }
   if (canSubmitMilestone(m)) {
-    return { label: "Active", dot: "bg-delulu-blue", ring: "border-delulu-blue/30 bg-delulu-blue-light" };
+    return { label: "Active", dot: "bg-foreground", ring: "border-foreground/30 bg-secondary" };
   }
   const startMs = m.start_time ? new Date(m.start_time).getTime() : null;
   if (startMs != null && startMs > Date.now()) {
@@ -43,7 +43,7 @@ function statusMeta(m: CommunityCampaignMilestoneRow) {
   if (new Date(m.deadline).getTime() < Date.now()) {
     return { label: "Closed", dot: "bg-muted-foreground", ring: "border-border/60 bg-muted/40" };
   }
-  return { label: "Active", dot: "bg-delulu-blue", ring: "border-delulu-blue/30 bg-delulu-blue-light" };
+  return { label: "Active", dot: "bg-foreground", ring: "border-foreground/30 bg-secondary" };
 }
 
 export function CommunityCampaignMilestoneList({
@@ -110,7 +110,7 @@ export function CommunityCampaignMilestoneList({
                 m.completed
                   ? "border-emerald-500 bg-emerald-500 text-white"
                   : isNext
-                    ? "border-delulu-blue bg-delulu-blue text-white shadow-[0_0_0_4px_rgba(37,99,235,0.15)]"
+                    ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background text-muted-foreground",
               )}
             >
@@ -121,7 +121,7 @@ export function CommunityCampaignMilestoneList({
               className={cn(
                 "min-w-0 flex-1 rounded-2xl border px-4 py-3.5 transition-colors",
                 isNext && !m.completed
-                  ? "border-delulu-blue/40 bg-delulu-blue-light/50 shadow-sm dark:bg-accent"
+                  ? "border-foreground/20 bg-secondary/60 shadow-sm"
                   : "border-border/60 bg-card",
               )}
             >
@@ -150,21 +150,21 @@ export function CommunityCampaignMilestoneList({
                     +{fmtPts(pointsPerMilestone)} pts ✓
                   </span>
                 ) : !isJoined ? (
-                  <span className="shrink-0 rounded-lg bg-delulu-blue-light px-3 py-1.5 text-[11px] font-black text-delulu-blue">
+                  <span className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-[11px] font-black text-foreground">
                     +{fmtPts(pointsPerMilestone)} pts
                   </span>
                 ) : isJoined ? (
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {canSubmit || submitting ? (
                       <>
-                        <span className="text-[11px] font-black text-delulu-blue">
+                        <span className="text-[11px] font-black text-foreground">
                           +{fmtPts(pointsPerMilestone)} pts
                         </span>
                         <button
                           type="button"
                           disabled={!canSubmit}
                           onClick={() => onSubmitMilestone(m.milestone_id)}
-                          className="w-fit rounded-lg bg-delulu-blue px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+                          className="w-fit rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:opacity-90 disabled:opacity-50"
                         >
                           {submitting ? (
                             <span className="inline-flex items-center gap-1.5">
