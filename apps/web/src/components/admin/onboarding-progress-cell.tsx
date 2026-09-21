@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { ReferralEligibilitySteps } from "@/lib/referral/eligibility";
 import { ONBOARDING_STEP_LABELS } from "@/components/referral-onboarding-checklist";
 
-/** "3/5" badge that expands into the same onboarding checklist used elsewhere — click to see exactly what's missing. */
+/** "X/N" badge that expands into the same onboarding checklist used elsewhere — click to see exactly what's missing. */
 export function OnboardingProgressCell({ steps }: { steps: ReferralEligibilitySteps | null }) {
   const [open, setOpen] = useState(false);
 

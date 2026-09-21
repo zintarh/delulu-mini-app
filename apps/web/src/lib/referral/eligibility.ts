@@ -11,7 +11,6 @@ type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 export type ReferralEligibilitySteps = {
   verified: boolean;
   claimedUbi: boolean;
-  profileSetup: boolean;
   claimedGift: boolean;
   completedCampaign: boolean;
 };
@@ -26,7 +25,6 @@ const NOT_ELIGIBLE: ReferralEligibility = {
   steps: {
     verified: false,
     claimedUbi: false,
-    profileSetup: false,
     claimedGift: false,
     completedCampaign: false,
   },
@@ -48,7 +46,7 @@ export async function checkReferralEligibility(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("onboarded_at, onboarding_gift_claimed_at, claim_count")
+    .select("onboarding_gift_claimed_at, claim_count")
     .eq("address", wallet)
     .maybeSingle();
 
@@ -63,7 +61,6 @@ export async function checkReferralEligibility(
   const steps: ReferralEligibilitySteps = {
     verified,
     claimedUbi: (profile.claim_count ?? 0) >= 1,
-    profileSetup: Boolean(profile.onboarded_at),
     claimedGift: Boolean(profile.onboarding_gift_claimed_at),
     completedCampaign: hasCampaignProof || hasForfeitProof,
   };

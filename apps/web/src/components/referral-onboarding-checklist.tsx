@@ -8,7 +8,6 @@ import type { ReferralEligibilitySteps } from "@/lib/referral/eligibility";
 export const ONBOARDING_STEP_LABELS: { key: keyof ReferralEligibilitySteps; label: string }[] = [
   { key: "verified", label: "Do a face verification" },
   { key: "claimedUbi", label: "Claim your daily G$" },
-  { key: "profileSetup", label: "Set up your profile" },
   { key: "claimedGift", label: "Claim your 1,000 G$ welcome gift" },
   { key: "completedCampaign", label: "Join a campaign worth 1,000 G$" },
 ];
@@ -37,7 +36,11 @@ export function ReferralOnboardingChecklist({
       </button>
 
       {open ? (
-        <ul className="mt-1 w-full max-w-[280px] space-y-1.5 rounded-xl border border-border/60 bg-secondary/30 p-3">
+        // Solid, opaque background on purpose — this renders on top of the
+        // bright yellow-green referral banner as well as plain page
+        // backgrounds, and a translucent card just tints to whatever color
+        // sits behind it, wrecking contrast for the muted/green text.
+        <ul className="mt-1 w-full max-w-[280px] space-y-1.5 rounded-xl border border-border bg-background p-3 shadow-md">
           {ONBOARDING_STEP_LABELS.map(({ key, label }) => {
             const done = Boolean(steps?.[key]);
             return (
