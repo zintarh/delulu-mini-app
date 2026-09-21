@@ -38,7 +38,14 @@ export function useSetProfile() {
       // Pre-check: is the username already taken? Doing this via a direct
       // public-client read avoids opening the wallet popup only to get a
       // revert, which causes MetaMask to show a scary "Network fee: Unavailable" warning.
-      const publicClient = createPublicClient({ chain: celo, transport: http("https://forno.celo.org") });
+      const publicClient = createPublicClient({
+        chain: celo,
+        transport: http(
+          process.env.NEXT_PUBLIC_CELO_RPC_URL ??
+            process.env.NEXT_PUBLIC_RPC_URL ??
+            "https://forno.celo.org",
+        ),
+      });
       const contractAddress = getDeluluContractAddress(chainId);
       try {
         const taken = await publicClient.readContract({

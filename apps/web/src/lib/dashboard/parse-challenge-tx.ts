@@ -10,6 +10,7 @@ import {
 
 const CELO_RPC =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ??
+  process.env.NEXT_PUBLIC_RPC_URL ??
   process.env.CELO_RPC_URL ??
   "https://forno.celo.org";
 

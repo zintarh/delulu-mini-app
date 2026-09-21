@@ -29,7 +29,10 @@ const COMMUNITY_POOL_DESTINATION_TYPE = 3;
 const MAX_POOL_RESOLUTIONS_SCANNED = 5000;
 
 const CELO_RPC =
-  process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.CELO_RPC_URL ?? "https://forno.celo.org";
+  process.env.NEXT_PUBLIC_CELO_RPC_URL ??
+  process.env.NEXT_PUBLIC_RPC_URL ??
+  process.env.CELO_RPC_URL ??
+  "https://forno.celo.org";
 
 const publicClient = createPublicClient({
   chain: celo,

@@ -12,7 +12,9 @@ import { getTokenDecimals } from "@/lib/token-amounts";
 
 const publicClient = createPublicClient({
   chain: celo,
-  transport: http(process.env.NEXT_PUBLIC_CELO_RPC_URL ?? "https://forno.celo.org"),
+  transport: http(
+    process.env.NEXT_PUBLIC_CELO_RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL ?? "https://forno.celo.org",
+  ),
 });
 
 export type CampaignOnchainEconomics = {
