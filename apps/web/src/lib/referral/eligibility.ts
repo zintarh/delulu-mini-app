@@ -8,6 +8,16 @@ import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
+/**
+ * Matches lib/onboarding/gift.ts's own NEW_USER_CUTOFF_ISO — accounts
+ * created before this can never claim the 1,000 G$ gift, so holding the
+ * claimedGift step below against them would permanently lock them out of
+ * referral eligibility over something they're structurally barred from ever
+ * doing. Frozen on purpose (not `new Date()`), so it doesn't drift forward
+ * on every redeploy.
+ */
+const GIFT_REGIME_CUTOFF_ISO = "2026-09-21T00:00:00+01:00";
+
 export type ReferralEligibilitySteps = {
   verified: boolean;
   claimedUbi: boolean;
@@ -46,7 +56,7 @@ export async function checkReferralEligibility(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("onboarding_gift_claimed_at, claim_count")
+    .select("onboarding_gift_claimed_at, claim_count, created_at")
     .eq("address", wallet)
     .maybeSingle();
 
@@ -58,10 +68,12 @@ export async function checkReferralEligibility(
     hasQualifyingForfeitProofOnGraph(wallet),
   ]);
 
+  const predatesGiftRegime = !profile.created_at || profile.created_at < GIFT_REGIME_CUTOFF_ISO;
+
   const steps: ReferralEligibilitySteps = {
     verified,
     claimedUbi: (profile.claim_count ?? 0) >= 1,
-    claimedGift: Boolean(profile.onboarding_gift_claimed_at),
+    claimedGift: predatesGiftRegime || Boolean(profile.onboarding_gift_claimed_at),
     completedCampaign: hasCampaignProof || hasForfeitProof,
   };
 
