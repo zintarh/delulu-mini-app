@@ -40,6 +40,8 @@ import {
   DashboardSectionTabs,
   PEOPLE_SECTION_TABS,
 } from "@/components/dashboard/dashboard-section-tabs";
+import { OnboardingProgressCell } from "@/components/admin/onboarding-progress-cell";
+import type { ReferralEligibilitySteps } from "@/lib/referral/eligibility";
 
 interface UserRow {
   address: string;
@@ -50,6 +52,7 @@ interface UserRow {
   claim_count: number | null;
   admin_verified: boolean | null;
   created_at: string;
+  onboardingSteps: ReferralEligibilitySteps | null;
 }
 
 interface UsersResponse {
@@ -290,7 +293,7 @@ export default function AdminUsersPage() {
           <DashboardTableEmptyState icon={Users} title="No users found" />
         ) : (
           <>
-            <DashboardTableScroll minWidth="680px">
+            <DashboardTableScroll minWidth="800px">
               <DashboardTableHead>
                 <DashboardTableHeadRow>
                   <DashboardTableHeadCell>Address</DashboardTableHeadCell>
@@ -299,6 +302,7 @@ export default function AdminUsersPage() {
                   <DashboardTableHeadCell>Referral</DashboardTableHeadCell>
                   <DashboardTableHeadCell>Joined</DashboardTableHeadCell>
                   <DashboardTableHeadCell>Claims</DashboardTableHeadCell>
+                  <DashboardTableHeadCell>Onboarding</DashboardTableHeadCell>
                   <DashboardTableHeadCell align="right">Action</DashboardTableHeadCell>
                 </DashboardTableHeadRow>
               </DashboardTableHead>
@@ -410,6 +414,9 @@ export default function AdminUsersPage() {
                       <span className="text-xs font-semibold tabular-nums text-foreground">
                         {u.claim_count ?? 0}
                       </span>
+                    </DashboardTableCell>
+                    <DashboardTableCell>
+                      <OnboardingProgressCell steps={u.onboardingSteps} />
                     </DashboardTableCell>
                     <DashboardTableCell align="right">
                       <div className="flex items-center justify-end gap-1.5">

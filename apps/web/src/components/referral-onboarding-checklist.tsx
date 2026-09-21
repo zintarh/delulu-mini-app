@@ -5,7 +5,7 @@ import { ChevronDown, Circle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReferralEligibilitySteps } from "@/lib/referral/eligibility";
 
-const STEP_LABELS: { key: keyof ReferralEligibilitySteps; label: string }[] = [
+export const ONBOARDING_STEP_LABELS: { key: keyof ReferralEligibilitySteps; label: string }[] = [
   { key: "verified", label: "Do a face verification" },
   { key: "claimedUbi", label: "Claim your daily G$" },
   { key: "profileSetup", label: "Set up your profile" },
@@ -38,7 +38,7 @@ export function ReferralOnboardingChecklist({
 
       {open ? (
         <ul className="mt-1 w-full max-w-[280px] space-y-1.5 rounded-xl border border-border/60 bg-secondary/30 p-3">
-          {STEP_LABELS.map(({ key, label }) => {
+          {ONBOARDING_STEP_LABELS.map(({ key, label }) => {
             const done = Boolean(steps?.[key]);
             return (
               <li

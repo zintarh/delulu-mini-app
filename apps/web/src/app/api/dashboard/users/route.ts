@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
+import { checkReferralEligibility } from "@/lib/referral/eligibility";
 
 const PAGE_SIZE = 20;
 
@@ -142,6 +143,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Onboarding checklist progress — same definition as referral-link/leaderboard
+  // eligibility (lib/referral/eligibility.ts). Only computed for this page's
+  // rows (bounded by PAGE_SIZE), since each check hits live on-chain/subgraph state.
+  const usersWithOnboarding = await Promise.all(
+    (data ?? []).map(async (row) => {
+      try {
+        const { steps } = await checkReferralEligibility(supabase, row.address);
+        return { ...row, onboardingSteps: steps };
+      } catch (err) {
+        console.error(`[admin/users] onboarding check failed for ${row.address}:`, err);
+        return { ...row, onboardingSteps: null };
+      }
+    }),
+  );
+
   // Provider breakdown for admin visibility
   const { data: providerStats } = await supabase
     .from("profiles")
@@ -160,7 +176,7 @@ export async function GET(request: NextRequest) {
     });
 
   return NextResponse.json({
-    users: data ?? [],
+    users: usersWithOnboarding,
     total: count ?? 0,
     page,
     pageSize: PAGE_SIZE,
