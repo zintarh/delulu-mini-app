@@ -21,6 +21,25 @@ import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider"
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
 
+/** Generous — spans the user actually reading/typing their OTP, not just a network round-trip. */
+const SIGN_IN_TIMEOUT_MS = 3 * 60 * 1000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export default function SignInPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -95,11 +114,22 @@ export default function SignInPage() {
       setRouteError("Sign-in is still loading. Wait a moment and try again.");
       return;
     }
-    await connectTo(WALLET_CONNECTORS.AUTH, {
-      authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
-      loginHint: targetEmail,
-      extraLoginOptions: { login_hint: targetEmail },
-    });
+    // connectTo's promise doesn't resolve until the whole OTP flow finishes
+    // (send + the user reading their email + entering the code), so this
+    // has to stay generous — it's only here to eventually recover from a
+    // genuinely broken/hung connector (Web3Auth's popup never opening,
+    // etc.), not to cut off someone who's just taking their time. Without
+    // it, that failure mode leaves isLaunchingEmailProvider stuck true
+    // forever with no way to retry.
+    await withTimeout(
+      connectTo(WALLET_CONNECTORS.AUTH, {
+        authConnection: AUTH_CONNECTION.EMAIL_PASSWORDLESS,
+        loginHint: targetEmail,
+        extraLoginOptions: { login_hint: targetEmail },
+      }),
+      SIGN_IN_TIMEOUT_MS,
+      "Sign-in is taking longer than expected. Please try again.",
+    );
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -143,9 +173,17 @@ export default function SignInPage() {
         setRouteError("Sign-in is still loading. Wait a moment and try again.");
         return;
       }
-      await connect();
-    } catch {
-      setRouteError("Couldn't open wallet connection. Try again.");
+      await withTimeout(
+        connect(),
+        SIGN_IN_TIMEOUT_MS,
+        "Wallet connection is taking longer than expected. Please try again.",
+      );
+    } catch (err) {
+      setRouteError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't open wallet connection. Try again.",
+      );
     } finally {
       setIsLaunchingWalletProvider(false);
     }
