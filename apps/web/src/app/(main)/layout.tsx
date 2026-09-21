@@ -12,7 +12,7 @@ import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { OnboardingGiftProvider } from "@/contexts/onboarding-gift-context";
 import { useAuth } from "@/hooks/use-auth";
-import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useIdentity } from "@/hooks/identityHook";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
 
@@ -103,11 +103,22 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
  * /sign-in, which re-runs that same routing logic (verify → welcome) to
  * finish the job. Unauthenticated visitors pass through untouched — this
  * only gates people who are logged in but incomplete.
+ *
+ * Deliberately checks "has this wallet ever verified" (identityState !==
+ * "none"), not useGoodDollarClaim's isWhitelisted — that one is strict and
+ * current-window-only (correct for gating the UBI claim button itself), but
+ * would force a "lapsed" wallet (verified before, GoodDollar's 3/180-day
+ * window just expired — see lib/identity/status.ts) out of the entire app
+ * back to /sign-in on every load. A lapsed re-verify only takes a minute and
+ * is prompted right in the claim flow where it's actually needed; it
+ * shouldn't block someone from viewing their own dashboard in the meantime.
  */
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { authenticated, address, isReady } = useAuth();
   const router = useRouter();
-  const { isWhitelisted, isInitialized: isGoodDollarInitialized } = useGoodDollarClaim();
+  const { identityState, isLoading: isGoodDollarLoading } = useIdentity();
+  const isGoodDollarInitialized = !isGoodDollarLoading;
+  const hasEverVerified = identityState.state !== "none";
 
   const [onboardedChecked, setOnboardedChecked] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState(false);
@@ -148,7 +159,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     address &&
     onboardedChecked &&
     isGoodDollarInitialized &&
-    (!isOnboarded || !isWhitelisted);
+    (!isOnboarded || !hasEverVerified);
 
   useEffect(() => {
     if (incomplete) router.replace("/sign-in");
