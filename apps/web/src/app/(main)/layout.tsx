@@ -15,6 +15,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIdentity } from "@/hooks/identityHook";
 import { useRouter } from "next/navigation";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
+import { useReadContract } from "wagmi";
+import { DELULU_ABI } from "@/lib/abi";
+import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 
 const LeftSidebar = dynamic(
   () => import("@/components/left-sidebar").then((m) => m.LeftSidebar),
@@ -120,6 +123,22 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const isGoodDollarInitialized = !isGoodDollarLoading;
   const hasEverVerified = identityState.state !== "none";
 
+  // Same legacy fallback usePostAuthRoute uses on /sign-in: nothing writes
+  // the on-chain username anymore, but accounts that set it before the
+  // welcome redesign never got a profiles.onboarded_at row. Without this,
+  // /sign-in sees them as done (on-chain username) and sends them here,
+  // while this gate — checking Supabase only — sees them as incomplete and
+  // bounces them straight back, an infinite redirect loop between the two.
+  const { data: onChainUsername, isFetching: isFetchingUsername } = useReadContract({
+    address: DELULU_CONTRACT_ADDRESS,
+    abi: DELULU_ABI,
+    functionName: "getUsername",
+    args: address ? [address] : undefined,
+    query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
+  });
+  const hasOnChainUsername =
+    typeof onChainUsername === "string" && onChainUsername.trim().length > 0;
+
   const [onboardedChecked, setOnboardedChecked] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState(false);
   // A network failure checking /api/onboarding is not the same as a
@@ -158,7 +177,9 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   // protected content rather than risk a flash of it either way.
   const stillChecking =
     !isReady ||
-    (authenticated && address && (!onboardedChecked || !isGoodDollarInitialized));
+    (authenticated &&
+      address &&
+      (!onboardedChecked || !isGoodDollarInitialized || isFetchingUsername));
   // A failed check (RPC down, onboarding-API network error) is inconclusive,
   // not a confirmed incomplete state — never redirect a real user out of the
   // app over a transient failure; the normal in-app prompts (claim panel,
@@ -169,9 +190,10 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     address &&
     onboardedChecked &&
     isGoodDollarInitialized &&
+    !isFetchingUsername &&
     !onboardedCheckFailed &&
     !identityCheckFailed &&
-    (!isOnboarded || !hasEverVerified);
+    (!(isOnboarded || hasOnChainUsername) || !hasEverVerified);
 
   useEffect(() => {
     if (incomplete) router.replace("/sign-in");
