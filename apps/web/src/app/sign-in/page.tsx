@@ -2,8 +2,9 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Mail, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserStore } from "@/stores/useUserStore";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { AUTH_CONNECTION, WALLET_CONNECTORS } from "@web3auth/modal";
 import { usePrivy } from "@privy-io/react-auth";
@@ -43,7 +44,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 export default function SignInPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { authenticated } = useAuth();
+  const { authenticated, logout } = useAuth();
   const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
   const { login: privyLogin, ready: privyReady } = usePrivy();
@@ -68,6 +69,7 @@ export default function SignInPage() {
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] = useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
   const [isLaunchingGoogleProvider, setIsLaunchingGoogleProvider] = useState(false);
+  const [isGoingBack, setIsGoingBack] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
   const { routeState, address, isCheckingAccount, refreshGoodDollarStatus } =
@@ -217,6 +219,23 @@ export default function SignInPage() {
     }
   };
 
+  // Looks like a plain "go back" to the first sign-in step, but there's no
+  // real step to rewind to — the wallet is already connected the moment
+  // this screen shows. Logging out is what actually gets someone back to
+  // the sign-in form if they're stuck here (e.g. FV verification page
+  // stalls or they change their mind); framed as "back" since that's the
+  // outcome they're after, not because they need to know it's a logout.
+  const handleGoBack = async () => {
+    if (isGoingBack) return;
+    setIsGoingBack(true);
+    try {
+      await logout();
+      useUserStore.getState().logout();
+    } finally {
+      setIsGoingBack(false);
+    }
+  };
+
   // ── Authenticated states ──────────────────────────────────────────────────
 
   if (authenticated && (isCheckingAccount || routeState === "loading" || routeState === "redirecting_home" || routeState === "redirecting_welcome")) {
@@ -237,7 +256,21 @@ export default function SignInPage() {
 
   if (authenticated && routeState === "needs_ubi_claim") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-delulu-blue-light to-white dark:from-background dark:to-background p-6">
+      <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-b from-delulu-blue-light to-white dark:from-background dark:to-background p-6">
+        <button
+          type="button"
+          onClick={() => void handleGoBack()}
+          disabled={isGoingBack}
+          aria-label="Back"
+          className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-card text-foreground shadow-sm transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60 sm:left-6 sm:top-6"
+        >
+          {isGoingBack ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowLeft className="h-4 w-4" />
+          )}
+        </button>
+
         <div className="w-full max-w-md space-y-5">
           <div className="flex flex-col items-center gap-3 text-center">
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
