@@ -67,6 +67,7 @@ export default function SignInPage() {
 
   const [isLaunchingEmailProvider, setIsLaunchingEmailProvider] = useState(false);
   const [isLaunchingWalletProvider, setIsLaunchingWalletProvider] = useState(false);
+  const [isLaunchingGoogleProvider, setIsLaunchingGoogleProvider] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
   const { routeState, address, isCheckingAccount, refreshGoodDollarStatus } =
@@ -80,7 +81,7 @@ export default function SignInPage() {
     email.trim().length > 0;
 
   const isEmailPending = isCheckingEmail || isLaunchingEmailProvider;
-  const isAnyPending = isEmailPending || isLaunchingWalletProvider;
+  const isAnyPending = isEmailPending || isLaunchingWalletProvider || isLaunchingGoogleProvider;
 
   // Community referral
   useEffect(() => {
@@ -186,6 +187,33 @@ export default function SignInPage() {
       );
     } finally {
       setIsLaunchingWalletProvider(false);
+    }
+  };
+
+  const handleGoogleConnect = async () => {
+    setRouteError(null);
+    if (isAnyPending) return;
+    setIsLaunchingGoogleProvider(true);
+    try {
+      if (!isInitialized) {
+        setRouteError("Sign-in is still loading. Wait a moment and try again.");
+        return;
+      }
+      await withTimeout(
+        connectTo(WALLET_CONNECTORS.AUTH, {
+          authConnection: AUTH_CONNECTION.GOOGLE,
+        }),
+        SIGN_IN_TIMEOUT_MS,
+        "Google sign-in is taking longer than expected. Please try again.",
+      );
+    } catch (err) {
+      setRouteError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't open Google sign in. Try again.",
+      );
+    } finally {
+      setIsLaunchingGoogleProvider(false);
     }
   };
 
@@ -353,8 +381,26 @@ export default function SignInPage() {
               <p className="relative mx-auto w-fit bg-background px-2 text-xs text-muted-foreground">or</p>
             </div>
 
-
-
+            <button
+              type="button"
+              onClick={() => void handleGoogleConnect()}
+              disabled={isAnyPending || !isInitialized}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background py-3.5 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLaunchingGoogleProvider ? (
+                <><Loader2 className="h-5 w-5 animate-spin" /> Opening Google sign in…</>
+              ) : (
+                <>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.89c2.27-2.09 3.58-5.17 3.58-8.82Z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.89-3c-1.08.73-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.94H1.27v3.1A12 12 0 0 0 12 24Z" />
+                    <path fill="#FBBC05" d="M5.28 14.3A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.38-2.3v-3.1H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.4l4.01-3.1Z" />
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4.01 3.1C6.23 6.86 8.88 4.75 12 4.75Z" />
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </button>
 
             <button
               type="button"
