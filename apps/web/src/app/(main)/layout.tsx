@@ -116,12 +116,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { authenticated, address, isReady } = useAuth();
   const router = useRouter();
-  const { identityState, isLoading: isGoodDollarLoading } = useIdentity();
+  const { identityState, isLoading: isGoodDollarLoading, identityCheckFailed } = useIdentity();
   const isGoodDollarInitialized = !isGoodDollarLoading;
   const hasEverVerified = identityState.state !== "none";
 
   const [onboardedChecked, setOnboardedChecked] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState(false);
+  // A network failure checking /api/onboarding is not the same as a
+  // confirmed "not onboarded" — same reasoning as identityCheckFailed
+  // below, this must not be treated as grounds to redirect someone out.
+  const [onboardedCheckFailed, setOnboardedCheckFailed] = useState(false);
 
   useEffect(() => {
     if (!isReady) return;
@@ -131,13 +135,15 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     }
     let cancelled = false;
     setOnboardedChecked(false);
+    setOnboardedCheckFailed(false);
     void (async () => {
       try {
         const res = await fetch(`/api/onboarding?address=${address}`);
+        if (!res.ok) throw new Error(`onboarding check failed: ${res.status}`);
         const json = (await res.json()) as { onboarded?: boolean };
         if (!cancelled) setIsOnboarded(Boolean(json.onboarded));
       } catch {
-        if (!cancelled) setIsOnboarded(false);
+        if (!cancelled) setOnboardedCheckFailed(true);
       } finally {
         if (!cancelled) setOnboardedChecked(true);
       }
@@ -153,12 +159,18 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const stillChecking =
     !isReady ||
     (authenticated && address && (!onboardedChecked || !isGoodDollarInitialized));
+  // A failed check (RPC down, onboarding-API network error) is inconclusive,
+  // not a confirmed incomplete state — never redirect a real user out of the
+  // app over a transient failure; the normal in-app prompts (claim panel,
+  // referral gate) still catch a genuinely incomplete account from here.
   const incomplete =
     isReady &&
     authenticated &&
     address &&
     onboardedChecked &&
     isGoodDollarInitialized &&
+    !onboardedCheckFailed &&
+    !identityCheckFailed &&
     (!isOnboarded || !hasEverVerified);
 
   useEffect(() => {

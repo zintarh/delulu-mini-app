@@ -24,6 +24,13 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
       transports: {
         [celo.id]: celoTransport,
       },
+      // Reads that fire several readContract calls together (e.g. the
+      // GoodDollar identity-ladder check in lib/identity/status.ts, which
+      // does 4+ reads per check) otherwise go out as that many separate
+      // RPC round-trips — more surface for any one of them to blip and
+      // fail the whole check. Batching collapses concurrent reads within
+      // the wait window into a single eth_call via Multicall3.
+      batch: { multicall: { wait: 16 } },
     });
   }, []);
 

@@ -22,6 +22,14 @@ export function useIdentity() {
 
   const [status, setStatus] = useState<IdentityStatus>("loading");
   const [identityState, setIdentityState] = useState<GoodDollarIdentityStatus>(NONE);
+  // True only when a check was actually ATTEMPTED and failed outright (RPC
+  // down, etc.) — distinct from identityState.state === "none", which means
+  // a check SUCCEEDED and found no verification record. Callers deciding
+  // whether to gate something on "has this wallet ever verified" (e.g. the
+  // main-app OnboardingGate) must treat a failed check as inconclusive, not
+  // as a confirmed "never verified" — otherwise a transient RPC blip forces
+  // a real, already-verified user out of the app.
+  const [identityCheckFailed, setIdentityCheckFailed] = useState(false);
   const [fvLink, setFvLink] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -51,6 +59,7 @@ export function useIdentity() {
     if (!address || !publicClient) {
       setStatus("not_verified");
       setIdentityState(NONE);
+      setIdentityCheckFailed(false);
       return;
     }
 
@@ -58,8 +67,26 @@ export function useIdentity() {
       // Don't set loading if we're polling in the background
       if (!isVerifying) setStatus("loading");
 
-      const result = await readIdentityStatus(publicClient as any, address);
+      // The ladder check does several reads per call (vs. the single
+      // getWhitelistedRoot read this used before) — multicall batching
+      // (frame-wallet-context.tsx) collapses them into one round-trip, but
+      // still retry a couple of times on a genuine transient failure before
+      // giving up, rather than letting one blip immediately fail the check.
+      let result: GoodDollarIdentityStatus | null = null;
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          result = await readIdentityStatus(publicClient as any, address);
+          break;
+        } catch (err) {
+          lastError = err;
+          if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+      if (!result) throw lastError;
+
       setIdentityState(result);
+      setIdentityCheckFailed(false);
 
       if (result.state === "verified") {
         setStatus("verified");
@@ -70,6 +97,7 @@ export function useIdentity() {
     } catch (error) {
       console.error("Identity check failed:", error);
       setStatus("error");
+      setIdentityCheckFailed(true);
     }
   };
 
@@ -227,6 +255,8 @@ export function useIdentity() {
     identityState,
     /** Verified before, but the current window lapsed — needs a quick re-check, not a first-time verification. */
     isLapsed: identityState.state === "lapsed",
+    /** A check was attempted and failed outright — distinct from a successful check finding "none". */
+    identityCheckFailed,
     fvLink,
     refresh: checkVerification,
     generateLink,
