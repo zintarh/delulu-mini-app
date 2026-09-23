@@ -1,5 +1,6 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
+import { isReferralCreditCountable } from "@/lib/referral/eligibility";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -7,8 +8,8 @@ export const REFERRAL_GDOLLARS_REWARD = 6000;
 
 /**
  * Pays out every not-yet-paid referral credit for a referrer — every
- * successful referral pays on its own the moment it's inserted, no minimum
- * count required. Also sweeps up any older rows still sitting
+ * successful referral pays on its own the moment it's inserted, as long as
+ * the referrer is eligible (see payReferralCredit). Also sweeps up any older rows still sitting
  * 'not_eligible' for the same referrer (e.g. left over from a prior failed
  * lookup), so a transient error here self-heals on the next referral rather
  * than staying stuck forever. Best-effort per row — one failed on-chain call
@@ -37,12 +38,35 @@ export async function processReferralPayouts(
   }
 }
 
-/** Pays (or retries) one referral credit row. Used by the retry cron too. */
+/**
+ * Pays (or retries) one referral credit row. Used by the retry cron too.
+ * Only pays a credit the referral leaderboard would count — otherwise the row
+ * is parked at 'not_eligible' so the retry cron picks it up once the
+ * referrer clears the onboarding checklist.
+ */
 export async function payReferralCredit(
   admin: SupabaseAdmin,
   referrerWallet: `0x${string}` | string,
   referralCreditId: string,
 ): Promise<void> {
+  const { data: credit, error } = await admin
+    .from("referral_credits")
+    .select("credited_at")
+    .eq("id", referralCreditId)
+    .maybeSingle();
+  if (error || !credit) {
+    console.error(`[referral/payout] lookup failed for credit ${referralCreditId}:`, error);
+    return;
+  }
+
+  if (!(await isReferralCreditCountable(admin, referrerWallet, credit.credited_at))) {
+    await admin
+      .from("referral_credits")
+      .update({ payout_status: "not_eligible" })
+      .eq("id", referralCreditId);
+    return;
+  }
+
   try {
     const result = await payoutReferralReward({
       referrerWallet: referrerWallet as `0x${string}`,

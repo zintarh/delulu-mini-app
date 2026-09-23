@@ -2,22 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 import { isLeaderboardBlacklisted } from "@/lib/constant";
-import { checkReferralEligibility } from "@/lib/referral/eligibility";
+import {
+  REFERRER_ELIGIBILITY_CUTOFF_ISO as ELIGIBILITY_CHECK_CUTOFF_ISO,
+  checkReferralEligibility,
+} from "@/lib/referral/eligibility";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 10;
-
-/**
- * Rollout instant for the "referrer must clear the full onboarding
- * checklist" requirement below. A referral credited before this keeps
- * counting under the old, looser rule (just not blacklisted) — grandfathered
- * in so referrals that were already valid under the rules at the time don't
- * get retroactively wiped off the leaderboard. Only referrals credited from
- * this point on need the referrer to actually clear the new bar. Frozen on
- * purpose (not `new Date()`), so it doesn't drift forward on every redeploy.
- */
-const ELIGIBILITY_CHECK_CUTOFF_ISO = "2026-09-21T00:00:00+01:00";
 
 type ReferralCreditRow = {
   referrer_wallet: string;

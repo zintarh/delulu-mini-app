@@ -5,6 +5,7 @@ import {
   hasQualifyingForfeitProofOnGraph,
 } from "@/lib/community/campaign-subgraph";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { isLeaderboardBlacklisted } from "@/lib/constant";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -78,4 +79,32 @@ export async function checkReferralEligibility(
   };
 
   return { eligible: Object.values(steps).every(Boolean), steps };
+}
+
+/**
+ * Rollout instant for the "referrer must clear the full onboarding
+ * checklist" requirement. A referral credited before this keeps counting
+ * under the old, looser rule (just not blacklisted) — grandfathered in so
+ * referrals that were already valid under the rules at the time don't get
+ * retroactively wiped. Frozen on purpose (not `new Date()`), so it doesn't
+ * drift forward on every redeploy.
+ */
+export const REFERRER_ELIGIBILITY_CUTOFF_ISO = "2026-09-21T00:00:00+01:00";
+
+/**
+ * Whether a referral credit counts — for the leaderboard AND for the G$
+ * payout. Both must go through this so we never pay for a referral the
+ * leaderboard hides (or vice versa). Pass a precomputed eligibility result
+ * when checking many credits for the same referrer.
+ */
+export async function isReferralCreditCountable(
+  admin: SupabaseAdmin,
+  referrerWallet: string,
+  creditedAt: string,
+  eligibility?: ReferralEligibility,
+): Promise<boolean> {
+  if (isLeaderboardBlacklisted(referrerWallet)) return false;
+  if (creditedAt < REFERRER_ELIGIBILITY_CUTOFF_ISO) return true;
+  const result = eligibility ?? (await checkReferralEligibility(admin, referrerWallet));
+  return result.eligible;
 }

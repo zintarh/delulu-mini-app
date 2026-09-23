@@ -9,8 +9,9 @@ import { payReferralCredit } from "@/lib/referral/payout";
 
 /**
  * Retries any referral G$ payout whose on-chain deposit previously failed
- * (RPC hiccup, low rewarder balance, etc). Hit hourly by GitHub Actions
- * (.github/workflows/referral-payout-retry.yml), with the once-a-day Vercel
+ * (RPC hiccup, low rewarder balance, etc), and pays out credits held back
+ * as 'not_eligible' once their referrer clears the onboarding checklist.
+ * Hit hourly by GitHub Actions (.github/workflows/referral-payout-retry.yml), with the once-a-day Vercel
  * cron (vercel.json) as a fallback. payReferralCredit re-checks usedRewardId
  * before sending, so this can never double-credit a referral that actually
  * succeeded despite an earlier error.
@@ -25,12 +26,12 @@ export async function GET(req: NextRequest) {
     const { data: failed, error } = await admin
       .from("referral_credits")
       .select("id, referrer_wallet")
-      .eq("payout_status", "failed")
+      .in("payout_status", ["failed", "not_eligible"])
       .limit(100);
     if (error) return errorResponse(error.message, 500);
 
     let retried = 0;
-    let stillFailed = 0;
+    let stillPending = 0;
     for (const row of failed ?? []) {
       const before = row.id;
       await payReferralCredit(admin, row.referrer_wallet, String(row.id));
@@ -40,10 +41,10 @@ export async function GET(req: NextRequest) {
         .eq("id", before)
         .maybeSingle();
       if (after?.payout_status === "sent") retried++;
-      else stillFailed++;
+      else stillPending++;
     }
 
-    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillFailed });
+    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending });
   } catch (e: any) {
     return errorResponse(e?.message ?? "Cron failed", 500);
   }
