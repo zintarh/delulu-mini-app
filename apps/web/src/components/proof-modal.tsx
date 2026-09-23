@@ -5,7 +5,7 @@ import { Camera, CheckCircle2, Loader2, X } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { formatProofError, formatUploadError } from "@/lib/community/format-proof-error";
-import { ProofSuccessCard, fireConfetti } from "@/components/proof-success-card";
+import { ProofSuccessCard } from "@/components/proof-success-card";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
@@ -76,7 +76,6 @@ export function ProofModal({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const confettiFired = useRef(false);
 
   const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
   const busy = isSubmitting || isUploading;
@@ -91,15 +90,7 @@ export function ProofModal({
   const showErrorBanner = Boolean(displayError) && (!busy || Boolean(submitError || uploadError));
 
   useEffect(() => {
-    if (submitSuccess && !confettiFired.current) {
-      confettiFired.current = true;
-      void fireConfetti();
-    }
-  }, [submitSuccess]);
-
-  useEffect(() => {
     if (!open) {
-      confettiFired.current = false;
       setImageFile(null);
       setImagePreview(null);
       setUploadError(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
@@ -53,6 +53,15 @@ export function ProofSuccessCard({
   onDone,
 }: ProofSuccessCardProps) {
   const [copied, setCopied] = useState(false);
+  const confettiFired = useRef(false);
+
+  // Every proof flow (screenshot, live camera, forfeit) lands here on success,
+  // so the celebration lives with the card rather than in each modal.
+  useEffect(() => {
+    if (confettiFired.current) return;
+    confettiFired.current = true;
+    void fireConfetti();
+  }, []);
 
   const milestoneLabel =
     milestoneIndex != null
