@@ -7,6 +7,7 @@ import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useIdentity } from "@/hooks/identityHook";
 import {
   consumeSignInRedirect,
   peekCommunityReferral,
@@ -79,11 +80,29 @@ export function usePostAuthRoute() {
 
   const hasProfile = isSupabaseOnboarded || hasOnChainUsername;
 
+  // Routing reads the same read-only identity check as the main-app
+  // OnboardingGate ((main)/layout.tsx). The two MUST agree: when this page
+  // sent a profile-but-never-verified user home, the gate sent them straight
+  // back here — an endless "Checking your account…" reload loop. It also
+  // avoids waiting on the ClaimSDK, which needs a live signing wallet and
+  // can leave this page spinning forever while the wallet client settles.
   const {
-    isWhitelisted,
-    isInitialized: isGoodDollarInitialized,
-    refreshStatus: refreshGoodDollarStatus,
-  } = useGoodDollarClaim();
+    identityState,
+    isLoading: isIdentityLoading,
+    identityCheckFailed,
+    refresh: refreshIdentity,
+  } = useIdentity();
+  // Still consulted after the in-page verify flow, which updates this first.
+  const { isWhitelisted: isClaimWhitelisted, refreshStatus: refreshClaimStatus } =
+    useGoodDollarClaim();
+
+  const isWhitelisted = identityState.state === "verified" || isClaimWhitelisted;
+  // Mirrors OnboardingGate: a failed check is inconclusive, never grounds to block.
+  const passesGate = identityState.state !== "none" || isClaimWhitelisted || identityCheckFailed;
+
+  const refreshGoodDollarStatus = async () => {
+    await Promise.all([refreshClaimStatus(), refreshIdentity()]);
+  };
 
   const redirectTarget = useMemo(
     () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/",
@@ -102,12 +121,12 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || isFetchingOnboarded || !isGoodDollarInitialized) {
+    if (isFetchingUsername || isFetchingOnboarded || isIdentityLoading) {
       setRouteState("loading");
       return;
     }
 
-    if (hasProfile) {
+    if (hasProfile && passesGate) {
       if (hasRedirectedRef.current) return;
       hasRedirectedRef.current = true;
 
@@ -140,8 +159,9 @@ export function usePostAuthRoute() {
     address,
     isFetchingUsername,
     isFetchingOnboarded,
-    isGoodDollarInitialized,
+    isIdentityLoading,
     isWhitelisted,
+    passesGate,
     hasProfile,
     router,
     redirectTarget,
@@ -153,6 +173,6 @@ export function usePostAuthRoute() {
     isWhitelisted,
     refreshGoodDollarStatus,
     address: address ?? "",
-    isCheckingAccount: isFetchingUsername || !isGoodDollarInitialized,
+    isCheckingAccount: isFetchingUsername || isIdentityLoading,
   };
 }

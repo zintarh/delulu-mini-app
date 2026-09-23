@@ -109,6 +109,9 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   useEffect(() => {
     if (isLoading || !address) {
       setIsInitialized(false);
+      // Let the check re-run once the SDK is ready again — otherwise a brief
+      // wallet-client reconnect leaves isInitialized false for good.
+      fetchedForRef.current = null;
       return;
     }
     if (fetchedForRef.current === address) return;
