@@ -192,6 +192,7 @@ const JOINED_PARTICIPANTS_QUERY = `
       challengeId
       pointsTotal
       completedMilestoneCount
+      joinedAt
     }
   }
 `;
@@ -1055,6 +1056,8 @@ async function fetchBatchCampaignMilestones(
 export type JoinedDashboardParticipant = {
   challengeId: number;
   completedMilestoneCount: number;
+  /** Unix ms; null when the subgraph didn't return it. */
+  joinedAtMs: number | null;
 };
 
 /** Lightweight: only the challenge IDs this wallet joined on-chain (no campaign metadata). */
@@ -1066,12 +1069,14 @@ export async function fetchJoinedParticipantsForDashboard(
       communityCampaignParticipants: Array<{
         challengeId: string;
         completedMilestoneCount: string;
+        joinedAt?: string | null;
       }>;
     }>(JOINED_PARTICIPANTS_QUERY, { address: walletAddress.toLowerCase() }, { fresh: true });
 
     return (data.communityCampaignParticipants ?? []).map((p) => ({
       challengeId: Number(p.challengeId),
       completedMilestoneCount: Number(p.completedMilestoneCount ?? 0),
+      joinedAtMs: p.joinedAt ? Number(p.joinedAt) * 1000 : null,
     }));
   } catch {
     return [];
@@ -1112,6 +1117,7 @@ export async function fetchJoinedCampaignDashboardFromGraph(
       join_amount: number;
       forfeit_pct: number;
       participant_count: number;
+      missed_count: number;
     }
   >
 > {
@@ -1154,6 +1160,10 @@ export async function fetchJoinedCampaignDashboardFromGraph(
         participant_count: batchStats.get(challengeId)?.participantCount ?? 0,
         milestone_count: milestones.length,
         completed_count: p.completedMilestoneCount,
+        // Milestones that closed before this wallet joined were never theirs to miss.
+        missed_count: milestones.filter(
+          (m) => m.is_overdue && (p.joinedAtMs == null || new Date(m.deadline).getTime() > p.joinedAtMs),
+        ).length,
         next_milestones,
       };
     });

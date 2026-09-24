@@ -1,6 +1,7 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
 import { isReferralCreditCountable } from "@/lib/referral/eligibility";
+import { getReferrerStanding } from "@/lib/referral/standing";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -40,9 +41,9 @@ export async function processReferralPayouts(
 
 /**
  * Pays (or retries) one referral credit row. Used by the retry cron too.
- * Only pays a credit the referral leaderboard would count — otherwise the row
- * is parked at 'not_eligible' so the retry cron picks it up once the
- * referrer clears the onboarding checklist.
+ * Only pays a credit the referral leaderboard would count, and only while the
+ * referrer is in good standing (lib/referral/standing.ts) — otherwise the row
+ * is parked at 'not_eligible' so the retry cron picks it up once they qualify.
  */
 export async function payReferralCredit(
   admin: SupabaseAdmin,
@@ -59,7 +60,12 @@ export async function payReferralCredit(
     return;
   }
 
-  if (!(await isReferralCreditCountable(admin, referrerWallet, credit.credited_at))) {
+  // Held (not lost) while the referrer is behind on their own campaign — the
+  // retry cron pays it once they've posted today's proof.
+  if (
+    !(await isReferralCreditCountable(admin, referrerWallet, credit.credited_at)) ||
+    (await getReferrerStanding(admin, referrerWallet)).locked
+  ) {
     await admin
       .from("referral_credits")
       .update({ payout_status: "not_eligible" })

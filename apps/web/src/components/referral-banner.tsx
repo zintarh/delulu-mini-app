@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Share2 } from "lucide-react";
+import Link from "next/link";
+import { Lock, Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralCode } from "@/hooks/use-referral-code";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
@@ -10,7 +11,12 @@ import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-ch
 export function ReferralBanner() {
   const { address } = useAuth();
   const { referralCode, referralCount } = useReferralCode(address);
-  const { isLoading: isLoadingEligibility, eligible, steps } = useReferralEligibility(address);
+  const { isLoading: isLoadingEligibility, eligible, steps, standing } = useReferralEligibility(address);
+  // Behind on their own campaign — invites (even through links already shared) are on hold.
+  const locked = eligible && Boolean(standing?.locked);
+  const unlockHref = standing?.campaign
+    ? `/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`
+    : "/";
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -52,10 +58,16 @@ export function ReferralBanner() {
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
               style={{ fontFamily: '"Clash Display", sans-serif' }}
             >
-              {eligible ? "Share your link, earn G$" : "Finish onboarding to unlock referrals"}
+              {locked
+                ? "Post today's proof to unlock invites"
+                : eligible
+                  ? "Share your link, earn G$"
+                  : "Finish onboarding to unlock referrals"}
             </p>
             <p className="mt-1 text-xs sm:text-sm leading-snug text-[#244E1A]/80">
-              {eligible
+              {locked
+                ? "You missed a milestone. Friends can't join with your link until you post."
+                : eligible
                 ? "Every valid referral pays 6,000 G$, claimable right away."
                 : "Complete your own onboarding first — your referral link unlocks once you have."}
             </p>
@@ -64,6 +76,38 @@ export function ReferralBanner() {
 
         {eligible ? (
           <div className="hidden sm:flex justify-end">
+            {locked ? (
+              <Link
+                href={unlockHref}
+                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                Post proof →
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+              >
+                {copied ? "Link copied!" : "Copy link →"}
+              </button>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {eligible ? (
+        <div className="sm:hidden flex justify-end mt-2">
+          {locked ? (
+            <Link
+              href={unlockHref}
+              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Post proof →
+            </Link>
+          ) : (
             <button
               type="button"
               onClick={handleCopy}
@@ -71,19 +115,7 @@ export function ReferralBanner() {
             >
               {copied ? "Link copied!" : "Copy link →"}
             </button>
-          </div>
-        ) : null}
-      </div>
-
-      {eligible ? (
-        <div className="sm:hidden flex justify-end mt-2">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
-          >
-            {copied ? "Link copied!" : "Copy link →"}
-          </button>
+          )}
         </div>
       ) : (
         <ReferralOnboardingChecklist steps={steps} />

@@ -13,10 +13,12 @@ import {
   peekCommunityReferral,
   persistCommunityReferral,
   normalizeReferralCode,
+  peekReferralCode,
   persistReferralCode,
 } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
+import { ReferralInviteHold, useInviteHold } from "@/components/referral-invite-hold";
 import { Wordmark } from "@/components/wordmark";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
@@ -91,10 +93,14 @@ export default function SignInPage() {
     setReferralCode(communityCode ?? peekCommunityReferral());
   }, [communityCode]);
 
-  // User-level referral link
+  // User-level referral link. Also picks up a code stored earlier in this
+  // session, so dropping ?ref= from the URL doesn't skip the invite hold.
+  const [inviteCode, setInviteCode] = useState<string | null>(refCode);
   useEffect(() => {
     if (refCode) persistReferralCode(refCode);
+    setInviteCode(refCode ?? peekReferralCode());
   }, [refCode]);
+  const invite = useInviteHold(inviteCode);
 
   useEffect(() => {
     if (!referralCode) { setCommunityName(null); setIsLoadingCommunityName(false); return; }
@@ -294,6 +300,28 @@ export default function SignInPage() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // ── Invite on hold ────────────────────────────────────────────────────────
+  // The referrer missed a milestone and hasn't posted today's proof — their
+  // invitee can't sign up until they do (lib/referral/standing.ts).
+
+  if (!authenticated && inviteCode && invite.checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!authenticated && invite.locked) {
+    return (
+      <ReferralInviteHold
+        username={invite.username}
+        pfpUrl={invite.pfpUrl}
+        onRecheck={invite.recheck}
+      />
     );
   }
 

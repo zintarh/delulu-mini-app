@@ -1,4 +1,5 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
+import { getReferrerStanding } from "@/lib/referral/standing";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -31,6 +32,10 @@ export async function attributeReferral(
 
   const referrerAddress = String(referrer.address).toLowerCase();
   if (referrerAddress === normalized) return; // self-referral guard
+
+  // Backstop for the invite gate on /sign-in: a referrer who's behind on
+  // their own campaign can't pick up new referrals until today's proof is in.
+  if ((await getReferrerStanding(admin, referrerAddress)).locked) return;
 
   await admin
     .from("profiles")
