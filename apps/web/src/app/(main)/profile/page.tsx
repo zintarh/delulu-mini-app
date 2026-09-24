@@ -305,6 +305,15 @@ function ProfileHeader({
             <ReferralOnboardingChecklist steps={referralSteps} />
           ) : null}
 
+          {referralCode ? (
+            <Link
+              href="/referrals"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              See my referrals →
+            </Link>
+          ) : null}
+
           <div className="mt-3 flex items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5 shadow-sm">
               <Star className="h-3.5 w-3.5 fill-delulu-blue text-delulu-blue" />

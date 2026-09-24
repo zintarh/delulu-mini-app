@@ -48,11 +48,12 @@ export function ReferralBanner() {
               <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
                 6,000 G$
               </span>
-              {eligible && referralCount > 0 ? (
-                <span className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
-                  {referralCount} referred
-                </span>
-              ) : null}
+              <Link
+                href="/referrals"
+                className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A] hover:bg-[#244E1A]/20"
+              >
+                {eligible && referralCount > 0 ? `${referralCount} referred →` : "My referrals →"}
+              </Link>
             </div>
             <p
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
