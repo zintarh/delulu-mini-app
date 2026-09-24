@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ProfileLoader } from "@/components/profile-loader";
 import {
@@ -129,7 +129,13 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   // /sign-in sees them as done (on-chain username) and sends them here,
   // while this gate — checking Supabase only — sees them as incomplete and
   // bounces them straight back, an infinite redirect loop between the two.
-  const { data: onChainUsername, isFetching: isFetchingUsername } = useReadContract({
+  // isLoading, not isFetching: only the FIRST read may hold the app. The global
+  // QueryClient refetches on window focus, and this query is always stale, so
+  // isFetching flips true every time the page regains focus — picking a proof
+  // screenshot from the gallery, signing in the wallet popup, switching apps.
+  // Gating on that swapped the whole app for a spinner and back, unmounting
+  // whatever was open (proof modal, success card + confetti) mid-flow.
+  const { data: onChainUsername, isLoading: isLoadingUsername } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getUsername",
@@ -179,7 +185,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     !isReady ||
     (authenticated &&
       address &&
-      (!onboardedChecked || !isGoodDollarInitialized || isFetchingUsername));
+      (!onboardedChecked || !isGoodDollarInitialized || isLoadingUsername));
   // A failed check (RPC down, onboarding-API network error) is inconclusive,
   // not a confirmed incomplete state — never redirect a real user out of the
   // app over a transient failure; the normal in-app prompts (claim panel,
@@ -190,7 +196,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     address &&
     onboardedChecked &&
     isGoodDollarInitialized &&
-    !isFetchingUsername &&
+    !isLoadingUsername &&
     !onboardedCheckFailed &&
     !identityCheckFailed &&
     (!(isOnboarded || hasOnChainUsername) || !hasEverVerified);
@@ -199,7 +205,14 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     if (incomplete) router.replace("/sign-in");
   }, [incomplete, router]);
 
-  if (stillChecking || incomplete) {
+  // Once this wallet has been let in, a background re-check must never swap
+  // the app back to a spinner — that unmounts everything the user has open.
+  // Only a confirmed-incomplete result (redirect above) takes them out.
+  const passedForRef = useRef<string | null>(null);
+  if (!stillChecking && !incomplete && address) passedForRef.current = address;
+  const alreadyPassed = !!address && passedForRef.current === address;
+
+  if ((stillChecking && !alreadyPassed) || incomplete) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground" />
