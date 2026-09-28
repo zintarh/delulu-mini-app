@@ -2,6 +2,7 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
 import { isReferralCreditCountable } from "@/lib/referral/eligibility";
 import { getReferrerStanding } from "@/lib/referral/standing";
+import { isReferralCampaignOver } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -50,6 +51,10 @@ export async function payReferralCredit(
   referrerWallet: `0x${string}` | string,
   referralCreditId: string,
 ): Promise<void> {
+  // Campaign over — the vault pays nothing more, from any path (auto, retry
+  // cron, admin retry). The row keeps its status so the record stays honest.
+  if (isReferralCampaignOver()) return;
+
   const { data: credit, error } = await admin
     .from("referral_credits")
     .select("credited_at")
