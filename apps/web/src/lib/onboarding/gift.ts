@@ -1,6 +1,7 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { payoutOnboardingGift } from "@/lib/celo/reward-vault-payout";
+import { isReferralCampaignOver } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -53,6 +54,12 @@ export async function evaluateAndCreditOnboardingGift(
       claimedAt: profile?.onboarding_gift_claimed_at ?? null,
       justGranted: false,
     };
+  }
+
+  // The gift ended with the referral campaign: no new deposits after it.
+  // Gifts already deposited ('sent', returned above) stay claimable.
+  if (isReferralCampaignOver()) {
+    return { status: "not_eligible", claimedAt: null, justGranted: false };
   }
 
   if (!profile.created_at || profile.created_at < NEW_USER_CUTOFF_ISO) {

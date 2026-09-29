@@ -6,7 +6,8 @@
  * Shared by server (evaluate/payout) and client (banners), so keep it free of
  * server-only imports.
  */
-export const REFERRAL_CAMPAIGN_END_ISO = "2026-09-29T23:59:59+01:00";
+// Ended early (was 23:59 WAT) — payouts stopped on Sep 29 afternoon.
+export const REFERRAL_CAMPAIGN_END_ISO = "2026-09-29T14:45:00+01:00";
 
 const END_MS = Date.parse(REFERRAL_CAMPAIGN_END_ISO);
 
