@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useReferralCode } from "@/hooks/use-referral-code";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-checklist";
+import { isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
 
 export function ReferralBanner() {
   const { address } = useAuth();
@@ -29,6 +30,17 @@ export function ReferralBanner() {
 
   if (!referralCode || isLoadingEligibility) return null;
 
+  if (isReferralCampaignOver()) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-3.5 py-3">
+        <p className="text-sm font-bold text-muted-foreground">Referral campaign has ended</p>
+        <Link href="/referrals" className="shrink-0 text-xs font-black text-foreground hover:underline">
+          My referrals →
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-[#D1E822] px-3.5 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between">
@@ -47,6 +59,9 @@ export function ReferralBanner() {
               </p>
               <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
                 6,000 G$
+              </span>
+              <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
+                Ends {referralCampaignEndLabel()}
               </span>
               <Link
                 href="/referrals"

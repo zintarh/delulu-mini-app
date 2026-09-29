@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Circle, Lock, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { MainPage } from "@/components/main-app-header";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
+import { isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
 
 const REFERRAL_GDOLLARS_REWARD = 6000;
 
@@ -18,21 +19,24 @@ const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
   { key: "proofApproved", label: "Proof approved", next: "Needs an approved proof" },
 ];
 
-function StatusLine({ r }: { r: MyReferral }) {
+function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
   if (r.counted) {
     return r.payout === "sent" ? (
       <span className="font-bold text-delulu-green">
         +{REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$
       </span>
     ) : (
-      <span className="font-bold text-foreground">Counted · payout pending</span>
+      <span className="font-bold text-foreground">
+        {ended ? "Counted · campaign ended" : "Counted · payout pending"}
+      </span>
     );
   }
+  if (ended) return <span className="font-semibold text-muted-foreground">Campaign ended</span>;
   const next = STEPS.find((s) => !r.steps[s.key]);
   return <span className="font-semibold text-orange-600 dark:text-orange-400">{next?.next}</span>;
 }
 
-function ReferralRow({ r }: { r: MyReferral }) {
+function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
   return (
     <li className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
       <div className="flex items-center gap-3">
@@ -46,7 +50,7 @@ function ReferralRow({ r }: { r: MyReferral }) {
             {r.username ? `@${r.username}` : "No username yet"}
           </p>
           <p className="text-xs">
-            <StatusLine r={r} />
+            <StatusLine r={r} ended={ended} />
           </p>
         </div>
       </div>
@@ -103,6 +107,7 @@ export default function MyReferralsPage() {
   }, [address]);
 
   const counted = (referrals ?? []).filter((r) => r.counted).length;
+  const ended = isReferralCampaignOver();
 
   return (
     <MainPage>
@@ -130,7 +135,17 @@ export default function MyReferralsPage() {
       </header>
 
       <div className="mx-auto max-w-2xl space-y-3 px-4 py-5 lg:px-8">
-        {!isLoadingEligibility && standing?.locked && standing.campaign ? (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold",
+            ended ? "bg-muted text-muted-foreground" : "bg-delulu-yellow text-delulu-charcoal",
+          )}
+        >
+          <Clock className="h-4 w-4 shrink-0" />
+          {ended ? "Referral campaign has ended" : `Referral campaign ends ${referralCampaignEndLabel()}`}
+        </div>
+
+        {!ended && !isLoadingEligibility && standing?.locked && standing.campaign ? (
           <Link
             href={`/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`}
             className="flex items-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-bold text-background"
@@ -138,7 +153,7 @@ export default function MyReferralsPage() {
             <Lock className="h-4 w-4 shrink-0" />
             Invites on hold. Post today&apos;s proof →
           </Link>
-        ) : !isLoadingEligibility && !eligible ? (
+        ) : !ended && !isLoadingEligibility && !eligible ? (
           <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
             <Lock className="h-4 w-4 shrink-0" />
             Finish your own onboarding for referrals to count on the leaderboard.
@@ -162,7 +177,7 @@ export default function MyReferralsPage() {
         ) : (
           <ul className="space-y-3">
             {referrals.map((r, i) => (
-              <ReferralRow key={`${r.username ?? "anon"}-${i}`} r={r} />
+              <ReferralRow key={`${r.username ?? "anon"}-${i}`} r={r} ended={ended} />
             ))}
           </ul>
         )}

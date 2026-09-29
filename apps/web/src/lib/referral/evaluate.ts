@@ -6,6 +6,7 @@ import {
   hasQualifyingForfeitProofOnGraph,
 } from "@/lib/community/campaign-subgraph";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { isReferralCampaignOver } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -29,7 +30,8 @@ export type ReferralEvaluationResult =
         | "no_referrer"
         | "already_credited"
         | "no_qualifying_action"
-        | "not_verified";
+        | "not_verified"
+        | "campaign_ended";
     };
 
 /**
@@ -44,6 +46,9 @@ export async function evaluateAndCreditReferral(
   walletAddress: string,
 ): Promise<ReferralEvaluationResult> {
   const wallet = walletAddress.toLowerCase();
+
+  // No new credits (points or G$) once the campaign has ended.
+  if (isReferralCampaignOver()) return { credited: false, reason: "campaign_ended" };
 
   const { data: profile } = await admin
     .from("profiles")

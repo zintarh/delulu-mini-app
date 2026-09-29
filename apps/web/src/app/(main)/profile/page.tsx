@@ -9,6 +9,7 @@ import { useReferralCode } from "@/hooks/use-referral-code";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-checklist";
 import { ReferralLockedNotice } from "@/components/referral-locked-notice";
+import { isReferralCampaignOver } from "@/lib/referral/campaign";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -293,6 +294,8 @@ function ProfileHeader({
                     </span>{" "}
                     earned from {referralCount} referral{referralCount === 1 ? "" : "s"}
                   </>
+                ) : isReferralCampaignOver() ? (
+                  "Referral campaign has ended"
                 ) : (
                   <>
                     Counts once they verify and join a campaign or start a Forfeit ·{" "}
