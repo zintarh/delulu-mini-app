@@ -8,6 +8,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/** Full-screen flows that hide the floating dock (they own their bottom bar). */
+export function hidesBottomNav(pathname: string): boolean {
+  return pathname === "/forfeit";
+}
+
 /** Signed-in app home. `/` is the public landing page. */
 export const APP_HOME = "/home";
 

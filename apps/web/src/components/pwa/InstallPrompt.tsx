@@ -44,8 +44,8 @@ export function InstallPrompt() {
     setDismissed(true);
   };
 
-  // The landing page (/) has its own install sheet and sticky CTA.
-  if (dismissed || standalone || pathname === "/") return null;
+  // The landing page has its own install sheet; the create flow stays uncluttered.
+  if (dismissed || standalone || pathname === "/" || pathname === "/forfeit") return null;
   if (!canPrompt && !iosSafari) return null;
 
   return (

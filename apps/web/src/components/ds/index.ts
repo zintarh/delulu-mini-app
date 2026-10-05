@@ -4,3 +4,4 @@ export * from "./surfaces";
 export * from "./controls";
 export * from "./progress";
 export * from "./confetti-rain";
+export * from "./hold-to-sign";

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { cn } from "@/lib/utils";
+import { hidesBottomNav } from "@/components/main-nav-config";
 
 export type HeaderConfig = {
   mobile: boolean;
@@ -52,6 +53,8 @@ export const MOBILE_BOTTOM_NAV_CLEARANCE =
  * scroll content. Matches bar height + a little breathing room.
  */
 export function MobileBottomNavSpacer() {
+  const pathname = usePathname() ?? "";
+  if (hidesBottomNav(pathname)) return null;
   return (
     <div
       className="shrink-0 lg:hidden"

@@ -9,6 +9,7 @@ import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import {
   APP_HOME,
   getMobileBottomNavItems,
+  hidesBottomNav,
   isMainNavItemActive,
   normalizePathname,
 } from "@/components/main-nav-config";
@@ -40,6 +41,8 @@ export function BottomNav(_props: BottomNavProps = {}) {
   }, [router]);
 
   const activeOptions = { isHomeRoute, notificationsOpen, layoutSegment: segment };
+
+  if (hidesBottomNav(path)) return null;
 
   return (
     <nav
