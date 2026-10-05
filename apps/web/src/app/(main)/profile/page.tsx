@@ -4,12 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { formatAddress, cn } from "@/lib/utils";
-import { Copy, Check, Camera, Loader2, Star, Coins, Share2 } from "lucide-react";
-import { useReferralCode } from "@/hooks/use-referral-code";
-import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
-import { ReferralOnboardingChecklist } from "@/components/referral-onboarding-checklist";
-import { ReferralLockedNotice } from "@/components/referral-locked-notice";
-import { isReferralCampaignOver } from "@/lib/referral/campaign";
+import { Camera, Loader2, Settings, Share2 } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -23,23 +18,24 @@ import {
   useUserEarnedTotal,
 } from "@/hooks/use-earned-totals";
 import Link from "next/link";
+import { useUserStreak } from "@/hooks/useUserStreak";
+import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
+import { formatCompact, getLevel } from "@/lib/levels";
+import { Bolt, Coin, Flame, GameCard, GameLink, Medal, ProgressBar, Segmented, Trophy } from "@/components/ds";
 
 type TabType = "milestones" | "active" | "ended";
 
-const REFERRAL_GDOLLARS_REWARD = 6000;
-
-const PROFILE_TABS: { id: TabType; label: string }[] = [
-  { id: "milestones", label: "Campaigns" },
-  { id: "active", label: "Forfeit" },
-  { id: "ended", label: "Ended" },
+const PROFILE_TABS: { value: TabType; label: string }[] = [
+  { value: "active", label: "Contracts" },
+  { value: "milestones", label: "Campaigns" },
+  { value: "ended", label: "Ended" },
 ];
 
 export default function ProfilePage() {
   const { isConnected, address, isReady } = useAuth();
-  const { user, updateProfile } = useUserStore();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<TabType>("milestones");
+  const [activeTab, setActiveTab] = useState<TabType>("active");
   const [uploadToast, setUploadToast] = useState<{
     type: "success" | "error";
     message: string;
@@ -82,25 +78,8 @@ export default function ProfilePage() {
         setUploadToast={setUploadToast}
       />
 
-      <div className="sticky top-0 z-40 flex justify-center bg-background/95 px-4 py-2 backdrop-blur-sm">
-        <div className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/30 p-0.5">
-          {PROFILE_TABS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveTab(id)}
-              className={cn(
-                "rounded-full px-6 py-1.5 text-xs font-bold transition-all",
-                activeTab === id
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              style={{ fontFamily: "var(--font-body)" }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="sticky top-0 z-40 mx-auto max-w-xl bg-paper/95 px-5 py-3 backdrop-blur-sm">
+        <Segmented<TabType> ariaLabel="Profile sections" value={activeTab} onChange={setActiveTab} options={PROFILE_TABS} />
       </div>
 
       <Suspense fallback={<ProfileContentSkeleton />}>
@@ -113,8 +92,8 @@ export default function ProfilePage() {
             className={cn(
               "rounded-full border px-4 py-2 text-xs font-semibold shadow-lg",
               uploadToast.type === "success"
-                ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700"
-                : "border-rose-500/30 bg-rose-500/15 text-rose-700",
+                ? "border-green-line bg-green-soft text-green-edge"
+                : "border-orange/30 bg-orange-soft text-orange",
             )}
           >
             {uploadToast.message}
@@ -127,36 +106,26 @@ export default function ProfilePage() {
 
 function ProfileHeader({
   address,
-  uploadToast,
   setUploadToast,
 }: {
   address: string | null | undefined;
   uploadToast: { type: "success" | "error"; message: string } | null;
-  setUploadToast: (toast: { type: "success" | "error"; message: string } | null) => void;
+  setUploadToast: (_toast: { type: "success" | "error"; message: string } | null) => void;
 }) {
   const { user, updateProfile } = useUserStore();
-  const [copied, setCopied] = useState(false);
-  const [referralCopied, setReferralCopied] = useState(false);
-  const { referralCode, referralCount } = useReferralCode(address);
-  const {
-    eligible: referralEligible,
-    steps: referralSteps,
-    standing: referralStanding,
-  } = useReferralEligibility(address);
   const { isUploading: isPfpUploading, upload: uploadPfp, inputRef: pfpInputRef, openPicker: openPfpPicker } = usePfpUpload();
-  
-  // profiles.username (Supabase, set during /welcome) is the actual source of
-  // truth — nothing writes the on-chain username anymore, so a wallet that
-  // signed up post-welcome-redesign has a real Supabase username but an
-  // always-empty on-chain one. Falls back to on-chain only for any legacy
-  // account that set it there before this changed.
+
+  // profiles.username (Supabase, set during /welcome) is the source of truth;
+  // on-chain username is only a fallback for legacy accounts.
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const displayUsername = user?.username || contractUsername || null;
   const pfpFromSupabase = usePfp(address);
   const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address ?? undefined);
   const { totalEarned, isLoading: earnedLoading } = useUserEarnedTotal(address ?? undefined);
-  const hasEarned = totalEarned > 0;
+  const { currentStreak, totalVerified } = useUserStreak(address ?? undefined);
+  const { myRankEntry } = useAllUsersLeaderboard(0, address ?? undefined);
+  const lvl = getLevel(points ?? 0);
 
   const handlePfpFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,185 +139,148 @@ function ProfileHeader({
     try {
       await uploadPfp(file);
       setUploadToast({ type: "success", message: "Profile photo updated" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       updateProfile({ pfpUrl: previousPfp });
       setUploadToast({
         type: "error",
-        message: err?.message ?? "Failed to update profile photo",
+        message: err instanceof Error ? err.message : "Failed to update profile photo",
       });
     } finally {
       URL.revokeObjectURL(previewUrl);
     }
   };
 
-  const handleCopyAddress = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleCopyReferralLink = async () => {
-    if (!referralCode) return;
-    const referralUrl = `${window.location.origin}/sign-in?ref=${referralCode}`;
-    await navigator.clipboard.writeText(referralUrl);
-    setReferralCopied(true);
-    setTimeout(() => setReferralCopied(false), 2000);
-  };
-
   if (!address) return null;
 
-  return (
-    <section className="relative z-30 px-4 pt-6 pb-4">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(120%_60%_at_50%_0%,rgba(252,255,82,0.06),transparent_70%)]"
-      />
+  // Ring around the avatar shows progress to the next level.
+  const R = 42;
+  const C = 2 * Math.PI * R;
 
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative">
+  const badges = [
+    { label: "1ST", name: "First proof", bg: "#FDF1C7", edge: "#E5B41C", earned: totalVerified >= 1 || (points ?? 0) > 0 },
+    { label: "7D", name: "Bronze", bg: "#FFD9BF", edge: "#E0915A", earned: currentStreak >= 7 },
+    { label: "10", name: "10 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: totalVerified >= 10 },
+    { label: "1K", name: "1K points", bg: "#D3E2FF", edge: "#8DB0EE", earned: (points ?? 0) >= 1000 },
+    { label: "14D", name: "Gold 14d", bg: "#F6C324", edge: "#C99A0A", earned: currentStreak >= 14 },
+    { label: "30D", name: "30 days", bg: "#F2B48A", edge: "#C98352", earned: currentStreak >= 30 },
+    { label: "100", name: "100 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: totalVerified >= 100 },
+    { label: "10K", name: "10K points", bg: "#EEE7FE", edge: "#B9A3F2", earned: (points ?? 0) >= 10000 },
+  ];
+  const earnedCount = badges.filter((b) => b.earned).length;
+
+  return (
+    <section className="mx-auto max-w-xl px-5 pb-2 pt-2">
+      <div className="flex justify-end gap-2">
+        <Link href="/profile/flex" aria-label="Share flex card" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
+          <Share2 className="h-5 w-5" strokeWidth={2} />
+        </Link>
+        <Link href="/settings" aria-label="Settings" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
+          <Settings className="h-5 w-5" strokeWidth={2} />
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="relative h-[92px] w-[92px] shrink-0 animate-bounce-in">
+          <svg width="92" height="92" viewBox="0 0 92 92" className="absolute inset-0 -rotate-90" aria-hidden>
+            <circle cx="46" cy="46" r={R} fill="none" stroke="#E6E6E0" strokeWidth="6" />
+            <circle
+              cx="46"
+              cy="46"
+              r={R}
+              fill="none"
+              stroke="#F6C324"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={C}
+              strokeDashoffset={C * (1 - lvl.progress)}
+            />
+          </svg>
           <button
             type="button"
             onClick={openPfpPicker}
             disabled={isPfpUploading}
-            className="relative w-20 h-20 rounded-full flex-shrink-0 bg-muted ring-1 ring-border/60 overflow-hidden group shadow-sm"
+            aria-label="Change photo"
+            className="group absolute inset-[10px] overflow-hidden rounded-full bg-yellow-soft"
           >
-            {pfpFromSupabase === undefined && !user?.pfpUrl ? (
-              <div className="w-full h-full bg-muted animate-pulse rounded-full" />
-            ) : avatarUrl ? (
+            {avatarUrl ? (
               <img
                 src={avatarUrl}
-                alt={displayUsername || formatAddress(address)}
-                className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl font-bold bg-muted text-muted-foreground">
-                {(displayUsername || address || "?").slice(0, 2).toUpperCase()}
-              </div>
+              <span className="flex h-full w-full items-center justify-center text-2xl font-bold">
+                {(displayUsername || address || "?").slice(0, 1).toUpperCase()}
+              </span>
             )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isPfpUploading
-                ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-                : <Camera className="w-5 h-5 text-white" />
-              }
-            </div>
+            <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              {isPfpUploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+            </span>
           </button>
-          <button
-            type="button"
-            onClick={openPfpPicker}
-            disabled={isPfpUploading}
-            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-delulu-green border-2 border-background flex items-center justify-center shadow"
-            aria-label="Change photo"
-          >
-            <Camera className="w-3 h-3 text-white" />
-          </button>
+          <span className="absolute -bottom-2 left-1/2 flex h-[22px] -translate-x-1/2 items-center justify-center rounded-lg border-2 border-white bg-blue px-2 text-[11px] font-extrabold text-white">
+            Lv {lvl.level}
+          </span>
         </div>
-        <input
-          ref={pfpInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handlePfpFileChange}
-        />
+        <input ref={pfpInputRef} type="file" accept="image/*" className="hidden" onChange={handlePfpFileChange} />
 
-        <div className="text-center">
-          <h1
-            className="text-2xl font-bold leading-tight capitalize"
-          >
-            {displayUsername || formatAddress(address)}
-          </h1>
-          <button
-            onClick={handleCopyAddress}
-            className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span className="font-mono">{formatAddress(address)}</span>
-            {copied ? (
-              <Check className="w-3 h-3 text-delulu-green" />
-            ) : (
-              <Copy className="w-3 h-3" />
-            )}
-          </button>
-
-          {referralCode && referralEligible && referralStanding?.locked ? (
-            <ReferralLockedNotice standing={referralStanding} />
-          ) : referralCode && referralEligible ? (
-            <div className="mt-3 flex flex-col items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleCopyReferralLink}
-                className="inline-flex items-center gap-1.5 rounded-full bg-delulu-yellow px-3.5 py-1.5 text-xs font-bold text-delulu-charcoal shadow-sm transition-opacity active:opacity-70"
-              >
-                {referralCopied ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <Share2 className="w-3.5 h-3.5" />
-                )}
-                {referralCopied ? "Link copied!" : "Copy referral link"}
-              </button>
-              <p className="max-w-[260px] text-[11px] leading-snug text-muted-foreground">
-                {referralCount > 0 ? (
-                  <>
-                    <span className="font-bold text-delulu-green">
-                      {(referralCount * REFERRAL_GDOLLARS_REWARD).toLocaleString()} G$
-                    </span>{" "}
-                    earned from {referralCount} referral{referralCount === 1 ? "" : "s"}
-                  </>
-                ) : isReferralCampaignOver() ? (
-                  "Referral campaign has ended"
-                ) : (
-                  <>
-                    Counts once they verify and join a campaign or start a Forfeit ·{" "}
-                    {REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$ per referral
-                  </>
-                )}
-              </p>
-            </div>
-          ) : referralCode ? (
-            <ReferralOnboardingChecklist steps={referralSteps} />
-          ) : null}
-
-          {referralCode ? (
-            <Link
-              href="/referrals"
-              className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground underline underline-offset-2 hover:text-foreground"
-            >
-              See my referrals →
-            </Link>
-          ) : null}
-
-          <div className="mt-3 flex items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5 shadow-sm">
-              <Star className="h-3.5 w-3.5 fill-delulu-blue text-delulu-blue" />
-              <span className="text-xs font-black tabular-nums text-foreground">
-                {pointsLoading ? "—" : points.toLocaleString()}
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                pts
-              </span>
-            </div>
-
-            <Link
-              href="/rewards"
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 shadow-sm transition-opacity active:opacity-70",
-                hasEarned
-                  ? "bg-emerald-500/10 text-emerald-700"
-                  : "border border-border/50 bg-card text-muted-foreground",
-              )}
-            >
-              <Coins className="h-3.5 w-3.5" />
-              <span className="text-xs font-black tabular-nums">
-                {earnedLoading ? "—" : formatEarnedUsdt(totalEarned)}
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                earned
-              </span>
-            </Link>
+        <div className="min-w-0 flex-1">
+          <h1 className="m-0 truncate text-2xl font-bold tracking-[-0.02em]">{displayUsername ? `@${displayUsername}` : formatAddress(address)}</h1>
+          <div className="label-mono mt-1 text-[10px] text-muted-foreground">{formatAddress(address)}</div>
+          <ProgressBar value={lvl.progress} tone="blue" className="mt-2.5 h-3" label="Progress to next level" />
+          <div className="mt-1.5 font-mono text-[9px]">
+            {pointsLoading ? "—" : `${formatCompact(points ?? 0)} / ${formatCompact(lvl.next)} pts`}
           </div>
         </div>
       </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-2.5">
+        <StatTile icon={<Flame size={30} />} value={String(currentStreak)} label="Day streak" />
+        <StatTile icon={<Bolt size={30} />} value={pointsLoading ? "—" : formatCompact(points ?? 0)} label="Total points" />
+        <Link href="/rewards" className="no-underline">
+          <StatTile icon={<Coin size={30} />} value={earnedLoading ? "—" : formatEarnedUsdt(totalEarned)} label="Earned" />
+        </Link>
+        <Link href="/leaderboard" className="no-underline">
+          <StatTile icon={<Trophy size={30} />} value={myRankEntry ? `#${myRankEntry.rank}` : "—"} label="Global rank" />
+        </Link>
+      </div>
+
+      <GameLink href="/profile/flex" full className="mt-4">
+        <Share2 className="h-[18px] w-[18px]" strokeWidth={2.4} />
+        Flex your streak
+      </GameLink>
+
+      <div className="mt-6">
+        <div className="mb-3.5 flex justify-between">
+          <span className="label-mono text-muted-foreground">Badges</span>
+          <span className="label-mono text-ink">
+            {earnedCount} / {badges.length}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-y-3.5">
+          {badges.map((b) => (
+            <div key={b.name} className="flex flex-col items-center gap-2">
+              {b.earned ? <Medal label={b.label} bg={b.bg} edge={b.edge} /> : <Medal locked />}
+              <span className={cn("font-mono text-[9px]", !b.earned && "text-muted-foreground")}>{b.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
+  );
+}
+
+function StatTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <GameCard className="flex items-center gap-2.5 px-3.5 py-3">
+      {icon}
+      <div className="min-w-0">
+        <div className="truncate font-display text-[26px] font-extrabold leading-none text-ink">{value}</div>
+        <div className="label-mono mt-1 text-[9px] text-muted-foreground">{label}</div>
+      </div>
+    </GameCard>
   );
 }
 
