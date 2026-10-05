@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rewards · not verified</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&amp;family=Fredoka:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&amp;family=Schibsted+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Fredoka:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+--ink:#161615;--ink-2:#2A2A28;--ink-3:#3A3A37;--paper:#F7F7F4;--card:#FFFFFF;--line:#E6E6E0;--muted:#5C5C56;--faint:#8A8A83;
+--yellow:#F6C324;--yellow-soft:#FDF1C7;--green:#17804A;--green-soft:#E6F3EB;--orange:#B4410C;--orange-soft:#FBECE3;--blue:#1E4FA8;--blue-soft:#DDE7F6;
+--f-display:'Big Shoulders Display','Oswald',sans-serif;--f-body:'Schibsted Grotesk',sans-serif;--f-mono:'IBM Plex Mono',ui-monospace,monospace;
+--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:72px;--gutter:20px;
+--r1:10px;--r2:16px;--r3:24px;
+--ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+body{margin:0;background:var(--paper)}
+*{box-sizing:border-box}
+a{color:var(--ink)}a:hover{color:#000}
+.disp{font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.88;letter-spacing:0}
+.mono{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.muted{color:var(--muted)}
+.title{font:700 24px/1.2 var(--f-body);letter-spacing:-.02em;margin:0}
+.title-lg{font:700 30px/1.15 var(--f-body);letter-spacing:-.025em;margin:0}
+.opt{height:56px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);font:600 15px var(--f-body);color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
+.opt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.opt:disabled{border-style:dashed;color:var(--faint);background:transparent;cursor:default}
+.blank{font:inherit;color:inherit;font-weight:700;background:var(--yellow-soft);border:0;border-bottom:3px solid var(--yellow);border-radius:6px 6px 0 0;padding:0 6px;cursor:pointer}
+.blank:hover{background:var(--yellow)}
+.qchip{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font:600 14px var(--f-body);color:var(--ink);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.qchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ring-fill{animation:ringfill 1.2s var(--ease) .3s both}
+@keyframes ringfill{from{stroke-dashoffset:201}}
+.xp-fill{transform-origin:left;animation:xp 1.1s var(--ease) .3s both}
+@keyframes xp{from{transform:scaleX(0)}}
+.cstamp{width:62px;height:62px;border-radius:50%;border:2.5px solid currentColor;box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 4.5px currentColor;display:flex;align-items:center;justify-content:center;font:800 19px var(--f-display);background:var(--card);transform:rotate(-8deg)}
+
+/* ---------- Gamified app layer ---------- */
+.app .btn{border-radius:16px;box-shadow:0 4px 0 #000;font-weight:700}
+.app .btn.y{box-shadow:0 4px 0 #C99A0A}
+.app .btn:active{transform:translateY(4px);box-shadow:0 0 0 transparent}
+.app .card,.app .ticket{border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.app .ticket.ink{border-color:var(--ink);box-shadow:0 4px 0 #000}
+.app .ticket.yel{border-color:#E5B41C;box-shadow:0 4px 0 #C99A0A}
+.app .ghost{border:2px solid var(--line);box-shadow:0 4px 0 var(--line);border-radius:16px}
+.app .ibtn{border-width:2px;box-shadow:0 3px 0 var(--line)}
+.app .ibtn.dark{box-shadow:0 3px 0 #000}
+.app .seg{border-radius:16px}.app .seg button{border-radius:12px}.app .seg button.on{box-shadow:0 3px 0 #000}
+.app .qchip,.app .opt{border-width:2px;box-shadow:0 3px 0 var(--line);border-radius:14px}
+.app .qchip.on,.app .opt.on{box-shadow:0 3px 0 #000}
+.app .field{border-width:2px}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 22px;border:0;border-radius:16px;background:var(--yellow);color:var(--ink);font:800 15px var(--f-body);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;cursor:pointer;box-shadow:0 4px 0 #C99A0A;transition:transform .08s,box-shadow .08s;flex-shrink:0}
+.gbtn:hover{color:var(--ink)}
+.gbtn:active{transform:translateY(4px);box-shadow:0 0 0 transparent}
+.gbtn.ink{background:var(--ink);color:#fff;box-shadow:0 4px 0 #000}
+.gbtn.green{background:#2DB36F;box-shadow:0 4px 0 #1E8A52}
+.gbtn.blue{background:#2F6BE0;color:#fff;box-shadow:0 4px 0 #1F4FB0}.gbtn.blue:hover{color:#fff}
+.gbtn.line{background:#fff;border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.gbtn.sm{height:40px;padding:0 14px;font-size:13px;border-radius:12px}
+.gbtn.full{width:100%}
+.gcard{background:#fff;border:2px solid var(--line);border-radius:20px;box-shadow:0 4px 0 var(--line)}
+.hud{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 11px;border-radius:12px;border:2px solid var(--line);background:#fff;font:800 15px var(--f-body);color:var(--ink);text-decoration:none;position:relative}
+.bar{height:16px;border-radius:999px;background:#E6E6E0;overflow:hidden}
+.bar>span{display:block;height:100%;border-radius:999px;background:#2DB36F;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);position:relative;transform-origin:left;animation:xp 1s var(--ease) .3s both}
+.bar>span::after{content:"";position:absolute;left:8px;right:8px;top:3px;height:4px;border-radius:2px;background:rgba(255,255,255,.45)}
+.bar.thin{height:8px}.bar.thin>span::after{display:none}
+.bar.y>span{background:var(--yellow)}.bar.b>span{background:#3D7BF0}
+.gtile{display:flex;align-items:center;justify-content:center;border-radius:16px;flex-shrink:0;box-shadow:inset 0 -4px 0 rgba(0,0,0,.07)}
+.wiggle{display:inline-block;animation:wiggle 2.8s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes wiggle{0%,78%,100%{transform:rotate(0)}82%{transform:rotate(-10deg)}86%{transform:rotate(9deg)}90%{transform:rotate(-6deg)}94%{transform:rotate(3deg)}}
+.bob{animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bounce-in{animation:bouncein .6s var(--spring) both}
+@keyframes bouncein{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+.node{position:absolute;width:60px;height:56px;margin-left:-30px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;font:800 22px var(--f-display)}
+.node.done{background:#1F9A5B;color:#fff;box-shadow:0 5px 0 #157041}
+.node.now{width:74px;height:68px;margin-left:-37px;background:var(--yellow);color:var(--ink);box-shadow:0 6px 0 #C99A0A}
+.node.lock{background:#E6E6E0;color:#6B6B65;box-shadow:0 5px 0 #CFCFC8}
+.node-ring{position:absolute;width:92px;height:86px;margin:-9px 0 0 -46px;border-radius:50%;border:3px solid var(--yellow);animation:ringpulse 1.8s ease-out infinite}
+@keyframes ringpulse{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.2);opacity:0}}
+.medal{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:900 20px var(--f-display);color:var(--ink);box-shadow:0 4px 0 var(--edge),inset 0 0 0 4px rgba(255,255,255,.4)}
+.medal.locked{background:#ECECE7;color:#8A8A83;box-shadow:0 4px 0 #D6D6CF}
+.confetti{position:absolute;top:-24px;width:9px;height:15px;border-radius:2px;animation:fall 2.8s cubic-bezier(.25,.6,.4,1) both}
+@keyframes fall{from{transform:translateY(0) rotate(0)}to{transform:translateY(920px) rotate(760deg)}}
+
+.cstamp.locked{color:#BDBDB6;border-style:dashed;box-shadow:none;transform:none;background:transparent}
+.outline{color:transparent;-webkit-text-stroke:2px var(--ink)}
+.mark{width:32px;height:32px;border-radius:30%;background:var(--yellow);display:inline-flex;align-items:center;justify-content:center;font:800 21px/1 var(--f-body);letter-spacing:-.04em;color:var(--ink);flex-shrink:0;padding-bottom:.06em}
+.word{font:700 26px/1 'Fredoka',var(--f-body);letter-spacing:-.02em}
+.lulu{display:inline-block;flex-shrink:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:space-between;gap:var(--s4);height:56px;padding:0 6px 0 24px;border:0;border-radius:999px;background:var(--ink);color:#fff;font:600 16px var(--f-body);text-decoration:none;cursor:pointer;transition:transform .2s var(--ease)}
+.btn:hover{color:#fff}
+.btn .knob{width:44px;height:44px;border-radius:50%;background:var(--yellow);color:var(--ink);display:flex;align-items:center;justify-content:center;transition:transform .35s var(--spring)}
+.btn:hover .knob{transform:translateX(3px) rotate(-14deg)}
+.btn:active{transform:scale(.97)}
+.btn.y{background:var(--yellow);color:var(--ink)}.btn.y:hover{color:var(--ink)}.btn.y .knob{background:var(--ink);color:var(--yellow)}
+.btn.full{width:100%}
+.btn.sm{height:44px;padding:0 4px 0 16px;font-size:14px;gap:var(--s2)}.btn.sm .knob{width:36px;height:36px}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);height:56px;padding:0 24px;border-radius:999px;border:1.5px solid currentColor;background:transparent;color:var(--ink);font:600 16px var(--f-body);text-decoration:none;cursor:pointer}
+.ibtn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;cursor:pointer;flex-shrink:0;position:relative}
+.ibtn.dark{background:var(--ink-2);border-color:var(--ink-3);color:#fff}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2)}
+.ticket{position:relative;display:flex;border-radius:var(--r3);background:var(--card);box-shadow:0 1px 0 var(--line),0 18px 36px -26px rgba(22,22,21,.45)}
+.ticket.ink{background:var(--ink);color:#fff;box-shadow:0 22px 44px -24px rgba(22,22,21,.6)}
+.ticket.yel{background:var(--yellow)}
+.tk-main{flex:1;min-width:0;padding:var(--s5) var(--s5) var(--s4)}
+.tk-stub{width:72px;flex-shrink:0;border-left:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s4) 0}
+.ticket.ink .tk-stub{border-left-color:var(--ink-3)}
+.ticket.yel .tk-stub{border-left-color:rgba(22,22,21,.25)}
+.notch{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--paper);transform:translateX(-50%)}
+.notch.t{top:-10px}.notch.b{bottom:-10px}
+.vert{writing-mode:vertical-rl;transform:rotate(180deg)}
+
+.stamp{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:2.5px solid currentColor;border-radius:8px;font:600 12px var(--f-mono);letter-spacing:.18em;text-transform:uppercase;transform:rotate(-9deg);box-shadow:inset 0 0 0 2px var(--card),inset 0 0 0 3.5px currentColor;background:var(--card);white-space:nowrap}
+.stamp.kept{color:var(--green)}.stamp.lost{color:var(--orange)}.stamp.inkc{color:var(--ink)}
+.stamp.on-ink{background:var(--ink);box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 3.5px currentColor}
+.stamp.big{font-size:22px;padding:10px 18px;border-width:4px;border-radius:12px}
+.stamp.r2{transform:rotate(6deg)}
+
+.punch{display:flex;justify-content:space-between;align-items:flex-start}
+.punch .day{display:flex;flex-direction:column;align-items:center;gap:6px}
+.hole{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.hole.kept{background:var(--ink);color:var(--yellow);box-shadow:inset 0 3px 6px rgba(0,0,0,.45)}
+.hole.miss{background:var(--orange-soft);color:var(--orange)}
+.hole.now{background:var(--yellow);border:2px solid var(--ink);animation:pulse 1.8s ease-out infinite}
+.hole.next{border:1.5px dashed #C9C9C2}
+
+.fuse{position:relative;height:4px;border-radius:2px;background:var(--ink-3)}
+.fuse.light{background:var(--line)}
+.fuse-left{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--yellow);transform-origin:left;animation:burn 40s linear forwards}
+.fuse.light .fuse-left{background:var(--ink)}
+.spark{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 4px rgba(246,195,36,.3),0 0 18px 4px rgba(246,195,36,.55);animation:spark .6s ease-in-out infinite alternate}
+
+.seg{display:grid;gap:4px;padding:4px;border-radius:999px;background:#ECECE7}
+.seg button{height:40px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:600 14px var(--f-body);cursor:pointer;transition:background .25s var(--ease),color .25s}
+.seg button.on{background:var(--ink);color:#fff}
+
+.tile{display:flex;align-items:center;justify-content:center;border-radius:14px;flex-shrink:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font:500 11px var(--f-mono);letter-spacing:.12em;text-transform:uppercase}
+.field{height:56px;border-radius:var(--r2);border:1.5px solid var(--line);background:var(--card);padding:0 var(--s4);font:500 16px var(--f-body);color:var(--ink);outline:none;width:100%}
+.field:focus{border-color:var(--ink)}
+.label{font:500 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink);flex-shrink:0}
+.av.ring{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink)}
+.sw{width:48px;height:28px;border-radius:14px;border:0;padding:3px;cursor:pointer;display:flex;transition:background .25s}
+.sw span{width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .3s var(--spring)}
+.sw.on{background:var(--ink)}.sw.on span{transform:translateX(20px);background:var(--yellow)}
+.sw.off{background:#D6D6CF}
+
+.dock{position:absolute;left:var(--gutter);right:var(--gutter);bottom:20px;height:68px;border-radius:999px;background:var(--ink);display:flex;align-items:center;justify-content:space-around;padding:0 8px;box-shadow:0 18px 40px -16px rgba(22,22,21,.55);z-index:10}
+.dock a{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#A3A39C;text-decoration:none;transition:background .2s}
+.dock a.on{background:#fff;color:var(--ink)}
+.dock a.plus{width:62px;height:62px;border-radius:20px;background:var(--yellow);color:var(--ink);transform:translateY(-22px);box-shadow:0 0 0 6px var(--paper);transition:transform .35s var(--spring)}
+.dock a.plus:hover{transform:translateY(-25px)}
+
+.seal{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.seal svg{position:absolute;inset:0;width:100%;height:100%}
+.spin svg{animation:spin 16s linear infinite}
+
+.draw path{stroke-dasharray:700;stroke-dashoffset:700;animation:draw 1.8s var(--ease) forwards}
+.tape{position:absolute;top:-12px;left:50%;width:84px;height:24px;margin-left:-42px;background:rgba(246,195,36,.55);transform:rotate(-4deg)}
+
+.tilt-a{--rot:-6deg}.tilt-b{--rot:4deg}.tilt-c{--rot:-2deg}.tilt-d{--rot:7deg}.tilt-e{--rot:-11deg}
+.tilt{transform:rotate(var(--rot))}
+.rise{animation:rise .8s var(--ease) both}
+.riseT{animation:riseT .9s var(--ease) both}
+.pop{animation:pop .5s var(--spring) both}
+.float{animation:float 7s ease-in-out infinite}
+.float.slow{animation-duration:9s}
+.slam{animation:stamp .5s cubic-bezier(.5,0,.75,0) both}
+.thud{animation:riseT .9s var(--ease) .6s both,thud .4s ease-out 2.05s}
+.drop{transform:rotate(var(--rot,0deg))}
+.grow{transform-origin:bottom;animation:growY .9s var(--spring) both}
+.wipe{transform-origin:left;animation:wipe .7s var(--ease) both}
+.sheet-in{animation:sheet .6s var(--spring) both}
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}.d5{animation-delay:.5s}.d6{animation-delay:.6s}.d7{animation-delay:.7s}.d8{animation-delay:.8s}.d9{animation-delay:.9s}.d10{animation-delay:1s}.d12{animation-delay:1.2s}.d14{animation-delay:1.4s}.d16{animation-delay:1.6s}
+
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes riseT{from{opacity:0;transform:translateY(60px) rotate(calc(var(--rot,0deg) * -2))}to{opacity:1;transform:rotate(var(--rot,0deg))}}
+@keyframes pop{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-12px) rotate(calc(var(--rot,0deg) + 1.5deg))}}
+@keyframes stamp{0%{opacity:0;transform:rotate(-9deg) scale(2.8)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes thud{0%,100%{transform:rotate(var(--rot,0deg))}30%{transform:translate(2px,4px) rotate(calc(var(--rot,0deg) - .8deg))}65%{transform:translate(-1px,-1px) rotate(var(--rot,0deg))}}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes wipe{from{transform:scaleX(0) rotate(-1.5deg)}to{transform:scaleX(1) rotate(-1.5deg)}}
+@keyframes sheet{from{transform:translateY(60%);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes spark{from{transform:scale(.85)}to{transform:scale(1.25)}}
+@keyframes burn{from{transform:scaleX(1)}to{transform:scaleX(.96)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(246,195,36,.8)}100%{box-shadow:0 0 0 14px rgba(246,195,36,0)}}
+@keyframes ticker{to{transform:translateX(-50%)}}
+@keyframes scan{0%{top:6%}50%{top:90%}100%{top:6%}}
+@keyframes drop{from{opacity:0;transform:translateY(-80px) rotate(calc(var(--rot,0deg) * 3))}to{opacity:1;transform:rotate(var(--rot,0deg))}}
+
+@supports (animation-timeline: view()){
+  .reveal{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
+  .drop{animation:drop linear both;animation-timeline:view();animation-range:entry 0% entry 70%}
+  .draw-view path{stroke-dasharray:700;stroke-dashoffset:700;animation:draw linear forwards;animation-timeline:view();animation-range:entry 30% cover 50%}
+}
+/* App screens: calm. Drama lives on the landing page only. */
+.app [class*="tilt-"]{--rot:0deg}
+.app .rise,.app .riseT,.app .pop,.app .thud{animation:fade .35s ease both}
+.app .slam,.app .grow,.app .wipe,.app .spin svg{animation:none}
+.app .slam.hero{animation:stamp .45s cubic-bezier(.5,0,.75,0) .4s both}
+.app .ticket{box-shadow:0 0 0 1px var(--line)}
+.app .ticket.ink,.app .ticket.yel{box-shadow:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .draw path,.draw-view path{stroke-dashoffset:0 !important}
+}
+</style>
+</helmet>
+<div class="app" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--paper); color: var(--ink); font-family: var(--f-body)">
+
+<div style="padding: var(--s4) var(--gutter) 0; display: flex; align-items: center; gap: 8px">
+  <a href="Profile.dc.html" aria-label="Profile" style="text-decoration: none"><span class="av" style="width: 42px; height: 42px; background: var(--green-soft); font-size: 15px">S</span></a>
+  <span style="flex: 1"></span>
+  <span class="hud" aria-label="3 day streak"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg>3</span>
+  <span class="hud" aria-label="300 points"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#2F6BE0" stroke="#2F6BE0" stroke-width="1.5" stroke-linejoin="round"></path></svg>300</span>
+  <a href="Notifications.dc.html" class="hud" aria-label="Notifications" style="padding: 0 9px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></a>
+</div>
+<div style="padding: var(--s5) var(--gutter) 0"><h1 class="title rise">Rewards</h1></div>
+<div style="padding: var(--s4) var(--gutter) 0">
+  <div class="gcard rise d1" style="padding: 16px; display: flex; align-items: center; gap: 14px">
+    <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#2F6BE0" stroke="#2F6BE0" stroke-width="1.5" stroke-linejoin="round"></path></svg>
+    <div style="flex: 1"><div class="disp" style="font-size: 40px; line-height: 1">300 pts</div><div class="mono muted" style="font-size: 10px; margin-top: 4px">3 proofs · 100 each</div></div>
+  </div>
+</div>
+<div style="padding: var(--s4) var(--gutter) 0"><div class="rise d2" style="position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; border-radius: 20px; background: #EEF4FF; border: 2px solid #B5CBF5; box-shadow: 0 4px 0 #B5CBF5">
+    <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 54 12v18c0 15-9.5 25-22 30C19.5 55 10 45 10 30V12z" fill="#2F6BE0" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><path d="M32 11 47 16.5v13.5c0 10.5-6.4 18-15 21.8z" fill="#5A8BEB"></path><circle cx="32" cy="26" r="7" fill="#fff" stroke="#161615" stroke-width="2.6"></circle><path d="M20.5 44a12 12 0 0 1 23 0" fill="#fff" stroke="#161615" stroke-width="2.6" stroke-linecap="round"></path><circle cx="48" cy="48" r="10" fill="#1F9A5B" stroke="#161615" stroke-width="2.6"></circle><path d="M43.5 48l3 3 6-6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <div style="flex: 1; min-width: 0"><div style="font-weight: 800">Earn 10× points</div><div class="mono" style="font-size: 10px; color: #2F6BE0; margin-top: 3px">2,700 bonus pts waiting</div></div>
+    <a href="Verify.dc.html" class="gbtn blue sm">Verify</a>
+  </div></div>
+<div style="padding: var(--s5) var(--gutter) 0; display: flex; flex-direction: column; gap: 10px">
+  <span class="label">Unlocks with verification</span>
+  <a href="Verify.dc.html" class="gcard rise d3" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink)"><span style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="28" width="48" height="28" rx="6" fill="#E6E6E0" stroke="#9A9A93" stroke-width="3"></rect><path d="M6 30v-8a10 10 0 0 1 10-10h32a10 10 0 0 1 10 10v8z" fill="#EFEFEA" stroke="#9A9A93" stroke-width="3" stroke-linejoin="round"></path><rect x="28" y="12" width="8" height="44" fill="#9A9A93"></rect><rect x="24" y="30" width="16" height="12" rx="3" fill="#fff" stroke="#9A9A93" stroke-width="3"></rect></svg><span style="position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></span><div style="flex: 1"><div style="font-weight: 700">Daily G$</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">Free every day</div></div><span class="gbtn blue sm">Verify</span></a>
+  <a href="Verify.dc.html" class="gcard rise d4" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink)"><span style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F6C324" stroke="#C99A0A" stroke-width="2"></circle><circle cx="12" cy="12" r="6.3" fill="none" stroke="#C99A0A" stroke-width="1.5"></circle><path d="M14.2 9.6a3 3 0 1 0 .3 4.1V12h-2" fill="none" stroke="#7A5A00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></span><div style="flex: 1"><div style="font-weight: 700">Proof rewards</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">3 waiting</div></div><span class="gbtn blue sm">Verify</span></a>
+  <a href="Verify.dc.html" class="gcard rise d5" style="padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink)"><span style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 8h28v14a14 14 0 0 1-28 0z" fill="#F6C324" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><path d="M18 13H9v4a9 9 0 0 0 9 9M46 13h9v4a9 9 0 0 1-9 9" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M32 36v10" stroke="#161615" stroke-width="3"></path><rect x="20" y="46" width="24" height="10" rx="3" fill="#FBD65A" stroke="#161615" stroke-width="3"></rect><path d="M27 18l3 3 6-6" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></span><div style="flex: 1"><div style="font-weight: 700">Campaign prizes</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">Join pools with real G$</div></div><span class="gbtn blue sm">Verify</span></a>
+</div>
+<nav aria-label="Main" class="dock"><a href="Home.dc.html" aria-label="Home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg></a><a href="Campaigns.dc.html" aria-label="Campaigns"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2 5-5 2 2-5z"></path></svg></a><a href="CreateForfeit.dc.html" class="plus" aria-label="New contract"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></a><a href="Rewards.dc.html" class="on" aria-current="page" aria-label="Rewards"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"></path></svg></a><a href="Profile.dc.html" aria-label="Profile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></a></nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
