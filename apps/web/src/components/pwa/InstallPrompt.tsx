@@ -45,7 +45,7 @@ export function InstallPrompt() {
   };
 
   // The landing page has its own install sheet; the create flow stays uncluttered.
-  if (dismissed || standalone || pathname === "/" || pathname === "/forfeit") return null;
+  if (dismissed || standalone || ["/", "/forfeit", "/sign-in", "/welcome"].includes(pathname ?? "")) return null;
   if (!canPrompt && !iosSafari) return null;
 
   return (
