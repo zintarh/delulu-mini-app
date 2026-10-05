@@ -18,7 +18,7 @@ export function DeluluDetailHeader({
       <div className="lg:hidden sticky top-0 z-30 bg-background/95 backdrop-blur-md">
         <div className="flex items-center gap-2 px-4 py-3">
           <Link
-            href="/"
+            href="/home"
             className="outline-none focus-visible:ring-2 focus-visible:ring-ring rounded flex items-center shrink-0"
             aria-label="Delulu home"
           >

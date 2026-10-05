@@ -105,7 +105,7 @@ export function usePostAuthRoute() {
   };
 
   const redirectTarget = useMemo(
-    () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/",
+    () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/home",
     [searchParams],
   );
 
@@ -132,7 +132,7 @@ export function usePostAuthRoute() {
 
       const referral = peekCommunityReferral();
       let target = redirectTarget;
-      if (referral && (target === "/" || !target.startsWith("/join/"))) {
+      if (referral && (target === "/home" || !target.startsWith("/join/"))) {
         target = `/join/${referral}`;
       }
 

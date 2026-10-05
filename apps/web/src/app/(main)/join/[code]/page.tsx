@@ -133,7 +133,7 @@ export default function JoinCommunityPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.replace("/")}
+              onClick={() => router.replace("/home")}
               className="text-xs font-semibold text-muted-foreground"
             >
               Go home

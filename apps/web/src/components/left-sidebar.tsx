@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
 import {
+  APP_HOME,
   getMainNavItems,
   getProfileNavItem,
   getRewardsNavItem,
@@ -31,7 +32,7 @@ function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) 
     <Icon
       className={cn(
         "h-7 w-7 transition-colors",
-        active ? "text-delulu-blue" : "text-primary",
+        active ? "text-ink" : "text-muted-foreground",
       )}
       strokeWidth={active ? 2.25 : 2}
       fill="none"
@@ -52,13 +53,13 @@ export function LeftSidebar() {
   const { unreadCount } = useNotificationCount();
 
   useEffect(() => {
-    ["/", "/rewards", "/explore", "/forfeit", "/profile", "/leaderboard"].forEach(
+    [APP_HOME, "/rewards", "/explore", "/forfeit", "/profile", "/leaderboard"].forEach(
       (href) => router.prefetch(href),
     );
   }, [router]);
 
   const path = normalizePathname(pathname ?? "");
-  const isHomeRoute = segment === null && path === "/";
+  const isHomeRoute = path === APP_HOME;
   const navItems = getMainNavItems(authenticated);
   const rewardsItem = getRewardsNavItem();
   const profileItem = getProfileNavItem(authenticated);
@@ -81,17 +82,17 @@ export function LeftSidebar() {
 
   const itemCls = (active: boolean) =>
     cn(
-      "flex items-center justify-center w-14 h-14 rounded-xl border border-transparent transition-all",
+      "flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all",
       active
-        ? "border-delulu-blue-border bg-delulu-blue-light"
-        : "hover:bg-secondary/80",
+        ? "border-yellow-line bg-yellow-soft shadow-edge-yellow-line"
+        : "border-transparent hover:bg-secondary/80",
     );
 
   return (
-    <aside className="relative z-30 flex h-full w-24 flex-col items-center bg-white py-6 shadow-[4px_0_16px_-12px_rgba(26,26,25,0.08)] dark:bg-card">
+    <aside className="relative z-30 flex h-full w-24 flex-col items-center border-r-2 border-line bg-white py-6">
       <div className="mb-8">
         <Link
-          href="/"
+          href={APP_HOME}
           aria-label="Delulu home"
           className="flex h-14 w-14 items-center justify-center"
           onClick={() => closePanels()}
@@ -140,7 +141,7 @@ export function LeftSidebar() {
                   <span className="relative">
                     <NavIcon icon={icon} active={active} />
                     {showBadge && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-orange text-white text-[10px] font-bold flex items-center justify-center leading-none">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}

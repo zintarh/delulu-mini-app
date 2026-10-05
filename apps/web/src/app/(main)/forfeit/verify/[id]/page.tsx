@@ -197,7 +197,7 @@ export default function ForfeitVerifyPage() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
         <XCircle className="h-10 w-10 text-destructive" />
         <p className="text-sm font-semibold text-foreground">{loadError ?? "Commitment not found"}</p>
-        <Link href="/" className="text-xs font-semibold text-delulu-blue">
+        <Link href="/home" className="text-xs font-semibold text-delulu-blue">
           Go home
         </Link>
       </main>
@@ -224,7 +224,7 @@ export default function ForfeitVerifyPage() {
         <div className="mx-auto flex w-full max-w-xl flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
         <button
           type="button"
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/home"))}
           aria-label="Go back"
           className="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
         >

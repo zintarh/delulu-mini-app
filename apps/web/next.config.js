@@ -69,7 +69,15 @@ const nextConfig = {
     ];
   },
   async redirects() {
-    return [{ source: "/market", destination: "/dashboard", permanent: false }];
+    return [
+      { source: "/market", destination: "/dashboard", permanent: false },
+      // Redesign: joining communities is removed from the app. Campaign
+      // detail pages under /communities/:slug/campaigns/:id stay reachable.
+      { source: "/communities", destination: "/explore", permanent: false },
+      { source: "/communities/joined", destination: "/explore", permanent: false },
+      { source: "/communities/:slug", destination: "/explore", permanent: false },
+      { source: "/join/:code", destination: "/explore", permanent: false },
+    ];
   },
   transpilePackages: ["@repo/ui"],
   experimental: {

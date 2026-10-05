@@ -1117,7 +1117,7 @@ export function CreateManifestStep({
         durationDays={manifestedDurationDays}
         onDone={() => {
           setShowMilestonesModal(false);
-          router.push("/");
+          router.push("/home");
         }}
       />
 

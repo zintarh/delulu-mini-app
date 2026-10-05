@@ -54,7 +54,7 @@ export default function BoardPage() {
       <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col lg:max-w-4xl">
         <CreateDelusionContent
           layout="main"
-          onClose={() => router.push("/")}
+          onClose={() => router.push("/home")}
         />
       </div>
     </main>

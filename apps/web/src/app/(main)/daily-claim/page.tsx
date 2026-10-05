@@ -18,7 +18,7 @@ export default function DailyClaimPage() {
     } else {
       open();
     }
-    router.replace("/");
+    router.replace("/home");
   }, [open, openForWhitelist, router, searchParams]);
 
   return null;

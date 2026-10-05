@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Delulu",
     description:
       "Build habits you can't skip. Put your word or a little money on it and prove it daily.",
-    start_url: "/",
+    start_url: "/home",
     scope: "/",
     display: "standalone",
     background_color: "#f7f7f4",

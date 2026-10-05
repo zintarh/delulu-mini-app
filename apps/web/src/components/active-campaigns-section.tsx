@@ -169,7 +169,7 @@ export function ActiveCampaignsSection({
             {heading ? <p className={FEED_CARD_EYEBROW_CLASS}>{heading}</p> : null}
             {showSeeAllLink && (
               <Link
-                href="/communities/joined"
+                href="/explore"
                 className="text-[11px] font-semibold text-delulu-blue hover:underline"
               >
                 {all.length} active →
@@ -223,7 +223,7 @@ export function ActiveCampaignsSection({
 
         {hiddenCount > 0 && (
           <Link
-            href="/communities/joined"
+            href="/explore"
             className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-border/50 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
           >
             +{hiddenCount} more campaign{hiddenCount !== 1 ? "s" : ""} →

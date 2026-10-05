@@ -215,7 +215,7 @@ function DreamersEmptyState({
           Create a Delulu
         </button>
         <Link
-          href="/"
+          href="/home"
           className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80"
         >
           Browse feed
@@ -882,7 +882,7 @@ export default function LeaderboardPage() {
       <header className="border-b border-border/40 bg-background">
         <div className="mx-auto max-w-5xl px-4 py-4 lg:px-8 lg:py-5">
           <Link
-            href="/"
+            href="/home"
             className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />

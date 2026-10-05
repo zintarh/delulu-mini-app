@@ -73,8 +73,8 @@ export default function WelcomePage() {
   useEffect(() => {
     if (!alreadyOnboarded) return;
     const referral = peekCommunityReferral();
-    const redirect = consumeSignInRedirect() ?? "/";
-    if (referral && (redirect === "/" || !redirect.startsWith("/join/"))) {
+    const redirect = consumeSignInRedirect() ?? "/home";
+    if (referral && (redirect === "/home" || !redirect.startsWith("/join/"))) {
       router.replace(`/join/${referral}`);
     } else {
       router.replace(redirect);
@@ -166,11 +166,11 @@ export default function WelcomePage() {
 
       // onboarded_at is already recorded right after the profile step —
       // this screen only handles the optional community join from here.
-      const redirect = consumeSignInRedirect() ?? "/";
+      const redirect = consumeSignInRedirect() ?? "/home";
       if (joinedSlug) {
         router.replace(`/communities/${joinedSlug}`);
       } else if (redirect.startsWith("/join/") && joinCommunity) {
-        router.replace("/");
+        router.replace("/home");
       } else {
         router.replace(redirect);
       }

@@ -131,7 +131,7 @@ export default function StreaksPage() {
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
         <div className="mx-auto max-w-2xl px-4 py-4 lg:px-8 lg:py-5">
           <Link
-            href="/"
+            href="/home"
             className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />

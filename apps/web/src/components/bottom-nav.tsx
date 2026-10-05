@@ -6,8 +6,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
-import { useNotificationCount } from "@/contexts/notification-count-context";
 import {
+  APP_HOME,
   getMobileBottomNavItems,
   isMainNavItemActive,
   normalizePathname,
@@ -19,128 +19,82 @@ interface BottomNavProps {
   onProfileClick?: () => void;
 }
 
+/**
+ * Floating ink dock (redesign). Icon-only items; the centre "New contract"
+ * item is a raised yellow tile. Height is mirrored by the
+ * --mobile-bottom-nav-* vars in globals.css.
+ */
 export function BottomNav(_props: BottomNavProps = {}) {
   const pathname = usePathname();
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
   const { authenticated } = useAuth();
-  const { isOpen: notificationsOpen, toggle: toggleNotifications, close: closePanels } =
-    useNotificationsPanel();
-  const { unreadCount } = useNotificationCount();
+  const { isOpen: notificationsOpen, close: closePanels } = useNotificationsPanel();
 
   const navItems = getMobileBottomNavItems(authenticated);
   const path = normalizePathname(pathname ?? "");
-  const isHomeRoute = segment === null && path === "/";
+  const isHomeRoute = path === APP_HOME || (segment === "home" && path.startsWith(APP_HOME));
 
   useEffect(() => {
-    ["/", "/rewards", "/explore", "/forfeit", "/profile"].forEach((href) =>
-      router.prefetch(href),
-    );
+    [APP_HOME, "/rewards", "/explore", "/forfeit", "/profile"].forEach((href) => router.prefetch(href));
   }, [router]);
 
-  const activeOptions = {
-    isHomeRoute,
-    notificationsOpen,
-    layoutSegment: segment,
-  };
+  const activeOptions = { isHomeRoute, notificationsOpen, layoutSegment: segment };
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-md shadow-[0_-6px_20px_rgba(26,26,25,0.06)]"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
+      className="fixed inset-x-4 z-50 flex h-[68px] items-center justify-around rounded-full bg-ink px-2 shadow-[0_18px_40px_-16px_rgba(22,22,21,0.55)] lg:hidden"
+      style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}
       aria-label="Main navigation"
     >
-        <div className="flex items-center justify-around h-14 px-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = isMainNavItemActive(item, path, activeOptions);
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = isMainNavItemActive(item, path, activeOptions);
+        const isCreate = item.action === "forfeit";
 
-            const showBadge = item.action === "notifications" && unreadCount > 0;
-
-            const content = (
-              <span className="flex flex-col items-center gap-0.5 py-1 min-w-[52px] max-w-[72px]">
-                <span className="relative">
-                  <Icon
-                    className={cn(
-                      "w-6 h-6 flex-shrink-0 transition-colors",
-                      isActive ? "text-foreground" : "text-muted-foreground",
-                    )}
-                    strokeWidth={2}
-                  />
-                  {showBadge && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "text-[10px] font-medium leading-tight truncate w-full text-center",
-                    isActive ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {item.label}
-                </span>
-              </span>
+        const cls = isCreate
+          ? "-translate-y-[22px] active:scale-95 transition-transform flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-yellow text-ink shadow-[0_0_0_6px_#f7f7f4]"
+          : cn(
+              "flex h-12 w-12 items-center justify-center rounded-full transition-colors touch-manipulation",
+              isActive ? "bg-white text-ink" : "text-[#a3a39c] hover:text-white",
             );
 
-            const itemClass = cn(
-              "flex flex-1 items-center justify-center rounded-lg transition-colors touch-manipulation min-w-0",
-              isActive ? "bg-secondary/80" : "hover:bg-muted/60 active:bg-muted",
-            );
+        const icon = <Icon className={isCreate ? "h-7 w-7" : "h-[22px] w-[22px]"} strokeWidth={isCreate ? 2.6 : 2.2} />;
 
-            if (item.href) {
-              return (
-                <Link
-                  key={item.action}
-                  href={item.href}
-                  onClick={() => closePanels()}
-                  onMouseEnter={() => router.prefetch(item.href!)}
-                  onTouchStart={() => router.prefetch(item.href!)}
-                  className={itemClass}
-                  aria-current={isActive ? "page" : undefined}
-                  aria-label={item.label}
-                >
-                  {content}
-                </Link>
-              );
-            }
+        if (item.href) {
+          return (
+            <Link
+              key={item.action}
+              href={item.href}
+              onClick={() => closePanels()}
+              onTouchStart={() => router.prefetch(item.href!)}
+              className={cls}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={item.label}
+            >
+              {icon}
+            </Link>
+          );
+        }
 
-            if (!authenticated) {
-              return (
-                <button
-                  key={item.action}
-                  type="button"
-                  onClick={() => {
-                    preloadAuthProviders();
-                    router.push("/sign-in");
-                  }}
-                  className={itemClass}
-                  aria-label={item.label}
-                >
-                  {content}
-                </button>
-              );
-            }
-
-            if (item.action === "notifications") {
-              return (
-                <button
-                  key={item.action}
-                  type="button"
-                  onClick={toggleNotifications}
-                  className={itemClass}
-                  aria-label={item.label}
-                  aria-expanded={notificationsOpen}
-                >
-                  {content}
-                </button>
-              );
-            }
-
-            return null;
-          })}
-        </div>
-      </nav>
+        if (!authenticated) {
+          return (
+            <button
+              key={item.action}
+              type="button"
+              onClick={() => {
+                preloadAuthProviders();
+                router.push("/sign-in");
+              }}
+              className={cls}
+              aria-label={item.label}
+            >
+              {icon}
+            </button>
+          );
+        }
+        return null;
+      })}
+    </nav>
   );
 }
