@@ -95,7 +95,6 @@ const nextConfig = {
       "@tanstack/react-query",
       "@radix-ui/react-dialog",
       "@radix-ui/react-select",
-      "@radix-ui/react-slider",
       "react-textarea-autosize",
       "@web3auth/modal",
     ],
