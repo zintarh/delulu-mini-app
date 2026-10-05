@@ -12,6 +12,7 @@ import {
   Loader2,
   Send as SendIcon,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 
 import { formatUnits } from "viem";
@@ -29,6 +30,8 @@ import { TokenBadge } from "@/components/token-badge";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
 import { MainPage } from "@/components/main-app-header";
+import { Chest, Coin, GameButton, GameCard, Segmented } from "@/components/ds";
+import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import {
   CELO_MAINNET_ID,
   CUSD_ADDRESSES,
@@ -63,7 +66,6 @@ function forfeitDestinationLabel(type: number | null): string {
   }
 }
 
-const CLASH_DISPLAY = { fontFamily: 'var(--font-display), sans-serif' } as const;
 const MANROPE = { fontFamily: "var(--font-body)" } as const;
 
 type WalletTab = "tokens" | "claims" | "activity";
@@ -316,155 +318,99 @@ export default function RewardsPage() {
   return (
     <>
       <MainPage>
-        <div className="mx-auto w-full max-w-6xl">
-        <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
-          {/* Hero — claimable rewards first, balance secondary */}
-          <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-delulu-yellow-reserved/25 via-background to-background px-5 py-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,195,36,0.3),transparent_55%)] pointer-events-none" />
-            <div className="relative">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                style={MANROPE}
-              >
-                Total balance
-              </p>
-              <div className="mt-2 flex items-end gap-1">
-                <span
+        <div className="mx-auto w-full">
+        <div className="mx-auto flex max-w-xl flex-col gap-5 px-5 pb-10 pt-2 lg:pt-6">
+          <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">Rewards</h1>
+
+          {/* Balance */}
+          <GameCard className="p-4">
+            <div className="flex items-center gap-3.5">
+              <span className="animate-bounce-in">
+                <Coin size={52} />
+              </span>
+              <div className="min-w-0">
+                <div className="label-mono text-[10px] text-muted-foreground">Total balance</div>
+                <div
                   className={cn(
-                    "pb-1 text-2xl font-black leading-none",
-                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
+                    "font-display text-[40px] font-extrabold leading-none tabular-nums",
+                    !hasAnyUsdValue && "text-muted-foreground",
                   )}
-                  style={CLASH_DISPLAY}
-                >
-                  $
-                </span>
-                <span
-                  className={cn(
-                    "text-4xl font-black tabular-nums leading-none",
-                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
-                  )}
-                  style={CLASH_DISPLAY}
                 >
                   {!balancesLoaded
                     ? "—"
-                    : `${isTotalPartial ? "≈ " : ""}${totalUsd.toLocaleString(undefined, {
+                    : `${isTotalPartial ? "≈ " : ""}$${totalUsd.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}`}
-                </span>
-                <span className="pb-1 text-sm font-bold text-muted-foreground">USDT</span>
-              </div>
-              {gdError ? (
-                <p className="mt-1 text-[11px] font-medium text-destructive">
-                  Couldn&apos;t load your balance — check your connection and try again.
-                </p>
-              ) : null}
-
-              <div className="mt-3 flex items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2">
-                <TokenBadge
-                  tokenAddress={primaryPending?.token ?? GOODDOLLAR_ADDRESSES.mainnet}
-                  size="sm"
-                  showText={false}
-                />
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                    style={MANROPE}
-                  >
-                    Ready to claim
-                  </p>
-                  <p
-                    className={cn(
-                      "text-sm font-bold tabular-nums",
-                      hasAdminPending ? "text-foreground" : "text-muted-foreground",
-                    )}
-                    style={MANROPE}
-                  >
-                    {isLoadingAdminRewards
-                      ? "—"
-                      : primaryPending
-                        ? `${primaryPending.amount.toLocaleString(undefined, {
-                            maximumFractionDigits: 4,
-                          })} ${primaryPending.symbol}`
-                        : "0 G$"}
-                    {secondaryPending.length > 0
-                      ? ` + ${secondaryPending.map((r) => r.display).join(" + ")}`
-                      : ""}
-                  </p>
                 </div>
+                {gdError ? (
+                  <p className="mt-1 text-[11px] font-semibold text-orange">Couldn&apos;t load your balance. Try again.</p>
+                ) : null}
               </div>
-
-              <div className="mt-5 flex gap-2.5">
-                <button
-                  type="button"
-                  disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
-                  onClick={() => {
-                    setSendOpen(false);
-                    // Confetti fires inside claimAll on the first mined success.
-                    void claimAllAdminRewards();
-                  }}
-                  className={cn(
-                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black text-white transition-all",
-                    REWARD_CLAIM_ENABLED && hasAdminPending && !isClaimingAdmin
-                      ? "bg-delulu-blue active:scale-[0.98] hover:opacity-90"
-                      : "bg-delulu-blue/40 cursor-not-allowed",
-                  )}
-                >
-                  {isClaimingAdmin ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Gift className="h-4 w-4" />
-                  )}
-                  Claim
-                </button>
-                <button
-                  type="button"
-                  disabled={balancesLoaded && !hasSendableBalance}
-                  onClick={() => setSendOpen(true)}
-                  className={cn(
-                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-border text-sm font-black transition-all",
-                    balancesLoaded && !hasSendableBalance
-                      ? "cursor-not-allowed bg-muted/40 text-muted-foreground"
-                      : "bg-background text-foreground active:scale-[0.98] hover:bg-muted",
-                  )}
-                >
-                  <SendIcon className="h-4 w-4" />
-                  Send
-                </button>
-              </div>
-              {adminClaimError ? (
-                <p className="mt-2 text-[11px] font-medium text-destructive">{adminClaimError}</p>
-              ) : isLoadingAdminRewards ? (
-                <p className="mt-2 text-[11px] text-muted-foreground" style={MANROPE}>
-                  Checking for team rewards…
-                </p>
-              ) : null}
             </div>
-          </section>
-
-          {/* Tokens / Claims / Activity tabs */}
-          <div className="flex items-center gap-4">
-            {WALLET_TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveTab(id)}
-                className={cn(
-                  "border-b pb-1 text-sm font-semibold tracking-wide transition-colors",
-                  activeTab === id
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-                style={MANROPE}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <GameButton
+                variant="line"
+                size="sm"
+                disabled={balancesLoaded && !hasSendableBalance}
+                onClick={() => setSendOpen(true)}
               >
-                {label}
-              </button>
-            ))}
-          </div>
+                <SendIcon className="h-4 w-4" strokeWidth={2.4} />
+                Send
+              </GameButton>
+              <GameButton variant="line" size="sm" onClick={() => setActiveTab("tokens")}>
+                <Wallet className="h-4 w-4" strokeWidth={2.4} />
+                Tokens
+              </GameButton>
+            </div>
+          </GameCard>
+
+          {/* Free daily money (GoodDollar UBI) */}
+          <DailyMoneyCard />
+
+          {/* Team rewards ready to claim */}
+          <GameCard tone={hasAdminPending ? "green" : "default"} className="flex items-center gap-3 px-3.5 py-3">
+            <span className={cn("inline-block", hasAdminPending && "animate-wiggle")}>
+              <Chest size={44} grey={!hasAdminPending} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-bold">Rewards to claim</div>
+              <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">
+                {isLoadingAdminRewards
+                  ? "Checking…"
+                  : primaryPending
+                    ? `${primaryPending.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${primaryPending.symbol}${
+                        secondaryPending.length > 0 ? ` + ${secondaryPending.map((r) => r.display).join(" + ")}` : ""
+                      }`
+                    : "Nothing yet"}
+              </div>
+            </div>
+            <GameButton
+              variant="green"
+              size="sm"
+              disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
+              onClick={() => {
+                setSendOpen(false);
+                // Confetti fires inside claimAll on the first mined success.
+                void claimAllAdminRewards();
+              }}
+            >
+              {isClaimingAdmin ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Claim
+            </GameButton>
+          </GameCard>
+          {adminClaimError ? <p className="-mt-4 text-[11px] font-semibold text-orange">{adminClaimError}</p> : null}
+
+          <Segmented<WalletTab>
+            ariaLabel="Wallet sections"
+            value={activeTab}
+            onChange={setActiveTab}
+            options={WALLET_TABS.map(({ id, label }) => ({ value: id, label }))}
+          />
 
           {activeTab === "tokens" ? (
             <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+              <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
                 <div className="divide-y divide-border/40">
                   <TokenListRow
                     tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
@@ -507,7 +453,7 @@ export default function RewardsPage() {
             </section>
           ) : (
             <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+              <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
                 {isLoadingActivity && activityItems.length === 0 ? (
                   <div className="divide-y divide-border/40">
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -632,16 +578,16 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       href={`https://celoscan.io/tx/${item.txHash}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40"
+      className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-paper"
     >
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
           item.kind === "team_reward"
-            ? "bg-amber-500/10 text-amber-600"
+            ? "bg-yellow-soft text-ink"
             : item.kind === "forfeit_sent"
-              ? "bg-red-500/10 text-red-600"
-              : "bg-emerald-500/10 text-emerald-600",
+              ? "bg-orange-soft text-orange"
+              : "bg-green-soft text-green-edge",
         )}
       >
         {item.kind === "team_reward" ? (
@@ -669,7 +615,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
         <span
           className={cn(
             "text-sm font-bold tabular-nums",
-            item.kind === "forfeit_sent" ? "text-red-600" : "text-emerald-600",
+            item.kind === "forfeit_sent" ? "text-orange" : "text-green-edge",
           )}
         >
           {item.amountLabel}

@@ -124,7 +124,7 @@ function CampaignClaimRow({
 
   return (
     <div className="flex items-start gap-3 px-4 py-3.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-delulu-blue/10 text-delulu-blue">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-tint text-blue">
         <Trophy className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -146,7 +146,7 @@ function CampaignClaimRow({
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
       {isClaimed ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600">
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-soft px-3.5 py-2 text-xs font-bold text-green-edge">
           <Check className="h-3.5 w-3.5" />
           Claimed
         </span>
@@ -156,7 +156,7 @@ function CampaignClaimRow({
           onClick={() => void handleClaim()}
           disabled={busy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground",
+            "press-edge inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-yellow px-3.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-ink shadow-edge-yellow",
             "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
@@ -205,7 +205,7 @@ function StakeReclaimRow({
 
   return (
     <div className="flex items-start gap-3 px-4 py-3.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-green-soft text-green-edge">
         <Wallet className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -218,7 +218,7 @@ function StakeReclaimRow({
           {formatStakeDisplay(item.netAmountWei, item.tokenAddress)} {item.tokenSymbol}
         </p>
         {item.missedMilestones > 0 ? (
-          <p className="mt-0.5 text-[11px] font-medium text-amber-600" style={MANROPE}>
+          <p className="mt-0.5 text-[11px] font-medium text-orange" style={MANROPE}>
             Missed {item.missedMilestones}/{item.totalMilestones} milestone
             {item.missedMilestones === 1 ? "" : "s"} · original stake{" "}
             {formatStakeDisplay(item.amountWei, item.tokenAddress)} {item.tokenSymbol}
@@ -240,7 +240,7 @@ function StakeReclaimRow({
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
       {isClaimed ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600">
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-soft px-3.5 py-2 text-xs font-bold text-green-edge">
           <Check className="h-3.5 w-3.5" />
           Reclaimed
         </span>
@@ -250,7 +250,7 @@ function StakeReclaimRow({
           onClick={() => void handleClaim()}
           disabled={busy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground",
+            "press-edge inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-yellow px-3.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-ink shadow-edge-yellow",
             "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
@@ -303,7 +303,7 @@ function FriendRewardRow({
 
   return (
     <div className="flex items-start gap-3 px-4 py-3.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-delulu-yellow-reserved/15 text-primary">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-yellow-soft text-ink">
         <HeartHandshake className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -316,7 +316,7 @@ function FriendRewardRow({
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
       {isClaimed ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600">
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-soft px-3.5 py-2 text-xs font-bold text-green-edge">
           <Check className="h-3.5 w-3.5" />
           Claimed
         </span>
@@ -326,7 +326,7 @@ function FriendRewardRow({
           onClick={() => void handleClaim()}
           disabled={busy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground",
+            "press-edge inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-yellow px-3.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-ink shadow-edge-yellow",
             "transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
@@ -380,7 +380,7 @@ function FriendRewardsSection({ address }: { address: `0x${string}` }) {
           Stakes forfeited to you by a friend
         </p>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+      <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
         <div className="divide-y divide-border/40">
           {rows.map((row) => (
             <FriendRewardRow
@@ -441,7 +441,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
   }, [load]);
 
   const campaignClaimsContent = loading ? (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+    <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
       <div className="divide-y divide-border/40">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3.5">
@@ -456,7 +456,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
       </div>
     </div>
   ) : error ? (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm px-6 py-10 text-center">
+    <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge px-6 py-10 text-center">
       <p className="text-sm font-semibold text-foreground">Couldn&apos;t load claims</p>
       <p className="mt-1 text-xs text-muted-foreground">{error}</p>
       <button
@@ -468,7 +468,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
       </button>
     </div>
   ) : prizeItems.length === 0 && stakeItems.length === 0 ? (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+    <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
       <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60">
           <Sparkles className="h-5 w-5 text-muted-foreground" />
@@ -496,7 +496,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
               Prizes from campaigns you placed in
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+          <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
             <div className="divide-y divide-border/40">
               {prizeItems.map((item) => (
                 <CampaignClaimRow
@@ -524,7 +524,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
               Join stakes returned after a campaign ended
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+          <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
             <div className="divide-y divide-border/40">
               {stakeItems.map((item) => (
                 <StakeReclaimRow
