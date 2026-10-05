@@ -1,44 +1,36 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
-import { Loader2, ArrowRight, Camera, ArrowLeft, Copy, Check } from "lucide-react";
+import { Loader2, ArrowRight, Camera, Copy, Check, Plus } from "lucide-react";
+import { Wordmark } from "@/components/wordmark";
+import { Lulu, gameButtonClass } from "@/components/ds";
 import { cn, formatAddress } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import {
   consumeCommunityReferral,
   consumeSignInRedirect,
-  peekCommunityReferral,
   peekReferralCode,
   consumeReferralCode,
 } from "@/lib/auth-redirect";
 import { getEmailValidationMessage } from "@/lib/email-validation";
-
-type WizardStep = "profile" | "community";
 
 export default function WelcomePage() {
   const router = useRouter();
   const { address, isReady, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
   const { updateUsername, updateProfile } = useUserStore();
 
-  const [step, setStep] = useState<WizardStep>("profile");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
   const [touched, setTouched] = useState({ username: false, pfp: false });
-
-  const [communityCode, setCommunityCode] = useState("");
-  const [communityName, setCommunityName] = useState<string | null>(null);
-  const [communityError, setCommunityError] = useState<string | null>(null);
-  const [isValidatingCode, setIsValidatingCode] = useState(false);
-  const [isJoiningCommunity, setIsJoiningCommunity] = useState(false);
 
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
@@ -70,115 +62,24 @@ export default function WelcomePage() {
     typeof existingUsername === "string" &&
     existingUsername.trim().length > 0;
 
-  useEffect(() => {
-    if (!alreadyOnboarded) return;
-    const referral = peekCommunityReferral();
+  /** Communities are gone from the app, so a leftover /join/ redirect lands on Home. */
+  const finishOnboarding = () => {
+    consumeCommunityReferral();
     const redirect = consumeSignInRedirect() ?? "/home";
-    if (referral && (redirect === "/home" || !redirect.startsWith("/join/"))) {
-      router.replace(`/join/${referral}`);
-    } else {
-      router.replace(redirect);
-    }
-  }, [alreadyOnboarded, router]);
+    router.replace(redirect.startsWith("/join/") ? "/home" : redirect);
+  };
 
   useEffect(() => {
-    const referral = peekCommunityReferral();
-    if (referral) setCommunityCode(referral);
-  }, []);
+    if (!alreadyOnboarded) return;
+    finishOnboarding();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alreadyOnboarded]);
 
   const handleCopyAddress = async () => {
     if (!address) return;
     await navigator.clipboard.writeText(address);
     setAddressCopied(true);
     setTimeout(() => setAddressCopied(false), 2000);
-  };
-
-  const validateCommunityCode = useCallback(async (code: string) => {
-    const trimmed = code.trim().toUpperCase();
-    if (!trimmed) {
-      setCommunityName(null);
-      setCommunityError(null);
-      return false;
-    }
-    setIsValidatingCode(true);
-    setCommunityError(null);
-    try {
-      const res = await fetch(`/api/community/validate-code?code=${encodeURIComponent(trimmed)}`);
-      const json = await res.json();
-      if (!res.ok || !json.valid) {
-        setCommunityName(null);
-        setCommunityError(json.error ?? "Invalid community code.");
-        return false;
-      }
-      setCommunityName(json.community?.name ?? null);
-      return true;
-    } catch {
-      setCommunityError("Could not validate code. Try again.");
-      return false;
-    } finally {
-      setIsValidatingCode(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!communityCode.trim()) {
-      setCommunityName(null);
-      setCommunityError(null);
-      return;
-    }
-    const t = setTimeout(() => void validateCommunityCode(communityCode), 400);
-    return () => clearTimeout(t);
-  }, [communityCode, validateCommunityCode]);
-
-  const finishOnboarding = async (joinCommunity: boolean) => {
-    if (!address) return;
-    setIsJoiningCommunity(true);
-    setCommunityError(null);
-
-    let joinedSlug: string | null = null;
-
-    try {
-      if (joinCommunity && communityCode.trim()) {
-        const valid = communityName ? true : await validateCommunityCode(communityCode);
-        if (!valid) {
-          setIsJoiningCommunity(false);
-          return;
-        }
-        const res = await fetch("/api/community/join-onboarding", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            walletAddress: address,
-            inviteCode: communityCode.trim().toUpperCase(),
-          }),
-        });
-        const json = await res.json();
-        if (!res.ok) {
-          setCommunityError(json.error ?? "Failed to join community.");
-          setIsJoiningCommunity(false);
-          return;
-        }
-        joinedSlug = json.community?.slug ?? null;
-      }
-
-      consumeCommunityReferral();
-
-      // onboarded_at is already recorded right after the profile step —
-      // this screen only handles the optional community join from here.
-      const redirect = consumeSignInRedirect() ?? "/home";
-      if (joinedSlug) {
-        router.replace(`/communities/${joinedSlug}`);
-      } else if (redirect.startsWith("/join/") && joinCommunity) {
-        router.replace("/home");
-      } else {
-        router.replace(redirect);
-      }
-    } catch {
-      setCommunityError("Something went wrong. Please try again.");
-    } finally {
-      setIsJoiningCommunity(false);
-    }
   };
 
   useEffect(() => {
@@ -244,8 +145,9 @@ export default function WelcomePage() {
         body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
       }).catch(() => {});
 
-      setStep("community");
+      finishOnboarding();
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess, address, email, username, pfpUrl, authProvider, updateUsername, updateProfile]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,8 +202,10 @@ export default function WelcomePage() {
 
   if (isCheckingOnboarding) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
-        <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-14 w-14 rounded-2xl opacity-90" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper">
+        <span className="animate-bob">
+          <Lulu size={64} />
+        </span>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Setting up your wallet…
@@ -326,239 +230,148 @@ export default function WelcomePage() {
   const showUsernameTooShort = touched.username && usernameTooShort;
   const displayPfpError = pfpUploadError;
 
+  // Design: docs/redesign/screens/Welcome.dc.html (single step)
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <div className="flex justify-center pt-10 pb-2">
-        <div className="flex items-center gap-2">
-          <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-6 w-6 rounded-md" />
-          <span className="text-sm font-black tracking-tight text-foreground">delulu</span>
-        </div>
-      </div>
+    <div className="flex min-h-screen flex-col overflow-y-auto bg-paper">
+      <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col px-6 pb-8 pt-6">
+        <Wordmark size={22} />
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8">
-        <div className="mb-6 flex items-center gap-2">
-          <span className={cn("h-1.5 w-7 rounded-full", step === "profile" ? "bg-delulu-yellow" : "bg-delulu-yellow/40")} />
-          <span className={cn("h-1.5 w-7 rounded-full", step === "community" ? "bg-delulu-yellow" : "bg-muted-foreground/20")} />
-        </div>
+        <form onSubmit={handleProfileSubmit} className="mt-8 flex flex-1 flex-col gap-6">
+          <h1 className="m-0 animate-rise text-[30px] font-bold leading-[1.15] tracking-[-0.025em]">
+            Who&apos;s
+            <br />
+            signing?
+          </h1>
 
-        {step === "profile" ? (
-          <>
-            <div className="mb-10 max-w-xs text-center">
-              <h1 className="text-[2rem] font-black leading-[1.15] tracking-tight text-foreground">
-                Set up your profile
-              </h1>
-              <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-                Step 1 of 2 — photo and username
+          <div className="flex animate-rise items-center gap-5 [animation-delay:.1s]">
+            <button
+              type="button"
+              aria-label={pfpPreview ? "Change photo" : "Add photo"}
+              onClick={() => {
+                setTouched((t) => ({ ...t, pfp: true }));
+                openPicker();
+              }}
+              disabled={isSubmittingProfile || isUploading}
+              className={cn(
+                "relative flex h-[104px] w-[104px] shrink-0 items-center justify-center rounded-full border-2 border-dashed bg-white text-muted-foreground",
+                missingPfp ? "border-orange" : pfpPreview ? "border-transparent" : "border-[#bdbdb6]",
+              )}
+            >
+              {pfpPreview ? (
+                <img src={pfpPreview} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <Camera className="h-[30px] w-[30px]" strokeWidth={1.8} />
+              )}
+              {isUploading ? (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                </span>
+              ) : null}
+              <span className="absolute -bottom-0.5 right-0 flex h-[34px] w-[34px] items-center justify-center rounded-[11px] bg-yellow text-ink shadow-edge-yellow">
+                <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} />
+              </span>
+            </button>
+            <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <div className="min-w-0">
+              <p className={cn("m-0 text-sm leading-normal", missingPfp || displayPfpError ? "font-semibold text-orange" : "text-muted-foreground")}>
+                {displayPfpError ??
+                  (missingPfp ? "A photo is required" : pfpPreview ? "Looking good. Tap to change." : "Your photo goes on every contract you sign.")}
               </p>
-            </div>
-
-            <form onSubmit={handleProfileSubmit} className="flex w-full max-w-xs flex-col">
-              <div className="mb-9 flex flex-col items-center">
+              {displayPfpError ? (
                 <button
                   type="button"
                   onClick={() => {
-                    setTouched((t) => ({ ...t, pfp: true }));
+                    clearError();
                     openPicker();
                   }}
-                  disabled={isSubmittingProfile || isUploading}
-                  className={cn(
-                    "relative h-32 w-32 overflow-hidden rounded-full ring-[3px] ring-offset-4 ring-offset-background transition-all",
-                    missingPfp ? "ring-rose-500" : pfpPreview ? "ring-delulu-yellow" : "ring-border hover:ring-muted-foreground/60",
-                  )}
+                  className="mt-1 text-xs font-bold text-blue"
                 >
-                  {pfpPreview ? (
-                    <img src={pfpPreview} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted">
-                      <Camera className="h-8 w-8 text-muted-foreground/70" />
-                    </div>
-                  )}
-                  {isUploading ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                      <Loader2 className="h-6 w-6 animate-spin text-white" />
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity hover:opacity-100">
-                      <Camera className="h-6 w-6 text-white" />
-                    </div>
-                  )}
-                </button>
-                <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <p className={cn("mt-3 text-xs font-medium", missingPfp || displayPfpError ? "text-rose-500" : "text-muted-foreground")}>
-                  {displayPfpError ??
-                    (missingPfp ? "Photo is required" : pfpPreview ? "Tap to change · we compress large photos" : "Add your photo")}
-                </p>
-                {displayPfpError ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearError();
-                      openPicker();
-                    }}
-                    className="mt-1 text-xs font-semibold text-delulu-blue"
-                  >
-                    Try another photo
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="mb-3">
-                <div
-                  className={cn(
-                    "flex items-center gap-2 rounded-2xl border px-4 py-3.5 bg-muted/40 transition-all focus-within:bg-background focus-within:border-foreground/40",
-                    missingUsername || showUsernameTooShort ? "border-rose-500" : "border-border",
-                  )}
-                >
-                  <span className="select-none text-sm text-muted-foreground">@</span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))}
-                    onBlur={() => setTouched((t) => ({ ...t, username: true }))}
-                    placeholder="yourname"
-                    autoFocus
-                    autoComplete="off"
-                    disabled={isSubmittingProfile}
-                    className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-                  />
-                </div>
-                {missingUsername ? (
-                  <p className="mt-1.5 px-1 text-xs text-rose-500">Username is required</p>
-                ) : showUsernameTooShort ? (
-                  <p className="mt-1.5 px-1 text-xs text-rose-500">Username must be at least 3 characters</p>
-                ) : null}
-              </div>
-
-              <div className="mb-8">
-                <div className={cn(
-                  "flex items-center gap-2 rounded-2xl border bg-muted/40 px-4 py-3.5 transition-all focus-within:bg-background",
-                  emailError ? "border-rose-500" : "border-border focus-within:border-foreground/40",
-                )}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setEmailCheckError(null); }}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    disabled={isSubmittingProfile}
-                    className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-                  />
-                </div>
-                {emailError ? (
-                  <p className="mt-1.5 px-1 text-xs text-rose-500">{emailError}</p>
-                ) : null}
-              </div>
-
-              {contractError ? (
-                <p className="mb-3 text-center text-xs text-rose-500">{contractError.message}</p>
-              ) : null}
-              {profileSaveError ? (
-                <p className="mb-3 text-center text-xs text-rose-500">{profileSaveError}</p>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={!canSubmitProfile}
-                className={cn(
-                  "w-full rounded-2xl border-2 border-[#1a1a19] bg-delulu-yellow py-4 text-sm font-black text-[#1a1a19]",
-                  "shadow-[4px_4px_0px_0px_#1a1a19] transition-all disabled:cursor-not-allowed disabled:opacity-40",
-                )}
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  {isPending ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Confirm in wallet…</>
-                  ) : isSuccess ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
-                  ) : (
-                    <>Continue <ArrowRight className="h-4 w-4" /></>
-                  )}
-                </span>
-              </button>
-
-              {address ? (
-                <button
-                  type="button"
-                  onClick={handleCopyAddress}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <span className="font-mono">{formatAddress(address)}</span>
-                  {addressCopied ? (
-                    <Check className="w-3 h-3 text-delulu-green" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
+                  Try another photo
                 </button>
               ) : null}
-            </form>
-          </>
-        ) : (
-          <>
-            <div className="mb-10 max-w-xs text-center">
-              <h1 className="text-[2rem] font-black leading-[1.15] tracking-tight text-foreground">
-                Join your community
-              </h1>
-              <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-                Step 2 of 2 — enter the code from your organizer (optional)
-              </p>
             </div>
+          </div>
 
-            <div className="w-full max-w-xs space-y-4">
-              <div>
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-4 py-3.5 focus-within:border-foreground/40 focus-within:bg-background">
-                  <input
-                    type="text"
-                    value={communityCode}
-                    onChange={(e) => setCommunityCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                    placeholder="Community code"
-                    autoFocus
-                    className="flex-1 bg-transparent text-sm font-semibold tracking-wider text-foreground outline-none placeholder:text-muted-foreground/50"
-                  />
-                  {isValidatingCode ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
-                </div>
-                {communityName ? (
-                  <p className="mt-2 px-1 text-xs font-medium text-emerald-600">Joining {communityName}</p>
-                ) : null}
-                {communityError ? (
-                  <p className="mt-2 px-1 text-xs text-rose-500">{communityError}</p>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                disabled={isJoiningCommunity || isValidatingCode || !communityCode.trim() || !!communityError}
-                onClick={() => void finishOnboarding(true)}
-                className="w-full rounded-2xl border-2 border-[#1a1a19] bg-delulu-yellow py-4 text-sm font-black text-[#1a1a19] shadow-[4px_4px_0px_0px_#1a1a19] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isJoiningCommunity ? (
-                  <span className="inline-flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Joining…
-                  </span>
-                ) : (
-                  "Join community"
-                )}
-              </button>
-
-              <button
-                type="button"
-                disabled={isJoiningCommunity}
-                onClick={() => void finishOnboarding(false)}
-                className="w-full py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Skip for now
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep("profile")}
-                className="mx-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="h-3 w-3" />
-                Back to profile
-              </button>
+          <div className="flex animate-rise flex-col gap-2 [animation-delay:.2s]">
+            <label htmlFor="welcome-username" className="label-mono text-muted-foreground">
+              Username
+            </label>
+            <div
+              className={cn(
+                "flex h-14 items-center gap-1 rounded-2xl border-2 bg-white px-4 transition-colors",
+                missingUsername || showUsernameTooShort ? "border-orange" : "border-line focus-within:border-ink",
+              )}
+            >
+              <span className="select-none text-muted-foreground">@</span>
+              <input
+                id="welcome-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))}
+                onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+                placeholder="yourname"
+                autoFocus
+                autoComplete="off"
+                disabled={isSubmittingProfile}
+                className="min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-faint"
+              />
             </div>
-          </>
-        )}
+            {missingUsername ? (
+              <p className="px-1 text-xs font-semibold text-orange">Username is required</p>
+            ) : showUsernameTooShort ? (
+              <p className="px-1 text-xs font-semibold text-orange">At least 3 characters</p>
+            ) : null}
+          </div>
+
+          <div className="flex animate-rise flex-col gap-2 [animation-delay:.3s]">
+            <label htmlFor="welcome-email" className="label-mono text-muted-foreground">
+              Email · for reminders
+            </label>
+            <input
+              id="welcome-email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailCheckError(null);
+              }}
+              placeholder="you@email.com"
+              autoComplete="email"
+              disabled={isSubmittingProfile}
+              className={cn(
+                "h-14 rounded-2xl border-2 bg-white px-4 text-base font-medium text-foreground outline-none transition-colors placeholder:text-faint",
+                emailError ? "border-orange" : "border-line focus:border-ink",
+              )}
+            />
+            {emailError ? <p className="px-1 text-xs font-semibold text-orange">{emailError}</p> : null}
+          </div>
+
+          <div className="mt-auto flex flex-col gap-3 pt-4">
+            {contractError ? <p className="text-center text-xs font-semibold text-orange">{contractError.message}</p> : null}
+            {profileSaveError ? <p className="text-center text-xs font-semibold text-orange">{profileSaveError}</p> : null}
+
+            <button type="submit" disabled={!canSubmitProfile} className={gameButtonClass({ variant: "ink", full: true, size: "lg" })}>
+              {isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />Confirm in wallet…</>
+              ) : isSuccess ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+              ) : (
+                <>Start <ArrowRight className="h-[18px] w-[18px]" strokeWidth={2.6} /></>
+              )}
+            </button>
+
+            {address ? (
+              <button
+                type="button"
+                onClick={handleCopyAddress}
+                className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <span className="font-mono">{formatAddress(address)}</span>
+                {addressCopied ? <Check className="h-3 w-3 text-green-strong" /> : <Copy className="h-3 w-3" />}
+              </button>
+            ) : null}
+          </div>
+        </form>
       </div>
     </div>
   );
