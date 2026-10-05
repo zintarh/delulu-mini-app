@@ -161,7 +161,7 @@ export default function ForfeitVerifyPage() {
   if (awaitingAuth) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue" />
       </main>
     );
   }
@@ -169,7 +169,7 @@ export default function ForfeitVerifyPage() {
   if (!authenticated) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue" />
         <p className="text-sm font-semibold text-foreground">Redirecting to sign in…</p>
       </main>
     );
@@ -197,7 +197,7 @@ export default function ForfeitVerifyPage() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
         <XCircle className="h-10 w-10 text-destructive" />
         <p className="text-sm font-semibold text-foreground">{loadError ?? "Commitment not found"}</p>
-        <Link href="/home" className="text-xs font-semibold text-delulu-blue">
+        <Link href="/home" className="text-xs font-semibold text-blue">
           Go home
         </Link>
       </main>
@@ -237,7 +237,7 @@ export default function ForfeitVerifyPage() {
         </div>
 
         <h1
-          className="text-2xl font-black leading-tight text-foreground"
+          className="text-2xl font-extrabold leading-tight text-foreground"
           style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           {commitment.title}
@@ -280,7 +280,7 @@ export default function ForfeitVerifyPage() {
                 {creatorLabel(commitment)} wants you as their verifier.
               </p>
               {actionStep === "error" && actionError ? (
-                <p className="text-xs font-semibold text-red-500">{actionError}</p>
+                <p className="text-xs font-semibold text-orange">{actionError}</p>
               ) : null}
               <button
                 type="button"
@@ -313,7 +313,7 @@ export default function ForfeitVerifyPage() {
                     />
                   </a>
                   {actionStep === "error" && actionError ? (
-                    <p className="text-xs font-semibold text-red-500">{actionError}</p>
+                    <p className="text-xs font-semibold text-orange">{actionError}</p>
                   ) : null}
                   <button
                     type="button"

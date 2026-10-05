@@ -39,7 +39,7 @@ export function CreateFlowStepProgress({ step, className }: CreateFlowStepProgre
               <div
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
-                  (isComplete || isCurrent) && "bg-delulu-blue text-white",
+                  (isComplete || isCurrent) && "bg-blue text-white",
                   !isComplete && !isCurrent && "bg-secondary text-muted-foreground",
                   isCurrent && "ring-2 ring-delulu-blue/25",
                 )}

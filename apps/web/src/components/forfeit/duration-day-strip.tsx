@@ -68,7 +68,7 @@ export function DurationDayStrip({
             className={cn(
               "flex shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-2xl border px-3.5 py-2.5 transition-all duration-150",
               isSelected
-                ? "scale-105 border-delulu-blue bg-delulu-blue text-white shadow-lg shadow-delulu-blue/30"
+                ? "scale-105 border-delulu-blue bg-blue text-white shadow-lg shadow-delulu-blue/30"
                 : "border-border/60 bg-card text-foreground hover:border-delulu-blue/40 hover:bg-delulu-blue/5",
             )}
             style={{ minWidth: 52 }}
@@ -81,7 +81,7 @@ export function DurationDayStrip({
             >
               {i === 0 ? "Tmrw" : format(day, "EEE")}
             </span>
-            <span className="text-base font-black tabular-nums">{format(day, "d")}</span>
+            <span className="text-base font-extrabold tabular-nums">{format(day, "d")}</span>
           </button>
         );
       })}

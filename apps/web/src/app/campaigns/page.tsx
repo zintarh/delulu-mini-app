@@ -130,7 +130,7 @@ function ChallengesContent({
       {/* Header */}
       <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
             Campaigns
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">

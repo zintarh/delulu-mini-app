@@ -292,7 +292,7 @@ export default function GoalsPage() {
                 <button
                   type="button"
                   onClick={() => void navigateToCreate()}
-                  className="text-sm font-semibold text-delulu-blue"
+                  className="text-sm font-semibold text-blue"
                 >
                   Create the first one
                 </button>
@@ -302,7 +302,7 @@ export default function GoalsPage() {
             <>
               <header className="mb-4">
                 <h1
-                  className="text-lg font-black tracking-tight text-foreground"
+                  className="text-lg font-extrabold tracking-tight text-foreground"
                 >
                   {q ? `Results for "${q}"` : pageTitle}
                 </h1>
@@ -315,7 +315,7 @@ export default function GoalsPage() {
                   <button
                     type="button"
                     onClick={() => void fetchResults()}
-                    className="text-sm font-semibold text-delulu-blue underline"
+                    className="text-sm font-semibold text-blue underline"
                   >
                     Try again
                   </button>
@@ -330,7 +330,7 @@ export default function GoalsPage() {
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <Search className="h-10 w-10 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">Nothing found</p>
-                  <Link href="/goals" className="text-sm font-semibold text-delulu-blue">
+                  <Link href="/goals" className="text-sm font-semibold text-blue">
                     Browse all delulus
                   </Link>
                 </div>

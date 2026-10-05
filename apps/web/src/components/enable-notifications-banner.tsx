@@ -169,7 +169,7 @@ export function EnableNotificationsBanner() {
         "animate-in fade-in slide-in-from-bottom-2 duration-300",
       )}
     >
-      <Bell className="mt-0.5 h-4 w-4 shrink-0 text-delulu-blue" />
+      <Bell className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-snug text-foreground">
           Turn on notifications so you don&apos;t miss campaign reminders and rewards.

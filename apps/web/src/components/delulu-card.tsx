@@ -453,14 +453,14 @@ export function DeluluCard({
               strokeDashoffset={2 * Math.PI * 14 * (1 - milestoneProgressPct / 100)}
             />
           </svg>
-          <span className="relative text-[8px] font-black tabular-nums text-white">
+          <span className="relative text-[8px] font-extrabold tabular-nums text-white">
             {verifiedCount}/{totalCount}
           </span>
         </div>
       ) : null}
 
       <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 px-3 pb-3 pt-10">
-        <h3 className="line-clamp-2 text-sm font-black leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
+        <h3 className="line-clamp-2 text-sm font-extrabold leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
           {headline}
         </h3>
         <div className="flex items-center gap-2">
@@ -537,7 +537,7 @@ export function DeluluCard({
 
       {/* 2–4. Title, milestone progress, tipped */}
       <div className="flex flex-1 flex-col gap-4 p-5">
-        <h3 className="line-clamp-3 text-lg font-black leading-snug tracking-tight text-foreground sm:text-xl">
+        <h3 className="line-clamp-3 text-lg font-extrabold leading-snug tracking-tight text-foreground sm:text-xl">
           {headline}
         </h3>
 
@@ -547,7 +547,7 @@ export function DeluluCard({
               <span className="font-semibold text-muted-foreground">
                 Milestones
               </span>
-              <span className="font-black tabular-nums text-foreground">
+              <span className="font-extrabold tabular-nums text-foreground">
                 {verifiedCount}/{totalCount}
               </span>
             </div>
@@ -578,7 +578,7 @@ export function DeluluCard({
           <span className="text-sm font-semibold text-muted-foreground">
             Tipped so far
           </span>
-          <span className="text-right text-base font-black tabular-nums text-foreground">
+          <span className="text-right text-base font-extrabold tabular-nums text-foreground">
             {supportUsdLabel ? (
               <>
                 ≈ ${supportUsdLabel}

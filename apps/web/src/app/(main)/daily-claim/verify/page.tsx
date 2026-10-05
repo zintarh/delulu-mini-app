@@ -72,7 +72,7 @@ export default function VerifyGoodDollarPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-xl font-black">Verify & claim free G$</h1>
+        <h1 className="text-xl font-extrabold">Verify & claim free G$</h1>
         <p className="text-sm text-muted-foreground">
           Complete the GoodDollar check below. Once G$ arrives, we will take you back to create
           your goal.

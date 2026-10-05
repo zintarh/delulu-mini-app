@@ -16,19 +16,19 @@ function statusMeta(
   isUpcoming: boolean,
 ) {
   if (m.isVerified) {
-    return { label: "Completed", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
+    return { label: "Completed", className: "bg-blue-soft text-blue border-blue-line" };
   }
   if (isOngoing && m.isSubmitted) {
-    return { label: "Under review", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
+    return { label: "Under review", className: "bg-blue-soft text-blue border-blue-line" };
   }
   if (isPast && m.isSubmitted) {
-    return { label: "In review", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
+    return { label: "In review", className: "bg-blue-soft text-blue border-blue-line" };
   }
   if (isPast) {
     return { label: "Expired", className: "bg-muted text-muted-foreground border-border" };
   }
   if (isOngoing) {
-    return { label: "In progress", className: "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border" };
+    return { label: "In progress", className: "bg-blue-soft text-blue border-blue-line" };
   }
   if (isUpcoming) {
     return { label: "Upcoming", className: "bg-muted/60 text-muted-foreground border-border/50" };
@@ -116,16 +116,16 @@ export function DeluluMilestonesViewerList({
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                     m.isVerified
-                      ? "border-delulu-blue bg-delulu-blue text-white"
+                      ? "border-delulu-blue bg-blue text-white"
                       : isOngoing
-                        ? "border-delulu-blue bg-delulu-blue-light text-delulu-blue"
+                        ? "border-delulu-blue bg-blue-soft text-blue"
                         : "border-border bg-muted text-muted-foreground",
                   )}
                 >
                   {m.isVerified ? (
                     <Check className="h-4 w-4 stroke-[3]" />
                   ) : (
-                    <span className="text-xs font-black tabular-nums">{i + 1}</span>
+                    <span className="text-xs font-extrabold tabular-nums">{i + 1}</span>
                   )}
                 </div>
                 {!isLast && (
@@ -142,9 +142,9 @@ export function DeluluMilestonesViewerList({
                 className={cn(
                   "mb-4 min-w-0 flex-1 rounded-xl border p-3",
                   isOngoing
-                    ? "border-delulu-blue-border bg-delulu-blue-light/50 dark:bg-accent"
+                    ? "border-blue-line bg-blue-soft/50 dark:bg-accent"
                     : m.isVerified
-                      ? "border-delulu-blue-border/60 bg-card dark:border-delulu-blue/20"
+                      ? "border-blue-line/60 bg-card dark:border-delulu-blue/20"
                       : "border-border/50 bg-muted/20",
                 )}
               >
@@ -177,7 +177,7 @@ export function DeluluMilestonesViewerList({
                   <button
                     type="button"
                     onClick={() => setViewingProof(m.proofLink!)}
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-delulu-blue-border bg-delulu-blue-light px-2.5 py-1 text-[11px] font-semibold text-delulu-blue transition-all hover:bg-delulu-blue hover:text-white active:scale-95"
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-blue-line bg-blue-soft px-2.5 py-1 text-[11px] font-semibold text-blue transition-all hover:bg-delulu-blue hover:text-white active:scale-95"
                   >
                     <Eye className="h-3 w-3" strokeWidth={2.5} />
                     View evidence

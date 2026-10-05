@@ -635,16 +635,16 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
             pfpUrl={item.otherPartyPfpUrl}
             size={38}
           />
-          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-delulu-blue text-white ring-2 ring-white">
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue text-white ring-2 ring-white">
             <ShieldCheck className="h-2.5 w-2.5" strokeWidth={2.5} />
           </span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className={cn("text-[10px] font-black uppercase tracking-wide", labelColor)}>
+          <p className={cn("text-[10px] font-extrabold uppercase tracking-wide", labelColor)}>
             {label}
           </p>
-          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-extrabold leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
@@ -721,7 +721,7 @@ function FriendProgressRing({
           className="stroke-delulu-blue transition-all duration-500 ease-out"
         />
       </svg>
-      <span className="absolute text-[10px] font-black leading-none text-foreground">
+      <span className="absolute text-[10px] font-extrabold leading-none text-foreground">
         {index}
       </span>
     </div>
@@ -748,10 +748,10 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
           size={38}
         />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-wide text-delulu-blue">
+          <p className="text-[10px] font-extrabold uppercase tracking-wide text-blue">
             If they miss it
           </p>
-          <p className="mt-0.5 text-sm font-black leading-snug text-foreground">
+          <p className="mt-0.5 text-sm font-extrabold leading-snug text-foreground">
             {item.title || "Untitled forfeit"}
           </p>
         </div>
@@ -1027,7 +1027,7 @@ export function ForfeitDayCard({
           <div className="h-4 w-32 rounded bg-muted" />
           <div className="h-8 w-8 rounded-full bg-muted" />
         </div>
-        <div className="animate-pulse rounded-3xl bg-white dark:bg-card p-4 shadow-sm">
+        <div className="animate-pulse rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
           <div className="h-4 w-2/3 rounded bg-muted" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="h-3.5 w-28 rounded bg-muted" />
@@ -1186,7 +1186,7 @@ export function ForfeitDayCard({
             undone.
           </p>
           {discontinueError ? (
-            <p className="text-xs font-semibold text-red-500">
+            <p className="text-xs font-semibold text-orange">
               {discontinueError}
             </p>
           ) : null}
@@ -1203,7 +1203,7 @@ export function ForfeitDayCard({
               type="button"
               disabled={discontinueBusy}
               onClick={() => void handleDiscontinue()}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-red-500 py-3 text-sm font-bold text-white disabled:opacity-60"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-orange py-3 text-sm font-bold text-white disabled:opacity-60"
             >
               {discontinueBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

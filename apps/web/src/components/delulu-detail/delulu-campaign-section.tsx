@@ -16,7 +16,7 @@ export function DeluluCampaignSection({
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 border border-purple-400/60">
             <Trophy className="w-4 h-4 text-purple-300" />
           </span>
-          <h3 className="text-sm md:text-base font-black text-foreground">Campaign</h3>
+          <h3 className="text-sm md:text-base font-extrabold text-foreground">Campaign</h3>
         </div>
         <span className="text-xs md:text-sm font-semibold text-purple-200 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/60">
           {campaignTitle}

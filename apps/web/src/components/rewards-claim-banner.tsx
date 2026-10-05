@@ -63,12 +63,12 @@ export function RewardsClaimBanner() {
           isLowGas
             ? "bottom-40 lg:bottom-24 lg:left-auto lg:right-6 lg:translate-x-0"
             : "bottom-24 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
-          "flex items-center gap-2.5 rounded-xl border border-delulu-green/30 bg-delulu-green/12 px-4 py-3 shadow-lg backdrop-blur-sm",
+          "flex items-center gap-2.5 rounded-xl border border-delulu-green/30 bg-green/12 px-4 py-3 shadow-lg backdrop-blur-sm",
           "animate-in fade-in slide-in-from-bottom-2 duration-300",
-          "transition-colors hover:bg-delulu-green/18",
+          "transition-colors hover:bg-green/18",
         )}
       >
-        <Gift className="h-4 w-4 shrink-0 text-delulu-green" strokeWidth={2} />
+        <Gift className="h-4 w-4 shrink-0 text-green-edge" strokeWidth={2} />
         <span className="flex-1 text-sm font-semibold leading-snug text-foreground">
           {amount} G$ ready to claim
         </span>
@@ -82,7 +82,7 @@ export function RewardsClaimBanner() {
         >
           <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-foreground">Claim your reward</h2>
+              <h2 className="text-lg font-extrabold text-foreground">Claim your reward</h2>
               <button
                 type="button"
                 onClick={handleClose}
@@ -93,7 +93,7 @@ export function RewardsClaimBanner() {
               </button>
             </div>
 
-            <p className="mt-5 text-center text-4xl font-black tabular-nums text-foreground">
+            <p className="mt-5 text-center text-4xl font-extrabold tabular-nums text-foreground">
               {amount} <span className="text-lg font-bold text-muted-foreground">G$</span>
             </p>
             <p className="mt-1 text-center text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export function RewardsClaimBanner() {
               type="button"
               onClick={handleClaim}
               disabled={isPending}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-delulu-green px-4 py-3.5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green px-4 py-3.5 text-sm font-extrabold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

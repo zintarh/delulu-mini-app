@@ -53,10 +53,10 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
   return (
     <Link
       href={href}
-      className="group block overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-sm hover:border-border"
+      className="group block overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge transition-all hover:shadow-sm hover:border-border"
     >
       {/* Cover image with overlay title */}
-      <div className="relative aspect-[4/1] overflow-hidden bg-delulu-blue-light/40 dark:bg-accent">
+      <div className="relative aspect-[4/1] overflow-hidden bg-blue-soft/40 dark:bg-accent">
         {c.cover_image_url ? (
           <Image
             src={c.cover_image_url}
@@ -78,7 +78,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
         <div className="absolute right-3 top-3">
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide",
+              "rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide",
               isClosed
                 ? "bg-black/50 text-white/60"
                 : overdueCount > 0
@@ -96,7 +96,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
             {c.community.name}
           </p>
           <p
-            className="mt-0.5 line-clamp-1 text-base font-black leading-snug text-white"
+            className="mt-0.5 line-clamp-1 text-base font-extrabold leading-snug text-white"
             style={{ fontFamily: 'var(--font-display), sans-serif' }}
           >
             {c.title}
@@ -129,21 +129,21 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
         {/* Stat chips row */}
         <div className="flex items-center gap-2 flex-wrap">
           {pts > 0 ? (
-            <span className="flex items-center gap-1 rounded-full bg-delulu-yellow/15 px-2.5 py-1 text-[11px] font-black text-[#9a7b0a] dark:text-delulu-yellow">
+            <span className="flex items-center gap-1 rounded-full bg-delulu-yellow/15 px-2.5 py-1 text-[11px] font-extrabold text-[#9a7b0a] dark:text-delulu-yellow">
               <Star className="h-3 w-3 fill-delulu-yellow text-delulu-yellow" />
               +{pts.toLocaleString()} pts
             </span>
           ) : null}
 
           {c.completed_count > 0 ? (
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-extrabold text-green-edge">
               <Trophy className="h-3 w-3" />
               {c.completed_count} {c.completed_count === 1 ? "win" : "wins"}
             </span>
           ) : null}
 
           {overdueCount > 0 ? (
-            <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-black text-orange-700">
+            <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-extrabold text-orange-700">
               <AlertTriangle className="h-3 w-3" />
               {overdueCount} missed
             </span>
@@ -193,7 +193,7 @@ export default function JoinedCampaignsPage() {
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <h1
-          className="text-2xl font-black text-foreground"
+          className="text-2xl font-extrabold text-foreground"
         >
           My campaigns
         </h1>
@@ -204,7 +204,7 @@ export default function JoinedCampaignsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-delulu-blue" />
+          <Loader2 className="h-7 w-7 animate-spin text-blue" />
         </div>
       ) : campaigns.length === 0 ? (
         <div className="mx-4 rounded-2xl border border-dashed border-border bg-card shadow-sm px-6 py-14 text-center">
@@ -215,7 +215,7 @@ export default function JoinedCampaignsPage() {
           </p>
           <Link
             href="/explore"
-            className="mt-4 inline-block text-sm font-semibold text-delulu-blue hover:underline"
+            className="mt-4 inline-block text-sm font-semibold text-blue hover:underline"
           >
             Browse campaigns →
           </Link>
@@ -227,7 +227,7 @@ export default function JoinedCampaignsPage() {
             <div className="flex flex-col items-center justify-center rounded-2xl bg-delulu-yellow/15 px-3 py-4 text-center">
               <Star className="mb-1.5 h-5 w-5 fill-delulu-yellow text-delulu-yellow" />
               <p
-                className="text-xl font-black tabular-nums text-foreground"
+                className="text-xl font-extrabold tabular-nums text-foreground"
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalPts.toLocaleString()}
@@ -238,14 +238,14 @@ export default function JoinedCampaignsPage() {
             </div>
 
             <div className="flex flex-col items-center justify-center rounded-2xl bg-emerald-50 px-3 py-4 text-center">
-              <Trophy className="mb-1.5 h-5 w-5 text-emerald-600" />
+              <Trophy className="mb-1.5 h-5 w-5 text-green-edge" />
               <p
-                className="text-xl font-black tabular-nums text-foreground"
+                className="text-xl font-extrabold tabular-nums text-foreground"
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalWins}
               </p>
-              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-green-edge">
                 milestones won
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function JoinedCampaignsPage() {
                 <Zap className="mb-1.5 h-5 w-5 text-muted-foreground/50" />
               )}
               <p
-                className="text-xl font-black tabular-nums text-foreground"
+                className="text-xl font-extrabold tabular-nums text-foreground"
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalMissed}
@@ -281,7 +281,7 @@ export default function JoinedCampaignsPage() {
           {/* Active campaigns */}
           {active.length > 0 ? (
             <div className="px-4 space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/50">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-foreground/50">
                 Active · {active.length}
               </p>
               {active.map((c) => (
@@ -293,7 +293,7 @@ export default function JoinedCampaignsPage() {
           {/* Ended campaigns */}
           {ended.length > 0 ? (
             <div className={cn("px-4 space-y-3", active.length > 0 && "mt-6")}>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/50">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-foreground/50">
                 Ended · {ended.length}
               </p>
               {ended.map((c) => (

@@ -919,7 +919,7 @@ export function ForfeitCreatePage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
             <Hourglass className="h-6 w-6 text-muted-foreground" />
           </div>
-          <p className="text-lg font-black tracking-tight text-foreground">
+          <p className="text-lg font-extrabold tracking-tight text-foreground">
             New contracts are paused
           </p>
           <p className="max-w-xs text-sm text-muted-foreground">
@@ -1047,17 +1047,17 @@ export function ForfeitCreatePage() {
                           size={36}
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-delulu-blue" style={MANROPE}>
+                          <p className="truncate text-sm font-bold text-blue" style={MANROPE}>
                             {resolvedVerifier.username
                               ? `@${resolvedVerifier.username}`
                               : `${resolvedVerifier.address.slice(0, 6)}…${resolvedVerifier.address.slice(-4)}`}
                           </p>
                         {resolvedVerifier.hasRealEmail && resolvedVerifier.email ? (
-                          <p className="mt-0.5 truncate text-xs text-delulu-blue/80" style={MANROPE}>
+                          <p className="mt-0.5 truncate text-xs text-blue/80" style={MANROPE}>
                             {resolvedVerifier.email}
                           </p>
                         ) : (
-                          <p className="mt-0.5 text-xs text-amber-700" style={MANROPE}>
+                          <p className="mt-0.5 text-xs text-orange" style={MANROPE}>
                             No email on file — add one below to invite them
                           </p>
                         )}
@@ -1098,7 +1098,7 @@ export function ForfeitCreatePage() {
                           We&apos;ll email them so they know they&apos;ve been tagged as your verifier.
                         </p>
                         {verifierEmail.trim() && !friendEmailValid ? (
-                          <p className="mt-1 text-xs font-semibold text-red-500" style={MANROPE}>
+                          <p className="mt-1 text-xs font-semibold text-orange" style={MANROPE}>
                             Enter a valid email address
                           </p>
                         ) : null}
@@ -1110,7 +1110,7 @@ export function ForfeitCreatePage() {
                       </p>
                     )}
                     {verifierIsDestinationFriend ? (
-                      <p className="text-xs font-semibold text-amber-700" style={MANROPE}>
+                      <p className="text-xs font-semibold text-orange" style={MANROPE}>
                         Heads up: this person also gets your stake if you miss, so there&apos;s a conflict.
                       </p>
                     ) : null}
@@ -1189,7 +1189,7 @@ export function ForfeitCreatePage() {
                         </div>
                       ) : verifierUsername.trim().length >= 2 ? (
                         EMAIL_RE.test(verifierUsername.trim()) ? (
-                          <p className="mt-1.5 text-xs text-emerald-700" style={MANROPE}>
+                          <p className="mt-1.5 text-xs text-green-edge" style={MANROPE}>
                             No Delulu account found for this email — we&apos;ll invite{" "}
                             {verifierUsername.trim()} to sign up and verify.
                           </p>
@@ -1275,7 +1275,7 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-2 pt-1">
-          <h2 className="mb-4 text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-4 text-lg font-extrabold text-foreground" style={CLASH}>
             Proof
           </h2>
           <div className="max-h-[70vh] space-y-2.5 overflow-y-auto pb-4 scrollbar-hide">
@@ -1308,7 +1308,7 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-3 text-center text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-3 text-center text-lg font-extrabold text-foreground" style={CLASH}>
             Set duration
           </h2>
 
@@ -1411,7 +1411,7 @@ export function ForfeitCreatePage() {
                   className={cn(
                     "flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
                     submitAnytime
-                      ? "border-delulu-blue bg-delulu-blue text-white"
+                      ? "border-delulu-blue bg-blue text-white"
                       : "border-border bg-background",
                   )}
                 >
@@ -1439,7 +1439,7 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-1 text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-1 text-lg font-extrabold text-foreground" style={CLASH}>
             If you miss, it goes to
           </h2>
           <p className="mb-4 text-xs text-muted-foreground" style={MANROPE}>
@@ -1475,17 +1475,17 @@ export function ForfeitCreatePage() {
                       size={36}
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-delulu-blue" style={MANROPE}>
+                      <p className="truncate text-sm font-bold text-blue" style={MANROPE}>
                         {destinationFriend.username
                           ? `@${destinationFriend.username}`
                           : `${destinationFriend.address.slice(0, 8)}…${destinationFriend.address.slice(-4)}`}
                       </p>
                       {destinationFriend.email ? (
-                        <p className="mt-0.5 truncate text-xs text-delulu-blue/80" style={MANROPE}>
+                        <p className="mt-0.5 truncate text-xs text-blue/80" style={MANROPE}>
                           {destinationFriend.email}
                         </p>
                       ) : (
-                        <p className="mt-0.5 truncate text-xs text-delulu-blue/70" style={MANROPE}>
+                        <p className="mt-0.5 truncate text-xs text-blue/70" style={MANROPE}>
                           {destinationFriend.address.slice(0, 10)}…{destinationFriend.address.slice(-6)}
                         </p>
                       )}
@@ -1598,7 +1598,7 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-3 text-lg font-black text-foreground" style={CLASH}>
+          <h2 className="mb-3 text-lg font-extrabold text-foreground" style={CLASH}>
             Stake
           </h2>
 
@@ -1691,7 +1691,7 @@ export function ForfeitCreatePage() {
                     onClick={() =>
                       setAmountDraft(String(Math.floor(Number(selectedTokenBalance.formatted) || 0)))
                     }
-                    className="rounded-full bg-yellow-soft px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-ink transition-colors hover:bg-yellow"
+                    className="rounded-full bg-yellow-soft px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-ink transition-colors hover:bg-yellow"
                   >
                     Max
                   </button>

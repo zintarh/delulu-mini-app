@@ -41,7 +41,7 @@ function DeluluTippedSummary({
       <span className="text-xs font-semibold text-muted-foreground">
         Tipped so far
       </span>
-      <span className="text-right text-sm font-black tabular-nums text-foreground">
+      <span className="text-right text-sm font-extrabold tabular-nums text-foreground">
         {formatGAmount(supportAmount)}{" "}
         <span className="text-xs font-semibold text-muted-foreground">
           {tokenLabel}
@@ -266,7 +266,7 @@ export function DeluluDetailPinCard({
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                     userReacted
-                      ? "text-red-500"
+                      ? "text-orange"
                       : "text-foreground hover:bg-secondary",
                   )}
                   aria-label={userReacted ? "Unlike" : "Like"}
@@ -370,7 +370,7 @@ export function DeluluDetailPinCard({
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>
-                    <span className="font-black text-foreground">
+                    <span className="font-extrabold text-foreground">
                       {formatGAmount(supportAmount)}
                     </span>{" "}
                     staked
@@ -394,13 +394,13 @@ export function DeluluDetailPinCard({
             </div>
 
             {isHidden && isCreator ? (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700">
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-orange">
                 Hidden from feed — only you can see this
               </p>
             ) : null}
 
             <div>
-              <h1 className="text-base font-black leading-snug text-foreground sm:text-xl">
+              <h1 className="text-base font-extrabold leading-snug text-foreground sm:text-xl">
                 {title}
               </h1>
               {description ? (

@@ -34,7 +34,7 @@ export function NoGasBanner() {
         "transition-colors hover:bg-amber-500/18",
       )}
     >
-      <Fuel className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+      <Fuel className="mt-0.5 h-4 w-4 shrink-0 text-orange" />
       <span className="flex-1 text-sm font-medium leading-snug text-foreground">
         You don&apos;t have gas. Top up your gas or join our Telegram group to continue.
       </span>

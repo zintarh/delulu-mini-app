@@ -31,12 +31,12 @@ export function FeedbackModal({
     >
       <div className="flex justify-center mb-6 lg:mb-4">
         {type === "success" ? (
-          <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
-            <CheckCircle className="w-12 h-12 text-delulu-green" />
+          <div className="w-20 h-20 rounded-full bg-green-soft flex items-center justify-center">
+            <CheckCircle className="w-12 h-12 text-green-edge" />
           </div>
         ) : (
           <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-            <XCircle className="w-12 h-12 text-red-500" />
+            <XCircle className="w-12 h-12 text-orange" />
           </div>
         )}
       </div>

@@ -139,7 +139,7 @@ export default function StreaksPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-delulu-yellow-reserved" strokeWidth={2} />
-            <h1 className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground lg:text-3xl">
               Streak & Rewards
             </h1>
           </div>
@@ -184,7 +184,7 @@ function StreakContent({ address }: { address: string | null }) {
           {/* Big streak number + badge */}
           <div className="flex flex-col items-center gap-1 mb-6">
             <div className="relative flex items-end gap-3">
-              <span className="text-[72px] font-black leading-none tabular-nums text-foreground">
+              <span className="text-[72px] font-extrabold leading-none tabular-nums text-foreground">
                 {currentStreak}
               </span>
               <div className="mb-3 flex flex-col items-start">
@@ -243,7 +243,7 @@ function StreakContent({ address }: { address: string | null }) {
                 <p className="text-sm font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground">{description}</p>
               </div>
-              <span className="shrink-0 text-sm font-black tabular-nums text-foreground">
+              <span className="shrink-0 text-sm font-extrabold tabular-nums text-foreground">
                 +{value.toLocaleString()}
                 <span className="ml-1 text-xs font-semibold text-muted-foreground">pts</span>
               </span>

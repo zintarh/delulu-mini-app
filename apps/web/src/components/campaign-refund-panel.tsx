@@ -48,11 +48,11 @@ export function CampaignRefundPanel({
     return (
       <div
         className={cn(
-          "rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3",
+          "rounded-2xl border border-emerald-500/30 bg-green-soft px-4 py-3",
           className,
         )}
       >
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+        <p className="text-sm font-semibold text-green-edge dark:text-emerald-300">
           Campaign pool withdrawn
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -99,7 +99,7 @@ export function CampaignRefundPanel({
           disabled={isPending}
           className={cn(
             "inline-flex shrink-0 items-center justify-center gap-2 rounded-full",
-            "bg-delulu-yellow-reserved px-5 py-2.5 text-sm font-black text-delulu-charcoal",
+            "bg-delulu-yellow-reserved px-5 py-2.5 text-sm font-extrabold text-delulu-charcoal",
             "transition-all active:scale-[0.98] hover:brightness-95",
             "disabled:cursor-not-allowed disabled:opacity-60",
           )}

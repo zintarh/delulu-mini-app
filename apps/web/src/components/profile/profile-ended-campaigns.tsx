@@ -29,7 +29,7 @@ export function ProfileEndedCampaigns({ address }: { address: string }) {
           <Plus className="h-7 w-7 text-muted-foreground" />
         </div>
         <p
-          className="mb-1 text-lg font-black text-foreground"
+          className="mb-1 text-lg font-extrabold text-foreground"
           style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           No ended campaigns yet

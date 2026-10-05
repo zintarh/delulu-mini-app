@@ -231,7 +231,7 @@ export function RightSidebar() {
                 />
               ) : (
                 <div className="w-full min-h-[180px] bg-gradient-to-br from-delulu-yellow-reserved/30 via-background to-delulu-green/20 p-4">
-                  <h3 className="mt-2 text-lg font-black leading-tight text-foreground">
+                  <h3 className="mt-2 text-lg font-extrabold leading-tight text-foreground">
                     Join the weekly campaign and compete for rewards.
                   </h3>
                 </div>

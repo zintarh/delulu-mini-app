@@ -36,7 +36,7 @@ function CommunityAvatar({ name }: { name: string }) {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-delulu-blue/10 text-sm font-black text-delulu-blue">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-delulu-blue/10 text-sm font-extrabold text-blue">
       {initials}
     </div>
   );
@@ -62,7 +62,7 @@ export default function CommunitiesPage() {
     <MainPage className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-6">
         <h1
-          className="text-2xl font-black tracking-tight text-foreground"
+          className="text-2xl font-extrabold tracking-tight text-foreground"
         >
           Communities
         </h1>
@@ -88,7 +88,7 @@ export default function CommunitiesPage() {
               >
                 <CommunityAvatar name={c.name} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold text-foreground group-hover:text-delulu-blue transition-colors">
+                  <p className="truncate font-bold text-foreground group-hover:text-blue transition-colors">
                     {c.name}
                   </p>
                   {c.description ? (
@@ -99,7 +99,7 @@ export default function CommunitiesPage() {
                     <p className="mt-0.5 text-xs text-muted-foreground">View campaigns →</p>
                   )}
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-delulu-blue" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-blue" />
               </Link>
             </li>
           ))}

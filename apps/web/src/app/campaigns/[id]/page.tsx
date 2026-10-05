@@ -106,7 +106,7 @@ export default function ChallengeDetailPage() {
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                     <div className="flex-1 min-w-0 space-y-1">
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
                         {challenge.title || `Campaign #${challenge.id}`}
                       </h1>
                       {challenge.description && (
@@ -278,7 +278,7 @@ function LeaderboardContent({ challengeId, challenge }: { challengeId: number | 
 
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-5">
-          <h2 className="text-lg sm:text-xl font-black">Leaderboard</h2>
+          <h2 className="text-lg sm:text-xl font-extrabold">Leaderboard</h2>
           <div className="text-xs sm:text-sm text-muted-foreground">{endDateLabel}</div>
         </div>
 
@@ -303,14 +303,14 @@ function LeaderboardContent({ challengeId, challenge }: { challengeId: number | 
                 <div key={entry.deluluId} className="bg-card rounded-xl border-2 border-border shadow-[2px_2px_0px_0px_#1a1a19] p-3 sm:p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-xs font-black">#{rank}</span>
+                      <span className="text-xs font-extrabold">#{rank}</span>
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-xs sm:text-sm truncate">
                           {entry.username || `${entry.creator.slice(0, 6)}...${entry.creator.slice(-4)}`}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-base font-black">{displayPoints}</span>
+                        <span className="text-base font-extrabold">{displayPoints}</span>
                         <span className="text-[11px] text-muted-foreground font-medium">pts</span>
                       </div>
                     </div>
@@ -336,7 +336,7 @@ function LeaderboardContent({ challengeId, challenge }: { challengeId: number | 
       {isAdmin && editingPoints !== null && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
-            <h3 className="text-base md:text-lg font-black mb-2">Allocate points</h3>
+            <h3 className="text-base md:text-lg font-extrabold mb-2">Allocate points</h3>
             <div className="flex items-center gap-2 mb-4">
               <input
                 type="number"
@@ -363,7 +363,7 @@ function LeaderboardContent({ challengeId, challenge }: { challengeId: number | 
                 type="button"
                 disabled={isAllocating || isConfirming || !pointsInput}
                 onClick={() => handleAllocatePoints(editingPoints)}
-                className="px-4 py-2 text-xs font-black rounded-md border-2 bg-delulu-yellow-reserved"
+                className="px-4 py-2 text-xs font-extrabold rounded-md border-2 bg-delulu-yellow-reserved"
               >
                 {isAllocating || isConfirming ? (
                   <>

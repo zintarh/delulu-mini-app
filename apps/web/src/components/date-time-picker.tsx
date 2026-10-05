@@ -115,7 +115,7 @@ export function DateTimePicker({
           <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
         </button>
         <p
-          className="text-[15px] font-black tracking-tight text-foreground"
+          className="text-[15px] font-extrabold tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-body)" }}
         >
           {format(visibleMonth, "MMMM yyyy")}
@@ -135,7 +135,7 @@ export function DateTimePicker({
         {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
           <div
             key={`${label}-${i}`}
-            className="flex h-6 items-center justify-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/50"
+            className="flex h-6 items-center justify-center text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/50"
           >
             {label}
           </div>
@@ -170,7 +170,7 @@ export function DateTimePicker({
                     inMonth && !selectedDay && !disabled && "text-foreground hover:scale-105 hover:bg-delulu-blue/10",
                     today && !selectedDay && inMonth && "bg-delulu-yellow-reserved/20 text-foreground",
                     selectedDay &&
-                      "scale-105 bg-delulu-blue font-black text-white shadow-lg shadow-delulu-blue/40 hover:bg-delulu-blue",
+                      "scale-105 bg-delulu-blue font-extrabold text-white shadow-lg shadow-delulu-blue/40 hover:bg-delulu-blue",
                     disabled && "cursor-not-allowed text-muted-foreground/20",
                   )}
                 >

@@ -20,7 +20,7 @@ const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow
 });
 
 const primaryButtonClass = cn(
-  "w-full py-4 rounded-full text-sm font-black transition-all",
+  "w-full py-4 rounded-full text-sm font-extrabold transition-all",
   "bg-delulu-yellow-reserved text-delulu-charcoal",
   "hover:brightness-95 active:scale-[0.98]",
   "disabled:opacity-45 disabled:cursor-not-allowed",
@@ -229,7 +229,7 @@ export function ClaimPanelContent({
                 Verify your identity to see today&apos;s UBI
               </p>
             ) : (
-              <p className="text-5xl font-black text-foreground tracking-tight tabular-nums">
+              <p className="text-5xl font-extrabold text-foreground tracking-tight tabular-nums">
                 {entitlementDisplay}
                 <span className="text-2xl font-bold text-muted-foreground ml-1">G$</span>
               </p>

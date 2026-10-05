@@ -166,7 +166,7 @@ export default function SettingsPage() {
                   />
                   <div className="min-w-0 flex-1">
                     <p
-                      className="truncate text-lg font-black leading-tight text-foreground"
+                      className="truncate text-lg font-extrabold leading-tight text-foreground"
                       style={CLASH_DISPLAY}
                     >
                       {displayUsername ?? formatAddress(address)}
@@ -180,7 +180,7 @@ export default function SettingsPage() {
                       <Wallet className="h-3 w-3 shrink-0" />
                       {formatAddress(address)}
                       {copied ? (
-                        <Check className="h-3 w-3 shrink-0 text-delulu-green" />
+                        <Check className="h-3 w-3 shrink-0 text-green-edge" />
                       ) : (
                         <Copy className="h-3 w-3 shrink-0" />
                       )}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setAddEmailSheetOpen(true)}
-                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-delulu-green transition-colors hover:bg-delulu-green/5"
+                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-green-edge transition-colors hover:bg-green/5"
                     >
                       <Mail className="h-3.5 w-3.5 shrink-0" />
                       Add email
@@ -211,7 +211,7 @@ export default function SettingsPage() {
               <section>
                 <SectionLabel>Balances</SectionLabel>
                 <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
+                  <div className="rounded-[20px] border-2 border-line bg-white shadow-edge px-3.5 py-3.5 flex items-center gap-2.5">
                     <img
                       src="/celo.png"
                       alt=""
@@ -231,7 +231,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
+                  <div className="rounded-[20px] border-2 border-line bg-white shadow-edge px-3.5 py-3.5 flex items-center gap-2.5">
                     <TokenBadge
                       tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
                       size="sm"
@@ -281,7 +281,7 @@ export default function SettingsPage() {
               {/* More */}
               <section>
                 <SectionLabel>More</SectionLabel>
-                <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40 overflow-hidden">
+                <div className="mt-2.5 rounded-[20px] border-2 border-line bg-white shadow-edge divide-y divide-border/40 overflow-hidden">
                   <LinkRow
                     icon={<Wallet className="w-4 h-4" />}
                     title="Rewards"
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     href="/leaderboard"
                   />
                   <LinkRow
-                    icon={<Send className="w-4 h-4 text-delulu-green" />}
+                    icon={<Send className="w-4 h-4 text-green-edge" />}
                     title="Join Telegram"
                     description="Talk to the community"
                     href={TG_GROUP_URL}
@@ -320,7 +320,7 @@ export default function SettingsPage() {
               {pushState && pushState.state !== "unsupported" ? (
                 <section>
                   <SectionLabel>Notifications</SectionLabel>
-                  <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm p-4">
+                  <div className="mt-2.5 rounded-[20px] border-2 border-line bg-white shadow-edge p-4">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground shrink-0">
                         {pushState.state === "ready" && pushState.subscribed ? (
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                           "shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-60",
                           pushState.state === "ready" && pushState.subscribed
                             ? "border border-border bg-secondary text-foreground hover:bg-secondary/80"
-                            : "bg-delulu-green text-white hover:bg-delulu-green/90",
+                            : "bg-green text-white hover:bg-green/90",
                         )}
                       >
                         {pushBusy ? (
@@ -371,7 +371,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={openLogoutSheet}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-border bg-secondary text-rose-500 hover:bg-secondary/80 text-sm font-bold transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-border bg-secondary text-orange hover:bg-secondary/80 text-sm font-bold transition-colors"
                   style={MANROPE}
                 >
                   <LogOut className="w-4 h-4" />

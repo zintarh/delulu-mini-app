@@ -86,7 +86,7 @@ function ProgressRing({ index, count }: { index: number; count: number }) {
           className="stroke-delulu-blue transition-all duration-500 ease-out"
         />
       </svg>
-      <span className="absolute text-[12px] font-black leading-none text-foreground">
+      <span className="absolute text-[12px] font-extrabold leading-none text-foreground">
         {index}
       </span>
     </div>
@@ -122,7 +122,7 @@ export function MissionCard({
     <div className="group rounded-3xl bg-white dark:bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex items-start gap-4">
         <Link href={href} className="relative shrink-0">
-          <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-delulu-blue-light/40 dark:bg-accent">
+          <div className="relative h-24 w-24 overflow-hidden rounded-2xl bg-blue-soft/40 dark:bg-accent">
             {coverImageUrl ? (
               <Image
                 src={coverImageUrl}
@@ -133,7 +133,7 @@ export function MissionCard({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <Target className="h-7 w-7 text-delulu-blue/40" />
+                <Target className="h-7 w-7 text-blue/40" />
               </div>
             )}
           </div>
@@ -178,13 +178,13 @@ export function MissionCard({
           </span>
         ) : null}
 
-        <span className="flex items-center gap-1 font-semibold text-delulu-blue">
+        <span className="flex items-center gap-1 font-semibold text-blue">
           <Star className="h-3.5 w-3.5 fill-delulu-blue" />+
           {pointsPerMilestone.toLocaleString()} pts
         </span>
 
         {atRisk ? (
-          <span className="font-semibold text-amber-600">
+          <span className="font-semibold text-orange">
             Miss it, forfeit {forfeitPct}% of your stake
           </span>
         ) : hasStake ? (

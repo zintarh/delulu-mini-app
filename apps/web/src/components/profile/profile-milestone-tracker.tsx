@@ -47,11 +47,11 @@ function stepStatusLabel(status: MilestoneStepStatus) {
 function stepStatusClasses(status: MilestoneStepStatus) {
   switch (status) {
     case "completed":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "due":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "review":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "upcoming":
       return "bg-muted/50 text-muted-foreground border-border/60";
     case "expired":
@@ -135,7 +135,7 @@ export function MilestoneTrackerHero({
             <>
               <p
                 className={cn(
-                  "mt-2 font-black leading-none tabular-nums text-foreground",
+                  "mt-2 font-extrabold leading-none tabular-nums text-foreground",
                   compact ? "text-4xl" : "text-5xl sm:text-6xl",
                 )}
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
@@ -152,7 +152,7 @@ export function MilestoneTrackerHero({
           ) : (
             <>
               <p
-                className="mt-2 text-2xl font-black text-foreground sm:text-3xl"
+                className="mt-2 text-2xl font-extrabold text-foreground sm:text-3xl"
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 You&apos;re caught up
@@ -167,15 +167,15 @@ export function MilestoneTrackerHero({
           )}
         </div>
 
-        <div className="shrink-0 rounded-2xl border border-delulu-blue-border bg-delulu-blue-light px-4 py-3 text-center sm:min-w-[7.5rem]">
+        <div className="shrink-0 rounded-2xl border border-blue-line bg-blue-soft px-4 py-3 text-center sm:min-w-[7.5rem]">
           <p
-            className="text-[10px] font-bold uppercase tracking-wide text-delulu-blue"
+            className="text-[10px] font-bold uppercase tracking-wide text-blue"
             style={{ fontFamily: "var(--font-body)" }}
           >
             Total
           </p>
           <p
-            className="mt-0.5 text-2xl font-black tabular-nums text-foreground"
+            className="mt-0.5 text-2xl font-extrabold tabular-nums text-foreground"
             style={{ fontFamily: 'var(--font-display), sans-serif' }}
           >
             {summary.completedMilestones}
@@ -205,7 +205,7 @@ export function MilestoneTrackerHero({
           style={{ fontFamily: "var(--font-body)" }}
         >
           {summary.underReview > 0 ? (
-            <span className="inline-flex items-center gap-1 text-delulu-blue">
+            <span className="inline-flex items-center gap-1 text-blue">
               <Hourglass className="h-3 w-3" />
               {summary.underReview} in review
             </span>
@@ -236,11 +236,11 @@ function TimelineNode({
         "flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
         compact ? "h-8 w-8" : "h-9 w-9",
         status === "completed"
-          ? "border-delulu-blue bg-delulu-blue text-white"
+          ? "border-delulu-blue bg-blue text-white"
           : status === "due"
-            ? "border-delulu-blue bg-delulu-blue text-white shadow-sm"
+            ? "border-delulu-blue bg-blue text-white shadow-sm"
             : status === "review"
-              ? "border-delulu-blue-border bg-delulu-blue-light text-delulu-blue"
+              ? "border-blue-line bg-blue-soft text-blue"
               : "border-border bg-card text-muted-foreground",
       )}
     >
@@ -250,7 +250,7 @@ function TimelineNode({
         <Hourglass className={compact ? "h-3 w-3" : "h-4 w-4"} />
       ) : (
         <span
-          className={cn("font-black tabular-nums", compact ? "text-[10px]" : "text-xs")}
+          className={cn("font-extrabold tabular-nums", compact ? "text-[10px]" : "text-xs")}
           style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           {index}
@@ -302,9 +302,9 @@ function TimelineStepRow({
           "min-w-0 flex-1 rounded-xl border transition-colors",
           compact ? "mb-2.5 p-3" : "mb-3 rounded-2xl p-3.5",
           step.status === "due"
-            ? "border-delulu-blue-border bg-delulu-blue-light/60 shadow-sm dark:bg-accent"
+            ? "border-blue-line bg-blue-soft/60 shadow-sm dark:bg-accent"
             : step.status === "completed"
-              ? "border-delulu-blue-border/50 bg-card dark:border-delulu-blue/20"
+              ? "border-blue-line/50 bg-card dark:border-delulu-blue/20"
               : "border-border/50 bg-muted/15",
         )}
       >
@@ -417,7 +417,7 @@ export function DeluluJourneyCard({
             >
               <h3
                 className={cn(
-                  "font-black leading-snug text-foreground line-clamp-2 group-hover:text-delulu-blue transition-colors",
+                  "font-extrabold leading-snug text-foreground line-clamp-2 group-hover:text-blue transition-colors",
                   compact ? "text-sm" : "text-base sm:text-lg",
                 )}
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
@@ -451,11 +451,11 @@ export function DeluluJourneyCard({
           </div>
           {!compact ? (
             <div
-              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-card/80 shadow-sm"
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-blue-line bg-card/80 shadow-sm"
               aria-label={`${tracker.completed} of ${tracker.total} milestones`}
             >
               <span
-                className="text-sm font-black tabular-nums leading-none text-foreground"
+                className="text-sm font-extrabold tabular-nums leading-none text-foreground"
                 style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {tracker.completed}
@@ -497,7 +497,7 @@ export function DeluluJourneyCard({
               <button
                 type="button"
                 onClick={() => setMilestonesExpanded((open) => !open)}
-                className="mt-2 flex w-full items-center justify-center gap-1 border-t border-border/40 pt-3 text-xs font-semibold text-delulu-blue transition-colors hover:text-delulu-blue/80"
+                className="mt-2 flex w-full items-center justify-center gap-1 border-t border-border/40 pt-3 text-xs font-semibold text-blue transition-colors hover:text-blue/80"
                 style={{ fontFamily: "var(--font-body)" }}
                 aria-expanded={milestonesExpanded}
               >
@@ -568,11 +568,11 @@ export function MilestoneTrackerEmpty({
         compact ? "py-8" : "py-16",
       )}
     >
-      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-border/60 bg-delulu-blue-light shadow-sm">
-        <Target className="h-9 w-9 text-delulu-blue" strokeWidth={2} />
+      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-border/60 bg-blue-soft shadow-sm">
+        <Target className="h-9 w-9 text-blue" strokeWidth={2} />
       </div>
       <p
-        className="text-xl font-black text-foreground"
+        className="text-xl font-extrabold text-foreground"
         style={{ fontFamily: 'var(--font-display), sans-serif' }}
       >
         No milestones yet

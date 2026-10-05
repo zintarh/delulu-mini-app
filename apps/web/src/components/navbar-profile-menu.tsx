@@ -211,7 +211,7 @@ export function NavbarProfileMenu({
                           {formatAddress(walletAddress)}
                         </span>
                         {addressCopied ? (
-                          <span className="shrink-0 text-[11px] font-semibold text-delulu-blue">
+                          <span className="shrink-0 text-[11px] font-semibold text-blue">
                             Copied
                           </span>
                         ) : (

@@ -170,7 +170,7 @@ export function ActiveCampaignsSection({
             {showSeeAllLink && (
               <Link
                 href="/explore"
-                className="text-[11px] font-semibold text-delulu-blue hover:underline"
+                className="text-[11px] font-semibold text-blue hover:underline"
               >
                 {all.length} active →
               </Link>

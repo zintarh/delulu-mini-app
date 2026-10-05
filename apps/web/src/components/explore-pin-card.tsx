@@ -340,7 +340,7 @@ export function ExplorePinCard({
               <span className="font-semibold text-muted-foreground">
                 Milestones
               </span>
-              <span className="font-black tabular-nums text-foreground">
+              <span className="font-extrabold tabular-nums text-foreground">
                 {verifiedCount}/{totalCount}
               </span>
             </div>

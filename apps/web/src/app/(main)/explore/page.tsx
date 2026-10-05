@@ -106,7 +106,7 @@ export default function CampaignsPage() {
             <>
               <header className="mb-4">
                 <h1
-                  className="text-lg font-black tracking-tight text-foreground"
+                  className="text-lg font-extrabold tracking-tight text-foreground"
                 >
                   {`Results for "${q}"`}
                 </h1>
@@ -119,7 +119,7 @@ export default function CampaignsPage() {
                   <button
                     type="button"
                     onClick={() => void fetchCampaignResults()}
-                    className="text-sm font-semibold text-delulu-blue underline"
+                    className="text-sm font-semibold text-blue underline"
                   >
                     Try again
                   </button>
@@ -138,7 +138,7 @@ export default function CampaignsPage() {
                   </p>
                   <Link
                     href="/explore"
-                    className="text-sm font-semibold text-delulu-blue"
+                    className="text-sm font-semibold text-blue"
                   >
                     Browse all campaigns
                   </Link>

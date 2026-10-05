@@ -89,7 +89,7 @@ const ModalTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-xl font-black text-foreground", className)}
+    className={cn("text-xl font-extrabold text-foreground", className)}
     {...props}
   />
 ))

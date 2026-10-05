@@ -26,13 +26,13 @@ export function HomeTop10Banner() {
 
           <div className="min-w-0 flex-1">
             <p
-              className="text-[8px] font-black uppercase tracking-[0.18em] text-[#244E1A]"
+              className="text-[8px] font-extrabold uppercase tracking-[0.18em] text-[#244E1A]"
               style={{ fontFamily: "var(--font-body)" }}
             >
               Forfeit challenge
             </p>
             <p
-              className="mt-0.5  font-black  text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
+              className="mt-0.5  font-extrabold  text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
               style={{ fontFamily: 'var(--font-display), sans-serif' }}
             >
               Top {FORFEIT_CAMPAIGN_TOP_N} share ${FORFEIT_CAMPAIGN_POOL_USD.toLocaleString()}
@@ -50,7 +50,7 @@ export function HomeTop10Banner() {
         <div className=" hidden sm:flex justify-end">
           <Link
             href="/forfeit"
-            className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+            className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
           >
             Create a forfeit →
           </Link>
@@ -60,7 +60,7 @@ export function HomeTop10Banner() {
       <div className=" sm:hidden flex justify-end mt-2">
         <Link
           href="/forfeit"
-          className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+          className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
         >
           Create a forfeit →
         </Link>

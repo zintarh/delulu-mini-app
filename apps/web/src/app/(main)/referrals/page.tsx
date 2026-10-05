@@ -22,7 +22,7 @@ const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
 function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
   if (r.counted) {
     return r.payout === "sent" ? (
-      <span className="font-bold text-delulu-green">
+      <span className="font-bold text-green-edge">
         +{REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$
       </span>
     ) : (
@@ -46,7 +46,7 @@ function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
           <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-foreground">
+          <p className="truncate text-sm font-extrabold text-foreground">
             {r.username ? `@${r.username}` : "No username yet"}
           </p>
           <p className="text-xs">
@@ -63,7 +63,7 @@ function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
               key={key}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center text-[10px] font-semibold leading-tight",
-                done ? "bg-delulu-green/10 text-delulu-green" : "bg-muted text-muted-foreground",
+                done ? "bg-green-soft text-green-edge" : "bg-muted text-muted-foreground",
               )}
             >
               {done ? (
@@ -122,7 +122,7 @@ export default function MyReferralsPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-foreground" strokeWidth={2} />
-            <h1 className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground lg:text-3xl">
               My referrals
             </h1>
           </div>

@@ -184,22 +184,22 @@ export function HomeStakesHero({ address }: { address: string }) {
         className={cn(
           "rounded-3xl border p-4 shadow-sm transition-opacity active:opacity-90",
           countdown.overdue
-            ? "border-red-500/30 bg-red-500/10"
+            ? "border-red-500/30 bg-orange-soft"
             : "border-red-500/20 bg-gradient-to-b from-red-500/10 to-transparent",
         )}
       >
         <div className="flex items-center gap-1.5">
-          <TriangleAlert className="h-3.5 w-3.5 text-red-600 dark:text-red-500" strokeWidth={2.5} />
-          <p className={cn(FEED_CARD_EYEBROW_CLASS, "text-red-600 dark:text-red-500")}>
+          <TriangleAlert className="h-3.5 w-3.5 text-orange dark:text-orange" strokeWidth={2.5} />
+          <p className={cn(FEED_CARD_EYEBROW_CLASS, "text-orange dark:text-orange")}>
             At risk · {activeCount} active
           </p>
         </div>
 
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-[34px] font-black leading-none tabular-nums text-red-600 dark:text-red-500">
+          <span className="text-[34px] font-extrabold leading-none tabular-nums text-orange dark:text-orange">
             {formatGAmount(dominant.totalAmount)}
           </span>
-          <span className="text-lg font-bold text-red-600/80 dark:text-red-500/80">
+          <span className="text-lg font-bold text-orange/80 dark:text-orange/80">
             {dominant.symbol}
           </span>
           {otherGroupsCount > 0 ? (
@@ -211,7 +211,7 @@ export function HomeStakesHero({ address }: { address: string }) {
 
         <div className="mt-2 flex items-center gap-1.5">
           <Flame
-            className={cn("h-4 w-4", countdown.overdue ? "text-red-600" : "text-amber-600")}
+            className={cn("h-4 w-4", countdown.overdue ? "text-orange" : "text-orange")}
           />
           <span className="text-base font-bold tabular-nums text-foreground">
             {countdown.label}

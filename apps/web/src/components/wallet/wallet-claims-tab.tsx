@@ -138,7 +138,7 @@ function CampaignClaimRow({
         {item.communitySlug ? (
           <Link
             href={`/communities/${item.communitySlug}/campaigns/${item.campaignId}`}
-            className="mt-0.5 inline-block text-[11px] font-semibold text-delulu-blue hover:underline"
+            className="mt-0.5 inline-block text-[11px] font-semibold text-blue hover:underline"
           >
             View campaign
           </Link>
@@ -232,7 +232,7 @@ function StakeReclaimRow({
         {item.communitySlug ? (
           <Link
             href={`/communities/${item.communitySlug}/campaigns/${item.campaignId}`}
-            className="mt-0.5 inline-block text-[11px] font-semibold text-delulu-blue hover:underline"
+            className="mt-0.5 inline-block text-[11px] font-semibold text-blue hover:underline"
           >
             View campaign
           </Link>
@@ -462,7 +462,7 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
       <button
         type="button"
         onClick={() => void load()}
-        className="mt-4 text-xs font-bold text-delulu-blue hover:underline"
+        className="mt-4 text-xs font-bold text-blue hover:underline"
       >
         Try again
       </button>
