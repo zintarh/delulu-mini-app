@@ -141,22 +141,22 @@ export default function SettingsPage() {
     <>
       <MainPage>
           {/* Header */}
-          <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
+          <div className="sticky top-0 z-40 mx-auto flex max-w-xl items-center gap-3 bg-paper/95 px-5 py-3 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => router.back()}
               aria-label="Back"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="press-edge inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
             </button>
-            <h1 className="text-lg font-bold">Settings</h1>
+            <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">Settings</h1>
           </div>
 
           {address && (
-            <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
+            <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3">
               {/* Profile card */}
-              <section className="rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
+              <section className="rounded-3xl border-2 border-line bg-white p-4 shadow-edge">
                 <div className="flex items-center gap-3.5">
                   <UserAvatar
                     address={address}
@@ -174,7 +174,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={handleCopyAddress}
-                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 font-mono text-xs text-muted-foreground transition-colors hover:text-ink"
                       aria-label="Copy wallet address"
                     >
                       <Wallet className="h-3 w-3 shrink-0" />
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="mt-3.5 border-t border-border/40 pt-3.5">
+                <div className="mt-3.5 border-t-2 border-dashed border-line pt-3.5">
                   {email ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-3.5 w-3.5 shrink-0" />
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setAddEmailSheetOpen(true)}
-                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-green-edge transition-colors hover:bg-green/5"
+                      className="flex w-full items-center gap-2 rounded-xl border-2 border-dashed border-line px-3 py-2 text-sm font-bold text-ink transition-colors hover:bg-paper"
                     >
                       <Mail className="h-3.5 w-3.5 shrink-0" />
                       Add email
@@ -258,7 +258,7 @@ export default function SettingsPage() {
               {!forcedTheme ? (
                 <section>
                   <SectionLabel>Appearance</SectionLabel>
-                  <div className="mt-2.5 flex gap-1 rounded-2xl border border-border/50 bg-card p-1 shadow-sm">
+                  <div className="mt-2.5 flex gap-1 rounded-2xl bg-[#ecece7] p-1">
                     {(["system", "light", "dark"] as const).map((opt) => (
                       <button
                         key={opt}
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                         className={cn(
                           "flex-1 rounded-xl py-2 text-xs font-bold capitalize transition-colors",
                           mounted && theme === opt
-                            ? "bg-secondary text-foreground"
+                            ? "bg-ink text-white shadow-[0_3px_0_#000]"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
@@ -281,7 +281,7 @@ export default function SettingsPage() {
               {/* More */}
               <section>
                 <SectionLabel>More</SectionLabel>
-                <div className="mt-2.5 rounded-[20px] border-2 border-line bg-white shadow-edge divide-y divide-border/40 overflow-hidden">
+                <div className="mt-2.5 rounded-[20px] border-2 border-line bg-white shadow-edge divide-y-2 divide-dashed divide-line overflow-hidden">
                   <LinkRow
                     icon={<Wallet className="w-4 h-4" />}
                     title="Rewards"
@@ -322,7 +322,7 @@ export default function SettingsPage() {
                   <SectionLabel>Notifications</SectionLabel>
                   <div className="mt-2.5 rounded-[20px] border-2 border-line bg-white shadow-edge p-4">
                     <div className="flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground shrink-0">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-paper text-ink">
                         {pushState.state === "ready" && pushState.subscribed ? (
                           <Bell className="w-4 h-4" />
                         ) : (
@@ -371,7 +371,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={openLogoutSheet}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-border bg-secondary text-orange hover:bg-secondary/80 text-sm font-bold transition-colors"
+                  className="press-edge inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border-2 border-line bg-white text-sm font-bold text-orange shadow-edge"
                   style={MANROPE}
                 >
                   <LogOut className="w-4 h-4" />
@@ -394,7 +394,7 @@ export default function SettingsPage() {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+      className="label-mono text-muted-foreground"
       style={MANROPE}
     >
       {children}
@@ -417,7 +417,7 @@ function LinkRow({
 }) {
   const inner = (
     <>
-      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground">
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-paper text-ink">
         {icon}
       </span>
       <div className="flex-1 min-w-0">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Lulu } from "@/components/ds";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
@@ -53,8 +54,8 @@ function NotificationItem({ item }: { item: NotificationRow }) {
   const inner = (
     <li
       className={cn(
-        "flex gap-3.5 py-3 px-3 rounded-xl transition-colors",
-        isUnread ? "bg-secondary/60" : "hover:bg-muted/30",
+        "flex gap-3.5 rounded-2xl px-3 py-3 transition-colors",
+        isUnread ? "border-2 border-line bg-white shadow-edge-sm" : "hover:bg-white/60",
       )}
     >
       <div className="shrink-0 relative">
@@ -70,7 +71,7 @@ function NotificationItem({ item }: { item: NotificationRow }) {
           </div>
         )}
         {isUnread && (
-          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-blue-500 border-2 border-background" />
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-orange" />
         )}
       </div>
       <div className="flex-1 min-w-0 pt-0.5">
@@ -158,7 +159,7 @@ function PanelContent({ onClose }: { onClose: () => void }) {
     <>
       <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
         <h2
-          className="text-[28px] font-bold text-foreground tracking-tight"
+          className="text-2xl font-bold tracking-[-0.02em] text-foreground"
           style={{ fontFamily: "var(--font-body)" }}
         >
           Updates
@@ -176,10 +177,10 @@ function PanelContent({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
+            className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white text-ink shadow-edge-sm"
             aria-label="Close updates"
           >
-            <X className="w-6 h-6" strokeWidth={1.75} />
+            <X className="h-5 w-5" strokeWidth={2.4} />
           </button>
         </div>
       </div>
@@ -191,7 +192,9 @@ function PanelContent({ onClose }: { onClose: () => void }) {
           </ul>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3 text-center px-4">
-            <Bell className="w-10 h-10 text-muted-foreground/40" strokeWidth={1.5} />
+            <span className="animate-bob">
+              <Lulu size={64} />
+            </span>
             <p className="text-sm font-semibold text-foreground">No notifications yet</p>
           </div>
         ) : (
@@ -234,7 +237,7 @@ export function NotificationsPanel() {
             aria-label="Close updates"
             onClick={close}
           />
-          <aside className="relative w-full max-w-[400px] h-full bg-background shadow-xl flex flex-col animate-in slide-in-from-left duration-300">
+          <aside className="relative flex h-full w-full max-w-[400px] flex-col bg-paper shadow-xl animate-in slide-in-from-left duration-300">
             <PanelContent onClose={close} />
           </aside>
         </div>
