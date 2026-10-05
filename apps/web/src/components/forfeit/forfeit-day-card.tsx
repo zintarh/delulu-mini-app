@@ -226,7 +226,7 @@ function groupDaysByRole(
     .filter((group) => group.items.length > 0);
 }
 
-function formatStakeAmount(item: ForfeitFeedItem): string | null {
+export function formatStakeAmount(item: ForfeitFeedItem): string | null {
   const chain = item.onChain;
   if (!chain?.stakeAmount || !chain.token) return null;
   try {
@@ -242,7 +242,7 @@ function formatStakeAmount(item: ForfeitFeedItem): string | null {
   }
 }
 
-function destinationLabel(item: ForfeitFeedItem): string | null {
+export function destinationLabel(item: ForfeitFeedItem): string | null {
   const type =
     item.onChain?.destinationType != null
       ? Number(item.onChain.destinationType)
@@ -253,7 +253,7 @@ function destinationLabel(item: ForfeitFeedItem): string | null {
     return "Charity";
   }
   if (type === ForfeitDestinationType.CommunityPool) {
-    return "Delulu";
+    return "the pool";
   }
   if (type === ForfeitDestinationType.SelfReturn) {
     return "you";
@@ -545,7 +545,13 @@ function ForfeitTaskCard({
     >
       <HabitTile icon={tile.icon} tint={tile.tint} />
       <div className={cn("min-w-0 flex-1", showMenu && "pr-6")}>
-        <p className="text-base font-bold leading-snug text-foreground">{item.title || "Untitled forfeit"}</p>
+        {item.onChainCommitmentId != null ? (
+          <Link href={`/forfeit/${item.onChainCommitmentId}`} className="text-base font-bold leading-snug text-foreground no-underline hover:underline">
+            {item.title || "Untitled contract"}
+          </Link>
+        ) : (
+          <p className="text-base font-bold leading-snug text-foreground">{item.title || "Untitled contract"}</p>
+        )}
         <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
           {stakeLine.lead}{" "}
           <span className={cn("font-bold tabular-nums", stateColor)}>{stakeLine.amountText ?? "—"}</span>
@@ -939,6 +945,29 @@ export function ForfeitDayCard({
   >("idle");
   const [activeProofItem, setActiveProofItem] =
     useState<ForfeitFeedItem | null>(null);
+
+  // Deep link from the contract detail page: /home?prove=<onChainCommitmentId>
+  // opens today's proof flow for that contract once the feed has loaded.
+  const proveHandled = useRef(false);
+  useEffect(() => {
+    if (proveHandled.current || isLoading) return;
+    const id = new URLSearchParams(window.location.search).get("prove");
+    if (!id) return;
+    proveHandled.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    const day = items.find(
+      (d) =>
+        d.role === "creator" &&
+        d.periodStatus === "current" &&
+        String(d.forfeit.onChainCommitmentId) === id,
+    );
+    if (!day) return;
+    setActiveProofItem(day.forfeit);
+    setProofSuccess(false);
+    setProofError(null);
+    setProofStep("idle");
+    setProofOpen(true);
+  }, [isLoading, items]);
 
   const [discontinueItem, setDiscontinueItem] =
     useState<ForfeitFeedItem | null>(null);

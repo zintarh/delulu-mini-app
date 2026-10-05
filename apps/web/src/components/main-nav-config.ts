@@ -10,7 +10,7 @@ import {
 
 /** Full-screen flows that hide the floating dock (they own their bottom bar). */
 export function hidesBottomNav(pathname: string): boolean {
-  return pathname === "/forfeit";
+  return pathname === "/forfeit" || /^\/forfeit\/\d+$/.test(pathname);
 }
 
 /** Signed-in app home. `/` is the public landing page. */
