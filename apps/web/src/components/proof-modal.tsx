@@ -6,6 +6,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { formatProofError, formatUploadError } from "@/lib/community/format-proof-error";
 import { ProofSuccessCard } from "@/components/proof-success-card";
+import { GameButton } from "@/components/ds";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
@@ -190,7 +191,7 @@ export function ProofModal({
     >
       {/* Drag handle pill (mobile sheet) */}
       <div className="-mt-1 mb-5 flex justify-center lg:hidden">
-        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
+        <div className="h-[5px] w-10 rounded-full bg-[#dadad4]" />
       </div>
 
       {/* Success state */}
@@ -214,16 +215,10 @@ export function ProofModal({
         <div className="space-y-4">
           {/* Header */}
           <div>
-            {milestoneName ? (
-              <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {milestoneName}
-              </p>
+            {milestoneName || campaignTitle ? (
+              <p className="label-mono mb-1 text-muted-foreground">{milestoneName ?? campaignTitle}</p>
             ) : null}
-            <h2
-              className="text-xl font-black tracking-tight text-foreground"
-            >
-              Upload proof
-            </h2>
+            <h2 className="m-0 text-2xl font-bold tracking-[-0.02em] text-foreground">Show your proof</h2>
             {milestoneDeadline ? (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Due{" "}
@@ -245,15 +240,15 @@ export function ProofModal({
           {showErrorBanner ? (
             <div
               role="alert"
-              className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3"
+              className="rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3"
             >
-              <p className="text-sm font-bold text-destructive">{displayErrorTitle}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-destructive/90">{displayError}</p>
+              <p className="text-sm font-bold text-orange">{displayErrorTitle}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-orange/90">{displayError}</p>
               {imagePreview ? (
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="mt-1.5 text-xs font-semibold text-delulu-blue hover:underline"
+                  className="mt-1.5 text-xs font-bold text-blue hover:underline"
                 >
                   Try a different photo
                 </button>
@@ -273,8 +268,8 @@ export function ProofModal({
 
             {imagePreview ? (
               /* Image preview */
-              <div className="relative overflow-hidden rounded-2xl">
-                <div className="aspect-[4/3]">
+              <div className="relative overflow-hidden rounded-[20px] border-2 border-line bg-white p-2 shadow-edge">
+                <div className="aspect-[4/3] overflow-hidden rounded-xl">
                   <img
                     src={imagePreview}
                     alt="Proof preview"
@@ -284,8 +279,15 @@ export function ProofModal({
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
                 {busy ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[3px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  <div className="absolute inset-2 flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl bg-black/45">
+                    {activeStep === "ai-verifying" ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 h-[3px] animate-scan bg-yellow shadow-[0_0_24px_6px_rgba(246,195,36,0.6)]"
+                      />
+                    ) : (
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    )}
                     <p className="text-sm font-bold text-white">{STEP_LABEL[activeStep]}</p>
                     {activeStep === "wallet-sign" ? (
                       <p className="text-xs text-white/60">Open your wallet app</p>
@@ -305,7 +307,7 @@ export function ProofModal({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full rounded-full bg-white/90 py-2 text-xs font-bold text-[#1a1a19] backdrop-blur-sm transition-opacity hover:bg-white"
+                        className="w-full rounded-xl bg-white/95 py-2 text-xs font-extrabold uppercase tracking-[0.06em] text-ink"
                       >
                         Change photo
                       </button>
@@ -324,73 +326,42 @@ export function ProofModal({
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className="relative flex h-52 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border bg-card transition-all"
-                style={{
-                  background: isDragging
-                    ? "radial-gradient(ellipse at 50% 50%, rgba(79,70,229,0.08) 0%, transparent 70%), rgb(var(--card))"
-                    : undefined,
-                }}
-              >
-                {isDragging && (
-                  <div className="absolute inset-0 rounded-2xl border-2 border-indigo-500/60" />
+                className={cn(
+                  "relative flex h-56 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[20px] border-2 border-dashed bg-white transition-colors",
+                  isDragging ? "border-ink bg-yellow-soft" : "border-[#bdbdb6]",
                 )}
-
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-                  <Camera
-                    className={cn(
-                      "h-7 w-7 transition-colors",
-                      isDragging ? "text-indigo-500" : "text-muted-foreground/60",
-                    )}
-                    strokeWidth={1.75}
-                  />
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-yellow shadow-edge-yellow">
+                  <Camera className="h-8 w-8 text-ink" strokeWidth={2} />
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[15px] font-black text-foreground">
-                    {isDragging ? "Drop it here" : "Tap to add proof"}
+                  <p className="text-base font-extrabold text-foreground">
+                    {isDragging ? "Drop it here" : "Tap to add a photo"}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/60">
-                    screenshot · photo · selfie · anything real
-                  </p>
+                  <p className="label-mono mt-1 text-[10px] text-muted-foreground">AI checks it in seconds</p>
                 </div>
 
-                <p className="absolute bottom-3 text-[10px] font-semibold text-muted-foreground/40">
-                  max 5 MB
-                </p>
+                <p className="absolute bottom-3 font-mono text-[10px] text-muted-foreground/60">max 5 MB</p>
               </button>
             )}
           </div>
 
           {/* Actions */}
           <div className="flex gap-2.5 pt-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={busy}
-              className="h-12 flex-1 rounded-full border border-border bg-background text-sm font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-40"
-            >
+            <GameButton variant="line" onClick={handleClose} disabled={busy} className="flex-1">
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className={cn(
-                "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
-                canSubmit
-                  ? "bg-delulu-blue text-white hover:opacity-90"
-                  : "cursor-not-allowed bg-muted text-muted-foreground",
-              )}
-            >
+            </GameButton>
+            <GameButton onClick={handleSubmit} disabled={!canSubmit} className="flex-[2]">
               {busy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {STEP_LABEL[activeStep]}
                 </>
               ) : (
-                "Upload proof"
+                "Submit proof"
               )}
-            </button>
+            </GameButton>
           </div>
         </div>
       )}
