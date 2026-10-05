@@ -25,6 +25,8 @@ interface NavbarProfileMenuProps {
   className?: string;
   /** Compact trigger for mobile page headers */
   size?: "default" | "compact";
+  /** Avatar-only trigger (the HUD puts a level badge where the chevron sat). */
+  hideChevron?: boolean;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -84,6 +86,7 @@ export function NavbarProfileMenu({
   onLogoutClick,
   className,
   size = "default",
+  hideChevron = false,
 }: NavbarProfileMenuProps) {
   const compact = size === "compact";
   const triggerSize = compact ? 36 : 40;
@@ -159,14 +162,16 @@ export function NavbarProfileMenu({
         ) : (
           <TriggerAvatar src={DEFAULT_AVATAR} size={triggerSize} />
         )}
-        <ChevronDown
-          className={cn(
-            "shrink-0 text-muted-foreground transition-transform duration-200",
-            compact ? "h-4 w-4" : "h-5 w-5",
-            open && "rotate-180",
-          )}
-          strokeWidth={2.25}
-        />
+        {hideChevron ? null : (
+          <ChevronDown
+            className={cn(
+              "shrink-0 text-muted-foreground transition-transform duration-200",
+              compact ? "h-4 w-4" : "h-5 w-5",
+              open && "rotate-180",
+            )}
+            strokeWidth={2.25}
+          />
+        )}
       </button>
 
       {open && (

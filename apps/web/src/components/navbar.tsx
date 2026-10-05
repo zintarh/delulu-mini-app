@@ -33,9 +33,9 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
       <nav className="mx-auto flex min-h-[64px] max-w-lg items-center gap-2 px-5 py-3 md:max-w-7xl md:px-6">
         {authenticated ? (
           <div className="relative shrink-0">
-            <NavbarProfileMenu onLogoutClick={onLogoutClick} size="compact" />
+            <NavbarProfileMenu onLogoutClick={onLogoutClick} size="default" hideChevron />
             <span
-              className="pointer-events-none absolute -bottom-1 -right-1.5 flex h-[22px] min-w-[22px] items-center justify-center rounded-[7px] border-2 border-white bg-blue px-1 text-[11px] font-extrabold text-white"
+              className="pointer-events-none absolute -bottom-1 -right-1 flex h-[22px] min-w-[22px] items-center justify-center rounded-[7px] border-2 border-white bg-blue px-1 text-[11px] font-extrabold text-white"
               aria-label={`Level ${level}`}
             >
               {level}

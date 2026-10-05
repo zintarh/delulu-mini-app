@@ -7,7 +7,8 @@ import { SIGN_IN_BUTTON_LABEL } from "@/lib/auth-redirect";
 import dynamic from "next/dynamic";
 import { Gift, Loader2, ShieldCheck, X } from "lucide-react";
 import { formatUnits } from "viem";
-import { cn, formatGAmount } from "@/lib/utils";
+import { formatGAmount } from "@/lib/utils";
+import { CheckDot, CoinStack, GameCard, MonoLabel, gameButtonClass } from "@/components/ds";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -19,13 +20,8 @@ const IdentityFlow = dynamic(() => import("@/app/(main)/daily-claim/IdentityFlow
   ssr: false,
 });
 
-const primaryButtonClass = cn(
-  "w-full py-4 rounded-full text-sm font-extrabold transition-all",
-  "bg-delulu-yellow-reserved text-delulu-charcoal",
-  "hover:brightness-95 active:scale-[0.98]",
-  "disabled:opacity-45 disabled:cursor-not-allowed",
-  "flex items-center justify-center gap-2",
-);
+const primaryButtonClass = gameButtonClass({ variant: "green", size: "lg", full: true });
+const verifyButtonClass = gameButtonClass({ variant: "blue", size: "lg", full: true });
 
 interface ClaimPanelContentProps {
   onClose: () => void;
@@ -113,9 +109,9 @@ export function ClaimPanelContent({
 
   const verifyButtonLabel = whitelistIntent
     ? whitelistIntent === "tip"
-      ? "Verify & whitelist to tip"
-      : "Verify & whitelist to create"
-    : "Verify & whitelist";
+      ? "Verify to tip"
+      : "Verify to create"
+    : "Verify & claim";
 
   useEffect(() => {
     if (!isInitialized || !whitelistIntent || isWhitelisted) return;
@@ -169,20 +165,15 @@ export function ClaimPanelContent({
   return (
     <>
       <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
-        <h2
-          className="text-[26px] font-bold text-foreground tracking-tight"
-          style={{ fontFamily: "var(--font-body)" }}
-        >
-          Claim G$
-        </h2>
+        <h2 className="m-0 text-2xl font-bold tracking-[-0.02em]">Free daily money</h2>
         {showCloseButton ? (
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
+            className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
             aria-label="Close claim"
           >
-            <X className="w-6 h-6" strokeWidth={1.75} />
+            <X className="h-5 w-5" strokeWidth={2.4} />
           </button>
         ) : null}
       </div>
@@ -190,7 +181,7 @@ export function ClaimPanelContent({
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8">
         {whitelistIntent ? (
           <div
-            className="mb-4 rounded-xl border border-delulu-yellow-reserved/40 bg-delulu-yellow-reserved/15 px-4 py-3"
+            className="mb-4 rounded-[20px] border-2 border-yellow-line bg-yellow-soft px-4 py-3"
             role="status"
           >
             <p className="text-sm font-bold text-foreground">
@@ -209,40 +200,32 @@ export function ClaimPanelContent({
           </div>
         ) : null}
 
-        <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-gradient-to-b from-delulu-yellow-reserved/25 via-background to-background px-5 py-8 text-center mb-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,195,36,0.35),transparent_55%)] pointer-events-none" />
-          <div className="relative">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-background/80 border border-border/60 shadow-sm">
-              <img
-                src="/gooddollar-logo.png"
-                alt="GoodDollar"
-                className="h-9 w-9 object-contain"
-              />
-            </div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
-              Today&apos;s UBI
+        <GameCard
+          tone={needsWhitelist ? "blue" : "green"}
+          className="mb-4 flex flex-col items-center px-5 pb-6 pt-5 text-center"
+        >
+          <CoinStack locked={needsWhitelist} className="scale-125" />
+          <MonoLabel className="mt-3">Today&apos;s amount</MonoLabel>
+          {isClaimDataLoading || !isReady || !isInitialized ? (
+            <div className="mx-auto mt-2 h-10 w-32 animate-pulse rounded-lg bg-line" />
+          ) : needsWhitelist ? (
+            <p className="mx-auto mt-2 max-w-[260px] text-lg font-extrabold leading-snug">
+              One quick face check unlocks it
             </p>
-            {isClaimDataLoading || !isReady || !isInitialized ? (
-              <div className="h-12 w-32 mx-auto bg-secondary rounded-lg animate-pulse" />
-            ) : needsWhitelist ? (
-              <p className="text-lg font-bold text-muted-foreground max-w-[240px] mx-auto leading-snug">
-                Verify your identity to see today&apos;s UBI
-              </p>
-            ) : (
-              <p className="text-5xl font-extrabold text-foreground tracking-tight tabular-nums">
-                {entitlementDisplay}
-                <span className="text-2xl font-bold text-muted-foreground ml-1">G$</span>
-              </p>
-            )}
-            <p className="mt-3 text-sm text-muted-foreground max-w-[240px] mx-auto leading-relaxed">
-              Free daily income on Celo. Claim once every 24 hours.
+          ) : (
+            <p className="mt-1 font-display text-[52px] font-black leading-none tabular-nums">
+              {entitlementDisplay}
+              <span className="ml-1 text-2xl">G$</span>
             </p>
-          </div>
-        </div>
+          )}
+          <p className="mx-auto mt-3 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
+            Free money from GoodDollar. Claim once every 24 hours.
+          </p>
+        </GameCard>
 
-        <div className="flex items-center justify-between py-3 border-b border-border/70 mb-6">
-          <span className="text-sm text-muted-foreground">Your balance</span>
-          <span className="text-sm font-bold text-foreground tabular-nums">
+        <div className="mb-6 flex items-center justify-between rounded-[20px] border-2 border-line bg-white px-4 py-3">
+          <span className="text-sm font-semibold text-muted-foreground">Your balance</span>
+          <span className="text-sm font-extrabold tabular-nums">
             {isGdLoading
               ? "…"
               : gDollarBalance && Number(gDollarBalance) > 0
@@ -255,7 +238,7 @@ export function ClaimPanelContent({
           <button
             type="button"
             onClick={() => redirectToSignIn()}
-            className="w-full py-3.5 rounded-full bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
+            className={gameButtonClass({ variant: "ink", size: "lg", full: true })}
           >
             {SIGN_IN_BUTTON_LABEL}
           </button>
@@ -278,15 +261,16 @@ export function ClaimPanelContent({
             <button
               type="button"
               onClick={openIdentityFlow}
-              className={primaryButtonClass}
+              className={verifyButtonClass}
             >
               <ShieldCheck className="w-4 h-4" strokeWidth={2} />
               {verifyButtonLabel}
             </button>
           )
         ) : hasClaimed ? (
-          <div className="rounded-xl bg-secondary px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-foreground mb-1">
+          <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-4 py-4 text-center">
+            <CheckDot size={32} className="mb-2" />
+            <p className="mb-1 text-sm font-extrabold">
               {nextClaimTime ? (() => {
                 const now = new Date();
                 const timeStr = nextClaimTime.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -323,12 +307,12 @@ export function ClaimPanelContent({
             )}
           </button>
         ) : (
-          <div className="rounded-xl bg-secondary px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-foreground">
-              You&apos;re whitelisted
+          <div className="rounded-[20px] border-2 border-line bg-white px-4 py-4 text-center">
+            <p className="text-sm font-extrabold">
+              You&apos;re verified
             </p>
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              No daily UBI is available right now. You can still tip and create delulus with G$.
+              No free money is available right now. Check back later.
             </p>
           </div>
         )}

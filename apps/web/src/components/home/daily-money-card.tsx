@@ -20,10 +20,95 @@ function useCountdown(target: Date | null) {
   return `${p(Math.floor(left / 3600))}:${p(Math.floor(left / 60) % 60)}:${p(left % 60)}`;
 }
 
+export type DailyMoneyState = "loading" | "verify" | "claimable" | "claimed";
+
+/** Presentational card — every state, no data fetching (see DailyMoneyCard). */
+export function DailyMoneyCardView({
+  state,
+  amount,
+  countdown,
+  claiming = false,
+  onClaim,
+  onVerify,
+}: {
+  state: DailyMoneyState;
+  amount?: string | null;
+  countdown?: string | null;
+  claiming?: boolean;
+  onClaim?: () => void;
+  onVerify?: () => void;
+}) {
+  if (state === "loading") {
+    return (
+      <GameCard className="flex items-center gap-3 px-3.5 py-3" aria-busy="true" aria-label="Loading free daily money">
+        <span className="h-11 w-12 shrink-0 animate-pulse rounded-full bg-line" />
+        <div className="flex flex-1 flex-col gap-2">
+          <span className="h-2.5 w-24 animate-pulse rounded bg-line" />
+          <span className="h-5 w-32 animate-pulse rounded bg-line" />
+        </div>
+      </GameCard>
+    );
+  }
+
+  if (state === "verify") {
+    return (
+      <GameCard tone="blue" className="flex flex-col gap-3 p-3.5">
+        <div className="flex items-center gap-3">
+          <CoinStack locked />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="label-mono truncate text-blue">Daily free money</span>
+            <span className="text-base font-extrabold leading-tight">Claim free money every day</span>
+            <span className="text-xs leading-snug text-muted-foreground">One quick face check · plus 10× points</span>
+          </div>
+        </div>
+        <GameButton variant="blue" size="sm" full onClick={onVerify}>
+          Verify &amp; claim
+        </GameButton>
+      </GameCard>
+    );
+  }
+
+  return (
+    <GameCard tone="green" className="flex items-center gap-3 py-3 pl-3.5 pr-3">
+      <CoinStack />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="label-mono truncate text-green-edge">Daily free money</span>
+        {state === "claimable" ? (
+          <>
+            <span className="truncate font-display text-[clamp(20px,6.5vw,28px)] font-extrabold leading-none">
+              {amount} <span className="text-[0.7em]">G$</span>
+            </span>
+            <span className="truncate text-xs text-muted-foreground">Ready to claim</span>
+          </>
+        ) : (
+          <>
+            <span className="text-[17px] font-extrabold leading-tight">Claimed for today</span>
+            {countdown ? (
+              <span className="text-xs text-muted-foreground">
+                Next in <span className="font-semibold tabular-nums text-ink">{countdown}</span>
+              </span>
+            ) : null}
+          </>
+        )}
+      </div>
+      {state === "claimable" ? (
+        <GameButton variant="green" size="sm" className="shrink-0 px-4" onClick={onClaim} disabled={claiming}>
+          {claiming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Claim
+        </GameButton>
+      ) : (
+        <span className="animate-bounce-in">
+          <CheckDot size={32} />
+        </span>
+      )}
+    </GameCard>
+  );
+}
+
 /**
- * Free daily money (GoodDollar UBI) on Home.
+ * Free daily money (GoodDollar UBI) on Home and Rewards.
  * Verified: claim in one tap, then a countdown to the next claim.
- * Not verified: a "Verify & claim" card that opens the claim/verify panel.
+ * Not verified: opens the claim/verify panel.
  */
 export function DailyMoneyCard() {
   const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
@@ -37,61 +122,18 @@ export function DailyMoneyCard() {
     return Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : null;
   }, [entitlement]);
 
-  if (isLoading || !isInitialized) {
-    return <div className="h-[84px] animate-pulse rounded-[20px] border-2 border-line bg-white" aria-hidden />;
-  }
-
-  if (!isWhitelisted) {
-    return (
-      <button type="button" onClick={openClaimPanel} className="block w-full text-left">
-        <GameCard tone="blue" className="flex items-center gap-3 py-3 pl-3.5 pr-3">
-          <CoinStack locked />
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="label-mono text-blue">Free daily money</span>
-            <span className="text-base font-extrabold leading-tight">Claim free money every day</span>
-            <span className="text-xs text-muted-foreground">One quick face check · plus 10× points</span>
-          </div>
-          <span className="inline-flex h-10 shrink-0 items-center rounded-xl bg-blue px-3.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-white shadow-edge-blue">
-            Verify &amp; claim
-          </span>
-        </GameCard>
-      </button>
-    );
-  }
-
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
+  const state: DailyMoneyState =
+    isLoading || !isInitialized ? "loading" : !isWhitelisted ? "verify" : canClaim ? "claimable" : "claimed";
 
   return (
-    <GameCard tone="green" className="flex items-center gap-3 py-3 pl-3.5 pr-3">
-      <CoinStack />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="label-mono text-green-edge">Free daily money</span>
-        {canClaim ? (
-          <>
-            <span className="font-display text-[28px] font-extrabold leading-none">{amount} G$</span>
-            <span className="text-xs text-muted-foreground">From GoodDollar · ready now</span>
-          </>
-        ) : (
-          <>
-            <span className="text-[17px] font-extrabold leading-tight">Claimed for today</span>
-            {countdown && (
-              <span className="text-xs text-muted-foreground">
-                Next in <span className="font-semibold tabular-nums text-ink">{countdown}</span>
-              </span>
-            )}
-          </>
-        )}
-      </div>
-      {canClaim ? (
-        <GameButton variant="green" size="sm" onClick={() => void claim()} disabled={isClaiming}>
-          {isClaiming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Claim
-        </GameButton>
-      ) : (
-        <span className="animate-bounce-in">
-          <CheckDot size={32} />
-        </span>
-      )}
-    </GameCard>
+    <DailyMoneyCardView
+      state={state}
+      amount={amount}
+      countdown={countdown}
+      claiming={isClaiming}
+      onClaim={() => void claim()}
+      onVerify={openClaimPanel}
+    />
   );
 }

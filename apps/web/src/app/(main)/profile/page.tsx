@@ -18,6 +18,7 @@ import {
   useUserEarnedTotal,
 } from "@/hooks/use-earned-totals";
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { formatCompact, getLevel } from "@/lib/levels";
@@ -120,7 +121,8 @@ function ProfileHeader({
   const { username: contractUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const displayUsername = user?.username || contractUsername || null;
   const pfpFromSupabase = usePfp(address);
-  const avatarUrl = pfpFromSupabase || user?.pfpUrl || null;
+  // undefined while loading (skeleton), null when no photo is set (initials).
+  const avatarUrl = pfpFromSupabase ?? user?.pfpUrl ?? pfpFromSupabase;
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address ?? undefined);
   const { totalEarned, isLoading: earnedLoading } = useUserEarnedTotal(address ?? undefined);
   const { currentStreak, totalVerified } = useUserStreak(address ?? undefined);
@@ -202,25 +204,12 @@ function ProfileHeader({
             aria-label="Change photo"
             className="group absolute inset-[10px] overflow-hidden rounded-full bg-yellow-soft"
           >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-2xl font-bold">
-                {(displayUsername || address || "?").slice(0, 1).toUpperCase()}
-              </span>
-            )}
+            <UserAvatar address={address} username={displayUsername} pfpUrl={avatarUrl} size={72} />
             <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
               {isPfpUploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
             </span>
           </button>
-          <span className="absolute -bottom-2 left-1/2 flex h-[22px] -translate-x-1/2 items-center justify-center rounded-lg border-2 border-white bg-blue px-2 text-[11px] font-extrabold text-white">
+          <span className="absolute -bottom-2 left-1/2 flex h-[22px] -translate-x-1/2 items-center justify-center whitespace-nowrap rounded-lg border-2 border-white bg-blue px-2 text-[11px] font-extrabold text-white">
             Lv {lvl.level}
           </span>
         </div>

@@ -44,13 +44,12 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
 }
 
 /** Daily goal bar with the chest that opens when every quest is kept. */
-export function DailyGoalCard({ address }: { address: string }) {
-  const { total, kept } = useTodayQuests(address);
+export function DailyGoalCardView({ kept, total }: { kept: number; total: number }) {
   if (total === 0) return null;
   const done = kept >= total;
   return (
     <GameCard className="flex animate-rise items-center gap-4 p-4">
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between">
           <span className="font-extrabold">Daily goal</span>
           <span className="font-mono text-[11px] font-semibold">
@@ -62,21 +61,25 @@ export function DailyGoalCard({ address }: { address: string }) {
           {done ? "Chest opened. See you tomorrow" : `Finish all ${total} to open the chest`}
         </div>
       </div>
-      <span className={cn("inline-block", !done && "animate-wiggle")}>
-        <Chest size={58} />
+      <span className={cn("inline-block shrink-0", !done && "animate-wiggle")}>
+        <Chest size={56} />
       </span>
     </GameCard>
   );
 }
 
+export function DailyGoalCard({ address }: { address: string }) {
+  const { total, kept } = useTodayQuests(address);
+  return <DailyGoalCardView kept={kept} total={total} />;
+}
+
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
-/** Last 7 days as flames (today highlighted). */
-export function WeekFlames({ address }: { address: string }) {
-  const { last7Days } = useUserStreak(address);
+/** Last 7 days as flames (today highlighted). Index 6 is today. */
+export function WeekFlamesView({ last7Days }: { last7Days: boolean[] }) {
   const today = new Date();
   return (
-    <GameCard className="flex animate-rise justify-between px-3.5 py-3">
+    <GameCard className="grid animate-rise grid-cols-7 gap-0.5 px-1.5 py-3">
       {last7Days.map((lit, i) => {
         const d = new Date(today);
         d.setDate(today.getDate() - (6 - i));
@@ -85,7 +88,7 @@ export function WeekFlames({ address }: { address: string }) {
           <div key={i} className="flex flex-col items-center gap-1">
             <span
               className={cn(
-                "flex h-[38px] w-[38px] items-center justify-center",
+                "flex aspect-square w-full max-w-[38px] items-center justify-center",
                 isToday && "rounded-xl border-2 border-yellow-line bg-yellow-soft",
               )}
             >
@@ -99,4 +102,9 @@ export function WeekFlames({ address }: { address: string }) {
       })}
     </GameCard>
   );
+}
+
+export function WeekFlames({ address }: { address: string }) {
+  const { last7Days } = useUserStreak(address);
+  return <WeekFlamesView last7Days={last7Days} />;
 }

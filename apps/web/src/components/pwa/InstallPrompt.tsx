@@ -49,7 +49,7 @@ export function InstallPrompt() {
   if (!canPrompt && !iosSafari) return null;
 
   return (
-    <div className="fixed inset-x-3 bottom-[calc(var(--mobile-bottom-nav-bar)+12px)] z-[110] flex items-start gap-3 rounded-[20px] border-2 border-line bg-white p-3.5 shadow-edge sm:inset-x-auto sm:right-4 sm:w-80 lg:bottom-6">
+    <div className="fixed inset-x-3 bottom-[calc(var(--mobile-bottom-nav-bar)+24px)] z-[110] flex items-start gap-3 rounded-[20px] border-2 border-line bg-white p-3.5 shadow-edge sm:inset-x-auto sm:right-4 sm:w-80 lg:bottom-6">
       <Lulu size={40} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold leading-tight">Install Delulu</p>

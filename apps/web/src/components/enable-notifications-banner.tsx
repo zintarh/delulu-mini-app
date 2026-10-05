@@ -160,29 +160,30 @@ export function EnableNotificationsBanner() {
     <div
       role="status"
       className={cn(
-        "fixed left-1/2 z-[90] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
-        // Sit above the no-gas banner when both can show.
+        "fixed inset-x-3 z-[90] sm:inset-x-auto sm:right-4 sm:w-80 lg:right-6",
+        // Sit above the dock (and above the no-gas banner when both show).
         isLowGas
-          ? "bottom-40 lg:bottom-24 lg:left-auto lg:right-6 lg:translate-x-0"
-          : "bottom-24 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
-        "flex items-start gap-2.5 rounded-xl border border-delulu-blue/25 bg-delulu-blue/10 px-4 py-3 shadow-lg backdrop-blur-sm",
+          ? "bottom-[calc(var(--mobile-bottom-nav-bar)+96px)] lg:bottom-24"
+          : "bottom-[calc(var(--mobile-bottom-nav-bar)+24px)] lg:bottom-6",
+        "flex items-start gap-3 rounded-[20px] border-2 border-line bg-white p-3.5 shadow-edge",
         "animate-in fade-in slide-in-from-bottom-2 duration-300",
       )}
     >
-      <Bell className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow text-ink shadow-[0_3px_0_#c99a0a]">
+        <Bell className="h-5 w-5" strokeWidth={2.2} />
+      </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-snug text-foreground">
-          Turn on notifications so you don&apos;t miss campaign reminders and rewards.
-        </p>
+        <p className="text-sm font-extrabold leading-tight text-foreground">Never miss a deadline</p>
+        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">Get a nudge before your proof is due.</p>
         {error ? (
-          <p className="mt-1 text-[11px] text-destructive">{error}</p>
+          <p className="mt-1 text-[11px] font-semibold text-orange">{error}</p>
         ) : null}
         <div className="mt-2.5 flex items-center gap-2">
           <button
             type="button"
             onClick={() => void handleEnable()}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-full bg-delulu-blue px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="press-edge inline-flex h-9 items-center gap-1.5 rounded-xl bg-ink px-3 text-xs font-extrabold uppercase tracking-[0.06em] text-white shadow-[0_3px_0_#000] disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
             Enable
@@ -191,7 +192,7 @@ export function EnableNotificationsBanner() {
             type="button"
             onClick={handleDismiss}
             disabled={busy}
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+            className="px-1 text-xs font-bold text-muted-foreground hover:text-foreground"
           >
             Not now
           </button>
