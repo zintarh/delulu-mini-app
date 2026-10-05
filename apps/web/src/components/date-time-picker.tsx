@@ -116,7 +116,7 @@ export function DateTimePicker({
         </button>
         <p
           className="text-[15px] font-black tracking-tight text-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           {format(visibleMonth, "MMMM yyyy")}
         </p>

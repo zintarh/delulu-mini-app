@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "delulu — crush your goals with a community behind you";
+export const alt = "Delulu — Build habits you can't skip";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+const INK = "#161615";
 
 export default function Image() {
   return new ImageResponse(
@@ -12,7 +14,7 @@ export default function Image() {
         style={{
           width: 1200,
           height: 630,
-          background: "#f9f8f4",
+          background: "#f7f7f4",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -20,103 +22,60 @@ export default function Image() {
           fontFamily: "sans-serif",
         }}
       >
-        {/* Top — wordmark */}
-        <div style={{ display: "flex", alignItems: "baseline" }}>
-          <span
-            style={{
-              fontSize: 36,
-              fontWeight: 900,
-              color: "#1a1a19",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            delulu
-          </span>
-          <span
-            style={{
-              fontSize: 36,
-              fontWeight: 900,
-              color: "#f6c324",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            .
-          </span>
+        {/* Top — Lulu + wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <path d="M30 11.5q3-7 10-5" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+            <circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke={INK} strokeWidth="3" />
+            <circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" />
+            <circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" />
+            <ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
+            <ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
+            <circle cx="26.2" cy="27.6" r="2.7" fill={INK} />
+            <circle cx="40.2" cy="27.6" r="2.7" fill={INK} />
+            <path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+          </svg>
+          <span style={{ fontSize: 44, fontWeight: 800, color: INK, letterSpacing: "-0.02em" }}>delulu</span>
         </div>
 
         {/* Center — headline */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <p
             style={{
-              fontSize: 62,
+              fontSize: 88,
               fontWeight: 900,
-              color: "#1a1a19",
+              color: INK,
               letterSpacing: "-0.04em",
-              lineHeight: 1.1,
+              lineHeight: 1,
               margin: 0,
-              maxWidth: 920,
+              textTransform: "uppercase",
             }}
           >
-            Join thousands already achieving their goals.
+            Build habits you can&apos;t skip.
           </p>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 500,
-              color: "#7a7a74",
-              margin: 0,
-              marginTop: 4,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Join a campaign · Prove your progress · Win together
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30, fontWeight: 800, color: INK }}>
+            <span>Say it.</span>
+            <span style={{ background: "#F6C324", padding: "4px 14px", borderRadius: 12, boxShadow: "0 5px 0 #C99A0A" }}>
+              Stake it.
+            </span>
+            <span>Prove it.</span>
+          </div>
         </div>
 
         {/* Bottom — CTA + URL */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div
             style={{
-              background: "#1a1a19",
-              borderRadius: 100,
-              padding: "16px 36px",
+              background: "#F6C324",
+              borderRadius: 18,
+              padding: "16px 34px",
               display: "flex",
-              alignItems: "center",
+              boxShadow: "0 6px 0 #C99A0A",
             }}
           >
-            <span
-              style={{
-                fontSize: 20,
-                fontWeight: 800,
-                color: "#f6c324",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Join a campaign →
-            </span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: INK, letterSpacing: "0.06em" }}>START FREE</span>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: "#f6c324",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: "#1a1a19",
-                letterSpacing: "0.02em",
-                opacity: 0.45,
-              }}
-            >
-              staydelulu.xyz
-            </span>
-          </div>
+          <span style={{ fontSize: 20, fontWeight: 700, color: INK, opacity: 0.5 }}>staydelulu.xyz</span>
         </div>
       </div>
     ),

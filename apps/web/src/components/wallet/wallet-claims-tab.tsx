@@ -41,7 +41,7 @@ type ReclaimableStakeItem = {
   forfeitPctPerMiss: number;
 };
 
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
+const MANROPE = { fontFamily: "var(--font-body)" } as const;
 
 function formatClaimAmount(amountWei: string) {
   try {

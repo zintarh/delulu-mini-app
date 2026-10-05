@@ -95,7 +95,7 @@ export default function ProfilePage() {
                   ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{ fontFamily: "var(--font-body)" }}
             >
               {label}
             </button>

@@ -42,8 +42,8 @@ import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn, formatAddress } from "@/lib/utils";
 
-const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
+const CLASH_DISPLAY = { fontFamily: 'var(--font-display), sans-serif' } as const;
+const MANROPE = { fontFamily: "var(--font-body)" } as const;
 
 export default function SettingsPage() {
   const router = useRouter();

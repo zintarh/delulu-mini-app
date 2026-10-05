@@ -1,23 +1,43 @@
 import type { Metadata } from "next";
-import { Manrope, Gloria_Hallelujah } from "next/font/google";
+import {
+  Big_Shoulders_Display,
+  Fredoka,
+  IBM_Plex_Mono,
+  Schibsted_Grotesk,
+} from "next/font/google";
 import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AppSplashScreen } from "@/components/app-splash-screen";
 
-const manrope = Manrope({
+/* Redesign type system — see docs/redesign/README.md */
+const body = Schibsted_Grotesk({
   subsets: ["latin"],
-  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-body",
   display: "swap",
 });
 
-const gloriaHallelujah = Gloria_Hallelujah({
-  weight: "400",
+const display = Big_Shoulders_Display({
   subsets: ["latin"],
-  variable: "--font-gloria",
+  weight: ["700", "800", "900"],
+  variable: "--font-display",
   display: "swap",
-  preload: false,
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const brand = Fredoka({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-brand",
+  display: "swap",
 });
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
@@ -26,23 +46,23 @@ const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 // — pinned to light here too so native browser chrome (address bar tint,
 // scrollbars) doesn't mismatch the always-light page content.
 export const viewport = {
-  themeColor: "#f9f8f4",
+  themeColor: "#f7f7f4",
   colorScheme: "light",
 } as const;
 
 export const metadata: Metadata = {
-  title: "delulu — Crush your goals with a community behind you",
+  title: "Delulu — Build habits you can't skip",
   description:
-    "Back your boldest goals with real stakes. Join campaigns, prove your progress publicly, and win when you deliver.",
+    "Pick a habit, put your word or a little money on it, and prove it each day with a photo. Free to start.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "delulu — Crush your goals with a community behind you",
+    title: "Delulu — Build habits you can't skip",
   },
   openGraph: {
-    title: "delulu — Crush your goals with a community behind you",
+    title: "Delulu — Build habits you can't skip",
     description:
-      "Back your boldest goals with real stakes. Join campaigns, prove your progress publicly, and win when you deliver.",
+      "Pick a habit, put your word or a little money on it, and prove it each day with a photo. Free to start.",
     url: appUrl,
     siteName: "delulu",
   },
@@ -67,15 +87,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"
-        />
-      </head>
       <body
-        className={`${manrope.variable} ${gloriaHallelujah.variable} antialiased`}
+        className={`${body.variable} ${display.variable} ${mono.variable} ${brand.variable} antialiased`}
       >
         <ThemeProvider>
           <AppSplashScreen />

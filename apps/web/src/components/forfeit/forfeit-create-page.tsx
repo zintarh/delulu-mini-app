@@ -54,8 +54,8 @@ import {
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CLASH = { fontFamily: '"Clash Display", sans-serif' } as const;
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
+const CLASH = { fontFamily: 'var(--font-display), sans-serif' } as const;
+const MANROPE = { fontFamily: "var(--font-body)" } as const;
 
 /** Adds thousands separators to a raw (unformatted) numeric string as the user types. */
 function formatAmountDraft(raw: string): string {

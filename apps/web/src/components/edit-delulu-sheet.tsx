@@ -91,7 +91,7 @@ export function EditDeluluSheet({
                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border focus:border-foreground/30 transition-all"
                   placeholder="Delulu title"
                   autoFocus
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  style={{ fontFamily: "var(--font-body)" }}
                 />
               </div>
 
@@ -106,19 +106,19 @@ export function EditDeluluSheet({
                   rows={3}
                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-border focus:border-foreground/30 transition-all"
                   placeholder="What does this delulu mean to you?"
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  style={{ fontFamily: "var(--font-body)" }}
                 />
               </div>
 
               <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
-                <p className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                <p className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-body)" }}>
                   Deadline, stake, and on-chain data cannot be edited. Those are permanent.
                 </p>
               </div>
 
               {edit.isError && (
                 <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2">
-                  <p className="text-xs text-destructive" style={{ fontFamily: "var(--font-manrope)" }}>
+                  <p className="text-xs text-destructive" style={{ fontFamily: "var(--font-body)" }}>
                     {(edit.error as Error)?.message || "Failed to update"}
                   </p>
                 </div>
@@ -133,7 +133,7 @@ export function EditDeluluSheet({
                   "active:scale-[0.98]",
                   (!isDirty || edit.isPending) && "opacity-40 cursor-not-allowed"
                 )}
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 {edit.isPending ? (
                   <span className="flex items-center justify-center gap-2">
@@ -153,10 +153,10 @@ export function EditDeluluSheet({
               {!showDeleteConfirm ? (
                 <>
                   <div className="bg-destructive/10 border border-destructive/25 rounded-xl px-4 py-3 space-y-1.5">
-                    <p className="text-sm font-semibold text-destructive" style={{ fontFamily: '"Clash Display", sans-serif' }}>
+                    <p className="text-sm font-semibold text-destructive" style={{ fontFamily: 'var(--font-display), sans-serif' }}>
                       Hide this delulu?
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed" style={{ fontFamily: "var(--font-manrope)" }}>
+                    <p className="text-xs text-muted-foreground leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
                       This removes this delulu from feed and search.
                       The on-chain record remains permanent and cannot be deleted.
                     </p>
@@ -165,7 +165,7 @@ export function EditDeluluSheet({
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
                     className="w-full py-3.5 rounded-xl font-bold text-sm text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
-                    style={{ fontFamily: "var(--font-manrope)" }}
+                    style={{ fontFamily: "var(--font-body)" }}
                   >
                     Delete
                   </button>
@@ -173,7 +173,7 @@ export function EditDeluluSheet({
                   <button
                     onClick={() => onOpenChange(false)}
                     className="w-full py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    style={{ fontFamily: "var(--font-manrope)" }}
+                    style={{ fontFamily: "var(--font-body)" }}
                   >
                     Cancel
                   </button>
@@ -181,7 +181,7 @@ export function EditDeluluSheet({
               ) : (
                 <>
                   <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2.5">
-                    <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--font-manrope)" }}>
+                    <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--font-body)" }}>
                       Are you sure? This action hides this delulu from public feed and search.
                     </p>
                   </div>
@@ -196,7 +196,7 @@ export function EditDeluluSheet({
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       className="flex-1 py-3 rounded-xl bg-background/80 border border-border/70 text-sm font-semibold hover:bg-background transition-colors"
-                      style={{ fontFamily: "var(--font-manrope)" }}
+                      style={{ fontFamily: "var(--font-body)" }}
                     >
                       Go back
                     </button>
@@ -204,7 +204,7 @@ export function EditDeluluSheet({
                       onClick={handleDelete}
                       disabled={del.isPending}
                       className="flex-1 py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold flex items-center justify-center gap-2 hover:bg-destructive/90 transition-colors"
-                      style={{ fontFamily: "var(--font-manrope)" }}
+                      style={{ fontFamily: "var(--font-body)" }}
                     >
                       {del.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                       Hide delulu

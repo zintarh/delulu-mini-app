@@ -171,7 +171,7 @@ export function ClaimPanelContent({
       <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
         <h2
           className="text-[26px] font-bold text-foreground tracking-tight"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           Claim G$
         </h2>

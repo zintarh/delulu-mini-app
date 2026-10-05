@@ -65,7 +65,7 @@ export default function FlyerPage() {
       {/* ── Corner chrome ── */}
       <div
         className="absolute left-5 top-5 text-base font-black tracking-tight"
-        style={{ fontFamily: '"Clash Display", sans-serif', color: "#f6c324" }}
+        style={{ fontFamily: 'var(--font-display), sans-serif', color: "#f6c324" }}
       >
         delulu.
       </div>
@@ -146,7 +146,7 @@ export default function FlyerPage() {
         {/* EARN label */}
         <p
           className="text-sm font-semibold uppercase tracking-[0.3em]"
-          style={{ fontFamily: '"Clash Display", sans-serif', color: "rgba(255,255,255,0.3)" }}
+          style={{ fontFamily: 'var(--font-display), sans-serif', color: "rgba(255,255,255,0.3)" }}
         >
           Earn
         </p>
@@ -155,7 +155,7 @@ export default function FlyerPage() {
         <p
           className="font-black leading-[0.88]"
           style={{
-            fontFamily: '"Clash Display", sans-serif',
+            fontFamily: 'var(--font-display), sans-serif',
             fontSize: "clamp(100px, 24vw, 152px)",
             color: "#f6c324",
             textShadow:
@@ -203,7 +203,7 @@ export default function FlyerPage() {
           <p
             className="mt-2 font-black text-white"
             style={{
-              fontFamily: '"Clash Display", sans-serif',
+              fontFamily: 'var(--font-display), sans-serif',
               fontSize: "clamp(36px, 10vw, 52px)",
             }}
           >
@@ -242,7 +242,7 @@ export default function FlyerPage() {
           style={{
             background: "#f6c324",
             color: "#0a0a09",
-            fontFamily: "var(--font-manrope)",
+            fontFamily: "var(--font-body)",
             boxShadow:
               "0 0 40px rgba(246,195,36,0.35), 0 4px 32px rgba(0,0,0,0.5)",
           }}

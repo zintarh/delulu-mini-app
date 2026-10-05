@@ -63,8 +63,8 @@ function forfeitDestinationLabel(type: number | null): string {
   }
 }
 
-const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
+const CLASH_DISPLAY = { fontFamily: 'var(--font-display), sans-serif' } as const;
+const MANROPE = { fontFamily: "var(--font-body)" } as const;
 
 type WalletTab = "tokens" | "claims" | "activity";
 

@@ -238,7 +238,7 @@ export default function ForfeitVerifyPage() {
 
         <h1
           className="text-2xl font-black leading-tight text-foreground"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
+          style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           {commitment.title}
         </h1>

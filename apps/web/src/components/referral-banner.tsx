@@ -53,7 +53,7 @@ export function ReferralBanner() {
             <div className="flex items-center gap-2">
               <p
                 className="text-[8px] font-black uppercase tracking-[0.18em] text-[#244E1A]"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 Invite a friend
               </p>
@@ -72,7 +72,7 @@ export function ReferralBanner() {
             </div>
             <p
               className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
+              style={{ fontFamily: 'var(--font-display), sans-serif' }}
             >
               {locked
                 ? "Post today's proof to unlock invites"

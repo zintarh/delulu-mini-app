@@ -27,13 +27,13 @@ export function HomeTop10Banner() {
           <div className="min-w-0 flex-1">
             <p
               className="text-[8px] font-black uppercase tracking-[0.18em] text-[#244E1A]"
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{ fontFamily: "var(--font-body)" }}
             >
               Forfeit challenge
             </p>
             <p
               className="mt-0.5  font-black  text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
+              style={{ fontFamily: 'var(--font-display), sans-serif' }}
             >
               Top {FORFEIT_CAMPAIGN_TOP_N} share ${FORFEIT_CAMPAIGN_POOL_USD.toLocaleString()}
             </p>

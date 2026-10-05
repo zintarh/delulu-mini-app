@@ -30,13 +30,13 @@ export function ProfileEndedCampaigns({ address }: { address: string }) {
         </div>
         <p
           className="mb-1 text-lg font-black text-foreground"
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
+          style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           No ended campaigns yet
         </p>
         <p
           className="text-sm text-muted-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           Campaigns you joined that have finished will appear here.
         </p>

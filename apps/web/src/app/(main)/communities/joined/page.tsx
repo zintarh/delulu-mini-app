@@ -97,7 +97,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
           </p>
           <p
             className="mt-0.5 line-clamp-1 text-base font-black leading-snug text-white"
-            style={{ fontFamily: '"Clash Display", sans-serif' }}
+            style={{ fontFamily: 'var(--font-display), sans-serif' }}
           >
             {c.title}
           </p>
@@ -228,7 +228,7 @@ export default function JoinedCampaignsPage() {
               <Star className="mb-1.5 h-5 w-5 fill-delulu-yellow text-delulu-yellow" />
               <p
                 className="text-xl font-black tabular-nums text-foreground"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalPts.toLocaleString()}
               </p>
@@ -241,7 +241,7 @@ export default function JoinedCampaignsPage() {
               <Trophy className="mb-1.5 h-5 w-5 text-emerald-600" />
               <p
                 className="text-xl font-black tabular-nums text-foreground"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalWins}
               </p>
@@ -263,7 +263,7 @@ export default function JoinedCampaignsPage() {
               )}
               <p
                 className="text-xl font-black tabular-nums text-foreground"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {totalMissed}
               </p>

@@ -143,7 +143,7 @@ export function ActiveCampaignsSection({
         <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 py-12 text-center shadow-sm">
           <p
             className="text-lg font-bold tracking-tight text-foreground"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             No campaign
           </p>

@@ -800,7 +800,7 @@ export function CommunityCampaignDetail({
                           <div className="flex flex-col items-center px-4 py-5 text-center">
                             <p
                               className="text-3xl font-black text-foreground"
-                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
                             >
                               Top {topN}
                             </p>
@@ -811,7 +811,7 @@ export function CommunityCampaignDetail({
                           <div className="flex flex-col items-center px-4 py-5 text-center">
                             <p
                               className="text-3xl font-black text-foreground"
-                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
                             >
                               Points
                             </p>
@@ -843,7 +843,7 @@ export function CommunityCampaignDetail({
                           <div className="flex flex-col items-center px-4 py-5 text-center">
                             <p
                               className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
                             >
                               {claimablePrize.toLocaleString()}
                               <span className="ml-1.5 text-base font-bold text-[#9a7b0a] dark:text-amber-300">G$</span>
@@ -856,7 +856,7 @@ export function CommunityCampaignDetail({
                           <div className="flex flex-col items-center px-4 py-5 text-center">
                             <p
                               className="text-2xl font-black tabular-nums text-foreground sm:text-3xl"
-                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
                             >
                               Top {topN}
                             </p>
@@ -878,7 +878,7 @@ export function CommunityCampaignDetail({
                           <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
                             <p
                               className="text-lg font-black tabular-nums text-foreground sm:text-xl"
-                              style={{ fontFamily: '"Clash Display", sans-serif' }}
+                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
                             >
                               {joinStakeAmount}
                               <span className="ml-1 text-xs font-bold text-muted-foreground">
@@ -894,7 +894,7 @@ export function CommunityCampaignDetail({
                             <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
                               <p
                                 className="text-lg font-black tabular-nums text-orange-600 dark:text-orange-400 sm:text-xl"
-                                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                                style={{ fontFamily: 'var(--font-display), sans-serif' }}
                               >
                                 −{forfeitAmountLabel}
                                 <span className="ml-1 text-xs font-bold text-orange-600/70 dark:text-orange-400/70">

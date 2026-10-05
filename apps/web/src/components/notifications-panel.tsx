@@ -159,7 +159,7 @@ function PanelContent({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
         <h2
           className="text-[28px] font-bold text-foreground tracking-tight"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           Updates
         </h2>
