@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Clock, Target, Trophy, Users } from "lucide-react";
+import { Check, Trophy } from "lucide-react";
+import { Stamp, Trophy as TrophyArt } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
 import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
@@ -80,131 +81,99 @@ export function CampaignExploreCard({
   const left = daysLeft(effectiveEndsAt);
   const stakeLabel =
     campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0
-      ? `Join · Stake ${campaign.joinAmount} ${campaign.joinToken ?? "G$"}`
+      ? `Join · Stake ${(campaign.joinAmount ?? 0).toLocaleString("en-US")} ${campaign.joinToken ?? "G$"}`
       : "Join free";
+
+  const endsLabel = isClosed
+    ? "Ended"
+    : left == null
+      ? `${campaign.durationDays}d`
+      : left === 0
+        ? "Today"
+        : `${left}d`;
 
   return (
     <Link
       href={href}
       className={cn(
-        "group relative block overflow-hidden rounded-2xl bg-delulu-blue-light/40 dark:bg-accent shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm",
-        compact
-          ? "aspect-[4/3] h-full min-h-0 rounded-xl lg:aspect-auto"
-          : "aspect-[1/1] sm:aspect-[4/5]",
+        "press-edge group block overflow-hidden rounded-3xl border-2 border-line bg-white text-ink no-underline shadow-edge",
         className,
       )}
     >
-      {campaign.coverImageUrl ? (
-        <Image
-          src={campaign.coverImageUrl}
-          alt=""
-          fill
-          className={cn(
-            "object-cover transition-transform duration-300 group-hover:scale-105",
-            isClosed && "grayscale",
-          )}
-          unoptimized
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]">
-          <Target className={cn("text-white/20", compact ? "h-7 w-7" : "h-10 w-10")} />
-        </div>
-      )}
-
-      {/* Bottom scrim so the overlaid text stays legible without hiding the image */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/5" />
-
-      {/* Joined badge, top-left */}
-      {campaign.isJoined ? (
-        <div className={cn("absolute", compact ? "left-2 top-2" : "left-3 top-3")}>
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-black text-delulu-charcoal">
-            <Check className="h-3 w-3" />
-            Joined
-          </span>
-        </div>
-      ) : null}
-
-      {/* Prize badge — only when funded (status active). Amount is proposed target;
-          live claimable may differ until detail loads on-chain pool. */}
-      {funded && poolAmount > 0 ? (
-        <div className={cn("absolute", compact ? "right-2 top-2" : "right-3 top-3")}>
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#D1E822] px-2.5 py-1 text-[11px] font-black text-[#244E1A]">
-            <Trophy className="h-3 w-3" />
-            {poolAmount} G$ prize
-          </span>
-        </div>
-      ) : null}
-
-      {/* Overlaid content — title + the two things worth knowing before you tap in:
-          how much longer it's open, and what joining costs. Everything else
-          (description, join button, milestones) lives on the detail page. */}
-      <div
-        className={cn(
-          "absolute inset-x-0 bottom-0",
-          compact ? "px-3 pb-3.5 pt-2.5 lg:p-3" : "p-4 sm:p-5",
+      <div className={cn("relative overflow-hidden bg-blue-soft", compact ? "h-20" : "h-[120px]")}>
+        {campaign.coverImageUrl ? (
+          <Image
+            src={campaign.coverImageUrl}
+            alt=""
+            fill
+            className={cn("object-cover transition-transform duration-300 group-hover:scale-105", isClosed && "grayscale")}
+            unoptimized
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-end pr-5">
+            <TrophyArt size={compact ? 44 : 64} />
+          </div>
         )}
-      >
-        <h3
-          className={cn(
-            "text-white",
-            compact
-              ? "line-clamp-1 text-sm font-bold leading-snug tracking-tight"
-              : "line-clamp-2 text-lg font-bold leading-snug tracking-tight",
-          )}
-        >
+        {campaign.isJoined ? (
+          <span className="absolute left-3 top-3">
+            <Stamp tone="kept" className="text-[10px]">
+              <Check className="h-3 w-3" strokeWidth={3} />
+              Joined
+            </Stamp>
+          </span>
+        ) : null}
+        {funded && poolAmount > 0 ? (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-yellow px-2.5 py-1 text-[11px] font-extrabold text-ink shadow-[0_2px_0_#c99a0a]">
+            <Trophy className="h-3 w-3" strokeWidth={2.6} />
+            {poolAmount.toLocaleString()} G$ prize
+          </span>
+        ) : null}
+      </div>
+
+      <div className={cn(compact ? "p-3" : "p-4")}>
+        {campaign.community?.name ? (
+          <div className="label-mono truncate text-[10px] text-blue">{campaign.community.name}</div>
+        ) : null}
+        <h3 className={cn("mt-1 font-bold leading-snug", compact ? "line-clamp-1 text-[15px]" : "line-clamp-2 text-[19px]")}>
           {campaign.title}
         </h3>
 
-        <div
-          className={cn(
-            "flex items-center justify-between gap-2",
-            compact ? "mt-2.5 lg:mt-1.5" : "mt-3 sm:mt-2",
-          )}
-        >
-          <div className="flex items-center gap-3 text-xs font-semibold text-white/85">
-            <span
-              className={cn(
-                "flex items-center gap-1",
-                !isClosed && left != null && left <= 3 && "text-amber-300",
-              )}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {isClosed
-                ? "Ended"
-                : left == null
-                  ? `${campaign.durationDays}d`
-                  : left === 0
-                    ? "Ends today"
-                    : `${left}d left`}
-            </span>
-            {campaign.participantCount > 0 ? (
-              <span className="flex items-center gap-1.5">
-                {campaign.participantAvatars && campaign.participantAvatars.length > 0 ? (
-                  <AvatarStack
-                    participants={campaign.participantAvatars}
-                    total={campaign.participantCount}
-                    size={compact ? 16 : 18}
-                  />
-                ) : (
-                  <>
-                    <Users className="h-3.5 w-3.5" />
-                    {campaign.participantCount}
-                  </>
-                )}
-              </span>
-            ) : null}
+        <div className={cn("grid grid-cols-3 gap-2", compact ? "mt-2" : "mt-4")}>
+          <div>
+            <div className="font-display text-2xl font-extrabold leading-none">
+              {funded && poolAmount > 0 ? poolAmount.toLocaleString() : "—"}
+            </div>
+            <div className="label-mono mt-1 text-[9px] text-muted-foreground">G$ pool</div>
           </div>
-          {!isClosed ? (
-            <span
+          <div>
+            <div className="flex items-center gap-1 font-display text-2xl font-extrabold leading-none">
+              {campaign.participantAvatars && campaign.participantAvatars.length > 0 && !compact ? (
+                <AvatarStack participants={campaign.participantAvatars} total={campaign.participantCount} size={18} />
+              ) : (
+                campaign.participantCount
+              )}
+            </div>
+            <div className="label-mono mt-1 text-[9px] text-muted-foreground">Joined</div>
+          </div>
+          <div>
+            <div
               className={cn(
-                "shrink-0 rounded-full bg-black font-bold text-white",
-                compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
+                "font-display text-2xl font-extrabold leading-none",
+                !isClosed && left != null && left <= 3 && "text-orange",
               )}
             >
-              {stakeLabel}
-            </span>
-          ) : null}
+              {endsLabel}
+            </div>
+            <div className="label-mono mt-1 text-[9px] text-muted-foreground">{isClosed ? "Status" : "Left"}</div>
+          </div>
         </div>
+
+        {!isClosed && !compact ? (
+          <div className="mt-4 flex items-center justify-between">
+            <span className="rounded-full bg-yellow-soft px-3 py-1 text-xs font-bold">{stakeLabel}</span>
+            <span className="text-sm font-bold text-muted-foreground transition-colors group-hover:text-ink">View →</span>
+          </div>
+        ) : null}
       </div>
     </Link>
   );
@@ -220,10 +189,8 @@ export function CampaignExploreCardSkeleton({
   return (
     <div
       className={cn(
-        "relative animate-pulse overflow-hidden rounded-2xl bg-muted",
-        compact
-          ? "aspect-[4/3] h-full min-h-0 rounded-xl lg:aspect-auto"
-          : "aspect-[1/1] sm:aspect-[4/5]",
+        "relative animate-pulse overflow-hidden rounded-3xl border-2 border-line bg-white",
+        compact ? "h-[170px]" : "h-[300px]",
         className,
       )}
     >

@@ -114,14 +114,14 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
         <Select.Trigger
           aria-label="Filter by duration"
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-colors outline-none",
+            "press-edge inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[14px] border-2 px-4 text-sm font-bold outline-none",
             durationFilter !== "all"
-              ? "border-foreground bg-foreground text-background"
-              : "border-border text-muted-foreground hover:text-foreground",
+              ? "border-ink bg-ink text-white shadow-[0_3px_0_#000]"
+              : "border-line bg-white text-ink shadow-edge-sm",
           )}
         >
           <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
-          {durationFilter !== "all" ? selectedDurationLabel : null}
+          {durationFilter !== "all" ? selectedDurationLabel : "Filter"}
         </Select.Trigger>
         <Select.Portal>
           <Select.Content
@@ -172,7 +172,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
             type="button"
             onClick={() => void refetch()}
             disabled={isRefetching}
-            className="text-sm font-semibold text-delulu-blue"
+            className="text-sm font-bold text-blue"
           >
             {isRefetching ? "Retrying…" : "Retry"}
           </button>

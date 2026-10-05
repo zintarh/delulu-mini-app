@@ -76,7 +76,7 @@ export default function CampaignsPage() {
   }, [isSearchMode, fetchCampaignResults]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-paper">
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-20 h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
           {isCampaignSearching && (
@@ -88,14 +88,20 @@ export default function CampaignsPage() {
 
         <div
           className={cn(
-            "mx-auto w-full px-4 sm:px-6 lg:px-8",
+            "mx-auto w-full px-5 sm:px-6 lg:px-8",
             isSearchMode
               ? "max-w-[1600px] pt-6 pb-6 lg:py-8"
               : "max-w-[1600px] pt-3 pb-6 lg:pt-4 lg:pb-12",
           )}
         >
           {!isSearchMode ? (
-            <ExploreCampaignsSection address={address} />
+            <>
+              <header className="mb-4">
+                <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">Campaigns</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Prize pools. Your proofs earn your share.</p>
+              </header>
+              <ExploreCampaignsSection address={address} />
+            </>
           ) : (
             <>
               <header className="mb-4">
