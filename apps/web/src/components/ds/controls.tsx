@@ -13,7 +13,7 @@ export function Segmented<T extends string>({
 }: {
   options: { value: T; label: ReactNode }[];
   value: T;
-  onChange: (v: T) => void;
+  onChange: (_value: T) => void;
   className?: string;
   ariaLabel?: string;
 }) {
@@ -99,7 +99,7 @@ export function GameSwitch({
   label,
 }: {
   checked: boolean;
-  onChange: (v: boolean) => void;
+  onChange: (_value: boolean) => void;
   label: string;
 }) {
   return (

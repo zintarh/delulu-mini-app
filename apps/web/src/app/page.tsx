@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import { LandingPage } from "@/components/landing/landing-page";
 
-/** Temporary: the public landing page replaces this in the next commit. */
 export default function RootPage() {
-  redirect("/home");
+  return <LandingPage />;
 }
