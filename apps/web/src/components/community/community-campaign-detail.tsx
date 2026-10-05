@@ -131,11 +131,9 @@ function JoinButton({
       disabled={joining || !canJoin}
       onClick={onJoin}
       className={cn(
-        "rounded-xl font-bold transition-all active:scale-[0.98]",
-        canJoin
-          ? "bg-foreground text-background shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:opacity-90"
-          : "bg-muted text-muted-foreground",
-        size === "large" ? "px-7 py-4 text-base" : "px-6 py-3 text-base",
+        "press-edge rounded-2xl font-extrabold uppercase tracking-[0.06em] disabled:opacity-60",
+        canJoin ? "bg-yellow text-ink shadow-edge-yellow" : "bg-muted text-muted-foreground",
+        size === "large" ? "h-[56px] px-7 text-[15px]" : "h-[52px] px-6 text-[15px]",
         className,
       )}
     >
@@ -458,14 +456,14 @@ export function CommunityCampaignDetail({
         {/* ── Back nav + Hero ── */}
         <div className="relative px-5 pt-2.5 lg:px-3">
           <Link
-            href={`/communities/${communitySlug}`}
-            className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm font-semibold text-muted-foreground backdrop-blur-sm hover:text-foreground"
+            href="/explore"
+            className="press-edge mb-4 inline-flex h-11 items-center gap-1.5 rounded-full border-2 border-line bg-white px-4 text-sm font-bold text-ink shadow-edge-sm"
           >
-            <ChevronLeft className="h-4 w-4" />
-            {communityName}
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
+            Campaigns
           </Link>
 
-          <div className="relative overflow-hidden rounded-3xl shadow-sm">
+          <div className="relative overflow-hidden rounded-3xl border-2 border-line shadow-edge">
             {campaign.cover_image_url ? (
               <div className={cn("relative w-full", heroAspect)}>
                 <Image
@@ -481,7 +479,7 @@ export function CommunityCampaignDetail({
             ) : (
               <div
                 className={cn(
-                  "w-full bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900",
+                  "w-full bg-ink",
                   heroAspect,
                 )}
               />
@@ -490,7 +488,7 @@ export function CommunityCampaignDetail({
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
               <div className="mb-3 flex flex-wrap items-center gap-2.5">
                 {showPrizePool ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f6c324]/50 bg-[#f6c324]/90 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#1a1a19]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-ink shadow-[0_2px_0_#c99a0a]">
                     <Trophy className="h-3.5 w-3.5" />
                     {claimablePrize} G$ prize
                   </span>
@@ -512,13 +510,7 @@ export function CommunityCampaignDetail({
               ) : null}
               {/* Hosted by — inside cover so it never wraps alongside action buttons */}
               <p className="mt-2.5 text-xs text-white/55">
-                Hosted by{" "}
-                <Link
-                  href={`/communities/${communitySlug}`}
-                  className="font-semibold text-white/80 hover:text-white"
-                >
-                  {communityName}
-                </Link>
+                Hosted by <span className="font-semibold text-white/80">{communityName}</span>
               </p>
             </div>
           </div>
@@ -531,20 +523,20 @@ export function CommunityCampaignDetail({
           <>
             {/* Progress strip — instant context at the top */}
             <div className="mt-4 flex flex-wrap items-center gap-2.5 px-5 lg:px-3">
-              <span className="rounded-lg border border-border/60 bg-card px-3 py-2 text-sm font-bold tabular-nums text-foreground">
+              <span className="rounded-xl border-2 border-line bg-white px-3 py-1.5 text-sm font-extrabold tabular-nums text-foreground shadow-edge-sm">
                 {completedCount}/{milestoneCount} done
               </span>
               {myPoints > 0 ? (
-                <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold tabular-nums text-foreground">
+                <span className="rounded-xl border-2 border-blue-line bg-blue-soft px-3 py-1.5 text-sm font-extrabold tabular-nums text-blue">
                   {myPoints} pts earned
                 </span>
               ) : null}
               {myRank ? (
-                <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold text-foreground">
+                <span className="rounded-xl border-2 border-yellow-line bg-yellow-soft px-3 py-1.5 text-sm font-extrabold text-ink">
                   Rank #{myRank}
                 </span>
               ) : null}
-              <span className="rounded-lg border border-border/60 bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
+              <span className="rounded-xl border-2 border-line bg-white px-3 py-1.5 text-sm font-semibold text-muted-foreground">
                 {daysLeft}d left
               </span>
 
@@ -560,7 +552,7 @@ export function CommunityCampaignDetail({
                         type="button"
                         disabled={leaving}
                         onClick={() => { onLeave(); setLeaveConfirm(false); }}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                        className="rounded-lg bg-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                       >
                         {leaving ? "Leaving…" : "Yes, leave"}
                       </button>
@@ -579,7 +571,7 @@ export function CommunityCampaignDetail({
                     onClick={() => setLeaveConfirm(true)}
                     aria-label="Leave campaign"
                     title="Leave campaign"
-                    className="ml-auto flex items-center justify-center rounded-lg p-2 text-muted-foreground/60 hover:text-red-500 transition-colors"
+                    className="ml-auto flex items-center justify-center rounded-lg p-2 text-muted-foreground/60 hover:text-orange transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
                   </button>
@@ -595,8 +587,8 @@ export function CommunityCampaignDetail({
 
             {/* Status cards — milestones coming soon or all complete */}
             {milestones.length === 0 ? (
-              <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 lg:mx-3">
-                <div className="border-l-4 border-muted-foreground/30 p-6">
+              <div className="mx-5 mt-4 overflow-hidden rounded-[20px] border-2 border-dashed border-line bg-white lg:mx-3">
+                <div className="p-6">
                   <p className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
                     Milestones coming soon
                   </p>
@@ -606,11 +598,9 @@ export function CommunityCampaignDetail({
                 </div>
               </div>
             ) : !focusMilestone ? (
-              <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/8 lg:mx-3">
-                <div className="border-l-4 border-emerald-500 p-6">
-                  <p className="text-sm font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                    All milestones complete 🎉
-                  </p>
+              <div className="mx-5 mt-4 overflow-hidden rounded-[20px] border-2 border-green-line bg-[#f2fbf5] shadow-edge-green-line lg:mx-3">
+                <div className="p-6">
+                  <p className="label-mono text-green-edge">All milestones complete</p>
                   <p className="mt-1.5 text-base text-muted-foreground">
                     {isPaidJoin && myRank
                       ? `You're ranked #${myRank}`
@@ -623,7 +613,7 @@ export function CommunityCampaignDetail({
 
             {/* ── MILESTONES — front and centre ── */}
             <section className="mt-6 px-5 lg:px-3">
-              <div className="rounded-3xl border border-border/60 bg-card p-5">
+              <div className="rounded-3xl border-2 border-line bg-white p-5 shadow-edge">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -648,7 +638,7 @@ export function CommunityCampaignDetail({
                   <button
                     type="button"
                     onClick={() => setShowAllMilestones((v) => !v)}
-                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                    className="press-edge mt-4 flex w-full items-center justify-center rounded-2xl border-2 border-line bg-white py-3 text-sm font-bold text-ink shadow-edge-sm"
                   >
                     {showAllMilestones
                       ? "Show less"
@@ -660,7 +650,7 @@ export function CommunityCampaignDetail({
 
             {/* Rewards + proof info — always visible, single card */}
             <section className="mt-5 px-5 lg:px-3">
-              <div className="rounded-2xl border border-[#f6c324]/25 dark:border-amber-800/25 bg-[#fffbeb]/50 dark:bg-amber-950/20 p-6 space-y-5">
+              <div className="space-y-5 rounded-[20px] border-2 border-yellow-line bg-yellow-soft p-6 shadow-edge-yellow-line">
                 {campaign.description ? (
                   <p className={campaignDescriptionClassName(campaign.description, "body")}>
                     {campaign.description}
@@ -679,10 +669,10 @@ export function CommunityCampaignDetail({
                   {showPrizePool ? (
                     <div className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2 text-foreground">
-                        <Trophy className="h-4 w-4 text-emerald-600" />
+                        <Trophy className="h-4 w-4 text-green-edge" />
                         Rank in the top {topN}
                       </span>
-                      <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                      <span className="font-bold text-green-edge">
                         Share the prize{claimablePrize > 0 ? ` · ${claimablePrize} G$` : ""}
                       </span>
                     </div>
@@ -717,14 +707,14 @@ export function CommunityCampaignDetail({
               </div>
 
               {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                <div className="mt-2.5 rounded-2xl border border-orange-200/70 bg-orange-50/60 dark:border-orange-800/40 dark:bg-orange-950/20 p-5 flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                <div className="mt-2.5 flex items-start gap-4 rounded-[20px] border-2 border-orange/30 bg-orange-soft p-5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-orange">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-base font-bold text-foreground">Miss your milestone</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Forfeit <strong className="text-orange-700 dark:text-orange-300">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
+                      Forfeit <strong className="text-orange">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
                       {stakeToken === "G$"
                         ? ". Forfeited stake is added to the G$ prize when participants reclaim after the campaign ends."
                         : ". Forfeited stake is deducted from what you reclaim after the campaign ends."}
@@ -740,7 +730,7 @@ export function CommunityCampaignDetail({
               ════════════════════════════════════════════ */
           <>
             {/* Action card — simplified for non-joined */}
-            <div className="relative z-10 mx-5 mt-4 rounded-2xl border border-border/60 bg-card p-6 shadow-lg lg:mx-3">
+            <div className="relative z-10 mx-5 mt-4 rounded-3xl border-2 border-line bg-white p-6 shadow-edge lg:mx-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -789,7 +779,7 @@ export function CommunityCampaignDetail({
 
                   if (!showPrizePool && !showStakeRow) {
                     return (
-                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+                      <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
                         <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
                           <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
                           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
@@ -825,7 +815,7 @@ export function CommunityCampaignDetail({
                   }
 
                   return (
-                    <div className="overflow-hidden rounded-2xl border border-[#f6c324]/35 dark:border-amber-800/30 bg-gradient-to-br from-[#fffbeb] via-[#fffcf0] to-white shadow-[0_2px_16px_rgba(246,195,36,0.12)] dark:from-amber-950/30 dark:via-amber-950/20 dark:to-card dark:shadow-none">
+                    <div className="overflow-hidden rounded-[20px] border-2 border-yellow-line bg-yellow-soft shadow-edge-yellow-line">
                       <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 dark:border-amber-800/30 px-5 py-3">
                         <Trophy className="h-5 w-5 text-[#9a7b0a] dark:text-amber-300" />
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a7b0a] dark:text-amber-300">
@@ -930,7 +920,7 @@ export function CommunityCampaignDetail({
 
             {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
             <section className="mt-8 px-5 lg:px-3">
-              <div className="rounded-3xl border border-border/60 bg-card p-5">
+              <div className="rounded-3xl border-2 border-line bg-white p-5 shadow-edge">
                 <div className="mb-4 flex items-center justify-between">
                   <h2
                     className="text-lg font-black text-foreground lg:text-base"
@@ -955,7 +945,7 @@ export function CommunityCampaignDetail({
                   <button
                     type="button"
                     onClick={() => setShowAllMilestones((v) => !v)}
-                    className="mt-4 flex w-full items-center justify-center rounded-xl border border-border/60 bg-background/60 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                    className="press-edge mt-4 flex w-full items-center justify-center rounded-2xl border-2 border-line bg-white py-3 text-sm font-bold text-ink shadow-edge-sm"
                   >
                     {showAllMilestones
                       ? "Show less"
@@ -972,7 +962,7 @@ export function CommunityCampaignDetail({
               </h2>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {/* 1 — Earn points (lead with the win) */}
-                <div className="rounded-2xl border border-border/60 bg-card p-5">
+                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-edge-sm">
                   <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
                     <Star className="h-5 w-5" />
                   </div>
@@ -982,8 +972,8 @@ export function CommunityCampaignDetail({
                   </p>
                 </div>
                 {/* 2 — Achieve goal */}
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
+                <div className="rounded-[20px] border-2 border-green-line bg-[#f2fbf5] p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-green-edge">
                     <Target className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Achieve your goal</p>
@@ -993,7 +983,7 @@ export function CommunityCampaignDetail({
                 </div>
                 {/* 3 — Win the prize (when there is a claimable pool) */}
                 {showPrizePool ? (
-                  <div className="rounded-2xl border border-[#f6c324]/25 dark:border-amber-800/25 bg-[#fffbeb]/50 dark:bg-amber-950/20 p-5">
+                  <div className="rounded-[20px] border-2 border-yellow-line bg-yellow-soft p-5">
                     <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 dark:bg-amber-500/20 text-[#9a7b0a] dark:text-amber-300">
                       <Trophy className="h-5 w-5" />
                     </div>
@@ -1004,8 +994,8 @@ export function CommunityCampaignDetail({
                   </div>
                 ) : null}
                 {/* 4 — Upload proof */}
-                <div className="rounded-2xl border border-[#E9C0E9]/50 bg-[#E9C0E9]/15 dark:border-[#8a3f8a]/40 dark:bg-[#8a3f8a]/15 p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#E9C0E9]/40 dark:bg-[#8a3f8a]/25 text-[#8a3f8a] dark:text-[#E9C0E9]">
+                <div className="rounded-[20px] border-2 border-pink-line bg-pink-soft p-5">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-pink">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <p className="text-base font-bold text-foreground">Upload proof</p>
@@ -1027,7 +1017,7 @@ export function CommunityCampaignDetail({
               href={campaign.telegram_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2AABEE]/30 bg-[#2AABEE]/10 px-5 py-2.5 text-sm font-semibold text-[#1a8cc7] dark:text-[#6dcbf5] hover:bg-[#2AABEE]/20 transition-colors"
+              className="press-edge inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border-2 border-blue-line bg-blue-soft px-5 text-sm font-bold text-blue shadow-edge-blue-line"
             >
               Join Telegram
             </a>
@@ -1035,7 +1025,7 @@ export function CommunityCampaignDetail({
           <button
             type="button"
             onClick={() => void handleInvite()}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border/60 bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+            className="press-edge inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border-2 border-line bg-white px-5 text-sm font-bold text-ink shadow-edge-sm"
           >
             <Share2 className="h-4 w-4" />
             {inviteCopied ? "Link copied!" : "Invite friends"}
@@ -1047,9 +1037,7 @@ export function CommunityCampaignDetail({
           <div
             className={cn(
               "rounded-3xl border p-5",
-              showPrizePool
-                ? "border-emerald-500/15 bg-emerald-500/6"
-                : "border-border/60 bg-muted/20",
+              showPrizePool ? "border-2 border-green-line bg-[#f2fbf5]" : "border-2 border-line bg-white",
             )}
           >
           <div className="mb-4 flex items-center justify-between gap-2.5">
@@ -1072,7 +1060,7 @@ export function CommunityCampaignDetail({
           </div>
 
           {leaderboard.length === 0 ? (
-            <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-muted/30 to-card px-6 py-12 text-center">
+            <div className="rounded-[20px] border-2 border-dashed border-line bg-white px-6 py-12 text-center">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-foreground">
                 <Users className="h-6 w-6" />
               </div>
@@ -1091,26 +1079,31 @@ export function CommunityCampaignDetail({
               ) : null}
             </div>
           ) : (
-            <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <ul className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
               {leaderboard.map((row) => {
                 const isMe = address?.toLowerCase() === row.wallet_address.toLowerCase();
                 const inZone = showPrizePool && row.rank <= topN;
-                const medal = showPrizePool
-                  ? row.rank === 1
-                    ? "🥇"
-                    : row.rank === 2
-                      ? "🥈"
-                      : row.rank === 3
-                        ? "🥉"
-                        : null
-                  : null;
+                const medalColors: Record<number, [string, string]> = {
+                  1: ["#F6C324", "#C99A0A"],
+                  2: ["#D9D9D4", "#AFAFA8"],
+                  3: ["#F2B48A", "#C98352"],
+                };
+                const medal =
+                  showPrizePool && medalColors[row.rank] ? (
+                    <span
+                      className="flex h-[30px] w-[30px] items-center justify-center rounded-full font-display text-base font-extrabold text-ink"
+                      style={{ background: medalColors[row.rank][0], boxShadow: `0 3px 0 ${medalColors[row.rank][1]}` }}
+                    >
+                      {row.rank}
+                    </span>
+                  ) : null;
                 return (
                   <li
                     key={row.wallet_address}
                     className={cn(
                       "flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4 last:border-0",
-                      isMe && "bg-secondary/60",
-                      inZone && !isMe && "bg-[#fffbeb]/60 dark:bg-amber-950/25",
+                      isMe && "bg-yellow-soft",
+                      inZone && !isMe && "bg-[#fffbeb]",
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-4">
@@ -1118,7 +1111,7 @@ export function CommunityCampaignDetail({
                         {medal ?? (
                           <span
                             className={
-                              inZone ? "text-[#9a7b0a] dark:text-amber-300" : "text-muted-foreground"
+                              inZone ? "font-display text-[22px] text-ink" : "font-display text-[22px] text-muted-foreground"
                             }
                           >
                             {row.rank}
@@ -1177,15 +1170,15 @@ export function CommunityCampaignDetail({
           </div>
 
           {canClaimReward ? (
-            <div className="mt-4 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
-              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+            <div className="mt-4 space-y-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-4 py-4 shadow-edge-green-line">
+              <p className="text-sm font-bold text-green-edge">
                 You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
               </p>
               <button
                 type="button"
                 onClick={() => void handleClaimReward()}
                 disabled={claimBusy}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+                className="press-edge flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-green text-[15px] font-extrabold uppercase tracking-[0.06em] text-ink shadow-edge-green disabled:opacity-60"
               >
                 {claimBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {claimBusy ? "Claiming…" : "Claim reward"}
@@ -1197,7 +1190,7 @@ export function CommunityCampaignDetail({
           ) : null}
 
           {claimSuccess || claimInfo?.alreadyClaimed ? (
-            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+            <p className="mt-4 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-4 py-3 text-sm font-bold text-green-edge">
               Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
             </p>
           ) : null}
