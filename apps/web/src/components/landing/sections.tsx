@@ -43,7 +43,7 @@ function Pill({ children, className }: { children: React.ReactNode; className?: 
 export function LandingHeader({ onInstall }: { onInstall: () => void }) {
   return (
     <header className="sticky top-0 z-30 bg-paper/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-3 sm:px-6">
         <Link href="/" aria-label="Delulu" className="no-underline">
           <Wordmark size={26} />
         </Link>
@@ -53,7 +53,7 @@ export function LandingHeader({ onInstall }: { onInstall: () => void }) {
           <a href="#faq" className="no-underline hover:text-ink">FAQ</a>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href="/sign-in" className="px-1.5 py-2.5 font-bold no-underline">Open app</Link>
+          <Link href="/sign-in" className="px-1.5 py-2.5 font-bold no-underline max-sm:hidden">Open app</Link>
           <GameButton size="sm" onClick={onInstall}>
             <Download className="h-4 w-4" strokeWidth={2.6} />
             Install

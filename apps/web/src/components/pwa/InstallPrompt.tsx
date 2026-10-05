@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, Share, X } from "lucide-react";
 import { GameButton, Lulu } from "@/components/ds";
 import { useInstallPrompt } from "@/hooks/use-install-prompt";
@@ -30,6 +31,7 @@ function writeDismissed() {
  * Android/Chrome gets a real install button; iOS Safari gets instructions.
  */
 export function InstallPrompt() {
+  const pathname = usePathname();
   const { canPrompt, prompt, iosSafari, standalone } = useInstallPrompt();
   const [dismissed, setDismissed] = useState(true);
 
@@ -42,7 +44,8 @@ export function InstallPrompt() {
     setDismissed(true);
   };
 
-  if (dismissed || standalone) return null;
+  // The landing page (/) has its own install sheet and sticky CTA.
+  if (dismissed || standalone || pathname === "/") return null;
   if (!canPrompt && !iosSafari) return null;
 
   return (
