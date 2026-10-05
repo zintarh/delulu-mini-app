@@ -7,14 +7,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatUnits } from "viem";
 import {
   Calendar,
+  Camera,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Image as ImageIcon,
   Loader2,
+  MapPin,
   MoreVertical,
   Plus,
   ShieldCheck,
 } from "lucide-react";
+import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass, type HabitTint } from "@/components/ds";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
@@ -364,33 +368,6 @@ function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
   );
 }
 
-/** Tiny filled/unfilled dot row standing in for "Day X of Y" — caps at 7 dots. */
-function DotProgress({
-  day,
-  total,
-  color,
-}: {
-  day: number;
-  total: number;
-  color: string;
-}) {
-  const max = Math.min(total, 7);
-  const filled = Math.max(1, Math.round((day / total) * max));
-  return (
-    <div className="flex items-center gap-1">
-      {Array.from({ length: max }).map((_, i) => (
-        <span
-          key={i}
-          className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            i < filled ? color : "bg-muted",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
 function ForfeitTaskCard({
   item,
   day,
@@ -506,19 +483,10 @@ function ForfeitTaskCard({
 
     if (canSubmit) {
       return (
-        <button
-          type="button"
-          onClick={onSubmitProof}
-          disabled={proofBusy}
-          className={cn(
-            "ml-auto inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-1 text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60",
-            FEED_CARD_CTA_CLASS,
-            "text-xs",
-          )}
-        >
-          {proofBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-          Upload proof
-        </button>
+        <GameButton size="sm" onClick={onSubmitProof} disabled={proofBusy}>
+          {proofBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          Prove
+        </GameButton>
       );
     }
 
@@ -532,27 +500,18 @@ function ForfeitTaskCard({
   const statusPill =
     outcome === "won" ? (
       proofUrl ? (
-        <a
-          href={proofUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-full bg-delulu-green/10 px-3 py-1 text-xs font-semibold text-delulu-green transition-opacity hover:opacity-80"
-        >
-          Kept
+        <a href={proofUrl} target="_blank" rel="noopener noreferrer" aria-label="Kept — view proof" className="shrink-0">
+          <CheckDot />
         </a>
       ) : (
-        <span className="shrink-0 rounded-full bg-delulu-green/10 px-3 py-1 text-xs font-semibold text-delulu-green">
-          Kept
+        <span className="shrink-0" aria-label="Kept">
+          <CheckDot />
         </span>
       )
     ) : outcome === "overdue" ? (
-      <span className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
-        Overdue
-      </span>
+      <span className="shrink-0 rounded-full bg-orange-soft px-3 py-1 text-xs font-bold text-orange">Overdue</span>
     ) : outcome === "failed" ? (
-      <span className="shrink-0 rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-600">
-        Forfeited
-      </span>
+      <Stamp tone="lost" className="shrink-0 text-[10px]">Missed</Stamp>
     ) : null;
   // "overdue" is deliberately kept distinct from "failed": the deadline
   // passed, but nothing has actually moved on-chain yet — the keeper hasn't
@@ -561,20 +520,12 @@ function ForfeitTaskCard({
   // time alone never does.
   const stateColor =
     outcome === "won"
-      ? "text-delulu-green"
+      ? "text-green-edge"
       : outcome === "failed"
-        ? "text-red-500"
+        ? "text-orange"
         : outcome === "overdue"
-          ? "text-amber-600"
-          : "text-delulu-blue";
-  const dotColor =
-    outcome === "won"
-      ? "bg-delulu-green"
-      : outcome === "failed"
-        ? "bg-red-500"
-        : outcome === "overdue"
-          ? "bg-amber-500"
-          : "bg-delulu-blue";
+          ? "text-orange"
+          : "text-ink";
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
   // Always show which day this was once it's settled (won/failed) — even a
   // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
@@ -582,55 +533,54 @@ function ForfeitTaskCard({
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
   const showMenu = !isPendingSync && outcome !== "failed" && outcome !== "overdue";
 
+  const isDue = canSubmit && !proofSubmitted;
+  const tile = evidenceTile(item.evidenceType);
+
   return (
-    <div className="relative rounded-3xl bg-white dark:bg-card p-4 shadow-sm">
-      {showProgress ? (
-        <div className="flex items-center gap-1.5 pr-7">
-          <DotProgress
-            day={day.calendarPeriodIndex + 1}
-            total={totalPeriods}
-            color={dotColor}
-          />
-          <span className="text-[10px] font-semibold text-muted-foreground">
-            {day.calendarPeriodIndex + 1}/{totalPeriods}
-          </span>
-        </div>
-      ) : null}
+    <div
+      className={cn(
+        "relative flex items-center gap-3 rounded-[20px] border-2 bg-white p-3",
+        isDue ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
+      )}
+    >
+      <HabitTile icon={tile.icon} tint={tile.tint} />
+      <div className={cn("min-w-0 flex-1", showMenu && "pr-6")}>
+        <p className="text-base font-bold leading-snug text-foreground">{item.title || "Untitled forfeit"}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
+          {stakeLine.lead}{" "}
+          <span className={cn("font-bold tabular-nums", stateColor)}>{stakeLine.amountText ?? "—"}</span>
+          {stakeLine.tail}
+        </p>
+        {showProgress ? (
+          <div className="mt-1.5 flex items-center gap-2">
+            <ProgressBar
+              thin
+              tone={outcome === "won" ? "green" : "yellow"}
+              value={(day.calendarPeriodIndex + 1) / totalPeriods}
+              className="w-14"
+              label={`Day ${day.calendarPeriodIndex + 1} of ${totalPeriods}`}
+            />
+            <span className="label-mono text-[10px] text-muted-foreground">
+              Day {day.calendarPeriodIndex + 1}/{totalPeriods}
+            </span>
+          </div>
+        ) : null}
+      </div>
+      {action ?? statusPill}
       {showMenu ? (
-        <div className="absolute right-1.5 top-1.5">
+        <div className="absolute right-1 top-1">
           <ForfeitCardMenu onDiscontinue={onDiscontinue} />
         </div>
       ) : null}
-
-      {/* Title and the sentence below it are siblings — one thought split
-          across two lines — so they sit close together. The progress row
-          above is a different kind of information (which day this is, not
-          what happened), so it gets more room before the title starts.
-          No truncate on either line: the card grows to fit long text on a
-          second line instead of clipping it, and the menu button (when shown
-          without a progress row above it) gets right padding so wrapped
-          title text never runs under it. */}
-      <p
-        className={cn(
-          showProgress ? "mt-0.5" : showMenu ? "pr-8" : "",
-          "text-base font-black leading-snug text-foreground",
-        )}
-      >
-        {item.title || "Untitled forfeit"}
-      </p>
-
-      <div className="mt-0.5 flex items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
-          {stakeLine.lead}{" "}
-          <span className={cn("font-bold tabular-nums", stateColor)}>
-            {stakeLine.amountText ?? "—"}
-          </span>
-          {stakeLine.tail}
-        </p>
-        {action ?? statusPill}
-      </div>
     </div>
   );
+}
+
+/** Habit tile icon/color by how the proof is captured. */
+function evidenceTile(evidenceType: string): { icon: typeof Camera; tint: HabitTint } {
+  if (evidenceType === "camera") return { icon: Camera, tint: "pink" };
+  if (evidenceType === "gps-checkin") return { icon: MapPin, tint: "green" };
+  return { icon: ImageIcon, tint: "blue" };
 }
 
 function creatorDisplayName(item: ForfeitFeedItem): string {
@@ -668,12 +618,12 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
           : "Verifying";
   const labelColor =
     outcome === "won"
-      ? "text-delulu-green"
+      ? "text-green-edge"
       : outcome === "failed"
-        ? "text-red-500"
+        ? "text-orange"
         : outcome === "overdue"
-          ? "text-amber-600"
-          : "text-delulu-blue";
+          ? "text-orange"
+          : "text-ink";
 
   return (
     <div className="rounded-3xl bg-white dark:bg-card p-3.5 shadow-sm">
@@ -827,50 +777,38 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
  * through sign-in first instead of the button being hidden or disabled. */
 function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
+  const cta = "inline-flex";
 
   return (
-    <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
-      <Calendar
-        className="h-12 w-12 text-muted-foreground/50"
-        strokeWidth={1.5}
-      />
-      <p className={cn("mt-4", FEED_CARD_TITLE_CLASS)}>No forfeit</p>
-      <p className={cn("mt-1.5 max-w-[16rem]", FEED_CARD_SUBTITLE_CLASS)}>
-        Stake on a goal. Miss it, and the stake goes where you choose.
+    <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-9 text-center shadow-edge">
+      <span className="animate-bob">
+        <Lulu size={72} />
+      </span>
+      <p className="mt-3 text-lg font-extrabold">No quests yet</p>
+      <p className="mt-1 max-w-[16rem] text-sm text-muted-foreground">
+        Make your first habit contract. Your word or a little money on the line.
       </p>
       {!FORFEIT_CREATION_ENABLED ? (
-        <button
-          type="button"
-          disabled
-          aria-label="Creating forfeits is temporarily paused"
-          title="Creating forfeits is temporarily paused"
-          className="mt-5 flex h-11 cursor-not-allowed items-center gap-1.5 rounded-full bg-muted px-5 text-sm font-bold text-muted-foreground"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Create a forfeit
-        </button>
+        <GameButton className="mt-5" disabled title="Creating contracts is temporarily paused">
+          <Plus className="h-4 w-4" strokeWidth={2.6} />
+          New contract
+        </GameButton>
       ) : authenticated ? (
-        <Link
-          href="/forfeit"
-          aria-label="Create a forfeit"
-          className="mt-5 flex h-11 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-bold text-background transition-transform hover:scale-105 active:scale-95"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Create a forfeit
+        <Link href="/forfeit" className={gameButtonClass({ className: `mt-5 ${cta}` })}>
+          <Plus className="h-4 w-4" strokeWidth={2.6} />
+          New contract
         </Link>
       ) : (
-        <button
-          type="button"
-          aria-label="Sign in to create a forfeit"
+        <GameButton
+          className="mt-5"
           onClick={() => {
             persistSignInRedirect("/forfeit");
             router.push(buildSignInUrl("/forfeit"));
           }}
-          className="mt-5 flex h-11 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-bold text-background transition-transform hover:scale-105 active:scale-95"
         >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          <Plus className="h-4 w-4" strokeWidth={2.6} />
           Get started
-        </button>
+        </GameButton>
       )}
     </div>
   );
@@ -1108,7 +1046,7 @@ export function ForfeitDayCard({
         {showCreateWhenEmpty ? (
           <ForfeitEmptyState authenticated={!!address} />
         ) : (
-          <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
+          <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-10 text-center shadow-edge">
             <Calendar
               className="h-12 w-12 text-muted-foreground/50"
               strokeWidth={1.5}
@@ -1125,37 +1063,32 @@ export function ForfeitDayCard({
 
   return (
     <section className={cn(className)}>
-      <div className="mb-7 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={goPrev}
-          aria-label="Previous day"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-colors hover:opacity-90"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-
-        <p
-          className={cn(
-            "min-w-0 flex-1 text-center font-semibold text-foreground",
-            FEED_CARD_SUBTITLE_CLASS,
-          )}
-        >
-          {formatForfeitDayLabel(label)}
-        </p>
-
-        <button
-          type="button"
-          onClick={goNext}
-          aria-label="Next day"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-colors hover:opacity-90"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="label-mono text-muted-foreground">
+          {dayKey(selectedDate) === dayKey(new Date()) ? "Today's quests" : formatForfeitDayLabel(label)}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="Previous day"
+            className="press-edge flex h-8 w-8 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
+          >
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="Next day"
+            className="press-edge flex h-8 w-8 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
+          >
+            <ChevronRight className="h-4 w-4" strokeWidth={2.4} />
+          </button>
+        </div>
       </div>
 
       {currentDays.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-white dark:bg-card px-5 py-10 text-center shadow-sm">
+        <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-10 text-center shadow-edge">
           <Calendar
             className="h-10 w-10 text-muted-foreground/50"
             strokeWidth={1.5}
@@ -1174,7 +1107,7 @@ export function ForfeitDayCard({
       ) : (
         <div className="space-y-4">
           {roleGroups.map(({ role, items, heading }) => (
-            <div key={role} className="space-y-2">
+            <div key={role} className="space-y-2.5">
               {roleGroups.length > 1 ? (
                 <p className={cn("px-1", FEED_CARD_EYEBROW_CLASS)}>{heading}</p>
               ) : null}
