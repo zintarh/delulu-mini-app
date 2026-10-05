@@ -22,6 +22,11 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: true };
   }
 
+  // Flex card owns its own back bar.
+  if (pathname === "/profile/flex") {
+    return { mobile: false, desktop: true };
+  }
+
   // Forfeit create flow owns its own back / Next header.
   if (pathname.startsWith("/forfeit")) {
     return { mobile: false, desktop: false };
