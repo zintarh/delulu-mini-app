@@ -38,15 +38,15 @@ export function ProgressBar({
 }
 
 /** Burning fuse for "time left" with a glowing spark at the end. */
-export function Fuse({ value, light = false, className }: { value: number; light?: boolean; className?: string }) {
+export function Fuse({ value, light = false, spark = true, className }: { value: number; light?: boolean; spark?: boolean; className?: string }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <div className={cn("relative h-1 rounded-sm", light ? "bg-line" : "bg-ink-3", className)} aria-hidden>
       <span className={cn("absolute inset-y-0 left-0 rounded-sm", light ? "bg-ink" : "bg-yellow")} style={{ width: `${pct}%` }} />
-      <span
+      {spark ? <span
         className="absolute top-1/2 -ml-1.5 -mt-1.5 h-3 w-3 animate-spark rounded-full bg-yellow shadow-[0_0_0_4px_rgba(246,195,36,.3),0_0_18px_4px_rgba(246,195,36,.55)]"
         style={{ left: `${pct}%` }}
-      />
+      /> : null}
     </div>
   );
 }

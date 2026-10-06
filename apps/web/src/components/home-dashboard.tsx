@@ -5,7 +5,6 @@ import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-ske
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
-import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { DailyGoalCard, HomeGreeting, WeekFlames } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -18,8 +17,7 @@ interface HomeDashboardProps {
 
 /**
  * Home (redesign — docs/redesign/screens/Home.dc.html): greeting, free daily
- * money, daily goal + chest, today's quests, the week's flames, then any
- * active campaigns. The HUD (level, streak, points, alerts) lives in the
+ * money, daily goal + chest, today's quests and the week's flames. The HUD (level, streak, points, alerts) lives in the
  * shared mobile top bar.
  */
 export function HomeDashboard({ className }: HomeDashboardProps) {
@@ -45,7 +43,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   }
 
   return (
-    <div className={cn("mx-auto flex w-full max-w-xl flex-col gap-4 px-5 pb-6 pt-2", className)}>
+    <div className={cn("mx-auto flex w-full max-w-xl flex-col gap-4 px-5 pb-6 pt-2.5", className)}>
       <HomeGreeting name={name} address={address} />
 
       {address ? (
@@ -55,8 +53,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           <div id="forfeit-day-card" className="mt-2">
             <ForfeitDayCard address={address} />
           </div>
-          <WeekFlames address={address} />
-          <ActiveCampaignsSection address={address} heading="Active campaigns" />
+          <WeekFlames address={address} className="mt-2" />
         </>
       ) : (
         <div id="forfeit-day-card">

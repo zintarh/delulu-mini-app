@@ -401,7 +401,12 @@ function FriendRewardsSection({ address }: { address: `0x${string}` }) {
   );
 }
 
-export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
+/**
+ * Campaign prize wins, reclaimable join stakes and friend rewards.
+ * `onlyWhenClaimable` renders nothing while loading, on error or when there
+ * is nothing to claim (Rewards shows it inline only when it matters).
+ */
+export function WalletClaimsTab({ address, onlyWhenClaimable = false }: { address: `0x${string}`; onlyWhenClaimable?: boolean }) {
   const [prizeItems, setPrizeItems] = useState<ClaimableItem[]>([]);
   const [stakeItems, setStakeItems] = useState<ReclaimableStakeItem[]>([]);
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
@@ -543,10 +548,11 @@ export function WalletClaimsTab({ address }: { address: `0x${string}` }) {
     </div>
   );
 
+  const nothingToShow = loading || !!error || (prizeItems.length === 0 && stakeItems.length === 0);
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 empty:hidden">
       <FriendRewardsSection address={address} />
-      {campaignClaimsContent}
+      {onlyWhenClaimable && nothingToShow ? null : campaignClaimsContent}
     </div>
   );
 }

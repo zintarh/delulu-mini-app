@@ -21,3 +21,11 @@ export function formatCompact(n: number): string {
   if (Math.abs(n) >= 10_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
   return Math.round(n).toLocaleString("en-US");
 }
+
+/** Short rank title shown under the profile name (design: "@ada · Keeper"). */
+export function levelTitle(level: number): string {
+  if (level >= 20) return "Legend";
+  if (level >= 10) return "Achiever";
+  if (level >= 5) return "Keeper";
+  return "Dreamer";
+}

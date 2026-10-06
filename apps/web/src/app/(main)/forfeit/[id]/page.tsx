@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Camera, Check, Image as ImageIcon, Lock } from "lucide-react";
+import { Camera, Check, ChevronLeft, Clock, Image as ImageIcon, MapPin, MoreHorizontal } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { Chest, Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,6 +12,7 @@ import { destinationLabel, formatStakeAmount } from "@/components/forfeit/forfei
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
+import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 
 type NodeState = "kept" | "missed" | "now" | "now-done" | "locked";
 
@@ -55,6 +56,13 @@ export default function ContractDetailPage() {
   const current = chain?.currentPeriodIndex ?? 0;
   const deadline = chain?.currentPeriodDeadline ? Number(chain.currentPeriodDeadline) : null;
   const countdown = useCountdown(chain?.active ? deadline : null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const tile =
+    item?.evidenceType === "camera"
+      ? { icon: Camera, tint: "pink" as const, label: "Live camera" }
+      : item?.evidenceType === "gps-checkin"
+        ? { icon: MapPin, tint: "green" as const, label: "Check-in" }
+        : { icon: ImageIcon, tint: "blue" as const, label: "Daily photo" };
   const periods = useMemo(() => item?.periods ?? [], [item]);
   const amount = item ? formatStakeAmount(item) : null;
   const symbol = chain?.token ? getTokenSymbol(chain.token) : "G$";
@@ -88,48 +96,64 @@ export default function ContractDetailPage() {
     );
   }
 
-  const ROW = 64;
+  const ROW = 62;
   const pathHeight = (total + 1) * ROW + 40;
 
   return (
     <MainPage className="flex h-full min-h-0 flex-col">
-      <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 pb-2 pt-4">
-        <Link
-          href={APP_HOME}
-          aria-label="Back"
-          className="press-edge flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
-        >
-          <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
+      <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 pt-4">
+        <Link href={APP_HOME} aria-label="Back" className={ICON_BUTTON_CLASS}>
+          <ChevronLeft className="h-5 w-5" strokeWidth={2} />
         </Link>
-        <HabitTile icon={item?.evidenceType === "camera" ? Camera : ImageIcon} tint={item?.evidenceType === "camera" ? "pink" : "blue"} size={44} />
+        <HabitTile icon={tile.icon} tint={tile.tint} size={44} />
         <div className="min-w-0 flex-1">
           <div className="label-mono truncate text-[10px] text-muted-foreground">
-            Nº {id} · {keptCount}/{total} kept
+            Nº {String(id).padStart(4, "0")} · {tile.label}
           </div>
-          <div className="truncate text-lg font-bold">{item?.title ?? "Loading…"}</div>
+          <div className="mt-0.5 truncate text-lg font-bold">{item?.title ?? "Loading…"}</div>
+        </div>
+        <div className="relative shrink-0">
+          <button type="button" aria-label="More" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} className={ICON_BUTTON_CLASS}>
+            <MoreHorizontal className="h-5 w-5" strokeWidth={2} />
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 top-12 z-20 w-48 overflow-hidden rounded-2xl border-2 border-line bg-white shadow-edge">
+              {chain?.active ? (
+                <Link
+                  href={`${APP_HOME}?discontinue=${id}`}
+                  className="block px-4 py-3 text-sm font-semibold text-orange no-underline hover:bg-paper"
+                >
+                  Discontinue contract
+                </Link>
+              ) : (
+                <span className="block px-4 py-3 text-sm font-semibold text-muted-foreground">This contract has ended</span>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md flex-wrap gap-2 px-5 pt-2">
+      <div className="mx-auto flex w-full max-w-md flex-wrap gap-2 px-5 pt-4">
         {countdown ? (
           <HudPill className="text-orange">
-            <span className="font-mono text-sm tabular-nums">{countdown}</span>
+            <Clock className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            <span className="tabular-nums">{countdown}</span>
           </HudPill>
         ) : null}
         {amount ? (
-          <HudPill className="text-sm">
-            <Coin size={18} />
-            {amount} {symbol}
-            {destination ? <span className="font-semibold text-muted-foreground">→ {destination}</span> : null}
+          <HudPill>
+            <Coin size={20} />
+            {amount}
+            {destination ? ` → ${destination}` : ` ${symbol}`}
           </HudPill>
         ) : null}
       </div>
 
-      <div className="mx-auto w-full max-w-md flex-1 overflow-y-auto scrollbar-hide">
+      <div className="mx-auto mt-2 w-full max-w-md flex-1 overflow-y-auto scrollbar-hide">
         <div className="relative" style={{ height: pathHeight }}>
           {nodes.map((state, i) => {
             const x = OFFSETS[i % OFFSETS.length];
-            const top = 24 + i * ROW;
+            const top = 20 + i * ROW;
             const isNow = state === "now";
             const common = "absolute flex items-center justify-center rounded-full font-display text-[22px] font-extrabold";
             const style = { left: `calc(50% + ${x}px)`, top: isNow ? top - 6 : top };
@@ -154,6 +178,10 @@ export default function ContractDetailPage() {
                     style={{ left: `calc(50% + ${x}px + ${x > 0 ? -196 : 50}px)`, top: top + 10 }}
                   >
                     Prove today
+                    <span
+                      aria-hidden
+                      className={cn("absolute top-1/2 -mt-1.5 h-3 w-3 rotate-45 bg-ink", x > 0 ? "-right-1.5" : "-left-1.5")}
+                    />
                   </span>
                 </div>
               );
@@ -184,18 +212,18 @@ export default function ContractDetailPage() {
           <span
             aria-label="Finish reward"
             className="absolute flex h-16 w-[72px] -translate-x-1/2 items-center justify-center rounded-full bg-line shadow-[0_5px_0_#cfcfc8]"
-            style={{ left: `calc(50% + ${OFFSETS[total % OFFSETS.length]}px)`, top: 24 + total * ROW }}
+            style={{ left: `calc(50% + ${OFFSETS[total % OFFSETS.length]}px)`, top: 20 + total * ROW }}
           >
-            {chain?.active === false && keptCount === total ? <Chest size={44} /> : <Lock className="h-6 w-6 text-faint" strokeWidth={2.2} />}
+            <Chest size={44} grey={chain?.active === false && keptCount < total} />
           </span>
         </div>
       </div>
 
-      <div className="border-t-2 border-line bg-paper px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-4">
+      <div className="border-t-2 border-line bg-paper px-5 pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
         <div className="mx-auto max-w-md">
           {chain?.active && !todayDone ? (
-            <Link href={`${APP_HOME}?prove=${id}`} className={gameButtonClass({ full: true, size: "lg" })}>
-              <Camera className="h-5 w-5" strokeWidth={2.4} />
+            <Link href={`${APP_HOME}?prove=${id}`} className={gameButtonClass({ full: true })}>
+              <Camera className="h-5 w-5" strokeWidth={2} />
               Prove today
             </Link>
           ) : (

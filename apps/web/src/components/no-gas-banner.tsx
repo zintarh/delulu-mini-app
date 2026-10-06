@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { hidesBottomNav } from "@/components/main-nav-config";
+
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Fuel } from "lucide-react";
@@ -12,12 +15,14 @@ export function NoGasBanner() {
   const { isLowGas, isLoading } = useHasGas();
   const { trigger } = useNoGas();
   const [mounted, setMounted] = useState(false);
+  // Focused screens (contract, campaign, settings…) have no dock and their own bottom action.
+  const focusedScreen = hidesBottomNav(usePathname() ?? "");
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading || !isLowGas) return null;
+  if (!mounted || isLoading || !isLowGas || focusedScreen) return null;
 
   // Portaled to <body> — the main layout's overflow-hidden container clips
   // `position: fixed` descendants otherwise (same issue AppToast works around).

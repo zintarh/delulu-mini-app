@@ -76,10 +76,10 @@ export function DailyGoalCard({ address }: { address: string }) {
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** Last 7 days as flames (today highlighted). Index 6 is today. */
-export function WeekFlamesView({ last7Days }: { last7Days: boolean[] }) {
+export function WeekFlamesView({ last7Days, className }: { last7Days: boolean[]; className?: string }) {
   const today = new Date();
   return (
-    <GameCard className="grid animate-rise grid-cols-7 gap-0.5 px-1.5 py-3">
+    <GameCard className={cn("flex animate-rise justify-between px-2 py-3 min-[360px]:px-3.5", className)}>
       {last7Days.map((lit, i) => {
         const d = new Date(today);
         d.setDate(today.getDate() - (6 - i));
@@ -88,13 +88,13 @@ export function WeekFlamesView({ last7Days }: { last7Days: boolean[] }) {
           <div key={i} className="flex flex-col items-center gap-1">
             <span
               className={cn(
-                "flex aspect-square w-full max-w-[38px] items-center justify-center",
+                "flex h-[34px] w-[34px] items-center justify-center min-[360px]:h-[38px] min-[360px]:w-[38px]",
                 isToday && "rounded-xl border-2 border-yellow-line bg-yellow-soft",
               )}
             >
-              <Flame size={isToday ? 22 : 24} lit={lit} />
+              <Flame size={24} lit={lit} />
             </span>
-            <span className={cn("font-mono text-[10px]", isToday ? "font-semibold" : "text-muted-foreground")}>
+            <span className={cn("label-mono text-[10px]", isToday ? "font-semibold text-ink" : "text-muted-foreground")}>
               {DAY_LETTERS[d.getDay()]}
             </span>
           </div>
@@ -104,7 +104,7 @@ export function WeekFlamesView({ last7Days }: { last7Days: boolean[] }) {
   );
 }
 
-export function WeekFlames({ address }: { address: string }) {
+export function WeekFlames({ address, className }: { address: string; className?: string }) {
   const { last7Days } = useUserStreak(address);
-  return <WeekFlamesView last7Days={last7Days} />;
+  return <WeekFlamesView last7Days={last7Days} className={className} />;
 }

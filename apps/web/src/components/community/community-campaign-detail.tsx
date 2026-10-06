@@ -2,21 +2,9 @@
 
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronLeft,
-  Flame,
-  Loader2,
-  LogOut,
-  Share2,
-  Sparkles,
-  Star,
-  Target,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { Camera, Check, ChevronLeft, Loader2, Plus, Share } from "lucide-react";
+import { gameButtonClass } from "@/components/ds";
+import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { formatUnits } from "viem";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
@@ -27,9 +15,7 @@ import { cn, formatAddress } from "@/lib/utils";
 import { formatLeaderboardDisplayName } from "@/lib/community/enrich-leaderboard-usernames";
 import { useUserStore } from "@/stores/useUserStore";
 import {
-  formatMilestoneOpensAt,
   getActiveMilestone,
-  getUpcomingMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
 import {
   isCampaignExpired,
@@ -88,107 +74,9 @@ export type CampaignLeaderboardRow = {
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
-function formatEndsAt(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function daysRemaining(effectiveEndsAt: string | null, durationDays: number) {
   if (!effectiveEndsAt) return durationDays;
   return Math.max(0, Math.ceil((new Date(effectiveEndsAt).getTime() - Date.now()) / 86400000));
-}
-
-function milestoneCountdown(deadline: string) {
-  if (!deadline) return "Pending start";
-  const ms = new Date(deadline).getTime() - Date.now();
-  if (ms <= 0) return "Overdue";
-  const days = Math.floor(ms / 86400000);
-  if (days >= 1) return `${days}d left`;
-  const hours = Math.ceil(ms / 3600000);
-  return `${hours}h left`;
-}
-
-function JoinButton({
-  joining,
-  canJoin,
-  onJoin,
-  className,
-  size = "default",
-}: {
-  joining: boolean;
-  canJoin: boolean;
-  onJoin: () => void;
-  className?: string;
-  size?: "default" | "large";
-}) {
-  return (
-    <button
-      type="button"
-      disabled={joining || !canJoin}
-      onClick={onJoin}
-      className={cn(
-        "press-edge rounded-2xl font-extrabold uppercase tracking-[0.06em] disabled:opacity-60",
-        canJoin ? "bg-yellow text-ink shadow-edge-yellow" : "bg-muted text-muted-foreground",
-        size === "large" ? "h-[56px] px-7 text-[15px]" : "h-[52px] px-6 text-[15px]",
-        className,
-      )}
-    >
-      {joining ? (
-        <span className="inline-flex items-center justify-center gap-2.5">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Joining…
-        </span>
-      ) : canJoin ? (
-        "Join campaign"
-      ) : (
-        "Coming soon"
-      )}
-    </button>
-  );
-}
-
-
-/** Scale hero title down as copy gets longer so it stays in the cover area. */
-function campaignTitleClassName(title: string) {
-  const len = title.trim().length;
-  if (len > 90) {
-    return "text-lg font-extrabold leading-snug tracking-tight text-white sm:text-xl lg:text-base";
-  }
-  if (len > 60) {
-    return "text-xl font-extrabold leading-tight tracking-tight text-white sm:text-2xl lg:text-lg";
-  }
-  if (len > 36) {
-    return "text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl lg:text-xl";
-  }
-  return "text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-2xl";
-}
-
-/** Scale description so longer copy still reads cleanly without blowing the layout. */
-function campaignDescriptionClassName(
-  description: string,
-  variant: "hero" | "body",
-) {
-  const len = description.trim().length;
-  if (variant === "hero") {
-    if (len > 160) {
-      return "mt-2.5 line-clamp-3 text-xs leading-snug text-white/85";
-    }
-    if (len > 90) {
-      return "mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85";
-    }
-    return "mt-2.5 line-clamp-2 text-base leading-relaxed text-white/85 lg:text-sm";
-  }
-  if (len > 220) {
-    return "text-sm leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-xs";
-  }
-  if (len > 120) {
-    return "text-[15px] leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-sm";
-  }
-  return "text-base leading-relaxed text-muted-foreground border-b border-[#f6c324]/20 dark:border-amber-800/30 pb-4 lg:text-sm";
 }
 
 export function CommunityCampaignDetail({
@@ -204,11 +92,11 @@ export function CommunityCampaignDetail({
   isJoined,
   isCommunityMember: _isCommunityMember,
   address,
-  authenticated,
+  authenticated: _authenticated,
   joining,
   myPoints,
   myStreak = 0,
-  myRank,
+  myRank: _myRank,
   milestoneCount = 0,
   canJoin = false,
   milestones = [],
@@ -268,7 +156,6 @@ export function CommunityCampaignDetail({
   onProofSubmit: (proofUrls: string[]) => void;
   onProofDone: () => void;
 }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -371,7 +258,6 @@ export function CommunityCampaignDetail({
     created_at: campaign.created_at,
     duration_days: campaign.duration_days,
   });
-  const endsLabel = formatEndsAt(effectiveEndsAt);
   const daysLeft = daysRemaining(effectiveEndsAt, campaign.duration_days ?? 30);
   const topN = campaign.prize_winner_count ?? 10;
   const communityName = campaign.communities?.name ?? "Community";
@@ -417,744 +303,204 @@ export function CommunityCampaignDetail({
     () => getActiveMilestone(milestones),
     [milestones],
   );
-  const upcomingMilestone = useMemo(
-    () => getUpcomingMilestone(milestones),
-    [milestones],
-  );
-  const focusMilestone = activeMilestone ?? upcomingMilestone;
 
   const isClosed = campaign.status === "ended" || isCampaignExpired(campaign);
 
-  const campaignPhase = useMemo(() => {
-    if (isClosed) return "closed" as const;
-    if (milestoneCount === 0) return "setup" as const;
-    if (isJoined) return "active" as const;
-    return "open" as const;
-  }, [isClosed, milestoneCount, isJoined]);
+  const [showAllStandings, setShowAllStandings] = useState(false);
+  const proofDone = activeMilestone?.completed ?? false;
+  const cadence = (campaign.proof_cadence || "daily").toLowerCase();
+  const rules = [
+    campaign.proof_instructions?.trim() || `Prove it ${cadence}`,
+    `Each verified proof earns ${pointsPerMilestone.toLocaleString()} points`,
+    showPrizePool
+      ? `Top ${topN} split the pool by points at the end`
+      : isPaidJoin && joinStakeAmount > 0
+        ? `Stake ${joinStakeAmount.toLocaleString()} ${stakeToken} to join · reclaim it after`
+        : "Points rank you on the standings",
+    ...(isPaidJoin && (campaign.forfeit_pct ?? 0) > 0
+      ? [`Miss a milestone, lose ${campaign.forfeit_pct}% of your stake`]
+      : []),
+  ];
+  const poolValue = showPrizePool ? claimablePrize : proposedPrize;
+  const compact = (n: number) =>
+    n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${+(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K` : String(n);
+  const standings = showAllStandings
+    ? leaderboard
+    : [
+        ...leaderboard.slice(0, 3),
+        ...(myLeaderboardRow && myLeaderboardRow.rank > 3 ? [myLeaderboardRow] : []),
+      ];
 
-  const phaseLabel = {
-    closed: "Closed",
-    setup: "Setting up",
-    open: "Open to join",
-    active: "You're in",
-  }[campaignPhase];
+  const handleShare = async () => {
+    if (campaignShareUrl && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: campaign.title, url: campaignShareUrl });
+        return;
+      } catch {
+        /* cancelled — fall back to copying */
+      }
+    }
+    await handleInvite();
+  };
 
-  const phaseClass = {
-    closed: "bg-muted text-muted-foreground border-border/60",
-    setup: "bg-[#fffbeb] dark:bg-amber-950/30 text-[#9a7b0a] dark:text-amber-300 border-[#f6c324]/40 dark:border-amber-800/40",
-    open: "bg-secondary text-foreground border-border",
-    active: "bg-green-soft text-green-edge dark:text-emerald-300 border-emerald-500/30",
-  }[campaignPhase];
-
-  /* ─── Hero (slimmer for joined users) ─── */
-  const heroAspect = isJoined ? "aspect-[2/1]" : "aspect-[16/9] sm:aspect-[2/1]";
+  const cta = canClaimReward ? (
+    <button
+      type="button"
+      onClick={() => void handleClaimReward()}
+      disabled={claimBusy}
+      className={gameButtonClass({ variant: "green", full: true })}
+    >
+      {claimBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      {claimBusy ? "Claiming…" : `Claim ${claimAmountLabel ?? "reward"}`}
+    </button>
+  ) : !isJoined && canJoin && !isClosed ? (
+    <button
+      type="button"
+      onClick={onJoin}
+      disabled={joining}
+      className="press-edge flex h-14 w-full items-center justify-between rounded-2xl bg-ink pl-6 pr-1.5 text-base font-bold text-white shadow-edge-ink disabled:opacity-60"
+    >
+      {joining
+        ? "Joining…"
+        : isPaidJoin && joinStakeAmount > 0
+          ? `Join · stake ${joinStakeAmount.toLocaleString()} ${stakeToken}`
+          : "Join campaign"}
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
+        {joining ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" strokeWidth={2.4} />}
+      </span>
+    </button>
+  ) : isJoined && !isClosed && activeMilestone && !proofDone ? (
+    <button
+      type="button"
+      onClick={() => onOpenProof(activeMilestone.milestone_id)}
+      disabled={proofBusy}
+      className={gameButtonClass({ full: true })}
+    >
+      {proofBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-5 w-5" strokeWidth={2} />}
+      Prove today
+    </button>
+  ) : null;
 
   return (
     <>
-      <main className="mx-auto max-w-2xl pb-28 lg:max-w-4xl">
+      <main className={cn("mx-auto max-w-xl", cta ? "pb-32" : "pb-10")}>
+        {/* Header (design: CampaignDetail.dc.html) */}
+        <div className="bg-[#dde7f6] px-5 pb-12 pt-4">
+          <div className="flex justify-between">
+            <Link href="/explore" aria-label="Back" className={ICON_BUTTON_CLASS}>
+              <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+            </Link>
+            <button type="button" onClick={() => void handleShare()} aria-label="Share" className={ICON_BUTTON_CLASS}>
+              {inviteCopied ? <Check className="h-5 w-5 text-green-edge" strokeWidth={2.4} /> : <Share className="h-5 w-5" strokeWidth={2} />}
+            </button>
+          </div>
+          <span className="label-mono mt-6 block text-[#1e4fa8]">{communityName} campaign</span>
+          <h1 className="m-0 mt-1 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">{campaign.title}</h1>
+        </div>
 
-        {/* ── Back nav + Hero ── */}
-        <div className="relative px-5 pt-2.5 lg:px-3">
-          <Link
-            href="/explore"
-            className="press-edge mb-4 inline-flex h-11 items-center gap-1.5 rounded-full border-2 border-line bg-white px-4 text-sm font-bold text-ink shadow-edge-sm"
-          >
-            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
-            Campaigns
-          </Link>
-
-          <div className="relative overflow-hidden rounded-3xl border-2 border-line shadow-edge">
-            {campaign.cover_image_url ? (
-              <div className={cn("relative w-full", heroAspect)}>
-                <Image
-                  src={campaign.cover_image_url}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/15" />
+        {/* Stats ticket */}
+        <div className="relative -mt-7 px-5">
+          <div className="relative flex animate-rise rounded-3xl border-2 border-line bg-white shadow-[0_0_0_1px_#e6e6e0]">
+            {[
+              { value: poolValue > 0 ? compact(poolValue) : "—", label: "G$ pool" },
+              { value: String(participantCount), label: "In" },
+              { value: isClosed ? "End" : `${daysLeft}D`, label: isClosed ? "Status" : "Left" },
+            ].map((stat, i) => (
+              <div key={stat.label} className={cn("flex-1 p-4 text-center", i > 0 && "border-l-2 border-dashed border-line")}>
+                <div className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{stat.value}</div>
+                <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">{stat.label}</div>
               </div>
-            ) : (
-              <div
-                className={cn(
-                  "w-full bg-ink",
-                  heroAspect,
-                )}
-              />
-            )}
-
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-              <div className="mb-3 flex flex-wrap items-center gap-2.5">
-                {showPrizePool ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-ink shadow-[0_2px_0_#c99a0a]">
-                    <Trophy className="h-3.5 w-3.5" />
-                    {claimablePrize} G$ prize
-                  </span>
-                ) : proposedPrize > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white">
-                    <Trophy className="h-3.5 w-3.5" />
-                    Target {proposedPrize} G$
-                  </span>
-                ) : null}
-              </div>
-              <h1 className={campaignTitleClassName(campaign.title)}>
-                {campaign.title}
-              </h1>
-              {/* Description only shown on hero for non-joined (evaluators need context) */}
-              {!isJoined && campaign.description ? (
-                <p className={campaignDescriptionClassName(campaign.description, "hero")}>
-                  {campaign.description}
-                </p>
-              ) : null}
-              {/* Hosted by — inside cover so it never wraps alongside action buttons */}
-              <p className="mt-2.5 text-xs text-white/55">
-                Hosted by <span className="font-semibold text-white/80">{communityName}</span>
-              </p>
-            </div>
+            ))}
+            {["33.333%", "66.666%"].map((left) => (
+              <span key={left}>
+                <span className="absolute -top-2.5 h-5 w-5 -translate-x-1/2 rounded-full bg-paper" style={{ left }} />
+                <span className="absolute -bottom-2.5 h-5 w-5 -translate-x-1/2 rounded-full bg-paper" style={{ left }} />
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* ════════════════════════════════════════════
-            JOINED PATH — action-first layout
-            ════════════════════════════════════════════ */}
-        {isJoined ? (
-          <>
-            {/* Progress strip — instant context at the top */}
-            <div className="mt-4 flex flex-wrap items-center gap-2.5 px-5 lg:px-3">
-              <span className="rounded-xl border-2 border-line bg-white px-3 py-1.5 text-sm font-extrabold tabular-nums text-foreground shadow-edge-sm">
-                {completedCount}/{milestoneCount} done
+        {/* Rules */}
+        <div className="flex flex-col gap-2.5 px-5 pt-6">
+          {rules.map((rule, i) => (
+            <div key={i} className="flex items-baseline gap-3.5">
+              <span className="font-display text-[22px] font-extrabold uppercase leading-[0.88] text-muted-foreground">
+                {String(i + 1).padStart(2, "0")}
               </span>
-              {myPoints > 0 ? (
-                <span className="rounded-xl border-2 border-blue-line bg-blue-soft px-3 py-1.5 text-sm font-extrabold tabular-nums text-blue">
-                  {myPoints} pts earned
-                </span>
-              ) : null}
-              {myRank ? (
-                <span className="rounded-xl border-2 border-yellow-line bg-yellow-soft px-3 py-1.5 text-sm font-extrabold text-ink">
-                  Rank #{myRank}
-                </span>
-              ) : null}
-              <span className="rounded-xl border-2 border-line bg-white px-3 py-1.5 text-sm font-semibold text-muted-foreground">
-                {daysLeft}d left
-              </span>
-
-              {/* Leave — free campaigns only (paid stake can't be abandoned mid-campaign) */}
-              {onLeave && !isClosed && !isPaidJoin ? (
-                leaveConfirm ? (
-                  <div className="ml-auto flex max-w-[min(100%,20rem)] flex-col items-end gap-1.5">
-                    <span className="text-right text-xs text-muted-foreground">
-                      Leave campaign? You can rejoin later if it&apos;s still open.
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={leaving}
-                        onClick={() => { onLeave(); setLeaveConfirm(false); }}
-                        className="rounded-lg bg-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                      >
-                        {leaving ? "Leaving…" : "Yes, leave"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLeaveConfirm(false)}
-                        className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setLeaveConfirm(true)}
-                    aria-label="Leave campaign"
-                    title="Leave campaign"
-                    className="ml-auto flex items-center justify-center rounded-lg p-2 text-muted-foreground/60 hover:text-orange transition-colors"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                )
-              ) : null}
+              <span className="line-clamp-2">{rule}</span>
             </div>
-
-            {actionError ? (
-              <p className="mx-5 mt-4 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive lg:mx-3">
-                {actionError}
-              </p>
-            ) : null}
-
-            {/* Status cards — milestones coming soon or all complete */}
-            {milestones.length === 0 ? (
-              <div className="mx-5 mt-4 overflow-hidden rounded-[20px] border-2 border-dashed border-line bg-white lg:mx-3">
-                <div className="p-6">
-                  <p className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                    Milestones coming soon
-                  </p>
-                  <p className="mt-1.5 text-base text-muted-foreground">
-                    An admin is adding milestones on-chain. Check back shortly.
-                  </p>
-                </div>
-              </div>
-            ) : !focusMilestone ? (
-              <div className="mx-5 mt-4 overflow-hidden rounded-[20px] border-2 border-green-line bg-[#f2fbf5] shadow-edge-green-line lg:mx-3">
-                <div className="p-6">
-                  <p className="label-mono text-green-edge">All milestones complete</p>
-                  <p className="mt-1.5 text-base text-muted-foreground">
-                    {isPaidJoin && myRank
-                      ? `You're ranked #${myRank}`
-                      : "All done — great work"}
-                    {myPoints > 0 ? ` · ${myPoints} pts earned` : ""}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
-            {/* ── MILESTONES — front and centre ── */}
-            <section className="mt-6 px-5 lg:px-3">
-              <div className="rounded-3xl border-2 border-line bg-white p-5 shadow-edge">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2
-                    className="text-lg font-extrabold text-foreground lg:text-base"
-                  >
-                    Milestones
-                  </h2>
-                  {milestoneCount > 0 ? (
-                    <span className="text-sm font-semibold text-foreground lg:text-xs">
-                      {(completedCount * pointsPerMilestone).toLocaleString()} / {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
-                    </span>
-                  ) : null}
-                </div>
-                <CommunityCampaignMilestoneList
-                  milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
-                  isJoined={isJoined}
-                  proofBusy={proofBusy}
-                  activeMilestoneId={activeMilestoneId}
-                  onSubmitMilestone={onOpenProof}
-                  pointsPerMilestone={pointsPerMilestone}
-                />
-                {milestones.length > MILESTONES_PREVIEW ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMilestones((v) => !v)}
-                    className="press-edge mt-4 flex w-full items-center justify-center rounded-2xl border-2 border-line bg-white py-3 text-sm font-bold text-ink shadow-edge-sm"
-                  >
-                    {showAllMilestones
-                      ? "Show less"
-                      : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
-                  </button>
-                ) : null}
-              </div>
-            </section>
-
-            {/* Rewards + proof info — always visible, single card */}
-            <section className="mt-5 px-5 lg:px-3">
-              <div className="space-y-5 rounded-[20px] border-2 border-yellow-line bg-yellow-soft p-6 shadow-edge-yellow-line">
-                {campaign.description ? (
-                  <p className={campaignDescriptionClassName(campaign.description, "body")}>
-                    {campaign.description}
-                  </p>
-                ) : null}
-
-                {/* What you're playing for */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-base">
-                    <span className="flex items-center gap-2 text-foreground">
-                      <Star className="h-4 w-4 text-foreground" />
-                      Complete a milestone
-                    </span>
-                    <span className="font-bold text-foreground">+1,000 pts</span>
-                  </div>
-                  {showPrizePool ? (
-                    <div className="flex items-center justify-between text-base">
-                      <span className="flex items-center gap-2 text-foreground">
-                        <Trophy className="h-4 w-4 text-green-edge" />
-                        Rank in the top {topN}
-                      </span>
-                      <span className="font-bold text-green-edge">
-                        Share the prize{claimablePrize > 0 ? ` · ${claimablePrize} G$` : ""}
-                      </span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between text-base">
-                    <span className="flex items-center gap-2 text-foreground">
-                      <Target className="h-4 w-4 text-[#9a7b0a] dark:text-amber-300" />
-                      Stay consistent
-                    </span>
-                    <span className="font-bold text-[#9a7b0a] dark:text-amber-300">Achieve your goal</span>
-                  </div>
-                </div>
-
-                {/* Upload proof — merged into same card */}
-                <div className="border-t border-[#f6c324]/20 dark:border-amber-800/30 pt-4 flex items-start gap-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f6c324]/25 dark:bg-amber-500/20 text-[#9a7b0a] dark:text-amber-300">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-base font-bold text-foreground">Upload proof</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      {campaign.proof_instructions ??
-                        "Complete each milestone and upload proof to earn your points."}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Points here rank you on this campaign&apos;s leaderboard
-                  {showPrizePool ? " and determine your share of the prize" : ""}.
-                </p>
-              </div>
-
-              {isPaidJoin && (campaign.forfeit_pct ?? 0) > 0 ? (
-                <div className="mt-2.5 flex items-start gap-4 rounded-[20px] border-2 border-orange/30 bg-orange-soft p-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-orange">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-base font-bold text-foreground">Miss your milestone</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Forfeit <strong className="text-orange">{campaign.forfeit_pct}% of your stake</strong> per missed milestone
-                      {stakeToken === "G$"
-                        ? ". Forfeited stake is added to the G$ prize when participants reclaim after the campaign ends."
-                        : ". Forfeited stake is deducted from what you reclaim after the campaign ends."}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          </>
-        ) : (
-          /* ════════════════════════════════════════════
-              NON-JOINED PATH — discovery layout
-              ════════════════════════════════════════════ */
-          <>
-            {/* Action card — simplified for non-joined */}
-            <div className="relative z-10 mx-5 mt-4 rounded-3xl border-2 border-line bg-white p-6 shadow-edge lg:mx-3">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Ready to compete?
-                  </p>
-                  <p className="mt-1.5 text-base text-muted-foreground">
-                    {milestoneCount === 0
-                      ? "Milestones coming soon"
-                      : `${participantCount} joined · ${daysLeft}d left`}
-                  </p>
-                </div>
-                {canJoin ? (
-                  <JoinButton
-                    joining={joining}
-                    canJoin={canJoin}
-                    onJoin={onJoin}
-                    size="large"
-                  />
-                ) : (
-                  <p className="text-base font-semibold text-muted-foreground">Not open yet</p>
-                )}
-              </div>
-              {actionError ? (
-                <p className="mt-4 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-                  {actionError}
-                </p>
-              ) : null}
-            </div>
-
-            {/* ── Prize & stakes — claimable prize separate from join stakes ── */}
-            {isPaidJoin || showPrizePool ? (
-              <div className="mt-5 px-5 lg:px-3">
-                {(() => {
-                  const forfeitPct = campaign.forfeit_pct ?? 0;
-                  const forfeitAmountRaw =
-                    forfeitPct > 0 && joinStakeAmount > 0
-                      ? (joinStakeAmount * forfeitPct) / 100
-                      : 0;
-                  const forfeitAmountLabel =
-                    forfeitAmountRaw > 0
-                      ? forfeitAmountRaw >= 1
-                        ? String(Math.round(forfeitAmountRaw * 100) / 100)
-                        : forfeitAmountRaw.toFixed(2)
-                      : null;
-                  const showStakeRow = isPaidJoin && joinStakeAmount > 0;
-
-                  if (!showPrizePool && !showStakeRow) {
-                    return (
-                      <div className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
-                        <div className="flex items-center gap-2.5 border-b border-border/40 px-5 py-3">
-                          <Star className="h-5 w-5 fill-[#f6c324] text-[#f6c324]" />
-                          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-foreground/60">
-                            Leaderboard reward
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 divide-x divide-border/40">
-                          <div className="flex flex-col items-center px-4 py-5 text-center">
-                            <p
-                              className="text-3xl font-extrabold text-foreground"
-                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                            >
-                              Top {topN}
-                            </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
-                              Winners
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-center px-4 py-5 text-center">
-                            <p
-                              className="text-3xl font-extrabold text-foreground"
-                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                            >
-                              Points
-                            </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
-                              Ranked by
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="overflow-hidden rounded-[20px] border-2 border-yellow-line bg-yellow-soft shadow-edge-yellow-line">
-                      <div className="flex items-center gap-2.5 border-b border-[#f6c324]/20 dark:border-amber-800/30 px-5 py-3">
-                        <Trophy className="h-5 w-5 text-[#9a7b0a] dark:text-amber-300" />
-                        <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#9a7b0a] dark:text-amber-300">
-                          {showStakeRow ? "Prize & stakes" : "Prize pool"}
-                        </p>
-                      </div>
-
-                      {showPrizePool ? (
-                        <div
-                          className={cn(
-                            "grid divide-x divide-[#f6c324]/20 dark:divide-amber-800/30",
-                            "grid-cols-2",
-                          )}
-                        >
-                          <div className="flex flex-col items-center px-4 py-5 text-center">
-                            <p
-                              className="text-2xl font-extrabold tabular-nums text-foreground sm:text-3xl"
-                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                            >
-                              {claimablePrize.toLocaleString()}
-                              <span className="ml-1.5 text-base font-bold text-[#9a7b0a] dark:text-amber-300">G$</span>
-                            </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70 dark:text-amber-300/70">
-                              Claimable prize
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col items-center px-4 py-5 text-center">
-                            <p
-                              className="text-2xl font-extrabold tabular-nums text-foreground sm:text-3xl"
-                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                            >
-                              Top {topN}
-                            </p>
-                            <p className="mt-1.5 text-[11px] font-semibold text-[#9a7b0a]/70 dark:text-amber-300/70">
-                              Share by points
-                            </p>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {showStakeRow ? (
-                        <div
-                          className={cn(
-                            "grid gap-px bg-[#f6c324]/20 dark:bg-amber-800/20",
-                            forfeitAmountRaw > 0 ? "grid-cols-2" : "grid-cols-1",
-                            showPrizePool && "border-t border-[#f6c324]/20 dark:border-amber-800/30",
-                          )}
-                        >
-                          <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
-                            <p
-                              className="text-lg font-extrabold tabular-nums text-foreground sm:text-xl"
-                              style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                            >
-                              {joinStakeAmount}
-                              <span className="ml-1 text-xs font-bold text-muted-foreground">
-                                {stakeToken}
-                              </span>
-                            </p>
-                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              Your stake to join
-                            </p>
-                          </div>
-
-                          {forfeitAmountLabel ? (
-                            <div className="flex flex-col items-center bg-[#fffdf5] dark:bg-black/20 px-3 py-4 text-center">
-                              <p
-                                className="text-lg font-extrabold tabular-nums text-orange-600 dark:text-orange-400 sm:text-xl"
-                                style={{ fontFamily: 'var(--font-display), sans-serif' }}
-                              >
-                                −{forfeitAmountLabel}
-                                <span className="ml-1 text-xs font-bold text-orange-600/70 dark:text-orange-400/70">
-                                  {stakeToken}
-                                </span>
-                              </p>
-                              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                Miss a milestone ({forfeitPct}%)
-                              </p>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      <div className="border-t border-[#f6c324]/20 dark:border-amber-800/30 px-5 py-3">
-                        <p className="text-xs leading-relaxed text-[#9a7b0a]/80 dark:text-amber-300/80">
-                          {showPrizePool
-                            ? `Top ${topN} split the claimable G$ prize pro-rata by points when payouts are published.${
-                                isPaidJoin && forfeitAmountRaw > 0 && stakeToken === "G$"
-                                  ? " Missed-milestone forfeits can grow that prize after reclaim."
-                                  : ""
-                              }`
-                            : isPaidJoin
-                              ? "Your stake is held until the campaign ends — reclaim from Rewards afterward."
-                              : "Rank up by earning points on milestones."}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            ) : null}
-
-            {/* Milestone preview — moved above "How it works" so it's the first thing people see */}
-            <section className="mt-8 px-5 lg:px-3">
-              <div className="rounded-3xl border-2 border-line bg-white p-5 shadow-edge">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2
-                    className="text-lg font-extrabold text-foreground lg:text-base"
-                  >
-                    Milestones
-                  </h2>
-                  {milestoneCount > 0 ? (
-                    <span className="text-sm font-semibold text-foreground lg:text-xs">
-                      Earn up to {(milestoneCount * pointsPerMilestone).toLocaleString()} pts
-                    </span>
-                  ) : null}
-                </div>
-                <CommunityCampaignMilestoneList
-                  milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
-                  isJoined={false}
-                  proofBusy={proofBusy}
-                  activeMilestoneId={activeMilestoneId}
-                  onSubmitMilestone={onOpenProof}
-                  pointsPerMilestone={pointsPerMilestone}
-                />
-                {milestones.length > MILESTONES_PREVIEW ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMilestones((v) => !v)}
-                    className="press-edge mt-4 flex w-full items-center justify-center rounded-2xl border-2 border-line bg-white py-3 text-sm font-bold text-ink shadow-edge-sm"
-                  >
-                    {showAllMilestones
-                      ? "Show less"
-                      : `Show ${milestones.length - MILESTONES_PREVIEW} more milestone${milestones.length - MILESTONES_PREVIEW !== 1 ? "s" : ""}`}
-                  </button>
-                ) : null}
-              </div>
-            </section>
-
-            {/* How it works */}
-            <section className="mt-8 px-5 lg:px-3">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                How it works
-              </h2>
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                {/* 1 — Earn points (lead with the win) */}
-                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-edge-sm">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
-                    <Star className="h-5 w-5" />
-                  </div>
-                  <p className="text-base font-bold text-foreground">Earn points</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Upload proof for each milestone and earn points on this campaign&apos;s leaderboard.
-                  </p>
-                </div>
-                {/* 2 — Achieve goal */}
-                <div className="rounded-[20px] border-2 border-green-line bg-[#f2fbf5] p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-green-edge">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <p className="text-base font-bold text-foreground">Achieve your goal</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Stay consistent, build the habit, and actually accomplish what you set out to do.
-                  </p>
-                </div>
-                {/* 3 — Win the prize (when there is a claimable pool) */}
-                {showPrizePool ? (
-                  <div className="rounded-[20px] border-2 border-yellow-line bg-yellow-soft p-5">
-                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#f6c324]/25 dark:bg-amber-500/20 text-[#9a7b0a] dark:text-amber-300">
-                      <Trophy className="h-5 w-5" />
-                    </div>
-                    <p className="text-base font-bold text-foreground">Win the prize pool</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                      Top {topN} on the leaderboard share the claimable G$ prize pro-rata by points when payouts are published.
-                    </p>
-                  </div>
-                ) : null}
-                {/* 4 — Upload proof */}
-                <div className="rounded-[20px] border-2 border-pink-line bg-pink-soft p-5">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-pink">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <p className="text-base font-bold text-foreground">Upload proof</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    {campaign.proof_instructions ??
-                      "Complete each milestone and upload proof to earn your points."}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-          </>
-        )}
-
-        {/* ── Invite / share actions — before leaderboard ── */}
-        <div className="mt-8 flex items-center justify-center gap-4 px-5 lg:px-3">
-          {campaign.telegram_link ? (
-            <a
-              href={campaign.telegram_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="press-edge inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border-2 border-blue-line bg-blue-soft px-5 text-sm font-bold text-blue shadow-edge-blue-line"
-            >
-              Join Telegram
-            </a>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void handleInvite()}
-            className="press-edge inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border-2 border-line bg-white px-5 text-sm font-bold text-ink shadow-edge-sm"
-          >
-            <Share2 className="h-4 w-4" />
-            {inviteCopied ? "Link copied!" : "Invite friends"}
-          </button>
+          ))}
         </div>
 
-        {/* ── Leaderboard (paid) / Participants (free) ── */}
-        <section ref={leaderboardRef} className="mt-10 px-5 lg:px-3">
-          <div
-            className={cn(
-              "rounded-3xl border p-5",
-              showPrizePool ? "border-2 border-green-line bg-[#f2fbf5]" : "border-2 border-line bg-white",
-            )}
-          >
-          <div className="mb-4 flex items-center justify-between gap-2.5">
-            <div>
-              <h2
-                className="flex items-center gap-2.5 text-lg font-extrabold text-foreground lg:text-base"
+        {actionError ? (
+          <p className="mx-5 mt-4 rounded-2xl bg-orange-soft px-4 py-2.5 text-sm font-semibold text-orange">{actionError}</p>
+        ) : null}
+
+        {/* Your milestones (joined) */}
+        {isJoined && milestones.length > 0 ? (
+          <section className="px-5 pt-6">
+            <div className="mb-1.5 flex justify-between">
+              <span className="label-mono text-muted-foreground">Your milestones</span>
+              <span className="label-mono text-ink">
+                {completedCount} / {milestoneCount}
+              </span>
+            </div>
+            <CommunityCampaignMilestoneList
+              milestones={showAllMilestones ? milestones : milestones.slice(0, MILESTONES_PREVIEW)}
+              isJoined={isJoined}
+              proofBusy={proofBusy}
+              activeMilestoneId={activeMilestoneId}
+              onSubmitMilestone={onOpenProof}
+              pointsPerMilestone={pointsPerMilestone}
+            />
+            {milestones.length > MILESTONES_PREVIEW ? (
+              <button
+                type="button"
+                onClick={() => setShowAllMilestones((v) => !v)}
+                className="label-mono mt-2 text-ink"
               >
-                {showPrizePool ? (
-                  <Trophy className="h-5 w-5 text-foreground" />
-                ) : (
-                  <Users className="h-5 w-5 text-foreground" />
-                )}
-                Leaderboard
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {participantCount} participant{participantCount !== 1 ? "s" : ""}
-                {showPrizePool ? ` · top ${topN} share by points` : " · ranked by points"}
-              </p>
-            </div>
+                {showAllMilestones ? "Show less" : `All ${milestones.length} →`}
+              </button>
+            ) : null}
+          </section>
+        ) : null}
+
+        {/* Standings */}
+        <section ref={leaderboardRef} className="px-5 pt-6">
+          <div className="mb-1.5 flex justify-between">
+            <span className="label-mono text-muted-foreground">Standings</span>
+            {leaderboard.length > 3 ? (
+              <button type="button" onClick={() => setShowAllStandings((v) => !v)} className="label-mono text-ink">
+                {showAllStandings ? "Top ↑" : "All →"}
+              </button>
+            ) : null}
           </div>
-
           {leaderboard.length === 0 ? (
-            <div className="rounded-[20px] border-2 border-dashed border-line bg-white px-6 py-12 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-foreground">
-                <Users className="h-6 w-6" />
-              </div>
-              <p className="text-base font-bold text-foreground">
-                {showPrizePool ? "No one on the board yet" : "No participants yet"}
-              </p>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {showPrizePool
-                  ? "Be the first to join and claim the top spot."
-                  : "Join and complete milestones to earn points."}
-              </p>
-              {!isJoined && canJoin ? (
-                <div className="mt-5 flex justify-center">
-                  <JoinButton joining={joining} canJoin={canJoin} onJoin={onJoin} />
-                </div>
-              ) : null}
-            </div>
+            <p className="py-4 text-sm text-muted-foreground">No one on the board yet. Be the first.</p>
           ) : (
-            <ul className="overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-edge">
-              {leaderboard.map((row) => {
-                const isMe = address?.toLowerCase() === row.wallet_address.toLowerCase();
-                const inZone = showPrizePool && row.rank <= topN;
-                const medalColors: Record<number, [string, string]> = {
-                  1: ["#F6C324", "#C99A0A"],
-                  2: ["#D9D9D4", "#AFAFA8"],
-                  3: ["#F2B48A", "#C98352"],
-                };
-                const medal =
-                  showPrizePool && medalColors[row.rank] ? (
-                    <span
-                      className="flex h-[30px] w-[30px] items-center justify-center rounded-full font-display text-base font-extrabold text-ink"
-                      style={{ background: medalColors[row.rank][0], boxShadow: `0 3px 0 ${medalColors[row.rank][1]}` }}
-                    >
-                      {row.rank}
-                    </span>
-                  ) : null;
-                return (
-                  <li
-                    key={row.wallet_address}
-                    className={cn(
-                      "flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4 last:border-0",
-                      isMe && "bg-yellow-soft",
-                      inZone && !isMe && "bg-[#fffbeb]",
-                    )}
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <span className="flex w-9 shrink-0 items-center justify-center text-base font-extrabold tabular-nums">
-                        {medal ?? (
-                          <span
-                            className={
-                              inZone ? "font-display text-[22px] text-ink" : "font-display text-[22px] text-muted-foreground"
-                            }
-                          >
-                            {row.rank}
-                          </span>
-                        )}
-                      </span>
-                      <UserAvatar
-                        address={row.wallet_address}
-                        username={row.username}
-                        pfpUrl={row.pfp_url ?? null}
-                        size={32}
-                      />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-base font-semibold lg:text-sm">
-                            {formatLeaderboardDisplayName({
-                              username: row.username,
-                              walletAddress: row.wallet_address,
-                              isMe,
-                              formatAddress,
-                            })}
-                          </span>
-                          {row.is_community_member ? (
-                            <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-foreground">
-                              Member
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="shrink-0 text-base font-extrabold tabular-nums text-foreground lg:text-sm">
-                      {row.points_total}
-                      <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
-                        pts
-                      </span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            standings.map((row) => {
+              const isMe = address?.toLowerCase() === row.wallet_address.toLowerCase();
+              return (
+                <div
+                  key={row.wallet_address}
+                  className={cn(
+                    "flex animate-rise items-center gap-3 rounded-2xl px-3 py-2.5",
+                    isMe && "bg-ink text-white",
+                  )}
+                >
+                  <span className="w-[26px] font-display text-[26px] font-extrabold uppercase leading-[0.88]">{row.rank}</span>
+                  <UserAvatar address={row.wallet_address} username={row.username} pfpUrl={row.pfp_url ?? null} size={36} />
+                  <span className="min-w-0 flex-1 truncate font-semibold">
+                    {isMe
+                      ? "You"
+                      : formatLeaderboardDisplayName({ username: row.username, walletAddress: row.wallet_address, isMe, formatAddress })}
+                  </span>
+                  <span className="label-mono text-xs tracking-[0.06em]">{row.points_total.toLocaleString()}</span>
+                </div>
+              );
+            })
           )}
-
-          {leaderboard.length > 0 ? (
+          {showAllStandings && leaderboard.length > 0 ? (
             <LeaderboardPagination
               page={leaderboardPage}
               rangeStart={leaderboardPage * LEADERBOARD_PAGE_SIZE + 1}
@@ -1164,50 +510,62 @@ export function CommunityCampaignDetail({
               onNext={() => onNextLeaderboardPage?.()}
             />
           ) : null}
-          {loadingLeaderboardPage ? (
-            <p className="mt-2.5 text-center text-sm text-muted-foreground">Loading…</p>
-          ) : null}
-          </div>
+          {loadingLeaderboardPage ? <p className="mt-2.5 text-center text-sm text-muted-foreground">Loading…</p> : null}
 
-          {canClaimReward ? (
-            <div className="mt-4 space-y-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-4 py-4 shadow-edge-green-line">
-              <p className="text-sm font-bold text-green-edge">
-                You&apos;re a winner{claimAmountLabel ? ` — claim ${claimAmountLabel}` : ""}.
-              </p>
-              <button
-                type="button"
-                onClick={() => void handleClaimReward()}
-                disabled={claimBusy}
-                className="press-edge flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-green text-[15px] font-extrabold uppercase tracking-[0.06em] text-ink shadow-edge-green disabled:opacity-60"
-              >
-                {claimBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {claimBusy ? "Claiming…" : "Claim reward"}
-              </button>
-              {claimError ? (
-                <p className="text-xs text-destructive">{claimError}</p>
-              ) : null}
-            </div>
-          ) : null}
-
+          {claimError ? <p className="mt-3 text-xs font-semibold text-orange">{claimError}</p> : null}
           {claimSuccess || claimInfo?.alreadyClaimed ? (
-            <p className="mt-4 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-4 py-3 text-sm font-bold text-green-edge">
+            <p className="mt-4 rounded-2xl border-2 border-green-line bg-[#f2fbf5] px-4 py-3 text-sm font-bold text-green-edge">
               Reward claimed{claimAmountLabel ? ` (${claimAmountLabel})` : ""}.
             </p>
           ) : null}
-
-          {campaign.status === "ended" &&
-          inPrizeZone &&
-          claimInfo &&
-          !claimInfo.eligible &&
-          !claimInfo.alreadyClaimed &&
-          !claimSuccess ? (
-            <p className="mt-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {campaign.status === "ended" && inPrizeZone && claimInfo && !claimInfo.eligible && !claimInfo.alreadyClaimed && !claimSuccess ? (
+            <p className="mt-4 rounded-2xl border-2 border-line bg-white px-4 py-3 text-sm text-muted-foreground">
               {claimInfo.reason ?? "Payouts are not available yet."}
             </p>
           ) : null}
         </section>
+
+        {/* Extras: Telegram + leave */}
+        {campaign.telegram_link || (isJoined && onLeave && !isClosed && !isPaidJoin) ? (
+          <div className="flex items-center justify-center gap-5 px-5 pt-8 text-sm font-semibold">
+            {campaign.telegram_link ? (
+              <a href={campaign.telegram_link} target="_blank" rel="noopener noreferrer" className="text-blue no-underline">
+                Join Telegram
+              </a>
+            ) : null}
+            {isJoined && onLeave && !isClosed && !isPaidJoin ? (
+              leaveConfirm ? (
+                <span className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={leaving}
+                    onClick={() => {
+                      onLeave();
+                      setLeaveConfirm(false);
+                    }}
+                    className="text-orange disabled:opacity-50"
+                  >
+                    {leaving ? "Leaving…" : "Yes, leave"}
+                  </button>
+                  <button type="button" onClick={() => setLeaveConfirm(false)} className="text-muted-foreground">
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setLeaveConfirm(true)} className="text-muted-foreground">
+                  Leave campaign
+                </button>
+              )
+            ) : null}
+          </div>
+        ) : null}
       </main>
 
+      {cta ? (
+        <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+          {cta}
+        </div>
+      ) : null}
 
       <SubmitProofModal
         open={proofOpen}

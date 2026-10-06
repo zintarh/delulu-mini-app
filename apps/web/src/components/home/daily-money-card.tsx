@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
-import { Loader2 } from "lucide-react";
-import { CheckDot, CoinStack, GameButton, GameCard } from "@/components/ds";
+import { Loader2, Lock } from "lucide-react";
+import { CheckDot, Chest, CoinStack, GameButton, GameCard } from "@/components/ds";
+import { cn } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useClaimPanel } from "@/contexts/right-panel-context";
 
@@ -56,7 +57,7 @@ export function DailyMoneyCardView({
         <div className="flex items-center gap-3">
           <CoinStack locked />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="label-mono truncate text-blue">Daily free money</span>
+            <span className="label-mono truncate text-blue">Free daily money</span>
             <span className="text-base font-extrabold leading-tight">Claim free money every day</span>
             <span className="text-xs leading-snug text-muted-foreground">One quick face check · plus 10× points</span>
           </div>
@@ -72,13 +73,13 @@ export function DailyMoneyCardView({
     <GameCard tone="green" className="flex items-center gap-3 py-3 pl-3.5 pr-3">
       <CoinStack />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="label-mono truncate text-green-edge">Daily free money</span>
+        <span className="label-mono truncate text-green-edge">Free daily money</span>
         {state === "claimable" ? (
           <>
-            <span className="truncate font-display text-[clamp(20px,6.5vw,28px)] font-extrabold leading-none">
-              {amount} <span className="text-[0.7em]">G$</span>
+            <span className="truncate font-display text-[clamp(20px,7.2vw,28px)] font-extrabold leading-none">
+              {amount} G$
             </span>
-            <span className="truncate text-xs text-muted-foreground">Ready to claim</span>
+            <span className="truncate text-xs text-muted-foreground">From GoodDollar · ready now</span>
           </>
         ) : (
           <>
@@ -135,5 +136,71 @@ export function DailyMoneyCard() {
       onClaim={() => void claim()}
       onVerify={openClaimPanel}
     />
+  );
+}
+
+/**
+ * Daily G$ chest on Rewards (design: Rewards.dc.html): yellow when today's
+ * money is ready, blue verify prompt before face verification, quiet once
+ * claimed.
+ */
+export function RewardsDailyCard() {
+  const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
+    useGoodDollarClaim();
+  const { open: openClaimPanel } = useClaimPanel();
+  const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
+  const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
+
+  if (isLoading || !isInitialized) {
+    return <div className="h-[112px] animate-pulse rounded-[20px] bg-yellow-soft" aria-busy="true" />;
+  }
+
+  if (!isWhitelisted) {
+    return (
+      <div className="flex animate-rise items-center gap-4 rounded-[20px] border-2 border-blue-line bg-blue-soft p-4 shadow-edge-blue-line">
+        <span className="relative">
+          <Chest size={76} grey />
+          <span className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-white bg-ink text-white">
+            <Lock className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+        </span>
+        <div className="flex flex-1 flex-col gap-2">
+          <div>
+            <div className="text-[17px] font-extrabold">Daily G$</div>
+            <div className="label-mono mt-0.5 text-[10px] text-blue">Free every day · verify to unlock</div>
+          </div>
+          <GameButton variant="blue" size="sm" className="self-start" onClick={openClaimPanel}>
+            Verify
+          </GameButton>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex animate-rise items-center gap-4 rounded-[20px] border-2 p-4",
+        canClaim ? "border-yellow-line bg-yellow-soft shadow-edge-yellow-line" : "border-line bg-white shadow-edge",
+      )}
+    >
+      <span className={cn("inline-block", canClaim && "animate-wiggle")}>
+        <Chest size={76} grey={!canClaim} />
+      </span>
+      <div className="flex flex-1 flex-col gap-2">
+        <div>
+          <div className="text-[17px] font-extrabold">Daily G$</div>
+          <div className={cn("label-mono mt-0.5 text-[10px]", canClaim ? "text-green-edge" : "text-muted-foreground")}>
+            {canClaim ? "Face verified · ready" : countdown ? `Opened · next in ${countdown}` : "Opened for today"}
+          </div>
+        </div>
+        {canClaim ? (
+          <GameButton variant="ink" size="sm" className="self-start" onClick={() => void claim()} disabled={isClaiming}>
+            {isClaiming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Open
+          </GameButton>
+        ) : null}
+      </div>
+    </div>
   );
 }

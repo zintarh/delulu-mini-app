@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { hidesBottomNav } from "@/components/main-nav-config";
+
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, Loader2, X } from "lucide-react";
@@ -63,6 +66,8 @@ export function EnableNotificationsBanner() {
   const { address, authenticated } = useAuth();
   const { isLowGas } = useHasGas();
   const [mounted, setMounted] = useState(false);
+  // Focused screens (contract, campaign, settings…) have no dock and their own bottom action.
+  const focusedScreen = hidesBottomNav(usePathname() ?? "");
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +159,7 @@ export function EnableNotificationsBanner() {
     }
   }, [address, busy]);
 
-  if (!mounted || !visible) return null;
+  if (!mounted || !visible || focusedScreen) return null;
 
   return createPortal(
     <div

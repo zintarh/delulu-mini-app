@@ -8,8 +8,7 @@ import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { Loader2, ArrowRight, Camera, Copy, Check, Plus } from "lucide-react";
-import { Wordmark } from "@/components/wordmark";
-import { Lulu, gameButtonClass } from "@/components/ds";
+import { Lulu } from "@/components/ds";
 import { cn, formatAddress } from "@/lib/utils";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
@@ -233,10 +232,8 @@ export default function WelcomePage() {
   // Design: docs/redesign/screens/Welcome.dc.html (single step)
   return (
     <div className="flex min-h-screen flex-col overflow-y-auto bg-paper">
-      <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col px-6 pb-8 pt-6">
-        <Wordmark size={22} />
-
-        <form onSubmit={handleProfileSubmit} className="mt-8 flex flex-1 flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col px-5 pb-8 pt-6">
+        <form onSubmit={handleProfileSubmit} className="flex flex-1 flex-col gap-6">
           <h1 className="m-0 animate-rise text-[30px] font-bold leading-[1.15] tracking-[-0.025em]">
             Who&apos;s
             <br />
@@ -350,14 +347,19 @@ export default function WelcomePage() {
             {contractError ? <p className="text-center text-xs font-semibold text-orange">{contractError.message}</p> : null}
             {profileSaveError ? <p className="text-center text-xs font-semibold text-orange">{profileSaveError}</p> : null}
 
-            <button type="submit" disabled={!canSubmitProfile} className={gameButtonClass({ variant: "ink", full: true, size: "lg" })}>
-              {isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Confirm in wallet…</>
-              ) : isSuccess ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
-              ) : (
-                <>Start <ArrowRight className="h-[18px] w-[18px]" strokeWidth={2.6} /></>
-              )}
+            <button
+              type="submit"
+              disabled={!canSubmitProfile}
+              className="press-edge flex h-14 w-full items-center justify-between rounded-2xl bg-ink pl-5 pr-1.5 text-base font-bold text-white shadow-edge-ink disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPending ? "Confirm in wallet…" : isSuccess ? "Saving…" : "Start"}
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
+                {isPending || isSuccess ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-5 w-5" strokeWidth={2.4} />
+                )}
+              </span>
             </button>
 
             {address ? (

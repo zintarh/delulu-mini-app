@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Image as ImageIcon, Link2, MessageCircle } from "lucide-react";
+import { ChevronLeft, Download, Image as ImageIcon, Link2, MessageCircle } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
-import { Flame, Segmented, Stamp } from "@/components/ds";
+import { Flame, Lulu, Segmented, Stamp } from "@/components/ds";
+import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
+import { useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 import { useUserStore } from "@/stores/useUserStore";
-import { getLevel } from "@/lib/levels";
+import { getLevel, levelTitle } from "@/lib/levels";
 import { cn } from "@/lib/utils";
 
 const THEMES = {
@@ -33,6 +35,20 @@ export default function FlexCardPage() {
   const t = THEMES[theme];
   const keptDays = last7Days.filter(Boolean).length;
   const username = user?.username ?? "";
+  const { data: forfeits } = useCreatorForfeits(address);
+  // Share of settled days kept across every contract ("94% kept").
+  const keptPct = useMemo(() => {
+    let kept = 0;
+    let settled = 0;
+    for (const f of forfeits ?? []) {
+      for (const p of f.periods ?? []) {
+        if (!p.resolvedAt && !p.proofUrl) continue;
+        settled += 1;
+        if (p.proofUrl && p.verifierAction !== "rejected" && p.verifierAction !== "timed_out") kept += 1;
+      }
+    }
+    return settled > 0 ? Math.round((kept / settled) * 100) : null;
+  }, [forfeits]);
 
   const imageUrl = useMemo(() => {
     const q = new URLSearchParams({
@@ -40,11 +56,13 @@ export default function FlexCardPage() {
       streak: String(currentStreak),
       week: last7Days.map((d) => (d ? "1" : "0")).join(""),
       level: String(level),
+      title: levelTitle(level),
+      kept: keptPct == null ? "" : String(keptPct),
       kind,
       theme,
     });
     return `/api/og/flex?${q.toString()}`;
-  }, [username, currentStreak, last7Days, level, kind, theme]);
+  }, [username, currentStreak, last7Days, level, keptPct, kind, theme]);
 
   const shareText =
     kind === "streak"
@@ -115,8 +133,8 @@ export default function FlexCardPage() {
     <MainPage>
       <div className="mx-auto max-w-md px-5 pb-8 pt-4">
         <div className="flex items-center justify-between">
-          <Link href="/profile" aria-label="Back" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
-            <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
+          <Link href="/profile" aria-label="Back" className={ICON_BUTTON_CLASS}>
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
           </Link>
           <span className="text-base font-bold">Flex card</span>
           <span className="w-11" />
@@ -124,34 +142,37 @@ export default function FlexCardPage() {
 
         <div className="mt-5 flex justify-center">
           <div
-            className="flex h-[420px] w-[290px] animate-rise flex-col rounded-[28px] p-[22px] shadow-lift transition-colors"
+            className="flex h-[420px] w-[290px] animate-rise flex-col overflow-hidden rounded-[28px] p-[22px] shadow-[0_30px_50px_-30px_rgba(22,22,21,.6)] transition-colors"
             style={{ background: t.bg, color: t.fg }}
           >
             <div className="flex items-center justify-between">
-              <span className="font-brand text-[22px] font-bold">delulu</span>
-              <span className="font-mono text-[10px]" style={{ color: t.sub }}>
+              <span className="flex items-center gap-2">
+                <Lulu size={24} />
+                <span className="font-brand text-xl font-bold">delulu</span>
+              </span>
+              <span className="label-mono text-[10px]" style={{ color: t.sub }}>
                 {username ? `@${username}` : ""}
               </span>
             </div>
 
             {kind === "streak" ? (
               <>
-                <div className="mt-6 flex items-end gap-1.5">
-                  <span className="font-display text-[170px] font-extrabold leading-[0.78]" style={{ color: t.accent }}>
+                <div className="mt-[26px] flex items-end gap-1.5">
+                  <span className="font-display text-[170px] font-extrabold uppercase leading-[0.78]" style={{ color: t.accent }}>
                     {currentStreak}
                   </span>
                   <span className="pb-2">
                     <Flame size={34} />
                   </span>
                 </div>
-                <div className="mt-2.5 font-display text-3xl font-extrabold uppercase">Day streak</div>
+                <div className="mt-2.5 font-display text-[30px] font-extrabold uppercase leading-[0.88]">Day streak</div>
               </>
             ) : (
               <>
-                <div className="mt-8 font-display text-[120px] font-extrabold leading-[0.8]" style={{ color: t.accent }}>
+                <div className="mt-[30px] font-display text-[120px] font-extrabold uppercase leading-[0.8]" style={{ color: t.accent }}>
                   {keptDays}/7
                 </div>
-                <div className="mt-2.5 font-display text-3xl font-extrabold uppercase">Kept this week</div>
+                <div className="mt-2.5 font-display text-[30px] font-extrabold uppercase leading-[0.88]">Kept this week</div>
                 <div className="mt-4 flex gap-1.5">
                   {last7Days.map((d, i) => (
                     <span
@@ -165,14 +186,20 @@ export default function FlexCardPage() {
             )}
 
             <div className="mt-auto flex items-end justify-between">
-              <div className="font-mono text-[10px] leading-relaxed" style={{ color: t.sub }}>
-                Level {level}
-                <br />
-                staydelulu.xyz
+              <div className="label-mono text-[10px] leading-[1.7]" style={{ color: t.sub }}>
+                {keptPct != null ? (
+                  <>
+                    {keptPct}% kept
+                    <br />
+                  </>
+                ) : null}
+                Lvl {level} · {levelTitle(level)}
               </div>
-              <Stamp tone="ink" className="bg-transparent text-[11px] shadow-none" >
-                <span style={{ color: t.accent }}>Kept my word</span>
-              </Stamp>
+              <span style={{ color: t.accent }}>
+                <Stamp tone="ink" className="!bg-transparent !text-current text-[11px] !shadow-none">
+                  Kept my word
+                </Stamp>
+              </span>
             </div>
           </div>
         </div>

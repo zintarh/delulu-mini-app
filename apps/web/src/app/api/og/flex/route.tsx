@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
   const week = (q.get("week") ?? "0000000").replace(/[^01]/g, "").padEnd(7, "0").slice(0, 7);
   const level = Math.max(1, Math.min(999, Number(q.get("level") ?? 1) || 1));
   const kind = q.get("kind") === "week" ? "week" : "streak";
+  const title = (q.get("title") ?? "").replace(/[^a-zA-Z ]/g, "").slice(0, 16);
+  const keptParam = q.get("kept");
+  const keptPct = keptParam ? Math.max(0, Math.min(100, Number(keptParam) || 0)) : null;
   const t = THEMES[(q.get("theme") as keyof typeof THEMES) ?? "ink"] ?? THEMES.ink;
   const keptDays = week.split("").filter((c) => c === "1").length;
 
@@ -40,7 +43,7 @@ export async function GET(req: NextRequest) {
   const [display, brand, body] = await Promise.all([
     loadGoogleFont("Big+Shoulders+Display", 900, displayText),
     loadGoogleFont("Fredoka", 700, "delulu"),
-    loadGoogleFont("Schibsted+Grotesk", 700, `@${user}Level${level}·staydelulu.xyzKEPTMYWORDkeptmyword0123456789 `),
+    loadGoogleFont("Schibsted+Grotesk", 700, `@${user}LVL${level}·${title.toUpperCase()}%KEPTMYWORD0123456789 `),
   ]);
   const fonts = [
     display && { name: "Display", data: display, weight: 900 as const, style: "normal" as const },
@@ -94,7 +97,13 @@ export async function GET(req: NextRequest) {
         )}
 
         <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <span style={{ fontSize: 40, color: t.sub }}>Level {level} · staydelulu.xyz</span>
+          <div style={{ display: "flex", flexDirection: "column", fontSize: 36, lineHeight: 1.6, color: t.sub, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+            {keptPct != null ? <span>{keptPct}% kept</span> : null}
+            <span>
+              Lvl {level}
+              {title ? ` · ${title}` : ""}
+            </span>
+          </div>
           <span
             style={{
               fontSize: 40,

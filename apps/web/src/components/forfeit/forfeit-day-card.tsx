@@ -8,17 +8,14 @@ import { formatUnits } from "viem";
 import {
   Calendar,
   Camera,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   Image as ImageIcon,
   Loader2,
   MapPin,
-  MoreVertical,
   Plus,
   ShieldCheck,
 } from "lucide-react";
-import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass, type HabitTint } from "@/components/ds";
+import { Bolt, CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass, type HabitTint } from "@/components/ds";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
@@ -48,7 +45,6 @@ import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
 import { FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { cn } from "@/lib/utils";
 import {
-  addDays,
   buildForfeitCalendarSlots,
   dayKey,
   resolvePeriodOutcome,
@@ -297,97 +293,18 @@ function countCompletedPeriods(item: ForfeitFeedItem): number {
   }).length;
 }
 
-/**
- * One real sentence — "You've forfeited 100 G$ to Charity" — read left to
- * right as a single flowing phrase: state, then amount (colored), then
- * where. No separate label row, no split ledger layout.
- */
-type StakeLine = { lead: string; amountText: string | null; tail: string };
-
-function formatStakeLine(
-  day: DayItem,
-  amount: string | null,
-  symbol: string,
-  destination: string | null,
-): StakeLine {
-  const amountText = amount ? `${amount} ${symbol}` : null;
-  const outcome = periodOutcome(day);
-  const to = destination ? ` to ${destination}` : "";
-  if (outcome === "won") {
-    return { lead: "You've kept", amountText, tail: "" };
-  }
-  if (outcome === "failed") {
-    const planEnded = isRepeatingForfeit(day.forfeit) ? " — plan ended" : "";
-    return { lead: "You've forfeited", amountText, tail: `${to}${planEnded}` };
-  }
-  if (outcome === "overdue") {
-    return { lead: "You're forfeiting", amountText, tail: to };
-  }
-  return { lead: "You'll forfeit", amountText, tail: `${to} if missed` };
-}
-
-function ForfeitCardMenu({ onDiscontinue }: { onDiscontinue: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="More actions"
-        className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
-      >
-        <MoreVertical className="h-4 w-4" />
-      </button>
-      {open ? (
-        <div className="absolute right-0 top-8 z-20 w-40 overflow-hidden rounded-xl border border-border bg-white dark:bg-card shadow-lg">
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onDiscontinue();
-            }}
-            className="w-full px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
-          >
-            Discontinue
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function ForfeitTaskCard({
   item,
   day,
   onSubmitProof,
   proofBusy,
-  onDiscontinue,
 }: {
   item: ForfeitFeedItem;
   day: DayItem;
   onSubmitProof: () => void;
   proofBusy: boolean;
-  onDiscontinue: () => void;
 }) {
-  const amount = formatStakeAmount(item);
-  const symbol = item.onChain?.token
-    ? getTokenSymbol(item.onChain.token)
-    : "G$";
-  const destination = destinationLabel(item);
   const isPendingSync = item.id.startsWith("pending:");
-  const stakeLine = formatStakeLine(day, amount, symbol, destination);
 
   const proofUrl = day.period?.proofUrl ?? null;
   const proofSubmitted = Boolean(proofUrl);
@@ -513,28 +430,20 @@ function ForfeitTaskCard({
     ) : outcome === "failed" ? (
       <Stamp tone="lost" className="shrink-0 text-[10px]">Missed</Stamp>
     ) : null;
-  // "overdue" is deliberately kept distinct from "failed": the deadline
-  // passed, but nothing has actually moved on-chain yet — the keeper hasn't
-  // permissionlessly resolved it. Only a confirmed on-chain forfeiture
-  // (commitmentActiveOnChain === false) earns "You forfeited" — calendar
-  // time alone never does.
-  const stateColor =
-    outcome === "won"
-      ? "text-green-edge"
-      : outcome === "failed"
-        ? "text-orange"
-        : outcome === "overdue"
-          ? "text-orange"
-          : "text-ink";
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
   // Always show which day this was once it's settled (won/failed) — even a
   // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
   // finished item from one still in progress, not just repeating plans.
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
-  const showMenu = !isPendingSync && outcome !== "failed" && outcome !== "overdue";
 
   const isDue = canSubmit && !proofSubmitted;
   const tile = evidenceTile(item.evidenceType);
+  const dayLabel = `Day ${day.calendarPeriodIndex + 1}/${totalPeriods}`;
+  const timeLabel = (() => {
+    const at = outcome === "won" && day.period?.resolvedAt ? new Date(day.period.resolvedAt) : day.periodDeadline;
+    return at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  })();
+  const href = item.onChainCommitmentId != null ? `/forfeit/${item.onChainCommitmentId}` : null;
 
   return (
     <div
@@ -544,40 +453,41 @@ function ForfeitTaskCard({
       )}
     >
       <HabitTile icon={tile.icon} tint={tile.tint} />
-      <div className={cn("min-w-0 flex-1", showMenu && "pr-6")}>
-        {item.onChainCommitmentId != null ? (
-          <Link href={`/forfeit/${item.onChainCommitmentId}`} className="text-base font-bold leading-snug text-foreground no-underline hover:underline">
+      <div className="min-w-0 flex-1">
+        {href ? (
+          <Link
+            href={href}
+            className="block truncate text-base font-bold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
+          >
             {item.title || "Untitled contract"}
           </Link>
         ) : (
-          <p className="text-base font-bold leading-snug text-foreground">{item.title || "Untitled contract"}</p>
+          <p className="truncate text-base font-bold text-ink">{item.title || "Untitled contract"}</p>
         )}
-        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
-          {stakeLine.lead}{" "}
-          <span className={cn("font-bold tabular-nums", stateColor)}>{stakeLine.amountText ?? "—"}</span>
-          {stakeLine.tail}
-        </p>
-        {showProgress ? (
-          <div className="mt-1.5 flex items-center gap-2">
-            <ProgressBar
-              thin
-              tone={outcome === "won" ? "green" : "yellow"}
-              value={(day.calendarPeriodIndex + 1) / totalPeriods}
-              className="w-14"
-              label={`Day ${day.calendarPeriodIndex + 1} of ${totalPeriods}`}
-            />
+        {outcome === "won" ? (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <Bolt size={14} />
+            <span className="label-mono text-[10px] text-blue">{dayLabel}</span>
+            <span className="label-mono text-[10px] text-muted-foreground">· {timeLabel}</span>
+          </div>
+        ) : (
+          <div className="mt-[7px] flex items-center gap-2">
+            {showProgress || isDue ? (
+              <ProgressBar
+                thin
+                tone={outcome === "failed" || outcome === "overdue" ? "grey" : "yellow"}
+                value={(day.calendarPeriodIndex + 1) / totalPeriods}
+                className="w-16"
+                label={`Day ${day.calendarPeriodIndex + 1} of ${totalPeriods}`}
+              />
+            ) : null}
             <span className="label-mono text-[10px] text-muted-foreground">
-              Day {day.calendarPeriodIndex + 1}/{totalPeriods}
+              {dayLabel} · {timeLabel}
             </span>
           </div>
-        ) : null}
+        )}
       </div>
-      {action ?? statusPill}
-      {showMenu ? (
-        <div className="absolute right-1 top-1">
-          <ForfeitCardMenu onDiscontinue={onDiscontinue} />
-        </div>
-      ) : null}
+      <div className="relative z-10 shrink-0">{action ?? statusPill}</div>
     </div>
   );
 }
@@ -971,11 +881,21 @@ export function ForfeitDayCard({
 
   const [discontinueItem, setDiscontinueItem] =
     useState<ForfeitFeedItem | null>(null);
+
+  // Deep link from the contract detail page: /home?discontinue=<onChainCommitmentId>
+  const discontinueHandled = useRef(false);
+  useEffect(() => {
+    if (discontinueHandled.current || isLoading) return;
+    const id = new URLSearchParams(window.location.search).get("discontinue");
+    if (!id) return;
+    discontinueHandled.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    const match = (creatorData ?? []).find((f) => String(f.onChainCommitmentId) === id);
+    if (match) setDiscontinueItem(match);
+  }, [isLoading, creatorData]);
   const [discontinueBusy, setDiscontinueBusy] = useState(false);
   const [discontinueError, setDiscontinueError] = useState<string | null>(null);
 
-  const goPrev = () => setSelectedDate((d) => addDays(d, -1));
-  const goNext = () => setSelectedDate((d) => addDays(d, 1));
 
   const invalidate = () => {
     if (!address) return;
@@ -1092,28 +1012,10 @@ export function ForfeitDayCard({
 
   return (
     <section className={cn(className)}>
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
         <span className="label-mono text-muted-foreground">
           {dayKey(selectedDate) === dayKey(new Date()) ? "Today's quests" : formatForfeitDayLabel(label)}
         </span>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={goPrev}
-            aria-label="Previous day"
-            className="press-edge flex h-8 w-8 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
-          >
-            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="Next day"
-            className="press-edge flex h-8 w-8 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
-          >
-            <ChevronRight className="h-4 w-4" strokeWidth={2.4} />
-          </button>
-        </div>
       </div>
 
       {currentDays.length === 0 ? (
@@ -1129,7 +1031,7 @@ export function ForfeitDayCard({
           </p>
           {dayKey(selectedDate) === dayKey(new Date()) ? (
             <p className={cn("mt-1.5 max-w-[16rem]", FEED_CARD_SUBTITLE_CLASS)}>
-              Use the arrow to view your previous forfeit
+              Your contract history lives on each contract&apos;s page
             </p>
           ) : null}
         </div>
@@ -1160,10 +1062,6 @@ export function ForfeitDayCard({
                       setProofError(null);
                       setProofStep("idle");
                       setProofOpen(true);
-                    }}
-                    onDiscontinue={() => {
-                      setDiscontinueItem(day.forfeit);
-                      setDiscontinueError(null);
                     }}
                   />
                 ),

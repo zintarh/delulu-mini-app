@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { hidesBottomNav } from "@/components/main-nav-config";
+
 import { Chest } from "@/components/ds";
 
 import { useEffect, useState } from "react";
@@ -29,13 +32,15 @@ export function RewardsClaimBanner() {
   );
   const { claimReward, isPending, error, reset } = useClaimReward();
   const [mounted, setMounted] = useState(false);
+  // Focused screens (contract, campaign, settings…) have no dock and their own bottom action.
+  const focusedScreen = hidesBottomNav(usePathname() ?? "");
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || !authenticated || !address || isLoading || pending <= 0n) return null;
+  if (!mounted || !authenticated || !address || isLoading || pending <= 0n || focusedScreen) return null;
 
   const amount = formatGAmount(parseFloat(formatUnits(pending, 18)));
 

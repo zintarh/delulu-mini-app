@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Mail, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
@@ -340,18 +340,20 @@ export default function SignInPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex min-h-screen flex-col px-6 pb-8 pt-6 lg:justify-center lg:px-16">
+      <div className="flex min-h-screen flex-col px-5 pb-8 pt-6 lg:justify-center lg:px-16">
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col lg:flex-none">
           <Link href="/" aria-label="Delulu home" className="self-start lg:hidden">
-            <Wordmark size={24} />
+            <Wordmark size={26} />
           </Link>
 
-          <div className="mt-16 lg:mt-0">
+          <div className="mt-24 lg:mt-0">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
-              Make it a <span className="bg-yellow px-1.5">contract.</span>
+              Make it a
+              <br />
+              <span className="bg-yellow px-[0.06em]">contract.</span>
             </h2>
-            <p className="mt-3 animate-rise text-[15px] text-muted-foreground [animation-delay:.1s]">
-              Sign in or create an account. It&apos;s free.
+            <p className="mt-3.5 animate-rise text-muted-foreground [animation-delay:.1s]">
+              Sign in to start your first one.
             </p>
           </div>
 
@@ -381,56 +383,56 @@ export default function SignInPage() {
               )}
             </button>
 
-            <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-line" />
-              or
-              <span className="h-px flex-1 bg-line" />
-            </div>
-
             <div>
-              <label htmlFor="signin-email" className="label-mono mb-2 block text-muted-foreground">
+              <label htmlFor="signin-email" className="sr-only">
                 Email
               </label>
-              <input
-                id="signin-email"
-                type="email"
-                inputMode="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (routeError) setRouteError(null);
-                }}
-                onBlur={() => setEmailTouched(true)}
-                placeholder="you@email.com"
-                autoComplete="email"
-                aria-invalid={showEmailError}
-                aria-describedby={showEmailError ? "email-error" : undefined}
-                disabled={isAnyPending}
-                className={cn(
-                  "h-14 w-full rounded-2xl border-2 bg-white px-4 text-base font-medium text-foreground outline-none transition-colors placeholder:text-faint",
-                  showEmailError ? "border-orange" : "border-line focus:border-ink",
-                )}
-              />
+              <div className="flex gap-2">
+                <input
+                  id="signin-email"
+                  type="email"
+                  inputMode="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (routeError) setRouteError(null);
+                  }}
+                  onBlur={() => setEmailTouched(true)}
+                  placeholder="you@email.com"
+                  autoComplete="email"
+                  aria-invalid={showEmailError}
+                  aria-describedby={showEmailError ? "email-error" : undefined}
+                  disabled={isAnyPending}
+                  className={cn(
+                    "h-14 min-w-0 flex-1 rounded-full border-2 bg-white px-[22px] text-base font-medium text-foreground outline-none transition-colors placeholder:text-faint",
+                    showEmailError ? "border-orange" : "border-line focus:border-ink",
+                  )}
+                />
+                <button
+                  type="submit"
+                  aria-label="Continue with email"
+                  disabled={isAnyPending || !isInitialized || !privyReady || !isValidEmail(email)}
+                  className="press-edge flex h-14 shrink-0 items-center rounded-2xl bg-ink px-1.5 shadow-edge-ink disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
+                    {isCheckingEmail || isLaunchingEmailProvider ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <ArrowRight className="h-5 w-5" strokeWidth={2.4} />
+                    )}
+                  </span>
+                </button>
+              </div>
               {showEmailError ? (
                 <p id="email-error" className="mt-1.5 px-1 text-xs font-semibold text-orange">
                   {emailValidationError}
                 </p>
+              ) : isCheckingEmail || isLaunchingEmailProvider ? (
+                <p className="mt-1.5 px-1 text-xs font-semibold text-muted-foreground">
+                  {isCheckingEmail ? "Checking your account…" : "Starting secure sign in…"}
+                </p>
               ) : null}
             </div>
-
-            <button
-              type="submit"
-              disabled={isAnyPending || !isInitialized || !privyReady || !isValidEmail(email)}
-              className={gameButtonClass({ full: true, className: "h-14" })}
-            >
-              {isCheckingEmail ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Checking your account…</>
-              ) : isLaunchingEmailProvider ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Starting secure sign in…</>
-              ) : (
-                <><Mail className="h-5 w-5" strokeWidth={2.4} /> Continue with email</>
-              )}
-            </button>
 
             <button
               type="button"

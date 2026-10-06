@@ -32,7 +32,11 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: false };
   }
 
-  return { mobile: true, desktop: true };
+  // The mobile HUD (avatar, streak, balance, alerts) only tops Home and
+  // Rewards; every other screen starts with its own title (see
+  // docs/redesign/screens).
+  const hud = pathname === "/home" || pathname.startsWith("/rewards") || pathname.startsWith("/wallet");
+  return { mobile: hud, desktop: true };
 }
 
 /** Routes that own an inner scroll container (infinite scroll, PTR, create flow). */

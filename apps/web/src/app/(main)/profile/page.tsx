@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { formatAddress, cn } from "@/lib/utils";
-import { Camera, Loader2, Settings, Share2 } from "lucide-react";
+import { Camera, Loader2, Settings, Share } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -13,16 +13,13 @@ import { ProfileEndedCampaigns } from "@/components/profile/profile-ended-campai
 import { ProfileForfeitSection } from "@/components/profile/profile-forfeit-section";
 import { MainPage } from "@/components/main-app-header";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
-import {
-  formatEarnedUsdt,
-  useUserEarnedTotal,
-} from "@/hooks/use-earned-totals";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { formatCompact, getLevel } from "@/lib/levels";
-import { Bolt, Coin, Flame, GameCard, GameLink, Medal, ProgressBar, Segmented, Trophy } from "@/components/ds";
+import { formatCompact, getLevel, levelTitle } from "@/lib/levels";
+import { useCreatorForfeits } from "@/hooks/use-creator-forfeits";
+import { Bolt, CheckDot, Flame, GameCard, GameLink, Medal, ProgressBar, Segmented, Trophy } from "@/components/ds";
 
 type TabType = "milestones" | "active" | "ended";
 
@@ -124,8 +121,17 @@ function ProfileHeader({
   // undefined while loading (skeleton), null when no photo is set (initials).
   const avatarUrl = pfpFromSupabase ?? user?.pfpUrl ?? pfpFromSupabase;
   const { points, isLoading: pointsLoading } = useUserTotalPoints(address ?? undefined);
-  const { totalEarned, isLoading: earnedLoading } = useUserEarnedTotal(address ?? undefined);
   const { currentStreak, totalVerified } = useUserStreak(address ?? undefined);
+  const { data: forfeits } = useCreatorForfeits(address ?? undefined);
+  // Days kept across every contract (proof in and not rejected), plus legacy milestone proofs.
+  const keptDays =
+    totalVerified +
+    (forfeits ?? []).reduce(
+      (n, f) =>
+        n +
+        (f.periods ?? []).filter((p) => p.proofUrl && p.verifierAction !== "rejected" && p.verifierAction !== "timed_out").length,
+      0,
+    );
   const { myRankEntry } = useAllUsersLeaderboard(0, address ?? undefined);
   const lvl = getLevel(points ?? 0);
 
@@ -159,22 +165,22 @@ function ProfileHeader({
   const C = 2 * Math.PI * R;
 
   const badges = [
-    { label: "1ST", name: "First proof", bg: "#FDF1C7", edge: "#E5B41C", earned: totalVerified >= 1 || (points ?? 0) > 0 },
+    { label: "1ST", name: "First", bg: "#FDF1C7", edge: "#E5B41C", earned: keptDays >= 1 || (points ?? 0) > 0 },
     { label: "7D", name: "Bronze", bg: "#FFD9BF", edge: "#E0915A", earned: currentStreak >= 7 },
-    { label: "10", name: "10 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: totalVerified >= 10 },
-    { label: "1K", name: "1K points", bg: "#D3E2FF", edge: "#8DB0EE", earned: (points ?? 0) >= 1000 },
+    { label: "10", name: "10 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: keptDays >= 10 },
+    { label: "1K", name: "1K pts", bg: "#D3E2FF", edge: "#8DB0EE", earned: (points ?? 0) >= 1000 },
     { label: "14D", name: "Gold 14d", bg: "#F6C324", edge: "#C99A0A", earned: currentStreak >= 14 },
     { label: "30D", name: "30 days", bg: "#F2B48A", edge: "#C98352", earned: currentStreak >= 30 },
-    { label: "100", name: "100 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: totalVerified >= 100 },
-    { label: "10K", name: "10K points", bg: "#EEE7FE", edge: "#B9A3F2", earned: (points ?? 0) >= 10000 },
+    { label: "100", name: "100", bg: "#C9EBD7", edge: "#7CC49C", earned: keptDays >= 100 },
+    { label: "10K", name: "10K pts", bg: "#EEE7FE", edge: "#B9A3F2", earned: (points ?? 0) >= 10000 },
   ];
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
-    <section className="mx-auto max-w-xl px-5 pb-2 pt-2">
+    <section className="mx-auto max-w-xl px-5 pb-2 pt-4">
       <div className="flex justify-end gap-2">
         <Link href="/profile/flex" aria-label="Share flex card" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
-          <Share2 className="h-5 w-5" strokeWidth={2} />
+          <Share className="h-5 w-5" strokeWidth={2} />
         </Link>
         <Link href="/settings" aria-label="Settings" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
           <Settings className="h-5 w-5" strokeWidth={2} />
@@ -216,10 +222,14 @@ function ProfileHeader({
         <input ref={pfpInputRef} type="file" accept="image/*" className="hidden" onChange={handlePfpFileChange} />
 
         <div className="min-w-0 flex-1">
-          <h1 className="m-0 truncate text-2xl font-bold tracking-[-0.02em]">{displayUsername ? `@${displayUsername}` : formatAddress(address)}</h1>
-          <div className="label-mono mt-1 text-[10px] text-muted-foreground">{formatAddress(address)}</div>
+          <h1 className="m-0 truncate text-2xl font-bold leading-[1.2] tracking-[-0.02em]">
+            {user?.displayName || displayUsername || formatAddress(address)}
+          </h1>
+          <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">
+            {displayUsername ? `@${displayUsername}` : formatAddress(address)} · {levelTitle(lvl.level)}
+          </div>
           <ProgressBar value={lvl.progress} tone="blue" className="mt-2.5 h-3" label="Progress to next level" />
-          <div className="mt-1.5 font-mono text-[9px]">
+          <div className="label-mono mt-[5px] text-[9px] text-ink">
             {pointsLoading ? "—" : `${formatCompact(points ?? 0)} / ${formatCompact(lvl.next)} pts`}
           </div>
         </div>
@@ -227,17 +237,15 @@ function ProfileHeader({
 
       <div className="mt-6 grid grid-cols-2 gap-2.5">
         <StatTile icon={<Flame size={30} />} value={String(currentStreak)} label="Day streak" />
+        <StatTile icon={<CheckDot size={30} className="shadow-none" />} value={String(keptDays)} label="Kept" />
         <StatTile icon={<Bolt size={30} />} value={pointsLoading ? "—" : formatCompact(points ?? 0)} label="Total points" />
-        <Link href="/rewards" className="no-underline">
-          <StatTile icon={<Coin size={30} />} value={earnedLoading ? "—" : formatEarnedUsdt(totalEarned)} label="Earned" />
-        </Link>
         <Link href="/leaderboard" className="no-underline">
           <StatTile icon={<Trophy size={30} />} value={myRankEntry ? `#${myRankEntry.rank}` : "—"} label="Global rank" />
         </Link>
       </div>
 
       <GameLink href="/profile/flex" full className="mt-4">
-        <Share2 className="h-[18px] w-[18px]" strokeWidth={2.4} />
+        <Share className="h-[18px] w-[18px]" strokeWidth={2.4} />
         Flex your streak
       </GameLink>
 
@@ -252,7 +260,7 @@ function ProfileHeader({
           {badges.map((b) => (
             <div key={b.name} className="flex flex-col items-center gap-2">
               {b.earned ? <Medal label={b.label} bg={b.bg} edge={b.edge} /> : <Medal locked />}
-              <span className={cn("font-mono text-[9px]", !b.earned && "text-muted-foreground")}>{b.name}</span>
+              <span className={cn("label-mono text-[9px]", b.earned ? "text-ink" : "text-muted-foreground")}>{b.name}</span>
             </div>
           ))}
         </div>
@@ -266,8 +274,8 @@ function StatTile({ icon, value, label }: { icon: React.ReactNode; value: string
     <GameCard className="flex items-center gap-2.5 px-3.5 py-3">
       {icon}
       <div className="min-w-0">
-        <div className="truncate font-display text-[26px] font-extrabold leading-none text-ink">{value}</div>
-        <div className="label-mono mt-1 text-[9px] text-muted-foreground">{label}</div>
+        <div className="truncate font-display text-[26px] font-extrabold uppercase leading-none text-ink">{value}</div>
+        <div className="label-mono mt-[3px] text-[9px] text-muted-foreground">{label}</div>
       </div>
     </GameCard>
   );

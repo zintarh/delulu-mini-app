@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { hidesBottomNav } from "@/components/main-nav-config";
 import { Download, Share, X } from "lucide-react";
 import { GameButton, Lulu } from "@/components/ds";
 import { useInstallPrompt } from "@/hooks/use-install-prompt";
@@ -45,7 +46,7 @@ export function InstallPrompt() {
   };
 
   // The landing page has its own install sheet; the create flow stays uncluttered.
-  if (dismissed || standalone || (["/", "/sign-in", "/welcome"].includes(pathname ?? "") || (pathname ?? "").startsWith("/forfeit"))) return null;
+  if (dismissed || standalone || (["/", "/sign-in", "/welcome"].includes(pathname ?? "") || hidesBottomNav(pathname ?? ""))) return null;
   if (!canPrompt && !iosSafari) return null;
 
   return (

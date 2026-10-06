@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { ExploreCampaignsSection } from "@/components/explore-campaigns-section";
 import {
-  CampaignExploreCard,
-  CampaignExploreCardSkeleton,
+  CampaignTicketRow,
+  CampaignTicketRowSkeleton,
 } from "@/components/community/campaign-explore-card";
 import type { CampaignSearchResult } from "@/hooks/use-campaign-search";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 export default function CampaignsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { address } = useAuth();
 
@@ -78,7 +77,7 @@ export default function CampaignsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-paper">
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="sticky top-0 z-20 h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
+        <div className="sticky top-0 z-20 -mb-[2px] h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
           {isCampaignSearching && (
             <div className="absolute inset-0 bg-border/30">
               <div className="h-full w-1/3 animate-[progress-indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-delulu-blue" />
@@ -90,15 +89,15 @@ export default function CampaignsPage() {
           className={cn(
             "mx-auto w-full px-5 sm:px-6 lg:px-8",
             isSearchMode
-              ? "max-w-[1600px] pt-6 pb-6 lg:py-8"
-              : "max-w-[1600px] pt-3 pb-6 lg:pt-4 lg:pb-12",
+              ? "max-w-xl pt-6 pb-6 lg:py-8"
+              : "max-w-xl pt-6 pb-6 lg:pt-8 lg:pb-12",
           )}
         >
           {!isSearchMode ? (
             <>
               <header className="mb-4">
-                <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">Campaigns</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Prize pools. Your proofs earn your share.</p>
+                <span className="label-mono block leading-normal text-muted-foreground">Prize pools</span>
+                <h1 className="m-0 mt-1 animate-rise text-2xl font-bold tracking-[-0.02em]">Campaigns</h1>
               </header>
               <ExploreCampaignsSection address={address} />
             </>
@@ -125,9 +124,9 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               ) : isCampaignSearching ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <CampaignExploreCardSkeleton key={i} />
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <CampaignTicketRowSkeleton key={i} />
                   ))}
                 </div>
               ) : campaignResults.length === 0 ? (
@@ -144,39 +143,31 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className=" max-w-4xl xl:max-w-6xl ">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {campaignResults.map((c) => (
-                      <CampaignExploreCard
-                        key={c.id}
-                        className="shadow-sm hover:shadow-sm"
-                        campaign={{
-                          id: c.id,
-                          title: c.title,
-                          description: c.description,
-                          proposedPoolAmount: 0,
-                          durationDays: c.duration_days,
-                          coverImageUrl: c.cover_image_url,
-                          displayEndsAt: c.display_ends_at,
-                          status: "active",
-                          participantCount: 0,
-                          milestoneCount: 0,
-                          isJoined: false,
-                          isFreeToJoin: c.is_free_to_join,
-                          community: {
-                            name: c.community_name,
-                            slug: c.community_slug,
-                          },
-                        }}
-                        joining={false}
-                        onJoin={() => {
-                          router.push(
-                            `/communities/${c.community_slug}/campaigns/${c.id}`,
-                          );
-                        }}
-                      />
-                    ))}
-                  </div>
+                <div className="flex flex-col gap-3">
+                  {campaignResults.map((c, i) => (
+                    <CampaignTicketRow
+                      key={c.id}
+                      index={i}
+                      campaign={{
+                        id: c.id,
+                        title: c.title,
+                        description: c.description,
+                        proposedPoolAmount: 0,
+                        durationDays: c.duration_days,
+                        coverImageUrl: c.cover_image_url,
+                        displayEndsAt: c.display_ends_at,
+                        status: "active",
+                        participantCount: 0,
+                        milestoneCount: 0,
+                        isJoined: false,
+                        isFreeToJoin: c.is_free_to_join,
+                        community: {
+                          name: c.community_name,
+                          slug: c.community_slug,
+                        },
+                      }}
+                    />
+                  ))}
                 </div>
               )}
             </>

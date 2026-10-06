@@ -10,7 +10,16 @@ import {
 
 /** Full-screen flows that hide the floating dock (they own their bottom bar). */
 export function hidesBottomNav(pathname: string): boolean {
-  return pathname === "/forfeit" || /^\/forfeit\/\d+$/.test(pathname);
+  // Per the design, the dock is hidden on contract screens and on the
+  // settings, activity and flex-card sub-screens.
+  return (
+    pathname === "/forfeit" ||
+    /^\/forfeit\/\d+$/.test(pathname) ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/notifications") ||
+    pathname === "/profile/flex" ||
+    /^\/communities\/[^/]+\/campaigns\/[^/]+$/.test(pathname)
+  );
 }
 
 /** Signed-in app home. `/` is the public landing page. */
