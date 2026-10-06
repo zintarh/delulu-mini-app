@@ -21,10 +21,9 @@ import { cn } from "@/lib/utils";
 
 /* Copy and layout follow docs/redesign/screens/Main.dc.html. */
 
-function SectionHead({ label, title, sub, center = true }: { label: string; title: React.ReactNode; sub?: string; center?: boolean }) {
+function SectionHead({ title, sub, center = true }: { title: React.ReactNode; sub?: string; center?: boolean }) {
   return (
     <div className={cn("flex flex-col gap-3.5", center && "items-center text-center")}>
-      <span className="reveal label-mono text-muted-foreground">{label}</span>
       <h2 className="reveal m-0 font-display text-[clamp(44px,5.6vw,84px)] font-extrabold uppercase leading-[0.9]">{title}</h2>
       {sub && <p className="reveal m-0 max-w-[520px] text-lg leading-normal text-muted-foreground">{sub}</p>}
     </div>
@@ -147,7 +146,7 @@ export function ProblemSection() {
   );
   return (
     <section id="problem" className="mx-auto flex max-w-[1100px] flex-col gap-12 px-6 py-[110px]">
-      <SectionHead label="The problem" title="Goals are free to quit." />
+      <SectionHead title="Goals are free to quit." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-center gap-6">
         <div className="reveal flex flex-col gap-[18px] rounded-3xl border-2 border-dashed border-[#d6d6cf] bg-[#efefea] p-7">
           <div className="flex items-center gap-3">
@@ -192,7 +191,6 @@ export function TwoWaysSection({ onInstall }: { onInstall: () => void }) {
     <section id="ways" className="border-y-2 border-line bg-white">
       <div className="mx-auto flex max-w-[1160px] flex-col gap-14 px-6 py-[110px]">
         <SectionHead
-          label="Two ways to play"
           title={<>Stake your word.<br />Or stake money.</>}
           sub="Start free in a minute. Earn 10× the points when you add money."
         />
@@ -296,7 +294,6 @@ export function WeekSection() {
       <div className="mx-auto flex max-w-[1320px] flex-col gap-7 px-6 pb-[90px] pt-[100px]">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div className="flex flex-col gap-3.5">
-            <span className="reveal label-mono text-[#4a3d0a]">How it works</span>
             <h2 className="reveal m-0 font-display text-[clamp(48px,6vw,88px)] font-extrabold uppercase leading-[0.9]">A week with Delulu.</h2>
           </div>
           <p className="reveal m-0 max-w-[340px] text-[17px] font-medium leading-normal">One habit, seven days. Here&apos;s what it looks like.</p>
@@ -348,7 +345,7 @@ export function FeaturesSection() {
   );
   return (
     <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-12 px-6 py-[110px]">
-      <SectionHead label="What you get" title="Every kept day counts." />
+      <SectionHead title="Every kept day counts." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
         <Feature title="Leaderboards" line="Weekly rankings and an all-time board.">
           <div className="flex w-full flex-col gap-1">
@@ -410,7 +407,7 @@ export function StoriesSection() {
   return (
     <section id="stories" className="border-y-2 border-line bg-paper">
       <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-6 py-[110px]">
-        <SectionHead label="Stories" title="Proof, not promises." />
+        <SectionHead title="Proof, not promises." />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
           {TESTIMONIALS.map((t) => (
             <figure key={t.name} className="reveal m-0 flex flex-col gap-[18px] rounded-3xl border-2 border-line bg-white p-6 shadow-[0_6px_0_#e6e6e0]">
