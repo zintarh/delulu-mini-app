@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { GoodDollarWhitelistAction } from "@/lib/gooddollar-whitelist";
 
-export type RightPanel = "notifications" | "claim" | "verify" | null;
+export type RightPanel = "notifications" | "claim" | "facecheck" | null;
 
 interface RightPanelContextValue {
   panel: RightPanel;
@@ -22,11 +22,8 @@ interface RightPanelContextValue {
   openForWhitelist: (action: GoodDollarWhitelistAction) => void;
   toggleNotifications: () => void;
   toggleClaim: () => void;
-  openVerify: () => void;
-  /** Closes the verify sheet and opens the claim panel straight into the face check. */
+  /** Opens GoodDollar's face check directly (no side panel). */
   startFaceCheck: () => void;
-  claimAutoVerify: boolean;
-  clearClaimAutoVerify: () => void;
 }
 
 const RightPanelContext = createContext<RightPanelContextValue | null>(null);
@@ -36,14 +33,7 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
   const [claimWhitelistIntent, setClaimWhitelistIntent] =
     useState<GoodDollarWhitelistAction | null>(null);
 
-  const [claimAutoVerify, setClaimAutoVerify] = useState(false);
-  const clearClaimAutoVerify = useCallback(() => setClaimAutoVerify(false), []);
-  const openVerify = useCallback(() => setPanel("verify"), []);
-  const startFaceCheck = useCallback(() => {
-    setClaimWhitelistIntent(null);
-    setClaimAutoVerify(true);
-    setPanel("claim");
-  }, []);
+  const startFaceCheck = useCallback(() => setPanel("facecheck"), []);
 
   const clearClaimWhitelistIntent = useCallback(
     () => setClaimWhitelistIntent(null),
@@ -53,7 +43,6 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
   const closeAll = useCallback(() => {
     setPanel(null);
     setClaimWhitelistIntent(null);
-    setClaimAutoVerify(false);
   }, []);
 
   const openNotifications = useCallback(() => setPanel("notifications"), []);
@@ -88,16 +77,10 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
       openForWhitelist,
       toggleNotifications,
       toggleClaim,
-      openVerify,
       startFaceCheck,
-      claimAutoVerify,
-      clearClaimAutoVerify,
     }),
     [
-      openVerify,
       startFaceCheck,
-      claimAutoVerify,
-      clearClaimAutoVerify,
       panel,
       claimWhitelistIntent,
       clearClaimWhitelistIntent,
@@ -142,13 +125,9 @@ export function useClaimPanel() {
     openClaim,
     openForWhitelist,
     toggleClaim,
-    claimAutoVerify,
-    clearClaimAutoVerify,
   } = useRightPanel();
   return {
     isOpen: panel === "claim",
-    autoVerify: claimAutoVerify,
-    clearAutoVerify: clearClaimAutoVerify,
     whitelistIntent: claimWhitelistIntent,
     clearWhitelistIntent: clearClaimWhitelistIntent,
     open: openClaim,
@@ -158,8 +137,8 @@ export function useClaimPanel() {
   };
 }
 
-/** "Prove you're a real person" sheet shown before the GoodDollar face check. */
-export function useVerifySheet() {
-  const { panel, closeAll, openVerify, startFaceCheck } = useRightPanel();
-  return { isOpen: panel === "verify", open: openVerify, close: closeAll, startFaceCheck };
+/** GoodDollar face check, opened straight from any "Verify" button. */
+export function useFaceCheck() {
+  const { panel, closeAll, startFaceCheck } = useRightPanel();
+  return { isOpen: panel === "facecheck", start: startFaceCheck, close: closeAll };
 }

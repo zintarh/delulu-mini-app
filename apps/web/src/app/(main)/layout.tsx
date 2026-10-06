@@ -36,8 +36,8 @@ const BottomNav = dynamic(
     ),
   },
 );
-const VerifySheet = dynamic(
-  () => import("@/components/verify-sheet").then((m) => m.VerifySheet),
+const FaceCheckHost = dynamic(
+  () => import("@/components/face-check-host").then((m) => m.FaceCheckHost),
   { ssr: false },
 );
 const ClaimPanel = dynamic(
@@ -250,7 +250,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />
-          <VerifySheet />
+          <FaceCheckHost />
           <WhitelistRedirectToast />
           <AppToast />
           <NoGasBanner />

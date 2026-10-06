@@ -346,7 +346,7 @@ export default function SignInPage() {
             <Wordmark size={26} />
           </Link>
 
-          <div className="mt-24 lg:mt-0">
+          <div className="mt-16 lg:mt-0">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
               Make it a
               <br />
@@ -360,7 +360,7 @@ export default function SignInPage() {
           <form
             noValidate
             onSubmit={(e) => void handleSubmit(e)}
-            className="mt-auto flex animate-rise flex-col gap-3 pt-12 text-left [animation-delay:.2s] lg:mt-10 lg:pt-0"
+            className="mt-10 flex animate-rise flex-col gap-3 text-left [animation-delay:.2s]"
           >
             <button
               type="button"

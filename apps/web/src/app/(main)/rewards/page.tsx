@@ -21,7 +21,7 @@ import { TransferSheet } from "@/components/transfer-sheet";
 import { MainPage } from "@/components/main-app-header";
 import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { RewardsDailyCard } from "@/components/home/daily-money-card";
-import { useClaimPanel, useVerifySheet } from "@/contexts/right-panel-context";
+import { useClaimPanel, useFaceCheck } from "@/contexts/right-panel-context";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 import { formatCompact } from "@/lib/levels";
@@ -65,7 +65,7 @@ export default function RewardsPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { open: openClaimPanel } = useClaimPanel();
-  const { open: openVerify } = useVerifySheet();
+  const { start: openVerify } = useFaceCheck();
   const { isWhitelisted, isInitialized: claimReady } = useGoodDollarClaim();
   const { points } = useUserTotalPoints(address);
   const [optimisticSpend, setOptimisticSpend] = useState({

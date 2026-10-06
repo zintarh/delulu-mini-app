@@ -46,7 +46,7 @@ export function ClaimPanelContent({
 }: ClaimPanelContentProps) {
   const { address, isReady } = useAuth();
   const { redirectToSignIn, authenticated } = useRedirectToSignIn();
-  const { whitelistIntent, clearWhitelistIntent, autoVerify, clearAutoVerify } = useClaimPanel();
+  const { whitelistIntent, clearWhitelistIntent } = useClaimPanel();
   const { requestRecheck } = useOnboardingGiftRecheck();
   const {
     isLoading: isClaimDataLoading,
@@ -112,13 +112,6 @@ export function ClaimPanelContent({
       ? "Verify to tip"
       : "Verify to create"
     : "Verify & claim";
-
-  // Arrived from the verify sheet's "Start face check": go straight into it.
-  useEffect(() => {
-    if (!autoVerify || !isInitialized) return;
-    clearAutoVerify();
-    if (!isWhitelisted) openIdentityFlow();
-  }, [autoVerify, isInitialized, isWhitelisted, clearAutoVerify, openIdentityFlow]);
 
   useEffect(() => {
     if (!isInitialized || !whitelistIntent || isWhitelisted) return;

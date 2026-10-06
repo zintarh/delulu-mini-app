@@ -6,7 +6,7 @@ import { Loader2, Lock } from "lucide-react";
 import { CheckDot, Chest, CoinStack, GameButton, GameCard } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
-import { useVerifySheet } from "@/contexts/right-panel-context";
+import { useFaceCheck } from "@/contexts/right-panel-context";
 
 function useCountdown(target: Date | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -41,11 +41,12 @@ export function DailyMoneyCardView({
 }) {
   if (state === "loading") {
     return (
-      <GameCard className="flex items-center gap-3 px-3.5 py-3" aria-busy="true" aria-label="Loading free daily money">
-        <span className="h-11 w-12 shrink-0 animate-pulse rounded-full bg-line" />
-        <div className="flex flex-1 flex-col gap-2">
-          <span className="h-2.5 w-24 animate-pulse rounded bg-line" />
-          <span className="h-5 w-32 animate-pulse rounded bg-line" />
+      <GameCard tone="green" className="flex items-center gap-3 py-3 pl-3.5 pr-3" aria-busy="true" aria-label="Loading free daily money">
+        <CoinStack />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="label-mono truncate text-green-edge">Free daily money</span>
+          <span className="h-7 w-28 animate-pulse rounded-md bg-green-line/60" />
+          <span className="text-xs text-muted-foreground">From GoodDollar</span>
         </div>
       </GameCard>
     );
@@ -112,9 +113,9 @@ export function DailyMoneyCardView({
  * Not verified: opens the claim/verify panel.
  */
 export function DailyMoneyCard() {
-  const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
+  const { isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming, sdkReady } =
     useGoodDollarClaim();
-  const { open: openVerify } = useVerifySheet();
+  const { start: startFaceCheck } = useFaceCheck();
   const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
 
   const amount = useMemo(() => {
@@ -125,16 +126,17 @@ export function DailyMoneyCard() {
 
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
   const state: DailyMoneyState =
-    isLoading || !isInitialized ? "loading" : !isWhitelisted ? "verify" : canClaim ? "claimable" : "claimed";
+    !isInitialized ? "loading" : !isWhitelisted ? "verify" : canClaim ? "claimable" : "claimed";
 
   return (
     <DailyMoneyCardView
       state={state}
       amount={amount}
       countdown={countdown}
-      claiming={isClaiming}
+      // The claim itself needs the wallet; until it connects the button waits.
+      claiming={isClaiming || !sdkReady}
       onClaim={() => void claim()}
-      onVerify={openVerify}
+      onVerify={startFaceCheck}
     />
   );
 }
@@ -145,13 +147,13 @@ export function DailyMoneyCard() {
  * claimed.
  */
 export function RewardsDailyCard() {
-  const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
+  const { isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming, sdkReady } =
     useGoodDollarClaim();
-  const { open: openVerify } = useVerifySheet();
+  const { start: startFaceCheck } = useFaceCheck();
   const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
 
-  if (isLoading || !isInitialized) {
+  if (!isInitialized) {
     return <div className="h-[112px] animate-pulse rounded-[20px] bg-yellow-soft" aria-busy="true" />;
   }
 
@@ -169,7 +171,7 @@ export function RewardsDailyCard() {
             <div className="text-[17px] font-extrabold">Daily G$</div>
             <div className="label-mono mt-0.5 text-[10px] text-blue">Free every day · verify to unlock</div>
           </div>
-          <GameButton variant="blue" size="sm" className="self-start" onClick={openVerify}>
+          <GameButton variant="blue" size="sm" className="self-start" onClick={startFaceCheck}>
             Verify
           </GameButton>
         </div>
@@ -195,8 +197,8 @@ export function RewardsDailyCard() {
           </div>
         </div>
         {canClaim ? (
-          <GameButton variant="ink" size="sm" className="self-start" onClick={() => void claim()} disabled={isClaiming}>
-            {isClaiming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <GameButton variant="ink" size="sm" className="self-start" onClick={() => void claim()} disabled={isClaiming || !sdkReady}>
+            {isClaiming || !sdkReady ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Open
           </GameButton>
         ) : null}

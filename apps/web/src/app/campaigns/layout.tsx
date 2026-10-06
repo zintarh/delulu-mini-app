@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 
-const VerifySheet = dynamic(
-  () => import("@/components/verify-sheet").then((m) => m.VerifySheet),
+const FaceCheckHost = dynamic(
+  () => import("@/components/face-check-host").then((m) => m.FaceCheckHost),
   { ssr: false },
 );
 const ClaimPanel = dynamic(
@@ -30,7 +30,7 @@ export default function CampaignsLayout({
     <RightPanelProvider>
       <NotificationsPanel />
       <ClaimPanel />
-          <VerifySheet />
+          <FaceCheckHost />
       {children}
     </RightPanelProvider>
   );

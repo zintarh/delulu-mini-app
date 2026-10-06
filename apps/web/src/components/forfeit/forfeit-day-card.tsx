@@ -971,17 +971,17 @@ export function ForfeitDayCard({
         role="status"
         aria-label="Loading forfeit"
       >
-        <div className="mb-7 flex animate-pulse items-center justify-between gap-2">
-          <div className="h-8 w-8 rounded-full bg-muted" />
-          <div className="h-4 w-32 rounded bg-muted" />
-          <div className="h-8 w-8 rounded-full bg-muted" />
-        </div>
-        <div className="animate-pulse rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
-          <div className="h-4 w-2/3 rounded bg-muted" />
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="h-3.5 w-28 rounded bg-muted" />
-            <div className="h-6 w-20 rounded-full bg-muted" />
-          </div>
+        <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
+        <div className="space-y-2.5">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex animate-pulse items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
+              <div className="h-[50px] w-[50px] rounded-2xl bg-line" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-line" />
+                <div className="h-2.5 w-1/3 rounded bg-line" />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     );

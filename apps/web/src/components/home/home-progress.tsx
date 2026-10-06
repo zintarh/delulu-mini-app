@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { Chest, Flame, GameCard, ProgressBar } from "@/components/ds";
 import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { useUserStreak } from "@/hooks/useUserStreak";
@@ -11,7 +12,19 @@ export function useTodayQuests(address: string | undefined) {
   const { data } = useCreatorForfeits(address);
   return useMemo(() => {
     const active = (data ?? []).filter((f) => isActiveForfeit(f) && f.onChain?.active);
-    const kept = active.filter((f) => Boolean(f.currentPeriod?.proofUrl)).length;
+    // Kept today = the current period already has a proof, or the previous
+    // one was proven today (proving a day moves the contract to the next
+    // period straight away).
+    const ok = (p: { proofUrl: string | null; verifierAction: string | null } | null | undefined) =>
+      Boolean(p?.proofUrl) && p?.verifierAction !== "rejected" && p?.verifierAction !== "timed_out";
+    const today = new Date().toDateString();
+    const kept = active.filter((f) => {
+      const idx = f.onChain?.currentPeriodIndex ?? 0;
+      const current = f.periods?.find((x) => x.periodIndex === idx) ?? f.currentPeriod;
+      if (ok(current)) return true;
+      const previous = f.periods?.find((x) => x.periodIndex === idx - 1);
+      return ok(previous) && !!previous?.resolvedAt && new Date(previous.resolvedAt).toDateString() === today;
+    }).length;
     return { total: active.length, kept, left: active.length - kept };
   }, [data]);
 }
@@ -45,14 +58,30 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
 
 /** Daily goal bar with the chest that opens when every quest is kept. */
 export function DailyGoalCardView({ kept, total }: { kept: number; total: number }) {
-  if (total === 0) return null;
+  if (total === 0) {
+    return (
+      <Link href="/forfeit" className="block text-ink no-underline">
+        <GameCard className="flex animate-rise items-center gap-4 p-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between">
+              <span className="font-extrabold">Daily goal</span>
+              <span className="label-mono text-[11px] font-semibold text-ink">0 / 0</span>
+            </div>
+            <ProgressBar value={0} className="mt-2.5" label="Daily goal" />
+            <div className="label-mono mt-2 text-[10px] text-muted-foreground">Start a contract to fill the chest</div>
+          </div>
+          <Chest size={56} grey />
+        </GameCard>
+      </Link>
+    );
+  }
   const done = kept >= total;
   return (
     <GameCard className="flex animate-rise items-center gap-4 p-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between">
           <span className="font-extrabold">Daily goal</span>
-          <span className="font-mono text-[11px] font-semibold">
+          <span className="label-mono text-[11px] font-semibold text-ink">
             {kept} / {total}
           </span>
         </div>
