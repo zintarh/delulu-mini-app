@@ -61,7 +61,7 @@ export function HoldToSign({
       }}
       onContextMenu={(e) => e.preventDefault()}
       className={cn(
-        "relative h-16 w-full touch-none select-none overflow-hidden rounded-2xl bg-ink font-extrabold uppercase tracking-[0.06em] text-white shadow-edge-ink",
+        "relative h-16 w-full touch-none select-none overflow-hidden rounded-full bg-ink text-base font-semibold text-white",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

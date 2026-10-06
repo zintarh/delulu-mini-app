@@ -15,12 +15,11 @@ import {
   Loader2,
   MapPin,
   Hourglass,
-  Repeat,
   ShieldCheck,
   Users,
   X,
 } from "lucide-react";
-import { Chip, GameButton, HoldToSign, gameButtonClass } from "@/components/ds";
+import { Chip, HoldToSign, OptionTile, gameButtonClass } from "@/components/ds";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
@@ -241,7 +240,6 @@ function PillButton({
       style={MANROPE}
     >
       {children}
-      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
     </button>
   );
 }
@@ -362,9 +360,12 @@ export function ForfeitCreatePage() {
   // Defaults to repeating — an ongoing accountability habit is the more common
   // case for this app; a one-time forfeit is the thing you opt into via the toggle.
   const [isRepeat, setIsRepeat] = useState(true);
+  const [habitOpen, setHabitOpen] = useState(false);
+  const [repeatOpen, setRepeatOpen] = useState(false);
   const [evidenceId, setEvidenceId] = useState("photo");
-  const [quickStartId, setQuickStartId] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
+  // Starts on the first quick start, like the design ("Read" picked).
+  const [quickStartId, setQuickStartId] = useState<string | null>(QUICK_START[0].id);
+  const [description, setDescription] = useState<string>(QUICK_START[0].habit);
   const [deadlineDate, setDeadlineDate] = useState<Date>(() =>
     endOfDay(addDays(new Date(), 6)),
   );
@@ -964,40 +965,36 @@ export function ForfeitCreatePage() {
           </div>
 
           {/* The contract — every highlight is tappable */}
-          <div className="rounded-3xl border-2 border-line bg-white p-5 shadow-edge">
+          <div className="flex animate-rise flex-col gap-3.5 rounded-3xl border-2 border-line bg-white px-5 pb-5 pt-[22px] shadow-[0_0_0_1px_#e6e6e0]">
             <div className="flex items-center justify-between">
               <span className="label-mono text-muted-foreground">Habit contract</span>
               <span className="label-mono text-[9px] text-muted-foreground">Tap to edit</span>
             </div>
-            <div className="mt-3 text-[21px] font-medium leading-[1.75] text-foreground">
+            <p className="m-0 text-[22px] font-medium leading-[1.75] text-foreground">
               {evidence.sentencePrefix}{" "}
               <PillButton onClick={() => setEvidenceOpen(true)}>{evidence.pillLabel}</PillButton>{" "}
-              {evidence.sentenceSuffix}
-              <label htmlFor="contract-habit" className="sr-only">
-                Your habit
-              </label>
-              <textarea
-                id="contract-habit"
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  setQuickStartId(null);
-                }}
-                placeholder={placeholder}
-                rows={1}
-                className="my-1 block w-full resize-none border-0 border-b-2 border-dashed border-ink bg-transparent px-0 pb-1.5 pt-0.5 text-[21px] font-bold text-foreground outline-none placeholder:font-semibold placeholder:text-faint"
-              />
-              {shortDurationSeconds == null && isRepeat ? <>every day for </> : <>for </>}
+              {evidence.sentenceSuffix}{" "}
+              <PillButton onClick={() => setHabitOpen(true)} className={cn(!description.trim() && "text-faint")}>
+                {description.trim() || placeholder}
+              </PillButton>{" "}
+              {shortDurationSeconds == null ? (
+                <>
+                  every <PillButton onClick={() => setRepeatOpen(true)}>{isRepeat ? "day" : "once"}</PillButton>{" "}
+                  {isRepeat ? "for" : "within"}{" "}
+                </>
+              ) : (
+                <>for </>
+              )}
               <PillButton onClick={() => setDeadlineOpen(true)}>{deadlineLabel}</PillButton>, or lose{" "}
               <PillButton onClick={openAmountSheet}>{amountLabel}</PillButton> to{" "}
               <span className="whitespace-nowrap">
                 <PillButton onClick={() => setDestinationOpen(true)}>{destinationPillLabel}</PillButton>.
               </span>
-            </div>
+            </p>
             {description.length > 0 && description.trim().length < 3 ? (
               <p className="mt-2 text-xs font-semibold text-orange">Add a few more words so it&apos;s clear what to check.</p>
             ) : null}
-            <div className="mt-4 flex items-center gap-2 border-t-2 border-dashed border-line pt-3 text-sm font-semibold">
+            <div className="flex items-center gap-2 border-t-2 border-dashed border-line pt-3 text-sm font-semibold">
               <ShieldCheck className="h-[18px] w-[18px] text-blue" strokeWidth={2.4} />
               {verificationMethod === "friend" ? "Your friend checks every proof" : "AI checks every proof"}
             </div>
@@ -1005,12 +1002,6 @@ export function ForfeitCreatePage() {
 
           {/* Options as chips */}
           <div className="flex flex-wrap gap-2">
-            {shortDurationSeconds == null ? (
-              <Chip selected={isRepeat} onClick={() => setIsRepeat((v) => !v)}>
-                <Repeat className="h-4 w-4" strokeWidth={2.2} />
-                Repeat daily
-              </Chip>
-            ) : null}
             {additionalOptions.map((opt) => {
               const checked = opt.id === "remind" ? remindEnabled : friendVerifierEnabled;
               const toggle =
@@ -1023,16 +1014,10 @@ export function ForfeitCreatePage() {
                     <Users className="h-4 w-4" strokeWidth={2.2} />
                   )}
                   {opt.id === "remind" ? "Remind 1h before" : "Friend verifies"}
-                  {opt.id === "friend-verifier" ? (
-                    <span className="label-mono text-[9px] opacity-70">Optional</span>
-                  ) : null}
                 </Chip>
               );
             })}
           </div>
-          {shortDurationSeconds == null && isRepeat ? (
-            <p className="-mt-2 text-xs text-muted-foreground">Cutoff each day: {periodCutoffLabel}.</p>
-          ) : null}
 
             {friendVerifierEnabled ? (
               <div className="space-y-3 rounded-[20px] border-2 border-line bg-white px-4 py-3.5 shadow-edge">
@@ -1224,26 +1209,25 @@ export function ForfeitCreatePage() {
       </div>
 
       {/* Signature strip */}
-      <div className="relative border-t-2 border-dashed border-line bg-white px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-4">
+      <div className="relative border-t-2 border-dashed border-line bg-white px-5 pb-[max(env(safe-area-inset-bottom),28px)] pt-[18px]">
         <span className="absolute -left-2.5 -top-2.5 h-5 w-5 rounded-full bg-paper" aria-hidden />
         <span className="absolute -right-2.5 -top-2.5 h-5 w-5 rounded-full bg-paper" aria-hidden />
-        <div className="mx-auto flex max-w-xl flex-col gap-3">
+        <div className="mx-auto flex max-w-xl flex-col gap-3.5">
           <div className="flex items-baseline justify-between">
             <span className="label-mono text-muted-foreground">At stake</span>
             <span className="font-display text-[28px] font-extrabold leading-none">{amountLabel}</span>
           </div>
           {!isConnected ? (
-            <GameButton
-              variant="ink"
-              full
-              size="lg"
+            <button
+              type="button"
               onClick={() => {
                 persistSignInRedirect("/forfeit");
                 router.push(buildSignInUrl("/forfeit"));
               }}
+              className="h-16 w-full rounded-full bg-ink text-base font-semibold text-white"
             >
               Sign in to sign
-            </GameButton>
+            </button>
           ) : (
             <HoldToSign
               onComplete={() => void handleSubmit()}
@@ -1266,6 +1250,66 @@ export function ForfeitCreatePage() {
         }}
         actionText="Done"
       />
+
+      {/* Habit sheet */}
+      <ResponsiveSheet open={habitOpen} onOpenChange={setHabitOpen} title="Your habit">
+        <div className="flex flex-col gap-4 px-1 pb-4 pt-1">
+          <label htmlFor="contract-habit" className="sr-only">
+            Your habit
+          </label>
+          <input
+            id="contract-habit"
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setQuickStartId(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setHabitOpen(false);
+            }}
+            placeholder={placeholder}
+            autoFocus
+            className="h-14 w-full rounded-2xl border-2 border-ink bg-white px-4 text-base font-medium text-foreground outline-none placeholder:text-faint"
+          />
+          <button
+            type="button"
+            onClick={() => setHabitOpen(false)}
+            className="press-edge flex h-14 w-full items-center justify-between rounded-2xl bg-ink pl-6 pr-1.5 text-base font-bold text-white shadow-edge-ink"
+          >
+            Done
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
+              <Check className="h-5 w-5" strokeWidth={2.4} />
+            </span>
+          </button>
+        </div>
+      </ResponsiveSheet>
+
+      {/* Repeat sheet */}
+      <ResponsiveSheet open={repeatOpen} onOpenChange={setRepeatOpen} title="How often">
+        <div className="flex flex-col gap-3 px-1 pb-4 pt-1">
+          <div className="grid grid-cols-2 gap-2">
+            <OptionTile
+              selected={isRepeat}
+              onClick={() => {
+                setIsRepeat(true);
+                setRepeatOpen(false);
+              }}
+            >
+              Every day
+            </OptionTile>
+            <OptionTile
+              selected={!isRepeat}
+              onClick={() => {
+                setIsRepeat(false);
+                setRepeatOpen(false);
+              }}
+            >
+              Just once
+            </OptionTile>
+          </div>
+          {isRepeat ? <p className="text-xs text-muted-foreground">Cutoff each day: {periodCutoffLabel}.</p> : null}
+        </div>
+      </ResponsiveSheet>
 
       {/* Evidence type sheet */}
       <ResponsiveSheet

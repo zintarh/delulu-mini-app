@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Camera, CheckCircle2, Loader2, X } from "lucide-react";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ArrowRight, ChevronLeft, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatProofError, formatUploadError } from "@/lib/community/format-proof-error";
 import { ProofSuccessCard } from "@/components/proof-success-card";
-import { GameButton } from "@/components/ds";
+import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
+
+const DARK_ICON_BUTTON =
+  "press-edge inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-ink-3 bg-ink-2 text-white shadow-[0_3px_0_#000]";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
@@ -56,10 +58,10 @@ export function ProofModal({
   submitError = null,
   onDone,
   proofInstructions,
-  isOnChain = false,
+  isOnChain: _isOnChain = false,
   proofStep = "idle",
   milestoneName,
-  milestoneDeadline,
+  milestoneDeadline: _milestoneDeadline,
   campaignTitle,
   communityName,
   myUsername,
@@ -77,6 +79,7 @@ export function ProofModal({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit = imageFile !== null && !isSubmitting && !isUploading;
   const busy = isSubmitting || isUploading;
@@ -134,6 +137,7 @@ export function ProofModal({
     setImagePreview(null);
     setUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -177,194 +181,153 @@ export function ProofModal({
     onDone?.();
   };
 
-  return (
-    <ResponsiveSheet
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) onDone?.();
-        onOpenChange(next);
-      }}
-      title="Upload proof"
-      hideTitleVisually
-      sheetClassName="rounded-t-3xl pb-14"
-      modalClassName="max-w-lg"
-    >
-      {/* Drag handle pill (mobile sheet) */}
-      <div className="-mt-1 mb-5 flex justify-center lg:hidden">
-        <div className="h-[5px] w-10 rounded-full bg-[#dadad4]" />
-      </div>
+  if (!open) return null;
 
-      {/* Success state */}
-      {submitSuccess ? (
-        <ProofSuccessCard
-          campaignTitle={campaignTitle}
-          communityName={communityName}
-          myUsername={myUsername}
-          myAvatar={myAvatar}
-          myStreak={myStreak}
-          myPoints={myPoints}
-          pointsAwarded={pointsAwarded}
-          milestoneIndex={milestoneIndex}
-          milestoneCount={milestoneCount}
-          milestoneName={milestoneName}
-          shareUrl={shareUrl}
-          onDone={handleClose}
-        />
-      ) : (
-        /* Upload state */
-        <div className="space-y-4">
-          {/* Header */}
-          <div>
-            {milestoneName || campaignTitle ? (
-              <p className="label-mono mb-1 text-muted-foreground">{milestoneName ?? campaignTitle}</p>
-            ) : null}
-            <h2 className="m-0 text-2xl font-bold tracking-[-0.02em] text-foreground">Show your proof</h2>
-            {milestoneDeadline ? (
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Due{" "}
-                {new Date(milestoneDeadline).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+  const title = milestoneName ?? campaignTitle ?? null;
+  const dayLabel = milestoneIndex != null ? `Day ${milestoneIndex + 1}` : null;
+  const headerLabel = [title, dayLabel].filter(Boolean).join(" · ");
+  const capturing = !submitSuccess && !imagePreview;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-label="Upload proof">
+      <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleImageSelect} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleImageSelect} />
+      <div
+        className={cn(
+          "relative flex h-full w-full flex-col overflow-hidden lg:h-[844px] lg:max-h-[92vh] lg:max-w-[420px] lg:rounded-[32px]",
+          capturing ? "bg-[#0F0F0E] text-white" : "bg-paper text-ink",
+        )}
+      >
+        {submitSuccess ? (
+          <div className="flex-1 overflow-y-auto px-5 pb-8 pt-6 scrollbar-hide">
+            <ProofSuccessCard
+              campaignTitle={campaignTitle}
+              communityName={communityName}
+              myUsername={myUsername}
+              myAvatar={myAvatar}
+              myStreak={myStreak}
+              myPoints={myPoints}
+              pointsAwarded={pointsAwarded}
+              milestoneIndex={milestoneIndex}
+              milestoneCount={milestoneCount}
+              milestoneName={milestoneName}
+              shareUrl={shareUrl}
+              onDone={handleClose}
+            />
+          </div>
+        ) : capturing ? (
+          /* Capture (design: Proof.dc.html, dark camera screen) */
+          <>
+            <div className="flex items-center justify-between px-5 py-4">
+              <button type="button" onClick={handleClose} aria-label="Close" className={DARK_ICON_BUTTON}>
+                <X className="h-5 w-5" strokeWidth={2} />
+              </button>
+              <span className="label-mono truncate px-3 text-[#A3A39C]">{headerLabel}</span>
+              <span className="w-11 shrink-0" />
+            </div>
+            <div className="px-5">
+              <h2 className="m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em] text-white">
+                Show us your <span className="text-yellow">proof</span>
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={cn(
+                "relative mx-5 mt-[18px] flex flex-1 items-center justify-center rounded-[28px] bg-ink-2 px-10 text-center",
+                isDragging && "ring-2 ring-yellow",
+              )}
+            >
+              {(["left-[18px] top-[18px] border-l-[3px] border-t-[3px] rounded-tl-[10px]", "right-[18px] top-[18px] border-r-[3px] border-t-[3px] rounded-tr-[10px]", "bottom-[18px] left-[18px] border-b-[3px] border-l-[3px] rounded-bl-[10px]", "bottom-[18px] right-[18px] border-b-[3px] border-r-[3px] rounded-br-[10px]"] as const).map((pos) => (
+                <span key={pos} aria-hidden className={cn("absolute h-[30px] w-[30px] border-yellow", pos)} />
+              ))}
+              <span className="text-sm leading-relaxed text-[#A3A39C]">
+                {proofInstructions || "Show what you did. A screenshot is totally fine."}
+              </span>
+            </button>
+            {showErrorBanner ? (
+              <p role="alert" className="mx-5 mt-3 rounded-2xl bg-orange px-4 py-2.5 text-sm font-semibold text-white">
+                {displayError}
               </p>
             ) : null}
-            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-              {proofInstructions
-                ? proofInstructions
-                : "Show what you did. A screenshot is totally fine."}
-            </p>
-          </div>
-
-          {/* Error banner - always visible after a failure */}
-          {showErrorBanner ? (
-            <div
-              role="alert"
-              className="rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3"
-            >
-              <p className="text-sm font-bold text-orange">{displayErrorTitle}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-orange/90">{displayError}</p>
-              {imagePreview ? (
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="mt-1.5 text-xs font-bold text-blue hover:underline"
-                >
-                  Try a different photo
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Upload zone */}
-          <div className={cn("relative", busy && "pointer-events-none")}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleImageSelect}
-            />
-
-            {imagePreview ? (
-              /* Image preview */
-              <div className="relative overflow-hidden rounded-[20px] border-2 border-line bg-white p-2 shadow-edge">
-                <div className="aspect-[4/3] overflow-hidden rounded-xl">
-                  <img
-                    src={imagePreview}
-                    alt="Proof preview"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-
-                {busy ? (
-                  <div className="absolute inset-2 flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl bg-black/45">
-                    {activeStep === "ai-verifying" ? (
-                      <span
-                        aria-hidden
-                        className="absolute inset-x-0 h-[3px] animate-scan bg-yellow shadow-[0_0_24px_6px_rgba(246,195,36,0.6)]"
-                      />
-                    ) : (
-                      <Loader2 className="h-8 w-8 animate-spin text-white" />
-                    )}
-                    <p className="text-sm font-bold text-white">{STEP_LABEL[activeStep]}</p>
-                    {activeStep === "wallet-sign" ? (
-                      <p className="text-xs text-white/60">Open your wallet app</p>
-                    ) : null}
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={clearImage}
-                      aria-label="Remove photo"
-                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-opacity hover:opacity-80"
-                    >
-                      <X className="h-4 w-4" strokeWidth={2.5} />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full rounded-xl bg-white/95 py-2 text-xs font-extrabold uppercase tracking-[0.06em] text-ink"
-                      >
-                        Change photo
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              /* Drop zone */
+            <div className="flex items-center justify-between px-5 pb-9 pt-[22px]">
+              <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload from gallery" className={DARK_ICON_BUTTON}>
+                <ImageIcon className="h-5 w-5" strokeWidth={2} />
+              </button>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                className={cn(
-                  "relative flex h-56 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[20px] border-2 border-dashed bg-white transition-colors",
-                  isDragging ? "border-ink bg-yellow-soft" : "border-[#bdbdb6]",
-                )}
+                onClick={() => cameraInputRef.current?.click()}
+                aria-label="Take photo"
+                className="h-[84px] w-[84px] rounded-full border-4 border-white p-1.5"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-yellow shadow-edge-yellow">
-                  <Camera className="h-8 w-8 text-ink" strokeWidth={2} />
-                </div>
-
-                <div className="text-center">
-                  <p className="text-base font-extrabold text-foreground">
-                    {isDragging ? "Drop it here" : "Tap to add a photo"}
-                  </p>
-                  <p className="label-mono mt-1 text-[10px] text-muted-foreground">AI checks it in seconds</p>
-                </div>
-
-                <p className="absolute bottom-3 font-mono text-[10px] text-muted-foreground/60">max 5 MB</p>
+                <span className="block h-full w-full rounded-[22px] bg-yellow" />
               </button>
-            )}
+              <span className="w-11" />
+            </div>
+          </>
+        ) : (
+          /* Review (design: Proof.dc.html, "AI check") */
+          <div className="flex flex-1 flex-col gap-[18px] px-5 pb-9 pt-4">
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={clearImage} disabled={busy} aria-label="Back to camera" className={ICON_BUTTON_CLASS}>
+                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+              </button>
+              <span className="label-mono text-muted-foreground">AI check</span>
+              <span className="w-11" />
+            </div>
+            <div className="relative flex-1 -rotate-2 animate-rise bg-white p-3 pb-14 shadow-[0_24px_40px_-26px_rgba(22,22,21,.5)]">
+              <div className="relative h-full overflow-hidden bg-[#E2E2DC]">
+                {imagePreview ? <img src={imagePreview} alt="Your proof" className="h-full w-full object-cover" /> : null}
+                {busy ? (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 h-[3px] animate-scan bg-yellow shadow-[0_0_24px_6px_rgba(246,195,36,0.6)]"
+                  />
+                ) : null}
+              </div>
+              <span className="label-mono absolute bottom-5 left-4 right-4 truncate text-ink">
+                {busy ? STEP_LABEL[activeStep] : title ? `Checking: ${title}` : "Ready for the AI check"}
+              </span>
+            </div>
+            {showErrorBanner ? (
+              <div role="alert" className="rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3">
+                <p className="text-sm font-bold text-orange">{displayErrorTitle}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-orange/90">{displayError}</p>
+              </div>
+            ) : null}
+            {activeStep === "wallet-sign" && busy ? (
+              <p className="-mt-2 text-center text-xs text-muted-foreground">Open your wallet app</p>
+            ) : null}
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={clearImage}
+                disabled={busy}
+                className="press-edge h-14 rounded-2xl border-2 border-line bg-white font-bold shadow-edge disabled:opacity-50"
+              >
+                Retake
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={!canSubmit}
+                className="press-edge flex h-14 items-center justify-between rounded-2xl bg-ink pl-5 pr-1.5 font-bold text-white shadow-edge-ink disabled:opacity-60"
+              >
+                {busy ? "Checking…" : "Submit"}
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
+                  {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" strokeWidth={2.4} />}
+                </span>
+              </button>
+            </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex gap-2.5 pt-1">
-            <GameButton variant="line" onClick={handleClose} disabled={busy} className="flex-1">
-              Cancel
-            </GameButton>
-            <GameButton onClick={handleSubmit} disabled={!canSubmit} className="flex-[2]">
-              {busy ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {STEP_LABEL[activeStep]}
-                </>
-              ) : (
-                "Submit proof"
-              )}
-            </GameButton>
-          </div>
-        </div>
-      )}
-    </ResponsiveSheet>
+        )}
+      </div>
+    </div>
   );
 }

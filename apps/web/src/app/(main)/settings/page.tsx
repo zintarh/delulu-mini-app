@@ -20,7 +20,7 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { GameButton, GameSwitch, Stamp } from "@/components/ds";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
-import { useClaimPanel } from "@/contexts/right-panel-context";
+import { useVerifySheet } from "@/contexts/right-panel-context";
 
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn, formatAddress } from "@/lib/utils";
@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const { user } = useUserStore();
   const { openLogoutSheet } = useLogoutSheet();
   const { isWhitelisted, isInitialized: isClaimReady } = useGoodDollarClaim();
-  const { open: openClaimPanel } = useClaimPanel();
+  const { open: openVerify } = useVerifySheet();
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pushState, setPushState] = useState<PushSupportState | null>(null);
@@ -167,7 +167,7 @@ export default function SettingsPage() {
                   ) : isWhitelisted ? (
                     <Stamp tone="kept" className="text-[10px]">Verified</Stamp>
                   ) : (
-                    <GameButton variant="blue" size="sm" onClick={openClaimPanel}>
+                    <GameButton variant="blue" size="sm" onClick={openVerify}>
                       Verify
                     </GameButton>
                   )}

@@ -6,7 +6,7 @@ import { Loader2, Lock } from "lucide-react";
 import { CheckDot, Chest, CoinStack, GameButton, GameCard } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
-import { useClaimPanel } from "@/contexts/right-panel-context";
+import { useVerifySheet } from "@/contexts/right-panel-context";
 
 function useCountdown(target: Date | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -114,7 +114,7 @@ export function DailyMoneyCardView({
 export function DailyMoneyCard() {
   const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
     useGoodDollarClaim();
-  const { open: openClaimPanel } = useClaimPanel();
+  const { open: openVerify } = useVerifySheet();
   const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
 
   const amount = useMemo(() => {
@@ -134,7 +134,7 @@ export function DailyMoneyCard() {
       countdown={countdown}
       claiming={isClaiming}
       onClaim={() => void claim()}
-      onVerify={openClaimPanel}
+      onVerify={openVerify}
     />
   );
 }
@@ -147,7 +147,7 @@ export function DailyMoneyCard() {
 export function RewardsDailyCard() {
   const { isLoading, isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming } =
     useGoodDollarClaim();
-  const { open: openClaimPanel } = useClaimPanel();
+  const { open: openVerify } = useVerifySheet();
   const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
 
@@ -169,7 +169,7 @@ export function RewardsDailyCard() {
             <div className="text-[17px] font-extrabold">Daily G$</div>
             <div className="label-mono mt-0.5 text-[10px] text-blue">Free every day · verify to unlock</div>
           </div>
-          <GameButton variant="blue" size="sm" className="self-start" onClick={openClaimPanel}>
+          <GameButton variant="blue" size="sm" className="self-start" onClick={openVerify}>
             Verify
           </GameButton>
         </div>

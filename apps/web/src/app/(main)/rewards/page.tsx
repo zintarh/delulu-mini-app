@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBalance } from "wagmi";
-import { ArrowDownLeft, ArrowUpRight, Check, Copy, Loader2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Copy, Loader2, Lock } from "lucide-react";
 
 import { formatUnits } from "viem";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,9 +19,12 @@ import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
 import { MainPage } from "@/components/main-app-header";
-import { Coin, CoinStack, GameButton, GameCard } from "@/components/ds";
+import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { RewardsDailyCard } from "@/components/home/daily-money-card";
-import { useClaimPanel } from "@/contexts/right-panel-context";
+import { useClaimPanel, useVerifySheet } from "@/contexts/right-panel-context";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
+import { formatCompact } from "@/lib/levels";
 import {
   CELO_MAINNET_ID,
   CUSD_ADDRESSES,
@@ -62,6 +65,9 @@ export default function RewardsPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { open: openClaimPanel } = useClaimPanel();
+  const { open: openVerify } = useVerifySheet();
+  const { isWhitelisted, isInitialized: claimReady } = useGoodDollarClaim();
+  const { points } = useUserTotalPoints(address);
   const [optimisticSpend, setOptimisticSpend] = useState({
     gdollar: 0,
     celo: 0,
@@ -230,6 +236,9 @@ export default function RewardsPage() {
     return parts.length > 0 ? `+ ${parts.join(" · ")}` : null;
   })();
 
+  // Not face-verified and holding no G$: show points and what verifying unlocks.
+  const showUnverified = claimReady && !isWhitelisted && !isGdLoading && gdDisplay <= 0;
+
   const balancesLoaded = !isGdLoading && !isCusdLoading && !isUsdtLoading && !isCeloLoading;
   const hasSendableBalance =
     gdDisplay > 0 || cusdDisplay > 0 || usdtDisplay > 0 || celoDisplay > 0;
@@ -310,91 +319,150 @@ export default function RewardsPage() {
         <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:pt-6">
           <h1 className="m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">Rewards</h1>
 
-          {/* Balance */}
-          <GameCard className="animate-rise p-4">
-            <div className="flex items-center gap-3.5">
-              <span className="animate-bounce-in">
-                <Coin size={52} />
-              </span>
-              <div className="min-w-0">
-                <div className="truncate font-display text-[40px] font-extrabold uppercase leading-none tabular-nums">
-                  {isGdLoading || gdError ? "—" : `${gdDisplay.toLocaleString("en-US", { maximumFractionDigits: 0 })} G$`}
+          {showUnverified ? (
+            <>
+              {/* Not verified yet (design: RewardsNew.dc.html) */}
+              <GameCard className="flex animate-rise items-center gap-3.5 p-4">
+                <span className="animate-bounce-in">
+                  <Bolt size={52} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-display text-[40px] font-extrabold uppercase leading-none tabular-nums">
+                    {formatCompact(points ?? 0)} pts
+                  </div>
+                  <div className="label-mono mt-1 text-[10px] text-muted-foreground">Total points</div>
                 </div>
-                <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">
-                  {otherBalancesLine ?? (hasAnyUsdValue && balancesLoaded ? `≈ $${totalUsd.toFixed(2)}` : "\u00a0")}
+              </GameCard>
+
+              <div className="relative flex animate-rise items-center gap-3 rounded-[20px] border-2 border-blue-line bg-blue-soft py-3 pl-3.5 pr-3 shadow-edge-blue-line">
+                <ShieldBadge size={44} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold">Unlock free money</div>
+                  <div className="label-mono mt-[3px] text-[10px] text-blue">One quick face check</div>
                 </div>
-                {gdError ? (
-                  <p className="mt-1 text-[11px] font-semibold text-orange">Couldn&apos;t load your balance. Try again.</p>
-                ) : null}
+                <GameButton variant="blue" size="sm" onClick={openVerify}>
+                  Verify
+                </GameButton>
               </div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <GameButton
-                variant="line"
-                size="sm"
-                disabled={balancesLoaded && !hasSendableBalance}
-                onClick={() => setSendOpen(true)}
-              >
-                <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-                Send
-              </GameButton>
-              <GameButton variant="line" size="sm" onClick={openClaimPanel}>
-                <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />
-                Get
-              </GameButton>
-              <GameButton
-                variant="line"
-                size="sm"
-                onClick={() => {
-                  void navigator.clipboard.writeText(address).then(() => {
-                    setCopied(true);
-                    window.setTimeout(() => setCopied(false), 1500);
-                  });
-                }}
-              >
-                {copied ? <Check className="h-4 w-4" strokeWidth={2.4} /> : <Copy className="h-4 w-4" strokeWidth={2} />}
-                {copied ? "Copied" : "Copy"}
-              </GameButton>
-            </div>
-          </GameCard>
 
-          {/* Free daily money (GoodDollar UBI) */}
-          <RewardsDailyCard />
+              <div className="flex flex-col gap-2.5 pt-2">
+                <span className="label-mono text-muted-foreground">Unlocks with verification</span>
+                {[
+                  { art: <Chest size={44} grey />, title: "Daily G$", sub: "Free every day" },
+                  { art: <Coin size={40} />, title: "Stake money", sub: "Put G$ on your contracts" },
+                  { art: <Trophy size={42} />, title: "Campaign prizes", sub: "Join pools with real G$" },
+                ].map((row) => (
+                  <button
+                    key={row.title}
+                    type="button"
+                    onClick={openVerify}
+                    className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-left shadow-edge"
+                  >
+                    <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+                      {row.art}
+                      <span className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-white bg-ink text-white">
+                        <Lock className="h-3 w-3" strokeWidth={2.6} />
+                      </span>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold">{row.title}</div>
+                      <div className="label-mono mt-0.5 text-[10px] text-muted-foreground">{row.sub}</div>
+                    </div>
+                    <span className={gameButtonClass({ variant: "blue", size: "sm" })}>Verify</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Balance */}
+              <GameCard className="animate-rise p-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="animate-bounce-in">
+                    <Coin size={52} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-[40px] font-extrabold uppercase leading-none tabular-nums">
+                      {isGdLoading || gdError ? "—" : `${gdDisplay.toLocaleString("en-US", { maximumFractionDigits: 0 })} G$`}
+                    </div>
+                    <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">
+                      {otherBalancesLine ?? (hasAnyUsdValue && balancesLoaded ? `≈ $${totalUsd.toFixed(2)}` : "\u00a0")}
+                    </div>
+                    {gdError ? (
+                      <p className="mt-1 text-[11px] font-semibold text-orange">Couldn&apos;t load your balance. Try again.</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <GameButton
+                    variant="line"
+                    size="sm"
+                    disabled={balancesLoaded && !hasSendableBalance}
+                    onClick={() => setSendOpen(true)}
+                  >
+                    <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+                    Send
+                  </GameButton>
+                  <GameButton variant="line" size="sm" onClick={openClaimPanel}>
+                    <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />
+                    Get
+                  </GameButton>
+                  <GameButton
+                    variant="line"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(address).then(() => {
+                        setCopied(true);
+                        window.setTimeout(() => setCopied(false), 1500);
+                      });
+                    }}
+                  >
+                    {copied ? <Check className="h-4 w-4" strokeWidth={2.4} /> : <Copy className="h-4 w-4" strokeWidth={2} />}
+                    {copied ? "Copied" : "Copy"}
+                  </GameButton>
+                </div>
+              </GameCard>
 
-          {/* Rewards ready to claim */}
-          <GameCard className="flex animate-rise items-center gap-3 px-3.5 py-3">
-            <CoinStack className="h-10 w-11" />
-            <div className="min-w-0 flex-1">
-              <div className="font-bold">
-                {primaryPending
-                  ? `${primaryPending.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${primaryPending.symbol} reward`
-                  : "Proof rewards"}
-              </div>
-              <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">
-                {isLoadingAdminRewards
-                  ? "Checking…"
-                  : primaryPending
-                    ? secondaryPending.length > 0
-                      ? `+ ${secondaryPending.map((r) => r.display).join(" + ")}`
-                      : "Ready to claim"
-                    : "Nothing yet"}
-              </div>
-            </div>
-            <GameButton
-              variant="green"
-              size="sm"
-              disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
-              onClick={() => {
-                setSendOpen(false);
-                // Confetti fires inside claimAll on the first mined success.
-                void claimAllAdminRewards();
-              }}
-            >
-              {isClaimingAdmin ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Claim
-            </GameButton>
-          </GameCard>
-          {adminClaimError ? <p className="-mt-2 text-[11px] font-semibold text-orange">{adminClaimError}</p> : null}
+              {/* Free daily money (GoodDollar UBI) */}
+              <RewardsDailyCard />
+
+              {/* Rewards ready to claim */}
+              <GameCard className="flex animate-rise items-center gap-3 px-3.5 py-3">
+                <CoinStack className="h-10 w-11" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold">
+                    {primaryPending
+                      ? `${primaryPending.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${primaryPending.symbol} reward`
+                      : "Proof rewards"}
+                  </div>
+                  <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">
+                    {isLoadingAdminRewards
+                      ? "Checking…"
+                      : primaryPending
+                        ? secondaryPending.length > 0
+                          ? `+ ${secondaryPending.map((r) => r.display).join(" + ")}`
+                          : "Ready to claim"
+                        : "Nothing yet"}
+                  </div>
+                </div>
+                <GameButton
+                  variant="green"
+                  size="sm"
+                  disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
+                  onClick={() => {
+                    setSendOpen(false);
+                    // Confetti fires inside claimAll on the first mined success.
+                    void claimAllAdminRewards();
+                  }}
+                >
+                  {isClaimingAdmin ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Claim
+                </GameButton>
+              </GameCard>
+              {adminClaimError ? <p className="-mt-2 text-[11px] font-semibold text-orange">{adminClaimError}</p> : null}
+
+            </>
+          )}
 
           {/* Campaign prizes, stake reclaims, friend rewards: only when something is claimable */}
           <WalletClaimsTab address={address} onlyWhenClaimable />

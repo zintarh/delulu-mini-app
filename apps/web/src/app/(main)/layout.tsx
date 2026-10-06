@@ -36,6 +36,10 @@ const BottomNav = dynamic(
     ),
   },
 );
+const VerifySheet = dynamic(
+  () => import("@/components/verify-sheet").then((m) => m.VerifySheet),
+  { ssr: false },
+);
 const ClaimPanel = dynamic(
   () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
   { ssr: false },
@@ -246,6 +250,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />
+          <VerifySheet />
           <WhitelistRedirectToast />
           <AppToast />
           <NoGasBanner />
