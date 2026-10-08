@@ -116,11 +116,11 @@ export function MilestoneTrackerHero({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.18)_0%,transparent_70%)]"
+        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(246,195,36,0.22)_0%,transparent_70%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-6 bottom-0 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)]"
+        className="pointer-events-none absolute -left-6 bottom-0 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(246,195,36,0.16)_0%,transparent_70%)]"
       />
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

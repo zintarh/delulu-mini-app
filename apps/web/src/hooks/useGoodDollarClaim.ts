@@ -309,7 +309,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
             particleCount: 150,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ["#6366f1", "#a855f7", "#ec4899", "#f59e0b"],
+            colors: ["#f6c324", "#2db36f", "#ec4899", "#161615"],
           });
         }
       } catch {

@@ -32,12 +32,12 @@ ChartJS.register(
 export type ChartDatum = { label: string; value: number; color?: string };
 
 const DEFAULT_COLORS = [
-  "#2563eb",
+  "#161615",
   "#10b981",
   "#f59e0b",
   "#8b5cf6",
   "#ef4444",
-  "#06b6d4",
+  "#f28b30",
   "#64748b",
 ];
 
@@ -274,7 +274,7 @@ export function DashboardHorizontalBars({ data, height }: { data: ChartDatum[]; 
 
 export function DashboardSparkline({
   data,
-  color = "#2563eb",
+  color = "#161615",
   height = 48,
 }: {
   data: number[];

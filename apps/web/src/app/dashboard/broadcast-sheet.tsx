@@ -55,7 +55,7 @@ function EmailPreview({ subject, message }: { subject: string; message: string }
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;">
     <div style="padding:24px 28px 18px;text-align:center;border-bottom:1px solid #e5e7eb;background:#fafafa;">
       <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#1a1a19;border-radius:10px;margin-bottom:8px;">
-        <span style="color:#2563eb;font-size:20px;">D</span>
+        <span style="color:#161615;font-size:20px;">D</span>
       </div>
       <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">From the Delulu team</p>
     </div>

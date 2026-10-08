@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const COLORS = ["#F6C324", "#2DB36F", "#3D7BF0", "#F28B30", "#EC5B8D", "#8B5CF6", "#161615"];
+const COLORS = ["#F6C324", "#2DB36F", "#F28B30", "#EC5B8D", "#8B5CF6", "#161615"];
 
 /** One-shot falling confetti for celebration screens (pure CSS, motion-safe). */
 export function ConfettiRain({ count = 26, className }: { count?: number; className?: string }) {

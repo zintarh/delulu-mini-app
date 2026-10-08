@@ -16,6 +16,7 @@ import {
   persistSignInRedirect,
   safeRedirectPath,
 } from "@/lib/auth-redirect";
+import { markGatePassed } from "@/lib/app-gate-pass";
 
 export type PostAuthRouteState =
   | "loading"
@@ -137,6 +138,7 @@ export function usePostAuthRoute() {
       }
 
       consumeSignInRedirect();
+      markGatePassed(address);
       setRouteState("redirecting_home");
       // Preload main shell so home content isn't blocked behind a dynamic chunk.
       void import("@/components/main-app-header");

@@ -37,7 +37,7 @@ const CARDS: FeatureCard[] = [
     headline: "Shape your future",
     body: "Join a campaign and start shaping your future.",
     icon: Compass,
-    bgClassName: "bg-[#071593]",
+    bgClassName: "bg-ink",
     accentClassName: "bg-white/15 text-white",
     glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
     action: { label: "Create forfeit today", href: "/forfeit" },

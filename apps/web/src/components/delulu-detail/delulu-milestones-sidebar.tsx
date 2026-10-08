@@ -519,7 +519,7 @@ function CreatorMilestonesList({
                       href={m.proofLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 text-xs font-bold underline"
+                      className="text-ink text-xs font-bold underline"
                     >
                       View Evidence
                     </a>

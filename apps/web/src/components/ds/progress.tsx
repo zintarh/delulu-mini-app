@@ -15,7 +15,7 @@ export function ProgressBar({
   label?: string;
 }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
-  const fill = { green: "bg-green", yellow: "bg-yellow", blue: "bg-[#3d7bf0]", grey: "bg-faint" }[tone];
+  const fill = { green: "bg-green", yellow: "bg-yellow", blue: "bg-ink", grey: "bg-faint" }[tone];
   return (
     <div
       role="progressbar"

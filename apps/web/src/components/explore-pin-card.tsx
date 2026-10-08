@@ -19,6 +19,7 @@ import {
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getPinCardAspectClassFromId } from "@/lib/pin-card-aspect";
+import { GoalIconPanel } from "@/components/goal-icon";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
@@ -144,10 +145,7 @@ export function ExplorePinCard({
     [delusion.onChainId, delusion.id],
   );
 
-  const addrHex = delusion.creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  const cardGradient = `linear-gradient(140deg, hsl(${h1},50%,20%) 0%, hsl(${h2},55%,12%) 100%)`;
+  const cardGradient = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
   const handleWarm = () => {
     router.prefetch(href);
@@ -266,9 +264,9 @@ export function ExplorePinCard({
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-[20px] bg-muted",
-          pinAspectClass,
+          coverImageSrc ? pinAspectClass : "aspect-[4/3]",
         )}
-        style={{ background: cardGradient }}
+        style={coverImageSrc ? { background: cardGradient } : undefined}
       >
         <Link
           href={href}
@@ -293,9 +291,13 @@ export function ExplorePinCard({
             {...coverLoadProps}
             unoptimized={coverImageSrc.startsWith("data:")}
           />
-        ) : null}
+        ) : (
+          <GoalIconPanel text={headlinePending ? null : headline} seed={String(delusion.onChainId ?? delusion.id)} className="pointer-events-none" />
+        )}
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
+        {coverImageSrc ? (
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
+        ) : null}
 
         {endedDurationLabel ? (
           <span className="pointer-events-none absolute left-3 top-3 z-[2] rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white/90 backdrop-blur-md">

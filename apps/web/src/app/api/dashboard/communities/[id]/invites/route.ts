@@ -63,7 +63,7 @@ export async function POST(
       html: `
         <p>Hi,</p>
         <p>You've been invited to become a community admin for <strong>${community.name}</strong> on Delulu.</p>
-        <p><a href="${inviteUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Accept invite</a></p>
+        <p><a href="${inviteUrl}" style="display:inline-block;padding:10px 20px;background:#161615;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Accept invite</a></p>
         <p>This link expires in 7 days.</p>
         <p style="color:#6b7280;font-size:12px;">If you didn't expect this, you can safely ignore this email.</p>
       `,

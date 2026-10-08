@@ -25,10 +25,10 @@ const SLIDE_BG: Record<number, string> = {
   0: "#0d0011",   // Intro      — near-black purple
   1: "#881337",   // Delulus    — deep crimson
   2: "#14532d",   // Milestones — forest green
-  3: "#1e1b4b",   // Rate       — deep indigo
+  3: "#3a2a05",   // Rate       — deep gold
   4: "#0d0011",   // Tone       — overridden by tone
   5: "#78350f",   // Archetype  — amber/burnt
-  6: "#0c1445",   // Insight    — ocean navy
+  6: "#161615",   // Insight    — ink
   7: "#0d0011",   // CTA        — back to dark
 };
 

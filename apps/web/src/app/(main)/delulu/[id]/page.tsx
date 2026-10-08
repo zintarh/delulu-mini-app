@@ -572,7 +572,7 @@ export default function DeluluPage() {
             particleCount: 80,
             spread: 65,
             origin: { y: 0.55 },
-            colors: ["#f6c324", "#22C55E", "#3B82F6"],
+            colors: ["#f6c324", "#22C55E", "#161615"],
           });
         }
       } catch {}
@@ -1077,7 +1077,7 @@ export default function DeluluPage() {
   const safeDelulu = delulu!;
 
   const bannerImage =
-    normalizeDeluluImageSrc(safeDelulu.bgImageUrl) ?? "/templates/t0.png";
+    normalizeDeluluImageSrc(safeDelulu.bgImageUrl);
   const canAddMilestones =
     safeDelulu.resolutionDeadline && new Date() < safeDelulu.resolutionDeadline;
   const isDeluluEnded =

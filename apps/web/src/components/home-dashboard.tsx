@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
-import { DailyGoalCard, HomeGreeting, WeekFlames } from "@/components/home/home-progress";
+import { DailyGoalCard, HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ interface HomeDashboardProps {
 
 /**
  * Home (redesign — docs/redesign/screens/Home.dc.html): greeting, free daily
- * money, daily goal + chest, today's quests and the week's flames. The HUD (level, streak, points, alerts) lives in the
+ * money, daily goal with Lulu's mood, and today's quests. The HUD (level, streak, points, alerts) lives in the
  * shared mobile top bar.
  */
 export function HomeDashboard({ className }: HomeDashboardProps) {
@@ -53,7 +53,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           <div id="forfeit-day-card" className="mt-2">
             <ForfeitDayCard address={address} />
           </div>
-          <WeekFlames address={address} className="mt-2" />
         </>
       ) : (
         <div id="forfeit-day-card">

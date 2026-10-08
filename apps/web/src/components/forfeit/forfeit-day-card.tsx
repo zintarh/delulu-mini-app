@@ -7,15 +7,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatUnits } from "viem";
 import {
   Calendar,
-  Camera,
   ExternalLink,
-  Image as ImageIcon,
   Loader2,
-  MapPin,
   Plus,
   ShieldCheck,
 } from "lucide-react";
-import { Bolt, CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass, type HabitTint } from "@/components/ds";
+import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass } from "@/components/ds";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
@@ -58,6 +55,7 @@ import {
   FEED_CARD_SUBTITLE_CLASS,
   FEED_CARD_TITLE_CLASS,
 } from "@/components/feed-card-layout";
+import { goalIconFor, goalTintFor } from "@/components/goal-icon";
 
 type PeriodStatus = "past" | "current" | "upcoming";
 
@@ -437,7 +435,8 @@ function ForfeitTaskCard({
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
 
   const isDue = canSubmit && !proofSubmitted;
-  const tile = evidenceTile(item.evidenceType);
+  const tileIcon = goalIconFor(item.title);
+  const tileTint = goalTintFor(String(item.onChainCommitmentId ?? item.title ?? ""));
   const dayLabel = `Day ${day.calendarPeriodIndex + 1}/${totalPeriods}`;
   const timeLabel = (() => {
     const at = outcome === "won" && day.period?.resolvedAt ? new Date(day.period.resolvedAt) : day.periodDeadline;
@@ -452,7 +451,7 @@ function ForfeitTaskCard({
         isDue ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
       )}
     >
-      <HabitTile icon={tile.icon} tint={tile.tint} />
+      <HabitTile icon={tileIcon} tint={tileTint} />
       <div className="min-w-0 flex-1">
         {href ? (
           <Link
@@ -466,7 +465,6 @@ function ForfeitTaskCard({
         )}
         {outcome === "won" ? (
           <div className="mt-1.5 flex items-center gap-1.5">
-            <Bolt size={14} />
             <span className="label-mono text-[10px] text-blue">{dayLabel}</span>
             <span className="label-mono text-[10px] text-muted-foreground">· {timeLabel}</span>
           </div>
@@ -490,13 +488,6 @@ function ForfeitTaskCard({
       <div className="relative z-10 shrink-0">{action ?? statusPill}</div>
     </div>
   );
-}
-
-/** Habit tile icon/color by how the proof is captured. */
-function evidenceTile(evidenceType: string): { icon: typeof Camera; tint: HabitTint } {
-  if (evidenceType === "camera") return { icon: Camera, tint: "pink" };
-  if (evidenceType === "gps-checkin") return { icon: MapPin, tint: "green" };
-  return { icon: ImageIcon, tint: "blue" };
 }
 
 function creatorDisplayName(item: ForfeitFeedItem): string {

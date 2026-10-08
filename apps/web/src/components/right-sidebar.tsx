@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { cn, formatGAmountInt } from "@/lib/utils";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { GoalIconPanel } from "@/components/goal-icon";
 
 const DELULU_MONDAY_NOTION_URL =
   "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
@@ -20,12 +21,8 @@ type SearchResult = {
   totalSupportCollected: number;
 };
 
-function tileGradient(creator: string) {
-  const hex = creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  return `linear-gradient(140deg, hsl(${h1},50%,25%) 0%, hsl(${h2},55%,15%) 100%)`;
-}
+/** Neutral backdrop shown behind a cover image while it loads. */
+const TILEGRADIENT = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,9 +184,12 @@ export function RightSidebar() {
                     className="w-full flex items-center gap-2.5 py-2.5 hover:bg-muted/50 rounded-xl px-2 -mx-2 transition-colors text-left"
                   >
                     <div
-                      className="shrink-0 w-10 h-10 rounded-lg overflow-hidden"
-                      style={{ background: tileGradient(d.creator) }}
+                      className="relative shrink-0 w-10 h-10 rounded-lg overflow-hidden"
+                      style={d.bgImageUrl ? { background: TILEGRADIENT } : undefined}
                     >
+                      {!d.bgImageUrl && (
+                        <GoalIconPanel text={d.content} seed={String(d.id)} iconClassName="h-5 w-5" />
+                      )}
                       {d.bgImageUrl && (
                         <img
                           src={d.bgImageUrl}

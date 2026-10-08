@@ -520,7 +520,7 @@ export function ForfeitAdminPageClient() {
             <DashboardBarChart
               data={toChartData(analytics?.growthCumulative ?? []).map((d) => ({
                 ...d,
-                color: "#2563eb",
+                color: "#161615",
               }))}
               height={200}
             />

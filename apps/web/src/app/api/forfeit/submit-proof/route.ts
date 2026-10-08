@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyImageProof } from "@/lib/ai/verify-image-proof";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { recordApprovedProof } from "@/lib/proof-reward/grant";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -85,6 +86,16 @@ export async function POST(request: NextRequest) {
         { status: 422 },
       );
     }
+
+    // Lets the on-chain submission of this exact proof URL earn the per-proof
+    // G$ reward (see lib/proof-reward/grant.ts). Only AI-reviewed proofs get
+    // a row here; friend-verified ones are gated on the friend's approval.
+    await recordApprovedProof(admin, {
+      wallet: walletAddress,
+      kind: "forfeit",
+      proofUrl: proofUrls[0],
+      refId: commitment.id,
+    });
   }
 
   // "self" and "friend" methods aren't AI-gated: resolveCommitmentSuccess itself

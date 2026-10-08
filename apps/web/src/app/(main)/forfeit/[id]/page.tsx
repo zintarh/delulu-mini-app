@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Camera, Check, ChevronLeft, Clock, Image as ImageIcon, MapPin, MoreHorizontal } from "lucide-react";
+import { Camera, Check, ChevronLeft, Clock, MoreHorizontal } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { Chest, Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
@@ -13,6 +13,7 @@ import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
+import { goalIconFor, goalTintFor } from "@/components/goal-icon";
 
 type NodeState = "kept" | "missed" | "now" | "now-done" | "locked";
 
@@ -57,12 +58,8 @@ export default function ContractDetailPage() {
   const deadline = chain?.currentPeriodDeadline ? Number(chain.currentPeriodDeadline) : null;
   const countdown = useCountdown(chain?.active ? deadline : null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const tile =
-    item?.evidenceType === "camera"
-      ? { icon: Camera, tint: "pink" as const, label: "Live camera" }
-      : item?.evidenceType === "gps-checkin"
-        ? { icon: MapPin, tint: "green" as const, label: "Check-in" }
-        : { icon: ImageIcon, tint: "blue" as const, label: "Daily photo" };
+  const proofLabel =
+    item?.evidenceType === "camera" ? "Live camera" : item?.evidenceType === "gps-checkin" ? "Check-in" : "Daily photo";
   const periods = useMemo(() => item?.periods ?? [], [item]);
   const amount = item ? formatStakeAmount(item) : null;
   const symbol = chain?.token ? getTokenSymbol(chain.token) : "G$";
@@ -105,10 +102,10 @@ export default function ContractDetailPage() {
         <Link href={APP_HOME} aria-label="Back" className={ICON_BUTTON_CLASS}>
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
         </Link>
-        <HabitTile icon={tile.icon} tint={tile.tint} size={44} />
+        <HabitTile icon={goalIconFor(item?.title)} tint={goalTintFor(String(id))} size={44} />
         <div className="min-w-0 flex-1">
           <div className="label-mono truncate text-[10px] text-muted-foreground">
-            Nº {String(id).padStart(4, "0")} · {tile.label}
+            Nº {String(id).padStart(4, "0")} · {proofLabel}
           </div>
           <div className="mt-0.5 truncate text-lg font-bold">{item?.title ?? "Loading…"}</div>
         </div>

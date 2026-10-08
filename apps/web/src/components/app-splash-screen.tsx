@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { AppLogo } from "@/components/app-logo";
 import { cn } from "@/lib/utils";
 
-// Keeps the splash up long enough to read as intentional even on a fast
-// load, without ever blocking on a slow one — whichever finishes first past
-// this floor wins.
-const MIN_VISIBLE_MS = 900;
+// No artificial floor: the splash leaves as soon as the page has loaded.
+const MIN_VISIBLE_MS = 0;
 const FADE_MS = 300;
 
 /**

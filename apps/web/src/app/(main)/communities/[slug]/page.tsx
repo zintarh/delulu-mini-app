@@ -142,7 +142,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
             "flex h-9 w-full items-center justify-center rounded-xl text-sm font-bold transition-colors",
             isClosed
               ? "border border-border/60 bg-muted/30 text-muted-foreground"
-              : "bg-blue text-white shadow-[0_2px_10px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90",
+              : "bg-blue text-white shadow-[0_2px_10px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90",
           )}
         >
           {isClosed ? "View campaign" : "View & join →"}

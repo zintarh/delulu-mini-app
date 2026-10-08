@@ -330,10 +330,7 @@ export function DeluluCard({
     }
   };
 
-  const addrHex = delusion.creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  const cardGradient = `linear-gradient(140deg, hsl(${h1},50%,20%) 0%, hsl(${h2},55%,12%) 100%)`;
+  const cardGradient = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
   const milestoneProgressPct =
     totalCount > 0
@@ -446,7 +443,7 @@ export function DeluluCard({
               cy="18"
               r="14"
               fill="none"
-              stroke="#2563eb"
+              stroke="#161615"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 14}

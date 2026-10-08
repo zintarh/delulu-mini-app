@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Chest, Flame, GameCard, ProgressBar } from "@/components/ds";
-import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
+import { Flame, GameCard, LuluScene, ProgressBar, luluWeatherFor, type LuluWeather } from "@/components/ds";
 import { useUserStreak } from "@/hooks/useUserStreak";
+import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { cn } from "@/lib/utils";
 
 /** Today's quest tally from the user's active contracts. */
@@ -49,34 +49,36 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
   return (
     <div className="animate-rise">
       <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">
-        {greetingFor()}, {name}
+        {greetingFor()}, {name.charAt(0).toUpperCase() + name.slice(1)}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">{sub}</p>
     </div>
   );
 }
 
-/** Daily goal bar with the chest that opens when every quest is kept. */
-export function DailyGoalCardView({ kept, total }: { kept: number; total: number }) {
-  if (total === 0) {
-    return (
-      <Link href="/forfeit" className="block text-ink no-underline">
-        <GameCard className="flex animate-rise items-center gap-4 p-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between">
-              <span className="font-extrabold">Daily goal</span>
-              <span className="label-mono text-[11px] font-semibold text-ink">0 / 0</span>
-            </div>
-            <ProgressBar value={0} className="mt-2.5" label="Daily goal" />
-            <div className="label-mono mt-2 text-[10px] text-muted-foreground">Start a contract to fill the chest</div>
-          </div>
-          <Chest size={56} grey />
-        </GameCard>
-      </Link>
-    );
-  }
-  const done = kept >= total;
-  return (
+/** One short line under the bar; missed days take over from the progress hint. */
+function goalHint(weather: LuluWeather, total: number, daysSinceKept: number | null): string {
+  if (weather === "storm") return "It's cold without you. Come back";
+  if (weather === "sad") return `${(daysSinceKept ?? 1) - 1} days missed. Lulu's sad`;
+  if (weather === "gloomy") return "Lulu missed you yesterday";
+  if (total === 0) return "Start a contract. Lulu's waiting";
+  if (weather === "sunny") return "Lulu's happy. See you tomorrow";
+  return total === 1 ? "Keep it today to make Lulu's day" : `Keep all ${total} to make Lulu's day`;
+}
+
+/** Daily goal bar, with Lulu showing how your habits are going. */
+export function DailyGoalCardView({
+  kept,
+  total,
+  daysSinceKept = null,
+}: {
+  kept: number;
+  total: number;
+  daysSinceKept?: number | null;
+}) {
+  const done = total > 0 && kept >= total;
+  const weather = luluWeatherFor({ keptToday: done, daysSinceKept });
+  const card = (
     <GameCard className="flex animate-rise items-center gap-4 p-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between">
@@ -85,21 +87,26 @@ export function DailyGoalCardView({ kept, total }: { kept: number; total: number
             {kept} / {total}
           </span>
         </div>
-        <ProgressBar value={kept / total} className="mt-2.5" label="Daily goal" />
-        <div className="label-mono mt-2 text-[10px] text-muted-foreground">
-          {done ? "Chest opened. See you tomorrow" : `Finish all ${total} to open the chest`}
-        </div>
+        <ProgressBar value={total > 0 ? kept / total : 0} className="mt-2.5" label="Daily goal" />
+        <div className="label-mono mt-2 text-[10px] text-muted-foreground">{goalHint(weather, total, daysSinceKept)}</div>
       </div>
-      <span className={cn("inline-block shrink-0", !done && "animate-wiggle")}>
-        <Chest size={56} />
-      </span>
+      <LuluScene weather={weather} />
     </GameCard>
+  );
+  // Nothing running yet: the whole card is the way in.
+  return total === 0 ? (
+    <Link href="/forfeit" className="block text-ink no-underline">
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }
 
 export function DailyGoalCard({ address }: { address: string }) {
   const { total, kept } = useTodayQuests(address);
-  return <DailyGoalCardView kept={kept} total={total} />;
+  const { daysSinceKept } = useUserStreak(address);
+  return <DailyGoalCardView kept={kept} total={total} daysSinceKept={daysSinceKept} />;
 }
 
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -131,9 +138,4 @@ export function WeekFlamesView({ last7Days, className }: { last7Days: boolean[];
       })}
     </GameCard>
   );
-}
-
-export function WeekFlames({ address, className }: { address: string; className?: string }) {
-  const { last7Days } = useUserStreak(address);
-  return <WeekFlamesView last7Days={last7Days} className={className} />;
 }

@@ -139,6 +139,9 @@ export function DashboardCard({
   return <div className={classes}>{children}</div>;
 }
 
+/** Palette colours that keep white initials readable (no blue). */
+const AVATAR_COLORS = ["#161615", "#1f9a5b", "#c23e6e", "#b4410c", "#6d3fd6"];
+
 export function DashboardCardAvatar({
   label,
   className,
@@ -146,14 +149,14 @@ export function DashboardCardAvatar({
   label: string;
   className?: string;
 }) {
-  const hue = label.charCodeAt(0) % 360;
+  const bg = AVATAR_COLORS[(label.charCodeAt(0) || 0) % AVATAR_COLORS.length];
   return (
     <div
       className={cn(
         "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white",
         className,
       )}
-      style={{ backgroundColor: `hsl(${hue} 55% 48%)` }}
+      style={{ backgroundColor: bg }}
     >
       {label[0]?.toUpperCase() ?? "?"}
     </div>

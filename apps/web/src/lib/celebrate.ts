@@ -13,7 +13,7 @@ async function loadConfetti(): Promise<ConfettiFn | null> {
   }
 }
 
-const REWARD_COLORS = ["#f6c324", "#4f46e5", "#35d07f", "#ffffff", "#38bdf8"];
+const REWARD_COLORS = ["#f6c324", "#161615", "#35d07f", "#ffffff", "#ec5b8d"];
 
 /** Burst celebration used after successful claims / joins. */
 export async function fireConfetti() {

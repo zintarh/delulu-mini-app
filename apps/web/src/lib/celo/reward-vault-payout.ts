@@ -68,6 +68,11 @@ export function onboardingGiftRewardId(wallet: `0x${string}`): `0x${string}` {
   return keccak256(toHex(`onboarding-gift:${wallet.toLowerCase()}`));
 }
 
+/** Deterministic per-proof rewardId — one reward per on-chain proof tx, ever. */
+export function proofRewardRewardId(proofTxHash: `0x${string}`): `0x${string}` {
+  return keccak256(toHex(`proof-reward:${proofTxHash.toLowerCase()}`));
+}
+
 export type VaultDepositResult = {
   txHash: `0x${string}` | null;
   amountWei: string;
@@ -180,6 +185,20 @@ export async function payoutOnboardingGift(params: {
     amountWhole: params.amountWhole,
     rewardId: onboardingGiftRewardId(params.wallet),
     revertContext: `onboarding gift for ${params.wallet}`,
+  });
+}
+
+/** Deposits a per-proof G$ reward into RewardVault for `wallet`. */
+export async function payoutProofReward(params: {
+  wallet: `0x${string}`;
+  proofTxHash: `0x${string}`;
+  amountWhole: number;
+}): Promise<VaultDepositResult> {
+  return depositToRewardVault({
+    recipientWallet: params.wallet,
+    amountWhole: params.amountWhole,
+    rewardId: proofRewardRewardId(params.proofTxHash),
+    revertContext: `proof reward for ${params.proofTxHash}`,
   });
 }
 

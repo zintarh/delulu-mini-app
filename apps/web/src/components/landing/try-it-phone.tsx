@@ -19,7 +19,7 @@ type Stake = "word" | "money";
 
 /**
  * Hero demo: a phone running a mini "New contract" screen. Habits auto-cycle
- * until the visitor taps one; the stake toggle switches points and Lulu's mood.
+ * until the visitor taps one; the stake toggle switches Lulu's mood.
  */
 export function TryItPhone() {
   const [habit, setHabit] = useState<HabitId>("read");
@@ -44,7 +44,7 @@ export function TryItPhone() {
     <div className="relative flex min-w-0 flex-[1_1_420px] justify-center py-5">
       <ConfettiStatic
         pieces={[
-          { left: "6%", top: "10%", color: "#3D7BF0", rotate: 20 },
+          { left: "6%", top: "10%", color: "#161615", rotate: 20 },
           { left: "90%", top: "6%", color: "#EC5B8D", rotate: -25, w: 10, h: 16 },
           { left: "94%", top: "70%", color: "#2DB36F", rotate: 35 },
           { left: "2%", top: "78%", color: "#F6C324", rotate: -15, w: 14, h: 20 },
@@ -60,7 +60,7 @@ export function TryItPhone() {
 
       <div className="relative z-[2] w-[340px] max-w-full animate-rise rounded-[50px] bg-ink p-[11px] shadow-lift">
         <div className="absolute left-1/2 top-5 z-[2] -ml-[46px] h-[26px] w-[92px] rounded-[14px] bg-ink" aria-hidden />
-        <div className="flex flex-col gap-3.5 overflow-hidden rounded-[40px] bg-paper px-4 pb-[18px] pt-[54px]">
+        <div className="flex min-h-[600px] flex-col gap-3.5 overflow-hidden rounded-[40px] bg-paper px-4 pb-[18px] pt-[54px]">
           <div className="flex items-center justify-between">
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-line bg-white" aria-hidden>
               <X className="h-4 w-4" strokeWidth={2.4} />
@@ -135,24 +135,7 @@ export function TryItPhone() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 overflow-hidden rounded-2xl border-2 border-line bg-white">
-            <div className="flex flex-col gap-1 px-3.5 py-3">
-              <span className="label-mono text-[9px] text-muted-foreground">Each day you keep</span>
-              <span key={stake} className={cn("inline-block animate-bounce-in font-display text-[34px] font-extrabold leading-none", !word && "text-blue")}>
-                {word ? "+100" : "+1,000"}
-              </span>
-              <span className="text-xs font-semibold">points</span>
-            </div>
-            <div className="flex flex-col gap-1 border-l-2 border-dashed border-line px-3.5 py-3">
-              <span className="label-mono text-[9px] text-muted-foreground">Full week</span>
-              <span className={cn("font-display text-[34px] font-extrabold leading-none", !word && "text-blue")}>
-                {word ? "700" : "7,000"}
-              </span>
-              <span className="text-xs font-semibold">points</span>
-            </div>
-          </div>
-
-          <Link href="/sign-in" className={gameButtonClass({ variant: "ink", full: true, className: "h-[54px] text-sm" })}>
+          <Link href="/sign-in" className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto h-[54px] text-sm" })}>
             Sign this contract
           </Link>
         </div>

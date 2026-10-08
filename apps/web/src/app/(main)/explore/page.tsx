@@ -161,6 +161,8 @@ export default function CampaignsPage() {
                         milestoneCount: 0,
                         isJoined: false,
                         isFreeToJoin: c.is_free_to_join,
+                        joinAmount: c.join_amount,
+                        joinToken: c.join_token ?? undefined,
                         community: {
                           name: c.community_name,
                           slug: c.community_slug,

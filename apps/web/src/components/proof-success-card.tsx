@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
 import { Bolt, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { resetProofReward } from "@/lib/proof-reward/client";
 
 export async function fireConfetti() {
   try {
@@ -15,7 +16,7 @@ export async function fireConfetti() {
         particleCount: 100,
         spread: 70,
         origin: { y: 0.35 },
-        colors: ["#F6C324", "#3D7BF0", "#2DB36F", "#EC5B8D", "#161615"],
+        colors: ["#F6C324", "#2DB36F", "#EC5B8D", "#161615"],
       });
     }
   } catch {
@@ -131,7 +132,7 @@ export function ProofSuccessCard({
       </p>
 
       <div className="mt-6 flex w-full gap-2.5">
-        {statBox("Points", "#2F6BE0", <><Bolt size={20} />+{pointsAwarded.toLocaleString()}</>, ".3s")}
+        {statBox("Points", "#161615", <><Bolt size={20} />+{pointsAwarded.toLocaleString()}</>, ".3s")}
         {statBox("Streak", "#C25E12", <><Flame size={20} />{streak}</>, ".4s")}
         {progress
           ? statBox("Progress", "#157041", progress, ".5s")
@@ -178,7 +179,12 @@ export function ProofSuccessCard({
       <GameButton
         full
         className="mt-4"
-        onClick={onDone}
+        onClick={() => {
+          // An unclaimed reward stays in the vault (rewards banner picks it
+          // up) — just stop this outcome from showing on the next card.
+          resetProofReward();
+          onDone();
+        }}
       >
         Continue
       </GameButton>

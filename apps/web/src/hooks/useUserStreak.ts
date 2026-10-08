@@ -30,6 +30,8 @@ export interface UserStreakResult {
   /** Unique days with a verified milestone in the current calendar month (UTC) */
   activeDaysThisMonth: number;
   totalVerified: number;
+  /** Whole days since the most recent kept day (0 = today), null if never. UTC days, like the streak. */
+  daysSinceKept: number | null;
   isLoading: boolean;
 }
 
@@ -108,9 +110,14 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
       if (dayMs >= monthStartUtc && dayMs <= todayUtc) activeDaysThisMonth++;
     }
 
+    let lastKeptDay = -Infinity;
+    for (const dayMs of activeDays) if (dayMs <= todayUtc && dayMs > lastKeptDay) lastKeptDay = dayMs;
+    const daysSinceKept = Number.isFinite(lastKeptDay) ? Math.round((todayUtc - lastKeptDay) / DAY_MS) : null;
+
     return {
       currentStreak,
       last7Days,
+      daysSinceKept,
       activeDaysThisMonth,
       totalVerified: milestones.length,
       isLoading: loading && !data,

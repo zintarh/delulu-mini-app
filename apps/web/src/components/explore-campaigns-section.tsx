@@ -63,7 +63,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
 
       {isLoading ? (
         <div className="mt-6 flex flex-col gap-3">
-          <div className="h-[186px] animate-pulse rounded-3xl bg-[#dde7f6]" />
+          <div className="h-[186px] animate-pulse rounded-3xl bg-[#fdf1c7]" />
           {Array.from({ length: 3 }).map((_, i) => (
             <CampaignTicketRowSkeleton key={i} />
           ))}

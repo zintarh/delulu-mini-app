@@ -313,7 +313,7 @@ function buildAnalytics(
       value: byStatus.get(key) ?? 0,
       color:
         key === "active"
-          ? "#2563eb"
+          ? "#161615"
           : key === "completed"
             ? "#10b981"
             : key === "forfeited"

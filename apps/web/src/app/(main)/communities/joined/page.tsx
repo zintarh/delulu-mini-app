@@ -66,7 +66,7 @@ function CampaignCard({ c }: { c: JoinedDashboardCampaign }) {
             unoptimized
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-[#1e3a8a]">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-delulu-blue via-delulu-blue/80 to-black">
             <Target className="h-10 w-10 text-white/20" />
           </div>
         )}

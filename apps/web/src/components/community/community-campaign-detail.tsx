@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Camera, Check, ChevronLeft, Loader2, Plus, Share } from "lucide-react";
 import { gameButtonClass } from "@/components/ds";
@@ -381,11 +382,17 @@ export function CommunityCampaignDetail({
     </button>
   ) : null;
 
+  const stats = [
+    ...(poolValue > 0 ? [{ value: compact(poolValue), label: "G$ pool" }] : []),
+    { value: String(participantCount), label: "In" },
+    { value: isClosed ? "End" : `${daysLeft}D`, label: isClosed ? "Status" : "Left" },
+  ];
+
   return (
     <>
       <main className={cn("mx-auto max-w-xl", cta ? "pb-32" : "pb-10")}>
         {/* Header (design: CampaignDetail.dc.html) */}
-        <div className="bg-[#dde7f6] px-5 pb-12 pt-4">
+        <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
           <div className="flex justify-between">
             <Link href="/explore" aria-label="Back" className={ICON_BUTTON_CLASS}>
               <ChevronLeft className="h-5 w-5" strokeWidth={2} />
@@ -394,24 +401,25 @@ export function CommunityCampaignDetail({
               {inviteCopied ? <Check className="h-5 w-5 text-green-edge" strokeWidth={2.4} /> : <Share className="h-5 w-5" strokeWidth={2} />}
             </button>
           </div>
-          <span className="label-mono mt-6 block text-[#1e4fa8]">{communityName} campaign</span>
+          {campaign.cover_image_url ? (
+            <div className="relative mt-4 aspect-[16/9] w-full animate-rise overflow-hidden rounded-3xl border-2 border-white bg-white/60 shadow-edge-sm">
+              <Image src={campaign.cover_image_url} alt="" fill sizes="(max-width: 640px) 100vw, 576px" className={cn("object-cover", isClosed && "grayscale")} unoptimized priority />
+            </div>
+          ) : null}
+          <span className="label-mono mt-6 block text-[#8a6a00]">{communityName} campaign</span>
           <h1 className="m-0 mt-1 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">{campaign.title}</h1>
         </div>
 
         {/* Stats ticket */}
         <div className="relative -mt-7 px-5">
           <div className="relative flex animate-rise rounded-3xl border-2 border-line bg-white shadow-[0_0_0_1px_#e6e6e0]">
-            {[
-              { value: poolValue > 0 ? compact(poolValue) : "—", label: "G$ pool" },
-              { value: String(participantCount), label: "In" },
-              { value: isClosed ? "End" : `${daysLeft}D`, label: isClosed ? "Status" : "Left" },
-            ].map((stat, i) => (
+            {stats.map((stat, i) => (
               <div key={stat.label} className={cn("flex-1 p-4 text-center", i > 0 && "border-l-2 border-dashed border-line")}>
                 <div className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{stat.value}</div>
                 <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">{stat.label}</div>
               </div>
             ))}
-            {["33.333%", "66.666%"].map((left) => (
+            {stats.slice(1).map((_, i) => `${((i + 1) * 100) / stats.length}%`).map((left) => (
               <span key={left}>
                 <span className="absolute -top-2.5 h-5 w-5 -translate-x-1/2 rounded-full bg-paper" style={{ left }} />
                 <span className="absolute -bottom-2.5 h-5 w-5 -translate-x-1/2 rounded-full bg-paper" style={{ left }} />
@@ -562,7 +570,7 @@ export function CommunityCampaignDetail({
       </main>
 
       {cta ? (
-        <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+        <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5 lg:left-24" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
           {cta}
         </div>
       ) : null}

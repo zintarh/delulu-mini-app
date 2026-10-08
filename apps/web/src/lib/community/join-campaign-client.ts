@@ -4,6 +4,7 @@ import { joinCommunityCampaign as joinCommunityCampaignApi } from "@/hooks/use-h
 import { celebrateCampaignJoin } from "@/lib/celebrate";
 import { waitForMilestoneCompletionInGraph } from "@/lib/community/campaign-subgraph";
 import { formatProofError } from "@/lib/community/format-proof-error";
+import { resetProofReward, startProofReward } from "@/lib/proof-reward/client";
 
 type JoinOnChain = (challengeId: number | bigint) => Promise<`0x${string}` | string>;
 
@@ -59,6 +60,7 @@ export async function submitCommunityProofWithWallet(input: {
   ) => Promise<unknown>;
   onStepChange?: (step: ProofStep) => void;
 }) {
+  resetProofReward();
   input.onStepChange?.("ai-verifying");
   const res = await fetch(`/api/community/campaigns/${input.campaignId}/proof`, {
     method: "POST",
@@ -79,12 +81,18 @@ export async function submitCommunityProofWithWallet(input: {
   if (json.requiresOnChain && json.challengeId != null) {
     input.onStepChange?.("wallet-sign");
     const canonicalProofUrl = json.proofUrl ?? input.proofUrls[0];
+    let proofTxHash: unknown;
     try {
-      await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
+      proofTxHash = await input.submitOnChain(json.challengeId, json.milestoneId, canonicalProofUrl);
     } catch (err) {
       throw new Error(formatProofError(err).message);
     }
     input.onStepChange?.("confirming");
+    // Per-proof G$ reward — runs in the background; the success card picks up
+    // the outcome and offers the claim once the deposit lands.
+    if (typeof proofTxHash === "string" && proofTxHash.startsWith("0x")) {
+      startProofReward({ kind: "campaign", proofTxHash });
+    }
     // Subgraph indexing can take up to ~30s and the caller already treats
     // milestone completion as optimistic (updates the UI before the indexer
     // catches up), so don't block the user on it — let it finish in the

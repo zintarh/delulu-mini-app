@@ -13,7 +13,7 @@ function a11y(label?: string) {
 
 const INK = "#161615";
 
-export type LuluMood = "dream" | "kept" | "worried";
+export type LuluMood = "dream" | "kept" | "worried" | "gloomy" | "sad" | "storm";
 
 /** Lulu — the Delulu mascot and logo mark. */
 export function Lulu({
@@ -25,9 +25,16 @@ export function Lulu({
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" className={cn("shrink-0", className)} {...a11y(label)}>
       <path d="M30 11.5q3-7 10-5" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
-      <circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke={INK} strokeWidth="3" />
-      <circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
-      <circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
+      {/* Out in the cold for a week: the yellow fades to a frosty straw. */}
+      <circle cx="32" cy="35" r="23.5" fill={mood === "storm" ? "#E4DCB2" : "#F6C324"} stroke={INK} strokeWidth="3" />
+      {mood === "storm" ? (
+        <path d="M14 30l3 1.5M15 37l3-.5M47 29l3-1.5M46 37l3 .5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      ) : (
+        <>
+          <circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
+          <circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
+        </>
+      )}
       {mood === "dream" && (
         <>
           <ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
@@ -52,6 +59,37 @@ export function Lulu({
           <circle cx="39" cy="34.6" r="2.5" fill={INK} />
           <path d="M19.5 24.5l8 2.2M44.5 24.5l-8 2.2" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
           <path d="M27.5 45q2.25-2.4 4.5 0t4.5 0" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+        </>
+      )}
+      {mood === "gloomy" && (
+        <>
+          <ellipse cx="25" cy="32" rx="5.4" ry="5.8" fill="#fff" stroke={INK} strokeWidth="2.6" />
+          <ellipse cx="39" cy="32" rx="5.4" ry="5.8" fill="#fff" stroke={INK} strokeWidth="2.6" />
+          <circle cx="25" cy="34.4" r="2.4" fill={INK} />
+          <circle cx="39" cy="34.4" r="2.4" fill={INK} />
+          {/* Heavy lids */}
+          <path d="M19.2 32.4a5.8 5.8 0 0 1 11.6 0zM33.2 32.4a5.8 5.8 0 0 1 11.6 0z" fill="#F6C324" stroke={INK} strokeWidth="2.6" strokeLinejoin="round" />
+          <path d="M27.5 45.5h9" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+        </>
+      )}
+      {mood === "sad" && (
+        <>
+          <path d="M20 26.8l7-2.6M44 26.8l-7-2.6" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+          <ellipse cx="25" cy="32.5" rx="5.2" ry="6" fill="#fff" stroke={INK} strokeWidth="2.6" />
+          <ellipse cx="39" cy="32.5" rx="5.2" ry="6" fill="#fff" stroke={INK} strokeWidth="2.6" />
+          <circle cx="25" cy="35" r="2.5" fill={INK} />
+          <circle cx="39" cy="35" r="2.5" fill={INK} />
+          {/* Tear */}
+          <path d="M20.5 40q-2.2 3.4 0 5q2.2-1.6 0-5z" fill="#fff" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M26.5 47.5q5.5-5.2 11 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+        </>
+      )}
+      {mood === "storm" && (
+        <>
+          {/* Eyes squeezed shut, mouth wobbling */}
+          <path d="M20.5 32.5q4.5 3.6 9 0M34.5 32.5q4.5 3.6 9 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+          <path d="M20 26.5l7-2.4M44 26.5l-7-2.4" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M25.5 47.5l2.2-2.4 2.2 2.4 2.1-2.4 2.1 2.4 2.2-2.4 2.2 2.4" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </>
       )}
     </svg>
@@ -110,7 +148,7 @@ export function CoinStack({ locked = false, className }: { locked?: boolean; cla
   );
 }
 
-export function Bolt({ size = 24, color = "#2F6BE0", className, label }: ArtProps & { color?: string }) {
+export function Bolt({ size = 24, color = "#F6C324", className, label }: ArtProps & { color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={cn("shrink-0", className)} {...a11y(label)}>
       <path d="M13 2 4 14h7l-1 8 9-12h-7z" fill={color} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
@@ -146,8 +184,8 @@ export function Trophy({ size = 48, className, label }: ArtProps) {
 export function ShieldBadge({ size = 48, className, label }: ArtProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" className={cn("shrink-0", className)} {...a11y(label)}>
-      <path d="M32 4 54 12v18c0 15-9.5 25-22 30C19.5 55 10 45 10 30V12z" fill="#2F6BE0" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M32 11 47 16.5v13.5c0 10.5-6.4 18-15 21.8z" fill="#5A8BEB" />
+      <path d="M32 4 54 12v18c0 15-9.5 25-22 30C19.5 55 10 45 10 30V12z" fill="#2DB36F" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M32 11 47 16.5v13.5c0 10.5-6.4 18-15 21.8z" fill="#57C98D" />
       <circle cx="32" cy="26" r="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
       <path d="M20.5 44a12 12 0 0 1 23 0" fill="#fff" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
       <circle cx="48" cy="48" r="10" fill="#1F9A5B" stroke={INK} strokeWidth="2.6" />

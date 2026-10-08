@@ -9,6 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/home",
     scope: "/",
     display: "standalone",
+    // When the browser hands a link to the installed app (desktop "Open
+    // supported links", Android links from other apps), reuse the open
+    // window instead of stacking new ones.
+    // (Next's Manifest type has a stale shape for launch_handler, hence the spread.)
+    ...({ launch_handler: { client_mode: ["navigate-existing", "auto"] } } as object),
     background_color: "#f7f7f4",
     theme_color: "#f7f7f4",
     icons: [

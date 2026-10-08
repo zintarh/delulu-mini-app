@@ -197,7 +197,7 @@ export function CampaignJoinModal({
               type="button"
               disabled={joining || !!insufficientBalance || !!atJoinLimit}
               onClick={onConfirm}
-              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {joining ? (
                 <span className="inline-flex items-center gap-2 justify-center">

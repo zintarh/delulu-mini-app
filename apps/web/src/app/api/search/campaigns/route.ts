@@ -13,6 +13,8 @@ export type CampaignSearchResult = {
   display_ends_at: string | null;
   duration_days: number;
   is_free_to_join: boolean;
+  join_amount: number;
+  join_token: string | null;
   community_name: string;
   community_slug: string;
 };
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await admin
     .from("community_campaigns")
     .select(
-      "id, title, description, cover_image_url, display_ends_at, duration_days, is_free_to_join, communities ( name, slug )",
+      "id, title, description, cover_image_url, display_ends_at, duration_days, is_free_to_join, join_amount, join_token, communities ( name, slug )",
     )
     .neq("status", "draft")
     .eq("is_hidden", false)
@@ -51,6 +53,8 @@ export async function GET(req: NextRequest) {
       display_ends_at: (row.display_ends_at as string | null) ?? null,
       duration_days: Number(row.duration_days ?? 30),
       is_free_to_join: row.is_free_to_join !== false,
+      join_amount: Number(row.join_amount ?? 0),
+      join_token: (row.join_token as string | null) ?? null,
       community_name: community?.name ?? "",
       community_slug: community?.slug ?? "",
     };

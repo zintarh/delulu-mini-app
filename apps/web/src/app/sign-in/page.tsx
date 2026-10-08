@@ -25,6 +25,7 @@ import { Lulu, gameButtonClass } from "@/components/ds";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
+import { AppLoader } from "@/components/app-loader";
 
 /** Generous — spans the user actually reading/typing their OTP, not just a network round-trip. */
 const SIGN_IN_TIMEOUT_MS = 3 * 60 * 1000;
@@ -234,15 +235,7 @@ export default function SignInPage() {
       routeState === "redirecting_welcome" ? "Setting up your profile…"
       : routeState === "redirecting_home"  ? "Welcome back…"
       : "Checking your account…";
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
-        <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl opacity-90" />
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {label}
-        </div>
-      </div>
-    );
+    return <AppLoader label={label} />;
   }
 
   if (authenticated && routeState === "needs_ubi_claim") {
@@ -336,7 +329,6 @@ export default function SignInPage() {
             Put your word or a little money on a daily habit. Prove it with a photo.
           </p>
         </div>
-        <p className="label-mono text-[#a3a39c]">The habit contract · Built on Celo</p>
       </div>
 
       {/* Right panel — form */}

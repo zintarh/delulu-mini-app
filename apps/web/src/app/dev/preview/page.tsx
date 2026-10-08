@@ -20,8 +20,13 @@ export default function DevPreviewPage() {
         <DailyMoneyCardView state="claimable" amount="1,234.56" />
         <DailyMoneyCardView state="claimed" countdown="23:59:12" />
         <span className="label-mono text-muted-foreground">Daily goal</span>
-        <DailyGoalCardView kept={2} total={3} />
-        <DailyGoalCardView kept={3} total={3} />
+        <DailyGoalCardView kept={3} total={3} daysSinceKept={0} />
+        <DailyGoalCardView kept={1} total={3} daysSinceKept={1} />
+        <DailyGoalCardView kept={0} total={0} />
+        <span className="label-mono text-muted-foreground">Lulu&apos;s mood (missed days)</span>
+        <DailyGoalCardView kept={0} total={2} daysSinceKept={2} />
+        <DailyGoalCardView kept={0} total={2} daysSinceKept={4} />
+        <DailyGoalCardView kept={0} total={2} daysSinceKept={9} />
         <span className="label-mono text-muted-foreground">Week</span>
         <WeekFlamesView last7Days={[true, true, false, true, true, true, false]} />
       </div>

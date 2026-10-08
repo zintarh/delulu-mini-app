@@ -168,7 +168,7 @@ function ProfileHeader({
     { label: "1ST", name: "First", bg: "#FDF1C7", edge: "#E5B41C", earned: keptDays >= 1 || (points ?? 0) > 0 },
     { label: "7D", name: "Bronze", bg: "#FFD9BF", edge: "#E0915A", earned: currentStreak >= 7 },
     { label: "10", name: "10 proofs", bg: "#C9EBD7", edge: "#7CC49C", earned: keptDays >= 10 },
-    { label: "1K", name: "1K pts", bg: "#D3E2FF", edge: "#8DB0EE", earned: (points ?? 0) >= 1000 },
+    { label: "1K", name: "1K pts", bg: "#FDE6EF", edge: "#F6C3D6", earned: (points ?? 0) >= 1000 },
     { label: "14D", name: "Gold 14d", bg: "#F6C324", edge: "#C99A0A", earned: currentStreak >= 14 },
     { label: "30D", name: "30 days", bg: "#F2B48A", edge: "#C98352", earned: currentStreak >= 30 },
     { label: "100", name: "100", bg: "#C9EBD7", edge: "#7CC49C", earned: keptDays >= 100 },

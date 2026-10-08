@@ -24,10 +24,12 @@ module.exports = {
         "delulu-white": "#ffffff",
         "delulu-light-gray": "#dfdfd9",
         "delulu-border": "#d4d4ce",
+        // Legacy accent token. Blue was dropped from the palette (Oct 2026):
+        // solid → ink, pale → yellow soft, border → yellow line.
         "delulu-blue": {
-          DEFAULT: "#2f6be0",
-          light: "#eef4ff",
-          border: "#b5cbf5",
+          DEFAULT: "#161615",
+          light: "#fdf1c7",
+          border: "#e5b41c",
         },
 
         // Redesign palette — docs/redesign/README.md
@@ -38,7 +40,8 @@ module.exports = {
         yellow: { DEFAULT: "#f6c324", edge: "#c99a0a", soft: "#fdf1c7", line: "#e5b41c" },
         green: { DEFAULT: "#2db36f", strong: "#1f9a5b", edge: "#157041", soft: "#e1f5ea", line: "#b9e5cc" },
         orange: { DEFAULT: "#b4410c", soft: "#fbece3" },
-        blue: { DEFAULT: "#2f6be0", edge: "#1f4fb0", soft: "#eef4ff", line: "#b5cbf5", tint: "#e3edff" },
+        // No blue in the palette: this accent token now maps to ink / yellow.
+        blue: { DEFAULT: "#161615", edge: "#000000", soft: "#fdf1c7", line: "#e5b41c", tint: "#fdf1c7" },
         pink: { DEFAULT: "#c23e6e", soft: "#fde6ef", line: "#f6c3d6", bright: "#ec5b8d" },
         purple: { DEFAULT: "#6d3fd6", soft: "#eee7fe" },
         
@@ -95,8 +98,8 @@ module.exports = {
         "edge-yellow-line": "0 4px 0 #e5b41c",
         "edge-green": "0 4px 0 #1e8a52",
         "edge-green-line": "0 4px 0 #b9e5cc",
-        "edge-blue": "0 4px 0 #1f4fb0",
-        "edge-blue-line": "0 4px 0 #b5cbf5",
+        "edge-blue": "0 4px 0 #000000",
+        "edge-blue-line": "0 4px 0 #e5b41c",
         "edge-pink-line": "0 4px 0 #f6c3d6",
         lift: "0 30px 50px -30px rgba(22,22,21,.55)",
       },

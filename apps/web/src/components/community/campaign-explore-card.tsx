@@ -78,6 +78,7 @@ export function CampaignExploreCard({
     duration_days: campaign.durationDays,
   });
   const poolAmount = campaign.proposedPoolAmount;
+  const hasPool = funded && poolAmount > 0;
   const left = daysLeft(effectiveEndsAt);
   const stakeLabel =
     campaign.isFreeToJoin === false && (campaign.joinAmount ?? 0) > 0
@@ -138,13 +139,13 @@ export function CampaignExploreCard({
           {campaign.title}
         </h3>
 
-        <div className={cn("grid grid-cols-3 gap-2", compact ? "mt-2" : "mt-4")}>
-          <div>
-            <div className="font-display text-2xl font-extrabold leading-none">
-              {funded && poolAmount > 0 ? poolAmount.toLocaleString() : "—"}
+        <div className={cn("grid gap-2", hasPool ? "grid-cols-3" : "grid-cols-2", compact ? "mt-2" : "mt-4")}>
+          {hasPool ? (
+            <div>
+              <div className="font-display text-2xl font-extrabold leading-none">{poolAmount.toLocaleString()}</div>
+              <div className="label-mono mt-1 text-[9px] text-muted-foreground">G$ pool</div>
             </div>
-            <div className="label-mono mt-1 text-[9px] text-muted-foreground">G$ pool</div>
-          </div>
+          ) : null}
           <div>
             <div className="flex items-center gap-1 font-display text-2xl font-extrabold leading-none">
               {campaign.participantAvatars && campaign.participantAvatars.length > 0 && !compact ? (
@@ -243,11 +244,16 @@ export function CampaignFeaturedCard({ campaign, className }: { campaign: Campai
   return (
     <Link
       href={campaignHref(campaign)}
-      className={cn("block animate-rise rounded-3xl bg-[#dde7f6] p-5 text-ink no-underline", className)}
+      className={cn("block animate-rise rounded-3xl bg-[#fdf1c7] p-5 text-ink no-underline", className)}
     >
+      {campaign.coverImageUrl ? (
+        <div className="relative -mx-1 -mt-1 mb-4 aspect-[2/1] overflow-hidden rounded-2xl border-2 border-white bg-white/60">
+          <Image src={campaign.coverImageUrl} alt="" fill sizes="(max-width: 640px) 100vw, 576px" className={cn("object-cover", closed && "grayscale")} unoptimized />
+        </div>
+      ) : null}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="label-mono block truncate text-[#1e4fa8]">{campaign.community?.name ?? "Campaign"}</span>
+          <span className="label-mono block truncate text-[#8a6a00]">{campaign.community?.name ?? "Campaign"}</span>
           <div className="mt-1.5 line-clamp-2 text-[19px] font-bold">{campaign.title}</div>
         </div>
         {campaign.isJoined ? (
@@ -256,11 +262,13 @@ export function CampaignFeaturedCard({ campaign, className }: { campaign: Campai
           </Stamp>
         ) : null}
       </div>
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        <div>
-          <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{pool > 0 ? compactAmount(pool) : "—"}</div>
-          <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">G$ pool</div>
-        </div>
+      <div className={cn("mt-5 grid gap-2", pool > 0 ? "grid-cols-3" : "grid-cols-2")}>
+        {pool > 0 ? (
+          <div>
+            <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{compactAmount(pool)}</div>
+            <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">G$ pool</div>
+          </div>
+        ) : null}
         <div>
           <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{campaign.participantCount}</div>
           <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">In</div>
@@ -278,12 +286,13 @@ export function CampaignFeaturedCard({ campaign, className }: { campaign: Campai
   );
 }
 
-const TICKET_TINTS = ["bg-yellow-soft", "bg-[#e6f3eb]", "bg-[#dde7f6]", "bg-pink-soft"];
+const TICKET_TINTS = ["bg-yellow-soft", "bg-[#e6f3eb]", "bg-[#fdf1c7]", "bg-pink-soft"];
 
 /** Campaign as a ticket row (design: Campaigns.dc.html, "Open now"). */
 export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignExploreCardData; index?: number }) {
   const { closed, left } = campaignTiming(campaign);
   const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
+  const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
   const meta = [campaign.community?.name, closed ? "Ended" : `${left ?? campaign.durationDays}d`].filter(Boolean).join(" · ");
   return (
     <Link href={campaignHref(campaign)} className="block animate-rise text-ink no-underline">
@@ -292,22 +301,24 @@ export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignE
         className="shadow-[0_0_0_1px_#e6e6e0]"
         stub={
           <>
-            <span className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{pool > 0 ? compactAmount(pool) : "Free"}</span>
-            <span className="label-mono -mt-1.5 text-[9px] text-muted-foreground">{pool > 0 ? "G$" : "Join"}</span>
+            <span className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{pool > 0 ? compactAmount(pool) : stake > 0 ? compactAmount(stake) : "Free"}</span>
+            <span className="label-mono -mt-1.5 text-[9px] text-muted-foreground">
+              {pool > 0 ? "G$ pool" : stake > 0 ? `${campaign.joinToken ?? "G$"} stake` : "Join"}
+            </span>
           </>
         }
       >
         <div className="flex items-center gap-3 p-3.5">
           <span
             className={cn(
-              "relative flex h-[52px] w-[52px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]",
+              "relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl",
               TICKET_TINTS[index % TICKET_TINTS.length],
             )}
           >
             {campaign.coverImageUrl ? (
               <Image src={campaign.coverImageUrl} alt="" fill className={cn("object-cover", closed && "grayscale")} unoptimized />
             ) : (
-              <TrophyArt size={30} />
+              <TrophyArt size={36} />
             )}
           </span>
           <div className="min-w-0">
@@ -321,5 +332,5 @@ export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignE
 }
 
 export function CampaignTicketRowSkeleton() {
-  return <div className="h-[84px] animate-pulse rounded-3xl border-2 border-line bg-white" />;
+  return <div className="h-[92px] animate-pulse rounded-3xl border-2 border-line bg-white" />;
 }

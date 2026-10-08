@@ -5,7 +5,12 @@ const HIDDEN = { showOnModal: false } as const;
 export const web3AuthContextConfig: Web3AuthContextConfig = {
   web3AuthOptions: {
     clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID!,
-    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+    // Must match the network of the project the client ID belongs to, or init fails
+    // and the sign-in buttons stay disabled.
+    web3AuthNetwork:
+      process.env.NEXT_PUBLIC_WEB3AUTH_NETWORK === "sapphire_devnet"
+        ? WEB3AUTH_NETWORK.SAPPHIRE_DEVNET
+        : WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
     chains: [
       {
         chainNamespace: "eip155",

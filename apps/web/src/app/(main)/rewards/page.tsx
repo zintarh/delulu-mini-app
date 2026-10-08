@@ -19,6 +19,7 @@ import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
 import { MainPage } from "@/components/main-app-header";
+import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { RewardsDailyCard } from "@/components/home/daily-money-card";
 import { useClaimPanel, useFaceCheck } from "@/contexts/right-panel-context";
@@ -45,6 +46,8 @@ type ActivityItem = {
   txHash: string;
   createdAt: string;
 };
+
+const LEDGER_PAGE_SIZE = 5;
 
 function forfeitDestinationLabel(type: number | null): string {
   switch (type) {
@@ -76,6 +79,7 @@ export default function RewardsPage() {
   });
   const sessionHint = hasStoredAuthSession();
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
+  const [ledgerPage, setLedgerPage] = useState(0);
   const {
     hasPending: hasAdminPending,
     isLoading: isLoadingAdminRewards,
@@ -174,6 +178,11 @@ export default function RewardsPage() {
 
   const isLoadingActivity = isLoadingClaims || isLoadingGrants || isLoadingForfeitActivity;
   const activityError = claimsError || grantsError || forfeitActivityError;
+
+  // Clamp when the list shrinks (e.g. after a refetch) so we never sit on an empty page.
+  const ledgerPageCount = Math.max(1, Math.ceil(activityItems.length / LEDGER_PAGE_SIZE));
+  const safeLedgerPage = Math.min(ledgerPage, ledgerPageCount - 1);
+  const ledgerPageItems = activityItems.slice(safeLedgerPage * LEDGER_PAGE_SIZE, (safeLedgerPage + 1) * LEDGER_PAGE_SIZE);
 
   const {
     formatted: gDollarBalance,
@@ -489,9 +498,20 @@ export default function RewardsPage() {
               <p className="py-6 text-sm text-muted-foreground">Stakes returned, forfeits and rewards will show up here.</p>
             ) : (
               <div>
-                {activityItems.map((item) => (
+                {ledgerPageItems.map((item) => (
                   <LedgerRow key={item.id} item={item} />
                 ))}
+                {activityItems.length > LEDGER_PAGE_SIZE ? (
+                  <LeaderboardPagination
+                    page={safeLedgerPage}
+                    rangeStart={safeLedgerPage * LEDGER_PAGE_SIZE + 1}
+                    rangeEnd={safeLedgerPage * LEDGER_PAGE_SIZE + ledgerPageItems.length}
+                    total={activityItems.length}
+                    hasNextPage={safeLedgerPage < ledgerPageCount - 1}
+                    onPrev={() => setLedgerPage(Math.max(0, safeLedgerPage - 1))}
+                    onNext={() => setLedgerPage(safeLedgerPage + 1)}
+                  />
+                ) : null}
               </div>
             )}
           </section>
