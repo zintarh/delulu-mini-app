@@ -21,7 +21,7 @@ import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { ReferralInviteHold, useInviteHold } from "@/components/referral-invite-hold";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
-import { Lulu, gameButtonClass } from "@/components/ds";
+import { gameButtonClass } from "@/components/ds";
 import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider";
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
@@ -307,38 +307,14 @@ export default function SignInPage() {
   // Design: docs/redesign/screens/SignIn.dc.html
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-paper lg:grid lg:grid-cols-2">
-      {/* Left panel — desktop only */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-ink p-12 text-white lg:flex">
-        <Link href="/" aria-label="Delulu home" className="text-white">
-          <span className="inline-flex items-center gap-2.5">
-            <Lulu size={40} />
-            <span className="font-brand text-[28px] font-bold leading-none">delulu</span>
-          </span>
-        </Link>
-        <div className="max-w-md">
-          <span className="inline-flex animate-bob">
-            <Lulu size={120} mood="kept" />
-          </span>
-          <h1 className="mt-8 font-display text-6xl font-extrabold uppercase leading-[0.9] text-white">
-            Build habits
-            <br />
-            <span className="text-yellow">you can&apos;t skip.</span>
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-[#c9c9c2]">
-            Put your word or a little money on a daily habit. Prove it with a photo.
-          </p>
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex min-h-screen flex-col px-5 pb-8 pt-6 lg:justify-center lg:px-16">
-        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col lg:flex-none">
-          <Link href="/" aria-label="Delulu home" className="self-start lg:hidden">
+    <div className="min-h-screen overflow-y-auto bg-paper">
+      <div className="flex min-h-screen flex-col px-5 pb-8 pt-6">
+        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col">
+          <Link href="/" aria-label="Delulu home" className="self-start">
             <Wordmark size={26} />
           </Link>
 
-          <div className="mt-16 lg:mt-0">
+          <div className="mt-16">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
               Make it a
               <br />

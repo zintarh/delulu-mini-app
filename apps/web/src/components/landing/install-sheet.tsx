@@ -12,14 +12,23 @@ type Platform = "ios" | "android";
  * Bottom sheet on phones, centered card on larger screens.
  */
 export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { canPrompt, prompt, ios, mobile } = useInstallPrompt();
+  const { canPrompt, prompt, ios, iosSafari, mobile } = useInstallPrompt();
   const [platform, setPlatform] = useState<Platform>("ios");
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setPlatform(ios || !mobile ? "ios" : "android");
+    // Real iOS Safari is the only thing that should land on the manual-steps
+    // tab — it's the only browser on the only platform with no install API,
+    // full stop. Everything else (Android, desktop, a desktop window just
+    // resized/emulated to look like a phone without spoofing the user
+    // agent, or an iPhone running Chrome/Firefox instead of Safari) defaults
+    // to the "Install now" tab — never wrong to show, worst case it's
+    // disabled with a "use the browser menu" fallback, versus actively
+    // misleading a non-Safari user with "tap Share in Safari" steps they
+    // can't follow in the browser they're actually in.
+    setPlatform(iosSafari ? "ios" : "android");
     setOrigin(window.location.host);
-  }, [ios, mobile]);
+  }, [iosSafari]);
 
   useEffect(() => {
     if (!open) return;
@@ -78,15 +87,22 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => 
           ) : null}
 
           {platform === "ios" ? (
-            <ol className="m-0 flex list-none flex-col gap-3.5 p-0">
-              {steps.map((s, i) => (
-                <li key={i} className="flex animate-rise items-center gap-4" style={{ animationDelay: `${(i + 1) * 0.1}s` }}>
-                  <span className="w-[26px] font-display text-4xl font-extrabold uppercase leading-[0.88]">{i + 1}</span>
-                  <span className="flex-1">{s.body}</span>
-                  {s.icon}
-                </li>
-              ))}
-            </ol>
+            ios && !iosSafari ? (
+              <p className="m-0 rounded-2xl bg-paper px-4 py-3 text-sm text-muted-foreground">
+                You&apos;re on iPhone, but not in Safari — only Safari can add this to your home screen. Open{" "}
+                <b className="text-ink">{origin}</b> in Safari, then follow the steps there.
+              </p>
+            ) : (
+              <ol className="m-0 flex list-none flex-col gap-3.5 p-0">
+                {steps.map((s, i) => (
+                  <li key={i} className="flex animate-rise items-center gap-4" style={{ animationDelay: `${(i + 1) * 0.1}s` }}>
+                    <span className="w-[26px] font-display text-4xl font-extrabold uppercase leading-[0.88]">{i + 1}</span>
+                    <span className="flex-1">{s.body}</span>
+                    {s.icon}
+                  </li>
+                ))}
+              </ol>
+            )
           ) : (
             <>
               <button
