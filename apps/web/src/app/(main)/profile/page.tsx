@@ -74,7 +74,7 @@ export default function ProfilePage() {
         setUploadToast={setUploadToast}
       />
 
-      <div className="sticky top-0 z-40 mx-auto max-w-xl bg-paper/95 px-5 py-3 backdrop-blur-sm">
+      <div className="sticky top-0 z-40 mx-auto max-w-xl lg:max-w-2xl bg-paper/95 px-5 py-3 backdrop-blur-sm">
         <Segmented<TabType> ariaLabel="Profile sections" value={activeTab} onChange={setActiveTab} options={PROFILE_TABS} />
       </div>
 
@@ -175,7 +175,7 @@ function ProfileHeader({
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
-    <section className="mx-auto max-w-xl px-5 pb-2 pt-4">
+    <section className="mx-auto max-w-xl px-5 pb-2 pt-4 lg:max-w-2xl">
       <div className="flex justify-end gap-2">
         <Link href="/profile/flex" aria-label="Share flex card" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
           <Share className="h-5 w-5" strokeWidth={2} />
@@ -283,7 +283,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
   return (
     <div>
       {activeTab === "milestones" && (
-        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:pb-8">
+        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:max-w-2xl lg:pb-8">
           {address ? (
             <ActiveCampaignsSection
               address={address}
@@ -302,7 +302,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
       )}
 
       {activeTab === "active" && (
-        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:pb-8">
+        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:max-w-2xl lg:pb-8">
           {address ? (
             <ProfileForfeitSection address={address} />
           ) : (

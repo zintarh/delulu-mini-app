@@ -268,12 +268,12 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
 
   return (
       <LogoutSheetProvider>
-      <div className="h-screen overflow-hidden">
+      <div className="h-dvh overflow-hidden">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24">
           <LeftSidebar />
         </div>
 
-        <div className="flex h-screen bg-background lg:pl-24">
+        <div className="flex h-dvh bg-background lg:pl-24">
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />

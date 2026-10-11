@@ -43,7 +43,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   }
 
   return (
-    <div className={cn("mx-auto flex w-full max-w-xl flex-col gap-4 px-5 pb-6 pt-2.5", className)}>
+    <div className={cn("mx-auto flex w-full max-w-xl flex-col gap-4 px-5 pb-6 pt-2.5 lg:max-w-2xl", className)}>
       <HomeGreeting name={name} address={address} />
 
       {address ? (

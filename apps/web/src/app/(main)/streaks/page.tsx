@@ -64,7 +64,7 @@ function StreakContent({ address }: { address: string | null }) {
   const totalPoints = myRankEntry?.points ?? null;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3">
+    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3 lg:max-w-2xl">
       {isLoading ? (
         <div className="h-[260px] animate-pulse rounded-[20px] bg-line" />
       ) : (
@@ -119,7 +119,7 @@ function StreakContent({ address }: { address: string | null }) {
 
 function StreakContentSkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3">
+    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3 lg:max-w-2xl">
       <div className="h-[260px] animate-pulse rounded-[20px] bg-line" />
       <div className="space-y-2.5">
         {Array.from({ length: 4 }).map((_, i) => (

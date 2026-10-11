@@ -280,7 +280,7 @@ export default function LeaderboardPage() {
   return (
     <MainPage>
       <PageBackHeader title="Leaderboard" />
-      <div className="mx-auto max-w-xl px-5 pb-8 pt-4">
+      <div className="mx-auto max-w-xl px-5 pb-8 pt-4 lg:max-w-2xl">
         <Segmented<Tab>
           ariaLabel="Leaderboard"
           value={activeTab}

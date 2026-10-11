@@ -325,7 +325,7 @@ export default function RewardsPage() {
     <>
       <MainPage>
         <div className="mx-auto w-full">
-        <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:pt-6">
+        <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:max-w-2xl lg:pt-6">
           <h1 className="m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">Rewards</h1>
 
           {showUnverified ? (
