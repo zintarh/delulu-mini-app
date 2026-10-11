@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { hidesBottomNav } from "@/components/main-nav-config";
+
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Fuel } from "lucide-react";
@@ -12,12 +15,14 @@ export function NoGasBanner() {
   const { isLowGas, isLoading } = useHasGas();
   const { trigger } = useNoGas();
   const [mounted, setMounted] = useState(false);
+  // Focused screens (contract, campaign, settings…) have no dock and their own bottom action.
+  const focusedScreen = hidesBottomNav(usePathname() ?? "");
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading || !isLowGas) return null;
+  if (!mounted || isLoading || !isLowGas || focusedScreen) return null;
 
   // Portaled to <body> — the main layout's overflow-hidden container clips
   // `position: fixed` descendants otherwise (same issue AppToast works around).
@@ -27,16 +32,18 @@ export function NoGasBanner() {
       onClick={trigger}
       role="status"
       className={cn(
-        "fixed bottom-24 left-1/2 z-[90] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 text-left",
-        "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
-        "flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/12 px-4 py-3 shadow-lg backdrop-blur-sm",
+        "fixed inset-x-3 bottom-[calc(var(--mobile-bottom-nav-bar)+24px)] z-[90] text-left sm:inset-x-auto sm:right-4 sm:w-80",
+        "lg:bottom-6 lg:right-6",
+        "press-edge flex items-center gap-3 rounded-[20px] border-2 border-orange/30 bg-orange-soft p-3.5 shadow-[0_4px_0_rgba(180,65,12,0.25)]",
         "animate-in fade-in slide-in-from-bottom-2 duration-300",
-        "transition-colors hover:bg-amber-500/18",
       )}
     >
-      <Fuel className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-      <span className="flex-1 text-sm font-medium leading-snug text-foreground">
-        You don&apos;t have gas. Top up your gas or join our Telegram group to continue.
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange">
+        <Fuel className="h-5 w-5" strokeWidth={2.2} />
+      </span>
+      <span className="flex-1">
+        <span className="block text-sm font-extrabold leading-tight text-foreground">You need gas to continue</span>
+        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">Tap to top up or get some free in our Telegram.</span>
       </span>
     </button>,
     document.body,

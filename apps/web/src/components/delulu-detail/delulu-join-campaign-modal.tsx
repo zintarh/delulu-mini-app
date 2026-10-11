@@ -33,7 +33,7 @@ export function DeluluJoinCampaignModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl border border-border">
-        <h3 className="text-base md:text-lg font-black text-foreground mb-2">
+        <h3 className="text-base md:text-lg font-extrabold text-foreground mb-2">
           Join a campaign
         </h3>
         <p className="text-xs md:text-sm text-muted-foreground mb-4">
@@ -67,7 +67,7 @@ export function DeluluJoinCampaignModal({
         </div>
 
         {joinErrorMessage ? (
-          <p className="mb-2 text-xs text-red-500">{joinErrorMessage}</p>
+          <p className="mb-2 text-xs text-orange">{joinErrorMessage}</p>
         ) : null}
 
         <div className="mt-3 flex justify-end gap-2">
@@ -86,7 +86,7 @@ export function DeluluJoinCampaignModal({
             }
             onClick={onJoin}
             className={cn(
-              "px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
+              "px-4 py-2 text-xs md:text-sm font-extrabold rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
               "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
               (!selectedChallengeId || busy) && "opacity-60 cursor-not-allowed",
             )}

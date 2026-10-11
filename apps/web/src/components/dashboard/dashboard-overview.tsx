@@ -92,7 +92,7 @@ const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
 const CAMPAIGN_STATUS_COLORS: Record<string, string> = {
   draft: "#94a3b8",
   pending_approval: "#f59e0b",
-  approved: "#2563eb",
+  approved: "#161615",
   funding: "#8b5cf6",
   active: "#10b981",
   ended: "#64748b",

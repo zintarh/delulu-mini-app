@@ -357,7 +357,7 @@ export function CreateDelusionContent({
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
             <div className={cn("flex flex-col gap-5", createFlowPx, createFlowPy)}>
               <div>
-                <h2 className="text-2xl font-black tracking-tight lg:text-[1.75rem]">
+                <h2 className="text-2xl font-extrabold tracking-tight lg:text-[1.75rem]">
                   What&apos;s your dream?
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -439,7 +439,7 @@ export function CreateDelusionContent({
             <div className={cn("flex flex-col", createFlowGap, createFlowPx, createFlowPy)}>
               <div>
                 <p className="text-xs text-muted-foreground truncate">{ultimateGoal}</p>
-                <h2 className="mt-0.5 text-2xl font-black tracking-tight lg:text-3xl">
+                <h2 className="mt-0.5 text-2xl font-extrabold tracking-tight lg:text-3xl">
                   Already doing any?
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">

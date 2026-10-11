@@ -236,7 +236,7 @@ export function CreateChallengeSheet({
       <Modal open={open} onOpenChange={handleClose}>
         <ModalContent className="max-w-2xl max-h-auto overflow-y-auto bg-card">
           <ModalHeader>
-            <ModalTitle className="text-2xl font-black text-foreground mb-2">
+            <ModalTitle className="text-2xl font-extrabold text-foreground mb-2">
               Create Campaign
             </ModalTitle>
           </ModalHeader>
@@ -342,7 +342,7 @@ export function CreateChallengeSheet({
                     className={cn(
                       "flex-1 min-w-0 bg-transparent text-2xl font-bold focus:outline-none placeholder:text-muted-foreground/50",
                       hasInsufficientBalance || currentPoolAmount < 1
-                        ? "text-red-500"
+                        ? "text-orange"
                         : "text-foreground"
                     )}
                   />
@@ -438,7 +438,7 @@ export function CreateChallengeSheet({
                 </div>
               </div>
               {isConnected && (currentPoolAmount < 1 || hasInsufficientBalance) && (
-                <p className="text-sm text-red-600 mt-2 font-bold">
+                <p className="text-sm text-orange mt-2 font-bold">
                   {currentPoolAmount < 1
                     ? "Minimum amount is 1"
                     : "Insufficient balance"}

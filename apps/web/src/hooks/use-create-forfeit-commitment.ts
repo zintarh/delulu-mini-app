@@ -123,7 +123,10 @@ export function useCreateForfeitCommitment() {
   const { writeContractAsync, isPending, error, reset } = useUnifiedWriteContract();
 
   const createCommitment = async (input: CreateForfeitCommitmentInput) => {
-    if (input.stakeAmountWei <= 0n) throw new Error("Stake amount must be greater than 0");
+    // 0 is valid — a deliberate "stake your word" pledge, not a typo. Only a
+    // negative amount (can't actually arise from parseUnits of a UI-validated
+    // non-negative string, but kept for safety) is rejected.
+    if (input.stakeAmountWei < 0n) throw new Error("Stake amount can't be negative");
     if (input.totalPeriods < 1) throw new Error("Total periods must be at least 1");
     if (input.cadence !== ForfeitCadence.Once && !input.periodSeconds) {
       throw new Error("Period length is required for a repeating commitment");

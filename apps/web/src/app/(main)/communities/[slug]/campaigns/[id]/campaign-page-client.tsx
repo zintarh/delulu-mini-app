@@ -10,7 +10,6 @@ import {
   type CommunityCampaignDetailData,
 } from "@/components/community/community-campaign-detail";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
-import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-skeleton";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-client";
@@ -18,32 +17,57 @@ import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { MainPage } from "@/components/main-app-header";
+import { cn } from "@/lib/utils";
 
+/** Mirrors CommunityCampaignDetail: blue header, stats ticket, rules, standings, bottom CTA. */
 function CommunityCampaignDetailSkeleton() {
   return (
-    <div className="animate-pulse px-4 pb-32 pt-2">
-      <div className="mb-3 h-8 w-28 rounded-full bg-muted" />
-      <div className="aspect-[16/9] w-full rounded-3xl bg-muted sm:aspect-[2/1]" />
-      <div className="-mt-5 rounded-2xl border border-border/60 bg-card p-4 shadow-lg">
-        <div className="h-3 w-24 rounded bg-muted" />
-        <div className="mt-3 h-10 w-full rounded-xl bg-muted" />
+    <div className="mx-auto max-w-xl animate-pulse pb-32" aria-busy aria-label="Loading campaign">
+      <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
+        <div className="flex justify-between">
+          <div className="h-11 w-11 rounded-full bg-white/80" />
+          <div className="h-11 w-11 rounded-full bg-white/80" />
+        </div>
+        <div className="mt-4 aspect-[16/9] w-full rounded-3xl bg-white/80" />
+        <div className="mt-6 h-3 w-32 rounded bg-[#8a6a00]/20" />
+        <div className="mt-2.5 h-6 w-4/5 rounded-lg bg-white/80" />
+        <div className="mt-2 h-6 w-1/2 rounded-lg bg-white/80" />
       </div>
-      <div className="mt-4 flex gap-2 overflow-hidden">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-14 w-24 shrink-0 rounded-xl bg-muted" />
+
+      <div className="relative -mt-7 px-5">
+        <div className="flex rounded-3xl border-2 border-line bg-white">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={cn("flex flex-1 flex-col items-center gap-1.5 p-4", i > 0 && "border-l-2 border-dashed border-line")}>
+              <div className="h-7 w-12 rounded-md bg-muted" />
+              <div className="h-2 w-8 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 px-5 pt-6">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3.5">
+            <div className="h-5 w-6 rounded bg-muted" />
+            <div className={cn("h-4 rounded bg-muted", i === 1 ? "w-2/3" : "w-4/5")} />
+          </div>
         ))}
       </div>
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
-        <div className="h-24 rounded-2xl bg-muted" />
-        <div className="h-24 rounded-2xl bg-muted" />
-      </div>
-      <div className="mt-6 space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 rounded-2xl bg-muted" />
+
+      <div className="px-5 pt-6">
+        <div className="mb-1.5 h-3 w-20 rounded bg-muted" />
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+            <div className="h-6 w-[26px] rounded bg-muted" />
+            <div className="h-9 w-9 rounded-full bg-muted" />
+            <div className="h-4 flex-1 rounded bg-muted" />
+            <div className="h-3 w-12 rounded bg-muted" />
+          </div>
         ))}
       </div>
-      <div className="mt-8">
-        <CampaignLeaderboardSkeleton rows={4} />
+
+      <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5 lg:left-24" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+        <div className="h-14 rounded-2xl bg-muted" />
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export function ReferralBanner() {
     return (
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-3.5 py-3">
         <p className="text-sm font-bold text-muted-foreground">Referral campaign has ended</p>
-        <Link href="/referrals" className="shrink-0 text-xs font-black text-foreground hover:underline">
+        <Link href="/referrals" className="shrink-0 text-xs font-extrabold text-foreground hover:underline">
           My referrals →
         </Link>
       </div>
@@ -52,27 +52,27 @@ export function ReferralBanner() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p
-                className="text-[8px] font-black uppercase tracking-[0.18em] text-[#244E1A]"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                className="text-[8px] font-extrabold uppercase tracking-[0.18em] text-[#244E1A]"
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 Invite a friend
               </p>
-              <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-black text-white">
+              <span className="rounded-full bg-[#244E1A] px-1.5 py-0.5 text-[9px] font-extrabold text-white">
                 6,000 G$
               </span>
-              <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A]">
+              <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-extrabold text-[#244E1A]">
                 Ends {referralCampaignEndLabel()}
               </span>
               <Link
                 href="/referrals"
-                className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-black text-[#244E1A] hover:bg-[#244E1A]/20"
+                className="rounded-full bg-[#244E1A]/10 px-1.5 py-0.5 text-[9px] font-extrabold text-[#244E1A] hover:bg-[#244E1A]/20"
               >
                 {eligible && referralCount > 0 ? `${referralCount} referred →` : "My referrals →"}
               </Link>
             </div>
             <p
-              className="mt-0.5 font-black text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
-              style={{ fontFamily: '"Clash Display", sans-serif' }}
+              className="mt-0.5 font-extrabold text-base sm:text-xl leading-[1.15] tracking-tight text-[#244E1A]"
+              style={{ fontFamily: 'var(--font-display), sans-serif' }}
             >
               {locked
                 ? "Post today's proof to unlock invites"
@@ -95,7 +95,7 @@ export function ReferralBanner() {
             {locked ? (
               <Link
                 href={unlockHref}
-                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
               >
                 <Lock className="h-3.5 w-3.5" />
                 Post proof →
@@ -104,7 +104,7 @@ export function ReferralBanner() {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+                className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
               >
                 {copied ? "Link copied!" : "Copy link →"}
               </button>
@@ -118,7 +118,7 @@ export function ReferralBanner() {
           {locked ? (
             <Link
               href={unlockHref}
-              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
             >
               <Lock className="h-3.5 w-3.5" />
               Post proof →
@@ -127,7 +127,7 @@ export function ReferralBanner() {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-black text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
+              className="inline-flex items-center gap-1 rounded-full bg-[#244E1A] px-3 py-1.5 text-xs sm:text-sm font-extrabold text-white transition-transform hover:scale-[1.04] active:scale-[0.97]"
             >
               {copied ? "Link copied!" : "Copy link →"}
             </button>

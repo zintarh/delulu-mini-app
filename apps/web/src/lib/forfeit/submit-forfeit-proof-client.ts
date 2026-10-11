@@ -1,4 +1,5 @@
 import { formatProofError } from "@/lib/community/format-proof-error";
+import { resetProofReward, startProofReward } from "@/lib/proof-reward/client";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
@@ -21,6 +22,7 @@ export async function submitForfeitProofWithWallet(input: {
   resolveSuccessOnChain: (commitmentId: number) => Promise<`0x${string}`>;
   onStepChange?: (step: ProofStep) => void;
 }): Promise<{ commitmentEnded: boolean; awaitingVerifier: boolean }> {
+  resetProofReward();
   input.onStepChange?.("ai-verifying");
   const res = await fetch("/api/forfeit/submit-proof", {
     method: "POST",
@@ -71,6 +73,10 @@ export async function submitForfeitProofWithWallet(input: {
       String(confirmJson?.error ?? "Proof confirmed on-chain, but saving details failed"),
     );
   }
+
+  // Per-proof G$ reward — after confirm-proof so a friend-verified period row
+  // exists; the grant itself decides eligibility (self-verified never pays).
+  startProofReward({ kind: "forfeit", proofTxHash });
 
   return {
     commitmentEnded: Boolean(confirmJson.commitmentEnded),

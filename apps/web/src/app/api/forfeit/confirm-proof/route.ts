@@ -6,8 +6,11 @@ import {
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { grantProofReward } from "@/lib/proof-reward/grant";
 
 export const dynamic = "force-dynamic";
+// Friend approvals also deposit the proof reward (RewardVault tx) before responding.
+export const maxDuration = 60;
 
 /**
  * Called by the creator's client right after submitProof (and, for self/ai
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
       await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
     }
 
-    // Best-effort: this period just earned its FORFEIT_PROOF_POINTS (1000) — the
+    // Best-effort: a stake >=1000 G$ just earned the base points tier — the
     // bar evaluateAndCreditReferral now requires for a referral to count.
     void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
       console.error("[forfeit/confirm-proof] referral credit check failed", err),
@@ -201,6 +204,26 @@ async function confirmResolveOnly(
   void evaluateAndCreditReferral(admin, commitment.creator_wallet).catch((err) =>
     console.error("[forfeit/confirm-proof] referral credit check failed", err),
   );
+
+  // The friend's approval is what makes a friend-verified proof reward-eligible
+  // — pay the creator now; they claim it from their rewards later. Awaited (not
+  // fire-and-forget) so a serverless shutdown can't drop the deposit mid-flight.
+  const { data: approvedPeriod } = await admin
+    .from("forfeit_periods")
+    .select("tx_hash")
+    .eq("commitment_id", commitment.id)
+    .eq("period_index", approvedPeriodIndex)
+    .maybeSingle();
+  if (approvedPeriod?.tx_hash) {
+    try {
+      await grantProofReward(admin, {
+        kind: "forfeit",
+        proofTxHash: approvedPeriod.tx_hash as `0x${string}`,
+      });
+    } catch (err) {
+      console.error("[forfeit/confirm-proof] proof reward grant failed", err);
+    }
+  }
 
   return NextResponse.json({
     ok: true,

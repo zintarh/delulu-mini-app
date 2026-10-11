@@ -558,7 +558,7 @@ export function LiveCameraProofModal({
                     {milestoneName}
                   </p>
                 ) : null}
-                <p className="text-sm font-black text-white">Upload proof</p>
+                <p className="text-sm font-extrabold text-white">Upload proof</p>
                 {milestoneDeadline ? (
                   <p className="text-[11px] text-white/50">
                     Due{" "}
@@ -685,7 +685,7 @@ export function LiveCameraProofModal({
                 <button
                   type="button"
                   disabled
-                  className="flex h-12 flex-[2] cursor-not-allowed items-center justify-center gap-2 rounded-full bg-white/15 text-sm font-black text-white/40"
+                  className="flex h-12 flex-[2] cursor-not-allowed items-center justify-center gap-2 rounded-full bg-white/15 text-sm font-extrabold text-white/40"
                 >
                   Capturing frames…
                 </button>
@@ -694,7 +694,7 @@ export function LiveCameraProofModal({
                   type="button"
                   onClick={() => void uploadFrames()}
                   disabled={busy || !framesReady}
-                  className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-full bg-delulu-blue text-sm font-black text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
+                  className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-full bg-delulu-blue text-sm font-extrabold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
                 >
                   Upload proof
                 </button>
@@ -709,11 +709,11 @@ export function LiveCameraProofModal({
                     (captureStep !== "previewing" && captureStep !== "permission-denied")
                   }
                   className={cn(
-                    "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-black transition-all active:scale-[0.98]",
+                    "flex h-12 flex-[2] items-center justify-center gap-2 rounded-full text-sm font-extrabold transition-all active:scale-[0.98]",
                     busy ||
                       (captureStep !== "previewing" && captureStep !== "permission-denied")
                       ? "cursor-not-allowed bg-white/15 text-white/40"
-                      : "bg-delulu-blue text-white hover:opacity-90",
+                      : "bg-blue text-white hover:opacity-90",
                   )}
                 >
                   {captureStep === "idle" || captureStep === "requesting-permission" ? (

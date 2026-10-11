@@ -92,7 +92,7 @@ export function ReferralInviteHold({
           </span>
         </div>
 
-        <h2 className="mt-4 text-xl font-black tracking-tight text-foreground">
+        <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">
           {name}&apos;s invite is on hold
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">

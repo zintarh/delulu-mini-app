@@ -227,7 +227,7 @@ export function OnboardingGiftModal() {
         className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       >
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-background p-6 text-center shadow-xl">
-          <Loader2 className="h-6 w-6 animate-spin text-delulu-green" />
+          <Loader2 className="h-6 w-6 animate-spin text-green-edge" />
           <p className="text-sm text-muted-foreground">Finding a campaign for you…</p>
         </div>
       </div>,
@@ -245,10 +245,10 @@ export function OnboardingGiftModal() {
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
           >
             <div className="w-full max-w-sm rounded-2xl bg-background p-6 text-center shadow-xl">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-delulu-green/10">
-                <Gift className="h-8 w-8 text-delulu-green" strokeWidth={2} />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-green-soft">
+                <Gift className="h-8 w-8 text-green-edge" strokeWidth={2} />
               </div>
-              <h2 className="mt-4 text-xl font-black text-foreground">Put it to work</h2>
+              <h2 className="mt-4 text-xl font-extrabold text-foreground">Put it to work</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Use your {amount.toLocaleString()} G$ to join{" "}
                 <span className="font-bold text-foreground">{campaignSource.title}</span> and
@@ -259,7 +259,7 @@ export function OnboardingGiftModal() {
                 type="button"
                 onClick={handleJoinCampaign}
                 disabled={gasTopupPending}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-delulu-green px-4 py-3.5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green px-4 py-3.5 text-sm font-extrabold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {gasTopupPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -289,7 +289,7 @@ export function OnboardingGiftModal() {
         className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       >
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-background p-6 text-center shadow-xl">
-          <Loader2 className="h-6 w-6 animate-spin text-delulu-green" />
+          <Loader2 className="h-6 w-6 animate-spin text-green-edge" />
           <p className="text-sm text-muted-foreground">Loading your G$…</p>
         </div>
       </div>,
@@ -308,12 +308,12 @@ export function OnboardingGiftModal() {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
     >
       <div className="w-full max-w-sm rounded-2xl bg-background p-6 text-center shadow-xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-delulu-green/10">
-          <Gift className="h-8 w-8 text-delulu-green" strokeWidth={2} />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-green-soft">
+          <Gift className="h-8 w-8 text-green-edge" strokeWidth={2} />
         </div>
 
-        <h2 className="mt-4 text-xl font-black text-foreground">Welcome gift</h2>
-        <p className="mt-4 text-4xl font-black tabular-nums text-foreground">
+        <h2 className="mt-4 text-xl font-extrabold text-foreground">Welcome gift</h2>
+        <p className="mt-4 text-4xl font-extrabold tabular-nums text-foreground">
           {totalAmount.toLocaleString()}{" "}
           <span className="text-lg font-bold text-muted-foreground">G$</span>
         </p>
@@ -339,7 +339,7 @@ export function OnboardingGiftModal() {
           type="button"
           onClick={handleClaim}
           disabled={isBusy || rewardNotYetOnChain}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-delulu-green px-4 py-3.5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green px-4 py-3.5 text-sm font-extrabold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isBusy ? (
             <Loader2 className="h-4 w-4 animate-spin" />

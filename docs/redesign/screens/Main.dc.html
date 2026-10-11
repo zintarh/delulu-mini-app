@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delulu — Build habits that stick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&amp;family=Fredoka:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&amp;family=Schibsted+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Fredoka:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+--ink:#161615;--ink-2:#2A2A28;--ink-3:#3A3A37;--paper:#F7F7F4;--card:#FFFFFF;--line:#E6E6E0;--muted:#5C5C56;--faint:#8A8A83;
+--yellow:#F6C324;--yellow-soft:#FDF1C7;--green:#17804A;--green-soft:#E6F3EB;--orange:#B4410C;--orange-soft:#FBECE3;--blue:#1E4FA8;--blue-soft:#DDE7F6;
+--f-display:'Big Shoulders Display','Oswald',sans-serif;--f-body:'Schibsted Grotesk',sans-serif;--f-mono:'IBM Plex Mono',ui-monospace,monospace;
+--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:72px;--gutter:20px;
+--r1:10px;--r2:16px;--r3:24px;
+--ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+body{margin:0;background:var(--paper)}
+*{box-sizing:border-box}
+a{color:var(--ink)}a:hover{color:#000}
+.disp{font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.88;letter-spacing:0}
+.mono{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.muted{color:var(--muted)}
+.title{font:700 24px/1.2 var(--f-body);letter-spacing:-.02em;margin:0}
+.title-lg{font:700 30px/1.15 var(--f-body);letter-spacing:-.025em;margin:0}
+.opt{height:56px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);font:600 15px var(--f-body);color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
+.opt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.opt:disabled{border-style:dashed;color:var(--faint);background:transparent;cursor:default}
+.blank{font:inherit;color:inherit;font-weight:700;background:var(--yellow-soft);border:0;border-bottom:3px solid var(--yellow);border-radius:6px 6px 0 0;padding:0 6px;cursor:pointer}
+.blank:hover{background:var(--yellow)}
+.qchip{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font:600 14px var(--f-body);color:var(--ink);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.qchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ring-fill{animation:ringfill 1.2s var(--ease) .3s both}
+@keyframes ringfill{from{stroke-dashoffset:201}}
+.xp-fill{transform-origin:left;animation:xp 1.1s var(--ease) .3s both}
+@keyframes xp{from{transform:scaleX(0)}}
+.cstamp{width:62px;height:62px;border-radius:50%;border:2.5px solid currentColor;box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 4.5px currentColor;display:flex;align-items:center;justify-content:center;font:800 19px var(--f-display);background:var(--card);transform:rotate(-8deg)}
+
+/* ---------- Gamified app layer ---------- */
+.app .btn{border-radius:16px;box-shadow:0 4px 0 #000;font-weight:700}
+.app .btn.y{box-shadow:0 4px 0 #C99A0A}
+.app .btn:active{transform:translateY(4px);box-shadow:0 0 0 transparent}
+.app .card,.app .ticket{border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.app .ticket.ink{border-color:var(--ink);box-shadow:0 4px 0 #000}
+.app .ticket.yel{border-color:#E5B41C;box-shadow:0 4px 0 #C99A0A}
+.app .ghost{border:2px solid var(--line);box-shadow:0 4px 0 var(--line);border-radius:16px}
+.app .ibtn{border-width:2px;box-shadow:0 3px 0 var(--line)}
+.app .ibtn.dark{box-shadow:0 3px 0 #000}
+.app .seg{border-radius:16px}.app .seg button{border-radius:12px}.app .seg button.on{box-shadow:0 3px 0 #000}
+.app .qchip,.app .opt{border-width:2px;box-shadow:0 3px 0 var(--line);border-radius:14px}
+.app .qchip.on,.app .opt.on{box-shadow:0 3px 0 #000}
+.app .field{border-width:2px}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 22px;border:0;border-radius:16px;background:var(--yellow);color:var(--ink);font:800 15px var(--f-body);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;cursor:pointer;box-shadow:0 4px 0 #C99A0A;transition:transform .08s,box-shadow .08s;flex-shrink:0}
+.gbtn:hover{color:var(--ink)}
+.gbtn:active{transform:translateY(4px);box-shadow:0 0 0 transparent}
+.gbtn.ink{background:var(--ink);color:#fff;box-shadow:0 4px 0 #000}
+.gbtn.green{background:#2DB36F;box-shadow:0 4px 0 #1E8A52}
+.gbtn.blue{background:#2F6BE0;color:#fff;box-shadow:0 4px 0 #1F4FB0}.gbtn.blue:hover{color:#fff}
+.gbtn.line{background:#fff;border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.gbtn.sm{height:40px;padding:0 14px;font-size:13px;border-radius:12px}
+.gbtn.full{width:100%}
+.gcard{background:#fff;border:2px solid var(--line);border-radius:20px;box-shadow:0 4px 0 var(--line)}
+.hud{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 11px;border-radius:12px;border:2px solid var(--line);background:#fff;font:800 15px var(--f-body);color:var(--ink);text-decoration:none;position:relative}
+.bar{height:16px;border-radius:999px;background:#E6E6E0;overflow:hidden}
+.bar>span{display:block;height:100%;border-radius:999px;background:#2DB36F;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12);position:relative;transform-origin:left;animation:xp 1s var(--ease) .3s both}
+.bar>span::after{content:"";position:absolute;left:8px;right:8px;top:3px;height:4px;border-radius:2px;background:rgba(255,255,255,.45)}
+.bar.thin{height:8px}.bar.thin>span::after{display:none}
+.bar.y>span{background:var(--yellow)}.bar.b>span{background:#3D7BF0}
+.gtile{display:flex;align-items:center;justify-content:center;border-radius:16px;flex-shrink:0;box-shadow:inset 0 -4px 0 rgba(0,0,0,.07)}
+.wiggle{display:inline-block;animation:wiggle 2.8s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes wiggle{0%,78%,100%{transform:rotate(0)}82%{transform:rotate(-10deg)}86%{transform:rotate(9deg)}90%{transform:rotate(-6deg)}94%{transform:rotate(3deg)}}
+.bob{animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bounce-in{animation:bouncein .6s var(--spring) both}
+@keyframes bouncein{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+.node{position:absolute;width:60px;height:56px;margin-left:-30px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;font:800 22px var(--f-display)}
+.node.done{background:#1F9A5B;color:#fff;box-shadow:0 5px 0 #157041}
+.node.now{width:74px;height:68px;margin-left:-37px;background:var(--yellow);color:var(--ink);box-shadow:0 6px 0 #C99A0A}
+.node.lock{background:#E6E6E0;color:#6B6B65;box-shadow:0 5px 0 #CFCFC8}
+.node-ring{position:absolute;width:92px;height:86px;margin:-9px 0 0 -46px;border-radius:50%;border:3px solid var(--yellow);animation:ringpulse 1.8s ease-out infinite}
+@keyframes ringpulse{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.2);opacity:0}}
+.medal{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:900 20px var(--f-display);color:var(--ink);box-shadow:0 4px 0 var(--edge),inset 0 0 0 4px rgba(255,255,255,.4)}
+.medal.locked{background:#ECECE7;color:#8A8A83;box-shadow:0 4px 0 #D6D6CF}
+.confetti{position:absolute;top:-24px;width:9px;height:15px;border-radius:2px;animation:fall 2.8s cubic-bezier(.25,.6,.4,1) both}
+@keyframes fall{from{transform:translateY(0) rotate(0)}to{transform:translateY(920px) rotate(760deg)}}
+
+.cstamp.locked{color:#BDBDB6;border-style:dashed;box-shadow:none;transform:none;background:transparent}
+.outline{color:transparent;-webkit-text-stroke:2px var(--ink)}
+.mark{width:32px;height:32px;border-radius:30%;background:var(--yellow);display:inline-flex;align-items:center;justify-content:center;font:800 21px/1 var(--f-body);letter-spacing:-.04em;color:var(--ink);flex-shrink:0;padding-bottom:.06em}
+.word{font:700 26px/1 'Fredoka',var(--f-body);letter-spacing:-.02em}
+.lulu{display:inline-block;flex-shrink:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:space-between;gap:var(--s4);height:56px;padding:0 6px 0 24px;border:0;border-radius:999px;background:var(--ink);color:#fff;font:600 16px var(--f-body);text-decoration:none;cursor:pointer;transition:transform .2s var(--ease)}
+.btn:hover{color:#fff}
+.btn .knob{width:44px;height:44px;border-radius:50%;background:var(--yellow);color:var(--ink);display:flex;align-items:center;justify-content:center;transition:transform .35s var(--spring)}
+.btn:hover .knob{transform:translateX(3px) rotate(-14deg)}
+.btn:active{transform:scale(.97)}
+.btn.y{background:var(--yellow);color:var(--ink)}.btn.y:hover{color:var(--ink)}.btn.y .knob{background:var(--ink);color:var(--yellow)}
+.btn.full{width:100%}
+.btn.sm{height:44px;padding:0 4px 0 16px;font-size:14px;gap:var(--s2)}.btn.sm .knob{width:36px;height:36px}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);height:56px;padding:0 24px;border-radius:999px;border:1.5px solid currentColor;background:transparent;color:var(--ink);font:600 16px var(--f-body);text-decoration:none;cursor:pointer}
+.ibtn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;cursor:pointer;flex-shrink:0;position:relative}
+.ibtn.dark{background:var(--ink-2);border-color:var(--ink-3);color:#fff}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2)}
+.ticket{position:relative;display:flex;border-radius:var(--r3);background:var(--card);box-shadow:0 1px 0 var(--line),0 18px 36px -26px rgba(22,22,21,.45)}
+.ticket.ink{background:var(--ink);color:#fff;box-shadow:0 22px 44px -24px rgba(22,22,21,.6)}
+.ticket.yel{background:var(--yellow)}
+.tk-main{flex:1;min-width:0;padding:var(--s5) var(--s5) var(--s4)}
+.tk-stub{width:72px;flex-shrink:0;border-left:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s4) 0}
+.ticket.ink .tk-stub{border-left-color:var(--ink-3)}
+.ticket.yel .tk-stub{border-left-color:rgba(22,22,21,.25)}
+.notch{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--paper);transform:translateX(-50%)}
+.notch.t{top:-10px}.notch.b{bottom:-10px}
+.vert{writing-mode:vertical-rl;transform:rotate(180deg)}
+
+.stamp{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:2.5px solid currentColor;border-radius:8px;font:600 12px var(--f-mono);letter-spacing:.18em;text-transform:uppercase;transform:rotate(-9deg);box-shadow:inset 0 0 0 2px var(--card),inset 0 0 0 3.5px currentColor;background:var(--card);white-space:nowrap}
+.stamp.kept{color:var(--green)}.stamp.lost{color:var(--orange)}.stamp.inkc{color:var(--ink)}
+.stamp.on-ink{background:var(--ink);box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 3.5px currentColor}
+.stamp.big{font-size:22px;padding:10px 18px;border-width:4px;border-radius:12px}
+.stamp.r2{transform:rotate(6deg)}
+
+.punch{display:flex;justify-content:space-between;align-items:flex-start}
+.punch .day{display:flex;flex-direction:column;align-items:center;gap:6px}
+.hole{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.hole.kept{background:var(--ink);color:var(--yellow);box-shadow:inset 0 3px 6px rgba(0,0,0,.45)}
+.hole.miss{background:var(--orange-soft);color:var(--orange)}
+.hole.now{background:var(--yellow);border:2px solid var(--ink);animation:pulse 1.8s ease-out infinite}
+.hole.next{border:1.5px dashed #C9C9C2}
+
+.fuse{position:relative;height:4px;border-radius:2px;background:var(--ink-3)}
+.fuse.light{background:var(--line)}
+.fuse-left{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--yellow);transform-origin:left;animation:burn 40s linear forwards}
+.fuse.light .fuse-left{background:var(--ink)}
+.spark{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 4px rgba(246,195,36,.3),0 0 18px 4px rgba(246,195,36,.55);animation:spark .6s ease-in-out infinite alternate}
+
+.seg{display:grid;gap:4px;padding:4px;border-radius:999px;background:#ECECE7}
+.seg button{height:40px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:600 14px var(--f-body);cursor:pointer;transition:background .25s var(--ease),color .25s}
+.seg button.on{background:var(--ink);color:#fff}
+
+.tile{display:flex;align-items:center;justify-content:center;border-radius:14px;flex-shrink:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font:500 11px var(--f-mono);letter-spacing:.12em;text-transform:uppercase}
+.field{height:56px;border-radius:var(--r2);border:1.5px solid var(--line);background:var(--card);padding:0 var(--s4);font:500 16px var(--f-body);color:var(--ink);outline:none;width:100%}
+.field:focus{border-color:var(--ink)}
+.label{font:500 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink);flex-shrink:0}
+.av.ring{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink)}
+.sw{width:48px;height:28px;border-radius:14px;border:0;padding:3px;cursor:pointer;display:flex;transition:background .25s}
+.sw span{width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .3s var(--spring)}
+.sw.on{background:var(--ink)}.sw.on span{transform:translateX(20px);background:var(--yellow)}
+.sw.off{background:#D6D6CF}
+
+.dock{position:absolute;left:var(--gutter);right:var(--gutter);bottom:20px;height:68px;border-radius:999px;background:var(--ink);display:flex;align-items:center;justify-content:space-around;padding:0 8px;box-shadow:0 18px 40px -16px rgba(22,22,21,.55);z-index:10}
+.dock a{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#A3A39C;text-decoration:none;transition:background .2s}
+.dock a.on{background:#fff;color:var(--ink)}
+.dock a.plus{width:62px;height:62px;border-radius:20px;background:var(--yellow);color:var(--ink);transform:translateY(-22px);box-shadow:0 0 0 6px var(--paper);transition:transform .35s var(--spring)}
+.dock a.plus:hover{transform:translateY(-25px)}
+
+.seal{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.seal svg{position:absolute;inset:0;width:100%;height:100%}
+.spin svg{animation:spin 16s linear infinite}
+
+.draw path{stroke-dasharray:700;stroke-dashoffset:700;animation:draw 1.8s var(--ease) forwards}
+.tape{position:absolute;top:-12px;left:50%;width:84px;height:24px;margin-left:-42px;background:rgba(246,195,36,.55);transform:rotate(-4deg)}
+
+.tilt-a{--rot:-6deg}.tilt-b{--rot:4deg}.tilt-c{--rot:-2deg}.tilt-d{--rot:7deg}.tilt-e{--rot:-11deg}
+.tilt{transform:rotate(var(--rot))}
+.rise{animation:rise .8s var(--ease) both}
+.riseT{animation:riseT .9s var(--ease) both}
+.pop{animation:pop .5s var(--spring) both}
+.float{animation:float 7s ease-in-out infinite}
+.float.slow{animation-duration:9s}
+.slam{animation:stamp .5s cubic-bezier(.5,0,.75,0) both}
+.thud{animation:riseT .9s var(--ease) .6s both,thud .4s ease-out 2.05s}
+.drop{transform:rotate(var(--rot,0deg))}
+.grow{transform-origin:bottom;animation:growY .9s var(--spring) both}
+.wipe{transform-origin:left;animation:wipe .7s var(--ease) both}
+.sheet-in{animation:sheet .6s var(--spring) both}
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}.d5{animation-delay:.5s}.d6{animation-delay:.6s}.d7{animation-delay:.7s}.d8{animation-delay:.8s}.d9{animation-delay:.9s}.d10{animation-delay:1s}.d12{animation-delay:1.2s}.d14{animation-delay:1.4s}.d16{animation-delay:1.6s}
+
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes riseT{from{opacity:0;transform:translateY(60px) rotate(calc(var(--rot,0deg) * -2))}to{opacity:1;transform:rotate(var(--rot,0deg))}}
+@keyframes pop{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-12px) rotate(calc(var(--rot,0deg) + 1.5deg))}}
+@keyframes stamp{0%{opacity:0;transform:rotate(-9deg) scale(2.8)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes thud{0%,100%{transform:rotate(var(--rot,0deg))}30%{transform:translate(2px,4px) rotate(calc(var(--rot,0deg) - .8deg))}65%{transform:translate(-1px,-1px) rotate(var(--rot,0deg))}}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes wipe{from{transform:scaleX(0) rotate(-1.5deg)}to{transform:scaleX(1) rotate(-1.5deg)}}
+@keyframes sheet{from{transform:translateY(60%);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes spark{from{transform:scale(.85)}to{transform:scale(1.25)}}
+@keyframes burn{from{transform:scaleX(1)}to{transform:scaleX(.96)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(246,195,36,.8)}100%{box-shadow:0 0 0 14px rgba(246,195,36,0)}}
+@keyframes ticker{to{transform:translateX(-50%)}}
+@keyframes scan{0%{top:6%}50%{top:90%}100%{top:6%}}
+@keyframes drop{from{opacity:0;transform:translateY(-80px) rotate(calc(var(--rot,0deg) * 3))}to{opacity:1;transform:rotate(var(--rot,0deg))}}
+
+@supports (animation-timeline: view()){
+  .reveal{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
+  .drop{animation:drop linear both;animation-timeline:view();animation-range:entry 0% entry 70%}
+  .draw-view path{stroke-dasharray:700;stroke-dashoffset:700;animation:draw linear forwards;animation-timeline:view();animation-range:entry 30% cover 50%}
+}
+/* App screens: calm. Drama lives on the landing page only. */
+.app [class*="tilt-"]{--rot:0deg}
+.app .rise,.app .riseT,.app .pop,.app .thud{animation:fade .35s ease both}
+.app .slam,.app .grow,.app .wipe,.app .spin svg{animation:none}
+.app .slam.hero{animation:stamp .45s cubic-bezier(.5,0,.75,0) .4s both}
+.app .ticket{box-shadow:0 0 0 1px var(--line)}
+.app .ticket.ink,.app .ticket.yel{box-shadow:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .draw path,.draw-view path{stroke-dashoffset:0 !important}
+}
+
+.faq{border-radius:20px;background:#fff;border:2px solid var(--line);box-shadow:0 4px 0 var(--line);overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;font:700 18px var(--f-body)}
+.faq summary::-webkit-details-marker{display:none}
+.faq .plus{width:36px;height:36px;border-radius:50%;background:var(--yellow);box-shadow:0 3px 0 #C99A0A;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .3s var(--spring)}
+.faq[open] .plus{transform:rotate(45deg)}
+.faq p{margin:0;padding:0 22px 22px;color:var(--muted);line-height:1.6;font-size:16px}
+.m-cta{display:none}
+@media (max-width:700px){.m-cta{display:flex;position:fixed;left:12px;right:12px;bottom:12px;z-index:40}}
+.week-track{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));gap:16px;overflow-x:auto;padding:28px 4px 24px;scrollbar-width:none}
+.week-card{background:#fff;border:2px solid #161615;border-radius:22px;box-shadow:0 5px 0 #161615;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:220px}
+.week-card.up{position:relative;top:-18px}
+</style>
+</helmet>
+<div style="font-family: var(--f-body); color: var(--ink); background: var(--paper); min-height: 100vh; overflow-x: hidden">
+<header style="position: sticky; top: 0; z-index: 30; background: rgba(247,247,244,0.92); backdrop-filter: blur(12px)">
+  <div style="max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+    <a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none"><svg class="lulu" width="40" height="40" viewBox="0 0 64 64" role="img" aria-label="Delulu"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="26.2" cy="27.6" r="2.7" fill="#161615"></circle><circle cx="40.2" cy="27.6" r="2.7" fill="#161615"></circle><path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round"></path></svg><span class="word">delulu</span></a>
+    <nav aria-label="Primary" style="display: flex; gap: 28px; flex-wrap: wrap; font-weight: 700; font-size: 15px">
+      <a href="#ways" style="text-decoration: none">Ways to play</a>
+      <a href="#week" style="text-decoration: none">How it works</a>
+      <a href="#faq" style="text-decoration: none">FAQ</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <a href="SignIn.dc.html" style="font-weight: 700; text-decoration: none; padding: 10px 6px">Open app</a>
+      <button type="button" class="gbtn sm" onClick="{{openInstall}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>Install</button>
+    </div>
+  </div>
+</header>
+<section id="top" style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 88px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px">
+  <div style="flex: 1 1 500px; min-width: 0; display: flex; flex-direction: column; gap: 26px">
+    <span class="rise" style="align-self: flex-start"><span class="hud" style="box-shadow: 0 4px 0 var(--line); "><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg><span style="font-size: 13px">The habit contract</span></span></span>
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <h1 class="disp rise d1" style="margin: 0; font-size: clamp(46px, 5.4vw, 80px); line-height: .92">Build habits<br>you can't skip.</h1>
+      <div class="rise d2" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font: 800 clamp(20px, 2vw, 26px) var(--f-body)">
+        <span>Say it.</span>
+        <span style="background: var(--yellow); padding: 2px 12px; border-radius: 10px; box-shadow: 0 4px 0 #C99A0A">Stake it.</span>
+        <span>Prove it.</span>
+      </div>
+    </div>
+    <p class="rise d4 muted" style="margin: 0; font-size: clamp(17px, 1.5vw, 20px); line-height: 1.55; max-width: 470px">Pick a habit, put your word or a little money on it, and prove it each day with a photo. Free to start.</p>
+    <div class="rise d5" style="display: flex; flex-wrap: wrap; gap: 14px">
+      <a href="SignIn.dc.html" class="gbtn" style="height: 60px; padding: 0 28px; font-size: 16px">Start free</a>
+      <button type="button" class="gbtn line" style="height: 60px; padding: 0 26px; font-size: 16px" onClick="{{openInstall}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>Install app</button>
+    </div>
+    <div class="rise d6 mono muted" style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 11px"><span>✓ Free to start</span><span>✓ Proof checked by AI</span><span>✓ Free daily money to stake</span></div>
+  </div>
+
+  <div style="flex: 1 1 420px; min-width: 0; position: relative; display: flex; justify-content: center; padding: 20px 0">
+    <span aria-hidden="true" style="position: absolute; left: 6%; top: 10%; width: 12px; height: 18px; border-radius: 3px; background: #3D7BF0; transform: rotate(20deg)"></span><span aria-hidden="true" style="position: absolute; left: 90%; top: 6%; width: 10px; height: 16px; border-radius: 3px; background: #EC5B8D; transform: rotate(-25deg)"></span><span aria-hidden="true" style="position: absolute; left: 94%; top: 70%; width: 12px; height: 18px; border-radius: 3px; background: #2DB36F; transform: rotate(35deg)"></span><span aria-hidden="true" style="position: absolute; left: 2%; top: 78%; width: 14px; height: 20px; border-radius: 3px; background: #F6C324; transform: rotate(-15deg)"></span>
+    <div style="position: absolute; right: calc(50% - 230px); top: 0; z-index: 3">
+      <sc-if value="{{isWord}}" hint-placeholder-val="{{ true }}"><span class="bounce-in bob" style="display: inline-block"><svg width="104" height="104" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="26.2" cy="27.6" r="2.7" fill="#161615"></circle><circle cx="40.2" cy="27.6" r="2.7" fill="#161615"></circle><path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round"></path></svg></span></sc-if>
+      <sc-if value="{{isGd}}" hint-placeholder-val="{{ false }}"><span class="bounce-in bob" style="display: inline-block"><svg width="104" height="104" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><path d="M20.5 32q4.5-6 9 0M34.5 32q4.5-6 9 0" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M25 39.5h14q-1 8-7 8t-7-8z" fill="#161615" stroke="#161615" stroke-width="2" stroke-linejoin="round"></path><path d="M28 44.5q4 2.2 8 0" fill="none" stroke="#F28B8B" stroke-width="2.4" stroke-linecap="round"></path></svg></span></sc-if>
+    </div>
+    <div class="riseT d2" style="position: relative; z-index: 2; width: 340px; max-width: 100%; border-radius: 50px; background: var(--ink); padding: 11px; box-shadow: 0 40px 70px -40px rgba(22,22,21,.6)">
+      <div style="position: absolute; left: 50%; top: 20px; margin-left: -46px; width: 92px; height: 26px; border-radius: 14px; background: var(--ink); z-index: 2"></div>
+      <div style="border-radius: 40px; background: var(--paper); overflow: hidden; padding: 54px 16px 18px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span style="width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></span>
+          <span style="font-weight: 700; font-size: 15px">New contract</span>
+          <span style="width: 34px"></span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{habits}}" as="h" hint-placeholder-count="5"><button type="button" class="{{h.cls}}" aria-pressed="{{h.pressed}}" onClick="{{h.pick}}" style="height: 36px; padding: 0 12px; font-size: 13px">{{h.label}}</button></sc-for>
+        </div>
+        <div class="gcard" style="padding: 16px; border-radius: 20px">
+          <div class="mono muted" style="font-size: 9px; margin-bottom: 8px">Contract Nº 0001</div>
+          <p style="margin: 0; font-size: 18px; line-height: 1.6; font-weight: 600">I'll <sc-for list="{{habitWords}}" as="w" hint-placeholder-count="1"><sc-if value="{{w.on}}" hint-placeholder-val="{{ true }}"><span class="blank bounce-in" style="cursor: default; display: inline-block">{{w.word}}</span></sc-if></sc-for> every day for 7 days. If I miss a day, <span class="blank" style="cursor: default; background: {{stakeTint}}; border-bottom-color: {{stakeLine}}">{{stakeWord}}</span>.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <button type="button" aria-pressed="{{wordPressed}}" onClick="{{pickWord}}" style="height: 50px; border-radius: 14px; border: 2px solid {{wordBorder}}; background: {{wordBg}}; box-shadow: 0 3px 0 {{wordBorder}}; font: 800 14px var(--f-body); color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C23E6E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg>My word</button>
+          <button type="button" aria-pressed="{{gdPressed}}" onClick="{{pickGd}}" style="height: 50px; border-radius: 14px; border: 2px solid {{gdBorder}}; background: {{gdBg}}; box-shadow: 0 3px 0 {{gdBorder}}; font: 800 14px var(--f-body); color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F6C324" stroke="#C99A0A" stroke-width="2"></circle><circle cx="12" cy="12" r="6.3" fill="none" stroke="#C99A0A" stroke-width="1.5"></circle><path d="M14.2 9.6a3 3 0 1 0 .3 4.1V12h-2" fill="none" stroke="#7A5A00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>Money</button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 16px; background: #fff; border: 2px solid var(--line); overflow: hidden">
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+            <span class="mono muted" style="font-size: 9px">Each day you keep</span>
+            <sc-if value="{{isWord}}" hint-placeholder-val="{{ true }}"><span class="disp bounce-in" style="display: inline-block; font-size: 34px; line-height: 1">+100</span></sc-if>
+            <sc-if value="{{isGd}}" hint-placeholder-val="{{ false }}"><span class="disp bounce-in" style="display: inline-block; font-size: 34px; line-height: 1; color: #2F6BE0">+1,000</span></sc-if>
+            <span style="font-size: 12px; font-weight: 600">points</span>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; border-left: 2px dashed var(--line)">
+            <span class="mono muted" style="font-size: 9px">Full week</span>
+            <span class="disp" style="font-size: 34px; line-height: 1; color: {{weekColor}}">{{weekNum}}</span>
+            <span style="font-size: 12px; font-weight: 600">points</span>
+          </div>
+        </div>
+        <a href="SignIn.dc.html" class="gbtn ink full" style="height: 54px; font-size: 14px">Sign this contract</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 0 24px 96px">
+  <div class="reveal" style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding: 24px 28px; border-radius: 28px; background: var(--yellow-soft); border: 2px solid #E5B41C; box-shadow: 0 6px 0 #E5B41C">
+    <span class="wiggle"><svg width="84" height="84" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="28" width="48" height="28" rx="6" fill="#F6C324" stroke="#161615" stroke-width="3"></rect><path d="M6 30v-8a10 10 0 0 1 10-10h32a10 10 0 0 1 10 10v8z" fill="#FBD65A" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><rect x="28" y="12" width="8" height="44" fill="#161615"></rect><rect x="24" y="30" width="16" height="12" rx="3" fill="#fff" stroke="#161615" stroke-width="3"></rect></svg></span>
+    <div style="flex: 1 1 320px; min-width: 0">
+      <div style="font-weight: 800; font-size: 24px">No money? Start with free money.</div>
+      <div class="muted" style="margin-top: 6px; font-size: 16px; line-height: 1.5">Do a quick face check once, then claim free money every day from GoodDollar. Stake it on your habits, or keep it.</div>
+    </div>
+    <a href="SignIn.dc.html" class="gbtn ink">Claim yours</a>
+  </div>
+</section>
+<section id="problem" style="border-top: 2px solid var(--line); max-width: 1100px; margin: 0 auto; padding: 110px 24px; display: flex; flex-direction: column; gap: 48px">
+  <div style="text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center">
+    <span class="label reveal">The problem</span>
+    <h2 class="disp reveal" style="margin: 0; font-size: clamp(48px, 6vw, 84px)">Goals are free to quit.</h2>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: center">
+    <div class="reveal" style="padding: 28px; border-radius: 24px; background: #EFEFEA; border: 2px dashed #D6D6CF; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#E6E6E0"></path></svg><span style="font-weight: 800; font-size: 20px; color: #6B6B65">Without stakes</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; color: #5C5C56"><span style="width: 26px; height: 26px; border-radius: 50%; background: #ECECE7; color: #8A8A83; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></span>Skip today, nobody notices</div>
+      <div style="display: flex; align-items: center; gap: 12px; color: #5C5C56"><span style="width: 26px; height: 26px; border-radius: 50%; background: #ECECE7; color: #8A8A83; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></span>Nothing for showing up</div>
+      <div style="display: flex; align-items: center; gap: 12px; color: #5C5C56"><span style="width: 26px; height: 26px; border-radius: 50%; background: #ECECE7; color: #8A8A83; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></span>Motivation fades fast</div>
+    </div>
+    <div class="gcard reveal" style="padding: 32px; border-radius: 28px; border-color: #E5B41C; box-shadow: 0 8px 0 #E5B41C; display: flex; flex-direction: column; gap: 18px; position: relative">
+      <span class="bounce-in" style="position: absolute; right: -14px; top: -18px"><span class="hud" style="box-shadow: 0 4px 0 var(--line); "><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#2F6BE0" stroke="#2F6BE0" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="color: #2F6BE0">Level up</span></span></span>
+      <div style="display: flex; align-items: center; gap: 12px"><span class="bob" style="display: inline-flex"><svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg></span><span style="font-weight: 800; font-size: 22px">With Delulu</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-weight: 600"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>Your word or money on the line</div>
+      <div style="display: flex; align-items: center; gap: 12px; font-weight: 600"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>AI-checked proof, every day</div>
+      <div style="display: flex; align-items: center; gap: 12px; font-weight: 600"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>Streaks, points and rewards</div>
+    </div>
+  </div>
+</section>
+<section id="ways" style="background: var(--card); border-top: 2px solid var(--line); border-bottom: 2px solid var(--line)">
+  <div style="max-width: 1160px; margin: 0 auto; padding: 110px 24px; display: flex; flex-direction: column; gap: 56px">
+    <div style="text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center">
+      <span class="label reveal">Two ways to play</span>
+      <h2 class="disp reveal" style="margin: 0; font-size: clamp(48px, 6vw, 84px)">Stake your word.<br>Or stake money.</h2>
+      <p class="muted reveal" style="margin: 0; max-width: 520px; font-size: 18px; line-height: 1.5">Start free in a minute. Earn 10× the points when you add money.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px; align-items: stretch">
+      <div class="gcard reveal" style="padding: 32px; border-radius: 28px; box-shadow: 0 6px 0 var(--line); display: flex; flex-direction: column; gap: 22px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <span style="display: flex; align-items: center; gap: 12px"><span class="gtile" style="width: 52px; height: 52px; background: #FDE6EF; color: #C23E6E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg></span><span style="font-weight: 800; font-size: 24px">Stake your word</span></span>
+          <span class="hud" style="height: 34px; font-size: 13px">Free</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 10px"><span class="disp" style="font-size: 72px; line-height: .9">+100</span><span class="mono muted">points per day kept</span></div>
+        <div class="mono muted" style="font-size: 10px; margin-bottom: -12px">If you miss, you might…</div><div style="display: flex; flex-wrap: wrap; gap: 8px"><span class="hud" style="height: 34px; font-size: 13px; background: #FDE6EF; border-color: #F6C3D6; box-shadow: 0 3px 0 #F6C3D6">Call my dad</span><span class="hud" style="height: 34px; font-size: 13px; background: #FDE6EF; border-color: #F6C3D6; box-shadow: 0 3px 0 #F6C3D6">5,000 words to my boss</span><span class="hud" style="height: 34px; font-size: 13px; background: #FDE6EF; border-color: #F6C3D6; box-shadow: 0 3px 0 #F6C3D6">100 burpees on video</span><span class="hud" style="height: 34px; font-size: 13px; background: #FDE6EF; border-color: #F6C3D6; box-shadow: 0 3px 0 #F6C3D6">Public post</span></div>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Start right away. No money needed.</span></div>
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>AI checks every proof in seconds</span></div>
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Streaks, badges and share cards</span></div>
+        </div>
+        <a href="SignIn.dc.html" class="gbtn line full" style="margin-top: auto">Start free</a>
+      </div>
+
+      <div class="gcard reveal" style="position: relative; padding: 32px; border-radius: 28px; border-color: #E5B41C; box-shadow: 0 8px 0 #E5B41C; background: var(--yellow-soft); display: flex; flex-direction: column; gap: 22px">
+        <span class="bounce-in" style="position: absolute; right: 24px; top: -20px"><span class="hud" style="height: 40px; font-size: 15px; background: #2F6BE0; color: #fff; border-color: #1F4FB0; box-shadow: 0 4px 0 #1F4FB0"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"></path></svg>10× points</span></span>
+        <div style="display: flex; align-items: center; gap: 12px"><span class="gtile" style="width: 52px; height: 52px; background: #fff"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F6C324" stroke="#C99A0A" stroke-width="2"></circle><circle cx="12" cy="12" r="6.3" fill="none" stroke="#C99A0A" stroke-width="1.5"></circle><path d="M14.2 9.6a3 3 0 1 0 .3 4.1V12h-2" fill="none" stroke="#7A5A00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-weight: 800; font-size: 24px">Stake money</span></div>
+        <div style="display: flex; align-items: baseline; gap: 10px"><span class="disp" style="font-size: 72px; line-height: .9">+1,000</span><span class="mono" style="color: #6B5300">points per day kept</span></div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 10px"><span class="mono" style="width: 64px; font-size: 10px">Word</span><span class="bar" style="flex: 1; height: 12px; background: #fff"><span style="width: 10%; background: #C23E6E"></span></span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><span class="mono" style="width: 64px; font-size: 10px">Money</span><span class="bar b" style="flex: 1; height: 12px; background: #fff"><span style="width: 100%"></span></span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Finish and get all your money back</span></div>
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Join challenges with cash prizes</span></div>
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1F9A5B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #157041; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Free daily money after a quick face check</span></div>
+        </div>
+        <button type="button" class="gbtn ink full" style="margin-top: auto" onClick="{{openInstall}}">Get the app</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="week" style="background: var(--yellow); border-top: 3px solid #161615; border-bottom: 3px solid #161615">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 100px 24px 90px; display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <span class="label reveal" style="color: #4A3D0A">How it works</span>
+        <h2 class="disp reveal" style="margin: 0; font-size: clamp(48px, 6vw, 88px)">A week with Delulu.</h2>
+      </div>
+      <p class="reveal" style="margin: 0; max-width: 340px; font-size: 17px; line-height: 1.5; font-weight: 500">One habit, seven days. Here's what it looks like.</p>
+    </div>
+    <div class="week-track">
+      <div class="week-card reveal"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">MON</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #ECECE7; color: #161615">Nº 0042</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"></path><path d="M14 3v5h5"></path></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">Sign your contract</div></div>
+      <div class="week-card reveal up"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">TUE</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E3EDFF; color: #2F6BE0">+1,000</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2F6BE0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">Snap a photo as proof. AI checks it.</div></div>
+      <div class="week-card reveal"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">WED</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E3EDFF; color: #2F6BE0">+1,000</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">Day 2 in a row. Your streak begins.</div></div>
+      <div class="week-card reveal up"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">THU</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E3EDFF; color: #2F6BE0">+1,000</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="32" rx="5.2" ry="6.4" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="32" rx="5.2" ry="6.4" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="25" cy="34.6" r="2.5" fill="#161615"></circle><circle cx="39" cy="34.6" r="2.5" fill="#161615"></circle><path d="M19.5 24.5l8 2.2M44.5 24.5l-8 2.2" fill="none" stroke="#161615" stroke-width="2.6" stroke-linecap="round"></path><path d="M27.5 45q2.25-2.4 4.5 0t4.5 0" fill="none" stroke="#161615" stroke-width="2.6" stroke-linecap="round"></path></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">A reminder saves the day. Photo in at 20:59.</div></div>
+      <div class="week-card reveal"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">FRI</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E3EDFF; color: #2F6BE0">+1,000</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><span class="medal" style="width: 56px; height: 56px; font-size: 18px; background: #FFD9BF; box-shadow: 0 4px 0 #E0915A, inset 0 0 0 4px rgba(255,255,255,.4)">5</span></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">Badge unlocked: 5-day streak</div></div>
+      <div class="week-card reveal up"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">SAT</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E1F5EA; color: #157041">▲ 3</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="52" height="52" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 8h28v14a14 14 0 0 1-28 0z" fill="#F6C324" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><path d="M18 13H9v4a9 9 0 0 0 9 9M46 13h9v4a9 9 0 0 1-9 9" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M32 36v10" stroke="#161615" stroke-width="3"></path><rect x="20" y="46" width="24" height="10" rx="3" fill="#FBD65A" stroke="#161615" stroke-width="3"></rect><path d="M27 18l3 3 6-6" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">You climb to #5 this week</div></div>
+      <div class="week-card reveal"><div style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 11px; font-weight: 600">SUN</span><span class="mono" style="font-size: 9px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: #E1F5EA; color: #157041">Kept</span></div><div style="height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--paper)"><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><path d="M20.5 32q4.5-6 9 0M34.5 32q4.5-6 9 0" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M25 39.5h14q-1 8-7 8t-7-8z" fill="#161615" stroke="#161615" stroke-width="2" stroke-linejoin="round"></path><path d="M28 44.5q4 2.2 8 0" fill="none" stroke="#F28B8B" stroke-width="2.4" stroke-linecap="round"></path></svg></div><div style="font-weight: 800; font-size: 17px; line-height: 1.25">Done! Money back, plus 7,000 points</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="game" style="max-width: 1240px; margin: 0 auto; padding: 110px 24px; display: flex; flex-direction: column; gap: 48px">
+  <div style="text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center">
+    <span class="label reveal">What you get</span>
+    <h2 class="disp reveal" style="margin: 0; font-size: clamp(48px, 6vw, 84px)">Every kept day counts.</h2>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px">
+    <div class="gcard reveal" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; border-radius: 24px; box-shadow: 0 6px 0 var(--line)"><div style="min-height: 150px; display: flex; align-items: center; justify-content: center; border-radius: 18px; background: var(--paper); padding: 16px"><div style="width: 100%; display: flex; flex-direction: column; gap: 4px"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px"><svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 8h28v14a14 14 0 0 1-28 0z" fill="#F6C324" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><path d="M18 13H9v4a9 9 0 0 0 9 9M46 13h9v4a9 9 0 0 1-9 9" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M32 36v10" stroke="#161615" stroke-width="3"></path><rect x="20" y="46" width="24" height="10" rx="3" fill="#FBD65A" stroke="#161615" stroke-width="3"></rect><path d="M27 18l3 3 6-6" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="font-weight: 800">Gold League</span></div><div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; "><span class="disp" style="width: 16px; font-size: 16px">4</span><span class="av" style="width: 24px; height: 24px; background: #ECECE7; font-size: 9px">S</span><span style="flex: 1; font-size: 13px; font-weight: 700">@seun</span><span class="mono" style="font-size: 9px">1,760</span></div><div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; "><span class="disp" style="width: 16px; font-size: 16px">5</span><span class="av" style="width: 24px; height: 24px; background: var(--orange-soft); font-size: 9px">F</span><span style="flex: 1; font-size: 13px; font-weight: 700">@fola</span><span class="mono" style="font-size: 9px">1,640</span></div><div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--yellow-soft); border: 2px solid #E5B41C;"><span class="disp" style="width: 16px; font-size: 16px">6</span><span class="av" style="width: 24px; height: 24px; background: #fff; font-size: 9px">A</span><span style="flex: 1; font-size: 13px; font-weight: 700">You</span><span class="mono" style="font-size: 9px">1,590</span></div></div></div><div><h3 style="margin: 0; font-size: 21px; font-weight: 800">Leaderboards</h3><p class="muted" style="margin: 6px 0 0; line-height: 1.5">Weekly rankings and an all-time board.</p></div></div>
+    <div class="gcard reveal" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; border-radius: 24px; box-shadow: 0 6px 0 var(--line)"><div style="min-height: 150px; display: flex; align-items: center; justify-content: center; border-radius: 18px; background: var(--paper); padding: 16px"><div style="display: flex; gap: 10px"><span class="medal" style="width: 50px; height: 50px; font-size: 16px; background: #FDF1C7; box-shadow: 0 4px 0 #E5B41C, inset 0 0 0 4px rgba(255,255,255,.4)">1ST</span><span class="medal" style="width: 50px; height: 50px; font-size: 16px; background: #FFD9BF; box-shadow: 0 4px 0 #E0915A, inset 0 0 0 4px rgba(255,255,255,.4)">7D</span><span class="medal" style="width: 50px; height: 50px; font-size: 16px; background: #C9EBD7; box-shadow: 0 4px 0 #7CC49C, inset 0 0 0 4px rgba(255,255,255,.4)">10</span><span class="medal locked" style="width: 50px; height: 50px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></div></div><div><h3 style="margin: 0; font-size: 21px; font-weight: 800">Badges</h3><p class="muted" style="margin: 6px 0 0; line-height: 1.5">Earn badges for streaks and milestones.</p></div></div>
+    <div class="gcard reveal" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; border-radius: 24px; box-shadow: 0 6px 0 var(--line)"><div style="min-height: 150px; display: flex; align-items: center; justify-content: center; border-radius: 18px; background: var(--paper); padding: 16px"><div style="display: flex"><div style="width: 120px; height: 168px; border-radius: 18px; background: var(--ink); color: #fff; padding: 12px; transform: rotate(-5deg); display: flex; flex-direction: column; box-shadow: 0 16px 24px -16px rgba(0,0,0,.5)"><span class="word" style="font-size: 13px">delulu</span><span class="disp" style="font-size: 72px; color: var(--yellow); margin-top: 10px; line-height: .8">12</span><span class="disp" style="font-size: 13px; margin-top: 6px">Day streak</span><span class="mono" style="margin-top: auto; font-size: 7px; color: #A3A39C">@ada</span></div><div style="width: 120px; height: 168px; margin-left: -40px; border-radius: 18px; background: var(--yellow); padding: 12px; transform: rotate(6deg); display: flex; flex-direction: column; box-shadow: 0 16px 24px -16px rgba(0,0,0,.4)"><span class="word" style="font-size: 13px">delulu</span><span class="disp" style="font-size: 60px; margin-top: 14px; line-height: .8">6/7</span><span class="disp" style="font-size: 13px; margin-top: 6px">This week</span><span class="mono" style="margin-top: auto; font-size: 7px">@kemi</span></div></div></div><div><h3 style="margin: 0; font-size: 21px; font-weight: 800">Share cards</h3><p class="muted" style="margin: 6px 0 0; line-height: 1.5">Show off your streak on any app.</p></div></div>
+    <div class="gcard reveal" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; border-radius: 24px; box-shadow: 0 6px 0 var(--line)"><div style="min-height: 150px; display: flex; align-items: center; justify-content: center; border-radius: 18px; background: var(--paper); padding: 16px"><div style="display: flex; align-items: center; gap: 18px"><span class="wiggle"><svg width="84" height="84" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="28" width="48" height="28" rx="6" fill="#F6C324" stroke="#161615" stroke-width="3"></rect><path d="M6 30v-8a10 10 0 0 1 10-10h32a10 10 0 0 1 10 10v8z" fill="#FBD65A" stroke="#161615" stroke-width="3" stroke-linejoin="round"></path><rect x="28" y="12" width="8" height="44" fill="#161615"></rect><rect x="24" y="30" width="16" height="12" rx="3" fill="#fff" stroke="#161615" stroke-width="3"></rect></svg></span><span class="gbtn ink sm">Open</span></div></div><div><h3 style="margin: 0; font-size: 21px; font-weight: 800">Free daily money</h3><p class="muted" style="margin: 6px 0 0; line-height: 1.5">Verified people claim free money every day.</p></div></div>
+  </div>
+</section>
+<section id="stories" style="background: var(--paper); border-top: 2px solid var(--line); border-bottom: 2px solid var(--line)">
+  <div style="max-width: 1240px; margin: 0 auto; padding: 110px 24px; display: flex; flex-direction: column; gap: 48px">
+    <div style="text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center">
+      <span class="label reveal">Stories</span>
+      <h2 class="disp reveal" style="margin: 0; font-size: clamp(48px, 6vw, 84px)">Proof, not promises.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+      <figure class="gcard reveal" style="margin: 0; padding: 24px; border-radius: 24px; box-shadow: 0 6px 0 var(--line); display: flex; flex-direction: column; gap: 18px"><div style="display: flex; align-items: center; gap: 12px"><span class="av" style="width: 44px; height: 44px; background: var(--blue-soft); font-size: 16px">A</span><div style="flex: 1"><div style="font-weight: 700">[Member name]</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">[Gym streak]</div></div><span class="hud" style="height: 32px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg>[N]</span></div><blockquote style="margin: 0; font-size: 19px; line-height: 1.45; font-weight: 500">“The first habit app where skipping actually hurts.”</blockquote></figure>
+      <figure class="gcard reveal" style="margin: 0; padding: 24px; border-radius: 24px; box-shadow: 0 6px 0 var(--line); display: flex; flex-direction: column; gap: 18px"><div style="display: flex; align-items: center; gap: 12px"><span class="av" style="width: 44px; height: 44px; background: var(--yellow-soft); font-size: 16px">B</span><div style="flex: 1"><div style="font-weight: 700">[Member name]</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">[Daily reading]</div></div><span class="hud" style="height: 32px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg>[N]</span></div><blockquote style="margin: 0; font-size: 19px; line-height: 1.45; font-weight: 500">“My stake goes to my sister if I miss. She hasn't got a cent.”</blockquote></figure>
+      <figure class="gcard reveal" style="margin: 0; padding: 24px; border-radius: 24px; box-shadow: 0 6px 0 var(--line); display: flex; flex-direction: column; gap: 18px"><div style="display: flex; align-items: center; gap: 12px"><span class="av" style="width: 44px; height: 44px; background: var(--green-soft); font-size: 16px">C</span><div style="flex: 1"><div style="font-weight: 700">[Member name]</div><div class="mono muted" style="font-size: 10px; margin-top: 2px">[Campaign]</div></div><span class="hud" style="height: 32px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5 6 6 6 12a6 6 0 0 1-12 0c0-3 1.6-4.8 2.6-5.6.2 1.6 1 2.8 2.2 3.2C10.4 8.6 11 5 12 2z" fill="#F28B30"></path><path d="M12 13c1 1.2 2.6 2.2 2.6 4.1a2.6 2.6 0 0 1-5.2 0c0-1.4.9-2.4 1.6-2.9.2.6.6 1 1 1-.2-.8-.2-1.5 0-2.2z" fill="#F6C324"></path></svg>[N]</span></div><blockquote style="margin: 0; font-size: 19px; line-height: 1.45; font-weight: 500">“Climbing the campaign leaderboard keeps me going every day.”</blockquote></figure>
+    </div>
+  </div>
+</section>
+<section id="faq" style="background: var(--card); border-top: 2px solid var(--line); border-bottom: 2px solid var(--line)">
+  <div style="max-width: 820px; margin: 0 auto; padding: 110px 24px; display: flex; flex-direction: column; gap: 40px">
+    <div style="display: flex; align-items: center; gap: 18px; justify-content: center; text-align: center; flex-wrap: wrap">
+      <span class="bob" style="display: inline-flex"><svg width="72" height="72" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="26.2" cy="27.6" r="2.7" fill="#161615"></circle><circle cx="40.2" cy="27.6" r="2.7" fill="#161615"></circle><path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round"></path></svg></span>
+      <h2 class="disp reveal" style="margin: 0; font-size: clamp(44px, 5.4vw, 76px)">Questions?</h2>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px"><details class="faq reveal"><summary>Do I need money to start?<span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span></summary><p>No. Stake your word for free. Want to stake money? Verify once and claim free money every day from GoodDollar.</p></details><details class="faq reveal"><summary>How are proofs checked?<span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span></summary><p>AI checks your photo in seconds. You can add a friend as a witness if you like, but you don't have to.</p></details><details class="faq reveal"><summary>What happens if I miss a day?<span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span></summary><p>You pay up. Do the consequence you picked, or your money goes to the friend, charity or community pool you chose.</p></details><details class="faq reveal"><summary>Why the face check?<span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span></summary><p>It proves you're one real person, so rewards stay fair. It also unlocks free daily money, money stakes and 10× points.</p></details><details class="faq reveal"><summary>Where does the free money come from?<span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span></summary><p>GoodDollar gives verified people a small amount of free money (G$) every day. Keep it, or stake it on your habits.</p></details></div>
+  </div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 110px 24px">
+  <div class="reveal" style="position: relative; overflow: hidden; border-radius: 36px; background: var(--ink); color: #fff; box-shadow: 0 10px 0 #000; padding: clamp(40px, 6vw, 80px) clamp(24px, 6vw, 72px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 32px">
+    <span aria-hidden="true" style="position: absolute; left: 6%; top: 14%; width: 12px; height: 18px; border-radius: 3px; background: #F6C324; transform: rotate(20deg)"></span><span aria-hidden="true" style="position: absolute; left: 46%; top: 8%; width: 10px; height: 16px; border-radius: 3px; background: #3D7BF0; transform: rotate(-30deg)"></span><span aria-hidden="true" style="position: absolute; left: 58%; top: 84%; width: 12px; height: 18px; border-radius: 3px; background: #EC5B8D; transform: rotate(25deg)"></span><span aria-hidden="true" style="position: absolute; left: 92%; top: 12%; width: 12px; height: 18px; border-radius: 3px; background: #2DB36F; transform: rotate(-15deg)"></span><span aria-hidden="true" style="position: absolute; left: 30%; top: 88%; width: 10px; height: 16px; border-radius: 3px; background: #F6C324; transform: rotate(40deg)"></span>
+    <div style="position: relative; flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+      <h2 class="disp" style="margin: 0; font-size: clamp(52px, 7vw, 108px)">Your streak<br><span style="color: var(--yellow)">starts today.</span></h2>
+      <p style="margin: 0; font-size: 18px; color: #C9C9C2">Start free with your word. Earn 10× the points with money.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px">
+        <a href="SignIn.dc.html" class="gbtn" style="height: 60px; padding: 0 28px; font-size: 16px">Start free</a>
+        <button type="button" class="gbtn line" style="height: 60px; padding: 0 26px; font-size: 16px; background: transparent; color: #fff; border-color: #4A4A45; box-shadow: 0 4px 0 #4A4A45" onClick="{{openInstall}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>Install app</button>
+      </div>
+    </div>
+    <span class="bob" style="position: relative; display: inline-flex"><svg width="200" height="200" viewBox="0 0 64 64" aria-hidden="true"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><path d="M20.5 32q4.5-6 9 0M34.5 32q4.5-6 9 0" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><path d="M25 39.5h14q-1 8-7 8t-7-8z" fill="#161615" stroke="#161615" stroke-width="2" stroke-linejoin="round"></path><path d="M28 44.5q4 2.2 8 0" fill="none" stroke="#F28B8B" stroke-width="2.4" stroke-linecap="round"></path></svg></span>
+  </div>
+</section>
+<div class="m-cta" style="gap: 10px"><a href="SignIn.dc.html" class="gbtn" style="flex: 1; height: 56px">Start free</a></div>
+<footer style="position: relative; overflow: hidden">
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px">
+    <p class="mono muted" style="margin: 0">The habit contract · Built on Celo</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 56px">
+      <div style="display: flex; flex-direction: column; gap: 12px"><span class="label">Product</span><a href="#week" style="text-decoration: none">How it works</a><a href="Campaigns.dc.html" style="text-decoration: none">Challenges</a><a href="FlexCard.dc.html" style="text-decoration: none">Share cards</a></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><span class="label">Company</span><a href="#top" style="text-decoration: none">Terms</a><a href="#top" style="text-decoration: none">Privacy</a><a href="#top" style="text-decoration: none">Contact</a></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><span class="label">Follow</span><a href="#top" style="text-decoration: none">X</a><a href="#top" style="text-decoration: none">Telegram</a></div>
+    </div>
+  </div>
+  <div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+    <span style="display: flex; align-items: center; gap: 12px"><svg class="lulu" width="55" height="55" viewBox="0 0 64 64" role="img" aria-label="Delulu"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="26.2" cy="27.6" r="2.7" fill="#161615"></circle><circle cx="40.2" cy="27.6" r="2.7" fill="#161615"></circle><path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round"></path></svg><span class="word" style="font-size: 34px">delulu</span></span>
+    <span class="mono muted">Keep your word</span>
+  </div>
+  <div style="position: relative; background: var(--paper); border-top: 2px solid var(--line); padding: 16px 24px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px" class="mono muted"><span>© 2026 Delulu</span><span>Built on Celo</span></div>
+</footer>
+
+<sc-if value="{{showInstall}}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 50; background: rgba(22,22,21,0.5); display: flex; align-items: center; justify-content: center; padding: 16px">
+    <div role="dialog" aria-modal="true" aria-labelledby="install-title" class="gcard sheet-in" style="width: 100%; max-width: 440px; padding: 28px; border-radius: 28px; box-shadow: 0 8px 0 var(--line); display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <svg class="lulu" width="70" height="70" viewBox="0 0 64 64" role="img" aria-label="Delulu"><path d="M30 11.5q3-7 10-5" fill="none" stroke="#161615" stroke-width="3" stroke-linecap="round"></path><circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke="#161615" stroke-width="3"></circle><circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85"></circle><ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke="#161615" stroke-width="2.6"></ellipse><circle cx="26.2" cy="27.6" r="2.7" fill="#161615"></circle><circle cx="40.2" cy="27.6" r="2.7" fill="#161615"></circle><path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke="#161615" stroke-width="2.8" stroke-linecap="round"></path></svg>
+          <div><h2 id="install-title" style="margin: 0; font-size: 24px; font-weight: 800">Get Delulu</h2><div class="muted" style="font-size: 14px; margin-top: 2px">Free · opens like an app</div></div>
+        </div>
+        <button type="button" class="ibtn" aria-label="Close" onClick="{{closeInstall}}" style="border-width: 2px; box-shadow: 0 3px 0 var(--line)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></button>
+      </div>
+      <div class="app" style="width: auto; height: auto; overflow: visible; background: transparent"><div class="seg" role="group" style="grid-template-columns: repeat(3, minmax(0, 1fr))"><sc-for list="{{tabs}}" as="o" hint-placeholder-count="3"><button type="button" class="{{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+      <sc-if value="{{isIos}}" hint-placeholder-val="{{ true }}">
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+          <li class="gcard bounce-in d1" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; box-shadow: 0 3px 0 var(--line)"><span style="width: 32px; height: 32px; border-radius: 50%; background: var(--yellow); box-shadow: 0 3px 0 #C99A0A; display: flex; align-items: center; justify-content: center; font: 800 18px var(--f-display)">1</span><span style="flex: 1">Open in <b>Safari</b></span></li>
+          <li class="gcard bounce-in d2" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; box-shadow: 0 3px 0 var(--line)"><span style="width: 32px; height: 32px; border-radius: 50%; background: var(--yellow); box-shadow: 0 3px 0 #C99A0A; display: flex; align-items: center; justify-content: center; font: 800 18px var(--f-display)">2</span><span style="flex: 1">Tap <b>Share</b></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2F6BE0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M8 7l4-4 4 4"></path><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8"></path></svg></li>
+          <li class="gcard bounce-in d3" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; box-shadow: 0 3px 0 var(--line)"><span style="width: 32px; height: 32px; border-radius: 50%; background: var(--yellow); box-shadow: 0 3px 0 #C99A0A; display: flex; align-items: center; justify-content: center; font: 800 18px var(--f-display)">3</span><span style="flex: 1"><b>Add to Home Screen</b></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"></rect><path d="M12 8v8"></path><path d="M8 12h8"></path></svg></li>
+        </ol>
+      </sc-if>
+      <sc-if value="{{isAndroid}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <button type="button" class="gbtn full" style="height: 58px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>Install now</button>
+          <p class="muted" style="margin: 0; font-size: 14px; text-align: center">No prompt? Chrome menu <b style="color: var(--ink)">⋮</b> → <b style="color: var(--ink)">Install app</b></p>
+        </div>
+      </sc-if>
+      <sc-if value="{{isDesktop}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 20px">
+          <div class="mono muted" style="width: 128px; height: 128px; flex-shrink: 0; border-radius: 16px; border: 2px dashed #BDBDB6; display: flex; align-items: center; justify-content: center">[QR]</div>
+          <div><div style="font-weight: 800; font-size: 18px">Scan with your phone</div><div class="muted" style="margin-top: 6px; font-size: 14px">Opens Delulu. Install from there.</div></div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 6200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: false, platform: 'ios', habit: 'read', stake: 'word', auto: true };
+    this.H = [
+      { id: 'read', label: 'Read', word: 'read for 30 minutes' },
+      { id: 'sugar', label: 'No sugar', word: 'skip sugar' },
+      { id: 'journal', label: 'Journal', word: 'write one journal page' },
+      { id: 'gym', label: 'Workout', word: 'work out for 20 minutes' },
+      { id: 'walk', label: 'Walk 10k', word: 'walk 10,000 steps' }
+    ];
+  }
+  componentDidMount() {
+    this.iv = setInterval(() => {
+      if (!this.state.auto) return;
+      const i = this.H.findIndex((h) => h.id === this.state.habit);
+      this.setState({ habit: this.H[(i + 1) % this.H.length].id });
+    }, 2600);
+  }
+  componentWillUnmount() { clearInterval(this.iv); }
+  renderVals() {
+    const s = this.state;
+    const p = s.platform;
+    const H = this.H;
+    const word = s.stake === 'word';
+    return {
+      showInstall: s.open,
+      openInstall: () => this.setState({ open: true }),
+      closeInstall: () => this.setState({ open: false }),
+      isIos: p === 'ios', isAndroid: p === 'android', isDesktop: p === 'desktop',
+      tabs: [{ id: "ios", label: "iPhone" }, { id: "android", label: "Android" }, { id: "desktop", label: "Computer" }].map((o) => ({ ...o, cls: o.id === this.state.platform ? 'on' : '', pressed: o.id === this.state.platform ? 'true' : 'false', pick: () => this.setState({ platform: o.id }) })),
+      habits: H.map((h) => ({ ...h, cls: 'qchip' + (s.habit === h.id ? ' on' : ''), pressed: s.habit === h.id ? 'true' : 'false', pick: () => this.setState({ habit: h.id, auto: false }) })),
+      habitWords: H.map((h) => ({ word: h.word, on: h.id === s.habit })),
+      isWord: word, isGd: !word,
+      stakeWord: word ? "I'll call my dad and admit I quit" : 'I lose the money I put down',
+      stakeTint: word ? '#FDE6EF' : '#FDF1C7',
+      stakeLine: word ? '#EC5B8D' : '#F6C324',
+      weekNum: word ? '700' : '7,000', weekColor: word ? '#161615' : '#2F6BE0',
+      pickWord: () => this.setState({ stake: 'word' }),
+      pickGd: () => this.setState({ stake: 'gd' }),
+      wordPressed: word ? 'true' : 'false', gdPressed: word ? 'false' : 'true',
+      wordBorder: word ? '#161615' : '#E6E6E0', gdBorder: word ? '#E6E6E0' : '#161615',
+      wordBg: word ? '#FDE6EF' : '#FFFFFF', gdBg: word ? '#FFFFFF' : '#FDF1C7'
+    };
+  }
+}
+</script>
+</body>
+</html>

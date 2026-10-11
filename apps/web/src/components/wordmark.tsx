@@ -1,12 +1,18 @@
+import { Lulu } from "@/components/ds/art";
 import { cn } from "@/lib/utils";
 
-/** Full "delulu" lockup, closed with a colored dot — for places with room for the whole name. */
+/**
+ * Full Delulu lockup: Lulu (the mascot mark) + the Fredoka "delulu" wordmark.
+ * `size` is the wordmark font size; the mark scales with it.
+ */
 export function Wordmark({
   size = 20,
-  dotColor = "var(--delulu-yellow, #f6c324)",
+  showMark = true,
   className,
 }: {
   size?: number;
+  showMark?: boolean;
+  /** @deprecated kept for older call sites; the new lockup has no dot. */
   dotColor?: string;
   className?: string;
 }) {
@@ -14,14 +20,17 @@ export function Wordmark({
     <span
       role="img"
       aria-label="Delulu"
-      className={cn(
-        "inline-flex items-baseline font-extrabold tracking-tight text-foreground",
-        className,
-      )}
-      style={{ fontFamily: "var(--font-manrope), sans-serif", fontSize: size }}
+      className={cn("inline-flex items-center text-ink", className)}
+      style={{ gap: Math.round(size * 0.3) }}
     >
-      delulu
-      <span aria-hidden="true" style={{ color: dotColor }}>.</span>
+      {showMark && <Lulu size={Math.round(size * 1.5)} />}
+      <span
+        aria-hidden="true"
+        className="font-brand font-bold leading-none tracking-[-0.02em]"
+        style={{ fontSize: size }}
+      >
+        delulu
+      </span>
     </span>
   );
 }

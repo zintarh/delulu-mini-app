@@ -49,7 +49,7 @@ export function AppToast() {
       )}
     >
       <div className="flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/12 px-4 py-2.5 shadow-lg backdrop-blur-sm">
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-edge" />
         <p className="flex-1 text-sm font-semibold text-foreground">{toast.message}</p>
         <button
           type="button"

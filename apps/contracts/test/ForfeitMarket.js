@@ -450,6 +450,61 @@ describe("ForfeitMarket", function () {
     });
   });
 
+  describe("word pledge (zero stake)", function () {
+    it("allows a 0-stake commitment even when a nonzero minimum is configured for the token", async function () {
+      const { market, token, owner, creator } = await loadFixture(deployFixture);
+      await market.write.setMinStake([token.address, parseEther("1000")], {
+        account: owner.account,
+      });
+
+      const balBefore = await token.read.balanceOf([creator.account.address]);
+      await approveAndCreate(market, token, creator, { stakeAmount: 0n });
+      const balAfter = await token.read.balanceOf([creator.account.address]);
+
+      // No tokens moved — a word pledge never touches the creator's balance.
+      expect(balAfter).to.equal(balBefore);
+      const commitment = await market.read.commitments([0n]);
+      expect(commitment[2]).to.equal(0n); // stakeAmount
+    });
+
+    it("resolves success on a word pledge without transferring anything", async function () {
+      const { market, token, creator } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, { stakeAmount: 0n });
+
+      const balBefore = await token.read.balanceOf([creator.account.address]);
+      await market.write.resolveCommitmentSuccess([0n], { account: creator.account });
+      const balAfter = await token.read.balanceOf([creator.account.address]);
+      expect(balAfter).to.equal(balBefore);
+    });
+
+    it("resolves a missed word pledge as forfeited without paying a keeper bounty or fee", async function () {
+      const { market, token, creator, stranger } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, {
+        stakeAmount: 0n,
+        deadlineOffset: ONE_DAY,
+      });
+      await time.increase(ONE_DAY + 1n);
+
+      const balBefore = await token.read.balanceOf([stranger.account.address]);
+      await market.write.resolveCommitmentForfeited([0n], { account: stranger.account });
+      const balAfter = await token.read.balanceOf([stranger.account.address]);
+
+      // Permissionless resolution still works for a word pledge (no revert on
+      // the zero-value transfers), it just has no bounty to pay the keeper.
+      expect(balAfter).to.equal(balBefore);
+    });
+
+    it("lets the creator cancel a word pledge with no refund and no transfers", async function () {
+      const { market, token, creator } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, { stakeAmount: 0n });
+
+      const balBefore = await token.read.balanceOf([creator.account.address]);
+      await market.write.cancelCommitment([0n], { account: creator.account });
+      const balAfter = await token.read.balanceOf([creator.account.address]);
+      expect(balAfter).to.equal(balBefore);
+    });
+  });
+
   describe("token allowlist", function () {
     it("rejects creating a commitment with a non-approved token", async function () {
       const { market, creator } = await loadFixture(deployFixture);

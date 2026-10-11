@@ -717,7 +717,7 @@ export function CreateManifestStep({
 
             <div className={cn("min-w-0 flex-1", createFlowFieldGap)}>
               <div>
-                <h2 className="text-xl font-black tracking-tight lg:text-2xl">Manifest</h2>
+                <h2 className="text-xl font-extrabold tracking-tight lg:text-2xl">Manifest</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Title, deadline, and stake
                 </p>
@@ -1117,7 +1117,7 @@ export function CreateManifestStep({
         durationDays={manifestedDurationDays}
         onDone={() => {
           setShowMilestonesModal(false);
-          router.push("/");
+          router.push("/home");
         }}
       />
 
@@ -1137,7 +1137,7 @@ export function CreateManifestStep({
                 onClose();
                 window.location.href = "/daily-claim/verify?returnTo=%2Fboard";
               }}
-              className="w-full rounded-xl border border-border bg-delulu-yellow py-3 text-sm font-black text-delulu-charcoal"
+              className="w-full rounded-xl border border-border bg-delulu-yellow py-3 text-sm font-extrabold text-delulu-charcoal"
             >
               Verify & Claim G$
             </button>

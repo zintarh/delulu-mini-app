@@ -467,7 +467,7 @@ export function TransferSheet({
             )}
           />
           {!recipientValid && (
-            <p className="mt-1 text-[11px] text-rose-500">Invalid address</p>
+            <p className="mt-1 text-[11px] text-orange">Invalid address</p>
           )}
         </div>
 
@@ -506,7 +506,7 @@ export function TransferSheet({
             </p>
           ) : null}
           {!amountValid && amount.length > 0 && (
-            <p className="mt-1 text-[11px] text-rose-500">
+            <p className="mt-1 text-[11px] text-orange">
               {amountNum <= 0
                 ? "Amount must be greater than 0"
                 : "Insufficient balance"}
@@ -516,8 +516,8 @@ export function TransferSheet({
 
         {txError && (
           <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3">
-            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
-            <p className="text-[12px] leading-snug text-rose-600">{txError}</p>
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange" />
+            <p className="text-[12px] leading-snug text-orange">{txError}</p>
           </div>
         )}
 
@@ -528,7 +528,7 @@ export function TransferSheet({
           className={cn(
             "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all",
             canSubmit
-              ? "bg-delulu-green text-white shadow-sm hover:brightness-105 active:scale-[0.99]"
+              ? "bg-green text-white shadow-sm hover:brightness-105 active:scale-[0.99]"
               : "cursor-not-allowed bg-secondary text-muted-foreground",
           )}
         >
@@ -555,10 +555,10 @@ export function TransferSheet({
         <div className="px-6 pt-6 pb-5 space-y-4">
           <div className="flex flex-col items-center text-center gap-3">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-500/30">
-              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+              <CheckCircle2 className="h-7 w-7 text-green-edge" />
             </span>
             <div>
-              <h2 className="text-base font-black text-foreground">Transfer sent</h2>
+              <h2 className="text-base font-extrabold text-foreground">Transfer sent</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {result
                   ? `${result.amountLabel} ${result.symbol} is on its way.`
@@ -589,7 +589,7 @@ export function TransferSheet({
               href={`https://celoscan.io/tx/${result.hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#f6c324] text-[#1a1a19] font-black text-sm border-2 border-[#1a1a19] shadow-[2px_2px_0px_0px_#1a1a19] hover:opacity-90 active:translate-y-px transition-all"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#f6c324] text-[#1a1a19] font-extrabold text-sm border-2 border-[#1a1a19] shadow-[2px_2px_0px_0px_#1a1a19] hover:opacity-90 active:translate-y-px transition-all"
             >
               View on Celoscan
               <ExternalLink className="w-3.5 h-3.5" />

@@ -208,3 +208,42 @@ export async function parseCommunityCampaignJoinedFromTx(
   if (args.campaignId == null || !args.participant) return null;
   return { challengeId: args.campaignId, participant: args.participant.toLowerCase() };
 }
+
+export async function parseCommunityMilestoneProofSubmittedFromTx(
+  txHash: `0x${string}`,
+): Promise<{
+  challengeId: bigint;
+  milestoneId: bigint;
+  participant: string;
+  proofLink: string;
+} | null> {
+  const receipt = await waitForMinedReceipt(txHash);
+  if (receipt.status !== "success") {
+    throw new Error("Proof transaction reverted on-chain");
+  }
+  const contract = cmv1Address();
+  const logs = parseEventLogs({
+    abi: COMMUNITY_CAMPAIGN_ABI,
+    eventName: "CommunityCampaignMilestoneProofSubmitted",
+    logs: receipt.logs,
+  });
+  const match = logs.find(
+    (log) => log.address.toLowerCase() === contract.toLowerCase(),
+  );
+  if (!match) return null;
+  const args = match.args as {
+    campaignId?: bigint;
+    milestoneId?: bigint;
+    participant?: string;
+    proofLink?: string;
+  };
+  if (args.campaignId == null || args.milestoneId == null || !args.participant || args.proofLink == null) {
+    return null;
+  }
+  return {
+    challengeId: args.campaignId,
+    milestoneId: args.milestoneId,
+    participant: args.participant.toLowerCase(),
+    proofLink: args.proofLink,
+  };
+}

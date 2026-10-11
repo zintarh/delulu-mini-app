@@ -37,7 +37,7 @@ const CARDS: FeatureCard[] = [
     headline: "Shape your future",
     body: "Join a campaign and start shaping your future.",
     icon: Compass,
-    bgClassName: "bg-[#071593]",
+    bgClassName: "bg-ink",
     accentClassName: "bg-white/15 text-white",
     glow: "radial-gradient(ellipse 100% 80% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 60%)",
     action: { label: "Create forfeit today", href: "/forfeit" },
@@ -48,7 +48,7 @@ const CARDS: FeatureCard[] = [
     eyebrow: "Every milestone",
     headline: (
       <>
-        1,000 <span className="text-[0.55em] font-black align-top">pts</span>
+        1,000 <span className="text-[0.55em] font-extrabold align-top">pts</span>
       </>
     ),
     body: "Complete a milestone, bank the points instantly.",
@@ -274,7 +274,7 @@ export function HomeFeatureCarousel({
                           FEED_CARD_CTA_CLASS,
                           card.light
                             ? "bg-white text-[#1a1a19]"
-                            : "bg-delulu-blue text-white",
+                            : "bg-blue text-white",
                         )}
                       >
                         {card.action.label} →

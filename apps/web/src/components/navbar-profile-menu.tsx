@@ -25,6 +25,10 @@ interface NavbarProfileMenuProps {
   className?: string;
   /** Compact trigger for mobile page headers */
   size?: "default" | "compact";
+  /** Avatar-only trigger (the HUD puts a level badge where the chevron sat). */
+  hideChevron?: boolean;
+  /** Edge the menu lines up with; use "left" when the trigger sits at the left of the screen. */
+  align?: "left" | "right";
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -84,6 +88,8 @@ export function NavbarProfileMenu({
   onLogoutClick,
   className,
   size = "default",
+  hideChevron = false,
+  align = "right",
 }: NavbarProfileMenuProps) {
   const compact = size === "compact";
   const triggerSize = compact ? 36 : 40;
@@ -136,6 +142,23 @@ export function NavbarProfileMenu({
 
   const close = () => setOpen(false);
 
+  // Signed in: the avatar just opens the profile. Everything the old menu
+  // offered lives there (settings → email, wallet, log out; rewards → transfer).
+  if (authenticated && walletAddress) {
+    return (
+      <Link
+        href="/profile"
+        aria-label="Your profile"
+        className={cn(
+          "relative flex shrink-0 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          className,
+        )}
+      >
+        <UserAvatar address={walletAddress} username={user?.username} pfpUrl={resolvedPfp} size={triggerSize} />
+      </Link>
+    );
+  }
+
   return (
     <div ref={rootRef} className={cn("relative shrink-0", className)}>
       <button
@@ -159,21 +182,24 @@ export function NavbarProfileMenu({
         ) : (
           <TriggerAvatar src={DEFAULT_AVATAR} size={triggerSize} />
         )}
-        <ChevronDown
-          className={cn(
-            "shrink-0 text-muted-foreground transition-transform duration-200",
-            compact ? "h-4 w-4" : "h-5 w-5",
-            open && "rotate-180",
-          )}
-          strokeWidth={2.25}
-        />
+        {hideChevron ? null : (
+          <ChevronDown
+            className={cn(
+              "shrink-0 text-muted-foreground transition-transform duration-200",
+              compact ? "h-4 w-4" : "h-5 w-5",
+              open && "rotate-180",
+            )}
+            strokeWidth={2.25}
+          />
+        )}
       </button>
 
       {open && (
         <div
           role="menu"
           className={cn(
-            "absolute right-0 top-[calc(100%+10px)] z-[60] w-[min(100vw-2rem,320px)]",
+            "absolute top-[calc(100%+10px)] z-[60] w-[min(100vw-2.5rem,320px)]",
+            align === "left" ? "left-0" : "right-0",
             "overflow-hidden rounded-[20px] border border-border/40 bg-card py-5 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
           )}
         >
@@ -211,7 +237,7 @@ export function NavbarProfileMenu({
                           {formatAddress(walletAddress)}
                         </span>
                         {addressCopied ? (
-                          <span className="shrink-0 text-[11px] font-semibold text-delulu-blue">
+                          <span className="shrink-0 text-[11px] font-semibold text-blue">
                             Copied
                           </span>
                         ) : (

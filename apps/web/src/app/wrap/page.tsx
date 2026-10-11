@@ -25,10 +25,10 @@ const SLIDE_BG: Record<number, string> = {
   0: "#0d0011",   // Intro      — near-black purple
   1: "#881337",   // Delulus    — deep crimson
   2: "#14532d",   // Milestones — forest green
-  3: "#1e1b4b",   // Rate       — deep indigo
+  3: "#3a2a05",   // Rate       — deep gold
   4: "#0d0011",   // Tone       — overridden by tone
   5: "#78350f",   // Archetype  — amber/burnt
-  6: "#0c1445",   // Insight    — ocean navy
+  6: "#161615",   // Insight    — ink
   7: "#0d0011",   // CTA        — back to dark
 };
 
@@ -114,7 +114,7 @@ function DonutChart({ pct }: { pct: number }) {
         >
           {progress}%
         </span>
-        <span className="text-white/40 text-xs mt-1" style={{ fontFamily: "var(--font-manrope)" }}>
+        <span className="text-white/40 text-xs mt-1" style={{ fontFamily: "var(--font-body)" }}>
           completion
         </span>
       </div>
@@ -137,7 +137,7 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
 
       <div className="relative z-10 w-full max-w-sm text-center mb-10">
         <p className="text-xs tracking-[0.45em] uppercase mb-5"
-          style={{ fontFamily: "var(--font-manrope)", color: "rgba(252,255,82,0.5)" }}>
+          style={{ fontFamily: "var(--font-body)", color: "rgba(252,255,82,0.5)" }}>
           ✦ Delulu ✦
         </p>
         <h1
@@ -148,7 +148,7 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
           <span style={{ color: "#f6c324" }}>DREAM</span><br />
           WRAPPED
         </h1>
-        <p className="text-sm text-white/35 mt-4" style={{ fontFamily: "var(--font-manrope)" }}>
+        <p className="text-sm text-white/35 mt-4" style={{ fontFamily: "var(--font-body)" }}>
           Pick the period you want to see
         </p>
       </div>
@@ -166,7 +166,7 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
         >
           <div className="text-left">
             <p className="text-xs uppercase tracking-widest mb-1"
-              style={{ fontFamily: "var(--font-manrope)", color: "rgba(252,165,165,0.7)" }}>
+              style={{ fontFamily: "var(--font-body)", color: "rgba(252,165,165,0.7)" }}>
               This Week
             </p>
             <p
@@ -191,7 +191,7 @@ function PeriodSelector({ onSelect }: { onSelect: (p: WrapPeriod) => void }) {
         >
           <div className="text-left">
             <p className="text-xs uppercase tracking-widest mb-1"
-              style={{ fontFamily: "var(--font-manrope)", color: "rgba(252,255,82,0.6)" }}>
+              style={{ fontFamily: "var(--font-body)", color: "rgba(252,255,82,0.6)" }}>
               This Month
             </p>
             <p
@@ -219,7 +219,7 @@ function IntroSlide({ address, period }: { address?: string; period: WrapPeriod 
         style={{ background: "rgba(252,255,82,0.07)" }} />
 
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.4em] uppercase mb-6"
-        style={{ fontFamily: "var(--font-manrope)", color: "rgba(252,255,82,0.5)" }}>
+        style={{ fontFamily: "var(--font-body)", color: "rgba(252,255,82,0.5)" }}>
         ✦ Delulu ✦
       </p>
 
@@ -234,13 +234,13 @@ function IntroSlide({ address, period }: { address?: string; period: WrapPeriod 
 
       <div className="wrap-rise wrap-rise-2 mt-8 px-4 py-2 rounded-full border"
         style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
-        <p className="text-sm text-white/50" style={{ fontFamily: "var(--font-manrope)" }}>
+        <p className="text-sm text-white/50" style={{ fontFamily: "var(--font-body)" }}>
           {display}
         </p>
       </div>
 
       <p className="wrap-rise wrap-rise-3 text-xs mt-8 text-white/20 animate-pulse"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         tap to begin →
       </p>
     </div>
@@ -259,7 +259,7 @@ function DelulusSlide({ count, period }: { count: number; period: WrapPeriod }) 
         style={{ background: "rgba(255,255,255,0.04)" }} />
 
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase text-white/40 mb-4"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         {label} YOU STARTED
       </p>
 
@@ -276,7 +276,7 @@ function DelulusSlide({ count, period }: { count: number; period: WrapPeriod }) 
       </p>
 
       <p className="wrap-rise wrap-rise-3 text-white/30 text-sm mt-5 max-w-xs"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         {count === 0
           ? "Zero. Every legend has to start somewhere."
           : count === 1
@@ -302,7 +302,7 @@ function MilestonesSlide({
         style={{ background: "rgba(255,255,255,0.04)" }} />
 
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase text-white/40 mb-4"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         YOU VERIFIED
       </p>
 
@@ -320,7 +320,7 @@ function MilestonesSlide({
 
       {total > 0 && (
         <p className="wrap-rise wrap-rise-3 text-white/35 text-sm mt-2"
-          style={{ fontFamily: "var(--font-manrope)" }}>
+          style={{ fontFamily: "var(--font-body)" }}>
           out of {total} total
         </p>
       )}
@@ -331,7 +331,7 @@ function MilestonesSlide({
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl text-left"
               style={{ background: "rgba(255,255,255,0.07)" }}>
               <Target className="w-3 h-3 shrink-0 text-white/40" />
-              <p className="text-xs text-white/50 truncate" style={{ fontFamily: "var(--font-manrope)" }}>{t}</p>
+              <p className="text-xs text-white/50 truncate" style={{ fontFamily: "var(--font-body)" }}>{t}</p>
             </div>
           ))}
         </div>
@@ -354,7 +354,7 @@ function RateSlide({ rate, achieved, total }: { rate: number; achieved: number; 
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 text-center">
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase text-white/40 mb-8"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         COMPLETION RATE
       </p>
 
@@ -363,13 +363,13 @@ function RateSlide({ rate, achieved, total }: { rate: number; achieved: number; 
       </div>
 
       <p className="wrap-rise wrap-rise-2 text-white/40 text-sm mt-6 max-w-xs leading-relaxed"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         {judgement}
       </p>
 
       {total > 0 && (
         <p className="wrap-rise wrap-rise-3 text-white/20 text-xs mt-3 tabular-nums"
-          style={{ fontFamily: "var(--font-manrope)" }}>
+          style={{ fontFamily: "var(--font-body)" }}>
           {achieved} / {total} milestones verified
         </p>
       )}
@@ -407,7 +407,7 @@ function ToneSlide({
 
       <p
         className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase mb-8"
-        style={{ fontFamily: "var(--font-manrope)", color: `${accent}80` }}
+        style={{ fontFamily: "var(--font-body)", color: `${accent}80` }}
       >
         {emoji} THE VERDICT: {label}
       </p>
@@ -427,7 +427,7 @@ function ToneSlide({
       >
         <p
           className="text-sm font-semibold"
-          style={{ fontFamily: "var(--font-manrope)", color: accent }}
+          style={{ fontFamily: "var(--font-body)", color: accent }}
         >
           VIBE: {vibe || "Building"}
         </p>
@@ -445,7 +445,7 @@ function ArchetypeSlide({ rating, insight }: { rating: string; insight: string }
         style={{ background: "rgba(255,255,255,0.04)" }} />
 
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase text-white/40 mb-5"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         YOUR DREAMER TYPE
       </p>
 
@@ -461,7 +461,7 @@ function ArchetypeSlide({ rating, insight }: { rating: string; insight: string }
 
       <p
         className="wrap-rise wrap-rise-3 text-white/55 text-sm leading-relaxed max-w-xs"
-        style={{ fontFamily: "var(--font-manrope)" }}
+        style={{ fontFamily: "var(--font-body)" }}
       >
         {insight || "You build dreams in public and back them with real stakes."}
       </p>
@@ -510,7 +510,7 @@ function InsightSlide({
               {v}
             </p>
             <p className="text-white/30 text-[9px] tracking-widest mt-1 uppercase"
-              style={{ fontFamily: "var(--font-manrope)" }}>
+              style={{ fontFamily: "var(--font-body)" }}>
               {l}
             </p>
           </div>
@@ -518,7 +518,7 @@ function InsightSlide({
       </div>
 
       <p className="wrap-rise wrap-rise-3 text-white/20 text-xs mt-4"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         {periodLabel}
       </p>
     </div>
@@ -543,7 +543,7 @@ function CtaSlide({
         style={{ background: "rgba(53,208,127,0.07)" }} />
 
       <p className="wrap-rise wrap-rise-1 text-xs tracking-[0.45em] uppercase text-white/30 mb-6"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         That&apos;s a wrap
       </p>
 
@@ -557,7 +557,7 @@ function CtaSlide({
       </h2>
 
       <p className="wrap-rise wrap-rise-2 text-white/25 text-sm mt-4 mb-10 max-w-xs"
-        style={{ fontFamily: "var(--font-manrope)" }}>
+        style={{ fontFamily: "var(--font-body)" }}>
         Keep stacking milestones. The pool grows with every believer.
       </p>
 
@@ -566,17 +566,17 @@ function CtaSlide({
           type="button"
           onClick={(e) => { e.stopPropagation(); onShare(); }}
           className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
-          style={{ background: "#f6c324", color: "#1a1a19", fontFamily: "var(--font-manrope)" }}
+          style={{ background: "#f6c324", color: "#1a1a19", fontFamily: "var(--font-body)" }}
         >
           <Share2 className="w-4 h-4" />
           {shared ? "Copied to clipboard!" : "Share your Wrap"}
         </button>
 
         <Link
-          href="/board"
+          href="/forfeit"
           onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
-          style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "white", fontFamily: "var(--font-manrope)" }}
+          style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "white", fontFamily: "var(--font-body)" }}
         >
           Create a new Delulu →
         </Link>
@@ -585,7 +585,7 @@ function CtaSlide({
           type="button"
           onClick={(e) => { e.stopPropagation(); onChangePeriod(); }}
           className="text-white/25 text-sm hover:text-white/50 transition-colors py-2"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           Switch period ↺
         </button>
@@ -602,7 +602,7 @@ function Loader({ label = "Loading your wrap…" }: { label?: string }) {
       style={{ background: "#0d0011" }}>
       <div className="w-7 h-7 rounded-full border-2 animate-spin"
         style={{ borderColor: "rgba(252,255,82,0.2)", borderTopColor: "#f6c324" }} />
-      <p className="text-sm text-white/30" style={{ fontFamily: "var(--font-manrope)" }}>{label}</p>
+      <p className="text-sm text-white/30" style={{ fontFamily: "var(--font-body)" }}>{label}</p>
     </div>
   );
 }
@@ -719,7 +719,7 @@ export default function WrapPage() {
             {slide === 0 ? (
               <Link href="/profile" className="flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-xs" style={{ fontFamily: "var(--font-manrope)" }}>Profile</span>
+                <span className="text-xs" style={{ fontFamily: "var(--font-body)" }}>Profile</span>
               </Link>
             ) : (
               <button
@@ -728,14 +728,14 @@ export default function WrapPage() {
                 className="flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-xs" style={{ fontFamily: "var(--font-manrope)" }}>Back</span>
+                <span className="text-xs" style={{ fontFamily: "var(--font-body)" }}>Back</span>
               </button>
             )}
             <div className="flex-1">
               <StoryBar total={TOTAL_SLIDES} current={slide} />
             </div>
             <span className="text-[11px] text-white/20 tabular-nums w-8 text-right"
-              style={{ fontFamily: "var(--font-manrope)" }}>
+              style={{ fontFamily: "var(--font-body)" }}>
               {slide + 1}/{TOTAL_SLIDES}
             </span>
           </div>

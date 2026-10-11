@@ -248,7 +248,7 @@ export function EmailCaptureGate() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted border border-border mb-1">
             <Mail className="h-5 w-5 text-foreground" />
           </div>
-          <ModalTitle className="text-left text-lg font-black tracking-tight">
+          <ModalTitle className="text-left text-lg font-extrabold tracking-tight">
             Add your email
           </ModalTitle>
           <ModalDescription className="text-left text-sm text-muted-foreground leading-relaxed">
@@ -280,7 +280,7 @@ export function EmailCaptureGate() {
               type="submit"
               disabled={submitting || !input.trim()}
               className={cn(
-                "w-full h-11 rounded-xl border-2 text-sm font-black",
+                "w-full h-11 rounded-xl border-2 text-sm font-extrabold",
                 "border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal",
                 "shadow-[2px_2px_0px_0px_#1a1a19] hover:brightness-95 transition-all",
                 "disabled:opacity-50 disabled:cursor-not-allowed",

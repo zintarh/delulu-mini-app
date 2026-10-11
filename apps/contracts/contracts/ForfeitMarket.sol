@@ -280,9 +280,15 @@ contract ForfeitMarket is
         address verifier,
         bytes32 verifierInviteCodeHash
     ) external nonReentrant whenNotPaused returns (uint256 commitmentId) {
-        if (token == address(0) || stakeAmount == 0 || totalPeriods == 0) revert InvalidInput();
+        if (token == address(0) || totalPeriods == 0) revert InvalidInput();
         if (!approvedTokens[token]) revert TokenNotApproved();
-        if (stakeAmount < minStakeForToken[token]) revert StakeBelowMinimum();
+        // A 0 stake is a deliberate "stake your word" pledge, not a missing
+        // amount — exempt from the per-token minimum, which exists to keep
+        // the keeper bounty on forfeiture economically worth claiming, not to
+        // gate a zero-cost commitment. Every downstream amount (bounty, fee,
+        // remainder, transfers) already degrades to a safe no-op at 0 — see
+        // _distributeForfeitedStake's `if (amount > 0)` guards.
+        if (stakeAmount > 0 && stakeAmount < minStakeForToken[token]) revert StakeBelowMinimum();
         if (firstDeadline <= block.timestamp) revert InvalidInput();
         if (cadence == Cadence.Once) {
             if (totalPeriods != 1) revert InvalidInput();
@@ -321,7 +327,12 @@ contract ForfeitMarket is
             pendingVerifierCodeHash[commitmentId] = verifierInviteCodeHash;
         }
 
-        IERC20(token).safeTransferFrom(msg.sender, address(this), stakeAmount);
+        // Skipped outright for a word pledge — relying on every ERC20 to treat a
+        // 0-amount transferFrom as a no-op (standard, but not universal) is an
+        // avoidable risk when the call is just as easy to skip.
+        if (stakeAmount > 0) {
+            IERC20(token).safeTransferFrom(msg.sender, address(this), stakeAmount);
+        }
 
         emit CommitmentCreated(
             commitmentId,
@@ -447,7 +458,9 @@ contract ForfeitMarket is
         bool isFinalPeriod = c.currentPeriodIndex + 1 >= c.totalPeriods;
         if (isFinalPeriod) {
             c.active = false;
-            IERC20(c.token).safeTransfer(c.creator, c.stakeAmount);
+            if (c.stakeAmount > 0) {
+                IERC20(c.token).safeTransfer(c.creator, c.stakeAmount);
+            }
         } else {
             c.currentPeriodIndex += 1;
             c.currentPeriodDeadline += c.periodSeconds;

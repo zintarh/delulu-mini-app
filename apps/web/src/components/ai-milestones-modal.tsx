@@ -227,7 +227,7 @@ export function AiMilestonesModal({
                   <p className="text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
                     Commit to your dream
                   </p>
-                  <h2 className="text-[18px] font-black leading-snug text-foreground line-clamp-2">
+                  <h2 className="text-[18px] font-extrabold leading-snug text-foreground line-clamp-2">
                     {dreamTitle}
                   </h2>
                 </div>
@@ -243,7 +243,7 @@ export function AiMilestonesModal({
               {showList && (
                 <div className={cn(
                   "flex items-center gap-2 rounded-xl px-3.5 py-2.5",
-                  daysRemaining === 0 ? "bg-emerald-500/10" : daysRemaining < 0 ? "bg-destructive/10" : "bg-muted/60"
+                  daysRemaining === 0 ? "bg-green-soft" : daysRemaining < 0 ? "bg-destructive/10" : "bg-muted/60"
                 )}>
                   <div className={cn(
                     "w-1.5 h-1.5 rounded-full flex-shrink-0",
@@ -255,7 +255,7 @@ export function AiMilestonesModal({
                     dream window{" "}
                     <span className={cn(
                       "font-semibold",
-                      daysRemaining === 0 ? "text-emerald-600" : daysRemaining < 0 ? "text-destructive" : "text-foreground"
+                      daysRemaining === 0 ? "text-green-edge" : daysRemaining < 0 ? "text-destructive" : "text-foreground"
                     )}>
                       ({totalMilestoneDays}/{maxDays})
                     </span>
@@ -266,10 +266,10 @@ export function AiMilestonesModal({
               {/* AI error banner (non-blocking) */}
               {aiError && !isLoadingAI && (
                 <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2.5">
-                  <p className="text-xs text-amber-700 leading-relaxed flex-1">{aiError}</p>
+                  <p className="text-xs text-orange leading-relaxed flex-1">{aiError}</p>
                   <button
                     onClick={fetchMilestones}
-                    className="text-[10px] font-semibold text-amber-700 underline shrink-0 mt-px"
+                    className="text-[10px] font-semibold text-orange underline shrink-0 mt-px"
                   >
                     Retry
                   </button>
@@ -311,7 +311,7 @@ export function AiMilestonesModal({
                         {/* Step number */}
                         <div
                           className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5",
+                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold flex-shrink-0 mt-0.5",
                             STEP_COLORS[Math.min(idx, STEP_COLORS.length - 1)]
                           )}
                         >
@@ -431,7 +431,7 @@ export function AiMilestonesModal({
                       "w-full py-4 rounded-2xl font-bold text-sm transition-all",
                       "flex items-center justify-center gap-2",
                       isSuccess
-                        ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
+                        ? "bg-emerald-500/15 text-green-edge border border-emerald-500/20"
                         : "bg-delulu-yellow text-delulu-charcoal active:scale-[0.98]",
                       !canSave && !isSuccess && "opacity-40 cursor-not-allowed"
                     )}

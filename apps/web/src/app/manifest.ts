@@ -5,12 +5,17 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Delulu",
     short_name: "Delulu",
     description:
-      "Create goals (delulus), set milestones, and get reminded to submit proof.",
-    start_url: "/",
+      "Build habits you can't skip. Put your word or a little money on it and prove it daily.",
+    start_url: "/home",
     scope: "/",
     display: "standalone",
-    background_color: "#f9f8f4",
-    theme_color: "#f9f8f4",
+    // When the browser hands a link to the installed app (desktop "Open
+    // supported links", Android links from other apps), reuse the open
+    // window instead of stacking new ones.
+    // (Next's Manifest type has a stale shape for launch_handler, hence the spread.)
+    ...({ launch_handler: { client_mode: ["navigate-existing", "auto"] } } as object),
+    background_color: "#f7f7f4",
+    theme_color: "#f7f7f4",
     icons: [
       {
         src: "/favicon_io/android-chrome-192x192.png",

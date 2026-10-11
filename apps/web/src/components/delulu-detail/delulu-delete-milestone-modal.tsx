@@ -55,7 +55,7 @@ export function DeluluDeleteMilestoneModal({
 
           {deleteError ? (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 font-medium">
+              <p className="text-sm text-orange font-medium">
                 {getContractErrorDisplay(deleteError).message}
               </p>
             </div>
@@ -84,8 +84,8 @@ export function DeluluDeleteMilestoneModal({
                 disabled={busy}
                 onClick={onConfirm}
                 className={cn(
-                  "flex-1 px-4 py-2 text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
-                  "bg-red-500 text-white hover:bg-red-600 hover:scale-[0.98] transition-all",
+                  "flex-1 px-4 py-2 text-sm font-extrabold rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
+                  "bg-orange text-white hover:bg-red-600 hover:scale-[0.98] transition-all",
                   "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100",
                 )}
               >

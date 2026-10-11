@@ -1,507 +1,214 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import Link from "next/link";
-import { useChainId } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigateToCreate } from "@/hooks/use-navigate-to-create";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useReferralLeaderboard } from "@/hooks/graph/useReferralLeaderboard";
-import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
-import { useGoodDollarTotalSupply } from "@/hooks/use-gooddollar-total-supply";
-import { getDeluluContractAddress } from "@/lib/constant";
-import { cn, formatGAmount } from "@/lib/utils";
-import { formatEarnedUsdt } from "@/hooks/use-earned-totals";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Calendar,
-  ChevronDown,
-  Coins,
-  ExternalLink,
-  Gift,
-  Plus,
-  Share2,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-  UserCheck,
-  Users,
-} from "lucide-react";
+import { useEarnedTotalsByAddresses, formatEarnedUsdt } from "@/hooks/use-earned-totals";
+import { cn } from "@/lib/utils";
 import { MainPage } from "@/components/main-app-header";
+import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
-
+import { Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { formatCompact } from "@/lib/levels";
+import Link from "next/link";
 
 const PAGE_SIZE = 10;
 
-type Tab = "monthly" | "global" | "referral";
+type Tab = "monthly" | "global";
 
-/** Dreamer leaderboard points — sourced from Delulu-v3.sol `userDeluluPoints`. */
-const DREAMER_POINTS = {
-  perVerifiedMilestone: 1000,
-  earlyCompletionBonus: 500,
-  streakBonus: 250,
-  perTipToCreator: 100,
-} as const;
-
-const DREAMERS_CLIMB_TIPS = [
-  `Verify milestones on your delulus (${DREAMER_POINTS.perVerifiedMilestone.toLocaleString()} pts each)`,
-  `Early proof earns +${DREAMER_POINTS.earlyCompletionBonus.toLocaleString()}; back-to-back milestones +${DREAMER_POINTS.streakBonus.toLocaleString()}`,
-  `Each tip on your delulu adds ${DREAMER_POINTS.perTipToCreator.toLocaleString()} pts to you as creator`,
-] as const;
+type Entry = { address: string; username: string | null; points: number; rank: number };
 
 function formatAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
 }
 
+const MEDALS: Record<number, [string, string]> = {
+  1: ["#F6C324", "#C99A0A"],
+  2: ["#D9D9D4", "#AFAFA8"],
+  3: ["#F2B48A", "#C98352"],
+};
+
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) {
+  const medal = MEDALS[rank];
+  if (medal) {
     return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-delulu-yellow-reserved text-[13px] font-black text-primary">
-        1
-      </span>
-    );
-  }
-  if (rank === 2) {
-    return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-[13px] font-bold text-foreground">
-        2
-      </span>
-    );
-  }
-  if (rank === 3) {
-    return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/80 text-[13px] font-bold text-muted-foreground">
-        3
+      <span
+        className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full font-display text-base font-extrabold text-ink"
+        style={{ background: medal[0], boxShadow: `0 3px 0 ${medal[1]}` }}
+      >
+        {rank}
       </span>
     );
   }
   return (
-    <span className="w-8 shrink-0 text-center text-sm font-medium tabular-nums text-muted-foreground">
+    <span className="w-[30px] shrink-0 text-center font-display text-[22px] font-extrabold uppercase leading-[0.88] tabular-nums">
       {rank}
     </span>
   );
 }
 
-function YouBadge() {
-  return (
-    <span className="shrink-0 rounded-full bg-delulu-yellow-reserved/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-      You
-    </span>
-  );
-}
-
-function TableShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
-      {children}
-    </div>
-  );
-}
-
-function TableHead({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="hidden border-b border-border/50 bg-secondary/40 px-4 py-3 sm:flex sm:items-center sm:gap-3">
-      {children}
-    </div>
-  );
-}
-
-function HeadCell({
-  className,
-  children,
-  align = "left",
+/** One leaderboard row (design: Leaderboard.dc.html). */
+function Row({
+  entry,
+  isMe,
+  pfp,
+  compact,
+  earnedUsd,
 }: {
-  className?: string;
-  children: React.ReactNode;
-  align?: "left" | "right";
+  entry: Entry;
+  isMe: boolean;
+  pfp: string | null | undefined;
+  compact: boolean;
+  earnedUsd: number;
 }) {
   return (
-    <span
+    <div
       className={cn(
-        "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
-        align === "right" && "text-right",
-        className,
+        "flex animate-rise items-center gap-3 rounded-2xl px-3 py-2",
+        isMe && "border-2 border-yellow-line bg-yellow-soft shadow-edge-yellow-line",
       )}
     >
-      {children}
-    </span>
+      <RankBadge rank={entry.rank} />
+      <UserAvatar address={entry.address} username={entry.username} pfpUrl={pfp} size={38} />
+      <span className="min-w-0 flex-1 truncate font-bold">
+        {isMe ? "You" : entry.username ? `@${entry.username}` : formatAddr(entry.address)}
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="label-mono text-xs font-semibold text-ink">
+          {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
+        </span>
+        {earnedUsd > 0 ? (
+          <span className="label-mono text-[10px] text-muted-foreground">{formatEarnedUsdt(earnedUsd)} earned</span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+/** Top three on a podium (2 · 1 · 3), shown on the first page. */
+function Podium({
+  top,
+  pfpMap,
+  earnedByAddress,
+}: {
+  top: Entry[];
+  pfpMap: Record<string, string | null | undefined>;
+  earnedByAddress: Record<string, number>;
+}) {
+  const order = [top[1], top[0], top[2]].filter(Boolean);
+  const heights: Record<number, number> = { 1: 80, 2: 56, 3: 40 };
+  return (
+    <div className="flex items-end gap-2.5 px-2 pt-3.5">
+      {order.map((e) => (
+        <div key={e.address} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+          <span className="relative animate-bounce-in">
+            <UserAvatar address={e.address} username={e.username} pfpUrl={pfpMap[e.address.toLowerCase()]} size={e.rank === 1 ? 60 : 50} />
+            <span
+              className="absolute -bottom-2 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border-2 border-white font-display text-xs font-extrabold"
+              style={{ background: MEDALS[e.rank][0], boxShadow: `0 2px 0 ${MEDALS[e.rank][1]}` }}
+            >
+              {e.rank}
+            </span>
+          </span>
+          <span className="mt-1.5 max-w-full truncate text-sm font-bold">{e.username ? `@${e.username}` : formatAddr(e.address)}</span>
+          <span className="label-mono text-[10px] text-muted-foreground">{formatCompact(e.points)}</span>
+          {(earnedByAddress[e.address.toLowerCase()] ?? 0) > 0 ? (
+            <span className="label-mono text-[9px] text-muted-foreground/80">
+              {formatEarnedUsdt(earnedByAddress[e.address.toLowerCase()])}
+            </span>
+          ) : null}
+          <div
+            className="w-full rounded-t-[14px] shadow-[inset_0_-6px_0_rgba(0,0,0,0.08)]"
+            style={{ height: heights[e.rank], background: MEDALS[e.rank][0] }}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
 function SkeletonRows() {
   return (
-    <TableShell>
-      <div className="divide-y divide-border/40">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-4">
-            <div className="h-8 w-8 shrink-0 rounded-full bg-secondary" />
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-secondary" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-3.5 w-2/3 rounded-md bg-secondary" />
-              <div className="h-2.5 w-1/3 rounded-md bg-secondary/80" />
-            </div>
-            <div className="h-3.5 w-12 shrink-0 rounded-md bg-secondary" />
-          </div>
-        ))}
-      </div>
-    </TableShell>
+    <div className="flex flex-col gap-1 pt-3">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className="flex animate-pulse items-center gap-3 px-3 py-2">
+          <div className="h-[30px] w-[30px] shrink-0 rounded-full bg-line" />
+          <div className="h-[38px] w-[38px] shrink-0 rounded-full bg-line" />
+          <div className="h-3.5 flex-1 rounded-md bg-line" />
+          <div className="h-3 w-14 shrink-0 rounded-md bg-line" />
+        </div>
+      ))}
+    </div>
   );
 }
 
-function ErrorState({
-  onRetry,
-  error,
-}: {
-  onRetry: () => void;
-  error?: Error | null;
-}) {
+function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-destructive">Failed to load leaderboard</p>
-      {error?.message && (
-        <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{error.message}</p>
-      )}
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-full bg-secondary px-5 py-2 text-sm font-semibold text-foreground hover:bg-secondary/80"
-      >
+    <div className="flex flex-col items-center py-14 text-center">
+      <Lulu size={64} mood="worried" />
+      <p className="mt-3 text-sm font-semibold text-muted-foreground">Couldn&apos;t load the leaderboard.</p>
+      <button type="button" onClick={onRetry} className={gameButtonClass({ variant: "line", size: "sm", className: "mt-4" })}>
         Try again
       </button>
     </div>
   );
 }
 
-function MonthlyEmptyState() {
+function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 py-16 pb-20 text-center">
-      <Trophy className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
-      <p className="text-sm text-muted-foreground">No one has joined a campaign this month yet.</p>
-      <Link
-        href="/explore"
-        className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-      >
-        Join campaign
-        <ArrowRight className="h-4 w-4" />
+    <div className="flex flex-col items-center py-14 text-center">
+      <Lulu size={64} mood="dream" />
+      <p className="mt-3 text-sm font-semibold text-muted-foreground">{message}</p>
+      <Link href="/explore" className={gameButtonClass({ size: "sm", className: "mt-4" })}>
+        Browse campaigns
       </Link>
     </div>
-  );
-}
-
-function DreamersEmptyState({
-  message,
-  onCreateClick,
-}: {
-  message: string;
-  onCreateClick: () => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 pt-14 pb-20 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
-        <Trophy className="h-7 w-7 text-muted-foreground/35" strokeWidth={1.5} />
-      </div>
-      <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={onCreateClick}
-          className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          Create a Delulu
-        </button>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80"
-        >
-          Browse feed
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-      <ul className="mx-auto mt-10 max-w-xs space-y-2.5 text-left">
-        {DREAMERS_CLIMB_TIPS.map((tip) => (
-          <li key={tip} className="flex items-start gap-2 text-xs text-muted-foreground">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-delulu-yellow-reserved" />
-            {tip}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  detail,
-  footer,
-  accent,
-}: {
-  label: string;
-  value: React.ReactNode;
-  detail?: string;
-  footer?: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex min-h-[104px] flex-col rounded-2xl border border-border/60 p-3.5 pb-4",
-        accent ? "bg-delulu-yellow-reserved/10 border-delulu-yellow-reserved/25" : "bg-secondary/50",
-      )}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <div className="mt-1.5 flex-1">{value}</div>
-      {detail && <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">{detail}</p>}
-      {footer && <div className="mt-2 pt-0.5">{footer}</div>}
-    </div>
-  );
-}
-
-function LeaderboardStatsRow({
-  activeTab,
-  formattedGAmount,
-  isLoadingGSupply,
-  celoscanContractUrl,
-  myRank,
-  myPoints,
-  isRankLoading,
-  authenticated,
-  totalDreamers,
-  monthlyParticipantCount,
-}: {
-  activeTab: Tab;
-  formattedGAmount: string | null;
-  isLoadingGSupply: boolean;
-  celoscanContractUrl: string;
-  myRank: number | null;
-  myPoints: number | null;
-  isRankLoading: boolean;
-  authenticated: boolean;
-  totalDreamers: number | string | null;
-  monthlyParticipantCount: number;
-}) {
-  return (
-    <div className="mb-8 grid gap-3 sm:grid-cols-3">
-      <StatCard
-        label="Good Dollar"
-        accent
-        value={
-          isLoadingGSupply ? (
-            <div className="h-7 w-24 animate-pulse rounded-lg bg-secondary" />
-          ) : formattedGAmount ? (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background">
-                <img src="/gooddollar-logo.png" alt="" className="h-5 w-5 object-contain" />
-              </div>
-              <p className="text-lg font-black tabular-nums tracking-tight text-foreground lg:text-xl">
-                {formattedGAmount}
-              </p>
-            </div>
-          ) : (
-            <p className="text-lg font-black text-muted-foreground">—</p>
-          )
-        }
-        detail="Total G$ supply on Celo"
-        footer={
-          formattedGAmount ? (
-            <Link
-              href={celoscanContractUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline"
-            >
-              View on Celoscan
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-          ) : null
-        }
-      />
-
-      <StatCard
-        label="Your position"
-        value={
-          !authenticated ? (
-            <p className="text-base font-bold text-foreground">—</p>
-          ) : isRankLoading ? (
-            <div className="h-7 w-16 animate-pulse rounded-lg bg-secondary" />
-          ) : myRank ? (
-            <p className="text-lg font-black tabular-nums text-foreground lg:text-xl">#{myRank}</p>
-          ) : (
-            <p className="text-base font-bold text-muted-foreground">Unranked</p>
-          )
-        }
-        detail={
-          !authenticated
-            ? "Sign in to track your rank"
-            : myPoints != null
-              ? activeTab === "monthly"
-                ? `${myPoints.toLocaleString()} campaign points this month`
-                : `${myPoints.toLocaleString()} total points`
-              : activeTab === "monthly"
-                ? "Join a campaign this month to earn points"
-                : "Earn points from delulu milestones, tips, and community campaigns"
-        }
-        footer={
-          !authenticated ? (
-            <Link
-              href="/sign-in"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline"
-            >
-              Sign in
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          ) : null
-        }
-      />
-
-      <StatCard
-        label={activeTab === "monthly" ? "This month" : "Global"}
-        value={
-          <p className="text-lg font-black tabular-nums text-foreground lg:text-xl">
-            {activeTab === "monthly" ? monthlyParticipantCount : totalDreamers ?? "—"}
-          </p>
-        }
-        detail={
-          activeTab === "monthly"
-            ? "Wallets earning campaign points this month"
-            : "Wallets ranked by all-time app points"
-        }
-        footer={
-          activeTab === "monthly" ? (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              Resets next month
-            </span>
-          ) : null
-        }
-      />
-    </div>
-  );
-}
-
-function LeaderboardAside({
-  activeTab,
-  onCreateClick,
-}: {
-  activeTab: Tab;
-  onCreateClick: () => void;
-}) {
-  return (
-    <aside className="hidden space-y-4 lg:block">
-      {activeTab === "global" && (
-        <div className="rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6">
-          <h2 className="text-sm font-bold text-foreground">How to climb</h2>
-          <ul className="mt-4 space-y-3">
-            {DREAMERS_CLIMB_TIPS.map((tip) => (
-              <li
-                key={tip}
-                className="flex items-start gap-2.5 text-xs leading-relaxed text-muted-foreground"
-              >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-delulu-yellow-reserved" />
-                {tip}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={onCreateClick}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" />
-            Create a Delulu
-          </button>
-        </div>
-      )}
-    </aside>
   );
 }
 
 function MonthlyLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, error, refetch } =
-    useMonthlyCampaignLeaderboard(page, address);
-
-  const rangeStart = page * PAGE_SIZE + 1;
-  const rangeEnd = page * PAGE_SIZE + entries.length;
-
-  const allAddresses = [
-    ...entries.map((e) => e.wallet_address.toLowerCase()),
-    ...(address ? [address.toLowerCase()] : []),
-  ];
-  const pfpMap = usePfps(allAddresses);
-  const { totalsByAddress: claimedMap } = useEarnedTotalsByAddresses(allAddresses);
+  const { entries: raw, hasNextPage, isLoading, totalCount, error, refetch } = useMonthlyCampaignLeaderboard(page, address);
+  const entries: Entry[] = raw.map((e) => ({ address: e.wallet_address, username: e.username, points: e.points_total, rank: e.rank }));
+  const pfpMap = usePfps(entries.map((e) => e.address.toLowerCase()));
+  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses(entries.map((e) => e.address));
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
-  if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) {
-    return <MonthlyEmptyState />;
-  }
+  if (error) return <ErrorState onRetry={refetch} />;
+  if (entries.length === 0) return <EmptyState message="No one has joined a campaign this month yet." />;
 
+  const me = address?.toLowerCase();
   return (
     <div>
-      <TableShell>
-        <TableHead>
-          <HeadCell className="w-8 shrink-0">#</HeadCell>
-          <HeadCell className="w-10 shrink-0">{""}</HeadCell>
-          <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-16 text-right">Points</HeadCell>
-          <HeadCell className="w-20 text-right">Earned</HeadCell>
-        </TableHead>
-
-        <div className="divide-y divide-border/40">
-          {entries.map((entry) => {
-            const isMe =
-              !!address && entry.wallet_address.toLowerCase() === address.toLowerCase();
-            const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
-            const totalClaimed = claimedMap[entry.wallet_address.toLowerCase()] ?? 0;
-            return (
-              <div
-                key={entry.wallet_address}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60",
-                  isMe && "bg-delulu-yellow-reserved/10",
-                )}
-              >
-                <RankBadge rank={entry.rank} />
-                <UserAvatar
-                  address={entry.wallet_address}
-                  username={entry.username}
-                  pfpUrl={pfpMap[entry.wallet_address.toLowerCase()]}
-                  size={44}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                    {isMe && <YouBadge />}
-                  </div>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {formatAddr(entry.wallet_address)}
-                  </p>
-                </div>
-                <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                  {entry.points_total.toLocaleString()}
-                </span>
-                <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {formatEarnedUsdt(totalClaimed)}
-                </span>
-              </div>
-            );
-          })}
+      <div className="flex items-center gap-3 pt-[18px]">
+        <span className="animate-bounce-in">
+          <TrophyArt size={44} />
+        </span>
+        <div>
+          <div className="text-lg font-extrabold">This month</div>
+          <div className="label-mono mt-[3px] text-[10px] text-muted-foreground">Campaign points · resets monthly</div>
         </div>
-      </TableShell>
-
+      </div>
+      <div className="flex flex-col gap-1 pt-3">
+        {entries.map((e) => (
+          <Row
+            key={e.address}
+            entry={e}
+            isMe={e.address.toLowerCase() === me}
+            pfp={pfpMap[e.address.toLowerCase()]}
+            compact={false}
+            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
+          />
+        ))}
+      </div>
       <LeaderboardPagination
         page={page}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
+        rangeStart={page * PAGE_SIZE + 1}
+        rangeEnd={page * PAGE_SIZE + entries.length}
         total={totalCount ?? undefined}
         hasNextPage={hasNextPage}
         onPrev={() => setPage((p) => Math.max(0, p - 1))}
@@ -511,135 +218,52 @@ function MonthlyLeaderboard() {
   );
 }
 
-function DreamersLeaderboard({
-  onCreateClick,
-}: {
-  onCreateClick: () => void;
-}) {
+function GlobalLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const {
-    entries,
-    hasNextPage,
-    isLoading,
-    totalCount,
-    myRankEntry,
-    myPageEntry,
-    error,
-    refetch,
-  } = useAllUsersLeaderboard(page, address);
-
-  const rangeStart = page * PAGE_SIZE + 1;
-  const rangeEnd = page * PAGE_SIZE + entries.length;
-
-  const allAddresses = [
-    ...entries.map((e) => e.address.toLowerCase()),
-    ...(address ? [address.toLowerCase()] : []),
-  ];
-  const pfpMap = usePfps(allAddresses);
-  const { totalsByAddress: claimedMap } = useEarnedTotalsByAddresses(allAddresses);
+  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address);
+  const me = address?.toLowerCase();
+  const pfpMap = usePfps([...entries.map((e) => e.address.toLowerCase()), ...(me ? [me] : [])]);
+  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses([
+    ...entries.map((e) => e.address),
+    ...(me ? [me] : []),
+  ]);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
-  if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) {
-    return (
-      <DreamersEmptyState
-        message="No dreamers on the board yet."
-        onCreateClick={onCreateClick}
-      />
-    );
-  }
+  if (error) return <ErrorState onRetry={refetch} />;
+  if (entries.length === 0) return <EmptyState message="No one on the board yet." />;
 
-  const isOnCurrentPage =
-    !!address &&
-    entries.some((e) => e.address.toLowerCase() === address.toLowerCase());
-  const showPinnedMe = address && myRankEntry && !isOnCurrentPage;
-
-  const listEntries = entries.filter(
-    (entry) =>
-      !showPinnedMe || entry.address.toLowerCase() !== address!.toLowerCase(),
-  );
+  const isOnCurrentPage = !!me && entries.some((e) => e.address.toLowerCase() === me);
+  const pinnedMe: Entry | null =
+    me && myRankEntry && !isOnCurrentPage
+      ? { address: address!, username: myPageEntry?.username ?? null, points: Number(myRankEntry.points) || 0, rank: myRankEntry.rank }
+      : null;
+  const showPodium = page === 0 && entries.length >= 3;
+  const rows = entries.filter((e) => !showPodium || e.rank > 3);
 
   return (
     <div>
-      <TableShell>
-        <TableHead>
-          <HeadCell className="w-8 shrink-0">#</HeadCell>
-          <HeadCell className="w-10 shrink-0">{""}</HeadCell>
-          <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-16 text-right">Points</HeadCell>
-          <HeadCell className="w-20 text-right">Earned</HeadCell>
-        </TableHead>
-
-        <div className="divide-y divide-border/40">
-          {showPinnedMe && (
-            <div className="flex items-center gap-3 bg-delulu-yellow-reserved/10 px-4 py-3.5">
-              <RankBadge rank={myRankEntry!.rank} />
-              <UserAvatar
-                address={address!}
-                username={myPageEntry?.username ?? null}
-                pfpUrl={pfpMap[address!.toLowerCase()]}
-                size={44}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {myPageEntry?.username
-                      ? `@${myPageEntry.username}`
-                      : formatAddr(address!)}
-                  </p>
-                  <YouBadge />
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">{formatAddr(address!)}</p>
-              </div>
-              <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                {myRankEntry!.points}
-              </span>
-              <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                {formatEarnedUsdt(
-                  claimedMap[address!.toLowerCase()] ?? 0,
-                )}
-              </span>
-            </div>
-          )}
-
-          {listEntries.map((entry) => {
-            const name = entry.username ? `@${entry.username}` : formatAddr(entry.address);
-            const totalClaimed = claimedMap[entry.address.toLowerCase()] ?? 0;
-            return (
-              <div
-                key={entry.address}
-                className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60"
-              >
-                <RankBadge rank={entry.rank} />
-                <UserAvatar
-                  address={entry.address}
-                  username={entry.username}
-                  pfpUrl={pfpMap[entry.address.toLowerCase()]}
-                  size={44}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {formatAddr(entry.address)}
-                  </p>
-                </div>
-                <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                  {entry.points > 0 ? entry.points : "—"}
-                </span>
-                <span className="w-20 shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                  {formatEarnedUsdt(totalClaimed)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </TableShell>
-
+      <div className="label-mono pt-3.5 text-[10px] text-muted-foreground">All time · every player · total points</div>
+      {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} earnedByAddress={earnedByAddress} /> : null}
+      <div className="flex flex-col gap-1 pt-1.5">
+        {rows.map((e) => (
+          <Row
+            key={e.address}
+            entry={e}
+            isMe={e.address.toLowerCase() === me}
+            pfp={pfpMap[e.address.toLowerCase()]}
+            compact
+            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
+          />
+        ))}
+        {pinnedMe ? (
+          <Row entry={pinnedMe} isMe pfp={pfpMap[me!]} compact earnedUsd={earnedByAddress[me!] ?? 0} />
+        ) : null}
+      </div>
       <LeaderboardPagination
         page={page}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
+        rangeStart={page * PAGE_SIZE + 1}
+        rangeEnd={page * PAGE_SIZE + entries.length}
         total={totalCount}
         hasNextPage={hasNextPage}
         onPrev={() => setPage((p) => Math.max(0, p - 1))}
@@ -649,385 +273,25 @@ function DreamersLeaderboard({
   );
 }
 
-function ReferralEmptyState() {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-secondary/30 px-6 pt-14 pb-20 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
-        <Share2 className="h-7 w-7 text-muted-foreground/35" strokeWidth={1.5} />
-      </div>
-      <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-        No successful referrals yet. Share your link — it counts once your friend verifies and
-        joins a campaign or starts a Forfeit.
-      </p>
-      <div className="mt-8 flex justify-center">
-        <Link
-          href="/profile"
-          className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-        >
-          <Share2 className="h-4 w-4" />
-          Get your referral link
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function ReferralLeaderboard() {
-  const [page, setPage] = useState(0);
-  const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, error, refetch } =
-    useReferralLeaderboard(page, address);
-
-  const rangeStart = page * PAGE_SIZE + 1;
-  const rangeEnd = page * PAGE_SIZE + entries.length;
-
-  const allAddresses = [
-    ...entries.map((e) => e.wallet_address.toLowerCase()),
-    ...(address ? [address.toLowerCase()] : []),
-  ];
-  const pfpMap = usePfps(allAddresses);
-
-  if (isLoading && entries.length === 0) return <SkeletonRows />;
-  if (error) return <ErrorState onRetry={refetch} error={error} />;
-  if (entries.length === 0) return <ReferralEmptyState />;
-
-  const isMyEntryOnCurrentPage =
-    !!address &&
-    !!myRankEntry &&
-    entries.some((e) => e.wallet_address.toLowerCase() === myRankEntry.wallet_address.toLowerCase());
-  const showPinnedMe = address && myRankEntry && !isMyEntryOnCurrentPage;
-
-  const listEntries = entries.filter(
-    (entry) =>
-      !showPinnedMe ||
-      entry.wallet_address.toLowerCase() !== myRankEntry!.wallet_address.toLowerCase(),
-  );
-
-  return (
-    <div>
-      <TableShell>
-        <TableHead>
-          <HeadCell className="w-8 shrink-0">#</HeadCell>
-          <HeadCell className="w-10 shrink-0">{""}</HeadCell>
-          <HeadCell className="min-w-0 flex-1">Dreamer</HeadCell>
-          <HeadCell className="w-20 text-right">Referrals</HeadCell>
-          <HeadCell className="w-20 text-right">G$ Earned</HeadCell>
-        </TableHead>
-
-        <div className="divide-y divide-border/40">
-          {showPinnedMe && (
-            <div className="flex items-center gap-3 bg-delulu-yellow-reserved/10 px-4 py-3.5">
-              <RankBadge rank={myRankEntry!.rank} />
-              <UserAvatar
-                address={address!}
-                username={myRankEntry!.username ?? null}
-                pfpUrl={pfpMap[address!.toLowerCase()]}
-                size={44}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {myRankEntry!.username ? `@${myRankEntry!.username}` : formatAddr(address!)}
-                  </p>
-                  <YouBadge />
-                </div>
-              </div>
-              <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                {myRankEntry!.referral_count}
-              </span>
-              <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
-                {myRankEntry!.gdollars_amount.toLocaleString()}
-              </span>
-            </div>
-          )}
-
-          {listEntries.map((entry) => {
-            const isMe =
-              !!address && entry.wallet_address.toLowerCase() === address.toLowerCase();
-            const name = entry.username ? `@${entry.username}` : formatAddr(entry.wallet_address);
-            return (
-              <div
-                key={entry.wallet_address}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/60",
-                  isMe && "bg-delulu-yellow-reserved/10",
-                )}
-              >
-                <RankBadge rank={entry.rank} />
-                <UserAvatar
-                  address={entry.wallet_address}
-                  username={entry.username}
-                  pfpUrl={pfpMap[entry.wallet_address.toLowerCase()]}
-                  size={44}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                    {isMe && <YouBadge />}
-                  </div>
-                </div>
-                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                  {entry.referral_count}
-                </span>
-                <span className="w-20 shrink-0 text-right text-sm font-bold tabular-nums text-delulu-green">
-                  {entry.gdollars_amount.toLocaleString()}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </TableShell>
-
-      <LeaderboardPagination
-        page={page}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
-        total={totalCount}
-        hasNextPage={hasNextPage}
-        onPrev={() => setPage((p) => Math.max(0, p - 1))}
-        onNext={() => setPage((p) => p + 1)}
-      />
-    </div>
-  );
-}
-
-function LeaderboardTabs({
-  activeTab,
-  onChange,
-}: {
-  activeTab: Tab;
-  onChange: (tab: Tab) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {(["referral", "monthly", "global"] as Tab[]).map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          onClick={() => onChange(tab)}
-          className={cn(
-            "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all",
-            activeTab === tab
-              ? "bg-foreground text-background"
-              : "bg-secondary text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {tab === "monthly" ? (
-            <Trophy className="h-4 w-4" strokeWidth={2} />
-          ) : tab === "referral" ? (
-            <Share2 className="h-4 w-4" strokeWidth={2} />
-          ) : (
-            <Users className="h-4 w-4" strokeWidth={2} />
-          )}
-          {tab === "monthly" ? "This month" : tab === "referral" ? "Referral" : "Global"}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-const VALID_REFERRAL_CHECKLIST = [
-  { icon: ShieldCheck, label: "Verified with GoodDollar" },
-  { icon: Coins, label: "Claimed their daily G$ UBI" },
-  { icon: UserCheck, label: "Finished account setup" },
-  { icon: Gift, label: "Claimed the 1,000 G$ welcome gift" },
-  { icon: Trophy, label: "Joined a campaign and earned 1,000+ proof points (or a Forfeit equivalent)" },
-];
-
-function ValidReferralInfo() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-2">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-      >
-        What makes a referral count?
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
-      </button>
-      {open ? (
-        <ul className="mt-2.5 space-y-1.5 rounded-xl border border-border/60 bg-secondary/30 p-3">
-          {VALID_REFERRAL_CHECKLIST.map(({ icon: Icon, label }) => (
-            <li key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Icon className="h-3.5 w-3.5 shrink-0 text-delulu-green" strokeWidth={2} />
-              {label}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
-
+/** Leaderboard (design: docs/redesign/screens/Leaderboard.dc.html). */
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("referral");
-  const { address, authenticated } = useAuth();
-  const { navigateToCreate } = useNavigateToCreate();
-  const handleCreateClick = () => void navigateToCreate();
-
-  const chainId = useChainId();
-  const deluluContractAddress = getDeluluContractAddress(chainId);
-  const celoscanContractUrl = `https://celoscan.io/address/${deluluContractAddress}`;
-
-  const subtitle =
-    activeTab === "monthly"
-      ? "Campaign points earned by everyone participating this month"
-      : activeTab === "referral"
-        ? "Referrers who are fully active themselves — not just a shared link"
-        : "All-time points, accumulated across everything";
+  const [activeTab, setActiveTab] = useState<Tab>("monthly");
 
   return (
     <MainPage>
-      <header className="border-b border-border/40 bg-background">
-        <div className="mx-auto max-w-5xl px-4 py-4 lg:px-8 lg:py-5">
-          <Link
-            href="/"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
-
-          <h1 className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
-            Leaderboard
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          {activeTab === "referral" ? <ValidReferralInfo /> : null}
-
-          <div className="mt-5">
-            <LeaderboardTabs activeTab={activeTab} onChange={setActiveTab} />
-          </div>
-        </div>
-      </header>
-
-      <Suspense fallback={<LeaderboardSkeleton />}>
-        <LeaderboardContent
-          activeTab={activeTab}
-          handleCreateClick={handleCreateClick}
-          chainId={chainId}
-          celoscanContractUrl={celoscanContractUrl}
-          authenticated={authenticated}
+      <PageBackHeader title="Leaderboard" />
+      <div className="mx-auto max-w-xl px-5 pb-8 pt-4">
+        <Segmented<Tab>
+          ariaLabel="Leaderboard"
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: "monthly", label: "This month" },
+            { value: "global", label: "Global" },
+          ]}
         />
-      </Suspense>
+        <Suspense fallback={<SkeletonRows />}>{activeTab === "monthly" ? <MonthlyLeaderboard /> : <GlobalLeaderboard />}</Suspense>
+      </div>
     </MainPage>
-  );
-}
-
-/** Inner component that fetches all data — wrapped in Suspense */
-function LeaderboardContent({
-  activeTab,
-  handleCreateClick,
-  chainId,
-  celoscanContractUrl,
-  authenticated,
-}: {
-  activeTab: Tab;
-  handleCreateClick: () => void;
-  chainId: number;
-  celoscanContractUrl: string;
-  authenticated: boolean;
-}) {
-  const { address } = useAuth();
-
-  // These hooks are now inside the Suspense boundary, so the page renders without waiting
-  const { totalSupply: gTotalSupply, isLoading: isLoadingGSupply } =
-    useGoodDollarTotalSupply();
-  const { myRankEntry: globalRankEntry, totalCount, isRankLoading: isGlobalRankLoading } =
-    useAllUsersLeaderboard(0, address);
-  const {
-    totalCount: monthlyParticipantCount,
-    myRankEntry: monthlyRankEntry,
-    isLoading: isMonthlyRankLoading,
-  } = useMonthlyCampaignLeaderboard(0, address);
-
-  const activeRankEntry = activeTab === "monthly" ? monthlyRankEntry : globalRankEntry;
-  const isRankLoading = activeTab === "monthly" ? isMonthlyRankLoading : isGlobalRankLoading;
-
-  const formattedGAmount =
-    typeof gTotalSupply === "number" ? formatGAmount(gTotalSupply) : null;
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
-      {activeTab === "referral" ? null : (
-        <LeaderboardStatsRow
-          activeTab={activeTab}
-          formattedGAmount={formattedGAmount}
-          isLoadingGSupply={isLoadingGSupply}
-          celoscanContractUrl={celoscanContractUrl}
-          myRank={activeRankEntry?.rank ?? null}
-          myPoints={activeRankEntry?.points ?? null}
-          isRankLoading={isRankLoading}
-          authenticated={authenticated}
-          totalDreamers={totalCount}
-          monthlyParticipantCount={monthlyParticipantCount ?? 0}
-        />
-      )}
-
-      {activeTab === "monthly" ? (
-        <div className="mb-6 lg:hidden">
-          <Link
-            href="/explore"
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background"
-          >
-            Join campaign
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      ) : activeTab === "global" ? (
-        <div className="mb-6 rounded-2xl border border-border/60 bg-secondary/40 p-5 pb-6 lg:hidden">
-          <h2 className="text-sm font-bold text-foreground">How to climb</h2>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Verify milestones, get tipped, and complete community campaign proofs — all count toward Global.
-          </p>
-          <button
-            type="button"
-            onClick={handleCreateClick}
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
-          >
-            <Plus className="h-4 w-4" />
-            Create a Delulu
-          </button>
-        </div>
-      ) : null}
-
-      <div className="">
-        <div className="min-w-0">
-          {activeTab === "monthly" ? (
-            <MonthlyLeaderboard />
-          ) : activeTab === "referral" ? (
-            <ReferralLeaderboard />
-          ) : (
-            <DreamersLeaderboard onCreateClick={handleCreateClick} />
-          )}
-        </div>
-        {/* <LeaderboardAside
-          activeTab={activeTab}
-          onCreateClick={handleCreateClick}
-        /> */}
-      </div>
-    </div>
-  );
-}
-
-function LeaderboardSkeleton() {
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-6 pb-6 lg:px-8 lg:py-8 lg:pb-10">
-      {/* Stats row skeleton */}
-      <div className="mb-8 grid grid-cols-3 gap-3 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-border/40 bg-secondary/30 p-4 animate-pulse"
-          >
-            <div className="h-3 w-16 rounded-md bg-secondary mb-3" />
-            <div className="h-8 w-20 rounded-md bg-secondary mb-2" />
-            <div className="h-2.5 w-12 rounded-md bg-secondary/60" />
-          </div>
-        ))}
-      </div>
-      {/* List skeleton */}
-      <SkeletonRows />
-    </div>
   );
 }

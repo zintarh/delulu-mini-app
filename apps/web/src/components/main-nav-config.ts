@@ -1,12 +1,29 @@
 import {
   Compass,
-  Flame,
   Gift,
   Home,
+  Plus,
   Trophy,
   User,
   type LucideIcon,
 } from "lucide-react";
+
+/** Full-screen flows that hide the floating dock (they own their bottom bar). */
+export function hidesBottomNav(pathname: string): boolean {
+  // Per the design, the dock is hidden on contract screens and on the
+  // settings, activity and flex-card sub-screens.
+  return (
+    pathname === "/forfeit" ||
+    /^\/forfeit\/\d+$/.test(pathname) ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/notifications") ||
+    pathname === "/profile/flex" ||
+    /^\/communities\/[^/]+\/campaigns\/[^/]+$/.test(pathname)
+  );
+}
+
+/** Signed-in app home. `/` is the public landing page. */
+export const APP_HOME = "/home";
 
 export type MainNavItem = {
   icon: LucideIcon;
@@ -36,9 +53,9 @@ export function isNavHrefActive(pathname: string, href: string) {
 }
 
 const coreNavItems = (): MainNavItem[] => [
-  { icon: Home, label: "Home", href: "/", action: "home" },
+  { icon: Home, label: "Home", href: APP_HOME, action: "home" },
   { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
-  { icon: Flame, label: "Forfeit", href: "/forfeit", action: "forfeit" },
+  { icon: Plus, label: "New contract", href: "/forfeit", action: "forfeit" },
 ];
 
 export function getRewardsNavItem(): MainNavItem {
@@ -95,7 +112,7 @@ export function isMainNavItemActive(
 
   switch (item.action) {
     case "home":
-      return options.isHomeRoute && !options.notificationsOpen;
+      return (options.isHomeRoute || isNavHrefActive(path, APP_HOME)) && !options.notificationsOpen;
     case "notifications":
       return options.notificationsOpen;
     case "forfeit":

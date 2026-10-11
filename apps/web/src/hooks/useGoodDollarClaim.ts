@@ -1,15 +1,28 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { formatUnits } from "viem";
+import { formatUnits, parseAbi } from "viem";
+import { usePublicClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import {
   checkGoodDollarWhitelisted,
   useClaimSDK,
 } from "@/hooks/use-claim-sdk";
-import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { IDENTITY_ADDRESS } from "@/lib/identity/status";
 import { recordAppEarned } from "@/lib/record-app-earned";
+
+/** GoodDollar UBIScheme on Celo (production) — same address the citizen SDK uses. */
+const UBI_SCHEME_ADDRESS = "0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1" as const;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const READ_ABI = parseAbi([
+  "function getWhitelistedRoot(address account) view returns (address)",
+  "function checkEntitlement(address _member) view returns (uint256)",
+  "function periodStart() view returns (uint256)",
+  "function currentDay() view returns (uint256)",
+]);
+const DAY_MS = 86_400_000;
 
 export interface RefreshStatusResult {
   isWhitelisted: boolean;
@@ -31,6 +44,8 @@ export interface UseGoodDollarClaimReturn {
   stopVerifying: () => void;
   error: Error | null;
   isInitialized: boolean;
+  /** True once the wallet-backed SDK is ready, so claim() can actually run. */
+  sdkReady: boolean;
 }
 
 export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
@@ -51,6 +66,56 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const fetchedForRef = useRef<string | null>(null);
 
   const isLoading = !isReady;
+  const celoClient = usePublicClient({ chainId: CELO_MAINNET_ID });
+
+  // Read-only status straight from the chain while the wallet-backed SDK is
+  // still connecting (or never connects this session), so the daily money
+  // card shows the real state instead of a loading placeholder.
+  useEffect(() => {
+    if (!isLoading || !address || !celoClient) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const member = address as `0x${string}`;
+        const root = await celoClient.readContract({
+          address: IDENTITY_ADDRESS,
+          abi: READ_ABI,
+          functionName: "getWhitelistedRoot",
+          args: [member],
+        });
+        const whitelisted = root !== ZERO_ADDRESS;
+        let amount = 0n;
+        let next: Date | null = null;
+        if (whitelisted) {
+          amount = await celoClient.readContract({
+            address: UBI_SCHEME_ADDRESS,
+            abi: READ_ABI,
+            functionName: "checkEntitlement",
+            args: [member],
+          });
+          if (amount === 0n) {
+            const [start, day] = await Promise.all([
+              celoClient.readContract({ address: UBI_SCHEME_ADDRESS, abi: READ_ABI, functionName: "periodStart" }),
+              celoClient.readContract({ address: UBI_SCHEME_ADDRESS, abi: READ_ABI, functionName: "currentDay" }),
+            ]);
+            const ref = new Date(Number(start) * 1000 + Number(day) * DAY_MS);
+            next = ref < new Date() ? new Date(ref.getTime() + DAY_MS) : ref;
+          }
+        }
+        if (cancelled) return;
+        setIsWhitelisted(whitelisted);
+        setEntitlement(amount);
+        setHasClaimed(whitelisted && amount === 0n);
+        setNextClaimTime(next);
+        setIsInitialized(true);
+      } catch {
+        // Leave it to the SDK path once the wallet connects.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, address, celoClient]);
 
   const checkWhitelisted = useCallback(async (): Promise<boolean> => {
     return checkGoodDollarWhitelisted(claimSDKInstance);
@@ -244,7 +309,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
             particleCount: 150,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ["#6366f1", "#a855f7", "#ec4899", "#f59e0b"],
+            colors: ["#f6c324", "#2db36f", "#ec4899", "#161615"],
           });
         }
       } catch {
@@ -272,5 +337,6 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     stopVerifying,
     error,
     isInitialized,
+    sdkReady: isReady,
   };
 }

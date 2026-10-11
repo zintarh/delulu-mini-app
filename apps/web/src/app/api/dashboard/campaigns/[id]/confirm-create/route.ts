@@ -111,7 +111,7 @@ export async function POST(
           html: `
             <p>Your campaign <strong>${campaign.title}</strong> for ${communityName} was approved and deployed on-chain.</p>
             <p>Once milestones are added on-chain, members will be able to join and compete. A platform admin can fund the prize pool separately — points and the leaderboard go live when the first member joins.</p>
-            <p><a href="${dashboardUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View campaign</a></p>
+            <p><a href="${dashboardUrl}" style="display:inline-block;padding:10px 20px;background:#161615;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View campaign</a></p>
           `,
         });
         await logCampaignEvent(id, "approved_notified", session.userId);

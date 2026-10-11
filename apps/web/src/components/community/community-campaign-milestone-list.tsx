@@ -25,7 +25,7 @@ function formatCountdown(deadline: string) {
 
 function statusMeta(m: CommunityCampaignMilestoneRow) {
   if (m.completed) {
-    return { label: "Complete", dot: "bg-emerald-500", ring: "border-emerald-500/30 bg-emerald-500/10" };
+    return { label: "Complete", dot: "bg-emerald-500", ring: "border-emerald-500/30 bg-green-soft" };
   }
   if (canSubmitMilestone(m)) {
     return { label: "Active", dot: "bg-foreground", ring: "border-foreground/30 bg-secondary" };
@@ -106,7 +106,7 @@ export function CommunityCampaignMilestoneList({
 
             <div
               className={cn(
-                "relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-black",
+                "relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-extrabold",
                 m.completed
                   ? "border-emerald-500 bg-emerald-500 text-white"
                   : isNext
@@ -146,18 +146,18 @@ export function CommunityCampaignMilestoneList({
 
                 {/* Right side — points reward or submit button */}
                 {m.completed ? (
-                  <span className="shrink-0 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-black text-emerald-700">
+                  <span className="shrink-0 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-extrabold text-green-edge">
                     +{fmtPts(pointsPerMilestone)} pts ✓
                   </span>
                 ) : !isJoined ? (
-                  <span className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-[11px] font-black text-foreground">
+                  <span className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-[11px] font-extrabold text-foreground">
                     +{fmtPts(pointsPerMilestone)} pts
                   </span>
                 ) : isJoined ? (
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {canSubmit || submitting ? (
                       <>
-                        <span className="text-[11px] font-black text-foreground">
+                        <span className="text-[11px] font-extrabold text-foreground">
                           +{fmtPts(pointsPerMilestone)} pts
                         </span>
                         <button

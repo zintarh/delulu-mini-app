@@ -45,7 +45,7 @@ export function DeluluClaimSection({
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-delulu-yellow-reserved/15 border border-delulu-yellow-reserved/35">
                 <Trophy className="w-3.5 h-3.5 text-delulu-yellow-reserved" />
               </span>
-              <p className="text-[11px] uppercase tracking-[0.16em] font-black text-muted-foreground truncate">
+              <p className="text-[11px] uppercase tracking-[0.16em] font-extrabold text-muted-foreground truncate">
                 {isCreator ? "Earnings" : "Claimable"}
               </p>
             </div>
@@ -59,7 +59,7 @@ export function DeluluClaimSection({
             <div className="mt-2 h-9 w-28 bg-muted animate-pulse rounded-md" />
           ) : (
             <div className="mt-1.5 flex items-end gap-2">
-              <span className="text-[1.9rem] leading-none font-black tabular-nums text-foreground">
+              <span className="text-[1.9rem] leading-none font-extrabold tabular-nums text-foreground">
                 {formatGAmount(displayedClaimAmount)}
               </span>
               <span className="pb-1 text-sm font-semibold text-muted-foreground">
@@ -76,7 +76,7 @@ export function DeluluClaimSection({
 
         <div className="flex items-center justify-end">
           {isClaimed || isClaimSuccess ? (
-            <div className="h-11 px-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 text-sm font-bold flex items-center justify-center">
+            <div className="h-11 px-4 rounded-full border border-emerald-500/30 bg-green-soft text-green-edge text-sm font-bold flex items-center justify-center">
               Claimed
             </div>
           ) : (
@@ -85,7 +85,7 @@ export function DeluluClaimSection({
               onClick={onClaim}
               disabled={isClaiming || isClaimConfirming || !canAttemptClaim}
               className={cn(
-                "w-fit px-6 h-11 rounded-full text-sm font-black",
+                "w-fit px-6 h-11 rounded-full text-sm font-extrabold",
                 "flex items-center justify-center gap-2",
                 "transition-all active:scale-[0.98]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -130,7 +130,7 @@ export function DeluluClaimSection({
         !isClaimSuccess &&
         !isClaimed && (
           <div className="mt-2.5 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
-            <p className="text-xs text-amber-700 leading-snug">
+            <p className="text-xs text-orange leading-snug">
               {creatorClaimHint ??
                 "Refresh the page and confirm you are on the correct network with the wallet that created this delulu."}
             </p>

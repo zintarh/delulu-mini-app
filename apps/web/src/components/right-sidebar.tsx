@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { cn, formatGAmountInt } from "@/lib/utils";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { GoalIconPanel } from "@/components/goal-icon";
 
 const DELULU_MONDAY_NOTION_URL =
   "https://flower-pilot-b9a.notion.site/Delulu-Monday-Apr-6-13-2026-4781ca0e2d024b65b97fd3222dcac9b4?source=copy_link";
@@ -20,12 +21,8 @@ type SearchResult = {
   totalSupportCollected: number;
 };
 
-function tileGradient(creator: string) {
-  const hex = creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  return `linear-gradient(140deg, hsl(${h1},50%,25%) 0%, hsl(${h2},55%,15%) 100%)`;
-}
+/** Neutral backdrop shown behind a cover image while it loads. */
+const TILEGRADIENT = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
 export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,9 +184,12 @@ export function RightSidebar() {
                     className="w-full flex items-center gap-2.5 py-2.5 hover:bg-muted/50 rounded-xl px-2 -mx-2 transition-colors text-left"
                   >
                     <div
-                      className="shrink-0 w-10 h-10 rounded-lg overflow-hidden"
-                      style={{ background: tileGradient(d.creator) }}
+                      className="relative shrink-0 w-10 h-10 rounded-lg overflow-hidden"
+                      style={d.bgImageUrl ? { background: TILEGRADIENT } : undefined}
                     >
+                      {!d.bgImageUrl && (
+                        <GoalIconPanel text={d.content} seed={String(d.id)} iconClassName="h-5 w-5" />
+                      )}
                       {d.bgImageUrl && (
                         <img
                           src={d.bgImageUrl}
@@ -231,7 +231,7 @@ export function RightSidebar() {
                 />
               ) : (
                 <div className="w-full min-h-[180px] bg-gradient-to-br from-delulu-yellow-reserved/30 via-background to-delulu-green/20 p-4">
-                  <h3 className="mt-2 text-lg font-black leading-tight text-foreground">
+                  <h3 className="mt-2 text-lg font-extrabold leading-tight text-foreground">
                     Join the weekly campaign and compete for rewards.
                   </h3>
                 </div>
@@ -263,7 +263,7 @@ export function RightSidebar() {
                 type="button"
                 onClick={() => router.push("/leaderboard?tab=campaign")}
                 className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors font-medium"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 See all
               </button>
@@ -315,7 +315,7 @@ export function RightSidebar() {
                       <div className="w-6 h-6 flex items-center justify-center shrink-0">
                         <span
                           className="text-[10px] text-muted-foreground/25 tabular-nums"
-                          style={{ fontFamily: "'Clash Display', sans-serif" }}
+                          style={{ fontFamily: "var(--font-display), sans-serif" }}
                         >
                           {rank}
                         </span>
@@ -337,7 +337,7 @@ export function RightSidebar() {
                         ) : (
                           <p
                             className="text-[11px] font-semibold text-foreground truncate leading-tight"
-                            style={{ fontFamily: "var(--font-manrope)" }}
+                            style={{ fontFamily: "var(--font-body)" }}
                           >
                             {headline}
                           </p>
@@ -345,7 +345,7 @@ export function RightSidebar() {
                         {/* L3: creator handle */}
                         <p
                           className="text-[10px] text-muted-foreground/60 truncate mt-0.5"
-                          style={{ fontFamily: "var(--font-manrope)" }}
+                          style={{ fontFamily: "var(--font-body)" }}
                         >
                           {handle}
                         </p>
@@ -354,7 +354,7 @@ export function RightSidebar() {
                       {/* G$ in circulation for this delulu */}
                       <span
                         className="shrink-0 text-[11px] font-semibold text-foreground tabular-nums"
-                        style={{ fontFamily: "var(--font-manrope)" }}
+                        style={{ fontFamily: "var(--font-body)" }}
                       >
                         {formatGAmountInt(entry.totalG)}
                         <span className="text-[9px] font-normal text-muted-foreground/40 ml-0.5">
@@ -367,7 +367,7 @@ export function RightSidebar() {
               ) : (
                 <p
                   className="py-6 text-center text-[11px] text-muted-foreground/50"
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  style={{ fontFamily: "var(--font-body)" }}
                 >
                   No entries this campaign yet.
                 </p>

@@ -14,10 +14,12 @@ import { OnboardingGiftProvider } from "@/contexts/onboarding-gift-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useIdentity } from "@/hooks/identityHook";
 import { useRouter } from "next/navigation";
-import { preloadAuthProviders } from "@/lib/auth-session-hint";
+import { hasStoredAuthSession, preloadAuthProviders } from "@/lib/auth-session-hint";
 import { useReadContract } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { AppLoader } from "@/components/app-loader";
+import { gatePassedAddress, hasGatePassed, markGatePassed } from "@/lib/app-gate-pass";
 
 const LeftSidebar = dynamic(
   () => import("@/components/left-sidebar").then((m) => m.LeftSidebar),
@@ -35,6 +37,10 @@ const BottomNav = dynamic(
       />
     ),
   },
+);
+const FaceCheckHost = dynamic(
+  () => import("@/components/face-check-host").then((m) => m.FaceCheckHost),
+  { ssr: false },
 );
 const ClaimPanel = dynamic(
   () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
@@ -178,11 +184,35 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     };
   }, [isReady, authenticated, address]);
 
+  // On refresh one auth SDK (usually Privy) can report ready before Web3Auth
+  // has restored the session, so for a moment the user looks signed out and
+  // the page flashes before the checks below start over. If this browser has
+  // a stored session, wait briefly for it to restore (capped, so a dead
+  // session can't hang the app).
+  const [restoreTimedOut, setRestoreTimedOut] = useState(false);
+  const restoringSession = !authenticated && !restoreTimedOut && hasStoredAuthSession();
+  useEffect(() => {
+    if (authenticated) return;
+    const id = window.setTimeout(() => setRestoreTimedOut(true), 1_500);
+    return () => window.clearTimeout(id);
+  }, [authenticated]);
+
+  // Returning user on this device: their wallet passed the checks before and
+  // the session is being restored, so show the app now (pages render their
+  // own skeletons while auth finishes) instead of a full-screen loader.
+  // Read after mount: localStorage isn't available in the server render.
+  const [returningPassed, setReturningPassed] = useState(false);
+  useEffect(() => {
+    setReturningPassed(hasStoredAuthSession() && gatePassedAddress() != null);
+  }, []);
+  const trustedReturning = returningPassed && (!address || hasGatePassed(address));
+
   // Also covers the brief window before auth finishes initializing — we
   // don't yet know if there's a session to gate, so hold off rendering
   // protected content rather than risk a flash of it either way.
   const stillChecking =
     !isReady ||
+    restoringSession ||
     (authenticated &&
       address &&
       (!onboardedChecked || !isGoodDollarInitialized || isLoadingUsername));
@@ -208,16 +238,17 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   // Once this wallet has been let in, a background re-check must never swap
   // the app back to a spinner — that unmounts everything the user has open.
   // Only a confirmed-incomplete result (redirect above) takes them out.
+  // Sign-in records a pass for this session, so arriving from it skips the re-check.
   const passedForRef = useRef<string | null>(null);
-  if (!stillChecking && !incomplete && address) passedForRef.current = address;
-  const alreadyPassed = !!address && passedForRef.current === address;
+  if (!stillChecking && !incomplete && address && passedForRef.current !== address) {
+    passedForRef.current = address;
+    markGatePassed(address);
+  }
+  const alreadyPassed =
+    (!!address && (passedForRef.current === address || hasGatePassed(address))) || trustedReturning;
 
   if ((stillChecking && !alreadyPassed) || incomplete) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground" />
-      </div>
-    );
+    return <AppLoader />;
   }
 
   return <>{children}</>;
@@ -246,6 +277,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />
+          <FaceCheckHost />
           <WhitelistRedirectToast />
           <AppToast />
           <NoGasBanner />

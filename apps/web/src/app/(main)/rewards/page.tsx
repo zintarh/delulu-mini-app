@@ -3,16 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBalance } from "wagmi";
-import {
-  AlertTriangle,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  ExternalLink,
-  Gift,
-  Loader2,
-  Send as SendIcon,
-  Sparkles,
-} from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Copy, Loader2, Lock } from "lucide-react";
 
 import { formatUnits } from "viem";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,10 +16,16 @@ import { useGraphUserForfeitActivity } from "@/hooks/graph/useGraphUserForfeitAc
 import { useAdminRewardGrants } from "@/hooks/use-admin-reward-grants";
 import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
-import { TokenBadge } from "@/components/token-badge";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
 import { MainPage } from "@/components/main-app-header";
+import { LeaderboardPagination } from "@/components/leaderboard-pagination";
+import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
+import { RewardsDailyCard } from "@/components/home/daily-money-card";
+import { useClaimPanel, useFaceCheck } from "@/contexts/right-panel-context";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
+import { formatCompact } from "@/lib/levels";
 import {
   CELO_MAINNET_ID,
   CUSD_ADDRESSES,
@@ -38,7 +35,7 @@ import {
   REWARD_CLAIM_ENABLED,
 } from "@/lib/constant";
 import { toUsdAmount, getTokenDecimals } from "@/lib/token-amounts";
-import { cn, formatGAmount, formatTimeAgo } from "@/lib/utils";
+import { cn, formatGAmount } from "@/lib/utils";
 
 type ActivityItem = {
   id: string;
@@ -49,6 +46,8 @@ type ActivityItem = {
   txHash: string;
   createdAt: string;
 };
+
+const LEDGER_PAGE_SIZE = 5;
 
 function forfeitDestinationLabel(type: number | null): string {
   switch (type) {
@@ -63,22 +62,15 @@ function forfeitDestinationLabel(type: number | null): string {
   }
 }
 
-const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
-
-type WalletTab = "tokens" | "claims" | "activity";
-
-const WALLET_TABS: { id: WalletTab; label: string }[] = [
-  { id: "claims", label: "Claims" },
-  { id: "tokens", label: "Tokens" },
-  { id: "activity", label: "Activity" },
-];
-
 export default function RewardsPage() {
   const router = useRouter();
   const { address, isConnected, isReady } = useAuth();
   const [sendOpen, setSendOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<WalletTab>("claims");
+  const [copied, setCopied] = useState(false);
+  const { open: openClaimPanel } = useClaimPanel();
+  const { start: openVerify } = useFaceCheck();
+  const { isWhitelisted, isInitialized: claimReady } = useGoodDollarClaim();
+  const { points } = useUserTotalPoints(address);
   const [optimisticSpend, setOptimisticSpend] = useState({
     gdollar: 0,
     celo: 0,
@@ -87,6 +79,7 @@ export default function RewardsPage() {
   });
   const sessionHint = hasStoredAuthSession();
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
+  const [ledgerPage, setLedgerPage] = useState(0);
   const {
     hasPending: hasAdminPending,
     isLoading: isLoadingAdminRewards,
@@ -186,6 +179,11 @@ export default function RewardsPage() {
   const isLoadingActivity = isLoadingClaims || isLoadingGrants || isLoadingForfeitActivity;
   const activityError = claimsError || grantsError || forfeitActivityError;
 
+  // Clamp when the list shrinks (e.g. after a refetch) so we never sit on an empty page.
+  const ledgerPageCount = Math.max(1, Math.ceil(activityItems.length / LEDGER_PAGE_SIZE));
+  const safeLedgerPage = Math.min(ledgerPage, ledgerPageCount - 1);
+  const ledgerPageItems = activityItems.slice(safeLedgerPage * LEDGER_PAGE_SIZE, (safeLedgerPage + 1) * LEDGER_PAGE_SIZE);
+
   const {
     formatted: gDollarBalance,
     isLoading: isGdLoading,
@@ -238,7 +236,17 @@ export default function RewardsPage() {
   const knownUsdLegs = usdLegs.filter((v): v is number => v != null);
   const totalUsd = knownUsdLegs.reduce((sum, v) => sum + v, 0);
   const hasAnyUsdValue = knownUsdLegs.length > 0;
-  const isTotalPartial = usdLegs.some((v) => v == null);
+
+  const otherBalancesLine = (() => {
+    const parts: string[] = [];
+    if (usdtBalanceNum != null && usdtDisplay > 0) parts.push(`${usdtDisplay.toFixed(2)} USDT`);
+    if (cusdBalanceNum != null && cusdDisplay > 0) parts.push(`${cusdDisplay.toFixed(2)} cUSD`);
+    if (celoBalanceNum != null && celoDisplay > 0) parts.push(`${celoDisplay.toFixed(3)} CELO`);
+    return parts.length > 0 ? `+ ${parts.join(" · ")}` : null;
+  })();
+
+  // Not face-verified and holding no G$: show points and what verifying unlocks.
+  const showUnverified = claimReady && !isWhitelisted && !isGdLoading && gdDisplay <= 0;
 
   const balancesLoaded = !isGdLoading && !isCusdLoading && !isUsdtLoading && !isCeloLoading;
   const hasSendableBalance =
@@ -316,246 +324,197 @@ export default function RewardsPage() {
   return (
     <>
       <MainPage>
-        <div className="mx-auto w-full max-w-6xl">
-        <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
-          {/* Hero — claimable rewards first, balance secondary */}
-          <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-delulu-yellow-reserved/25 via-background to-background px-5 py-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,195,36,0.3),transparent_55%)] pointer-events-none" />
-            <div className="relative">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                style={MANROPE}
-              >
-                Total balance
-              </p>
-              <div className="mt-2 flex items-end gap-1">
-                <span
-                  className={cn(
-                    "pb-1 text-2xl font-black leading-none",
-                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
-                  )}
-                  style={CLASH_DISPLAY}
-                >
-                  $
-                </span>
-                <span
-                  className={cn(
-                    "text-4xl font-black tabular-nums leading-none",
-                    hasAnyUsdValue ? "text-foreground" : "text-muted-foreground/70",
-                  )}
-                  style={CLASH_DISPLAY}
-                >
-                  {!balancesLoaded
-                    ? "—"
-                    : `${isTotalPartial ? "≈ " : ""}${totalUsd.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`}
-                </span>
-                <span className="pb-1 text-sm font-bold text-muted-foreground">USDT</span>
-              </div>
-              {gdError ? (
-                <p className="mt-1 text-[11px] font-medium text-destructive">
-                  Couldn&apos;t load your balance — check your connection and try again.
-                </p>
-              ) : null}
+        <div className="mx-auto w-full">
+        <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:pt-6">
+          <h1 className="m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">Rewards</h1>
 
-              <div className="mt-3 flex items-center gap-2 rounded-2xl bg-muted/60 px-3 py-2">
-                <TokenBadge
-                  tokenAddress={primaryPending?.token ?? GOODDOLLAR_ADDRESSES.mainnet}
-                  size="sm"
-                  showText={false}
-                />
+          {showUnverified ? (
+            <>
+              {/* Not verified yet (design: RewardsNew.dc.html) */}
+              <GameCard className="flex animate-rise items-center gap-3.5 p-4">
+                <span className="animate-bounce-in">
+                  <Bolt size={52} />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                    style={MANROPE}
-                  >
-                    Ready to claim
-                  </p>
-                  <p
-                    className={cn(
-                      "text-sm font-bold tabular-nums",
-                      hasAdminPending ? "text-foreground" : "text-muted-foreground",
-                    )}
-                    style={MANROPE}
-                  >
-                    {isLoadingAdminRewards
-                      ? "—"
-                      : primaryPending
-                        ? `${primaryPending.amount.toLocaleString(undefined, {
-                            maximumFractionDigits: 4,
-                          })} ${primaryPending.symbol}`
-                        : "0 G$"}
-                    {secondaryPending.length > 0
-                      ? ` + ${secondaryPending.map((r) => r.display).join(" + ")}`
-                      : ""}
-                  </p>
+                  <div className="truncate font-display text-[40px] font-extrabold uppercase leading-none tabular-nums">
+                    {formatCompact(points ?? 0)} pts
+                  </div>
+                  <div className="label-mono mt-1 text-[10px] text-muted-foreground">Total points</div>
                 </div>
+              </GameCard>
+
+              <div className="relative flex animate-rise items-center gap-3 rounded-[20px] border-2 border-blue-line bg-blue-soft py-3 pl-3.5 pr-3 shadow-edge-blue-line">
+                <ShieldBadge size={44} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold">Unlock free money</div>
+                  <div className="label-mono mt-[3px] text-[10px] text-blue">One quick face check</div>
+                </div>
+                <GameButton variant="blue" size="sm" onClick={openVerify}>
+                  Verify
+                </GameButton>
               </div>
 
-              <div className="mt-5 flex gap-2.5">
-                <button
-                  type="button"
+              <div className="flex flex-col gap-2.5 pt-2">
+                <span className="label-mono text-muted-foreground">Unlocks with verification</span>
+                {[
+                  { art: <Chest size={44} grey />, title: "Daily G$", sub: "Free every day" },
+                  { art: <Coin size={40} />, title: "Stake money", sub: "Put G$ on your contracts" },
+                  { art: <Trophy size={42} />, title: "Campaign prizes", sub: "Join pools with real G$" },
+                ].map((row) => (
+                  <button
+                    key={row.title}
+                    type="button"
+                    onClick={openVerify}
+                    className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-left shadow-edge"
+                  >
+                    <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+                      {row.art}
+                      <span className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-white bg-ink text-white">
+                        <Lock className="h-3 w-3" strokeWidth={2.6} />
+                      </span>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold">{row.title}</div>
+                      <div className="label-mono mt-0.5 text-[10px] text-muted-foreground">{row.sub}</div>
+                    </div>
+                    <span className={gameButtonClass({ variant: "blue", size: "sm" })}>Verify</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Balance */}
+              <GameCard className="animate-rise p-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="animate-bounce-in">
+                    <Coin size={52} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-[40px] font-extrabold uppercase leading-none tabular-nums">
+                      {isGdLoading || gdError ? "—" : `${gdDisplay.toLocaleString("en-US", { maximumFractionDigits: 0 })} G$`}
+                    </div>
+                    <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">
+                      {otherBalancesLine ?? (hasAnyUsdValue && balancesLoaded ? `≈ $${totalUsd.toFixed(2)}` : "\u00a0")}
+                    </div>
+                    {gdError ? (
+                      <p className="mt-1 text-[11px] font-semibold text-orange">Couldn&apos;t load your balance. Try again.</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <GameButton
+                    variant="line"
+                    size="sm"
+                    disabled={balancesLoaded && !hasSendableBalance}
+                    onClick={() => setSendOpen(true)}
+                  >
+                    <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+                    Send
+                  </GameButton>
+                  <GameButton variant="line" size="sm" onClick={openClaimPanel}>
+                    <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />
+                    Get
+                  </GameButton>
+                  <GameButton
+                    variant="line"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(address).then(() => {
+                        setCopied(true);
+                        window.setTimeout(() => setCopied(false), 1500);
+                      });
+                    }}
+                  >
+                    {copied ? <Check className="h-4 w-4" strokeWidth={2.4} /> : <Copy className="h-4 w-4" strokeWidth={2} />}
+                    {copied ? "Copied" : "Copy"}
+                  </GameButton>
+                </div>
+              </GameCard>
+
+              {/* Free daily money (GoodDollar UBI) */}
+              <RewardsDailyCard />
+
+              {/* Rewards ready to claim */}
+              <GameCard className="flex animate-rise items-center gap-3 px-3.5 py-3">
+                <CoinStack className="h-10 w-11" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold">
+                    {primaryPending
+                      ? `${primaryPending.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${primaryPending.symbol} reward`
+                      : "Proof rewards"}
+                  </div>
+                  <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">
+                    {isLoadingAdminRewards
+                      ? "Checking…"
+                      : primaryPending
+                        ? secondaryPending.length > 0
+                          ? `+ ${secondaryPending.map((r) => r.display).join(" + ")}`
+                          : "Ready to claim"
+                        : "Nothing yet"}
+                  </div>
+                </div>
+                <GameButton
+                  variant="green"
+                  size="sm"
                   disabled={!REWARD_CLAIM_ENABLED || !hasAdminPending || isClaimingAdmin}
                   onClick={() => {
                     setSendOpen(false);
                     // Confetti fires inside claimAll on the first mined success.
                     void claimAllAdminRewards();
                   }}
-                  className={cn(
-                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black text-white transition-all",
-                    REWARD_CLAIM_ENABLED && hasAdminPending && !isClaimingAdmin
-                      ? "bg-delulu-blue active:scale-[0.98] hover:opacity-90"
-                      : "bg-delulu-blue/40 cursor-not-allowed",
-                  )}
                 >
-                  {isClaimingAdmin ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Gift className="h-4 w-4" />
-                  )}
+                  {isClaimingAdmin ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Claim
-                </button>
-                <button
-                  type="button"
-                  disabled={balancesLoaded && !hasSendableBalance}
-                  onClick={() => setSendOpen(true)}
-                  className={cn(
-                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-border text-sm font-black transition-all",
-                    balancesLoaded && !hasSendableBalance
-                      ? "cursor-not-allowed bg-muted/40 text-muted-foreground"
-                      : "bg-background text-foreground active:scale-[0.98] hover:bg-muted",
-                  )}
-                >
-                  <SendIcon className="h-4 w-4" />
-                  Send
-                </button>
-              </div>
-              {adminClaimError ? (
-                <p className="mt-2 text-[11px] font-medium text-destructive">{adminClaimError}</p>
-              ) : isLoadingAdminRewards ? (
-                <p className="mt-2 text-[11px] text-muted-foreground" style={MANROPE}>
-                  Checking for team rewards…
-                </p>
-              ) : null}
-            </div>
-          </section>
+                </GameButton>
+              </GameCard>
+              {adminClaimError ? <p className="-mt-2 text-[11px] font-semibold text-orange">{adminClaimError}</p> : null}
 
-          {/* Tokens / Claims / Activity tabs */}
-          <div className="flex items-center gap-4">
-            {WALLET_TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveTab(id)}
-                className={cn(
-                  "border-b pb-1 text-sm font-semibold tracking-wide transition-colors",
-                  activeTab === id
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-                style={MANROPE}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === "tokens" ? (
-            <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
-                <div className="divide-y divide-border/40">
-                  <TokenListRow
-                    tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
-                    label="GoodDollar"
-                    symbol="G$"
-                    value={
-                      isGdLoading || gdError
-                        ? "—"
-                        : formatGAmount(gdDisplay)
-                    }
-                    usdValue={gdUsd != null ? `≈ $${gdUsd.toFixed(2)}` : null}
-                  />
-                  <TokenListRow
-                    logo="/celo.png"
-                    label="Celo"
-                    symbol="CELO"
-                    value={celoBalanceNum != null ? celoDisplay.toFixed(3) : "—"}
-                    usdValue={celoUsd != null ? `≈ $${celoUsd.toFixed(2)}` : null}
-                  />
-                  <TokenListRow
-                    tokenAddress={CUSD_ADDRESSES.mainnet}
-                    label="cUSD"
-                    symbol="cUSD"
-                    value={cusdBalanceNum != null ? cusdDisplay.toFixed(2) : "—"}
-                    usdValue={cusdUsd != null ? `≈ $${cusdUsd.toFixed(2)}` : null}
-                  />
-                  <TokenListRow
-                    tokenAddress={USDT_ADDRESSES.mainnet}
-                    label="Tether"
-                    symbol="USDT"
-                    value={usdtBalanceNum != null ? usdtDisplay.toFixed(2) : "—"}
-                    usdValue={usdtUsd != null ? `≈ $${usdtUsd.toFixed(2)}` : null}
-                  />
-                </div>
-              </div>
-            </section>
-          ) : activeTab === "claims" ? (
-            <section>
-              <WalletClaimsTab address={address} />
-            </section>
-          ) : (
-            <section>
-              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
-                {isLoadingActivity && activityItems.length === 0 ? (
-                  <div className="divide-y divide-border/40">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-                        <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-muted/60" />
-                        <div className="min-w-0 flex-1 space-y-1.5">
-                          <div className="h-3.5 w-28 animate-pulse rounded bg-muted/60" />
-                          <div className="h-3 w-16 animate-pulse rounded bg-muted/40" />
-                        </div>
-                        <div className="h-4 w-14 animate-pulse rounded bg-muted/60" />
-                      </div>
-                    ))}
-                  </div>
-                ) : activityError && activityItems.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-destructive/10">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                    </span>
-                    <p className="text-sm font-semibold text-foreground">Couldn&apos;t load activity</p>
-                    <p className="text-xs text-muted-foreground">
-                      Check your connection and try again.
-                    </p>
-                  </div>
-                ) : activityItems.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60">
-                      <Sparkles className="h-5 w-5 text-muted-foreground" />
-                    </span>
-                    <p className="text-sm font-semibold text-foreground">No transactions yet</p>
-                    <p className="text-xs text-muted-foreground">
-                      Rewards you receive or claim will show up here.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {activityItems.map((item) => (
-                      <ActivityRow key={item.id} item={item} />
-                    ))}
-                    {activityError ? (
-                      <p className="px-4 py-2.5 text-center text-[11px] text-muted-foreground">
-                        Couldn&apos;t refresh — showing your last loaded activity.
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </section>
+            </>
           )}
+
+          {/* Campaign prizes, stake reclaims, friend rewards: only when something is claimable */}
+          <WalletClaimsTab address={address} onlyWhenClaimable />
+
+          {/* Ledger */}
+          <section className="pt-2">
+            <span className="label-mono text-muted-foreground">Ledger</span>
+            {isLoadingActivity && activityItems.length === 0 ? (
+              <div>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3.5 border-b border-dashed border-line py-3">
+                    <div className="h-6 w-5 shrink-0 animate-pulse rounded bg-line" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="h-3.5 w-28 animate-pulse rounded bg-line" />
+                      <div className="h-2.5 w-20 animate-pulse rounded bg-line" />
+                    </div>
+                    <div className="h-3.5 w-14 animate-pulse rounded bg-line" />
+                  </div>
+                ))}
+              </div>
+            ) : activityError && activityItems.length === 0 ? (
+              <p className="py-6 text-sm text-muted-foreground">Couldn&apos;t load your ledger. Check your connection and try again.</p>
+            ) : activityItems.length === 0 ? (
+              <p className="py-6 text-sm text-muted-foreground">Stakes returned, forfeits and rewards will show up here.</p>
+            ) : (
+              <div>
+                {ledgerPageItems.map((item) => (
+                  <LedgerRow key={item.id} item={item} />
+                ))}
+                {activityItems.length > LEDGER_PAGE_SIZE ? (
+                  <LeaderboardPagination
+                    page={safeLedgerPage}
+                    rangeStart={safeLedgerPage * LEDGER_PAGE_SIZE + 1}
+                    rangeEnd={safeLedgerPage * LEDGER_PAGE_SIZE + ledgerPageItems.length}
+                    total={activityItems.length}
+                    hasNextPage={safeLedgerPage < ledgerPageCount - 1}
+                    onPrev={() => setLedgerPage(Math.max(0, safeLedgerPage - 1))}
+                    onNext={() => setLedgerPage(safeLedgerPage + 1)}
+                  />
+                ) : null}
+              </div>
+            )}
+          </section>
         </div>
         </div>
       </MainPage>
@@ -586,96 +545,29 @@ export default function RewardsPage() {
   );
 }
 
-function TokenListRow({
-  logo,
-  tokenAddress,
-  label,
-  symbol,
-  value,
-  usdValue,
-}: {
-  logo?: string;
-  tokenAddress?: string;
-  label: string;
-  symbol: string;
-  value: string;
-  usdValue?: string | null;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      {logo ? (
-        <img src={logo} alt="" className="h-10 w-10 shrink-0 rounded-full" />
-      ) : tokenAddress ? (
-        <TokenBadge tokenAddress={tokenAddress} size="md" showText={false} />
-      ) : null}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground" style={MANROPE}>
-          {label}
-        </p>
-        <p className="text-xs text-muted-foreground" style={MANROPE}>
-          {symbol}
-        </p>
-      </div>
-      <div className="shrink-0 text-right">
-        <p className="text-sm font-bold tabular-nums text-foreground">{value}</p>
-        {usdValue ? (
-          <p className="text-[11px] tabular-nums text-muted-foreground">{usdValue}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function ActivityRow({ item }: { item: ActivityItem }) {
+function LedgerRow({ item }: { item: ActivityItem }) {
+  const out = item.kind === "forfeit_sent";
+  const date = new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const amount = item.amountLabel.replace(/^-/, "−").replace(/ G\$$/, "");
   return (
     <a
       href={`https://celoscan.io/tx/${item.txHash}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40"
+      className="flex animate-rise items-center gap-3.5 border-b border-dashed border-line py-3 text-ink no-underline"
     >
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          item.kind === "team_reward"
-            ? "bg-amber-500/10 text-amber-600"
-            : item.kind === "forfeit_sent"
-              ? "bg-red-500/10 text-red-600"
-              : "bg-emerald-500/10 text-emerald-600",
-        )}
-      >
-        {item.kind === "team_reward" ? (
-          <Gift className="h-4 w-4" />
-        ) : item.kind === "forfeit_sent" ? (
-          <ArrowUpFromLine className="h-4 w-4" />
-        ) : (
-          <ArrowDownToLine className="h-4 w-4" />
-        )}
+      <span className={cn("w-5 font-display text-[28px] font-extrabold leading-none", out ? "text-orange" : "text-green-edge")}>
+        {out ? "−" : "+"}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-foreground" style={MANROPE}>
-          {item.title}
-        </p>
-        {item.description ? (
-          <p className="truncate text-xs text-muted-foreground" style={MANROPE}>
-            {item.description}
-          </p>
-        ) : null}
-        <p className="text-[11px] text-muted-foreground/80" style={MANROPE}>
-          {formatTimeAgo(new Date(item.createdAt))}
-        </p>
+        <div className="truncate font-semibold">{item.title}</div>
+        <div className="label-mono mt-[3px] truncate text-[10px] text-muted-foreground">
+          {[item.description, date].filter(Boolean).join(" · ")}
+        </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <span
-          className={cn(
-            "text-sm font-bold tabular-nums",
-            item.kind === "forfeit_sent" ? "text-red-600" : "text-emerald-600",
-          )}
-        >
-          {item.amountLabel}
-        </span>
-        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50" />
-      </div>
+      <span className={cn("label-mono shrink-0 text-[13px] font-semibold tracking-[0.06em]", out ? "text-orange" : "text-green-edge")}>
+        {amount}
+      </span>
     </a>
   );
 }

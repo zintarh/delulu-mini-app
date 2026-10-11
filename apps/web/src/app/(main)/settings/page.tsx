@@ -1,24 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { useBalance } from "wagmi";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  ArrowLeft,
-  Bell,
-  BellOff,
-  Check,
-  ChevronRight,
-  Copy,
-  Loader2,
-  LogOut,
-  Mail,
-  Send,
-  Trophy,
-  Wallet,
-} from "lucide-react";
+import { Bell, Check, ChevronRight, Copy, Loader2, LogOut, Mail, Send, ShieldCheck, User, Wallet } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -28,31 +12,27 @@ import {
   type PushSupportState,
 } from "@/lib/web-push-client";
 import { useUserStore } from "@/stores/useUserStore";
-import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
-import { usePfp } from "@/hooks/use-profile-pfp";
 
 import { AddEmailSheet } from "@/components/add-email-sheet";
 import { useLogoutSheet } from "@/contexts/logout-sheet-context";
-import { TokenBadge } from "@/components/token-badge";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { MainPage } from "@/components/main-app-header";
+import { PageBackHeader } from "@/components/page-back-header";
+import { GameButton, GameSwitch, Stamp } from "@/components/ds";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useFaceCheck } from "@/contexts/right-panel-context";
 
-import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn, formatAddress } from "@/lib/utils";
 
-const CLASH_DISPLAY = { fontFamily: '"Clash Display", sans-serif' } as const;
-const MANROPE = { fontFamily: "var(--font-manrope)" } as const;
 
 export default function SettingsPage() {
   const router = useRouter();
   const { isConnected, address, isReady } = useAuth();
   const { user } = useUserStore();
   const { openLogoutSheet } = useLogoutSheet();
-  const { theme, setTheme, forcedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const { isWhitelisted, isInitialized: isClaimReady } = useGoodDollarClaim();
+  const { start: openVerify } = useFaceCheck();
   const [addEmailSheetOpen, setAddEmailSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pushState, setPushState] = useState<PushSupportState | null>(null);
@@ -95,19 +75,6 @@ export default function SettingsPage() {
   const { username: contractUsername } = useUsernameByAddress(address);
   const displayUsername = contractUsername || user?.username || null;
   const email = user?.email ?? null;
-  const pfpUrl = usePfp(address) ?? user?.pfpUrl ?? null;
-
-  const {
-    formatted: gDollarBalance,
-    isLoading: isBalanceLoading,
-    error: gdBalanceError,
-  } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
-  const { data: celoBalance, isLoading: isCeloLoading } = useBalance({
-    address,
-    chainId: CELO_MAINNET_ID,
-    query: { enabled: !!address },
-  });
-
   useEffect(() => {
     if (isReady && !isConnected) router.replace("/sign-in");
   }, [isReady, isConnected, router]);
@@ -137,329 +104,159 @@ export default function SettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const pushOn = pushState?.state === "ready" && pushState.subscribed;
+
   return (
     <>
       <MainPage>
-          {/* Header */}
-          <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
+        <PageBackHeader title="Settings" />
+
+        {address && (
+          <div className="mx-auto flex max-w-xl flex-col gap-5 px-5 pb-6 pt-6">
+            <section className="flex animate-rise flex-col gap-2">
+              <SectionLabel>Account</SectionLabel>
+              <SettingsCard>
+                <Row icon={<User className="h-5 w-5" strokeWidth={2} />} title="Username">
+                  <span className="label-mono truncate text-muted-foreground">
+                    {displayUsername ? `@${displayUsername}` : "—"}
+                  </span>
+                </Row>
+                {email ? (
+                  <Row icon={<Mail className="h-5 w-5" strokeWidth={2} />} title="Email">
+                    <span className="label-mono truncate text-muted-foreground">{email}</span>
+                  </Row>
+                ) : (
+                  <Row icon={<Mail className="h-5 w-5" strokeWidth={2} />} title="Email" onClick={() => setAddEmailSheetOpen(true)}>
+                    <span className="label-mono text-blue">Add</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+                  </Row>
+                )}
+                <Row icon={<Wallet className="h-5 w-5" strokeWidth={2} />} title="Wallet" last>
+                  <span className="label-mono text-muted-foreground">{formatAddress(address)}</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyAddress}
+                    aria-label="Copy address"
+                    className="press-edge inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-edge" strokeWidth={2.4} /> : <Copy className="h-4 w-4" strokeWidth={1.8} />}
+                  </button>
+                </Row>
+              </SettingsCard>
+            </section>
+
+            {pushState && pushState.state !== "unsupported" ? (
+              <section className="flex animate-rise flex-col gap-2">
+                <SectionLabel>Preferences</SectionLabel>
+                <SettingsCard>
+                  <Row icon={<Bell className="h-5 w-5" strokeWidth={2} />} title="Push alerts" last>
+                    {pushBusy ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
+                    <GameSwitch checked={!!pushOn} onChange={() => void handleTogglePush()} label="Push alerts" />
+                  </Row>
+                </SettingsCard>
+                {pushError ? <p className="text-xs text-orange">{pushError}</p> : null}
+              </section>
+            ) : null}
+
+            <section className="flex animate-rise flex-col gap-2">
+              <SectionLabel>Identity</SectionLabel>
+              <SettingsCard>
+                <Row icon={<ShieldCheck className="h-5 w-5" strokeWidth={2} />} title="Face verification" last>
+                  {!isClaimReady ? (
+                    <span className="h-6 w-20 animate-pulse rounded-lg bg-line" />
+                  ) : isWhitelisted ? (
+                    <Stamp tone="kept" className="text-[10px]">Verified</Stamp>
+                  ) : (
+                    <GameButton variant="blue" size="sm" onClick={openVerify}>
+                      Verify
+                    </GameButton>
+                  )}
+                </Row>
+              </SettingsCard>
+            </section>
+
+            <section className="flex animate-rise flex-col gap-2">
+              <SectionLabel>Help</SectionLabel>
+              <SettingsCard>
+                <Row
+                  icon={<Send className="h-5 w-5" strokeWidth={2} />}
+                  title="Join Telegram"
+                  href={TG_GROUP_URL}
+                  last
+                >
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+                </Row>
+              </SettingsCard>
+            </section>
+
             <button
               type="button"
-              onClick={() => router.back()}
-              aria-label="Back"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              onClick={openLogoutSheet}
+              className="press-edge inline-flex h-[52px] w-full animate-rise items-center justify-center gap-2 rounded-2xl border-2 border-line bg-white font-bold text-orange shadow-edge"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <LogOut className="h-[18px] w-[18px]" strokeWidth={2} />
+              Sign out
             </button>
-            <h1 className="text-lg font-bold">Settings</h1>
           </div>
-
-          {address && (
-            <div className="px-4 pt-5 pb-10 lg:pb-10 space-y-8">
-              {/* Profile card */}
-              <section className="rounded-3xl border border-border/50 bg-card p-4 shadow-sm">
-                <div className="flex items-center gap-3.5">
-                  <UserAvatar
-                    address={address}
-                    username={displayUsername}
-                    pfpUrl={pfpUrl}
-                    size={60}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className="truncate text-lg font-black leading-tight text-foreground"
-                      style={CLASH_DISPLAY}
-                    >
-                      {displayUsername ?? formatAddress(address)}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyAddress}
-                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      aria-label="Copy wallet address"
-                    >
-                      <Wallet className="h-3 w-3 shrink-0" />
-                      {formatAddress(address)}
-                      {copied ? (
-                        <Check className="h-3 w-3 shrink-0 text-delulu-green" />
-                      ) : (
-                        <Copy className="h-3 w-3 shrink-0" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3.5 border-t border-border/40 pt-3.5">
-                  {email ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{email}</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setAddEmailSheetOpen(true)}
-                      className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2 text-sm font-semibold text-delulu-green transition-colors hover:bg-delulu-green/5"
-                    >
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      Add email
-                    </button>
-                  )}
-                </div>
-              </section>
-
-              {/* Wallet balances */}
-              <section>
-                <SectionLabel>Balances</SectionLabel>
-                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
-                    <img
-                      src="/celo.png"
-                      alt=""
-                      className="w-8 h-8 rounded-full shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={MANROPE}
-                      >
-                        Celo
-                      </p>
-                      <p className="text-base font-bold tabular-nums truncate text-foreground">
-                        {!isCeloLoading && celoBalance
-                          ? parseFloat(celoBalance.formatted).toFixed(3)
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-border/50 bg-card shadow-sm px-3.5 py-3.5 flex items-center gap-2.5">
-                    <TokenBadge
-                      tokenAddress={GOODDOLLAR_ADDRESSES.mainnet}
-                      size="sm"
-                      showText={false}
-                    />
-                    <div className="min-w-0">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                        style={MANROPE}
-                      >
-                        G$
-                      </p>
-                      <p className="text-base font-bold tabular-nums truncate text-foreground">
-                        {!isBalanceLoading && !gdBalanceError
-                          ? parseFloat(gDollarBalance).toFixed(2)
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Appearance — hidden while dark mode is toggled off in production */}
-              {!forcedTheme ? (
-                <section>
-                  <SectionLabel>Appearance</SectionLabel>
-                  <div className="mt-2.5 flex gap-1 rounded-2xl border border-border/50 bg-card p-1 shadow-sm">
-                    {(["system", "light", "dark"] as const).map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setTheme(opt)}
-                        className={cn(
-                          "flex-1 rounded-xl py-2 text-xs font-bold capitalize transition-colors",
-                          mounted && theme === opt
-                            ? "bg-secondary text-foreground"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {/* More */}
-              <section>
-                <SectionLabel>More</SectionLabel>
-                <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40 overflow-hidden">
-                  <LinkRow
-                    icon={<Wallet className="w-4 h-4" />}
-                    title="Rewards"
-                    description="Balance, claims, and earnings"
-                    href="/rewards"
-                  />
-                  <LinkRow
-                    icon={
-                      <img
-                        src="/gooddollar-logo.png"
-                        alt=""
-                        className="w-4 h-4 object-contain"
-                      />
-                    }
-                    title="Claim G$ UBI"
-                    description="Get your free daily G$"
-                    href="/daily-claim"
-                  />
-                  <LinkRow
-                    icon={<Trophy className="w-4 h-4" />}
-                    title="Leaderboard"
-                    description="Top creators and supporters"
-                    href="/leaderboard"
-                  />
-                  <LinkRow
-                    icon={<Send className="w-4 h-4 text-delulu-green" />}
-                    title="Join Telegram"
-                    description="Talk to the community"
-                    href={TG_GROUP_URL}
-                    external
-                  />
-                </div>
-              </section>
-
-              {/* Notifications */}
-              {pushState && pushState.state !== "unsupported" ? (
-                <section>
-                  <SectionLabel>Notifications</SectionLabel>
-                  <div className="mt-2.5 rounded-2xl border border-border/50 bg-card shadow-sm p-4">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground shrink-0">
-                        {pushState.state === "ready" && pushState.subscribed ? (
-                          <Bell className="w-4 h-4" />
-                        ) : (
-                          <BellOff className="w-4 h-4" />
-                        )}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground" style={MANROPE}>
-                          Push notifications
-                        </p>
-                        <p className="text-xs text-muted-foreground" style={MANROPE}>
-                          {pushState.state === "ready" && pushState.subscribed
-                            ? "You'll get notified about campaign activity."
-                            : "Get notified when campaign members submit proof."}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void handleTogglePush()}
-                        disabled={pushBusy}
-                        className={cn(
-                          "shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-60",
-                          pushState.state === "ready" && pushState.subscribed
-                            ? "border border-border bg-secondary text-foreground hover:bg-secondary/80"
-                            : "bg-delulu-green text-white hover:bg-delulu-green/90",
-                        )}
-                      >
-                        {pushBusy ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : pushState.state === "ready" && pushState.subscribed ? (
-                          "Turn off"
-                        ) : (
-                          "Enable"
-                        )}
-                      </button>
-                    </div>
-                    {pushError ? (
-                      <p className="mt-2.5 text-xs text-destructive">{pushError}</p>
-                    ) : null}
-                  </div>
-                </section>
-              ) : null}
-
-              {/* Sign out */}
-              <section>
-                <button
-                  type="button"
-                  onClick={openLogoutSheet}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-border bg-secondary text-rose-500 hover:bg-secondary/80 text-sm font-bold transition-colors"
-                  style={MANROPE}
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
-                </button>
-              </section>
-            </div>
-          )}
+        )}
       </MainPage>
 
       <AddEmailSheet
         open={addEmailSheetOpen}
         onOpenChange={setAddEmailSheetOpen}
       />
-
     </>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-      style={MANROPE}
-    >
-      {children}
-    </p>
-  );
+  return <span className="label-mono text-muted-foreground">{children}</span>;
 }
 
-function LinkRow({
+function SettingsCard({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-[20px] border-2 border-line bg-white px-4 shadow-edge">{children}</div>;
+}
+
+/** One settings row (design: Settings.dc.html — 56px, dashed divider). */
+function Row({
   icon,
   title,
-  description,
+  children,
+  last = false,
   href,
-  external = false,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
-  description?: string;
-  href: string;
-  external?: boolean;
+  children?: React.ReactNode;
+  last?: boolean;
+  href?: string;
+  onClick?: () => void;
 }) {
+  const cls = cn(
+    "flex min-h-14 w-full items-center gap-3 text-left text-ink no-underline",
+    !last && "border-b border-dashed border-line",
+  );
   const inner = (
     <>
-      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/60 text-muted-foreground">
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-sm font-semibold truncate text-foreground"
-          style={MANROPE}
-        >
-          {title}
-        </p>
-        {description && (
-          <p
-            className="text-xs text-muted-foreground truncate"
-            style={MANROPE}
-          >
-            {description}
-          </p>
-        )}
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+      {icon}
+      <span className="flex-1 font-medium">{title}</span>
+      {children}
     </>
   );
-
-  const className = cn(
-    "w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors",
-  );
-
-  if (external) {
+  if (href) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-      >
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
         {inner}
       </a>
     );
   }
-
-  return (
-    <Link href={href} className={className}>
-      {inner}
-    </Link>
-  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cls}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className={cls}>{inner}</div>;
 }

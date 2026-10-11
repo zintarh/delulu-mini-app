@@ -2,19 +2,19 @@
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
+/**
+ * The redesign is light-only (docs/redesign/README.md), so the theme is
+ * forced to light regardless of the OS setting or any stored preference.
+ * Settings → Appearance hides itself while a theme is forced.
+ */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      forcedTheme="light"
+      enableSystem={false}
       disableTransitionOnChange
-      // Distinct key (not next-themes' default "theme") so anyone whose
-      // browser has a stale "light" value stored from before dark mode was
-      // properly wired up — silently overriding system preference forever —
-      // gets a clean slate and starts following the OS again. A full pick
-      // from Settings → Appearance still persists normally under this key
-      // going forward; this only invalidates the old stuck value.
       storageKey="delulu-theme"
     >
       {children}

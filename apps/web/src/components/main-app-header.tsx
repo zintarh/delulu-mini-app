@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { MainDesktopHeader } from "@/components/main-desktop-header";
 import { cn } from "@/lib/utils";
+import { hidesBottomNav } from "@/components/main-nav-config";
 
 export type HeaderConfig = {
   mobile: boolean;
@@ -21,12 +22,26 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: true };
   }
 
+  // Flex card owns its own back bar.
+  if (pathname === "/profile/flex") {
+    return { mobile: false, desktop: true };
+  }
+
   // Forfeit create flow owns its own back / Next header.
   if (pathname.startsWith("/forfeit")) {
     return { mobile: false, desktop: false };
   }
 
-  return { mobile: true, desktop: true };
+  // The mobile HUD (avatar, streak, balance, alerts) tops Home, Rewards, and
+  // Campaigns (/explore) — same shared chrome as Home, not a separate
+  // in-page title; every other screen starts with its own title (see
+  // docs/redesign/screens).
+  const hud =
+    pathname === "/home" ||
+    pathname.startsWith("/rewards") ||
+    pathname.startsWith("/wallet") ||
+    pathname.startsWith("/explore");
+  return { mobile: hud, desktop: true };
 }
 
 /** Routes that own an inner scroll container (infinite scroll, PTR, create flow). */
@@ -52,6 +67,8 @@ export const MOBILE_BOTTOM_NAV_CLEARANCE =
  * scroll content. Matches bar height + a little breathing room.
  */
 export function MobileBottomNavSpacer() {
+  const pathname = usePathname() ?? "";
+  if (hidesBottomNav(pathname)) return null;
   return (
     <div
       className="shrink-0 lg:hidden"

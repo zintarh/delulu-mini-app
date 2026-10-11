@@ -261,7 +261,7 @@ export function UserSetupModal({
             className={cn(
               "mb-4 p-3 rounded-lg border font-medium text-sm",
               notification.type === "success"
-                ? "bg-emerald-500/10 border-emerald-500 text-emerald-200"
+                ? "bg-green-soft border-emerald-500 text-emerald-200"
                 : "bg-destructive/10 border-destructive text-destructive-foreground"
             )}
           >
@@ -271,7 +271,7 @@ export function UserSetupModal({
         
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-black text-foreground tracking-tight">
+            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
               Setup your profile
             </h2>
             <p className="text-sm text-muted-foreground font-medium">

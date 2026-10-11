@@ -3,12 +3,12 @@
   "chainId": 42220,
   "contract": "ForfeitMarket",
   "proxy": "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8",
-  "implementation": "0x2867155d26b533f9e6266700146ba8f1bf0c9a99",
+  "implementation": "0x71cc67c7c302e1c506633cef9dd86f4aa635bb6c",
   "address": "0x5548eC3Aa02dCbcE85Cdc6Ad37d61613019D92f8",
   "startBlock": 73186960,
   "owner": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
   "platformFeeAddress": "0x9d8a7a866af0eeE89B45aBBB4F1BC9C3698B33e4",
   "deployedAt": "2026-07-26",
   "upgradeable": "uups",
-  "upgradedAt": "2026-08-25"
+  "upgradedAt": "2026-10-09"
 }

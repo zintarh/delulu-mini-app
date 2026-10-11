@@ -48,7 +48,7 @@ export function ReferralOnboardingChecklist({
                 key={key}
                 className={cn(
                   "flex items-center gap-2 text-xs",
-                  done ? "text-delulu-green" : "text-muted-foreground",
+                  done ? "text-green-edge" : "text-muted-foreground",
                 )}
               >
                 {done ? (

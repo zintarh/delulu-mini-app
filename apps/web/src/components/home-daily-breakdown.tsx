@@ -58,8 +58,8 @@ function StatPill({
       </p>
       <p
         className={cn(
-          "mt-0.5 truncate text-sm font-black tabular-nums leading-none",
-          accent ? "text-delulu-blue" : "text-foreground",
+          "mt-0.5 truncate text-sm font-extrabold tabular-nums leading-none",
+          accent ? "text-blue" : "text-foreground",
         )}
       >
         {value}
@@ -157,7 +157,7 @@ export function HomeDailyBreakdown({
                   label="Points"
                   value={pointsLoading ? "—" : points.toLocaleString()}
                   href="/rewards"
-                  icon={<Star className="h-2.5 w-2.5 fill-delulu-blue text-delulu-blue" />}
+                  icon={<Star className="h-2.5 w-2.5 fill-delulu-blue text-blue" />}
                 />
               ) : null}
             </div>

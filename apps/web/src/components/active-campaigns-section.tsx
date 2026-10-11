@@ -143,7 +143,7 @@ export function ActiveCampaignsSection({
         <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 py-12 text-center shadow-sm">
           <p
             className="text-lg font-bold tracking-tight text-foreground"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             No campaign
           </p>
@@ -169,8 +169,8 @@ export function ActiveCampaignsSection({
             {heading ? <p className={FEED_CARD_EYEBROW_CLASS}>{heading}</p> : null}
             {showSeeAllLink && (
               <Link
-                href="/communities/joined"
-                className="text-[11px] font-semibold text-delulu-blue hover:underline"
+                href="/explore"
+                className="text-[11px] font-semibold text-blue hover:underline"
               >
                 {all.length} active →
               </Link>
@@ -223,7 +223,7 @@ export function ActiveCampaignsSection({
 
         {hiddenCount > 0 && (
           <Link
-            href="/communities/joined"
+            href="/explore"
             className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-border/50 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
           >
             +{hiddenCount} more campaign{hiddenCount !== 1 ? "s" : ""} →

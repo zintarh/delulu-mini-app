@@ -330,10 +330,7 @@ export function DeluluCard({
     }
   };
 
-  const addrHex = delusion.creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(addrHex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  const cardGradient = `linear-gradient(140deg, hsl(${h1},50%,20%) 0%, hsl(${h2},55%,12%) 100%)`;
+  const cardGradient = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
   const milestoneProgressPct =
     totalCount > 0
@@ -446,21 +443,21 @@ export function DeluluCard({
               cy="18"
               r="14"
               fill="none"
-              stroke="#2563eb"
+              stroke="#161615"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 14}
               strokeDashoffset={2 * Math.PI * 14 * (1 - milestoneProgressPct / 100)}
             />
           </svg>
-          <span className="relative text-[8px] font-black tabular-nums text-white">
+          <span className="relative text-[8px] font-extrabold tabular-nums text-white">
             {verifiedCount}/{totalCount}
           </span>
         </div>
       ) : null}
 
       <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 px-3 pb-3 pt-10">
-        <h3 className="line-clamp-2 text-sm font-black leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
+        <h3 className="line-clamp-2 text-sm font-extrabold leading-snug tracking-tight text-white drop-shadow-md sm:text-[15px]">
           {headline}
         </h3>
         <div className="flex items-center gap-2">
@@ -537,7 +534,7 @@ export function DeluluCard({
 
       {/* 2–4. Title, milestone progress, tipped */}
       <div className="flex flex-1 flex-col gap-4 p-5">
-        <h3 className="line-clamp-3 text-lg font-black leading-snug tracking-tight text-foreground sm:text-xl">
+        <h3 className="line-clamp-3 text-lg font-extrabold leading-snug tracking-tight text-foreground sm:text-xl">
           {headline}
         </h3>
 
@@ -547,7 +544,7 @@ export function DeluluCard({
               <span className="font-semibold text-muted-foreground">
                 Milestones
               </span>
-              <span className="font-black tabular-nums text-foreground">
+              <span className="font-extrabold tabular-nums text-foreground">
                 {verifiedCount}/{totalCount}
               </span>
             </div>
@@ -578,7 +575,7 @@ export function DeluluCard({
           <span className="text-sm font-semibold text-muted-foreground">
             Tipped so far
           </span>
-          <span className="text-right text-base font-black tabular-nums text-foreground">
+          <span className="text-right text-base font-extrabold tabular-nums text-foreground">
             {supportUsdLabel ? (
               <>
                 ≈ ${supportUsdLabel}

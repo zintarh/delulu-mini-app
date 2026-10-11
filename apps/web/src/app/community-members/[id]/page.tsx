@@ -175,7 +175,7 @@ function PageShell({
             <Users className="h-5 w-5 text-muted-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight text-foreground">{title}</h1>
+            <h1 className="text-lg font-extrabold tracking-tight text-foreground">{title}</h1>
             {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
           </div>
         </div>

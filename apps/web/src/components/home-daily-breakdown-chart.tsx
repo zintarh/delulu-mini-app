@@ -16,9 +16,9 @@ import { Bar } from "react-chartjs-2";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
-const BAR_ACTIVE = "#2563eb";
-const BAR_MUTED = "rgba(37, 99, 235, 0.18)";
-const BAR_TODAY = "#1d4ed8";
+const BAR_ACTIVE = "#161615";
+const BAR_MUTED = "rgba(22, 22, 21, 0.14)";
+const BAR_TODAY = "#f6c324";
 // Chart.js draws to a <canvas>, so it needs real color strings, not CSS
 // variables — these have to be picked explicitly per theme instead of
 // inheriting from globals.css like everything else.

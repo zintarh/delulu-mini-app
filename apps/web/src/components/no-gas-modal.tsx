@@ -54,9 +54,9 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
           <ModalHeader className="p-0">
             <div className="flex items-center gap-2.5 mb-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30">
-                <Fuel className="w-4 h-4 text-amber-600" />
+                <Fuel className="w-4 h-4 text-orange" />
               </span>
-              <ModalTitle className="text-lg font-black">Gas fee needed</ModalTitle>
+              <ModalTitle className="text-lg font-extrabold">Gas fee needed</ModalTitle>
             </div>
             <ModalDescription className="text-sm text-muted-foreground leading-relaxed">
               You need a small amount of CELO to pay transaction fees. Copy your address below and
@@ -76,7 +76,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
               className={cn(
                 "w-full flex items-center justify-between gap-3 rounded-xl border bg-secondary/60 px-4 py-3.5 text-left transition-all",
                 "hover:bg-secondary active:scale-[0.99]",
-                copied ? "border-emerald-500/40 bg-emerald-500/10" : "border-border",
+                copied ? "border-emerald-500/40 bg-green-soft" : "border-border",
               )}
             >
               <span className="font-mono text-xs text-foreground break-all leading-relaxed">
@@ -89,7 +89,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
               )}
             </button>
             {copied && (
-              <p className="text-[11px] text-emerald-600 font-medium">Address copied!</p>
+              <p className="text-[11px] text-green-edge font-medium">Address copied!</p>
             )}
           </div>
 
@@ -97,7 +97,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
           <div className="space-y-2.5">
             {/* Auto top-up button — shown unless rejected for abuse (low_nonce) */}
             {topupState === "sent" ? (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+              <div className="rounded-xl border border-emerald-500/30 bg-green-soft px-4 py-3 text-sm text-green-edge">
                 0.3 CELO sent — retry your transaction in a moment.
               </div>
             ) : topupReason === "low_nonce" ? null : (
@@ -105,7 +105,7 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
                 type="button"
                 onClick={handleGetGas}
                 disabled={topupState === "claiming"}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved py-3.5 text-sm font-black text-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19] hover:brightness-95 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved py-3.5 text-sm font-extrabold text-delulu-charcoal shadow-[3px_3px_0px_0px_#1a1a19] hover:brightness-95 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {topupState === "claiming" ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Getting your gas…</>

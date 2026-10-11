@@ -47,11 +47,11 @@ function stepStatusLabel(status: MilestoneStepStatus) {
 function stepStatusClasses(status: MilestoneStepStatus) {
   switch (status) {
     case "completed":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "due":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "review":
-      return "bg-delulu-blue-light text-delulu-blue border-delulu-blue-border";
+      return "bg-blue-soft text-blue border-blue-line";
     case "upcoming":
       return "bg-muted/50 text-muted-foreground border-border/60";
     case "expired":
@@ -116,18 +116,18 @@ export function MilestoneTrackerHero({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.18)_0%,transparent_70%)]"
+        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(246,195,36,0.22)_0%,transparent_70%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-6 bottom-0 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)]"
+        className="pointer-events-none absolute -left-6 bottom-0 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(246,195,36,0.16)_0%,transparent_70%)]"
       />
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             Milestone tracker
           </p>
@@ -135,16 +135,16 @@ export function MilestoneTrackerHero({
             <>
               <p
                 className={cn(
-                  "mt-2 font-black leading-none tabular-nums text-foreground",
+                  "mt-2 font-extrabold leading-none tabular-nums text-foreground",
                   compact ? "text-4xl" : "text-5xl sm:text-6xl",
                 )}
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {summary.dueNow}
               </p>
               <p
                 className="mt-1 text-base font-semibold text-foreground"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 {summary.dueNow === 1 ? "needs your proof" : "need your proof"}
               </p>
@@ -152,14 +152,14 @@ export function MilestoneTrackerHero({
           ) : (
             <>
               <p
-                className="mt-2 text-2xl font-black text-foreground sm:text-3xl"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                className="mt-2 text-2xl font-extrabold text-foreground sm:text-3xl"
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 You&apos;re caught up
               </p>
               <p
                 className="mt-1 text-sm text-muted-foreground"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{ fontFamily: "var(--font-body)" }}
               >
                 Nothing due right now — nice work.
               </p>
@@ -167,16 +167,16 @@ export function MilestoneTrackerHero({
           )}
         </div>
 
-        <div className="shrink-0 rounded-2xl border border-delulu-blue-border bg-delulu-blue-light px-4 py-3 text-center sm:min-w-[7.5rem]">
+        <div className="shrink-0 rounded-2xl border border-blue-line bg-blue-soft px-4 py-3 text-center sm:min-w-[7.5rem]">
           <p
-            className="text-[10px] font-bold uppercase tracking-wide text-delulu-blue"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            className="text-[10px] font-bold uppercase tracking-wide text-blue"
+            style={{ fontFamily: "var(--font-body)" }}
           >
             Total
           </p>
           <p
-            className="mt-0.5 text-2xl font-black tabular-nums text-foreground"
-            style={{ fontFamily: '"Clash Display", sans-serif' }}
+            className="mt-0.5 text-2xl font-extrabold tabular-nums text-foreground"
+            style={{ fontFamily: 'var(--font-display), sans-serif' }}
           >
             {summary.completedMilestones}
             <span className="text-lg font-bold text-muted-foreground">
@@ -202,10 +202,10 @@ export function MilestoneTrackerHero({
         </div>
         <div
           className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-muted-foreground"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           {summary.underReview > 0 ? (
-            <span className="inline-flex items-center gap-1 text-delulu-blue">
+            <span className="inline-flex items-center gap-1 text-blue">
               <Hourglass className="h-3 w-3" />
               {summary.underReview} in review
             </span>
@@ -236,11 +236,11 @@ function TimelineNode({
         "flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
         compact ? "h-8 w-8" : "h-9 w-9",
         status === "completed"
-          ? "border-delulu-blue bg-delulu-blue text-white"
+          ? "border-delulu-blue bg-blue text-white"
           : status === "due"
-            ? "border-delulu-blue bg-delulu-blue text-white shadow-sm"
+            ? "border-delulu-blue bg-blue text-white shadow-sm"
             : status === "review"
-              ? "border-delulu-blue-border bg-delulu-blue-light text-delulu-blue"
+              ? "border-blue-line bg-blue-soft text-blue"
               : "border-border bg-card text-muted-foreground",
       )}
     >
@@ -250,8 +250,8 @@ function TimelineNode({
         <Hourglass className={compact ? "h-3 w-3" : "h-4 w-4"} />
       ) : (
         <span
-          className={cn("font-black tabular-nums", compact ? "text-[10px]" : "text-xs")}
-          style={{ fontFamily: '"Clash Display", sans-serif' }}
+          className={cn("font-extrabold tabular-nums", compact ? "text-[10px]" : "text-xs")}
+          style={{ fontFamily: 'var(--font-display), sans-serif' }}
         >
           {index}
         </span>
@@ -302,9 +302,9 @@ function TimelineStepRow({
           "min-w-0 flex-1 rounded-xl border transition-colors",
           compact ? "mb-2.5 p-3" : "mb-3 rounded-2xl p-3.5",
           step.status === "due"
-            ? "border-delulu-blue-border bg-delulu-blue-light/60 shadow-sm dark:bg-accent"
+            ? "border-blue-line bg-blue-soft/60 shadow-sm dark:bg-accent"
             : step.status === "completed"
-              ? "border-delulu-blue-border/50 bg-card dark:border-delulu-blue/20"
+              ? "border-blue-line/50 bg-card dark:border-delulu-blue/20"
               : "border-border/50 bg-muted/15",
         )}
       >
@@ -315,7 +315,7 @@ function TimelineStepRow({
               compact ? "text-[13px]" : "text-sm",
               step.status === "upcoming" ? "text-muted-foreground" : "text-foreground",
             )}
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             {step.label}
           </p>
@@ -325,7 +325,7 @@ function TimelineStepRow({
               compact ? "px-1.5 py-px text-[9px]" : "px-2 py-0.5 text-[10px]",
               stepStatusClasses(step.status),
             )}
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             {stepStatusLabel(step.status)}
           </span>
@@ -351,7 +351,7 @@ function TimelineStepRow({
               "mt-2 w-full rounded-full bg-delulu-blue font-bold text-white shadow-sm transition-colors hover:bg-delulu-blue/90 active:scale-[0.98]",
               compact ? "py-2.5 text-xs" : "mt-3 py-2.5 text-sm",
             )}
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             Upload proof
           </button>
@@ -417,10 +417,10 @@ export function DeluluJourneyCard({
             >
               <h3
                 className={cn(
-                  "font-black leading-snug text-foreground line-clamp-2 group-hover:text-delulu-blue transition-colors",
+                  "font-extrabold leading-snug text-foreground line-clamp-2 group-hover:text-blue transition-colors",
                   compact ? "text-sm" : "text-base sm:text-lg",
                 )}
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {tracker.title}
               </h3>
@@ -436,7 +436,7 @@ export function DeluluJourneyCard({
                 "font-medium text-muted-foreground",
                 compact ? "mt-1 text-[11px]" : "mt-1 text-xs",
               )}
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{ fontFamily: "var(--font-body)" }}
             >
               {tracker.completed} of {tracker.total} · {pct}%
               {compact ? (
@@ -451,12 +451,12 @@ export function DeluluJourneyCard({
           </div>
           {!compact ? (
             <div
-              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-delulu-blue-border bg-card/80 shadow-sm"
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border border-blue-line bg-card/80 shadow-sm"
               aria-label={`${tracker.completed} of ${tracker.total} milestones`}
             >
               <span
-                className="text-sm font-black tabular-nums leading-none text-foreground"
-                style={{ fontFamily: '"Clash Display", sans-serif' }}
+                className="text-sm font-extrabold tabular-nums leading-none text-foreground"
+                style={{ fontFamily: 'var(--font-display), sans-serif' }}
               >
                 {tracker.completed}
               </span>
@@ -497,8 +497,8 @@ export function DeluluJourneyCard({
               <button
                 type="button"
                 onClick={() => setMilestonesExpanded((open) => !open)}
-                className="mt-2 flex w-full items-center justify-center gap-1 border-t border-border/40 pt-3 text-xs font-semibold text-delulu-blue transition-colors hover:text-delulu-blue/80"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                className="mt-2 flex w-full items-center justify-center gap-1 border-t border-border/40 pt-3 text-xs font-semibold text-blue transition-colors hover:text-blue/80"
+                style={{ fontFamily: "var(--font-body)" }}
                 aria-expanded={milestonesExpanded}
               >
                 {milestonesExpanded
@@ -516,7 +516,7 @@ export function DeluluJourneyCard({
         ) : (
           <p
             className="py-2 text-center text-sm text-muted-foreground"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             No milestones on this delulu
           </p>
@@ -568,18 +568,18 @@ export function MilestoneTrackerEmpty({
         compact ? "py-8" : "py-16",
       )}
     >
-      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-border/60 bg-delulu-blue-light shadow-sm">
-        <Target className="h-9 w-9 text-delulu-blue" strokeWidth={2} />
+      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-border/60 bg-blue-soft shadow-sm">
+        <Target className="h-9 w-9 text-blue" strokeWidth={2} />
       </div>
       <p
-        className="text-xl font-black text-foreground"
-        style={{ fontFamily: '"Clash Display", sans-serif' }}
+        className="text-xl font-extrabold text-foreground"
+        style={{ fontFamily: 'var(--font-display), sans-serif' }}
       >
         No milestones yet
       </p>
       <p
         className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground"
-        style={{ fontFamily: "var(--font-manrope)" }}
+        style={{ fontFamily: "var(--font-body)" }}
       >
         Milestones from your delulus will show up here with progress and proof reminders.
       </p>

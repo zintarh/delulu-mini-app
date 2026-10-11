@@ -16,6 +16,7 @@ import {
   persistSignInRedirect,
   safeRedirectPath,
 } from "@/lib/auth-redirect";
+import { markGatePassed } from "@/lib/app-gate-pass";
 
 export type PostAuthRouteState =
   | "loading"
@@ -105,7 +106,7 @@ export function usePostAuthRoute() {
   };
 
   const redirectTarget = useMemo(
-    () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/",
+    () => peekSignInRedirect() ?? safeRedirectPath(searchParams.get("redirect")) ?? "/home",
     [searchParams],
   );
 
@@ -132,11 +133,12 @@ export function usePostAuthRoute() {
 
       const referral = peekCommunityReferral();
       let target = redirectTarget;
-      if (referral && (target === "/" || !target.startsWith("/join/"))) {
+      if (referral && (target === "/home" || !target.startsWith("/join/"))) {
         target = `/join/${referral}`;
       }
 
       consumeSignInRedirect();
+      markGatePassed(address);
       setRouteState("redirecting_home");
       // Preload main shell so home content isn't blocked behind a dynamic chunk.
       void import("@/components/main-app-header");

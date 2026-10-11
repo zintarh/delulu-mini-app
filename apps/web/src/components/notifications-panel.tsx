@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, X } from "lucide-react";
+import { Lulu } from "@/components/ds";
+import { Check, ChevronLeft } from "lucide-react";
+import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { cn } from "@/lib/utils";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
@@ -18,91 +20,71 @@ type NotificationRow = {
   created_at: string;
 };
 
-function formatTimeAgo(createdAt: string): string {
-  const diff = Date.now() - new Date(createdAt).getTime();
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return "now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  const w = Math.floor(d / 7);
-  if (w < 4) return `${w}w`;
-  return `${Math.floor(d / 30)}mo`;
+function isToday(iso: string) {
+  return new Date(iso).toDateString() === new Date().toDateString();
+}
+
+/** "19:00" today, "Thu" this week, "29 Sep" before that (design: Activity). */
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  if (isToday(iso)) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (Date.now() - d.getTime() < 6 * 86_400_000) return d.toLocaleDateString("en-GB", { weekday: "short" });
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+/** Timeline dot color for a new item, by what it's about. */
+function dotColor(item: NotificationRow): string {
+  const t = `${item.type} ${item.message}`.toLowerCase();
+  if (/verif|approv|kept|returned|claimed|reward/.test(t)) return "bg-[#17804A]";
+  if (/deadline|left to|reminder|miss|forfeit|overdue|reject/.test(t)) return "bg-orange";
+  return "bg-yellow";
 }
 
 function renderMessage(message: string) {
   const parts = message.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <span key={i} className="font-bold text-foreground">
-          {part.slice(2, -2)}
-        </span>
-      );
+      return <b key={i}>{part.slice(2, -2)}</b>;
     }
     return <span key={i}>{part}</span>;
   });
 }
 
-function NotificationItem({ item }: { item: NotificationRow }) {
-  const isUnread = !item.read_at;
-
+function NotificationItem({ item, isNew }: { item: NotificationRow; isNew: boolean }) {
   const inner = (
-    <li
-      className={cn(
-        "flex gap-3.5 py-3 px-3 rounded-xl transition-colors",
-        isUnread ? "bg-secondary/60" : "hover:bg-muted/30",
-      )}
-    >
-      <div className="shrink-0 relative">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt=""
-            className="w-11 h-11 rounded-full object-cover bg-secondary"
-          />
-        ) : (
-          <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center">
-            <Bell className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
-          </div>
+    <>
+      <span
+        className={cn(
+          "relative z-[1] mt-px h-[22px] w-[22px] shrink-0 rounded-full border-4 border-paper",
+          isNew ? dotColor(item) : "bg-[#C9C9C2]",
         )}
-        {isUnread && (
-          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-blue-500 border-2 border-background" />
-        )}
+      />
+      <div className="min-w-0 flex-1">
+        <div className={cn("text-[15px] leading-[1.45]", isNew ? "font-semibold" : "font-normal")}>{renderMessage(item.message)}</div>
+        <div className="label-mono mt-1 text-[10px] text-muted-foreground">{formatWhen(item.created_at)}</div>
       </div>
-      <div className="flex-1 min-w-0 pt-0.5">
-        <p className={cn("text-[14px] leading-snug pr-1", isUnread ? "text-foreground" : "text-foreground/80")}>
-          {renderMessage(item.message)}
-        </p>
-        <span className="mt-1 block text-[11px] text-muted-foreground tabular-nums">
-          {formatTimeAgo(item.created_at)}
-        </span>
-      </div>
-    </li>
+    </>
   );
-
+  const cls = "relative flex animate-rise gap-4 py-3 text-ink no-underline";
   if (item.action_url) {
     return (
-      <Link href={item.action_url} className="block -mx-1">
+      <Link href={item.action_url} className={cls}>
         {inner}
       </Link>
     );
   }
-  return inner;
+  return <div className={cls}>{inner}</div>;
 }
 
 function SkeletonRow() {
   return (
-    <li className="flex gap-3.5 py-3 px-3 animate-pulse">
-      <div className="w-11 h-11 rounded-2xl bg-secondary shrink-0" />
-      <div className="flex-1 space-y-2 pt-1">
-        <div className="h-3 bg-secondary rounded w-4/5" />
-        <div className="h-3 bg-secondary/70 rounded w-3/5" />
+    <div className="flex animate-pulse gap-4 py-3">
+      <div className="h-[22px] w-[22px] shrink-0 rounded-full bg-line" />
+      <div className="flex-1 space-y-2 pt-0.5">
+        <div className="h-3.5 w-4/5 rounded bg-line" />
+        <div className="h-2.5 w-12 rounded bg-line" />
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -111,6 +93,9 @@ function PanelContent({ onClose }: { onClose: () => void }) {
   const { clearUnread } = useNotificationCount();
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Items that were unread when the panel opened keep their colored dot
+  // even after the panel marks everything read.
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const markedReadRef = useRef(false);
 
   useEffect(() => {
@@ -124,7 +109,9 @@ function PanelContent({ onClose }: { onClose: () => void }) {
       const res = await fetch(`/api/notifications?address=${address}`);
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
-      setNotifications(data.notifications ?? []);
+      const rows: NotificationRow[] = data.notifications ?? [];
+      setNotifications(rows);
+      setNewIds((prev) => (prev.size > 0 ? prev : new Set(rows.filter((n) => !n.read_at).map((n) => n.id))));
     } catch {
       // silently degrade
     } finally {
@@ -152,54 +139,62 @@ function PanelContent({ onClose }: { onClose: () => void }) {
     markAllRead();
   }, [fetchNotifications, markAllRead]);
 
-  const hasUnread = notifications.some((n) => !n.read_at);
+  const today = notifications.filter((n) => isToday(n.created_at));
+  const earlier = notifications.filter((n) => !isToday(n.created_at));
 
   return (
     <>
-      <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
-        <h2
-          className="text-[28px] font-bold text-foreground tracking-tight"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          Updates
-        </h2>
-        <div className="flex items-center gap-2">
-          {hasUnread && (
-            <button
-              type="button"
-              onClick={markAllRead}
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
-            >
-              Mark all read
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-foreground hover:bg-secondary transition-colors"
-            aria-label="Close updates"
-          >
-            <X className="w-6 h-6" strokeWidth={1.75} />
+      <div className="shrink-0 px-5 pt-4">
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={onClose} aria-label="Back" className={ICON_BUTTON_CLASS}>
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
           </button>
+          <button type="button" onClick={() => void markAllRead()} aria-label="Mark all read" className={ICON_BUTTON_CLASS}>
+            <Check className="h-5 w-5" strokeWidth={2} />
+          </button>
+        </div>
+        <div className="pt-4">
+          {newIds.size > 0 ? <span className="label-mono block text-muted-foreground">{newIds.size} new</span> : null}
+          <h2 className={cn("m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]", newIds.size > 0 && "mt-1")}>
+            Activity
+          </h2>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-8">
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8 pt-6">
         {loading ? (
-          <ul className="space-y-1">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
-          </ul>
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
+          </div>
         ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-center px-4">
-            <Bell className="w-10 h-10 text-muted-foreground/40" strokeWidth={1.5} />
-            <p className="text-sm font-semibold text-foreground">No notifications yet</p>
+          <div className="flex h-48 flex-col items-center justify-center gap-3 px-4 text-center">
+            <span className="animate-bob">
+              <Lulu size={64} />
+            </span>
+            <p className="text-sm font-semibold text-muted-foreground">Nothing here yet</p>
           </div>
         ) : (
-          <ul className="space-y-0.5">
-            {notifications.map((item) => (
-              <NotificationItem key={item.id} item={item} />
-            ))}
-          </ul>
+          <div className="relative">
+            <span className="absolute bottom-0 left-2.5 top-4 w-0.5 bg-line" aria-hidden />
+            {today.length > 0 ? (
+              <>
+                <span className="label-mono ml-[38px] block text-muted-foreground">Today</span>
+                {today.map((item) => (
+                  <NotificationItem key={item.id} item={item} isNew={newIds.has(item.id)} />
+                ))}
+              </>
+            ) : null}
+            {earlier.length > 0 ? (
+              <>
+                <span className={cn("label-mono ml-[38px] block text-muted-foreground", today.length > 0 && "mt-4")}>Earlier</span>
+                {earlier.map((item) => (
+                  <NotificationItem key={item.id} item={item} isNew={newIds.has(item.id)} />
+                ))}
+              </>
+            ) : null}
+          </div>
         )}
       </div>
     </>
@@ -234,7 +229,7 @@ export function NotificationsPanel() {
             aria-label="Close updates"
             onClick={close}
           />
-          <aside className="relative w-full max-w-[400px] h-full bg-background shadow-xl flex flex-col animate-in slide-in-from-left duration-300">
+          <aside className="relative flex h-full w-full max-w-[400px] flex-col bg-paper shadow-xl animate-in slide-in-from-left duration-300">
             <PanelContent onClose={close} />
           </aside>
         </div>

@@ -98,7 +98,7 @@ export function IdentityModal({
       /* ── Success ── */
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
         <CheckCircle2 className="w-14 h-14 text-emerald-500" />
-        <p className="text-base font-black text-foreground">Identity verified!</p>
+        <p className="text-base font-extrabold text-foreground">Identity verified!</p>
         <p className="text-xs text-muted-foreground">You can now claim G$.</p>
       </div>
     ) : status === "error" ? (
@@ -215,7 +215,7 @@ export function IdentityModal({
             <div className="w-8 h-8 rounded-xl bg-delulu-yellow/20 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-foreground" />
             </div>
-            <p className="text-sm font-black text-foreground">
+            <p className="text-sm font-extrabold text-foreground">
               {isLapsed ? "Quick re-verify" : "Verify your identity"}
             </p>
           </div>

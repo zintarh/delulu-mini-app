@@ -3,6 +3,10 @@
 import dynamic from "next/dynamic";
 import { RightPanelProvider } from "@/contexts/right-panel-context";
 
+const FaceCheckHost = dynamic(
+  () => import("@/components/face-check-host").then((m) => m.FaceCheckHost),
+  { ssr: false },
+);
 const ClaimPanel = dynamic(
   () => import("@/components/claim-panel").then((m) => m.ClaimPanel),
   { ssr: false },
@@ -26,6 +30,7 @@ export default function CampaignsLayout({
     <RightPanelProvider>
       <NotificationsPanel />
       <ClaimPanel />
+          <FaceCheckHost />
       {children}
     </RightPanelProvider>
   );

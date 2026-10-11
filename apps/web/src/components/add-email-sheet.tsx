@@ -65,7 +65,7 @@ export function AddEmailSheet({ open, onOpenChange }: AddEmailSheetProps) {
         </div>
         <p
           className="text-sm text-muted-foreground text-center mb-6 leading-relaxed"
-          style={{ fontFamily: "var(--font-manrope)" }}
+          style={{ fontFamily: "var(--font-body)" }}
         >
           We&apos;ll send you reminders when your milestones are about to end so you never miss a deadline.
         </p>
@@ -82,12 +82,12 @@ export function AddEmailSheet({ open, onOpenChange }: AddEmailSheetProps) {
             autoComplete="email"
             disabled={isSubmitting}
             className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-border"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           />
           {error && (
             <p
               className="text-xs text-rose-400"
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{ fontFamily: "var(--font-body)" }}
             >
               {error}
             </p>
@@ -101,7 +101,7 @@ export function AddEmailSheet({ open, onOpenChange }: AddEmailSheetProps) {
                 ? "bg-secondary text-muted-foreground cursor-not-allowed"
                 : "bg-delulu-yellow text-delulu-charcoal hover:brightness-105 active:scale-[0.99]"
             )}
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{ fontFamily: "var(--font-body)" }}
           >
             {isSubmitting ? "Saving…" : "Save email"}
           </button>

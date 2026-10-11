@@ -105,7 +105,7 @@ export function AddMilestonesToCalendar({
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Calendar className="h-3.5 w-3.5 shrink-0 text-delulu-blue" strokeWidth={2.25} />
+        <Calendar className="h-3.5 w-3.5 shrink-0 text-blue" strokeWidth={2.25} />
         Google Calendar
         <ChevronDown
           className={cn("h-3.5 w-3.5 opacity-60 transition-transform", open && "rotate-180")}
@@ -130,7 +130,7 @@ export function AddMilestonesToCalendar({
               onClick={handleDownloadAll}
               className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs hover:bg-muted/80"
             >
-              <Download className="mt-0.5 h-4 w-4 shrink-0 text-delulu-blue" />
+              <Download className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
               <span>
                 <span className="block font-bold text-foreground">Add all milestones</span>
                 <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
@@ -146,7 +146,7 @@ export function AddMilestonesToCalendar({
                 onClick={handleOpenGoogleNext}
                 className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs hover:bg-muted/80"
               >
-                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-delulu-blue" />
+                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
                 <span>
                   <span className="block font-bold text-foreground">Next milestone only</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">

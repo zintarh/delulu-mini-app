@@ -86,7 +86,7 @@ export function CampaignJoinModal({
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             {info.communityName}
           </p>
-          <h2 className="mt-0.5 text-[17px] font-black leading-snug text-foreground">
+          <h2 className="mt-0.5 text-[17px] font-extrabold leading-snug text-foreground">
             {info.title}
           </h2>
 
@@ -94,15 +94,15 @@ export function CampaignJoinModal({
           <div className="mt-4 flex gap-2">
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
               <p className="text-[11px] text-muted-foreground">Milestones</p>
-              <p className="mt-0.5 text-sm font-black text-foreground">{info.milestoneCount}</p>
+              <p className="mt-0.5 text-sm font-extrabold text-foreground">{info.milestoneCount}</p>
             </div>
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
               <p className="text-[11px] text-muted-foreground">Proofs</p>
-              <p className="mt-0.5 text-sm font-black text-foreground">{cadenceLabel}</p>
+              <p className="mt-0.5 text-sm font-extrabold text-foreground">{cadenceLabel}</p>
             </div>
             <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
               <p className="text-[11px] text-muted-foreground">Ends</p>
-              <p className="mt-0.5 text-sm font-black text-foreground">
+              <p className="mt-0.5 text-sm font-extrabold text-foreground">
                 {endsLabel ?? `${info.durationDays}d`}
               </p>
             </div>
@@ -113,7 +113,7 @@ export function CampaignJoinModal({
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
               <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0">
-                <p className="text-sm font-black text-foreground">
+                <p className="text-sm font-extrabold text-foreground">
                   {joinAmount} {joinToken} stake required
                 </p>
                 <p className="text-[11px] text-muted-foreground">
@@ -128,7 +128,7 @@ export function CampaignJoinModal({
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-delulu-yellow/30 bg-delulu-yellow/10 px-3 py-2.5 dark:bg-delulu-yellow/[0.08]">
               <Trophy className="h-4 w-4 shrink-0 text-[#9a7b0a] dark:text-delulu-yellow" />
               <div className="min-w-0">
-                <p className="text-sm font-black text-foreground">
+                <p className="text-sm font-extrabold text-foreground">
                   {claimablePrize} G$ prize pool
                 </p>
                 <p className="text-[11px] text-muted-foreground">
@@ -162,17 +162,17 @@ export function CampaignJoinModal({
 
           {atJoinLimit ? (
             <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs font-semibold text-rose-600">
+              <p className="text-xs font-semibold text-orange">
                 Campaign limit reached
               </p>
-              <p className="mt-0.5 text-[11px] text-rose-500">{JOIN_LIMIT_MESSAGE}</p>
+              <p className="mt-0.5 text-[11px] text-orange">{JOIN_LIMIT_MESSAGE}</p>
             </div>
           ) : insufficientBalance ? (
             <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs font-semibold text-rose-600">
+              <p className="text-xs font-semibold text-orange">
                 Insufficient balance
               </p>
-              <p className="mt-0.5 text-[11px] text-rose-500">
+              <p className="mt-0.5 text-[11px] text-orange">
                 You need {joinAmount} {joinToken} to join.
                 {userBalance !== undefined ? ` Your balance: ${userBalance.toFixed(2)} ${joinToken}.` : ""}
               </p>
@@ -197,7 +197,7 @@ export function CampaignJoinModal({
               type="button"
               disabled={joining || !!insufficientBalance || !!atJoinLimit}
               onClick={onConfirm}
-              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {joining ? (
                 <span className="inline-flex items-center gap-2 justify-center">

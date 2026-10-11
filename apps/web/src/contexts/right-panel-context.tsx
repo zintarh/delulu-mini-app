@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { GoodDollarWhitelistAction } from "@/lib/gooddollar-whitelist";
 
-export type RightPanel = "notifications" | "claim" | null;
+export type RightPanel = "notifications" | "claim" | "facecheck" | null;
 
 interface RightPanelContextValue {
   panel: RightPanel;
@@ -22,6 +22,8 @@ interface RightPanelContextValue {
   openForWhitelist: (action: GoodDollarWhitelistAction) => void;
   toggleNotifications: () => void;
   toggleClaim: () => void;
+  /** Opens GoodDollar's face check directly (no side panel). */
+  startFaceCheck: () => void;
 }
 
 const RightPanelContext = createContext<RightPanelContextValue | null>(null);
@@ -30,6 +32,8 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
   const [panel, setPanel] = useState<RightPanel>(null);
   const [claimWhitelistIntent, setClaimWhitelistIntent] =
     useState<GoodDollarWhitelistAction | null>(null);
+
+  const startFaceCheck = useCallback(() => setPanel("facecheck"), []);
 
   const clearClaimWhitelistIntent = useCallback(
     () => setClaimWhitelistIntent(null),
@@ -73,8 +77,10 @@ export function RightPanelProvider({ children }: { children: ReactNode }) {
       openForWhitelist,
       toggleNotifications,
       toggleClaim,
+      startFaceCheck,
     }),
     [
+      startFaceCheck,
       panel,
       claimWhitelistIntent,
       clearClaimWhitelistIntent,
@@ -129,4 +135,10 @@ export function useClaimPanel() {
     close: closeAll,
     toggle: toggleClaim,
   };
+}
+
+/** GoodDollar face check, opened straight from any "Verify" button. */
+export function useFaceCheck() {
+  const { panel, closeAll, startFaceCheck } = useRightPanel();
+  return { isOpen: panel === "facecheck", start: startFaceCheck, close: closeAll };
 }

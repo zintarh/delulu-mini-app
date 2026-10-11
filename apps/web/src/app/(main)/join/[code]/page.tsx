@@ -87,7 +87,7 @@ export default function JoinCommunityPage() {
   if (!isReady || !authenticated || isCheckingProfile) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue" />
         <p className="text-sm font-semibold text-foreground">
           {!isReady || !authenticated ? "Redirecting to sign in…" : "Checking your profile…"}
         </p>
@@ -99,19 +99,19 @@ export default function JoinCommunityPage() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
       {(status === "idle" || status === "joining") && (
         <>
-          <Loader2 className="h-8 w-8 animate-spin text-delulu-blue" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue" />
           <p className="text-sm font-semibold text-foreground">Joining community…</p>
         </>
       )}
 
       {status === "success" && (
         <>
-          <CheckCircle className="h-10 w-10 text-emerald-600" />
+          <CheckCircle className="h-10 w-10 text-green-edge" />
           <p className="text-base font-bold text-foreground">You joined {communityName}!</p>
           <button
             type="button"
             onClick={goToCommunity}
-            className="mt-2 rounded-xl bg-delulu-yellow px-6 py-2.5 text-sm font-black text-[#1a1a19]"
+            className="mt-2 rounded-xl bg-delulu-yellow px-6 py-2.5 text-sm font-extrabold text-[#1a1a19]"
           >
             Continue to community
           </button>
@@ -127,13 +127,13 @@ export default function JoinCommunityPage() {
             <button
               type="button"
               onClick={() => setStatus("idle")}
-              className="text-xs font-semibold text-delulu-blue"
+              className="text-xs font-semibold text-blue"
             >
               Try again
             </button>
             <button
               type="button"
-              onClick={() => router.replace("/")}
+              onClick={() => router.replace("/home")}
               className="text-xs font-semibold text-muted-foreground"
             >
               Go home

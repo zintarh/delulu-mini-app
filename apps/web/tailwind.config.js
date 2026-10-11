@@ -24,11 +24,26 @@ module.exports = {
         "delulu-white": "#ffffff",
         "delulu-light-gray": "#dfdfd9",
         "delulu-border": "#d4d4ce",
+        // Legacy accent token. Blue was dropped from the palette (Oct 2026):
+        // solid → ink, pale → yellow soft, border → yellow line.
         "delulu-blue": {
-          DEFAULT: "#2563eb",
-          light: "#eff6ff",
-          border: "#bfdbfe",
+          DEFAULT: "#161615",
+          light: "#fdf1c7",
+          border: "#e5b41c",
         },
+
+        // Redesign palette — docs/redesign/README.md
+        ink: { DEFAULT: "#161615", 2: "#2a2a28", 3: "#3a3a37" },
+        paper: "#f7f7f4",
+        line: "#e6e6e0",
+        faint: "#8a8a83",
+        yellow: { DEFAULT: "#f6c324", edge: "#c99a0a", soft: "#fdf1c7", line: "#e5b41c" },
+        green: { DEFAULT: "#2db36f", strong: "#1f9a5b", edge: "#157041", soft: "#e1f5ea", line: "#b9e5cc" },
+        orange: { DEFAULT: "#b4410c", soft: "#fbece3" },
+        // No blue in the palette: this accent token now maps to ink / yellow.
+        blue: { DEFAULT: "#161615", edge: "#000000", soft: "#fdf1c7", line: "#e5b41c", tint: "#fdf1c7" },
+        pink: { DEFAULT: "#c23e6e", soft: "#fde6ef", line: "#f6c3d6", bright: "#ec5b8d" },
+        purple: { DEFAULT: "#6d3fd6", soft: "#eee7fe" },
         
         // Semantic colors using CSS variables — stored as space-separated RGB
         // triplets in globals.css (not hex) so Tailwind can apply opacity
@@ -69,6 +84,25 @@ module.exports = {
           foreground: "rgb(var(--card-foreground) / <alpha-value>)",
         },
       },
+      fontFamily: {
+        body: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        brand: ["var(--font-brand)", "var(--font-body)", "sans-serif"],
+      },
+      boxShadow: {
+        edge: "0 4px 0 #e6e6e0",
+        "edge-sm": "0 3px 0 #e6e6e0",
+        "edge-ink": "0 4px 0 #000000",
+        "edge-yellow": "0 4px 0 #c99a0a",
+        "edge-yellow-line": "0 4px 0 #e5b41c",
+        "edge-green": "0 4px 0 #1e8a52",
+        "edge-green-line": "0 4px 0 #b9e5cc",
+        "edge-blue": "0 4px 0 #000000",
+        "edge-blue-line": "0 4px 0 #e5b41c",
+        "edge-pink-line": "0 4px 0 #f6c3d6",
+        lift: "0 30px 50px -30px rgba(22,22,21,.55)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -103,6 +137,45 @@ module.exports = {
           "0%, 100%": { transform: "scale(1)", opacity: "1" },
           "50%": { transform: "scale(1.08)", opacity: "0.85" },
         },
+        rise: {
+          from: { opacity: 0, transform: "translateY(16px)" },
+          to: { opacity: 1, transform: "none" },
+        },
+        "bounce-in": {
+          "0%": { opacity: 0, transform: "scale(.3)" },
+          "100%": { opacity: 1, transform: "scale(1)" },
+        },
+        wiggle: {
+          "0%, 78%, 100%": { transform: "rotate(0)" },
+          "82%": { transform: "rotate(-10deg)" },
+          "86%": { transform: "rotate(9deg)" },
+          "90%": { transform: "rotate(-6deg)" },
+          "94%": { transform: "rotate(3deg)" },
+        },
+        bob: { "50%": { transform: "translateY(-6px)" } },
+        "ring-pulse": {
+          "0%": { transform: "scale(.85)", opacity: 1 },
+          "100%": { transform: "scale(1.2)", opacity: 0 },
+        },
+        "hole-pulse": {
+          "0%": { boxShadow: "0 0 0 0 rgba(246,195,36,.8)" },
+          "100%": { boxShadow: "0 0 0 14px rgba(246,195,36,0)" },
+        },
+        "confetti-fall": {
+          from: { transform: "translateY(0) rotate(0)" },
+          to: { transform: "translateY(920px) rotate(760deg)" },
+        },
+        "stamp-slam": {
+          "0%": { opacity: 0, transform: "rotate(-9deg) scale(2.8)" },
+          "100%": { opacity: 1, transform: "rotate(-9deg) scale(1)" },
+        },
+        "bar-fill": { from: { transform: "scaleX(0)" } },
+        "sheet-up": {
+          from: { transform: "translateY(60%)", opacity: 0 },
+          to: { transform: "none", opacity: 1 },
+        },
+        spark: { from: { transform: "scale(.85)" }, to: { transform: "scale(1.25)" } },
+        scan: { "0%, 100%": { top: "6%" }, "50%": { top: "90%" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -112,6 +185,18 @@ module.exports = {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "progress-indeterminate": "progress-indeterminate 1.4s ease-in-out infinite",
         "logo-pulse": "logo-pulse 1.6s ease-in-out infinite",
+        rise: "rise .45s cubic-bezier(.2,.8,.2,1) both",
+        "bounce-in": "bounce-in .6s cubic-bezier(.34,1.56,.64,1) both",
+        wiggle: "wiggle 2.8s ease-in-out infinite",
+        bob: "bob 1.6s ease-in-out infinite",
+        "ring-pulse": "ring-pulse 1.8s ease-out infinite",
+        "hole-pulse": "hole-pulse 1.8s ease-out infinite",
+        "confetti-fall": "confetti-fall 2.8s cubic-bezier(.25,.6,.4,1) both",
+        "stamp-slam": "stamp-slam .45s cubic-bezier(.5,0,.75,0) both",
+        "bar-fill": "bar-fill 1s cubic-bezier(.2,.8,.2,1) .3s both",
+        "sheet-up": "sheet-up .5s cubic-bezier(.34,1.56,.64,1) both",
+        spark: "spark .6s ease-in-out infinite alternate",
+        scan: "scan 2.2s ease-in-out infinite",
       },
     },
   },

@@ -8,6 +8,7 @@ import { fetchCommunityCampaignMilestonesFromGraph } from "@/lib/community/campa
 import { canSubmitMilestone } from "@/lib/community/milestone-submit-eligibility";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { recordApprovedProof } from "@/lib/proof-reward/grant";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -136,6 +137,16 @@ export async function POST(
       { status: 422 },
     );
   }
+
+  // Lets the on-chain submission of this exact proof URL earn the per-proof
+  // G$ reward — the contract itself accepts any link, so this is the record
+  // that the proof actually passed review.
+  await recordApprovedProof(admin, {
+    wallet: walletAddress,
+    kind: "campaign",
+    proofUrl: proofUrls[0],
+    refId: campaignId,
+  });
 
   return NextResponse.json({
     verified: true,

@@ -83,7 +83,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Target className="h-8 w-8 text-delulu-blue/20" />
+              <Target className="h-8 w-8 text-blue/20" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -91,7 +91,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
           {/* Prize badge */}
           {hasPrize && !isClosed ? (
             <div className="absolute right-3 top-3">
-              <span className="flex items-center gap-1 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-black text-black shadow-sm">
+              <span className="flex items-center gap-1 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-extrabold text-black shadow-sm">
                 <Trophy className="h-3 w-3" />
                 {campaign.proposed_pool_amount} G$
               </span>
@@ -100,7 +100,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
 
           {isClosed ? (
             <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 py-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-white/80">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-white/80">
                 Ended
               </span>
             </div>
@@ -110,7 +110,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
         {/* Body */}
         <div className="p-4">
           <h3
-            className="line-clamp-2 text-base font-black leading-snug text-foreground"
+            className="line-clamp-2 text-base font-extrabold leading-snug text-foreground"
           >
             {campaign.title}
           </h3>
@@ -142,7 +142,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
             "flex h-9 w-full items-center justify-center rounded-xl text-sm font-bold transition-colors",
             isClosed
               ? "border border-border/60 bg-muted/30 text-muted-foreground"
-              : "bg-delulu-blue text-white shadow-[0_2px_10px_rgba(37,99,235,0.25)] hover:bg-delulu-blue/90",
+              : "bg-blue text-white shadow-[0_2px_10px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90",
           )}
         >
           {isClosed ? "View campaign" : "View & join →"}
@@ -204,12 +204,12 @@ export default function CommunityHubPage() {
       {/* Community header */}
       <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-delulu-blue/10 text-lg font-black text-delulu-blue">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-delulu-blue/10 text-lg font-extrabold text-blue">
             {community.name[0]?.toUpperCase()}
           </div>
           <div>
             <h1
-              className="text-xl font-black text-foreground"
+              className="text-xl font-extrabold text-foreground"
             >
               {community.name}
             </h1>
@@ -230,7 +230,7 @@ export default function CommunityHubPage() {
       {/* Active campaigns */}
       {active.length > 0 ? (
         <section>
-          <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-foreground/50">
+          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-foreground/50">
             Active campaigns
           </p>
           <div className="space-y-4">
@@ -250,7 +250,7 @@ export default function CommunityHubPage() {
       {/* Past campaigns */}
       {past.length > 0 ? (
         <section className="mt-8">
-          <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-foreground/50">
+          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-foreground/50">
             Past campaigns
           </p>
           <div className="space-y-4">

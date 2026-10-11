@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Users } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { MainPage } from "@/components/main-app-header";
+import { PageBackHeader } from "@/components/page-back-header";
+import { Lulu } from "@/components/ds";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
 import { isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
 
@@ -22,7 +24,7 @@ const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
 function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
   if (r.counted) {
     return r.payout === "sent" ? (
-      <span className="font-bold text-delulu-green">
+      <span className="font-bold text-green-edge">
         +{REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$
       </span>
     ) : (
@@ -33,20 +35,20 @@ function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
   }
   if (ended) return <span className="font-semibold text-muted-foreground">Campaign ended</span>;
   const next = STEPS.find((s) => !r.steps[s.key]);
-  return <span className="font-semibold text-orange-600 dark:text-orange-400">{next?.next}</span>;
+  return <span className="font-semibold text-orange">{next?.next}</span>;
 }
 
 function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
   return (
-    <li className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+    <li className="rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
       <div className="flex items-center gap-3">
         {r.pfpUrl ? (
           <img src={r.pfpUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
         ) : (
-          <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+          <div className="h-10 w-10 shrink-0 rounded-full bg-line" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-foreground">
+          <p className="truncate text-sm font-extrabold text-foreground">
             {r.username ? `@${r.username}` : "No username yet"}
           </p>
           <p className="text-xs">
@@ -63,7 +65,7 @@ function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
               key={key}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center text-[10px] font-semibold leading-tight",
-                done ? "bg-delulu-green/10 text-delulu-green" : "bg-muted text-muted-foreground",
+                done ? "bg-green-soft text-green-edge" : "bg-paper text-muted-foreground",
               )}
             >
               {done ? (
@@ -111,34 +113,16 @@ export default function MyReferralsPage() {
 
   return (
     <MainPage>
-      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl px-4 py-4 lg:px-8 lg:py-5">
-          <Link
-            href="/profile"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-foreground" strokeWidth={2} />
-            <h1 className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
-              My referrals
-            </h1>
-          </div>
-          {referrals ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {referrals.length} signed up · {counted} counted
-            </p>
-          ) : null}
-        </div>
-      </header>
+      <PageBackHeader
+        title="My referrals"
+        subtitle={referrals ? `${referrals.length} signed up · ${counted} counted` : undefined}
+      />
 
-      <div className="mx-auto max-w-2xl space-y-3 px-4 py-5 lg:px-8">
+      <div className="mx-auto max-w-xl space-y-3 px-5 pb-10 pt-3">
         <div
           className={cn(
-            "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold",
-            ended ? "bg-muted text-muted-foreground" : "bg-delulu-yellow text-delulu-charcoal",
+            "flex items-center gap-2 rounded-[20px] border-2 px-4 py-3 text-sm font-bold",
+            ended ? "border-line bg-white text-muted-foreground" : "border-yellow-line bg-yellow-soft text-ink",
           )}
         >
           <Clock className="h-4 w-4 shrink-0" />
@@ -148,13 +132,13 @@ export default function MyReferralsPage() {
         {!ended && !isLoadingEligibility && standing?.locked && standing.campaign ? (
           <Link
             href={`/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`}
-            className="flex items-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-bold text-background"
+            className="press-edge flex items-center gap-2 rounded-[20px] bg-ink px-4 py-3 text-sm font-bold text-white shadow-edge-ink"
           >
             <Lock className="h-4 w-4 shrink-0" />
             Invites on hold. Post today&apos;s proof →
           </Link>
         ) : !ended && !isLoadingEligibility && !eligible ? (
-          <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-[20px] border-2 border-line bg-white px-4 py-3 text-sm font-semibold text-muted-foreground">
             <Lock className="h-4 w-4 shrink-0" />
             Finish your own onboarding for referrals to count on the leaderboard.
           </div>
@@ -167,13 +151,14 @@ export default function MyReferralsPage() {
         ) : !referrals ? (
           <ul className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <li key={i} className="h-[124px] animate-pulse rounded-2xl bg-muted" />
+              <li key={i} className="h-[124px] animate-pulse rounded-[20px] bg-line" />
             ))}
           </ul>
         ) : referrals.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            No one has signed up with your link yet.
-          </p>
+          <div className="flex flex-col items-center py-14 text-center">
+            <Lulu size={64} mood="dream" />
+            <p className="mt-3 text-sm font-semibold text-muted-foreground">No one has signed up with your link yet.</p>
+          </div>
         ) : (
           <ul className="space-y-3">
             {referrals.map((r, i) => (

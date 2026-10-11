@@ -35,7 +35,7 @@ export function DeluluDetailCommentsSection({
     >
       <h2
         id="delulu-comments-heading"
-        className="mb-4 text-base font-black text-foreground sm:text-lg"
+        className="mb-4 text-base font-extrabold text-foreground sm:text-lg"
       >
         Comments
         {count > 0 ? (

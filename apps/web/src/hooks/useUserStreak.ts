@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
+import { useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 
 const USER_VERIFIED_MILESTONES_QUERY = gql`
   query UserVerifiedMilestones($address: String!, $nowSec: BigInt!) {
@@ -29,6 +30,8 @@ export interface UserStreakResult {
   /** Unique days with a verified milestone in the current calendar month (UTC) */
   activeDaysThisMonth: number;
   totalVerified: number;
+  /** Whole days since the most recent kept day (0 = today), null if never. UTC days, like the streak. */
+  daysSinceKept: number | null;
   isLoading: boolean;
 }
 
@@ -50,6 +53,8 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
     },
   );
 
+  const { data: forfeits } = useCreatorForfeits(address);
+
   return useMemo(() => {
     const milestones = data?.milestones ?? [];
 
@@ -59,6 +64,15 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
       if (!m.verifiedAt) continue;
       const ts = Number(m.verifiedAt) * 1000;
       if (Number.isFinite(ts) && ts > 0) activeDays.add(toMidnightUtc(ts));
+    }
+    // Contract days kept (proof in, not rejected) count toward the streak too.
+    for (const f of forfeits ?? []) {
+      for (const p of f.periods ?? []) {
+        if (!p.proofUrl || !p.resolvedAt) continue;
+        if (p.verifierAction === "rejected" || p.verifierAction === "timed_out") continue;
+        const ts = new Date(p.resolvedAt).getTime();
+        if (Number.isFinite(ts) && ts > 0) activeDays.add(toMidnightUtc(ts));
+      }
     }
 
     const todayUtc = toMidnightUtc(Date.now());
@@ -96,12 +110,17 @@ export function useUserStreak(address: string | undefined): UserStreakResult {
       if (dayMs >= monthStartUtc && dayMs <= todayUtc) activeDaysThisMonth++;
     }
 
+    let lastKeptDay = -Infinity;
+    for (const dayMs of activeDays) if (dayMs <= todayUtc && dayMs > lastKeptDay) lastKeptDay = dayMs;
+    const daysSinceKept = Number.isFinite(lastKeptDay) ? Math.round((todayUtc - lastKeptDay) / DAY_MS) : null;
+
     return {
       currentStreak,
       last7Days,
+      daysSinceKept,
       activeDaysThisMonth,
       totalVerified: milestones.length,
       isLoading: loading && !data,
     };
-  }, [data?.milestones, loading, data]);
+  }, [data?.milestones, loading, data, forfeits]);
 }

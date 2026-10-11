@@ -9,6 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { cn, formatAddress, formatGAmount } from "@/lib/utils";
+import { GoalIconPanel } from "@/components/goal-icon";
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { TokenBadge } from "@/components/token-badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -18,12 +19,8 @@ import {
 } from "@/lib/delulu-social-storage";
 import type { FormattedDelulu } from "@/lib/types";
 
-function creatorGradient(creator: string) {
-  const hex = creator.replace("0x", "").toLowerCase();
-  const h1 = parseInt(hex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 55) % 360;
-  return `linear-gradient(140deg, hsl(${h1},50%,20%) 0%, hsl(${h2},55%,12%) 100%)`;
-}
+/** Neutral backdrop shown behind a cover image while it loads. */
+const CREATORGRADIENT = "linear-gradient(140deg, #2a2a28 0%, #161615 100%)";
 
 function DeluluTippedSummary({
   supportAmount,
@@ -41,7 +38,7 @@ function DeluluTippedSummary({
       <span className="text-xs font-semibold text-muted-foreground">
         Tipped so far
       </span>
-      <span className="text-right text-sm font-black tabular-nums text-foreground">
+      <span className="text-right text-sm font-extrabold tabular-nums text-foreground">
         {formatGAmount(supportAmount)}{" "}
         <span className="text-xs font-semibold text-muted-foreground">
           {tokenLabel}
@@ -60,7 +57,8 @@ export interface DeluluDetailPinCardProps {
   delulu: FormattedDelulu;
   title: string;
   description?: string;
-  bannerImage: string;
+  /** Cover image; goals without one show a habit icon instead. */
+  bannerImage: string | null;
   supportAmount: number;
   supportersCount: number;
   totalSupportUsd?: number | null;
@@ -234,25 +232,31 @@ export function DeluluDetailPinCard({
         {/* Media — narrower so the details column has more room */}
         <div
           className="relative min-h-[110px] w-full shrink-0 sm:min-h-[130px] lg:min-h-0 lg:w-[38%] xl:w-[36%]"
-          style={{ background: creatorGradient(delulu.creator) }}
+          style={bannerImage ? { background: CREATORGRADIENT } : undefined}
         >
-          <img
-            src={bannerImage}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
+          {bannerImage ? (
+            <>
+              <img
+                src={bannerImage}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
 
-          <div className="absolute bottom-3 right-3 flex gap-2">
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/55"
-              aria-label="Expand image"
-              onClick={() => window.open(bannerImage, "_blank")}
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-          </div>
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/55"
+                  aria-label="Expand image"
+                  onClick={() => window.open(bannerImage, "_blank")}
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <GoalIconPanel text={title} seed={String(delulu.onChainId ?? delulu.id)} iconClassName="h-14 w-14" />
+          )}
         </div>
 
         {/* Content — reactions, tip, description */}
@@ -266,7 +270,7 @@ export function DeluluDetailPinCard({
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                     userReacted
-                      ? "text-red-500"
+                      ? "text-orange"
                       : "text-foreground hover:bg-secondary",
                   )}
                   aria-label={userReacted ? "Unlike" : "Like"}
@@ -370,7 +374,7 @@ export function DeluluDetailPinCard({
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>
-                    <span className="font-black text-foreground">
+                    <span className="font-extrabold text-foreground">
                       {formatGAmount(supportAmount)}
                     </span>{" "}
                     staked
@@ -394,13 +398,13 @@ export function DeluluDetailPinCard({
             </div>
 
             {isHidden && isCreator ? (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700">
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-orange">
                 Hidden from feed — only you can see this
               </p>
             ) : null}
 
             <div>
-              <h1 className="text-base font-black leading-snug text-foreground sm:text-xl">
+              <h1 className="text-base font-extrabold leading-snug text-foreground sm:text-xl">
                 {title}
               </h1>
               {description ? (

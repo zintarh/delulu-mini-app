@@ -13,6 +13,7 @@ import {
   clearWalletSessionClientState,
 } from "@/lib/auth/establish-wallet-session-client";
 import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
+import { clearGatePassed } from "@/lib/app-gate-pass";
 
 export type AuthProvider = "web3auth" | "privy" | null;
 
@@ -144,6 +145,7 @@ export function useAuth(): UseAuthReturn {
       consumeSignInRedirect();
     } catch {}
     clearWalletSessionClientState();
+    clearGatePassed();
     setWeb3authAddress(undefined);
     disconnect();
   };

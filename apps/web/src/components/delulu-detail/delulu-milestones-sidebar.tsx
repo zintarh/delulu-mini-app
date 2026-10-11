@@ -106,7 +106,7 @@ export function DeluluMilestonesSidebar({
       {showOnboardingBanner && milestoneView.sorted.length === 0 ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 leading-relaxed">
+          <p className="text-xs text-orange leading-relaxed">
             <span className="font-bold block mb-0.5">
               Your delulu won&apos;t appear on the home feed yet.
             </span>
@@ -120,7 +120,7 @@ export function DeluluMilestonesSidebar({
         <div className="flex flex-col gap-4 mb-5 md:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-base md:text-lg font-black text-foreground flex items-center gap-2">
+              <h2 className="text-base md:text-lg font-extrabold text-foreground flex items-center gap-2">
                 <Target className="w-4 h-4 md:w-5 md:h-5" />
                 Milestones
               </h2>
@@ -227,7 +227,7 @@ function MilestoneAddForm({
       {milestoneMinError ? (
         <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3.5 py-3 mb-3">
           <span className="text-amber-500 text-base leading-none mt-px">⚠</span>
-          <p className="text-xs text-amber-600 font-medium leading-snug">
+          <p className="text-xs text-orange font-medium leading-snug">
             Add at least <span className="font-bold">3 milestones</span> before
             continuing. A minimum of 3 steps is required.
           </p>
@@ -260,7 +260,7 @@ function MilestoneAddForm({
                   <button
                     type="button"
                     onClick={() => onRemoveMilestoneRow(index)}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    className="text-xs text-orange hover:text-red-700 font-medium"
                   >
                     <XIcon className="w-4 h-4" />
                   </button>
@@ -320,7 +320,7 @@ function MilestoneAddForm({
             newMilestones.some((m) => !m.days || Number(m.days) <= 0)
           }
           className={cn(
-            "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-black rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
+            "inline-flex items-center justify-center px-4 py-2 text-xs md:text-sm font-extrabold rounded-md border-2 border-delulu-charcoal shadow-[2px_2px_0px_0px_#1a1a19]",
             "bg-delulu-yellow-reserved text-delulu-charcoal hover:scale-[0.98] transition-transform",
             ((milestones && milestones.length >= 10) ||
               newMilestones.some((m) => !m.days || Number(m.days) <= 0)) &&
@@ -383,7 +383,7 @@ function CreatorMilestonesList({
             className={cn(
               "border rounded-lg overflow-hidden transition-colors",
               isOngoing
-                ? "border-delulu-blue-border bg-delulu-blue-light"
+                ? "border-blue-line bg-blue-soft"
                 : isUpcoming
                   ? "border-border/40 bg-muted/30"
                   : "border-border/60 bg-card",
@@ -449,11 +449,11 @@ function CreatorMilestonesList({
                         className={cn(
                           "inline-flex items-center rounded-full px-1.5 py-0 text-[9px] md:text-[10px] font-semibold border cursor-default",
                           m.isVerified
-                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                            ? "bg-green-soft text-green-edge border-emerald-500/20"
                             : isInReview || (isOngoing && effectiveIsSubmitted)
-                              ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                              ? "bg-amber-500/10 text-orange border-amber-500/20"
                               : isPastExpired
-                                ? "bg-red-500/10 text-red-600 border-red-500/20"
+                                ? "bg-orange-soft text-orange border-red-500/20"
                                 : isUpcoming
                                   ? "bg-muted/60 text-muted-foreground border-border/50"
                                   : "bg-secondary text-secondary-foreground border-border",
@@ -474,7 +474,7 @@ function CreatorMilestonesList({
                           e.stopPropagation();
                           onDeleteMilestone(m.milestoneId);
                         }}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-orange hover:bg-red-50 hover:text-red-700 transition-colors"
                         title="Delete step"
                       >
                         <XIcon className="w-4 h-4" />
@@ -489,7 +489,7 @@ function CreatorMilestonesList({
                         "text-[9px] md:text-[10px] tabular-nums font-medium",
                         isPastExpired && "text-destructive",
                         (isInReview || (isOngoing && m.isSubmitted)) &&
-                          "text-amber-600",
+                          "text-orange",
                       )}
                     >
                       {timeDisplay}
@@ -519,7 +519,7 @@ function CreatorMilestonesList({
                       href={m.proofLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 text-xs font-bold underline"
+                      className="text-ink text-xs font-bold underline"
                     >
                       View Evidence
                     </a>
@@ -576,14 +576,14 @@ function EmptyMilestones({
   return (
     <div className="rounded-2xl bg-muted p-8 text-center mt-2">
       <Target className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
-      <p className="text-sm md:text-base font-black text-foreground">
+      <p className="text-sm md:text-base font-extrabold text-foreground">
         {isCreator ? "No steps yet" : "None yet"}
       </p>
       {isCreator && canAddMilestones && deluluRemainingDaysTotal > 0 ? (
         <button
           type="button"
           onClick={onOpenAiMilestones}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal text-sm font-black shadow-[2px_2px_0px_0px_#1a1a19] hover:scale-[0.98] transition-transform"
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-delulu-charcoal bg-delulu-yellow-reserved text-delulu-charcoal text-sm font-extrabold shadow-[2px_2px_0px_0px_#1a1a19] hover:scale-[0.98] transition-transform"
         >
           <Target className="w-4 h-4" />
           Add Milestones

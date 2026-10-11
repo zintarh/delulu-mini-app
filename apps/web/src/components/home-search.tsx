@@ -29,12 +29,12 @@ function CampaignResultRow({
       onClick={onSelect}
       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted/60"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-delulu-blue-light">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-blue-soft">
         {result.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={result.cover_image_url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <Target className="h-4 w-4 text-delulu-blue" />
+          <Target className="h-4 w-4 text-blue" />
         )}
       </div>
       <div className="min-w-0 flex-1">

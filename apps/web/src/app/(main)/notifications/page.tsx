@@ -11,7 +11,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     open();
-    router.replace("/");
+    router.replace("/home");
   }, [open, router]);
 
   return null;
