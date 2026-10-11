@@ -123,7 +123,7 @@ export function MainAppContent({ children }: { children: React.ReactNode }) {
       className={cn(
         "min-h-0 flex-1",
         nestedScroll ? "flex flex-col overflow-hidden" : "overflow-y-auto scrollbar-hide",
-        needsMobileNavOffset && "pt-[4.5rem] lg:pt-0",
+        needsMobileNavOffset && "pt-[var(--mobile-top-nav-bar)] lg:pt-0",
       )}
     >
       {children}

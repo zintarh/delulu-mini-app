@@ -39,6 +39,15 @@ body {
   --mobile-bottom-nav-bar: calc(68px + max(env(safe-area-inset-bottom, 0px), 20px));
   --mobile-bottom-nav-clearance: calc(var(--mobile-bottom-nav-bar) + 20px);
 
+  /*
+   * Fixed mobile top nav (navbar.tsx): min-h-[66px] content + pb-2 (8px) +
+   * a safe-area-aware top pad. Content below it (MainAppContent's
+   * needsMobileNavOffset) must offset by exactly this or the fixed header
+   * clips whatever's directly under it — this is the single source of
+   * truth for both, so they can't drift apart again.
+   */
+  --mobile-top-nav-bar: calc(66px + 0.5rem + max(1rem, env(safe-area-inset-top, 0px)));
+
   /* Delulu color palette */
   --delulu-yellow: #f6c324;
   --delulu-yellow-reserved: #f6c324;
