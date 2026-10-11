@@ -1120,7 +1120,7 @@ export default function DeluluPage() {
         />
 
         <div className="w-full px-3 py-5 pt-3 lg:px-8 lg:pt-6">
-          <div className="grid grid-cols-1 items-start gap-6 lg:min-h-[calc(100dvh-7.5rem)] lg:grid-cols-[minmax(0,2.15fr)_minmax(280px,1fr)] lg:gap-6 lg:pb-4">
+          <div className="grid grid-cols-1 items-start gap-6">
             <div className="min-w-0 space-y-4">
               <DeluluDetailPinCard
                 delulu={safeDelulu}

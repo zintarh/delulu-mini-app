@@ -118,7 +118,7 @@ export default function MyReferralsPage() {
         subtitle={referrals ? `${referrals.length} signed up · ${counted} counted` : undefined}
       />
 
-      <div className="mx-auto max-w-xl space-y-3 px-5 pb-10 pt-3 lg:max-w-2xl">
+      <div className="mx-auto max-w-xl space-y-3 px-5 pb-10 pt-3">
         <div
           className={cn(
             "flex items-center gap-2 rounded-[20px] border-2 px-4 py-3 text-sm font-bold",

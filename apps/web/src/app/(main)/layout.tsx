@@ -21,17 +21,13 @@ import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { AppLoader } from "@/components/app-loader";
 import { gatePassedAddress, hasGatePassed, markGatePassed } from "@/lib/app-gate-pass";
 
-const LeftSidebar = dynamic(
-  () => import("@/components/left-sidebar").then((m) => m.LeftSidebar),
-  { ssr: false, loading: () => <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24" /> },
-);
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
   {
     ssr: false,
     loading: () => (
       <div
-        className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 shadow-[0_-6px_20px_rgba(26,26,25,0.06)] lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 shadow-[0_-6px_20px_rgba(26,26,25,0.06)]"
         style={{ height: "var(--mobile-bottom-nav-bar)" }}
         aria-hidden
       />
@@ -269,11 +265,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
   return (
       <LogoutSheetProvider>
       <div className="h-dvh overflow-hidden">
-        <div className="hidden lg:block fixed inset-y-0 left-0 z-30 w-24">
-          <LeftSidebar />
-        </div>
-
-        <div className="flex h-dvh bg-background lg:pl-24">
+        <div className="flex h-dvh bg-background">
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />

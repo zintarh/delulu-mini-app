@@ -180,7 +180,7 @@ export default function ForfeitVerifyPage() {
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
         <DeluluDetailHeader shareSlot={null} />
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
-          <div className="mx-auto flex w-full max-w-xl animate-pulse flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
+          <div className="mx-auto flex w-full max-w-xl animate-pulse flex-col px-5 py-8 lg:px-8">
             <div className="mb-4 h-9 w-9 rounded-full bg-muted" />
             <div className="mb-6 h-4 w-28 rounded bg-muted" />
             <div className="h-7 w-3/4 rounded bg-muted" />
@@ -221,7 +221,7 @@ export default function ForfeitVerifyPage() {
       <DeluluDetailHeader shareSlot={null} />
 
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
-        <div className="mx-auto flex w-full max-w-xl flex-col px-5 py-8 lg:max-w-2xl lg:px-8">
+        <div className="mx-auto flex w-full max-w-xl flex-col px-5 py-8 lg:px-8">
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? router.back() : router.push("/home"))}
