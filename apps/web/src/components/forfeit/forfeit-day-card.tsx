@@ -13,9 +13,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass } from "@/components/ds";
+import { formatCountdown } from "@/components/home-stakes-hero";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
-import { SubmitProofModal } from "@/components/submit-proof-modal";
 import {
   forfeitFeedKeys,
   hasConfirmedForfeitState,
@@ -29,15 +29,10 @@ import {
   ForfeitCadence,
   ForfeitDestinationType,
   useCancelForfeitCommitment,
-  useResolveForfeitCommitmentSuccess,
-  useSubmitForfeitProof,
 } from "@/hooks/use-create-forfeit-commitment";
-import { submitForfeitProofWithWallet } from "@/lib/forfeit/submit-forfeit-proof-client";
 import { usePendingForfeitSync } from "@/lib/forfeit/use-pending-forfeit-sync";
 import { useFastResolveForfeit } from "@/lib/forfeit/use-fast-resolve-forfeit";
-import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
-import { useUserStore } from "@/stores/useUserStore";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
 import { FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { cn } from "@/lib/utils";
@@ -56,6 +51,32 @@ import {
   FEED_CARD_TITLE_CLASS,
 } from "@/components/feed-card-layout";
 import { goalIconFor, goalTintFor } from "@/components/goal-icon";
+
+let proveClickAudioCtx: AudioContext | null = null;
+
+/** Tiny synthesized "pop" — no audio asset needed — for the Prove button tap. */
+function playProveClickSound() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    proveClickAudioCtx ??= new Ctx();
+    const ctx = proveClickAudioCtx;
+    if (ctx.state === "suspended") void ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.09);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch {
+    // Not critical to the submit flow — ignore playback failures.
+  }
+}
 
 type PeriodStatus = "past" | "current" | "upcoming";
 
@@ -294,15 +315,22 @@ function countCompletedPeriods(item: ForfeitFeedItem): number {
 function ForfeitTaskCard({
   item,
   day,
-  onSubmitProof,
-  proofBusy,
 }: {
   item: ForfeitFeedItem;
   day: DayItem;
-  onSubmitProof: () => void;
-  proofBusy: boolean;
 }) {
+  const router = useRouter();
   const isPendingSync = item.id.startsWith("pending:");
+  const proveButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Ticks the countdown forward once a minute while this day is still open —
+  // matches HomeStakesHero's cadence, no per-second precision needed for a
+  // list card.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const proofUrl = day.period?.proofUrl ?? null;
   const proofSubmitted = Boolean(proofUrl);
@@ -398,8 +426,24 @@ function ForfeitTaskCard({
 
     if (canSubmit) {
       return (
-        <GameButton size="sm" onClick={onSubmitProof} disabled={proofBusy}>
-          {proofBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+        <GameButton
+          ref={proveButtonRef}
+          size="sm"
+          onClick={() => {
+            playProveClickSound();
+            const el = proveButtonRef.current;
+            if (el) {
+              el.classList.remove("animate-prove-wiggle");
+              void el.offsetWidth; // restart the animation even on repeat clicks
+              el.classList.add("animate-prove-wiggle");
+            }
+            // Proof is submitted from the contract detail page now, not a
+            // modal here on the feed — jump straight to today's node there.
+            if (item.onChainCommitmentId != null) {
+              router.push(`/forfeit/${item.onChainCommitmentId}`);
+            }
+          }}
+        >
           Prove
         </GameButton>
       );
@@ -437,10 +481,18 @@ function ForfeitTaskCard({
   const isDue = canSubmit && !proofSubmitted;
   const tileIcon = goalIconFor(item.title);
   const tileTint = goalTintFor(String(item.onChainCommitmentId ?? item.title ?? ""));
-  const dayLabel = `Day ${day.calendarPeriodIndex + 1}/${totalPeriods}`;
+  const dayLabel = `${day.calendarPeriodIndex + 1}/${totalPeriods}`;
   const timeLabel = (() => {
-    const at = outcome === "won" && day.period?.resolvedAt ? new Date(day.period.resolvedAt) : day.periodDeadline;
-    return at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    if (outcome === "won" && day.period?.resolvedAt) {
+      return new Date(day.period.resolvedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    }
+    // Still open: count down to the forfeit deadline instead of showing a
+    // static clock time, so it's obvious how long is left to prove it today.
+    if (isDue) {
+      const remainingSec = Math.floor((day.periodDeadline.getTime() - nowMs) / 1000);
+      return formatCountdown(remainingSec).label;
+    }
+    return day.periodDeadline.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   })();
   const href = item.onChainCommitmentId != null ? `/forfeit/${item.onChainCommitmentId}` : null;
 
@@ -740,7 +792,6 @@ export function ForfeitDayCard({
   showCreateWhenEmpty?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const { user } = useUserStore();
   const { data: creatorData, isLoading: creatorLoading } =
     useCreatorForfeits(address);
   const { data: verifierData, isLoading: verifierLoading } =
@@ -755,9 +806,6 @@ export function ForfeitDayCard({
     void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.creator(address) });
   });
 
-  const { submitProofAndWait } = useSubmitForfeitProof();
-  const { resolveCommitmentSuccessAndWait } =
-    useResolveForfeitCommitmentSuccess();
   const { cancelCommitmentAndWait } = useCancelForfeitCommitment();
 
   useEffect(() => {
@@ -837,39 +885,6 @@ export function ForfeitDayCard({
   const currentDays = currentBucket?.items ?? [];
   const roleGroups = groupDaysByRole(currentDays);
 
-  const [proofOpen, setProofOpen] = useState(false);
-  const [proofBusy, setProofBusy] = useState(false);
-  const [proofError, setProofError] = useState<string | null>(null);
-  const [proofSuccess, setProofSuccess] = useState(false);
-  const [proofStep, setProofStep] = useState<
-    "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming"
-  >("idle");
-  const [activeProofItem, setActiveProofItem] =
-    useState<ForfeitFeedItem | null>(null);
-
-  // Deep link from the contract detail page: /home?prove=<onChainCommitmentId>
-  // opens today's proof flow for that contract once the feed has loaded.
-  const proveHandled = useRef(false);
-  useEffect(() => {
-    if (proveHandled.current || isLoading) return;
-    const id = new URLSearchParams(window.location.search).get("prove");
-    if (!id) return;
-    proveHandled.current = true;
-    window.history.replaceState(null, "", window.location.pathname);
-    const day = items.find(
-      (d) =>
-        d.role === "creator" &&
-        d.periodStatus === "current" &&
-        String(d.forfeit.onChainCommitmentId) === id,
-    );
-    if (!day) return;
-    setActiveProofItem(day.forfeit);
-    setProofSuccess(false);
-    setProofError(null);
-    setProofStep("idle");
-    setProofOpen(true);
-  }, [isLoading, items]);
-
   const [discontinueItem, setDiscontinueItem] =
     useState<ForfeitFeedItem | null>(null);
 
@@ -896,37 +911,6 @@ export function ForfeitDayCard({
     void queryClient.invalidateQueries({
       queryKey: forfeitFeedKeys.verifier(address),
     });
-  };
-
-  const handleProofSubmit = async (proofUrls: string[]) => {
-    if (!address || activeProofItem?.onChainCommitmentId == null) {
-      const msg =
-        "This forfeit is still setting up. Wait a moment, then try uploading again.";
-      setProofError(msg);
-      throw new Error(msg);
-    }
-    setProofBusy(true);
-    setProofError(null);
-    setProofStep("ai-verifying");
-    try {
-      await submitForfeitProofWithWallet({
-        onChainCommitmentId: activeProofItem.onChainCommitmentId,
-        walletAddress: address,
-        proofUrls,
-        submitProofOnChain: submitProofAndWait,
-        resolveSuccessOnChain: resolveCommitmentSuccessAndWait,
-        onStepChange: setProofStep,
-      });
-      setProofSuccess(true);
-      invalidate();
-    } catch (err) {
-      const msg = proofErrorMessage(err);
-      setProofError(msg);
-      setProofStep("idle");
-      throw err instanceof Error ? err : new Error(msg);
-    } finally {
-      setProofBusy(false);
-    }
   };
 
   const handleDiscontinue = async () => {
@@ -999,7 +983,6 @@ export function ForfeitDayCard({
   }
 
   const label = selectedDate;
-  const isLiveCamera = activeProofItem?.evidenceType === "camera";
 
   return (
     <section className={cn(className)}>
@@ -1039,48 +1022,13 @@ export function ForfeitDayCard({
                 ) : day.role === "destination" ? (
                   <ForfeitDestinationCard key={day.key} day={day} />
                 ) : (
-                  <ForfeitTaskCard
-                    key={day.key}
-                    item={day.forfeit}
-                    day={day}
-                    proofBusy={
-                      proofBusy && activeProofItem?.id === day.forfeit.id
-                    }
-                    onSubmitProof={() => {
-                      if (day.periodStatus !== "current") return;
-                      setActiveProofItem(day.forfeit);
-                      setProofSuccess(false);
-                      setProofError(null);
-                      setProofStep("idle");
-                      setProofOpen(true);
-                    }}
-                  />
+                  <ForfeitTaskCard key={day.key} item={day.forfeit} day={day} />
                 ),
               )}
             </div>
           ))}
         </div>
       )}
-
-      <SubmitProofModal
-        open={proofOpen}
-        onOpenChange={setProofOpen}
-        onSubmit={handleProofSubmit}
-        proofType={isLiveCamera ? "live_camera" : undefined}
-        isSubmitting={proofBusy}
-        submitSuccess={proofSuccess}
-        submitError={proofError ? new Error(proofError) : null}
-        proofStep={proofStep}
-        onDone={() => {
-          setProofOpen(false);
-          setProofSuccess(false);
-          setActiveProofItem(null);
-        }}
-        isOnChain
-        campaignTitle={activeProofItem?.title}
-        myUsername={user?.username}
-        myAvatar={user?.pfpUrl}
-      />
 
       <ResponsiveSheet
         open={!!discontinueItem}

@@ -9,7 +9,6 @@ import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
-import { ProfileEndedCampaigns } from "@/components/profile/profile-ended-campaigns";
 import { ProfileForfeitSection } from "@/components/profile/profile-forfeit-section";
 import { MainPage } from "@/components/main-app-header";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
@@ -21,12 +20,11 @@ import { formatCompact, getLevel, levelTitle } from "@/lib/levels";
 import { useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { Bolt, CheckDot, Flame, GameCard, GameLink, Medal, ProgressBar, Segmented, Trophy } from "@/components/ds";
 
-type TabType = "milestones" | "active" | "ended";
+type TabType = "milestones" | "active";
 
 const PROFILE_TABS: { value: TabType; label: string }[] = [
   { value: "active", label: "Contracts" },
   { value: "milestones", label: "Campaigns" },
-  { value: "ended", label: "Ended" },
 ];
 
 export default function ProfilePage() {
@@ -312,18 +310,6 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
               <p className="text-sm text-muted-foreground">
                 Connect your wallet to create a forfeit.
               </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === "ended" && (
-        <div className="mx-auto max-w-6xl px-4 pb-6 pt-6 lg:pb-8">
-          {address ? (
-            <ProfileEndedCampaigns address={address} />
-          ) : (
-            <div className="flex flex-col items-center py-20 text-center">
-              <p className="text-sm text-muted-foreground">Connect your wallet to see ended campaigns.</p>
             </div>
           )}
         </div>

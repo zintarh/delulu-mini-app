@@ -3,17 +3,31 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, ChevronLeft, Clock, MoreHorizontal } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { Chest, Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
-import { useCreatorForfeits, type ForfeitFeedItem, type ForfeitPeriodSnapshot } from "@/hooks/use-creator-forfeits";
+import {
+  forfeitFeedKeys,
+  useCreatorForfeits,
+  type ForfeitFeedItem,
+  type ForfeitPeriodSnapshot,
+} from "@/hooks/use-creator-forfeits";
 import { destinationLabel, formatStakeAmount } from "@/components/forfeit/forfeit-day-card";
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { goalIconFor, goalTintFor } from "@/components/goal-icon";
+import { SubmitProofModal } from "@/components/submit-proof-modal";
+import {
+  useResolveForfeitCommitmentSuccess,
+  useSubmitForfeitProof,
+} from "@/hooks/use-create-forfeit-commitment";
+import { submitForfeitProofWithWallet } from "@/lib/forfeit/submit-forfeit-proof-client";
+import { proofErrorMessage } from "@/lib/community/format-proof-error";
+import { useUserStore } from "@/stores/useUserStore";
 
 type NodeState = "kept" | "missed" | "now" | "now-done" | "locked";
 
@@ -52,6 +66,56 @@ export default function ContractDetailPage() {
     [data, id],
   );
 
+  const queryClient = useQueryClient();
+  const { user } = useUserStore();
+  const { submitProofAndWait } = useSubmitForfeitProof();
+  const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
+
+  const [proofOpen, setProofOpen] = useState(false);
+  const [proofBusy, setProofBusy] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
+  const [proofSuccess, setProofSuccess] = useState(false);
+  const [proofStep, setProofStep] = useState<
+    "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming"
+  >("idle");
+
+  const openProof = () => {
+    setProofSuccess(false);
+    setProofError(null);
+    setProofStep("idle");
+    setProofOpen(true);
+  };
+
+  const handleProofSubmit = async (proofUrls: string[]) => {
+    if (!address || item?.onChainCommitmentId == null) {
+      const msg = "This forfeit is still setting up. Wait a moment, then try uploading again.";
+      setProofError(msg);
+      throw new Error(msg);
+    }
+    setProofBusy(true);
+    setProofError(null);
+    setProofStep("ai-verifying");
+    try {
+      await submitForfeitProofWithWallet({
+        onChainCommitmentId: item.onChainCommitmentId,
+        walletAddress: address,
+        proofUrls,
+        submitProofOnChain: submitProofAndWait,
+        resolveSuccessOnChain: resolveCommitmentSuccessAndWait,
+        onStepChange: setProofStep,
+      });
+      setProofSuccess(true);
+      void queryClient.invalidateQueries({ queryKey: forfeitFeedKeys.creator(address) });
+    } catch (err) {
+      const msg = proofErrorMessage(err);
+      setProofError(msg);
+      setProofStep("idle");
+      throw err instanceof Error ? err : new Error(msg);
+    } finally {
+      setProofBusy(false);
+    }
+  };
+
   const chain = item?.onChain ?? null;
   const total = Math.max(1, chain?.totalPeriods ?? 1);
   const current = chain?.currentPeriodIndex ?? 0;
@@ -60,6 +124,7 @@ export default function ContractDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const proofLabel =
     item?.evidenceType === "camera" ? "Live camera" : item?.evidenceType === "gps-checkin" ? "Check-in" : "Daily photo";
+  const isLiveCamera = item?.evidenceType === "camera";
   const periods = useMemo(() => item?.periods ?? [], [item]);
   const amount = item ? formatStakeAmount(item) : null;
   const symbol = chain?.token ? getTokenSymbol(chain.token) : "G$";
@@ -162,14 +227,15 @@ export default function ContractDetailPage() {
                     className="absolute h-[86px] w-[92px] -translate-x-1/2 animate-ring-pulse rounded-full border-[3px] border-yellow"
                     style={{ left: style.left, top: top - 15 }}
                   />
-                  <Link
-                    href={`${APP_HOME}?prove=${id}`}
+                  <button
+                    type="button"
+                    onClick={openProof}
                     aria-label={`Prove day ${i + 1}`}
                     className={cn(common, "h-[68px] w-[74px] -translate-x-1/2 animate-bounce-in bg-yellow text-ink shadow-[0_6px_0_#c99a0a]")}
                     style={style}
                   >
                     <Camera className="h-[30px] w-[30px]" strokeWidth={2.2} />
-                  </Link>
+                  </button>
                   <span
                     className="absolute animate-bob whitespace-nowrap rounded-[14px] bg-ink px-3.5 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
                     style={{ left: `calc(50% + ${x}px + ${x > 0 ? -196 : 50}px)`, top: top + 10 }}
@@ -219,10 +285,10 @@ export default function ContractDetailPage() {
       <div className="border-t-2 border-line bg-paper px-5 pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
         <div className="mx-auto max-w-md">
           {chain?.active && !todayDone ? (
-            <Link href={`${APP_HOME}?prove=${id}`} className={gameButtonClass({ full: true })}>
+            <button type="button" onClick={openProof} className={gameButtonClass({ full: true })}>
               <Camera className="h-5 w-5" strokeWidth={2} />
               Prove today
-            </Link>
+            </button>
           ) : (
             <div className="text-center text-sm font-semibold text-muted-foreground">
               {chain?.active ? "Today's proof is in. See you tomorrow." : "This contract has ended."}
@@ -230,6 +296,25 @@ export default function ContractDetailPage() {
           )}
         </div>
       </div>
+
+      <SubmitProofModal
+        open={proofOpen}
+        onOpenChange={setProofOpen}
+        onSubmit={handleProofSubmit}
+        proofType={isLiveCamera ? "live_camera" : undefined}
+        isSubmitting={proofBusy}
+        submitSuccess={proofSuccess}
+        submitError={proofError ? new Error(proofError) : null}
+        proofStep={proofStep}
+        onDone={() => {
+          setProofOpen(false);
+          setProofSuccess(false);
+        }}
+        isOnChain
+        campaignTitle={item?.title}
+        myUsername={user?.username}
+        myAvatar={user?.pfpUrl}
+      />
     </MainPage>
   );
 }

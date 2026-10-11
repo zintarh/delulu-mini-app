@@ -121,7 +121,7 @@ export function useActiveForfeitStakes(address: string | undefined) {
   };
 }
 
-function formatCountdown(remainingSec: number): { label: string; overdue: boolean } {
+export function formatCountdown(remainingSec: number): { label: string; overdue: boolean } {
   if (remainingSec <= 0) return { label: "Overdue", overdue: true };
   const totalMinutes = Math.floor(remainingSec / 60);
   const days = Math.floor(totalMinutes / (60 * 24));

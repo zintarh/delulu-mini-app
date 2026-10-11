@@ -573,7 +573,7 @@ function CtaSlide({
         </button>
 
         <Link
-          href="/board"
+          href="/forfeit"
           onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
           style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "white", fontFamily: "var(--font-body)" }}

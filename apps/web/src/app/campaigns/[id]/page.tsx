@@ -35,7 +35,7 @@ export default function ChallengeDetailPage() {
   };
   const handleCreateClick = () => {
     if (!authenticated) redirectToSignIn();
-    else router.push("/board");
+    else router.push("/forfeit");
   };
 
   const challengeId = params?.id ? parseInt(params.id as string) : null;

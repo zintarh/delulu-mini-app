@@ -18,10 +18,23 @@ function fmId(commitmentId: BigInt): string {
   return "fm1-" + commitmentId.toString()
 }
 
-// Matches BASE_PROOF_POINTS in apps/web/src/lib/dashboard/campaign-constants.ts — a
-// resolved forfeit period is treated the same as a verified campaign milestone for
-// leaderboard purposes, so both feed the same User.deluluPoints total.
-const FORFEIT_PROOF_POINTS = BigInt.fromI32(1000)
+// Tiered by stake size to encourage bigger commitments — matches BASE_PROOF_POINTS
+// in apps/web/src/lib/dashboard/campaign-constants.ts at the base tier, so a mid-stake
+// resolved forfeit period is still worth the same as a verified campaign milestone for
+// leaderboard purposes.
+const FORFEIT_PROOF_POINTS_LOW = BigInt.fromI32(100)
+const FORFEIT_PROOF_POINTS_BASE = BigInt.fromI32(1000)
+const FORFEIT_PROOF_POINTS_HIGH = BigInt.fromI32(5000)
+// Whole-token thresholds in wei (G$ has 18 decimals) — below 1000 G$ is the low tier,
+// 1000 up to 50000 G$ is the base tier, 50000 G$ and up is the high tier.
+const FORFEIT_LOW_STAKE_THRESHOLD = BigInt.fromString("1000000000000000000000")
+const FORFEIT_HIGH_STAKE_THRESHOLD = BigInt.fromString("50000000000000000000000")
+
+function forfeitProofPoints(stakeAmount: BigInt): BigInt {
+  if (stakeAmount.ge(FORFEIT_HIGH_STAKE_THRESHOLD)) return FORFEIT_PROOF_POINTS_HIGH
+  if (stakeAmount.ge(FORFEIT_LOW_STAKE_THRESHOLD)) return FORFEIT_PROOF_POINTS_BASE
+  return FORFEIT_PROOF_POINTS_LOW
+}
 
 function getOrCreateUser(address: Bytes): User {
   let id = address.toHexString().toLowerCase()
@@ -86,6 +99,8 @@ export function handleFMPeriodResolvedSuccess(event: PeriodResolvedSuccessEvent)
   let commitment = ForfeitCommitment.load(fmId(event.params.commitmentId))
   if (commitment == null) return
 
+  let points = forfeitProofPoints(commitment.stakeAmount)
+
   let resolutionId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   let resolution = new ForfeitPeriodResolution(resolutionId)
   resolution.commitment = commitment.id
@@ -94,7 +109,7 @@ export function handleFMPeriodResolvedSuccess(event: PeriodResolvedSuccessEvent)
   resolution.outcome = "success"
   resolution.resolver = event.params.resolver
   resolution.creatorAddress = commitment.creatorAddress
-  resolution.pointsAwarded = FORFEIT_PROOF_POINTS
+  resolution.pointsAwarded = points
   resolution.txHash = event.transaction.hash
   resolution.createdAt = event.block.timestamp
   resolution.save()
@@ -103,7 +118,7 @@ export function handleFMPeriodResolvedSuccess(event: PeriodResolvedSuccessEvent)
   // resolver is the creator for self/AI-verify but the named friend for friend-verify.
   let creator = User.load(commitment.creator)
   if (creator != null) {
-    creator.deluluPoints = creator.deluluPoints.plus(FORFEIT_PROOF_POINTS)
+    creator.deluluPoints = creator.deluluPoints.plus(points)
     creator.save()
   }
 

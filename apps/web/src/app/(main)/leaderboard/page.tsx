@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
+import { useEarnedTotalsByAddresses, formatEarnedUsdt } from "@/hooks/use-earned-totals";
 import { cn } from "@/lib/utils";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
@@ -50,7 +51,19 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 /** One leaderboard row (design: Leaderboard.dc.html). */
-function Row({ entry, isMe, pfp, compact }: { entry: Entry; isMe: boolean; pfp: string | null | undefined; compact: boolean }) {
+function Row({
+  entry,
+  isMe,
+  pfp,
+  compact,
+  earnedUsd,
+}: {
+  entry: Entry;
+  isMe: boolean;
+  pfp: string | null | undefined;
+  compact: boolean;
+  earnedUsd: number;
+}) {
   return (
     <div
       className={cn(
@@ -63,15 +76,28 @@ function Row({ entry, isMe, pfp, compact }: { entry: Entry; isMe: boolean; pfp: 
       <span className="min-w-0 flex-1 truncate font-bold">
         {isMe ? "You" : entry.username ? `@${entry.username}` : formatAddr(entry.address)}
       </span>
-      <span className="label-mono shrink-0 text-xs font-semibold text-ink">
-        {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
+      <span className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="label-mono text-xs font-semibold text-ink">
+          {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
+        </span>
+        {earnedUsd > 0 ? (
+          <span className="label-mono text-[10px] text-muted-foreground">{formatEarnedUsdt(earnedUsd)} earned</span>
+        ) : null}
       </span>
     </div>
   );
 }
 
 /** Top three on a podium (2 · 1 · 3), shown on the first page. */
-function Podium({ top, pfpMap }: { top: Entry[]; pfpMap: Record<string, string | null | undefined> }) {
+function Podium({
+  top,
+  pfpMap,
+  earnedByAddress,
+}: {
+  top: Entry[];
+  pfpMap: Record<string, string | null | undefined>;
+  earnedByAddress: Record<string, number>;
+}) {
   const order = [top[1], top[0], top[2]].filter(Boolean);
   const heights: Record<number, number> = { 1: 80, 2: 56, 3: 40 };
   return (
@@ -89,6 +115,11 @@ function Podium({ top, pfpMap }: { top: Entry[]; pfpMap: Record<string, string |
           </span>
           <span className="mt-1.5 max-w-full truncate text-sm font-bold">{e.username ? `@${e.username}` : formatAddr(e.address)}</span>
           <span className="label-mono text-[10px] text-muted-foreground">{formatCompact(e.points)}</span>
+          {(earnedByAddress[e.address.toLowerCase()] ?? 0) > 0 ? (
+            <span className="label-mono text-[9px] text-muted-foreground/80">
+              {formatEarnedUsdt(earnedByAddress[e.address.toLowerCase()])}
+            </span>
+          ) : null}
           <div
             className="w-full rounded-t-[14px] shadow-[inset_0_-6px_0_rgba(0,0,0,0.08)]"
             style={{ height: heights[e.rank], background: MEDALS[e.rank][0] }}
@@ -144,6 +175,7 @@ function MonthlyLeaderboard() {
   const { entries: raw, hasNextPage, isLoading, totalCount, error, refetch } = useMonthlyCampaignLeaderboard(page, address);
   const entries: Entry[] = raw.map((e) => ({ address: e.wallet_address, username: e.username, points: e.points_total, rank: e.rank }));
   const pfpMap = usePfps(entries.map((e) => e.address.toLowerCase()));
+  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses(entries.map((e) => e.address));
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
@@ -163,7 +195,14 @@ function MonthlyLeaderboard() {
       </div>
       <div className="flex flex-col gap-1 pt-3">
         {entries.map((e) => (
-          <Row key={e.address} entry={e} isMe={e.address.toLowerCase() === me} pfp={pfpMap[e.address.toLowerCase()]} compact={false} />
+          <Row
+            key={e.address}
+            entry={e}
+            isMe={e.address.toLowerCase() === me}
+            pfp={pfpMap[e.address.toLowerCase()]}
+            compact={false}
+            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
+          />
         ))}
       </div>
       <LeaderboardPagination
@@ -185,6 +224,10 @@ function GlobalLeaderboard() {
   const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address);
   const me = address?.toLowerCase();
   const pfpMap = usePfps([...entries.map((e) => e.address.toLowerCase()), ...(me ? [me] : [])]);
+  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses([
+    ...entries.map((e) => e.address),
+    ...(me ? [me] : []),
+  ]);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
@@ -201,12 +244,21 @@ function GlobalLeaderboard() {
   return (
     <div>
       <div className="label-mono pt-3.5 text-[10px] text-muted-foreground">All time · every player · total points</div>
-      {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} /> : null}
+      {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} earnedByAddress={earnedByAddress} /> : null}
       <div className="flex flex-col gap-1 pt-1.5">
         {rows.map((e) => (
-          <Row key={e.address} entry={e} isMe={e.address.toLowerCase() === me} pfp={pfpMap[e.address.toLowerCase()]} compact />
+          <Row
+            key={e.address}
+            entry={e}
+            isMe={e.address.toLowerCase() === me}
+            pfp={pfpMap[e.address.toLowerCase()]}
+            compact
+            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
+          />
         ))}
-        {pinnedMe ? <Row entry={pinnedMe} isMe pfp={pfpMap[me!]} compact /> : null}
+        {pinnedMe ? (
+          <Row entry={pinnedMe} isMe pfp={pfpMap[me!]} compact earnedUsd={earnedByAddress[me!] ?? 0} />
+        ) : null}
       </div>
       <LeaderboardPagination
         page={page}

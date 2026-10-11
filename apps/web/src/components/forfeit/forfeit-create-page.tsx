@@ -156,7 +156,11 @@ const EVIDENCE_TYPES: EvidenceType[] = [
 ];
 
 const PENALTY_AMOUNT_PRESETS = [1000, 5000, 10000] as const;
-const MIN_FORFEIT_AMOUNT_GOODDOLLAR = 1000;
+// Floor matches the Delulu flow's MIN_STAKE_WHOLE (100 G$) — low enough that a
+// new user's first GoodDollar UBI claim (~100+ G$) can cover it. Stakes below
+// the 1000 G$ base tier still earn fewer points (see forfeitProofPoints in
+// apps/delulu-subgraph/src/forfeit-market.ts) to keep the incentive to stake more.
+const MIN_FORFEIT_AMOUNT_GOODDOLLAR = 100;
 
 const FORFEIT_DESTINATIONS = [
   {
@@ -646,15 +650,20 @@ export function ForfeitCreatePage() {
 
   const minForfeitAmount =
     selectedTokenSymbol === "G$" ? MIN_FORFEIT_AMOUNT_GOODDOLLAR : 1;
+  // An explicit 0 means "stake your word" — a deliberate choice via the Amount
+  // sheet's dedicated button, not a typo'd empty field (the sheet's own Save
+  // button and the minimum-amount warnings below still block any OTHER value
+  // under minForfeitAmount).
+  const isWordPledge = forfeitAmount === 0;
 
   const canNext =
     description.trim().length >= 3 &&
-    forfeitAmount >= minForfeitAmount &&
+    (isWordPledge || forfeitAmount >= minForfeitAmount) &&
     !!selectedToken &&
     !hasInsufficientBalance &&
     (destinationId !== "friend" || ADDRESS_RE.test(destinationFriendAddress.trim())) &&
     (verificationMethod !== "friend" || friendVerifierReady);
-  const amountLabel = `${forfeitAmount.toLocaleString()} ${selectedTokenSymbol}`;
+  const amountLabel = isWordPledge ? "your word" : `${forfeitAmount.toLocaleString()} ${selectedTokenSymbol}`;
   const placeholder = evidence.placeholder;
 
   // Each period's on-chain cutoff lands one full period after creation, so its
@@ -684,7 +693,7 @@ export function ForfeitCreatePage() {
 
   const saveAmount = () => {
     const parsed = Number(amountDraft.replace(/,/g, "").trim());
-    if (!Number.isFinite(parsed) || parsed < minForfeitAmount) return;
+    if (!Number.isFinite(parsed) || (parsed !== 0 && parsed < minForfeitAmount)) return;
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
   };
@@ -985,8 +994,10 @@ export function ForfeitCreatePage() {
               ) : (
                 <>for </>
               )}
-              <PillButton onClick={() => setDeadlineOpen(true)}>{deadlineLabel}</PillButton>, or lose{" "}
-              <PillButton onClick={openAmountSheet}>{amountLabel}</PillButton> to{" "}
+              <PillButton onClick={() => setDeadlineOpen(true)}>{deadlineLabel}</PillButton>, or{" "}
+              {isWordPledge ? "break" : "lose"}{" "}
+              <PillButton onClick={openAmountSheet}>{amountLabel}</PillButton>{" "}
+              {isWordPledge ? "in front of" : "to"}{" "}
               <span className="whitespace-nowrap">
                 <PillButton onClick={() => setDestinationOpen(true)}>{destinationPillLabel}</PillButton>.
               </span>
@@ -1199,7 +1210,7 @@ export function ForfeitCreatePage() {
 
           {hasInsufficientBalance ? (
             <p className="text-sm font-semibold text-orange">Not enough {selectedTokenSymbol}. Claim your free daily money or lower the amount.</p>
-          ) : forfeitAmount < minForfeitAmount ? (
+          ) : !isWordPledge && forfeitAmount < minForfeitAmount ? (
             <p className="text-sm font-semibold text-orange">
               Minimum is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}
             </p>
@@ -1780,10 +1791,25 @@ export function ForfeitCreatePage() {
           <button
             type="button"
             onClick={saveAmount}
-            disabled={!Number.isFinite(Number(amountDraft)) || Number(amountDraft) < minForfeitAmount}
+            disabled={
+              !Number.isFinite(Number(amountDraft)) ||
+              (Number(amountDraft) !== 0 && Number(amountDraft) < minForfeitAmount)
+            }
             className={gameButtonClass({ full: true, className: "mt-4" })}
           >
             Save
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForfeitAmount(0);
+              setAmountDraft("0");
+              setAmountOpen(false);
+            }}
+            className="mt-3 w-full text-center text-sm font-semibold text-muted-foreground underline underline-offset-2"
+          >
+            Stake your word instead
           </button>
         </div>
       </ResponsiveSheet>

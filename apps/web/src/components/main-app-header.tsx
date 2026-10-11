@@ -32,10 +32,15 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
     return { mobile: false, desktop: false };
   }
 
-  // The mobile HUD (avatar, streak, balance, alerts) only tops Home and
-  // Rewards; every other screen starts with its own title (see
+  // The mobile HUD (avatar, streak, balance, alerts) tops Home, Rewards, and
+  // Campaigns (/explore) — same shared chrome as Home, not a separate
+  // in-page title; every other screen starts with its own title (see
   // docs/redesign/screens).
-  const hud = pathname === "/home" || pathname.startsWith("/rewards") || pathname.startsWith("/wallet");
+  const hud =
+    pathname === "/home" ||
+    pathname.startsWith("/rewards") ||
+    pathname.startsWith("/wallet") ||
+    pathname.startsWith("/explore");
   return { mobile: hud, desktop: true };
 }
 

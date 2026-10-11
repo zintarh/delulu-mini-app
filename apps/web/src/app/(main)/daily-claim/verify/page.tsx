@@ -19,7 +19,7 @@ export default function VerifyGoodDollarPage() {
 
   const returnTo = useMemo(() => {
     const raw = searchParams.get("returnTo");
-    if (!raw || !raw.startsWith("/")) return "/board";
+    if (!raw || !raw.startsWith("/")) return "/forfeit";
     return raw;
   }, [searchParams]);
 

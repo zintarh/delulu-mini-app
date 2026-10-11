@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
     }
 
-    // Best-effort: this period just earned its FORFEIT_PROOF_POINTS (1000) — the
+    // Best-effort: a stake >=1000 G$ just earned the base points tier — the
     // bar evaluateAndCreditReferral now requires for a referral to count.
     void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
       console.error("[forfeit/confirm-proof] referral credit check failed", err),

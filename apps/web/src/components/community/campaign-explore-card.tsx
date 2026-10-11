@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Trophy } from "lucide-react";
+import { Check, ChevronRight, Trophy } from "lucide-react";
 import { Fuse, Stamp, Ticket, Trophy as TrophyArt } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
@@ -244,7 +244,10 @@ export function CampaignFeaturedCard({ campaign, className }: { campaign: Campai
   return (
     <Link
       href={campaignHref(campaign)}
-      className={cn("block animate-rise rounded-3xl bg-[#fdf1c7] p-5 text-ink no-underline", className)}
+      className={cn(
+        "block animate-rise rounded-3xl bg-[#fdf1c7] p-5 text-ink no-underline transition-transform active:scale-[0.98]",
+        className,
+      )}
     >
       {campaign.coverImageUrl ? (
         <div className="relative -mx-1 -mt-1 mb-4 aspect-[2/1] overflow-hidden rounded-2xl border-2 border-white bg-white/60">
@@ -279,8 +282,11 @@ export function CampaignFeaturedCard({ campaign, className }: { campaign: Campai
         </div>
       </div>
       <Fuse value={closed ? 1 : elapsed} light spark={false} className="mt-[18px]" />
-      <div className="label-mono mt-2 text-[10px] text-muted-foreground">
-        {closed ? "Ended" : left === 0 ? "Ends today" : `${left ?? campaign.durationDays} days left`}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="label-mono text-[10px] text-muted-foreground">
+          {closed ? "Ended" : left === 0 ? "Ends today" : `${left ?? campaign.durationDays} days left`}
+        </span>
+        <ChevronRight className="h-4 w-4 text-[#8a6a00]/50" strokeWidth={2.5} />
       </div>
     </Link>
   );
@@ -298,12 +304,12 @@ export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignE
     <Link href={campaignHref(campaign)} className="block animate-rise text-ink no-underline">
       <Ticket
         stubWidth={84}
-        className="shadow-[0_0_0_1px_#e6e6e0]"
+        className="press-edge shadow-[0_0_0_1px_#e6e6e0]"
         stub={
           <>
             <span className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{pool > 0 ? compactAmount(pool) : stake > 0 ? compactAmount(stake) : "Free"}</span>
             <span className="label-mono -mt-1.5 text-[9px] text-muted-foreground">
-              {pool > 0 ? "G$ pool" : stake > 0 ? `${campaign.joinToken ?? "G$"} stake` : "Join"}
+              {pool > 0 ? "G$ pool" : stake > 0 ? "to join" : "Join"}
             </span>
           </>
         }
@@ -321,10 +327,11 @@ export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignE
               <TrophyArt size={36} />
             )}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-base font-bold">{campaign.title}</div>
             <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">{meta}</div>
           </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" strokeWidth={2.5} />
         </div>
       </Ticket>
     </Link>

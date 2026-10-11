@@ -3,6 +3,7 @@ import { CELO_MAINNET_ID, isLeaderboardBlacklisted, isGoodDollarToken } from "@/
 import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
 import { weiToTokenAmount } from "@/lib/token-amounts";
 import {
+  BASE_PROOF_POINTS,
   FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE,
   FORFEIT_STAKED_MIN_WHOLE,
 } from "@/lib/dashboard/campaign-constants";
@@ -826,9 +827,9 @@ export async function hasEarnedCampaignProofPointsOnGraph(
 }
 
 const WALLET_FORFEIT_PROOF_QUERY = `
-  query WalletForfeitProof($address: String!) {
+  query WalletForfeitProof($address: String!, $minPoints: BigInt!) {
     forfeitPeriodResolutions(
-      where: { creatorAddress: $address, outcome: "success" }
+      where: { creatorAddress: $address, outcome: "success", pointsAwarded_gte: $minPoints }
       first: 1
     ) {
       id
@@ -837,11 +838,12 @@ const WALLET_FORFEIT_PROOF_QUERY = `
 `;
 
 /**
- * Whether a wallet has ever had a Forfeit period resolved successfully —
- * i.e. actually submitted (and got approved) proof, not just created a
- * commitment. Every successful resolution awards FORFEIT_PROOF_POINTS
- * (1000, see apps/delulu-subgraph/src/forfeit-market.ts), so this mirrors
- * hasEarnedCampaignProofPointsOnGraph's "earned the points" bar.
+ * Whether a wallet has ever had a Forfeit period resolved successfully at the
+ * base stake tier or above — i.e. actually submitted (and got approved) proof
+ * on a >=1000 G$ stake, not just created a commitment or cleared the low-stake
+ * tier (100 pts, <1000 G$, see apps/delulu-subgraph/src/forfeit-market.ts).
+ * Mirrors hasEarnedCampaignProofPointsOnGraph's "earned the points" bar — a
+ * throwaway low-stake forfeit shouldn't be enough to farm a referral.
  */
 export async function hasQualifyingForfeitProofOnGraph(walletAddress: string): Promise<boolean> {
   try {
@@ -849,7 +851,7 @@ export async function hasQualifyingForfeitProofOnGraph(walletAddress: string): P
       forfeitPeriodResolutions?: Array<{ id: string }>;
     }>(
       WALLET_FORFEIT_PROOF_QUERY,
-      { address: walletAddress.toLowerCase() },
+      { address: walletAddress.toLowerCase(), minPoints: String(BASE_PROOF_POINTS) },
       { fresh: true },
     );
     return (data.forfeitPeriodResolutions ?? []).length > 0;

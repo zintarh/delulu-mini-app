@@ -748,6 +748,15 @@ textarea {
 .wrap-rise-3 { animation-delay: 0.65s; }
 .wrap-rise-4 { animation-delay: 0.8s; }
 
+/* One-shot shake for the Prove button on click */
+@keyframes prove-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-8deg); }
+  40% { transform: rotate(7deg); }
+  60% { transform: rotate(-5deg); }
+  80% { transform: rotate(3deg); }
+}
+
 /* ---------- Redesign: motion + pressable surfaces ---------- */
 @layer components {
   /* Solid bottom "edge" that presses down on tap (cards, buttons, pills) */
@@ -758,11 +767,14 @@ textarea {
     transform: translateY(4px);
     box-shadow: 0 0 0 transparent !important;
   }
+  .animate-prove-wiggle {
+    animation: prove-wiggle 0.4s ease;
+  }
   .label-mono {
     font-family: var(--font-mono), ui-monospace, monospace;
     font-weight: 500;
     font-size: 11px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .font-display-tight {

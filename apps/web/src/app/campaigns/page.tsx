@@ -42,7 +42,7 @@ export default function ChallengesPage() {
   };
   const handleCreateClick = () => {
     if (!authenticated) redirectToSignIn();
-    else router.push("/board");
+    else router.push("/forfeit");
   };
 
   const handleChallengeCreated = () => {

@@ -5,12 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useRequireGoodDollarWhitelist } from "@/hooks/use-require-gooddollar-whitelist";
 import { preloadAuthProviders } from "@/lib/auth-session-hint";
-import {
-  prefetchCreateDelusionContent,
-  prefetchCreateManifestStep,
-} from "@/lib/prefetch-create-manifest";
 
-/** Shared create entry: sign-in → whitelist → prefetch → /board */
+/** Shared create entry: sign-in → whitelist → prefetch → /forfeit */
 export function useNavigateToCreate() {
   const router = useRouter();
   const { authenticated } = useAuth();
@@ -19,14 +15,13 @@ export function useNavigateToCreate() {
   const navigateToCreate = useCallback(async () => {
     if (!authenticated) {
       preloadAuthProviders();
-      router.push("/sign-in?redirect=%2Fboard");
+      router.push("/sign-in?redirect=%2Fforfeit");
       return;
     }
     const allowed = await ensureWhitelisted("create");
     if (!allowed) return;
-    prefetchCreateDelusionContent();
-    prefetchCreateManifestStep();
-    router.push("/board");
+    router.prefetch("/forfeit");
+    router.push("/forfeit");
   }, [authenticated, ensureWhitelisted, router]);
 
   return { navigateToCreate, isChecking };
