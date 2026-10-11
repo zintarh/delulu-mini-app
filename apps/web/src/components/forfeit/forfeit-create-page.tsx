@@ -11,6 +11,7 @@ import {
   Check,
   ChevronDown,
   Clock,
+  HandshakeIcon,
   Image as ImageIcon,
   Loader2,
   MapPin,
@@ -19,7 +20,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { Chip, HoldToSign, OptionTile, gameButtonClass } from "@/components/ds";
+import { Chip, HoldToSign, OptionTile, Segmented, gameButtonClass } from "@/components/ds";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
@@ -462,6 +463,10 @@ export function ForfeitCreatePage() {
   const [deadlineOpen, setDeadlineOpen] = useState(false);
   const [amountOpen, setAmountOpen] = useState(false);
   const [destinationOpen, setDestinationOpen] = useState(false);
+  // Which half of the Amount sheet shows — a top-level choice, not a link
+  // buried under the money UI, so "stake your word" is the first thing
+  // anyone opening the sheet sees, not something they have to scroll past.
+  const [stakeMode, setStakeMode] = useState<"money" | "word">("money");
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -687,13 +692,14 @@ export function ForfeitCreatePage() {
   }, [deadlineDate, repeatEvery, cutoffTime]);
 
   const openAmountSheet = () => {
-    setAmountDraft(String(forfeitAmount));
+    setAmountDraft(String(forfeitAmount || 1000));
+    setStakeMode(isWordPledge ? "word" : "money");
     setAmountOpen(true);
   };
 
   const saveAmount = () => {
     const parsed = Number(amountDraft.replace(/,/g, "").trim());
-    if (!Number.isFinite(parsed) || (parsed !== 0 && parsed < minForfeitAmount)) return;
+    if (!Number.isFinite(parsed) || parsed < minForfeitAmount) return;
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
   };
@@ -1657,6 +1663,41 @@ export function ForfeitCreatePage() {
             Stake
           </h2>
 
+          <Segmented<"money" | "word">
+            ariaLabel="Stake type"
+            value={stakeMode}
+            onChange={setStakeMode}
+            className="mb-3.5"
+            options={[
+              { value: "money", label: "Money" },
+              { value: "word", label: "Your word" },
+            ]}
+          />
+
+          {stakeMode === "word" ? (
+            <>
+              <div className="flex flex-col items-center gap-2 rounded-[22px] border-2 border-line bg-white px-5 py-7 text-center shadow-edge">
+                <HandshakeIcon className="h-9 w-9 text-ink" strokeWidth={1.75} />
+                <p className="text-base font-bold text-foreground">No money at stake</p>
+                <p className="max-w-[20rem] text-sm text-muted-foreground" style={MANROPE}>
+                  Miss it and nothing is taken — just your word, in front of whoever you pick below.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setForfeitAmount(0);
+                  setAmountDraft("0");
+                  setAmountOpen(false);
+                }}
+                className={gameButtonClass({ full: true, className: "mt-4" })}
+              >
+                Save
+              </button>
+            </>
+          ) : (
+            <>
           {/* Hero card — same gradient-glow treatment as the duration picker. */}
           <div className="relative rounded-[22px] border-2 border-line bg-white p-4 shadow-edge">
 
@@ -1791,26 +1832,13 @@ export function ForfeitCreatePage() {
           <button
             type="button"
             onClick={saveAmount}
-            disabled={
-              !Number.isFinite(Number(amountDraft)) ||
-              (Number(amountDraft) !== 0 && Number(amountDraft) < minForfeitAmount)
-            }
+            disabled={!Number.isFinite(Number(amountDraft)) || Number(amountDraft) < minForfeitAmount}
             className={gameButtonClass({ full: true, className: "mt-4" })}
           >
             Save
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setForfeitAmount(0);
-              setAmountDraft("0");
-              setAmountOpen(false);
-            }}
-            className="mt-3 w-full text-center text-sm font-semibold text-muted-foreground underline underline-offset-2"
-          >
-            Stake your word instead
-          </button>
+            </>
+          )}
         </div>
       </ResponsiveSheet>
     </div>
