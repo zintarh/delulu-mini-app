@@ -347,7 +347,7 @@ const QUICK_START = [
 
 function CreateTopBar() {
   return (
-    <div className="mx-auto flex w-full max-w-xl items-center justify-between px-5 pb-2 pt-4">
+    <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 pb-2 pt-4">
       <Link
         href={APP_HOME}
         aria-label="Close"
@@ -965,7 +965,7 @@ export function ForfeitCreatePage() {
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-paper">
       <CreateTopBar />
 
-      <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-y-auto scrollbar-hide">
+      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto scrollbar-hide">
         <div className="flex flex-col gap-5 px-5 pb-8 pt-2">
           {/* Quick start — one tap fills the habit and proof type */}
           <div>

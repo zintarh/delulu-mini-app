@@ -165,7 +165,7 @@ export default function ContractDetailPage() {
 
   return (
     <MainPage className="flex h-full min-h-0 flex-col">
-      <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 pt-4">
+      <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-5 pt-4">
         <Link href={APP_HOME} aria-label="Back" className={ICON_BUTTON_CLASS}>
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
         </Link>
@@ -197,7 +197,7 @@ export default function ContractDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md flex-wrap gap-2 px-5 pt-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap gap-2 px-5 pt-4">
         {countdown ? (
           <HudPill className="text-orange">
             <Clock className="h-[18px] w-[18px]" strokeWidth={2.2} />
@@ -213,7 +213,7 @@ export default function ContractDetailPage() {
         ) : null}
       </div>
 
-      <div className="mx-auto mt-2 w-full max-w-md flex-1 overflow-y-auto scrollbar-hide">
+      <div className="mx-auto mt-2 w-full max-w-3xl flex-1 overflow-y-auto scrollbar-hide">
         <div className="relative" style={{ height: pathHeight }}>
           {nodes.map((state, i) => {
             const x = OFFSETS[i % OFFSETS.length];

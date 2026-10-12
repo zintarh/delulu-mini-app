@@ -3,28 +3,31 @@
 import { useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Flame as FlameIcon, Heart, Target, Zap, type LucideIcon } from "lucide-react";
+import { Flame as FlameIcon, Target, type LucideIcon } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Bolt, Flame, GameCard, HabitTile, HudPill, Lulu, MonoLabel, type HabitTint } from "@/components/ds";
 import { WeekFlamesView } from "@/components/home/home-progress";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStreak } from "@/hooks/useUserStreak";
+import { forfeitProofPointsForStake } from "@/lib/dashboard/campaign-constants";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 
-// Contract constants (mirrors Delulu-v3.sol)
+// Contract constants (mirrors Delulu-v3.sol); proof points are tiered by
+// stake, as the subgraph credits them (forfeitProofPointsForStake).
+const G = BigInt("1000000000000000000");
 const POINTS = {
-  milestone: 1_000,
+  proofWord: forfeitProofPointsForStake(null),
+  proofBase: forfeitProofPointsForStake(BigInt(1_000) * G),
+  proofHigh: forfeitProofPointsForStake(BigInt(50_000) * G),
   streak: 250,
-  tipSent: 50,
-  tipReceived: 10,
 } as const;
 
 const POINT_ACTIONS: { icon: LucideIcon; label: string; value: number; description: string; tint: HabitTint }[] = [
-  { icon: Target, label: "Verified proof", value: POINTS.milestone, description: "Each proof that passes the check", tint: "yellow" },
+  { icon: Target, label: "Proof · your word", value: POINTS.proofWord, description: "Each kept day, nothing staked", tint: "yellow" },
+  { icon: Target, label: "Proof · 1,000+ G$", value: POINTS.proofBase, description: "Each kept day with money on it", tint: "yellow" },
+  { icon: Target, label: "Proof · 50,000+ G$", value: POINTS.proofHigh, description: "Each kept day, big stake", tint: "yellow" },
   { icon: FlameIcon, label: "Keeping a streak", value: POINTS.streak, description: "Back-to-back kept days", tint: "orange" },
-  { icon: Zap, label: "Sending a tip", value: POINTS.tipSent, description: "Back someone else's goal", tint: "blue" },
-  { icon: Heart, label: "Receiving a tip", value: POINTS.tipReceived, description: "Someone backed yours", tint: "pink" },
 ];
 
 function getStreakMessage(streak: number): string {
@@ -64,7 +67,7 @@ function StreakContent({ address }: { address: string | null }) {
   const totalPoints = myRankEntry?.points ?? null;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3 lg:max-w-4xl xl:max-w-6xl">
+    <div className="mx-auto max-w-3xl space-y-6 px-5 pb-10 pt-3 xl:max-w-3xl">
       {isLoading ? (
         <div className="h-[260px] animate-pulse rounded-[20px] bg-line" />
       ) : (
@@ -119,7 +122,7 @@ function StreakContent({ address }: { address: string | null }) {
 
 function StreakContentSkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-5 pb-10 pt-3 lg:max-w-4xl xl:max-w-6xl">
+    <div className="mx-auto max-w-3xl space-y-6 px-5 pb-10 pt-3 xl:max-w-3xl">
       <div className="h-[260px] animate-pulse rounded-[20px] bg-line" />
       <div className="space-y-2.5">
         {Array.from({ length: 4 }).map((_, i) => (

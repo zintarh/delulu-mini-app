@@ -256,8 +256,8 @@ export default function GoalsPage() {
           className={cn(
             "mx-auto w-full px-4 sm:px-6 lg:px-8",
             isDiscoverMode
-              ? "max-w-[1600px] pt-3 pb-6 lg:pt-4 lg:pb-12"
-              : "max-w-[1600px] pt-6 pb-6 lg:py-8",
+              ? "max-w-3xl pt-3 pb-6 lg:pt-4 lg:pb-12"
+              : "max-w-3xl pt-6 pb-6 lg:py-8",
           )}
         >
           {isDiscoverMode ? (
@@ -278,7 +278,7 @@ export default function GoalsPage() {
                   creatorPfps={creatorPfps}
                 />
                 {isFetchingNextPage ? (
-                  <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3">
+                  <div className="columns-1 gap-x-5 sm:columns-2">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <SocialFeedCardSkeleton key={`more-${i}`} index={i} />
                     ))}
@@ -321,7 +321,7 @@ export default function GoalsPage() {
                   </button>
                 </div>
               ) : isFilteredLoading ? (
-                <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3">
+                <div className="columns-1 gap-x-5 sm:columns-2">
                   {Array.from({ length: 9 }).map((_, i) => (
                     <SocialFeedCardSkeleton key={i} index={i} />
                   ))}

@@ -36,13 +36,14 @@ function getHeaderConfig(pathname: string): HeaderConfig | null {
   }
 
   // The HUD (avatar, streak, balance, alerts) tops Home, Rewards, and
-  // Campaigns (/explore) at every width; every other screen starts with its
-  // own title instead.
+  // Campaigns (/explore + a single campaign) at every width; every other
+  // screen starts with its own title instead.
   const hud =
     pathname === "/home" ||
     pathname.startsWith("/rewards") ||
     pathname.startsWith("/wallet") ||
-    pathname.startsWith("/explore");
+    pathname.startsWith("/explore") ||
+    /^\/communities\/[^/]+\/campaigns\/[^/]+$/.test(pathname);
   return { showNavbar: hud };
 }
 
