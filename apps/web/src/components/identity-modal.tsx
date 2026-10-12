@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   X,
   ShieldCheck,
@@ -10,6 +10,7 @@ import {
   RefreshCw,
   AlertTriangle,
 } from "lucide-react";
+import { isStandalone } from "@/hooks/use-install-prompt";
 
 interface IdentityModalProps {
   isOpen: boolean;
@@ -56,39 +57,39 @@ export function IdentityModal({
     return () => { document.body.style.overflow = "unset"; };
   }, [inline, isOpen]);
 
-  // Only for the auto-open effect below, which always has a just-generated
-  // (guaranteed-fresh) link. Every manual retry/reopen goes through
-  // handleReopen instead — see its comment for why.
-  const openInNewTab = () => {
-    if (fvLink) window.open(fvLink, "_blank", "noopener,noreferrer");
-  };
+  // Installed as a PWA (standalone display mode) has no tab/window chrome
+  // for window.open() to target — it just returns null there and silently
+  // does nothing, both for the auto-open below and for a window.open-based
+  // "reopen" trick. A real <a> tag the user taps themselves is the one
+  // thing that reliably still escapes the standalone shell, so that's the
+  // primary path in the "fvLink available" branch below; auto-open and the
+  // window.open trick are only attempted in an ordinary browser tab.
+  const [standalone, setStandalone] = useState(false);
+  useEffect(() => {
+    setStandalone(isStandalone());
+  }, []);
 
   // Auto-open the verification link in a new tab as soon as it's ready —
   // GoodDollar's flow (camera access, device checks) is unreliable inside an
-  // iframe, so the tab is the only path, not a fallback. Guarded by link so
-  // it only fires once per generated fvLink, not on every 5s status poll.
+  // iframe, so the tab is the primary path in a normal browser. Guarded by
+  // link so it only fires once per generated fvLink, not on every 5s status
+  // poll. Skipped entirely when standalone — see above.
   const autoOpenedForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!isOpen || !fvLink || status === "verified") return;
+    if (!isOpen || !fvLink || status === "verified" || standalone) return;
     if (autoOpenedForRef.current === fvLink) return;
     autoOpenedForRef.current = fvLink;
-    openInNewTab();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, fvLink, status]);
+    window.open(fvLink, "_blank", "noopener,noreferrer");
+  }, [isOpen, fvLink, status, standalone]);
 
-  // Every manual "retry"/"reopen" click requests a brand-new FV link rather
-  // than reusing `fvLink` — reopening a link that already failed (e.g.
-  // GoodDollar's FVFlowError) or sat around too long just resends the same
-  // broken/expired session. The blank tab opens synchronously inside the
-  // click handler so browsers don't block the later navigation (once the
-  // async regenerate resolves) as an unrequested popup.
-  const handleReopen = async () => {
-    const win = window.open("", "_blank", "noopener,noreferrer");
-    const link = await onRegenerate();
-    if (win) {
-      if (link) win.location.href = link;
-      else win.close();
-    }
+  // Requests a brand-new FV link rather than reusing `fvLink` — reopening a
+  // link that already failed (e.g. GoodDollar's FVFlowError) or sat around
+  // too long just resends the same broken/expired session. onRegenerate
+  // updates the caller's fvLink state, so once it resolves this component
+  // just re-renders into the "fvLink available" branch with a working link
+  // — no window.open needed here at all, so this works in standalone too.
+  const handleRefresh = async () => {
+    await onRegenerate();
   };
 
   if (!isOpen) return null;
@@ -115,7 +116,7 @@ export function IdentityModal({
         </div>
         <button
           type="button"
-          onClick={() => void handleReopen()}
+          onClick={() => void handleRefresh()}
           disabled={isGeneratingLink}
           className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors disabled:opacity-60"
         >
@@ -148,7 +149,7 @@ export function IdentityModal({
         </div>
         <button
           type="button"
-          onClick={() => void handleReopen()}
+          onClick={() => void handleRefresh()}
           disabled={isGeneratingLink}
           className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors disabled:opacity-60"
         >
@@ -166,7 +167,11 @@ export function IdentityModal({
         <img src="/gooddollar-logo.png" alt="GoodDollar" className="w-10 h-10 rounded-full" />
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">
-            {isLapsed ? "Quick re-check opened in a new tab" : "Verification opened in a new tab"}
+            {standalone
+              ? "Tap below to verify"
+              : isLapsed
+                ? "Quick re-check opened in a new tab"
+                : "Verification opened in a new tab"}
           </p>
           <p className="text-xs text-muted-foreground">
             {isLapsed
@@ -174,22 +179,31 @@ export function IdentityModal({
               : "Finish it there, then come back here — we'll pick it up automatically."}
           </p>
         </div>
+        <a
+          href={fvLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+        >
+          Open verification
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
           Waiting for verification…
         </div>
         <button
           type="button"
-          onClick={() => void handleReopen()}
+          onClick={() => void handleRefresh()}
           disabled={isGeneratingLink}
           className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium hover:bg-secondary/80 transition-colors disabled:opacity-60"
         >
           {isGeneratingLink ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <ExternalLink className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5" />
           )}
-          Reopen the link
+          Get a fresh link
         </button>
       </div>
     );
@@ -221,19 +235,15 @@ export function IdentityModal({
           </div>
           <div className="flex items-center gap-1">
             {fvLink && status !== "verified" && (
-              <button
-                type="button"
-                onClick={() => void handleReopen()}
-                disabled={isGeneratingLink}
+              <a
+                href={fvLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 title="Open in new tab"
-                className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-60"
+                className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-foreground"
               >
-                {isGeneratingLink ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ExternalLink className="w-4 h-4" />
-                )}
-              </button>
+                <ExternalLink className="w-4 h-4" />
+              </a>
             )}
             <button
               onClick={onClose}

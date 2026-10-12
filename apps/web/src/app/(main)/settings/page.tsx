@@ -81,11 +81,11 @@ export default function SettingsPage() {
 
   if (!isReady || !isConnected) return (
     <MainPage>
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-40 mx-auto max-w-xl bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3 lg:max-w-4xl xl:max-w-6xl">
         <div className="h-9 w-9 animate-pulse rounded-full bg-muted/60" />
         <div className="h-5 w-24 animate-pulse rounded-md bg-muted/60" />
       </div>
-      <div className="px-4 pt-5 space-y-7">
+      <div className="mx-auto max-w-xl px-4 pt-5 space-y-7 lg:max-w-4xl xl:max-w-6xl">
         <div className="h-24 w-full animate-pulse rounded-3xl bg-muted/40" />
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="space-y-2">
@@ -112,7 +112,7 @@ export default function SettingsPage() {
         <PageBackHeader title="Settings" />
 
         {address && (
-          <div className="mx-auto flex max-w-xl flex-col gap-5 px-5 pb-6 pt-6">
+          <div className="mx-auto flex max-w-xl flex-col gap-5 px-5 pb-6 pt-6 lg:max-w-4xl xl:max-w-6xl">
             <section className="flex animate-rise flex-col gap-2">
               <SectionLabel>Account</SectionLabel>
               <SettingsCard>

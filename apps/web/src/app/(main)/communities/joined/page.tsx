@@ -189,7 +189,7 @@ export default function JoinedCampaignsPage() {
   );
 
   return (
-    <MainPage className="mx-auto max-w-2xl pb-6 lg:pb-8">
+    <MainPage className="mx-auto max-w-2xl pb-6 lg:max-w-4xl lg:pb-8 xl:max-w-6xl">
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <h1
