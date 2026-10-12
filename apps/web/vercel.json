@@ -1,4 +1,6 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npx --yes pnpm@9.15.9 install",
   "crons": [
     {
       "path": "/api/cron/email-reminders",
