@@ -98,3 +98,6 @@ Thumbs.db
 
 # Turbo
 .turbo
+
+# pnpm workspace — an npm lockfile at the root makes Vercel install with npm
+/package-lock.json
