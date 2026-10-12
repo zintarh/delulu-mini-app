@@ -176,7 +176,7 @@ export default function CommunityHubPage() {
   }, [params.slug]);
 
   if (loading) {
-    return <MainPage className="mx-auto max-w-2xl xl:max-w-3xl"><PageSkeleton /></MainPage>;
+    return <MainPage className="mx-auto max-w-4xl xl:max-w-6xl"><PageSkeleton /></MainPage>;
   }
 
   if (error || !community) {
@@ -191,7 +191,7 @@ export default function CommunityHubPage() {
   const past = campaigns.filter((c) => isCampaignEndedByDate(c.display_ends_at));
 
   return (
-    <MainPage className="mx-auto max-w-2xl xl:max-w-3xl px-4 py-6">
+    <MainPage className="mx-auto max-w-4xl xl:max-w-6xl px-4 py-6">
       {/* Back */}
       <Link
         href="/communities"

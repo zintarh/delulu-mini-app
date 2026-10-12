@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 /** Mirrors CommunityCampaignDetail: blue header, stats ticket, rules, standings, bottom CTA. */
 function CommunityCampaignDetailSkeleton() {
   return (
-    <div className="mx-auto max-w-xl animate-pulse pb-32" aria-busy aria-label="Loading campaign">
+    <div className="mx-auto max-w-xl animate-pulse pb-32 lg:max-w-4xl xl:max-w-6xl" aria-busy aria-label="Loading campaign">
       <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
         <div className="flex justify-between">
           <div className="h-11 w-11 rounded-full bg-white/80" />
@@ -66,7 +66,7 @@ function CommunityCampaignDetailSkeleton() {
         ))}
       </div>
 
-      <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5 lg:left-24" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+      <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
         <div className="h-14 rounded-2xl bg-muted" />
       </div>
     </div>

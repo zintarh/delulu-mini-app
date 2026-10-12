@@ -390,7 +390,7 @@ export function CommunityCampaignDetail({
 
   return (
     <>
-      <main className={cn("mx-auto max-w-xl", cta ? "pb-32" : "pb-10")}>
+      <main className={cn("mx-auto max-w-xl lg:max-w-4xl xl:max-w-6xl", cta ? "pb-32" : "pb-10")}>
         {/* Header (design: CampaignDetail.dc.html) */}
         <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
           <div className="flex justify-between">
@@ -570,7 +570,7 @@ export function CommunityCampaignDetail({
       </main>
 
       {cta ? (
-        <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5 lg:left-24" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+        <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
           {cta}
         </div>
       ) : null}

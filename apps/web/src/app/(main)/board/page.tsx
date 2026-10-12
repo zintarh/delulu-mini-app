@@ -33,7 +33,9 @@ export default function BoardPage() {
   if (!isReady || !authenticated) {
     return (
       <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-        <CreateFlowSkeleton />
+        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col lg:max-w-4xl xl:max-w-6xl">
+          <CreateFlowSkeleton />
+        </div>
       </main>
     );
   }
@@ -47,7 +49,7 @@ export default function BoardPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col">
+      <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col lg:max-w-4xl xl:max-w-6xl">
         <CreateDelusionContent
           layout="main"
           onClose={() => router.push("/home")}
