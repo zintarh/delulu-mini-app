@@ -83,7 +83,7 @@ export function DailyGoalCardView({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between">
           <span className="font-extrabold">Daily goal</span>
-          <span className="label-mono text-[11px] font-semibold text-ink">
+          <span className=" tracking-tighter text-[11px] font-semibold text-ink">
             {kept} / {total}
           </span>
         </div>

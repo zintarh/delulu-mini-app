@@ -75,8 +75,40 @@ export default function SignInPage() {
   const [isGoingBack, setIsGoingBack] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  const { routeState, address, isCheckingAccount, refreshGoodDollarStatus } =
+  const { routeState, address, isCheckingAccount, refreshGoodDollarStatus, skipVerification } =
     usePostAuthRoute();
+
+  // Skip the face check: the faucet sends enough gas for the profile
+  // transaction, which is the only reason signup needs verification at all.
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [skipError, setSkipError] = useState<string | null>(null);
+  const handleSkipVerify = async () => {
+    if (isSkipping) return;
+    setIsSkipping(true);
+    setSkipError(null);
+    try {
+      const res = await fetch("/api/faucet/claim", { method: "POST", credentials: "include" });
+      if (res.status === 401) {
+        setSkipError("Still connecting your account. Try again in a moment.");
+        return;
+      }
+      const json = (await res.json().catch(() => ({}))) as { success?: boolean; reason?: string };
+      // Already funded earlier (e.g. skipped, then left before the profile step).
+      if (json.success || json.reason === "already_received_wallet") {
+        skipVerification();
+        return;
+      }
+      setSkipError(
+        json.reason === "ip_rate_exceeded" || json.reason === "already_received_email"
+          ? "Skipping isn't available on this device. Verify to continue."
+          : "Skipping isn't available right now. Verify to continue.",
+      );
+    } catch {
+      setSkipError("Something went wrong. Try again.");
+    } finally {
+      setIsSkipping(false);
+    }
+  };
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -260,10 +292,10 @@ export default function SignInPage() {
             <img src="/favicon_io/android-chrome-192x192.png" alt="Delulu" className="h-12 w-12 rounded-2xl" />
             <div>
               <h2 className="text-xl font-black tracking-tight text-foreground">
-                Claim your first Good Dollars
+                Get free money every day
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Verify your identity to claim free G$ — then we&apos;ll set up your profile. Takes just a couple of minutes.
+                A quick face check unlocks free money every day. Or verify later.
               </p>
             </div>
           </div>
@@ -275,6 +307,33 @@ export default function SignInPage() {
               onWhitelisted={() => void refreshGoodDollarStatus()}
               inlineIdentityFlow
             />
+          </div>
+
+          <div className="flex flex-col items-center gap-2 text-center">
+            <button
+              type="button"
+              onClick={() => void handleSkipVerify()}
+              disabled={isSkipping}
+              className="inline-flex items-center gap-2 p-2 text-sm font-bold text-muted-foreground disabled:opacity-60"
+            >
+              {isSkipping ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Setting up your account…
+                </>
+              ) : (
+                <>
+                  Verify later
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+            <p className="m-0 text-xs text-muted-foreground">You&apos;ll start with 0 G$ until you verify.</p>
+            {skipError ? (
+              <p className="m-0 text-xs text-destructive" role="alert">
+                {skipError}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

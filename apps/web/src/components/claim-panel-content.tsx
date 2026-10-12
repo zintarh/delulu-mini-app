@@ -218,8 +218,10 @@ export function ClaimPanelContent({
               <span className="ml-1 text-2xl">G$</span>
             </p>
           )}
-          <p className="mx-auto mt-3 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-            Free money from GoodDollar. Claim once every 24 hours.
+          <p className="mx-auto mt-3 max-w-[280px] text-sm leading-relaxed text-muted-foreground">
+            {needsWhitelist
+              ? "GoodDollar gives free money to real people, one account each. A quick face check adds you to their list, then you can claim every day."
+              : "Free money from GoodDollar. Claim once every 24 hours."}
           </p>
         </GameCard>
 

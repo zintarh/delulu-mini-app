@@ -12,7 +12,6 @@ import { RightPanelProvider } from "@/contexts/right-panel-context";
 import { LogoutSheetProvider } from "@/contexts/logout-sheet-context";
 import { OnboardingGiftProvider } from "@/contexts/onboarding-gift-context";
 import { useAuth } from "@/hooks/use-auth";
-import { useIdentity } from "@/hooks/identityHook";
 import { useRouter } from "next/navigation";
 import { hasStoredAuthSession, preloadAuthProviders } from "@/lib/auth-session-hint";
 import { useReadContract } from "wagmi";
@@ -109,21 +108,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
  * finish the job. Unauthenticated visitors pass through untouched — this
  * only gates people who are logged in but incomplete.
  *
- * Deliberately checks "has this wallet ever verified" (identityState !==
- * "none"), not useGoodDollarClaim's isWhitelisted — that one is strict and
- * current-window-only (correct for gating the UBI claim button itself), but
- * would force a "lapsed" wallet (verified before, GoodDollar's 3/180-day
- * window just expired — see lib/identity/status.ts) out of the entire app
- * back to /sign-in on every load. A lapsed re-verify only takes a minute and
- * is prompted right in the claim flow where it's actually needed; it
- * shouldn't block someone from viewing their own dashboard in the meantime.
+ * Only a profile is required — face verification unlocks free daily money
+ * (prompted in the claim flow), never the app itself. New users can skip it at
+ * signup by taking gas from the faucet instead (see usePostAuthRoute).
  */
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { authenticated, address, isReady } = useAuth();
   const router = useRouter();
-  const { identityState, isLoading: isGoodDollarLoading, identityCheckFailed } = useIdentity();
-  const isGoodDollarInitialized = !isGoodDollarLoading;
-  const hasEverVerified = identityState.state !== "none";
 
   // Same legacy fallback usePostAuthRoute uses on /sign-in: nothing writes
   // the on-chain username anymore, but accounts that set it before the
@@ -150,8 +141,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [onboardedChecked, setOnboardedChecked] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState(false);
   // A network failure checking /api/onboarding is not the same as a
-  // confirmed "not onboarded" — same reasoning as identityCheckFailed
-  // below, this must not be treated as grounds to redirect someone out.
+  // confirmed "not onboarded" — this must not be treated as grounds to
+  // redirect someone out.
   const [onboardedCheckFailed, setOnboardedCheckFailed] = useState(false);
 
   useEffect(() => {
@@ -211,7 +202,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     restoringSession ||
     (authenticated &&
       address &&
-      (!onboardedChecked || !isGoodDollarInitialized || isLoadingUsername));
+      (!onboardedChecked || isLoadingUsername));
   // A failed check (RPC down, onboarding-API network error) is inconclusive,
   // not a confirmed incomplete state — never redirect a real user out of the
   // app over a transient failure; the normal in-app prompts (claim panel,
@@ -221,11 +212,9 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     authenticated &&
     address &&
     onboardedChecked &&
-    isGoodDollarInitialized &&
     !isLoadingUsername &&
     !onboardedCheckFailed &&
-    !identityCheckFailed &&
-    (!(isOnboarded || hasOnChainUsername) || !hasEverVerified);
+    !(isOnboarded || hasOnChainUsername);
 
   useEffect(() => {
     if (incomplete) router.replace("/sign-in");

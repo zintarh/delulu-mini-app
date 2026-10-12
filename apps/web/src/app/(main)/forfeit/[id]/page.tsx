@@ -15,6 +15,7 @@ import {
   type ForfeitPeriodSnapshot,
 } from "@/hooks/use-creator-forfeits";
 import { destinationLabel, formatStakeAmount } from "@/components/forfeit/forfeit-day-card";
+import { FORFEIT_PROOF_POINTS_LOW, forfeitProofPointsForStake } from "@/lib/dashboard/campaign-constants";
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
 import { cn } from "@/lib/utils";
@@ -127,6 +128,7 @@ export default function ContractDetailPage() {
   const isLiveCamera = item?.evidenceType === "camera";
   const periods = useMemo(() => item?.periods ?? [], [item]);
   const amount = item ? formatStakeAmount(item) : null;
+  const proofPoints = forfeitProofPointsForStake(chain?.stakeAmount);
   const symbol = chain?.token ? getTokenSymbol(chain.token) : "G$";
   const destination = item ? destinationLabel(item) : null;
 
@@ -311,6 +313,8 @@ export default function ContractDetailPage() {
           setProofSuccess(false);
         }}
         isOnChain
+        pointsAwarded={proofPoints}
+        showStakeUpsell={proofPoints === FORFEIT_PROOF_POINTS_LOW}
         campaignTitle={item?.title}
         myUsername={user?.username}
         myAvatar={user?.pfpUrl}

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   checkEmailClaim,
   checkFaucetBalance,
+  checkDailySends,
   checkIpRate,
   checkWalletClaim,
   executeRejectClaim,
@@ -13,6 +14,10 @@ import { getWalletCeloBalance } from "@/lib/celo/send-celo";
 // If the DB says sent but the wallet has less than this, the tx was dropped
 // or never confirmed — treat it as a phantom and allow a fresh claim.
 const MIN_CONFIRMED_CELO = 0.005;
+
+// Hard ceiling on new-wallet grants per rolling 24h, so a bot farming fresh
+// wallets across IPs can drain at most DAILY_CAP × 0.3 CELO a day.
+const DAILY_CAP = Number(process.env.FAUCET_DAILY_CAP) || 50;
 
 export type FaucetAgentResult =
   | { outcome: "sent"; txHash: string }
@@ -68,19 +73,27 @@ export async function runFaucetAgent(params: {
       return { outcome: "rejected", reason: "ip_rate_exceeded" };
     }
 
+    // 3b. Global daily cap. Counts this request's own pending row, hence `>`.
+    const dailyCheck = await checkDailySends(params.supabase);
+    console.log("[faucet-agent] daily sends:", dailyCheck.count, "cap", DAILY_CAP);
+    if (dailyCheck.count > DAILY_CAP) {
+      await executeRejectClaim("daily_cap_reached", params.claimId, params.supabase);
+      return { outcome: "rejected", reason: "daily_cap_reached" };
+    }
+
     // 4. Faucet balance sufficient?
     const { balance_celo } = await checkFaucetBalance();
-    console.log("[faucet-agent] faucet balance:", balance_celo, "CELO — threshold 0.6");
-    if (balance_celo < 0.6) {
+    console.log("[faucet-agent] faucet balance:", balance_celo, "CELO — threshold 0.4");
+    if (balance_celo < 0.4) {
       await executeRejectClaim("insufficient_faucet_funds", params.claimId, params.supabase);
       return { outcome: "rejected", reason: "insufficient_faucet_funds" };
     }
 
-    // 5. Send 0.5 CELO
-    console.log("[faucet-agent] sending 0.5 CELO to", params.address);
+    // 5. Send 0.3 CELO
+    console.log("[faucet-agent] sending 0.3 CELO to", params.address);
     const sendResult = await executeSendGas(
       params.address,
-      0.5,
+      0.3,
       params.claimId,
       params.supabase,
     );

@@ -102,6 +102,14 @@ type DayBucket = {
 };
 
 /** e.g. "Sunday, July 26" — no year */
+/** Local clock time, compact and lowercase: "5:30pm". */
+function formatClockTime(d: Date) {
+  return d
+    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
+    .replace(/\s/g, "")
+    .toLowerCase();
+}
+
 function formatForfeitDayLabel(d: Date) {
   return d.toLocaleDateString("en-US", {
     weekday: "long",
@@ -484,15 +492,13 @@ function ForfeitTaskCard({
   const dayLabel = `${day.calendarPeriodIndex + 1}/${totalPeriods}`;
   const timeLabel = (() => {
     if (outcome === "won" && day.period?.resolvedAt) {
-      return new Date(day.period.resolvedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      return formatClockTime(new Date(day.period.resolvedAt));
     }
-    // Still open: count down to the forfeit deadline instead of showing a
-    // static clock time, so it's obvious how long is left to prove it today.
     if (isDue) {
       const remainingSec = Math.floor((day.periodDeadline.getTime() - nowMs) / 1000);
-      return formatCountdown(remainingSec).label;
+      return formatCountdown(remainingSec).label.toLowerCase();
     }
-    return day.periodDeadline.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return formatClockTime(day.periodDeadline);
   })();
   const href = item.onChainCommitmentId != null ? `/forfeit/${item.onChainCommitmentId}` : null;
 
@@ -518,7 +524,7 @@ function ForfeitTaskCard({
         {outcome === "won" ? (
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className="label-mono text-[10px] text-blue">{dayLabel}</span>
-            <span className="label-mono text-[10px] text-muted-foreground">· {timeLabel}</span>
+            <span className="label-mono text-[10px] normal-case text-muted-foreground">· {timeLabel}</span>
           </div>
         ) : (
           <div className="mt-[7px] flex items-center gap-2">
@@ -532,7 +538,7 @@ function ForfeitTaskCard({
               />
             ) : null}
             <span className="label-mono text-[10px] text-muted-foreground">
-              {dayLabel} · {timeLabel}
+              {dayLabel} · <span className="normal-case">{timeLabel}</span>
             </span>
           </div>
         )}

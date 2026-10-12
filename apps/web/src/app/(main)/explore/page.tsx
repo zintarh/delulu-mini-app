@@ -87,10 +87,10 @@ export default function CampaignsPage() {
 
         <div
           className={cn(
-            "mx-auto w-full px-5 sm:px-6 lg:max-w-4xl lg:px-8 xl:max-w-6xl",
+            "mx-auto w-full px-5 sm:px-6 lg:px-8 xl:max-w-3xl",
             isSearchMode
-              ? "max-w-xl pt-6 pb-6 lg:py-8"
-              : "max-w-xl pt-6 pb-6 lg:pt-8 lg:pb-12",
+              ? "max-w-3xl pt-6 pb-6 lg:py-8"
+              : "max-w-3xl pt-6 pb-6 lg:pt-8 lg:pb-12",
           )}
         >
           {!isSearchMode ? (

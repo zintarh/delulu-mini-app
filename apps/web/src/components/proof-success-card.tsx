@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
-import { Bolt, Flame, GameButton } from "@/components/ds";
+import { Bolt, Coin, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { resetProofReward } from "@/lib/proof-reward/client";
 
@@ -36,6 +36,8 @@ export interface ProofSuccessCardProps {
   milestoneCount?: number;
   milestoneName?: string | null;
   shareUrl?: string | null;
+  /** Word-only stake: nudge toward staking money for 10× points. */
+  showStakeUpsell?: boolean;
   onDone: () => void;
 }
 
@@ -51,6 +53,7 @@ export function ProofSuccessCard({
   milestoneCount,
   milestoneName,
   shareUrl,
+  showStakeUpsell = false,
   onDone,
 }: ProofSuccessCardProps) {
   const [copied, setCopied] = useState(false);
@@ -138,6 +141,15 @@ export function ProofSuccessCard({
           ? statBox("Progress", "#157041", progress, ".5s")
           : statBox("Total", "#157041", (myPoints ?? 0).toLocaleString(), ".5s")}
       </div>
+
+      {showStakeUpsell ? (
+        <div className="mt-4 flex w-full animate-rise items-center gap-3 rounded-2xl border-2 border-yellow-line bg-yellow-soft px-3.5 py-3 text-left [animation-delay:.6s]">
+          <Coin size={28} className="shrink-0" />
+          <p className="m-0 text-sm font-semibold leading-snug">
+            Stake <b>1,000 G$</b> on your goal to earn <b>10× points</b>
+          </p>
+        </div>
+      ) : null}
 
       {myUsername ? (
         <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
