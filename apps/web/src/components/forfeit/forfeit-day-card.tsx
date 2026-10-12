@@ -445,8 +445,6 @@ function ForfeitTaskCard({
               void el.offsetWidth; // restart the animation even on repeat clicks
               el.classList.add("animate-prove-wiggle");
             }
-            // Proof is submitted from the contract detail page now, not a
-            // modal here on the feed — jump straight to today's node there.
             if (item.onChainCommitmentId != null) {
               router.push(`/forfeit/${item.onChainCommitmentId}`);
             }
@@ -460,10 +458,6 @@ function ForfeitTaskCard({
     return null;
   })();
 
-  // Fills the trailing slot when there's no proof-review action to show —
-  // "past, nothing submitted" otherwise renders nothing on the right at all.
-  // "won" is clickable (links to the submitted proof) when one exists, so
-  // completing a day doesn't lose the ability to look back at what you sent.
   const statusPill =
     outcome === "won" ? (
       proofUrl ? (
@@ -481,9 +475,6 @@ function ForfeitTaskCard({
       <Stamp tone="lost" className="shrink-0 text-[10px]">Missed</Stamp>
     ) : null;
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
-  // Always show which day this was once it's settled (won/failed) — even a
-  // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
-  // finished item from one still in progress, not just repeating plans.
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
 
   const isDue = canSubmit && !proofSubmitted;
