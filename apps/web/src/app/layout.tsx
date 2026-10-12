@@ -87,6 +87,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Chrome/Brave fire `beforeinstallprompt` once, often before React
+            hydrates — stash it here so useInstallPrompt can pick it up. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__deluluInstallPrompt=e;});`,
+          }}
+        />
+      </head>
       <body
         className={`${body.variable} ${display.variable} ${mono.variable} ${brand.variable} antialiased`}
       >

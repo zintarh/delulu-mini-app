@@ -56,7 +56,7 @@ export function LandingHeader({ onInstall, signedIn = false }: { onInstall: () =
           <a href="#faq" className="no-underline hover:text-ink">FAQ</a>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href={signedIn ? APP_HOME : "/sign-in"} target="_blank" rel="noopener noreferrer" className="px-1.5 py-2.5 font-bold no-underline max-sm:hidden">Open app</Link>
+          <Link href={signedIn ? APP_HOME : "/sign-in"} target="_blank" rel="noopener noreferrer" className="px-1.5 py-2.5 font-bold no-underline max-sm:hidden">App</Link>
           <GameButton size="sm" onClick={onInstall}>
             <Download className="h-4 w-4" strokeWidth={2.6} />
             Install
@@ -94,7 +94,7 @@ export function HeroCopy({ onInstall }: { onInstall: () => void }) {
       </p>
       <div className="flex animate-rise flex-wrap gap-3.5 [animation-delay:.4s]">
         <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
-          Start free
+          Start now
         </Link>
         <GameButton variant="line" size="lg" onClick={onInstall}>
           <Download className="h-5 w-5" strokeWidth={2.6} />
@@ -222,7 +222,7 @@ export function TwoWaysSection({ onInstall }: { onInstall: () => void }) {
               {row("Streaks, badges and share cards")}
             </div>
             <Link href="/sign-in" className={gameButtonClass({ variant: "line", full: true, className: "mt-auto" })}>
-              Start free
+              Start now
             </Link>
           </div>
 
@@ -476,7 +476,7 @@ export function FinalCta({ onInstall }: { onInstall: () => void }) {
           <p className="m-0 text-lg text-[#c9c9c2]">Start free with your word. Earn 10× the points with money.</p>
           <div className="flex flex-wrap gap-3.5">
             <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
-              Start free
+              Start now
             </Link>
             <GameButton variant="ghost-dark" size="lg" onClick={onInstall}>
               <Download className="h-5 w-5" strokeWidth={2.6} />
@@ -532,7 +532,7 @@ export function MobileStartBar() {
   return (
     <div className="fixed inset-x-3 bottom-3 z-40 animate-rise [animation-delay:.6s] sm:hidden">
       <Link href="/sign-in" className={gameButtonClass({ full: true, className: "h-14" })}>
-        Start free
+        Start now
       </Link>
     </div>
   );

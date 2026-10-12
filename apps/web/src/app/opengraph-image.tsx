@@ -73,7 +73,7 @@ export default function Image() {
               boxShadow: "0 6px 0 #C99A0A",
             }}
           >
-            <span style={{ fontSize: 22, fontWeight: 800, color: INK, letterSpacing: "0.06em" }}>START FREE</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: INK, letterSpacing: "0.06em" }}>START NOW</span>
           </div>
           <span style={{ fontSize: 20, fontWeight: 700, color: INK, opacity: 0.5 }}>staydelulu.xyz</span>
         </div>
