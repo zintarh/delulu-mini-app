@@ -1,41 +1,40 @@
 import type { Metadata } from "next";
-import {
-  Big_Shoulders_Display,
-  Fredoka,
-  IBM_Plex_Mono,
-  Schibsted_Grotesk,
-} from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 import { ProvidersShell } from "@/components/providers/providers-shell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AppSplashScreen } from "@/components/app-splash-screen";
 
-/* Redesign type system — see docs/redesign/README.md */
-const body = Schibsted_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+/* Redesign type system — see docs/redesign/README.md. Self-hosted (latin)
+   rather than next/font/google so builds never depend on a Google Fonts fetch,
+   which intermittently failed on Vercel. */
+const body = localFont({
+  src: "./fonts/schibsted-grotesk.woff2",
+  weight: "400 800",
   variable: "--font-body",
   display: "swap",
 });
 
-const display = Big_Shoulders_Display({
-  subsets: ["latin"],
-  weight: ["700", "800", "900"],
+const display = localFont({
+  src: "./fonts/big-shoulders-display.woff2",
+  weight: "700 900",
   variable: "--font-display",
   display: "swap",
 });
 
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["500", "600"],
+const mono = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-500.woff2", weight: "500" },
+    { path: "./fonts/ibm-plex-mono-600.woff2", weight: "600" },
+  ],
   variable: "--font-mono",
   display: "swap",
 });
 
-const brand = Fredoka({
-  subsets: ["latin"],
-  weight: ["600", "700"],
+const brand = localFont({
+  src: "./fonts/fredoka.woff2",
+  weight: "600 700",
   variable: "--font-brand",
   display: "swap",
 });
