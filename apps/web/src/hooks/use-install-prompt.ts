@@ -19,6 +19,10 @@ let listening = false;
 function ensureListening() {
   if (listening || typeof window === "undefined") return;
   listening = true;
+  // Pick up an event the inline script in app/layout.tsx caught before this
+  // bundle loaded.
+  const early = (window as Window & { __deluluInstallPrompt?: BeforeInstallPromptEvent }).__deluluInstallPrompt;
+  if (early) deferred = early;
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferred = event as BeforeInstallPromptEvent;
