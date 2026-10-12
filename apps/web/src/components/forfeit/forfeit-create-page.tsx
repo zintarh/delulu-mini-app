@@ -393,6 +393,14 @@ export function ForfeitCreatePage() {
   const [repeatEvery, setRepeatEvery] = useState<(typeof REPEAT_EVERY)[number]>("day");
   const [forfeitAmount, setForfeitAmount] = useState(1000);
   const [amountDraft, setAmountDraft] = useState("1000");
+  // `?stake=word` (home's "start with your word" link) opens on a word pledge.
+  // Read on mount rather than via useSearchParams to avoid a Suspense boundary.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("stake") === "word") {
+      setForfeitAmount(0);
+      setAmountDraft("0");
+    }
+  }, []);
   // Neutral default — "charity" shouldn't be silently pre-selected for anyone
   // who never opens the destination picker; that's an intent worth an explicit choice.
   const [destinationId, setDestinationId] = useState<ForfeitDestinationId>("delulu");

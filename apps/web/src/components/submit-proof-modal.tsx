@@ -29,6 +29,7 @@ interface SubmitProofModalProps {
   myStreak?: number;
   myPoints?: number;
   pointsAwarded?: number;
+  showStakeUpsell?: boolean;
   milestoneIndex?: number | null;
   milestoneCount?: number;
   shareUrl?: string | null;

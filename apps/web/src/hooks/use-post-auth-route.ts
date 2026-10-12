@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useReadContract } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
@@ -24,6 +24,19 @@ export type PostAuthRouteState =
   | "redirecting_home"
   | "redirecting_welcome"
   | "needs_ubi_claim";
+
+// Set once the gas faucet has funded this wallet in place of the face check —
+// enough to sign the profile transaction on /welcome. Session-scoped so a
+// refresh mid-signup doesn't send them back to the verify screen.
+const SKIPPED_VERIFY_KEY = "delulu:skipped-verify";
+
+function readSkippedVerify(address: string): boolean {
+  try {
+    return sessionStorage.getItem(SKIPPED_VERIFY_KEY) === address.toLowerCase();
+  } catch {
+    return false;
+  }
+}
 
 export function usePostAuthRoute() {
   const router = useRouter();
@@ -81,16 +94,15 @@ export function usePostAuthRoute() {
 
   const hasProfile = isSupabaseOnboarded || hasOnChainUsername;
 
-  // Routing reads the same read-only identity check as the main-app
-  // OnboardingGate ((main)/layout.tsx). The two MUST agree: when this page
-  // sent a profile-but-never-verified user home, the gate sent them straight
-  // back here — an endless "Checking your account…" reload loop. It also
-  // avoids waiting on the ClaimSDK, which needs a live signing wallet and
-  // can leave this page spinning forever while the wallet client settles.
+  // Routing and the main-app OnboardingGate ((main)/layout.tsx) MUST agree on
+  // who gets in — when they disagreed, the two bounced users between each
+  // other in an endless "Checking your account…" loop. Both now let in any
+  // wallet with a profile; verification only decides the signup path. The
+  // read-only identity check avoids waiting on the ClaimSDK, which needs a
+  // live signing wallet and can leave this page spinning forever.
   const {
     identityState,
     isLoading: isIdentityLoading,
-    identityCheckFailed,
     refresh: refreshIdentity,
   } = useIdentity();
   // Still consulted after the in-page verify flow, which updates this first.
@@ -98,8 +110,21 @@ export function usePostAuthRoute() {
     useGoodDollarClaim();
 
   const isWhitelisted = identityState.state === "verified" || isClaimWhitelisted;
-  // Mirrors OnboardingGate: a failed check is inconclusive, never grounds to block.
-  const passesGate = identityState.state !== "none" || isClaimWhitelisted || identityCheckFailed;
+
+  const [skippedVerify, setSkippedVerify] = useState(false);
+  useEffect(() => {
+    setSkippedVerify(!!address && readSkippedVerify(address));
+  }, [address]);
+  /** Call once the gas faucet has funded the wallet: continue to /welcome unverified. */
+  const skipVerification = useCallback(() => {
+    if (!address) return;
+    try {
+      sessionStorage.setItem(SKIPPED_VERIFY_KEY, address.toLowerCase());
+    } catch {
+      // Storage blocked — the in-memory flag still carries this visit.
+    }
+    setSkippedVerify(true);
+  }, [address]);
 
   const refreshGoodDollarStatus = async () => {
     await Promise.all([refreshClaimStatus(), refreshIdentity()]);
@@ -127,7 +152,9 @@ export function usePostAuthRoute() {
       return;
     }
 
-    if (hasProfile && passesGate) {
+    // Face verification only unlocks free daily money — it never blocks the
+    // app. A profile is all it takes to get in (mirrors OnboardingGate).
+    if (hasProfile) {
       if (hasRedirectedRef.current) return;
       hasRedirectedRef.current = true;
 
@@ -146,7 +173,10 @@ export function usePostAuthRoute() {
       return;
     }
 
-    if (!isWhitelisted) {
+    // New account: the face check is how most people get gas for the profile
+    // transaction (GoodDollar sends a little CELO once verified). Skipping it
+    // via the gas faucet is the other way through.
+    if (!isWhitelisted && !skippedVerify) {
       setRouteState("needs_ubi_claim");
       return;
     }
@@ -163,7 +193,7 @@ export function usePostAuthRoute() {
     isFetchingOnboarded,
     isIdentityLoading,
     isWhitelisted,
-    passesGate,
+    skippedVerify,
     hasProfile,
     router,
     redirectTarget,
@@ -174,6 +204,7 @@ export function usePostAuthRoute() {
     hasProfile,
     isWhitelisted,
     refreshGoodDollarStatus,
+    skipVerification,
     address: address ?? "",
     isCheckingAccount: isFetchingUsername || isIdentityLoading,
   };

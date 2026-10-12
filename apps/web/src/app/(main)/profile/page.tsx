@@ -49,7 +49,7 @@ export default function ProfilePage() {
 
   if (!isReady || !isConnected) return (
     <MainPage>
-      <section className="relative mx-auto max-w-xl px-4 pt-6 pb-4 lg:max-w-4xl xl:max-w-6xl">
+      <section className="relative mx-auto max-w-3xl px-4 pt-6 pb-4 xl:max-w-3xl">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 animate-pulse rounded-full bg-muted/60" />
           <div className="space-y-2">
@@ -58,7 +58,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </section>
-      <div className="mx-auto max-w-xl space-y-3 px-4 lg:max-w-4xl xl:max-w-6xl">
+      <div className="mx-auto max-w-3xl space-y-3 px-4 xl:max-w-3xl">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-24 w-full animate-pulse rounded-2xl bg-muted/40" />
         ))}
@@ -74,7 +74,7 @@ export default function ProfilePage() {
         setUploadToast={setUploadToast}
       />
 
-      <div className="sticky top-0 z-40 mx-auto max-w-xl bg-paper/95 px-5 py-3 backdrop-blur-sm lg:max-w-4xl xl:max-w-6xl">
+      <div className="sticky top-0 z-40 mx-auto max-w-3xl bg-paper/95 px-5 py-3 backdrop-blur-sm xl:max-w-3xl">
         <Segmented<TabType> ariaLabel="Profile sections" value={activeTab} onChange={setActiveTab} options={PROFILE_TABS} />
       </div>
 
@@ -175,7 +175,7 @@ function ProfileHeader({
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
-    <section className="mx-auto max-w-xl px-5 pb-2 pt-4 lg:max-w-4xl xl:max-w-6xl">
+    <section className="mx-auto max-w-3xl px-5 pb-2 pt-4 xl:max-w-3xl">
       <div className="flex justify-end gap-2">
         <Link href="/profile/flex" aria-label="Share flex card" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
           <Share className="h-5 w-5" strokeWidth={2} />
@@ -283,7 +283,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
   return (
     <div>
       {activeTab === "milestones" && (
-        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:max-w-4xl lg:pb-8 xl:max-w-6xl">
+        <div className="mx-auto max-w-3xl px-4 pb-6 pt-6 lg:pb-8 xl:max-w-3xl">
           {address ? (
             <ActiveCampaignsSection
               address={address}
@@ -302,7 +302,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
       )}
 
       {activeTab === "active" && (
-        <div className="mx-auto max-w-xl px-4 pb-6 pt-6 lg:max-w-4xl lg:pb-8 xl:max-w-6xl">
+        <div className="mx-auto max-w-3xl px-4 pb-6 pt-6 lg:pb-8 xl:max-w-3xl">
           {address ? (
             <ProfileForfeitSection address={address} />
           ) : (
@@ -320,7 +320,7 @@ function ProfileContent({ activeTab, address }: { activeTab: TabType; address: s
 
 function ProfileContentSkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-3 px-4 pb-6 lg:max-w-4xl xl:max-w-6xl">
+    <div className="mx-auto max-w-3xl space-y-3 px-4 pb-6 xl:max-w-3xl">
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="h-32 w-full animate-pulse rounded-2xl bg-muted/40" />
       ))}

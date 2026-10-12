@@ -390,7 +390,7 @@ export function CommunityCampaignDetail({
 
   return (
     <>
-      <main className={cn("mx-auto max-w-xl lg:max-w-4xl xl:max-w-6xl", cta ? "pb-32" : "pb-10")}>
+      <main className={cn("mx-auto max-w-3xl xl:max-w-3xl", cta ? "pb-32" : "pb-10")}>
         {/* Header (design: CampaignDetail.dc.html) */}
         <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
           <div className="flex justify-between">

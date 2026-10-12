@@ -61,6 +61,19 @@ export async function checkIpRate(
   return { count: count ?? 0 };
 }
 
+/** Faucet sends (all wallets) in the last 24 hours — backs the global daily cap. */
+export async function checkDailySends(
+  supabase: SupabaseClient,
+): Promise<{ count: number }> {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("gas_faucet_claims")
+    .select("id", { count: "exact", head: true })
+    .in("status", ["sent", "pending"])
+    .gte("created_at", cutoff);
+  return { count: count ?? 0 };
+}
+
 /** Returns the faucet wallet's current CELO balance. */
 export async function checkFaucetBalance(): Promise<{ balance_celo: number }> {
   const balance_celo = await getFaucetBalance();

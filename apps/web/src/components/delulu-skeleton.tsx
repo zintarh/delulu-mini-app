@@ -1,7 +1,5 @@
 import { cn } from "@/lib/utils";
 import { PIN_CARD_ASPECTS } from "@/lib/pin-card-aspect";
-import { MissionCardSkeleton } from "@/components/community/mission-card";
-import { CampaignExploreCardSkeleton } from "@/components/community/campaign-explore-card";
 
 export function SocialFeedCardSkeleton({
   className,
@@ -38,91 +36,96 @@ export function SocialFeedCardSkeleton({
   );
 }
 
-/** Placeholder for the feature carousel — mirrors a single full-bleed HomeFeatureCarousel card. */
-function HomeFeatureCarouselSkeleton() {
+/** Greeting: "Hi, name" + Lulu's one-line status (HomeGreeting). */
+function HomeGreetingSkeleton() {
   return (
-    <div className="flex gap-3 overflow-hidden">
-      <div className="h-[168px] w-full shrink-0 animate-pulse rounded-3xl bg-muted sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)]" />
-      <div className="hidden h-[168px] w-[calc((100%-0.75rem)/2)] shrink-0 animate-pulse rounded-3xl border border-border bg-muted sm:block lg:w-[calc((100%-1.5rem)/3)]" />
-      <div className="hidden h-[168px] w-[calc((100%-1.5rem)/3)] shrink-0 animate-pulse rounded-3xl border border-border bg-muted lg:block" />
+    <div className="space-y-2">
+      <div className="h-7 w-44 animate-pulse rounded-lg bg-line" />
+      <div className="h-4 w-56 animate-pulse rounded bg-line" />
     </div>
   );
 }
 
-/** Placeholder for the Top 10 banner. */
-function HomeTop10BannerSkeleton() {
-  return <div className="h-[104px] w-full animate-pulse rounded-2xl bg-muted sm:h-[92px]" />;
-}
-
-/** Placeholder for the greeting header + points/streak chips. */
-function HomeHeaderSkeleton() {
+/** Free daily money card (DailyMoneyCard, green tone). */
+function HomeDailyMoneySkeleton() {
   return (
-    <header className="px-4 pt-1">
-      <div className="flex items-center justify-between gap-3">
-        <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="h-7 w-14 animate-pulse rounded-full bg-muted" />
-          <div className="h-7 w-14 animate-pulse rounded-full border border-border bg-muted" />
-        </div>
+    <div className="flex items-center gap-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] py-3 pl-3.5 pr-3 shadow-edge-green-line">
+      <div className="h-[42px] w-[46px] shrink-0 animate-pulse rounded-full bg-green-line/60" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="h-3 w-28 animate-pulse rounded bg-green-line/60" />
+        <div className="h-7 w-24 animate-pulse rounded-md bg-green-line/60" />
+        <div className="h-3 w-32 animate-pulse rounded bg-green-line/60" />
       </div>
-    </header>
+      <div className="h-10 w-20 shrink-0 animate-pulse rounded-2xl bg-green-line/60" />
+    </div>
   );
 }
 
-/** Loading placeholder for the logged-out home screen — mirrors the actual guest home feed layout. */
+/** Daily goal card: title + count, progress bar, hint, Lulu scene (DailyGoalCardView). */
+function HomeDailyGoalSkeleton() {
+  return (
+    <div className="flex items-center gap-4 rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-24 animate-pulse rounded bg-line" />
+          <div className="h-3 w-8 animate-pulse rounded bg-line" />
+        </div>
+        <div className="mt-2.5 h-2.5 w-full animate-pulse rounded-full bg-line" />
+        <div className="mt-2 h-2.5 w-2/3 animate-pulse rounded bg-line" />
+      </div>
+      <div className="h-[84px] w-[76px] shrink-0 animate-pulse rounded-2xl bg-line" />
+    </div>
+  );
+}
+
+/** "Today's quests" label + quest rows (ForfeitDayCard). */
+function HomeQuestsSkeleton({ rows = 2 }: { rows?: number }) {
+  return (
+    <div>
+      <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
+      <div className="space-y-2.5">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
+            <div className="h-[50px] w-[50px] shrink-0 animate-pulse rounded-2xl bg-line" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
+              <div className="h-2.5 w-1/3 animate-pulse rounded bg-line" />
+            </div>
+            <div className="h-9 w-16 shrink-0 animate-pulse rounded-full bg-line" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Loading placeholder for the logged-out home screen — mirrors HomeDashboard's guest layout. */
 export function HomeGuestSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("mx-auto w-full max-w-4xl xl:max-w-6xl", className)}
+      className={cn("mx-auto flex w-full flex-col gap-4 px-5 pb-6 pt-2.5", className)}
       role="status"
       aria-label="Loading"
     >
-      <HomeHeaderSkeleton />
-      <div className="mb-4 mt-3 px-4">
-        <HomeFeatureCarouselSkeleton />
-      </div>
-      <div className="mb-4 px-4">
-        <HomeTop10BannerSkeleton />
-      </div>
-      <div className="px-4 py-4">
-        <div className="mb-3 h-3 w-32 animate-pulse rounded bg-muted" />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <CampaignExploreCardSkeleton />
-          <CampaignExploreCardSkeleton className="hidden md:flex" />
-          <CampaignExploreCardSkeleton className="hidden md:flex" />
-        </div>
-      </div>
+      <HomeGreetingSkeleton />
+      <HomeQuestsSkeleton rows={1} />
     </div>
   );
 }
 
-/** Loading placeholder for the signed-in home dashboard — mirrors the actual home feed layout. */
+/** Loading placeholder for the signed-in home dashboard — mirrors HomeDashboard's layout. */
 export function HomeSignedInSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("mx-auto w-full  max-w-4xl xl:max-w-6xl", className)}
+      className={cn("mx-auto flex w-full flex-col gap-4 px-5 pb-6 pt-2.5", className)}
       role="status"
       aria-label="Loading dashboard"
     >
-      <HomeHeaderSkeleton />
-      <div className="mb-4 mt-3 px-4">
-        <HomeFeatureCarouselSkeleton />
-      </div>
-      <div className="mb-4 px-4">
-        <HomeTop10BannerSkeleton />
-      </div>
-      <div className="px-4 pt-6 pb-2">
-        <div className="mb-4 h-3 w-28 animate-pulse rounded bg-muted" />
-        <MissionCardSkeleton />
-      </div>
-      <div className="mt-10" />
-      <div className="px-4 py-4">
-        <div className="mb-3 h-3 w-32 animate-pulse rounded bg-muted" />
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <CampaignExploreCardSkeleton />
-          <CampaignExploreCardSkeleton className="hidden lg:flex" />
-          <CampaignExploreCardSkeleton className="hidden lg:flex" />
-        </div>
+      <HomeGreetingSkeleton />
+      <HomeDailyMoneySkeleton />
+      <HomeDailyGoalSkeleton />
+      <div className="mt-2">
+        <HomeQuestsSkeleton />
       </div>
     </div>
   );

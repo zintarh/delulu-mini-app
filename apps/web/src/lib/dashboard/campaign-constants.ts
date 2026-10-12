@@ -89,3 +89,25 @@ export const FORFEIT_CAMPAIGN_TOP_N = 5;
  * wallet across multiple commitments, not a single-commitment minimum.
  */
 export const FORFEIT_STAKED_MIN_WHOLE = 20_000;
+
+/**
+ * Points per kept forfeit day, tiered by stake — mirrors forfeitProofPoints in
+ * apps/delulu-subgraph/src/forfeit-market.ts (which is what actually credits
+ * them). A word-only stake (0) is the low tier. Thresholds are raw 18-decimal
+ * amounts, compared the same way the subgraph does.
+ */
+export const FORFEIT_PROOF_POINTS_LOW = 100;
+const FORFEIT_LOW_STAKE_THRESHOLD = BigInt("1000000000000000000000");
+const FORFEIT_HIGH_STAKE_THRESHOLD = BigInt("50000000000000000000000");
+
+export function forfeitProofPointsForStake(stakeAmount: string | bigint | null | undefined): number {
+  let stake = BigInt(0);
+  try {
+    stake = BigInt(stakeAmount ?? 0);
+  } catch {
+    // Unparseable → treat as no stake.
+  }
+  if (stake >= FORFEIT_HIGH_STAKE_THRESHOLD) return 5_000;
+  if (stake >= FORFEIT_LOW_STAKE_THRESHOLD) return BASE_PROOF_POINTS;
+  return FORFEIT_PROOF_POINTS_LOW;
+}

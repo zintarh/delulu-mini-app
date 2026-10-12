@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
+import { StartFreeCard } from "@/components/home/start-free-card";
 import { DailyGoalCard, HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
       {address ? (
         <>
           <DailyMoneyCard />
+          <StartFreeCard />
           <DailyGoalCard address={address} />
           <div id="forfeit-day-card" className="mt-2">
             <ForfeitDayCard address={address} />

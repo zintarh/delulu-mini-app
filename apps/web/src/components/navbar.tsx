@@ -37,7 +37,7 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full bg-paper/95 backdrop-blur-sm">
-      <nav className="mx-auto flex min-h-[66px] max-w-4xl items-center gap-2 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top,0px))] xl:max-w-5xl">
+      <nav className="mx-auto flex min-h-[66px] max-w-3xl items-center gap-2 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top,0px))] xl:max-w-3xl">
         {authenticated ? (
           <div className="relative shrink-0">
             <NavbarProfileMenu onLogoutClick={onLogoutClick} size="default" hideChevron align="left" />

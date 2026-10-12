@@ -306,7 +306,7 @@ export default function RewardsPage() {
   if (awaitingAuth || !isConnected || !address) {
     return (
       <MainPage>
-        <div className="mx-auto w-full max-w-xl lg:max-w-4xl xl:max-w-6xl">
+        <div className="mx-auto w-full max-w-3xl xl:max-w-3xl">
           <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
             <div className="h-9 w-9 animate-pulse rounded-full bg-muted/60" />
             <div className="h-5 w-20 animate-pulse rounded-md bg-muted/60" />
@@ -325,7 +325,7 @@ export default function RewardsPage() {
     <>
       <MainPage>
         <div className="mx-auto w-full">
-        <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:max-w-4xl lg:pt-6 xl:max-w-6xl">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-5 pb-10 pt-2.5 lg:pt-6 xl:max-w-3xl">
           <h1 className="m-0 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">Rewards</h1>
 
           {showUnverified ? (

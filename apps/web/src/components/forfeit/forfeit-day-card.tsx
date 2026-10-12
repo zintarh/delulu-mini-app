@@ -102,6 +102,14 @@ type DayBucket = {
 };
 
 /** e.g. "Sunday, July 26" — no year */
+/** Local clock time, compact and lowercase: "5:30pm". */
+function formatClockTime(d: Date) {
+  return d
+    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
+    .replace(/\s/g, "")
+    .toLowerCase();
+}
+
 function formatForfeitDayLabel(d: Date) {
   return d.toLocaleDateString("en-US", {
     weekday: "long",
@@ -437,8 +445,6 @@ function ForfeitTaskCard({
               void el.offsetWidth; // restart the animation even on repeat clicks
               el.classList.add("animate-prove-wiggle");
             }
-            // Proof is submitted from the contract detail page now, not a
-            // modal here on the feed — jump straight to today's node there.
             if (item.onChainCommitmentId != null) {
               router.push(`/forfeit/${item.onChainCommitmentId}`);
             }
@@ -452,10 +458,6 @@ function ForfeitTaskCard({
     return null;
   })();
 
-  // Fills the trailing slot when there's no proof-review action to show —
-  // "past, nothing submitted" otherwise renders nothing on the right at all.
-  // "won" is clickable (links to the submitted proof) when one exists, so
-  // completing a day doesn't lose the ability to look back at what you sent.
   const statusPill =
     outcome === "won" ? (
       proofUrl ? (
@@ -473,9 +475,6 @@ function ForfeitTaskCard({
       <Stamp tone="lost" className="shrink-0 text-[10px]">Missed</Stamp>
     ) : null;
   const totalPeriods = item.onChain?.totalPeriods ?? 1;
-  // Always show which day this was once it's settled (won/failed) — even a
-  // one-off forfeit benefits from "Day 1 of 1" context distinguishing a
-  // finished item from one still in progress, not just repeating plans.
   const showProgress = isRepeatingForfeit(item) || outcome === "won" || outcome === "failed";
 
   const isDue = canSubmit && !proofSubmitted;
@@ -484,15 +483,13 @@ function ForfeitTaskCard({
   const dayLabel = `${day.calendarPeriodIndex + 1}/${totalPeriods}`;
   const timeLabel = (() => {
     if (outcome === "won" && day.period?.resolvedAt) {
-      return new Date(day.period.resolvedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      return formatClockTime(new Date(day.period.resolvedAt));
     }
-    // Still open: count down to the forfeit deadline instead of showing a
-    // static clock time, so it's obvious how long is left to prove it today.
     if (isDue) {
       const remainingSec = Math.floor((day.periodDeadline.getTime() - nowMs) / 1000);
-      return formatCountdown(remainingSec).label;
+      return formatCountdown(remainingSec).label.toLowerCase();
     }
-    return day.periodDeadline.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return formatClockTime(day.periodDeadline);
   })();
   const href = item.onChainCommitmentId != null ? `/forfeit/${item.onChainCommitmentId}` : null;
 
@@ -518,7 +515,7 @@ function ForfeitTaskCard({
         {outcome === "won" ? (
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className="label-mono text-[10px] text-blue">{dayLabel}</span>
-            <span className="label-mono text-[10px] text-muted-foreground">· {timeLabel}</span>
+            <span className="label-mono text-[10px] normal-case text-muted-foreground">· {timeLabel}</span>
           </div>
         ) : (
           <div className="mt-[7px] flex items-center gap-2">
@@ -532,7 +529,7 @@ function ForfeitTaskCard({
               />
             ) : null}
             <span className="label-mono text-[10px] text-muted-foreground">
-              {dayLabel} · {timeLabel}
+              {dayLabel} · <span className="normal-case">{timeLabel}</span>
             </span>
           </div>
         )}
