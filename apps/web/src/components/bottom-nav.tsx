@@ -37,7 +37,7 @@ export function BottomNav(_props: BottomNavProps = {}) {
   const isHomeRoute = path === APP_HOME || (segment === "home" && path.startsWith(APP_HOME));
 
   useEffect(() => {
-    [APP_HOME, "/rewards", "/explore", "/forfeit", "/profile"].forEach((href) => router.prefetch(href));
+    [APP_HOME, "/rewards", "/explore", "/forfeit", "/leaderboard", "/profile"].forEach((href) => router.prefetch(href));
   }, [router]);
 
   const activeOptions = { isHomeRoute, notificationsOpen, layoutSegment: segment };

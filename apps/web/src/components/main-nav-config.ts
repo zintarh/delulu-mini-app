@@ -74,15 +74,16 @@ export function getWalletNavItem(): MainNavItem {
 
 /** Desktop left sidebar */
 export function getMainNavItems(_authenticated: boolean): MainNavItem[] {
-  return [
-    ...coreNavItems(),
-    {
-      icon: Trophy,
-      label: "Leaderboard",
-      href: "/leaderboard",
-      action: "leaderboard",
-    },
-  ];
+  return [...coreNavItems(), getLeaderboardNavItem()];
+}
+
+export function getLeaderboardNavItem(): MainNavItem {
+  return {
+    icon: Trophy,
+    label: "Leaderboard",
+    href: "/leaderboard",
+    action: "leaderboard",
+  };
 }
 
 export function getProfileNavItem(authenticated: boolean): MainNavItem {
@@ -94,9 +95,14 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav — Rewards immediately before Profile */
+/** Mobile bottom nav — Leaderboard after New contract, Rewards immediately before Profile */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [...coreNavItems(), getRewardsNavItem(), getProfileNavItem(authenticated)];
+  return [
+    ...coreNavItems(),
+    getLeaderboardNavItem(),
+    getRewardsNavItem(),
+    getProfileNavItem(authenticated),
+  ];
 }
 
 export function isMainNavItemActive(
