@@ -18,7 +18,9 @@ export default function DevPreviewPage() {
         <DailyMoneyCardView state="loading" />
         <DailyMoneyCardView state="verify" />
         <DailyMoneyCardView state="claimable" amount="1,234.56" />
-        <DailyMoneyCardView state="claimed" countdown="23:59:12" />
+        <DailyMoneyCardView state="claimed" nextClaim="1:00 PM · in 4:59" />
+        <DailyMoneyCardView state="claimed" nextClaim="tomorrow 1:00 PM · in 23:12" />
+        <DailyMoneyCardView state="empty" />
         <span className="label-mono text-muted-foreground">Daily goal</span>
         <DailyGoalCardView kept={3} total={3} daysSinceKept={0} />
         <DailyGoalCardView kept={1} total={3} daysSinceKept={1} />
