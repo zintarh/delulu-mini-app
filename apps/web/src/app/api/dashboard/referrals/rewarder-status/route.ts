@@ -16,7 +16,7 @@ async function requirePlatformAdminSession() {
   return { error: null };
 }
 
-/** The referral-payout wallet's live G$/CELO balance — lets admins see when it needs topping up. */
+/** The reward pool's live G$ balance and the payout wallet's CELO gas — lets admins see when either needs topping up. */
 export async function GET() {
   const { error: authError } = await requirePlatformAdminSession();
   if (authError) return authError;

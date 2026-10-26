@@ -9,29 +9,6 @@ import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
 import { useAuth } from "@/hooks/use-auth";
 import { parseTokenAmount } from "@/lib/token-amounts";
 
-const ERC20_ALLOWANCE_ABI = [
-  {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
 function vaultAddressOrUndefined(chainId: number): `0x${string}` | undefined {
   try {
     return getRewardVaultAddress(chainId);
@@ -76,6 +53,22 @@ export function useRewardVaultRoles() {
   });
 
   return { owner: owner as `0x${string}` | undefined, rewarder: rewarder as `0x${string}` | undefined };
+}
+
+/** Unallocated balance of `tokenAddress` in the vault's reward pool — the most a grant can credit right now. */
+export function useRewardPoolBalance(tokenAddress: `0x${string}` | undefined) {
+  const vault = vaultAddressOrUndefined(CELO_MAINNET_ID);
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: vault,
+    abi: REWARD_VAULT_ABI,
+    functionName: "availableBalance",
+    args: tokenAddress ? [tokenAddress] : undefined,
+    chainId: CELO_MAINNET_ID,
+    query: { enabled: !!vault && !!tokenAddress },
+  });
+
+  return { available: data as bigint | undefined, isLoading, error, refetch };
 }
 
 async function awaitMinedSuccess(
@@ -134,9 +127,10 @@ export function useClaimReward() {
 }
 
 /**
- * Admin-side reward grant. Handles the ERC20 approval (vault pulls via
- * transferFrom) and derives a one-time rewardId so a retried/duplicated
- * admin action can't double-credit the same grant. Resolves only once the
+ * Admin-side reward grant, credited from the vault's own reward pool — the
+ * admin wallet only signs and pays gas, no tokens leave it. Derives a
+ * one-time rewardId so a retried/duplicated admin action can't double-credit
+ * the same grant. Resolves only once the
  * deposit transaction is actually mined and successful — never on a merely
  * signed/broadcast tx, which could still revert on-chain.
  */
@@ -145,7 +139,7 @@ export function useDepositReward() {
   const publicClient = usePublicClient();
   const { address: adminAddress } = useAuth();
   const { writeContractAsync, data: hash, isPending, error, reset } = useUnifiedWriteContract();
-  const [step, setStep] = useState<"idle" | "checking" | "approving" | "depositing">("idle");
+  const [step, setStep] = useState<"idle" | "checking" | "depositing">("idle");
   // Synchronous in-flight guard — `step` is React state and doesn't update
   // until the next render, so a fast double-click could otherwise slip two
   // calls through before either sets step away from "idle".
@@ -176,23 +170,13 @@ export function useDepositReward() {
         const roundedAmount = Number(amount.toFixed(dec));
         const amountWei = parseTokenAmount(roundedAmount, tokenAddress, dec);
 
-        const allowance = (await publicClient.readContract({
-          address: tokenAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "allowance",
-          args: [adminAddress, vault],
+        const available = (await publicClient.readContract({
+          address: vault,
+          abi: REWARD_VAULT_ABI,
+          functionName: "availableBalance",
+          args: [tokenAddress],
         })) as bigint;
-
-        if (allowance < amountWei) {
-          setStep("approving");
-          const approveHash = await writeContractAsync({
-            address: tokenAddress,
-            abi: ERC20_ALLOWANCE_ABI,
-            functionName: "approve",
-            args: [vault, amountWei],
-          });
-          await awaitMinedSuccess(publicClient, approveHash, "Token approval failed on-chain");
-        }
+        if (available < amountWei) throw new Error("Not enough in the reward pool for this amount");
 
         // Unique per grant: user + token + amount + a random nonce, so identical
         // repeat rewards to the same user don't collide on rewardId.
@@ -208,7 +192,7 @@ export function useDepositReward() {
         const txHash = await writeContractAsync({
           address: vault,
           abi: REWARD_VAULT_ABI,
-          functionName: "depositReward",
+          functionName: "creditReward",
           args: [userAddress, tokenAddress, amountWei, rewardId],
         });
         await awaitMinedSuccess(publicClient, txHash, "Deposit transaction failed on-chain");

@@ -12,9 +12,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /**
  * @title RewardVault
  * @notice Admin-granted, user-claimed token rewards, kept fully separate from
- *         Delulu's stakes/tips/treasury. Each grant self-funds at deposit time
- *         (pulled from the rewarder wallet in the same transaction it is
- *         credited), so the vault can never owe more than it actually holds.
+ *         Delulu's stakes/tips/treasury. Grants are either self-funded at
+ *         deposit time (`depositReward`, pulled from the rewarder wallet) or
+ *         credited from the vault's own pre-funded reward pool (`creditReward`).
+ *         Either way the vault can never owe more than it actually holds.
  *         Deploy behind an ERC1967 proxy; upgrade via owner-only upgradeToAndCall.
  */
 contract RewardVault is
@@ -34,6 +35,7 @@ contract RewardVault is
     error AmountExceedsMax();
     error InsufficientFreeBalance();
     error AmountExceedsPending();
+    error DailyCreditLimitExceeded();
 
     // --- STATE ---
     address public rewarder;
@@ -46,6 +48,11 @@ contract RewardVault is
     mapping(address => uint256) public totalPendingByToken;
     /// @dev Off-chain reward id (e.g. hash of the admin dashboard's DB row) — blocks double-credit on retry.
     mapping(bytes32 => bool) public usedRewardId;
+    /// @dev Per-token cap on total `creditReward` volume per UTC day (base units); 0 = uncapped.
+    ///      Bounds how fast the pool can drain if the rewarder key or the backend misbehaves.
+    mapping(address => uint256) public maxDailyCreditPerToken;
+    /// @dev token => day index (block.timestamp / 1 days) => amount credited from the pool that day.
+    mapping(address => mapping(uint256 => uint256)) public creditedOnDay;
 
     // --- EVENTS ---
     event RewarderUpdated(address indexed newRewarder);
@@ -65,6 +72,8 @@ contract RewardVault is
         address indexed revokedBy
     );
     event TokenRescued(address indexed token, address indexed to, uint256 amount);
+    event PoolFunded(address indexed token, address indexed from, uint256 amount);
+    event MaxDailyCreditPerTokenUpdated(address indexed token, uint256 newMax);
 
     modifier onlyRewarder() {
         if (msg.sender != rewarder && msg.sender != owner()) revert Unauthorized();
@@ -100,6 +109,13 @@ contract RewardVault is
         if (token == address(0)) revert InvalidInput();
         maxDepositPerToken[token] = _maxDepositPerToken;
         emit MaxDepositPerTokenUpdated(token, _maxDepositPerToken);
+    }
+
+    /// @param _maxDailyCredit In `token`'s own base units; 0 = uncapped.
+    function setMaxDailyCreditPerToken(address token, uint256 _maxDailyCredit) external onlyOwner {
+        if (token == address(0)) revert InvalidInput();
+        maxDailyCreditPerToken[token] = _maxDailyCredit;
+        emit MaxDailyCreditPerTokenUpdated(token, _maxDailyCredit);
     }
 
     function pause() external onlyOwner {
@@ -140,6 +156,49 @@ contract RewardVault is
     }
 
     /**
+     * @notice Top up the reward pool `creditReward` pays from. Anyone can fund it;
+     *         a plain token transfer to the vault works too, this just emits an event.
+     */
+    function fundPool(address token, uint256 amount) external nonReentrant {
+        if (token == address(0) || amount == 0) revert InvalidInput();
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        emit PoolFunded(token, msg.sender, amount);
+    }
+
+    /**
+     * @notice Grant `amount` of `token` to `user` out of the vault's own pool — the
+     *         unallocated balance (`availableBalance`) — instead of the caller's wallet.
+     *         The rewarder only needs gas; no tokens leave its wallet.
+     * @param rewardId Same one-time id semantics as `depositReward` (shared namespace).
+     */
+    function creditReward(
+        address user,
+        address token,
+        uint256 amount,
+        bytes32 rewardId
+    ) external nonReentrant onlyRewarder whenNotPaused {
+        if (user == address(0) || token == address(0) || amount == 0) revert InvalidInput();
+        uint256 cap = maxDepositPerToken[token];
+        if (cap != 0 && amount > cap) revert AmountExceedsMax();
+        if (usedRewardId[rewardId]) revert RewardIdAlreadyUsed();
+        if (amount > availableBalance(token)) revert InsufficientFreeBalance();
+
+        uint256 dailyCap = maxDailyCreditPerToken[token];
+        uint256 day = block.timestamp / 1 days;
+        uint256 creditedToday = creditedOnDay[token][day] + amount;
+        if (dailyCap != 0 && creditedToday > dailyCap) revert DailyCreditLimitExceeded();
+
+        usedRewardId[rewardId] = true;
+        creditedOnDay[token][day] = creditedToday;
+        pendingRewardByToken[user][token] += amount;
+        totalPendingByToken[token] += amount;
+
+        // Same event as depositReward so claim UIs/indexers treat both alike;
+        // depositedBy = the vault itself marks a pool-funded grant.
+        emit RewardDeposited(user, token, amount, rewardId, address(this));
+    }
+
+    /**
      * @notice Claim the caller's full pending reward balance for `token`.
      * @dev Not gated by `whenNotPaused` — pausing freezes new grants, it must
      *      never trap funds a user has already been credited.
@@ -176,11 +235,15 @@ contract RewardVault is
      */
     function rescueToken(address token, address to, uint256 amount) external nonReentrant onlyOwner {
         if (to == address(0) || amount == 0) revert InvalidInput();
-        uint256 free = IERC20(token).balanceOf(address(this)) - totalPendingByToken[token];
-        if (amount > free) revert InsufficientFreeBalance();
+        if (amount > availableBalance(token)) revert InsufficientFreeBalance();
 
         IERC20(token).safeTransfer(to, amount);
         emit TokenRescued(token, to, amount);
+    }
+
+    /// @notice Pool balance not yet owed to anyone — what `creditReward` can still hand out.
+    function availableBalance(address token) public view returns (uint256) {
+        return IERC20(token).balanceOf(address(this)) - totalPendingByToken[token];
     }
 
     function pendingReward(address user, address token) external view returns (uint256) {
