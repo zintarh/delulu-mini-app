@@ -110,7 +110,7 @@ export function ServiceWorkerRegister() {
     };
   }, []);
 
-  // beforeinstallprompt is captured by <InstallPrompt />, which owns install UX.
+  // beforeinstallprompt is captured by useInstallPrompt; the add-to-home sheet owns that UX.
 
   return null;
 }

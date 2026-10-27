@@ -37,7 +37,7 @@ function ExploreLink() {
   );
 }
 
-function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardData {
+export function feedItemToCardData(c: CommunityCampaignFeedItem): CampaignExploreCardData {
   return {
     id: c.id,
     title: c.title,

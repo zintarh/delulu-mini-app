@@ -6,35 +6,55 @@ import { Loader2, Lock } from "lucide-react";
 import { CheckDot, Chest, CoinStack, GameButton, GameCard } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { formatCountdown } from "@/components/home-stakes-hero";
 import { useFaceCheck } from "@/contexts/right-panel-context";
 
-function useCountdown(target: Date | null) {
+function useNow(enabled: boolean) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!target) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    if (!enabled) return;
+    const id = window.setInterval(() => setNow(Date.now()), 15_000);
     return () => window.clearInterval(id);
-  }, [target]);
-  if (!target) return null;
-  const left = Math.max(0, Math.floor((target.getTime() - now) / 1000));
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(Math.floor(left / 3600))}:${p(Math.floor(left / 60) % 60)}:${p(left % 60)}`;
+  }, [enabled]);
+  return now;
 }
 
-export type DailyMoneyState = "loading" | "verify" | "claimable" | "claimed";
+/**
+ * "1:00 PM · in 4:59" — GoodDollar's claim day starts at a fixed time, not
+ * midnight, so the clock time tells people *when* their money comes back
+ * (the next claim is often later the same calendar day).
+ */
+function formatNextClaim(next: Date, now: number): string {
+  const remainingSec = Math.floor((next.getTime() - now) / 1000);
+  if (remainingSec <= 0) return "opening now…";
+  const time = next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const when = new Date(now).toDateString() === next.toDateString() ? time : `tomorrow ${time}`;
+  return `${when} · in ${formatCountdown(remainingSec).label}`;
+}
+
+/** Shared by both cards: ticks only while a next-claim time is showing. */
+function useNextClaimLabel(hasClaimed: boolean, nextClaimTime: Date | null) {
+  const showing = hasClaimed && nextClaimTime != null;
+  const now = useNow(showing);
+  return showing ? formatNextClaim(nextClaimTime!, now) : null;
+}
+
+/** "empty": verified and not yet claimed, but GoodDollar has nothing to pay out right now. */
+export type DailyMoneyState = "loading" | "verify" | "claimable" | "claimed" | "empty";
 
 /** Presentational card — every state, no data fetching (see DailyMoneyCard). */
 export function DailyMoneyCardView({
   state,
   amount,
-  countdown,
+  nextClaim,
   claiming = false,
   onClaim,
   onVerify,
 }: {
   state: DailyMoneyState;
   amount?: string | null;
-  countdown?: string | null;
+  /** Pre-formatted, e.g. "1:00 PM · in 4:59". */
+  nextClaim?: string | null;
   claiming?: boolean;
   onClaim?: () => void;
   onVerify?: () => void;
@@ -82,12 +102,17 @@ export function DailyMoneyCardView({
             </span>
             <span className="truncate text-xs text-muted-foreground">From GoodDollar · ready now</span>
           </>
+        ) : state === "empty" ? (
+          <>
+            <span className="text-[17px] font-extrabold leading-tight">Nothing to claim yet</span>
+            <span className="truncate text-xs text-muted-foreground">From GoodDollar · check back soon</span>
+          </>
         ) : (
           <>
-            <span className="text-[17px] font-extrabold leading-tight">Claimed for today</span>
-            {countdown ? (
-              <span className="text-xs text-muted-foreground">
-                Next in <span className="font-semibold tabular-nums text-ink">{countdown}</span>
+            <span className="text-[17px] font-extrabold leading-tight">Claimed</span>
+            {nextClaim ? (
+              <span className="truncate text-xs text-muted-foreground">
+                Next <span className="font-semibold tabular-nums text-ink">{nextClaim}</span>
               </span>
             ) : null}
           </>
@@ -98,11 +123,11 @@ export function DailyMoneyCardView({
           {claiming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Claim
         </GameButton>
-      ) : (
+      ) : state === "claimed" ? (
         <span className="animate-bounce-in">
           <CheckDot size={32} />
         </span>
-      )}
+      ) : null}
     </GameCard>
   );
 }
@@ -116,7 +141,7 @@ export function DailyMoneyCard() {
   const { isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming, sdkReady } =
     useGoodDollarClaim();
   const { start: startFaceCheck } = useFaceCheck();
-  const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
+  const nextClaim = useNextClaimLabel(hasClaimed, nextClaimTime);
 
   const amount = useMemo(() => {
     if (entitlement === null) return null;
@@ -126,13 +151,21 @@ export function DailyMoneyCard() {
 
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
   const state: DailyMoneyState =
-    !isInitialized ? "loading" : !isWhitelisted ? "verify" : canClaim ? "claimable" : "claimed";
+    !isInitialized
+      ? "loading"
+      : !isWhitelisted
+        ? "verify"
+        : canClaim
+          ? "claimable"
+          : hasClaimed
+            ? "claimed"
+            : "empty";
 
   return (
     <DailyMoneyCardView
       state={state}
       amount={amount}
-      countdown={countdown}
+      nextClaim={nextClaim}
       // The claim itself needs the wallet; until it connects the button waits.
       claiming={isClaiming || !sdkReady}
       onClaim={() => void claim()}
@@ -150,7 +183,7 @@ export function RewardsDailyCard() {
   const { isInitialized, isWhitelisted, hasClaimed, entitlement, nextClaimTime, claim, isClaiming, sdkReady } =
     useGoodDollarClaim();
   const { start: startFaceCheck } = useFaceCheck();
-  const countdown = useCountdown(hasClaimed ? nextClaimTime : null);
+  const nextClaim = useNextClaimLabel(hasClaimed, nextClaimTime);
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
 
   if (!isInitialized) {
@@ -193,7 +226,13 @@ export function RewardsDailyCard() {
         <div>
           <div className="text-[17px] font-extrabold">Daily G$</div>
           <div className={cn("label-mono mt-0.5 text-[10px]", canClaim ? "text-green-edge" : "text-muted-foreground")}>
-            {canClaim ? "Face verified · ready" : countdown ? `Opened · next in ${countdown}` : "Opened for today"}
+            {canClaim
+              ? "Face verified · ready"
+              : !hasClaimed
+                ? "Nothing to open yet · check back soon"
+                : nextClaim
+                  ? `Opened · next ${nextClaim}`
+                  : "Opened"}
           </div>
         </div>
         {canClaim ? (

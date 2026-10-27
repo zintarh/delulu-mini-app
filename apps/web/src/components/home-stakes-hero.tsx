@@ -127,8 +127,13 @@ export function formatCountdown(remainingSec: number): { label: string; overdue:
   const days = Math.floor(totalMinutes / (60 * 24));
   const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
   const minutes = totalMinutes % 60;
-  if (days > 0) return { label: `${days}d ${hours}h`, overdue: false };
-  return { label: `${hours}h ${minutes}m`, overdue: false };
+  // Zero parts are dropped ("2hrs", not "2h 0m"); hours + minutes read as a clock ("3:05").
+  if (days > 0) return { label: hours > 0 ? `${days}d ${hours}h` : `${days}d`, overdue: false };
+  if (hours > 0 && minutes > 0) {
+    return { label: `${hours}:${String(minutes).padStart(2, "0")}`, overdue: false };
+  }
+  if (hours > 0) return { label: hours === 1 ? "1hr" : `${hours}hrs`, overdue: false };
+  return { label: `${minutes}m`, overdue: false };
 }
 
 /**

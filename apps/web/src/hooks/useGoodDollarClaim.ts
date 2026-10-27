@@ -60,6 +60,8 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [hasClaimed, setHasClaimed] = useState(false);
   const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
+  /** Bumped when the next claim opens, to re-run the pre-SDK read below. */
+  const [claimWindowTick, setClaimWindowTick] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,7 +117,7 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, address, celoClient]);
+  }, [isLoading, address, celoClient, claimWindowTick]);
 
   const checkWhitelisted = useCallback(async (): Promise<boolean> => {
     return checkGoodDollarWhitelisted(claimSDKInstance);
@@ -209,6 +211,20 @@ export function useGoodDollarClaim(): UseGoodDollarClaimReturn {
 
     return () => clearInterval(interval);
   }, [isLoading, address, checkClaimStatus, checkWhitelisted, isWhitelisted]);
+
+  // Re-check the moment the next claim opens — otherwise the card sits on an
+  // expired countdown until the 60s poll (or forever, before the SDK loads).
+  useEffect(() => {
+    if (!hasClaimed || !nextClaimTime) return;
+    const delay = Math.max(0, nextClaimTime.getTime() - Date.now()) + 2_000;
+    // setTimeout overflows past ~24.8 days; a claim window is never that far out.
+    if (delay > 2_147_000_000) return;
+    const id = setTimeout(() => {
+      if (claimSDKInstance) checkClaimStatus().catch(() => {});
+      else setClaimWindowTick((t) => t + 1);
+    }, delay);
+    return () => clearTimeout(id);
+  }, [hasClaimed, nextClaimTime, claimSDKInstance, checkClaimStatus]);
 
   useEffect(() => {
     if (!isVerifying) {

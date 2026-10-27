@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Loader2, X, Gift, AlertTriangle } from "lucide-react";
 import { formatAddress, cn } from "@/lib/utils";
-import { useDepositReward, useRewardVaultRoles } from "@/hooks/use-reward-vault";
-import { useTokenBalance } from "@/hooks/use-token-balance";
+import { formatUnits } from "viem";
+import { useDepositReward, useRewardPoolBalance, useRewardVaultRoles } from "@/hooks/use-reward-vault";
 import { useAuth } from "@/hooks/use-auth";
 import { GOODDOLLAR_ADDRESSES, CUSD_ADDRESSES, USDT_ADDRESSES } from "@/lib/constant";
 import { getTokenDecimals } from "@/lib/token-amounts";
@@ -48,14 +48,16 @@ export function RewardUserModal({
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
-  const { depositReward, step, isPending, error } = useDepositReward();
+  const { depositReward, isPending, error } = useDepositReward();
   const { address: connectedAddress } = useAuth();
   const { owner: vaultOwner, rewarder: vaultRewarder } = useRewardVaultRoles();
   const {
-    formatted: balanceFormatted,
+    available: poolAvailable,
     isLoading: isBalanceLoading,
     error: balanceError,
-  } = useTokenBalance(tokenAddress);
+  } = useRewardPoolBalance(tokenAddress as `0x${string}`);
+  const balanceFormatted =
+    poolAvailable != null ? formatUnits(poolAvailable, getTokenDecimals(tokenAddress)) : "";
 
   const selectedSymbol =
     REWARD_TOKENS.find((t) => t.address === tokenAddress)?.symbol ?? "";
@@ -87,7 +89,7 @@ export function RewardUserModal({
   const handleSubmit = async () => {
     setLocalError(null);
     if (exceedsBalance) {
-      setLocalError(`Not enough ${selectedSymbol} in your wallet.`);
+      setLocalError(`Not enough ${selectedSymbol} in the reward pool.`);
       return;
     }
     try {
@@ -197,10 +199,10 @@ export function RewardUserModal({
             )}
           >
             {isBalanceLoading
-              ? `Balance: … ${selectedSymbol}`
+              ? `Pool: … ${selectedSymbol}`
               : balanceError
-                ? "Balance unavailable"
-                : `Balance: ${formatBalanceDisplay(balanceFormatted, selectedSymbol)}`}
+                ? "Pool balance unavailable"
+                : `Pool: ${formatBalanceDisplay(balanceFormatted, selectedSymbol)}`}
           </p>
         </div>
         <input
@@ -217,11 +219,11 @@ export function RewardUserModal({
         />
         {exceedsBalance ? (
           <p className="mb-3 text-[11px] font-medium text-destructive">
-            Amount exceeds your {selectedSymbol} balance.
+            Amount exceeds the {selectedSymbol} reward pool.
           </p>
         ) : (
           <p className="mb-3 text-[11px] text-muted-foreground">
-            Sent now from your connected wallet — the user claims it from Rewards.
+            Paid from the reward pool — the user claims it from Rewards.
           </p>
         )}
 
@@ -272,7 +274,7 @@ export function RewardUserModal({
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {step === "approving" ? "Approving…" : "Sending…"}
+              Sending…
             </>
           ) : (
             <>

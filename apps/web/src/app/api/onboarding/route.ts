@@ -104,7 +104,8 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ onboarded: !!data?.onboarded_at });
+    // onboardedAt lets the app tell brand-new accounts (first-run intro) from existing ones.
+    return NextResponse.json({ onboarded: !!data?.onboarded_at, onboardedAt: data?.onboarded_at ?? null });
   } catch (error) {
     console.error("[onboarding] check error:", error);
     // On error, don't block — assume not onboarded

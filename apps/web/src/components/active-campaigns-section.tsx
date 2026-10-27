@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -15,8 +16,129 @@ import { submitCommunityProofWithWallet } from "@/lib/community/join-campaign-cl
 import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
-import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility";
+import { getActiveMilestone, getUpcomingMilestone } from "@/lib/community/milestone-submit-eligibility";
+import { CheckDot, GameButton, MonoLabel, ProgressBar, Trophy as TrophyArt } from "@/components/ds";
+import type { JoinedDashboardCampaign } from "@/hooks/use-user-campaign-milestones";
+import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
+
+type QuestState = "due" | "upcoming" | "done" | "idle";
+
+function questStateFor(c: JoinedDashboardCampaign, nowMs: number): {
+  state: QuestState;
+  milestone: CommunityCampaignMilestoneRow | null;
+} {
+  const active = getActiveMilestone(c.next_milestones, nowMs);
+  if (active) return { state: "due", milestone: active };
+  const upcoming = getUpcomingMilestone(c.next_milestones, nowMs);
+  if (upcoming) return { state: "upcoming", milestone: upcoming };
+  if (c.milestone_count > 0 && c.completed_count >= c.milestone_count) return { state: "done", milestone: null };
+  return { state: "idle", milestone: null };
+}
+
+const QUEST_ORDER: Record<QuestState, number> = { due: 0, upcoming: 1, idle: 2, done: 3 };
+
+/** "6:00 PM" today, "tomorrow 6:00 PM", otherwise "Tue 6:00 PM". */
+function formatDeadline(iso: string, nowMs: number): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const today = new Date(nowMs);
+  if (today.toDateString() === d.toDateString()) return time;
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  if (tomorrow.toDateString() === d.toDateString()) return `tomorrow ${time}`;
+  return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${time}`;
+}
+
+/** Joined campaign as a Home quest row — same shape as a forfeit quest card. */
+export function CampaignQuestRow({
+  campaign: c,
+  nowMs,
+  proofBusy,
+  onProve,
+}: {
+  campaign: JoinedDashboardCampaign;
+  nowMs: number;
+  proofBusy: boolean;
+  onProve: (_milestone: CommunityCampaignMilestoneRow) => void;
+}) {
+  const { state, milestone } = questStateFor(c, nowMs);
+  const total = c.milestone_count;
+  const progress = total > 0 ? `${c.completed_count}/${total}` : null;
+  const meta =
+    state === "due" && milestone
+      ? `due ${formatDeadline(milestone.deadline, nowMs)}`
+      : state === "upcoming" && milestone
+        ? `next ${formatDeadline(milestone.start_time, nowMs)}`
+        : state === "done"
+          ? "all proofs in"
+          : "no proof due";
+
+  return (
+    <div
+      className={cn(
+        "relative flex items-center gap-3 rounded-[20px] border-2 bg-white p-3",
+        state === "due" ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
+      )}
+    >
+      <span className="relative flex h-[50px] w-[50px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#fdf1c7]">
+        {c.cover_image_url ? (
+          <Image src={c.cover_image_url} alt="" fill className="object-cover" unoptimized />
+        ) : (
+          <TrophyArt size={30} />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/communities/${c.community.slug}/campaigns/${c.campaign_id}`}
+          className="block truncate text-base font-bold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
+        >
+          {c.title}
+        </Link>
+        <div className="mt-[7px] flex items-center gap-2">
+          {total > 0 ? (
+            <ProgressBar
+              thin
+              tone="yellow"
+              value={c.completed_count / total}
+              className="w-16"
+              label={`${c.completed_count} of ${total} proofs`}
+            />
+          ) : null}
+          <span className="label-mono truncate text-[10px] text-muted-foreground">
+            {progress ? `${progress} · ` : ""}
+            <span className="normal-case">{meta}</span>
+          </span>
+        </div>
+      </div>
+      <div className="relative z-10 shrink-0">
+        {state === "due" && milestone ? (
+          <GameButton size="sm" disabled={proofBusy} onClick={() => onProve(milestone)}>
+            Prove
+          </GameButton>
+        ) : state === "upcoming" ? (
+          <span className="rounded-full bg-muted/60 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground">
+            Up next
+          </span>
+        ) : state === "done" ? (
+          <CheckDot />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function CampaignQuestRowSkeleton() {
+  return (
+    <div className="flex animate-pulse items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
+      <div className="h-[50px] w-[50px] rounded-2xl bg-line" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-2/3 rounded bg-line" />
+        <div className="h-2.5 w-1/3 rounded bg-line" />
+      </div>
+    </div>
+  );
+}
 
 export function ActiveCampaignsSection({
   address,
@@ -24,12 +146,19 @@ export function ActiveCampaignsSection({
   showMax = 3,
   showSeeAll = true,
   showEmpty = false,
+  variant = "card",
 }: {
   address: string;
   heading?: string;
   showMax?: number;
   showSeeAll?: boolean;
   showEmpty?: boolean;
+  /**
+   * "quest": compact rows matching Home's quest cards, listing every active
+   * joined campaign (due first) — including ones with nothing due right now,
+   * so a joined campaign never silently disappears.
+   */
+  variant?: "card" | "quest";
 }) {
   const queryClient = useQueryClient();
   const { submitCommunityCampaignMilestoneProofAndWait } =
@@ -60,6 +189,23 @@ export function ActiveCampaignsSection({
     void queryClient.invalidateQueries({ queryKey: ["home", "campaigns"] });
     void queryClient.invalidateQueries({ queryKey: ["explore", "campaigns"] });
   }, [address, queryClient]);
+
+  const openProof = (c: JoinedDashboardCampaign, milestone: CommunityCampaignMilestoneRow) => {
+    setActiveProof({
+      campaignId: c.campaign_id,
+      challengeId: c.challenge_id,
+      milestoneId: milestone.milestone_id,
+      campaignTitle: c.title,
+      communitySlug: c.community.slug,
+      proofType: c.proof_type,
+      liveCameraDurationSeconds: c.live_camera_duration_seconds,
+      pointsPerMilestone: pointsPerMilestoneForJoinAmount(c.is_free_to_join ? 0 : c.join_amount),
+    });
+    setProofSuccess(false);
+    setProofError(null);
+    setProofStep("idle");
+    setProofOpen(true);
+  };
 
   const handleProofSubmit = async (proofUrls: string[]) => {
     if (!activeProof) {
@@ -125,7 +271,53 @@ export function ActiveCampaignsSection({
     />
   );
 
+  const renderQuests = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-2.5">
+          <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
+          {[0, 1].map((i) => (
+            <CampaignQuestRowSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+    const nowMs = Date.now();
+    const sorted = [...(data ?? [])].sort(
+      (a, b) => QUEST_ORDER[questStateFor(a, nowMs).state] - QUEST_ORDER[questStateFor(b, nowMs).state],
+    );
+    if (sorted.length === 0) return null;
+    const visible = sorted.slice(0, showMax);
+    const hiddenCount = sorted.length - visible.length;
+    return (
+      <section>
+        {heading ? (
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <MonoLabel>{heading}</MonoLabel>
+            {hiddenCount > 0 ? (
+              <Link href="/explore" className="text-[11px] font-semibold text-blue no-underline">
+                +{hiddenCount} more
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="space-y-2.5">
+          {visible.map((c) => (
+            <CampaignQuestRow
+              key={c.campaign_id}
+              campaign={c}
+              nowMs={nowMs}
+              proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
+              onProve={(m) => openProof(c, m)}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   const renderContent = () => {
+    if (variant === "quest") return renderQuests();
     if (isLoading) {
       return (
         <div className="space-y-3">
@@ -198,24 +390,7 @@ export function ActiveCampaignsSection({
                 participantCount={c.participant_count}
                 participantAvatars={c.participant_avatars}
                 proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
-                onSubmitProof={() => {
-                  setActiveProof({
-                    campaignId: c.campaign_id,
-                    challengeId: c.challenge_id,
-                    milestoneId: activeMilestone.milestone_id,
-                    campaignTitle: c.title,
-                    communitySlug: c.community.slug,
-                    proofType: c.proof_type,
-                    liveCameraDurationSeconds: c.live_camera_duration_seconds,
-                    pointsPerMilestone: pointsPerMilestoneForJoinAmount(
-                      c.is_free_to_join ? 0 : c.join_amount,
-                    ),
-                  });
-                  setProofSuccess(false);
-                  setProofError(null);
-                  setProofStep("idle");
-                  setProofOpen(true);
-                }}
+                onSubmitProof={() => openProof(c, activeMilestone)}
               />
             );
           })}

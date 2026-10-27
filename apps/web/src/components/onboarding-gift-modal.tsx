@@ -12,6 +12,7 @@ import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { useCampaignJoinFlow } from "@/hooks/use-campaign-join-flow";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import type { CampaignJoinSource } from "@/lib/community/campaign-join-info";
+import { useIntroDone } from "@/lib/app-intro";
 import { useOnboardingGiftRecheck } from "@/contexts/onboarding-gift-context";
 
 const GOOD_DOLLAR = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
@@ -48,6 +49,8 @@ export function OnboardingGiftModal() {
   const joinFlow = useCampaignJoinFlow();
   const ubi = useGoodDollarClaim();
   const { recheckToken } = useOnboardingGiftRecheck();
+  // Never stack on the first-run intro — show once it's finished.
+  const introDone = useIntroDone();
 
   useEffect(() => {
     setMounted(true);
@@ -215,7 +218,7 @@ export function OnboardingGiftModal() {
     joinFlow.openJoinModal(upsellCampaignId, campaignSource);
   };
 
-  if (!mounted || !checked) return null;
+  if (!mounted || !checked || !introDone) return null;
 
   if (step === "upsell" && !(upsellCampaignId && campaignSource)) {
     // Claimed, waiting on the campaign preload to settle — the effect above

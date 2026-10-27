@@ -266,7 +266,7 @@ export default function SignInPage() {
     const label =
       routeState === "redirecting_welcome" ? "Setting up your profile…"
       : routeState === "redirecting_home"  ? "Welcome back…"
-      : "Checking your account…";
+      : "Signing you in…";
     return <AppLoader label={label} />;
   }
 
@@ -438,6 +438,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   aria-label="Continue with email"
+                  aria-busy={isCheckingEmail || isLaunchingEmailProvider}
                   disabled={isAnyPending || !isInitialized || !privyReady || !isValidEmail(email)}
                   className="press-edge flex h-14 shrink-0 items-center rounded-2xl bg-ink px-1.5 shadow-edge-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -453,10 +454,6 @@ export default function SignInPage() {
               {showEmailError ? (
                 <p id="email-error" className="mt-1.5 px-1 text-xs font-semibold text-orange">
                   {emailValidationError}
-                </p>
-              ) : isCheckingEmail || isLaunchingEmailProvider ? (
-                <p className="mt-1.5 px-1 text-xs font-semibold text-muted-foreground">
-                  {isCheckingEmail ? "Checking your account…" : "Starting secure sign in…"}
                 </p>
               ) : null}
             </div>

@@ -9,8 +9,8 @@ type BeforeInstallPromptEvent = Event & {
 
 /*
  * `beforeinstallprompt` fires once per page load, so it's captured in a
- * module-level store that every consumer (landing install sheet, in-app
- * banner) shares instead of each racing to grab it.
+ * module-level store that every consumer (the add-to-home sheet opened
+ * from the Home card) shares instead of each racing to grab it.
  */
 let deferred: BeforeInstallPromptEvent | null = null;
 const listeners = new Set<() => void>();

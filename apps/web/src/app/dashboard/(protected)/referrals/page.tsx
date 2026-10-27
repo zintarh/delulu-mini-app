@@ -52,8 +52,9 @@ type ReferralsResponse = {
 type RewarderStatus = {
   address: string;
   celoBalance: string;
-  gdollarsBalance: string;
-  gdollarsAllowance: string;
+  vaultAddress: string;
+  poolAvailable: string;
+  poolOwed: string;
 };
 
 type StatusFilter = "all" | ReferralRow["payoutStatus"];
@@ -106,7 +107,7 @@ function formatWhen(iso: string) {
 
 function RewarderStatusKpi({ status }: { status: RewarderStatus | null }) {
   if (!status) return null;
-  const gdollars = Number(status.gdollarsBalance);
+  const gdollars = Number(status.poolAvailable);
   const low = Number.isFinite(gdollars) && gdollars < LOW_BALANCE_THRESHOLD;
   return (
     <AdminKpiStrip icon={Wallet}>
@@ -115,13 +116,13 @@ function RewarderStatusKpi({ status }: { status: RewarderStatus | null }) {
       >
         {gdollars.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </span>
-      <span className="text-sm text-muted-foreground">G$ in rewarder wallet</span>
+      <span className="text-sm text-muted-foreground">G$ in reward pool</span>
       <a
-        href={`https://celoscan.io/address/${status.address}`}
+        href={`https://celoscan.io/address/${status.vaultAddress}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-muted-foreground transition-colors hover:text-foreground"
-        title="View rewarder wallet on Celoscan"
+        title="View reward vault on Celoscan"
       >
         <ExternalLink className="h-3.5 w-3.5" />
       </a>
