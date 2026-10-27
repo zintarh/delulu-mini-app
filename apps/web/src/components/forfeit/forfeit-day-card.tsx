@@ -719,7 +719,7 @@ function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
 
   return (
     <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-9 text-center shadow-edge">
-      <span className="animate-bob">
+      <span>
         <Lulu size={72} />
       </span>
       <p className="mt-3 text-lg font-extrabold">No quests yet</p>

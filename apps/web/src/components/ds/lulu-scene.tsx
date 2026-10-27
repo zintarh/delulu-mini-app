@@ -81,15 +81,8 @@ export function LuluScene({ weather, className }: { weather: LuluWeather; classN
   return (
     <span className={cn("relative block h-[84px] w-[76px] shrink-0", className)} aria-hidden>
       <span className="absolute bottom-0 left-1/2 block -translate-x-1/2">
-        <span
-          className={cn(
-            "block",
-            weather === "storm" && "lulu-shiver",
-            (weather === "waiting" || weather === "sunny") && "animate-bob",
-          )}
-        >
-          <Lulu size={56} mood={FACE[weather]} />
-        </span>
+        {/* Lulu moves on its own now (hop, droop, shiver per mood). */}
+        <Lulu size={60} mood={FACE[weather]} animated />
       </span>
       {/* Weather layer, over Lulu's head */}
       <svg viewBox="0 0 54 34" className="absolute left-1/2 top-0 h-[34px] w-[54px] -translate-x-1/2 overflow-visible">

@@ -27,6 +27,7 @@ function mockCampaign(title: string, done: number, total: number, startOffsetH: 
 import { DailyMoneyCardView } from "@/components/home/daily-money-card";
 import { AddToHomeSheet } from "@/components/pwa/add-to-home-sheet";
 import { AppIntroView } from "@/components/app-intro";
+import { Lulu } from "@/components/ds";
 import { DailyGoalCardView, WeekFlamesView } from "@/components/home/home-progress";
 
 /**
@@ -49,6 +50,18 @@ export default function DevPreviewPage() {
     <div className="h-[100dvh] overflow-y-auto bg-paper">
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 py-6">
         <h1 className="m-0 text-2xl font-bold">Component preview</h1>
+        <span className="label-mono text-muted-foreground">Lulu moods (animated) and small sizes (still)</span>
+        <div className="flex flex-wrap items-end gap-4">
+          {(["dream", "kept", "worried", "gloomy", "sad", "storm"] as const).map((m) => (
+            <Lulu key={m} size={96} mood={m} />
+          ))}
+        </div>
+        <div className="flex items-end gap-4">
+          <Lulu size={24} />
+          <Lulu size={32} />
+          <Lulu size={44} />
+          <Lulu size={64} mood="kept" wave />
+        </div>
         <span className="label-mono text-muted-foreground">Free daily money</span>
         <DailyMoneyCardView state="loading" />
         <DailyMoneyCardView state="verify" />

@@ -202,7 +202,7 @@ export default function WelcomePage() {
   if (isCheckingOnboarding) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper">
-        <span className="animate-bob">
+        <span>
           <Lulu size={64} />
         </span>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
