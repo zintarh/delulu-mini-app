@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, Download, FileText, MessageCircle, Plus, X } from "lucide-react";
+import { Camera, FileText, MessageCircle, Plus, X } from "lucide-react";
 import {
   Bolt,
   CheckDot,
@@ -13,7 +13,6 @@ import {
   Medal,
   Trophy,
   gameButtonClass,
-  GameButton,
 } from "@/components/ds";
 import { Wordmark } from "@/components/wordmark";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
@@ -43,7 +42,7 @@ function Pill({ children, className }: { children: React.ReactNode; className?: 
 const revealDelay = (seconds: number) => ({ "--reveal-delay": `${seconds}s` }) as React.CSSProperties;
 
 /* ---------------------------------------------------------------- header */
-export function LandingHeader({ onInstall, signedIn = false }: { onInstall: () => void; signedIn?: boolean }) {
+export function LandingHeader({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <header data-reveal="down" className="reveal sticky top-0 z-30 bg-paper/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-3 sm:px-6">
@@ -56,11 +55,9 @@ export function LandingHeader({ onInstall, signedIn = false }: { onInstall: () =
           <a href="#faq" className="no-underline hover:text-ink">FAQ</a>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href={signedIn ? APP_HOME : "/sign-in"} target="_blank" rel="noopener noreferrer" className="px-1.5 py-2.5 font-bold no-underline max-sm:hidden">App</Link>
-          <GameButton size="sm" onClick={onInstall}>
-            <Download className="h-4 w-4" strokeWidth={2.6} />
-            Install
-          </GameButton>
+          <Link href={signedIn ? APP_HOME : "/sign-in"} className={gameButtonClass({ size: "sm" })}>
+            {signedIn ? "Open app" : "Start now"}
+          </Link>
         </div>
       </div>
     </header>
@@ -68,7 +65,7 @@ export function LandingHeader({ onInstall, signedIn = false }: { onInstall: () =
 }
 
 /* ---------------------------------------------------------------- hero (text side) */
-export function HeroCopy({ onInstall }: { onInstall: () => void }) {
+export function HeroCopy() {
   return (
     <div className="flex min-w-0 flex-[1_1_500px] flex-col gap-[26px]">
       <span className="animate-rise self-start">
@@ -96,10 +93,6 @@ export function HeroCopy({ onInstall }: { onInstall: () => void }) {
         <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
           Start now
         </Link>
-        <GameButton variant="line" size="lg" onClick={onInstall}>
-          <Download className="h-5 w-5" strokeWidth={2.6} />
-          Install app
-        </GameButton>
       </div>
     </div>
   );
@@ -179,7 +172,7 @@ export function ProblemSection() {
 }
 
 /* ---------------------------------------------------------------- two ways to play */
-export function TwoWaysSection({ onInstall }: { onInstall: () => void }) {
+export function TwoWaysSection() {
   const row = (t: string) => (
     <div className="flex items-center gap-3">
       <CheckDot size={26} />
@@ -248,9 +241,9 @@ export function TwoWaysSection({ onInstall }: { onInstall: () => void }) {
               {row("Join challenges with cash prizes")}
               {row("Free daily money after a quick face check")}
             </div>
-            <GameButton variant="ink" full className="mt-auto" onClick={onInstall}>
-              Get the app
-            </GameButton>
+            <Link href="/sign-in" className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto" })}>
+              Start now
+            </Link>
           </div>
         </div>
       </div>
@@ -454,7 +447,7 @@ export function FaqSection() {
 }
 
 /* ---------------------------------------------------------------- final CTA */
-export function FinalCta({ onInstall }: { onInstall: () => void }) {
+export function FinalCta() {
   return (
     <section className="mx-auto max-w-[1240px] px-6 py-[110px]">
       <div data-reveal="pop" className="reveal relative flex flex-wrap items-center justify-between gap-8 overflow-hidden rounded-[36px] bg-ink px-[clamp(24px,6vw,72px)] py-[clamp(40px,6vw,80px)] text-white shadow-[0_10px_0_#000]">
@@ -478,10 +471,6 @@ export function FinalCta({ onInstall }: { onInstall: () => void }) {
             <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
               Start now
             </Link>
-            <GameButton variant="ghost-dark" size="lg" onClick={onInstall}>
-              <Download className="h-5 w-5" strokeWidth={2.6} />
-              Install app
-            </GameButton>
           </div>
         </div>
         <span className="relative inline-flex animate-bob">
@@ -526,15 +515,3 @@ export function LandingFooter() {
     </footer>
   );
 }
-
-/* ---------------------------------------------------------------- sticky mobile CTA */
-export function MobileStartBar() {
-  return (
-    <div className="fixed inset-x-3 bottom-3 z-40 animate-rise [animation-delay:.6s] sm:hidden">
-      <Link href="/sign-in" className={gameButtonClass({ full: true, className: "h-14" })}>
-        Start now
-      </Link>
-    </div>
-  );
-}
-
