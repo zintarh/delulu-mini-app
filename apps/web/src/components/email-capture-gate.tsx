@@ -14,6 +14,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
+import { useIntroShowing } from "@/lib/app-intro";
 
 const DISMISS_KEY = "delulu_email_prompt_dismissed_v1";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,6 +65,8 @@ export function EmailCaptureGate() {
   const updateProfile = useUserStore((s) => s.updateProfile);
 
   const [profile, setProfile] = useState<ProfileRow | undefined>(undefined);
+  // Wait for the first-run intro rather than stacking on it.
+  const introShowing = useIntroShowing();
   const [open, setOpen] = useState(false);
   const [localDismissed, setLocalDismissed] = useState(false);
   const [input, setInput] = useState("");
@@ -230,7 +233,7 @@ export function EmailCaptureGate() {
 
   return (
     <Modal
-      open={open}
+      open={open && !introShowing}
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setOpen(true);

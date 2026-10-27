@@ -70,6 +70,10 @@ const RewardsClaimBanner = dynamic(
     ),
   { ssr: false },
 );
+const AppIntro = dynamic(
+  () => import("@/components/app-intro").then((m) => m.AppIntro),
+  { ssr: false },
+);
 const OnboardingGiftModal = dynamic(
   () =>
     import("@/components/onboarding-gift-modal").then(
@@ -264,6 +268,8 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <NoGasBanner />
           <EnableNotificationsBanner />
           <RewardsClaimBanner />
+          {/* First-run intro goes first; the gift and email modals wait for it. */}
+          <AppIntro />
           <OnboardingGiftModal />
 
           <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
