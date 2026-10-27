@@ -14,20 +14,22 @@ export const homeCampaignKeys = {
     section: HomeCampaignFeedSection,
     address: string,
     sort: HomeCampaignsFeedSort = "participants",
-  ) => ["home", "campaigns", section, address, sort] as const,
+    limit = 3,
+  ) => ["home", "campaigns", section, address, sort, limit] as const,
 };
 
 async function fetchFeedPage(
   section: HomeCampaignFeedSection,
   address: string,
   sort: HomeCampaignsFeedSort,
+  limit: number,
   cursor?: string,
 ): Promise<{ campaigns: CommunityCampaignFeedItem[]; nextCursor: string | null }> {
   const params = new URLSearchParams({
     address,
     section,
     sort,
-    limit: "3",
+    limit: String(limit),
   });
   if (cursor) params.set("cursor", cursor);
 
@@ -44,6 +46,7 @@ export function useHomeCampaignsFeed(
   section: HomeCampaignFeedSection,
   address: string | undefined,
   sort: HomeCampaignsFeedSort = "participants",
+  limit = 3,
 ) {
   const queryClient = useQueryClient();
 
@@ -60,9 +63,9 @@ export function useHomeCampaignsFeed(
   }, [queryClient]);
 
   return useInfiniteQuery({
-    queryKey: homeCampaignKeys.feed(section, address ?? "", sort),
+    queryKey: homeCampaignKeys.feed(section, address ?? "", sort, limit),
     queryFn: ({ pageParam }) =>
-      fetchFeedPage(section, address!, sort, pageParam as string | undefined),
+      fetchFeedPage(section, address!, sort, limit, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(address),

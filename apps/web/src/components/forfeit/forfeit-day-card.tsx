@@ -74,7 +74,6 @@ function playProveClickSound() {
     osc.start();
     osc.stop(ctx.currentTime + 0.1);
   } catch {
-    // Not critical to the submit flow — ignore playback failures.
   }
 }
 
@@ -84,11 +83,8 @@ type DayItem = {
   key: string;
   role: "creator" | "verifier" | "destination";
   forfeit: ForfeitFeedItem;
-  /** On-chain period used for proof submit / lookup. */
   periodIndex: number;
-  /** 0-based day in the forfeit calendar (for "Day X of Y"). */
   calendarPeriodIndex: number;
-  /** Calendar day this slot belongs to (local midnight). */
   dayDate: Date;
   periodDeadline: Date;
   period: ForfeitPeriodSnapshot | null;
@@ -148,10 +144,7 @@ function periodForIndex(
   return null;
 }
 
-/**
- * Expand a forfeit onto consecutive calendar days starting from the create day.
- * Shared schedule math keeps create → on-chain → day card aligned.
- */
+
 function expandForfeitDays(
   forfeit: ForfeitFeedItem,
   role: "creator" | "verifier" | "destination",
@@ -168,11 +161,7 @@ function expandForfeitDays(
     ),
     periodSeconds: periodSecondsFor(forfeit),
     isRepeating,
-    // Once confirmed inactive (resolved early, forfeited, or cancelled via
-    // Discontinue), buildForfeitCalendarSlots itself caps slot generation at
-    // the period the commitment actually stopped on — a repeating forfeit
-    // cancelled on day 3 of 365 must not keep surfacing days 4 through 365
-    // as if still live, no matter how much later this is viewed.
+    
     commitmentActiveOnChain: forfeit.onChain?.active,
   });
 
@@ -331,9 +320,7 @@ function ForfeitTaskCard({
   const isPendingSync = item.id.startsWith("pending:");
   const proveButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Ticks the countdown forward once a minute while this day is still open —
-  // matches HomeStakesHero's cadence, no per-second precision needed for a
-  // list card.
+  
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 60_000);
@@ -348,12 +335,7 @@ function ForfeitTaskCard({
   const outcome = periodOutcome(day);
 
   const action = (() => {
-    // A confirmed win gets its own status pill (below) instead of the
-    // generic "View proof" link, so a completed day is visually unmistakable
-    // from an in-progress one rather than looking identical minus the color
-    // of one line of text.
     if (outcome === "won") return null;
-
     if (isPendingSync) {
       return (
         <span
@@ -783,10 +765,16 @@ export function ForfeitDayCard({
   address,
   className,
   showCreateWhenEmpty = true,
+  hideEmptyState = false,
+  onEmptyChange,
 }: {
   address: string | undefined;
   className?: string;
   showCreateWhenEmpty?: boolean;
+  /** Render nothing when there are no forfeits at all (Home fills the space with campaigns). */
+  hideEmptyState?: boolean;
+  /** Reports, once loaded, whether there are no forfeits at all. */
+  onEmptyChange?: (_empty: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const { data: creatorData, isLoading: creatorLoading } =
@@ -850,6 +838,11 @@ export function ForfeitDayCard({
   }, [creatorData, verifierData, destinationData, optimisticItem]);
 
   const dayBuckets = useMemo(() => groupIntoDayBuckets(items), [items]);
+
+  const isEmpty = dayBuckets.length === 0;
+  useEffect(() => {
+    if (!isLoading) onEmptyChange?.(isEmpty);
+  }, [isLoading, isEmpty, onEmptyChange]);
 
   // Navigation is over the calendar itself, not just days that have a
   // forfeit — the arrows can land on an empty day and just show that state.
@@ -962,6 +955,7 @@ export function ForfeitDayCard({
   // No forfeits anywhere, ever — nothing to browse, so skip the date chrome
   // entirely and just show the create CTA.
   if (dayBuckets.length === 0) {
+    if (hideEmptyState) return null;
     return (
       <section className={cn(className)}>
         {showCreateWhenEmpty ? (

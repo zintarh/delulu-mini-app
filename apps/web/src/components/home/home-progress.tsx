@@ -49,7 +49,10 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
   return (
     <div className="animate-rise">
       <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">
-        {greetingFor()}, {name.charAt(0).toUpperCase() + name.slice(1)}
+        {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
+        {name
+          ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
+          : `Good ${greetingFor().toLowerCase()}`}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">{sub}</p>
     </div>

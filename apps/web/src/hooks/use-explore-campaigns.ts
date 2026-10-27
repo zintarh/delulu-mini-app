@@ -53,6 +53,7 @@ export function useExploreCampaigns(
   address?: string,
   sort: ExploreCampaignsSort = "participants",
   filters?: ExploreCampaignsFilters,
+  enabled = true,
 ) {
   const queryClient = useQueryClient();
 
@@ -74,6 +75,7 @@ export function useExploreCampaigns(
       fetchActivePage(address, sort, filters, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled,
     staleTime: 60 * 1000,
     refetchOnMount: true,
   });
