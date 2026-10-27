@@ -856,3 +856,78 @@ textarea {
 .lulu-rain { animation: lulu-rain 1.2s linear infinite; transform-box: fill-box; }
 .lulu-drift { animation: lulu-drift 4s ease-in-out infinite; }
 .lulu-shiver { animation: lulu-shiver 2.6s linear infinite; }
+
+/* Lulu, alive (components/ds/art.tsx). Only on .lu-a — still Lulus (logos, icons) never move.
+   Reduced motion is handled by the global prefers-reduced-motion rule above. */
+.lu-a .lu-move, .lu-a .lu-shadow, .lu-a .lu-body, .lu-a .lu-eyes, .lu-a .lu-pupils,
+.lu-a .lu-sprout, .lu-a .lu-wave, .lu-a .lu-fx, .lu-a .lu-sweat, .lu-a .lu-tear1, .lu-a .lu-tear2 {
+  transform-box: fill-box;
+}
+.lu-a .lu-move { transform-origin: 50% 100%; }
+.lu-a .lu-shadow { transform-origin: 50% 50%; animation: lu-shadow 2.4s ease-in-out infinite; }
+.lu-a .lu-body { transform-origin: 50% 100%; animation: lu-breathe 2.4s ease-in-out infinite; }
+.lu-a .lu-eyes { transform-origin: 50% 50%; animation: lu-blink 4.2s ease-in-out infinite; }
+.lu-a .lu-pupils { animation: lu-look 6s ease-in-out infinite; }
+.lu-a .lu-sprout { transform-origin: 0% 100%; animation: lu-sprout 3s ease-in-out infinite; }
+.lu-a .lu-wave { transform-origin: 25% 92%; animation: lu-wave 1.1s ease-in-out infinite; }
+.lu-a .lu-fx { transform-origin: 50% 50%; }
+
+.lu-a.lu-m-dream .lu-move { animation: lu-bob 2.4s ease-in-out infinite; }
+.lu-a.lu-m-kept .lu-move { animation: lu-hop 1.3s cubic-bezier(.3,.7,.4,1) infinite; }
+.lu-a.lu-m-kept .lu-shadow { animation: lu-shadow-hop 1.3s cubic-bezier(.3,.7,.4,1) infinite; }
+.lu-a.lu-m-worried .lu-move { animation: lu-nervous 2.2s linear infinite; }
+.lu-a.lu-m-worried .lu-pupils { animation: lu-dart 2.2s steps(1) infinite; }
+.lu-a.lu-m-gloomy .lu-move { animation: lu-droop 4.2s ease-in-out infinite; }
+.lu-a.lu-m-gloomy .lu-eyes { animation: lu-blink 6.5s ease-in-out infinite; }
+.lu-a.lu-m-sad .lu-move { animation: lu-droop 3.4s ease-in-out infinite; }
+.lu-a.lu-m-sad .lu-eyes { animation: lu-blink 6s ease-in-out infinite; }
+.lu-a.lu-m-storm .lu-move { animation: lu-nervous 2.6s linear infinite; }
+.lu-a.lu-m-storm .lu-sprout { animation: none; }
+
+.lu-a .lu-float1 { animation: lu-float 2.8s ease-out infinite; }
+.lu-a .lu-float2 { animation: lu-float 2.8s ease-out 1.4s infinite; }
+.lu-a .lu-tw1 { animation: lu-twinkle 1.3s ease-in-out infinite; }
+.lu-a .lu-tw2 { animation: lu-twinkle 1.3s ease-in-out .45s infinite; }
+.lu-a .lu-tw3 { animation: lu-twinkle 1.3s ease-in-out .9s infinite; }
+.lu-a .lu-sweat { animation: lu-sweat 2.2s ease-in infinite; }
+.lu-a .lu-tear1 { animation: lu-tear 1.9s ease-in infinite; }
+.lu-a .lu-tear2 { animation: lu-tear 1.9s ease-in .95s infinite; }
+
+@keyframes lu-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes lu-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes lu-shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.88); opacity: .7; } }
+@keyframes lu-hop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  12% { transform: translateY(0) scale(1.08, .9); }
+  38% { transform: translateY(-30px) scale(.95, 1.06); }
+  62% { transform: translateY(0) scale(1.07, .92); }
+  76% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes lu-shadow-hop { 0%, 12%, 62%, 100% { transform: scale(1); opacity: 1; } 38% { transform: scale(.6); opacity: .35; } }
+/* Short bursts with rests, so it reads as nervous/cold rather than broken. */
+@keyframes lu-nervous {
+  0%, 34%, 100% { transform: translateX(0); }
+  4% { transform: translateX(-2.5px); } 8% { transform: translateX(2.5px); } 12% { transform: translateX(-2px); }
+  16% { transform: translateX(2px); } 20% { transform: translateX(-1.5px); } 24% { transform: translateX(1.5px); }
+}
+@keyframes lu-droop { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(4px) rotate(-2.5deg); } }
+@keyframes lu-blink { 0%, 90%, 100% { transform: scaleY(1); } 93% { transform: scaleY(.08); } 96% { transform: scaleY(1); } }
+@keyframes lu-look {
+  0%, 25% { transform: translate(0, 0); } 35%, 55% { transform: translate(5px, 1px); }
+  65%, 85% { transform: translate(-5px, 2px); } 95%, 100% { transform: translate(0, 0); }
+}
+@keyframes lu-dart { 0% { transform: translate(-4px, 0); } 30% { transform: translate(4px, 0); } 60% { transform: translate(-3px, 1px); } 80% { transform: translate(3px, 1px); } }
+@keyframes lu-sprout { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(7deg); } }
+@keyframes lu-wave { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(22deg); } }
+@keyframes lu-float { 0% { transform: translateY(8px) scale(.6); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-46px) scale(1); opacity: 0; } }
+@keyframes lu-twinkle { 0%, 100% { transform: scale(.3) rotate(0deg); opacity: 0; } 50% { transform: scale(1) rotate(20deg); opacity: 1; } }
+@keyframes lu-sweat { 0%, 20% { transform: translateY(0); opacity: 0; } 35% { opacity: 1; } 90% { transform: translateY(16px); opacity: 1; } 100% { transform: translateY(20px); opacity: 0; } }
+@keyframes lu-tear { 0% { transform: translateY(0) scale(.7); opacity: 0; } 15% { opacity: 1; transform: translateY(0) scale(1); } 85% { transform: translateY(40px); opacity: 1; } 100% { transform: translateY(46px); opacity: 0; } }
+
+/* Lulu on dark backgrounds: a light sticker edge so the ink outline doesn't vanish. */
+.lu-sticker {
+  filter: drop-shadow(2px 0 0 #f7f7f4) drop-shadow(-2px 0 0 #f7f7f4) drop-shadow(0 2px 0 #f7f7f4) drop-shadow(0 -2px 0 #f7f7f4);
+}
+.lu-sticker-sm {
+  filter: drop-shadow(1px 0 0 #f7f7f4) drop-shadow(-1px 0 0 #f7f7f4) drop-shadow(0 1px 0 #f7f7f4) drop-shadow(0 -1px 0 #f7f7f4);
+}

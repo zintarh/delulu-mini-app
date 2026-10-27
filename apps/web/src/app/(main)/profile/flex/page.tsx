@@ -147,7 +147,7 @@ export default function FlexCardPage() {
           >
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Lulu size={24} />
+                <Lulu size={24} className={t.bg === "#161615" ? "lu-sticker-sm" : undefined} />
                 <span className="font-brand text-xl font-bold">delulu</span>
               </span>
               <span className="label-mono text-[10px]" style={{ color: t.sub }}>

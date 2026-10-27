@@ -18,7 +18,7 @@ const CHIP = "rounded-full border-2 border-line bg-white px-3 py-1.5 text-sm fon
 function SayItArt() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <span className="animate-bob">
+      <span>
         <Lulu size={96} />
       </span>
       <div className="flex flex-wrap justify-center gap-2">
@@ -33,7 +33,7 @@ function SayItArt() {
 function StakeItArt() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <span className="animate-bob">
+      <span>
         <Lulu size={96} mood="worried" />
       </span>
       <div className="flex items-center gap-2 rounded-2xl border-2 border-yellow-line bg-yellow-soft px-4 py-2 shadow-edge-yellow-line">
@@ -47,8 +47,8 @@ function StakeItArt() {
 function ProveItArt() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <span className="animate-bob">
-        <Lulu size={96} mood="kept" />
+      <span>
+        <Lulu size={96} mood="kept" wave />
       </span>
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-soft">

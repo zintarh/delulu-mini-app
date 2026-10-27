@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { luluSvgDataUri } from "@/lib/brand/lulu-svg";
 
 export const runtime = "edge";
 export const alt = "Delulu — Build habits you can't skip";
@@ -20,21 +21,34 @@ export default function Image() {
           justifyContent: "space-between",
           padding: "64px 80px",
           fontFamily: "sans-serif",
+          position: "relative",
         }}
       >
+        {/* Lulu on a sun on the right */}
+        <div
+          style={{
+            position: "absolute",
+            right: -90,
+            top: 70,
+            width: 520,
+            height: 520,
+            borderRadius: 999,
+            background: "#F6C324",
+            display: "flex",
+          }}
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse needs a plain img */}
+        <img
+          src={luluSvgDataUri()}
+          width={380}
+          height={380}
+          alt=""
+          style={{ position: "absolute", right: 30, top: 150 }}
+        />
         {/* Top — Lulu + wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <path d="M30 11.5q3-7 10-5" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
-            <circle cx="32" cy="35" r="23.5" fill="#F6C324" stroke={INK} strokeWidth="3" />
-            <circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" />
-            <circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" />
-            <ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
-            <ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
-            <circle cx="26.2" cy="27.6" r="2.7" fill={INK} />
-            <circle cx="40.2" cy="27.6" r="2.7" fill={INK} />
-            <path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse needs a plain img */}
+          <img src={luluSvgDataUri()} width={72} height={72} alt="" />
           <span style={{ fontSize: 44, fontWeight: 800, color: INK, letterSpacing: "-0.02em" }}>delulu</span>
         </div>
 
@@ -49,6 +63,7 @@ export default function Image() {
               lineHeight: 1,
               margin: 0,
               textTransform: "uppercase",
+              maxWidth: 680,
             }}
           >
             Build habits you can&apos;t skip.

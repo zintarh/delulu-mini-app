@@ -1,3 +1,6 @@
+"use client";
+
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,83 +18,244 @@ const INK = "#161615";
 
 export type LuluMood = "dream" | "kept" | "worried" | "gloomy" | "sad" | "storm";
 
-/** Lulu — the Delulu mascot and logo mark. */
+/** Path of Lulu's body (viewBox units); shared by the fill and the shading layer. */
+const LULU_BODY = "M120 44C180 44 216 92 216 150C216 206 176 240 120 240C64 240 24 206 24 150C24 92 60 44 120 44Z";
+
+/**
+ * Lulu — the Delulu mascot and logo mark: a little character with depth,
+ * arms, feet and a sprout (the habit that's growing). `animated` brings the
+ * mood to life — blinks, glances, breathing, plus a per-mood move (hop when
+ * kept, shiver when worried, tears when sad); see the `lu-*` rules in
+ * globals.css. Defaults to animating at mascot sizes (64px+) and staying
+ * still as a logo/icon. Tiny sizes get bolder strokes so it stays crisp.
+ */
 export function Lulu({
   size = 40,
   mood = "dream",
+  animated,
+  wave = false,
   className,
   label,
-}: ArtProps & { mood?: LuluMood }) {
+}: ArtProps & { mood?: LuluMood; animated?: boolean; wave?: boolean }) {
+  const uid = useId().replace(/:/g, "");
+  const id = (name: string) => `lu-${name}-${uid}`;
+  const url = (name: string) => `url(#${id(name)})`;
+  const live = animated ?? size >= 64;
+  // Strokes are in a 266-unit box: thicken them as Lulu shrinks so lines never go hairline.
+  const k = size <= 32 ? 2.1 : size <= 48 ? 1.6 : size <= 72 ? 1.2 : 1;
+  const sw = (w: number) => w * k;
+  const fx = live && size >= 64;
+  const frosty = mood === "storm";
+  const eyeWhite = (cx: number, cy: number, rx: number, ry: number) => (
+    <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={url("eye")} stroke={INK} strokeWidth={sw(3.5)} />
+  );
+  const star = (d: string, fill: string, cls: string) => (
+    <path className={cn("lu-fx", cls)} d={d} fill={fill} stroke={INK} strokeWidth={sw(2.3)} strokeLinejoin="round" />
+  );
+
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" className={cn("shrink-0", className)} {...a11y(label)}>
-      <path d="M30 11.5q3-7 10-5" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
-      {/* Out in the cold for a week: the yellow fades to a frosty straw. */}
-      <circle cx="32" cy="35" r="23.5" fill={mood === "storm" ? "#E4DCB2" : "#F6C324"} stroke={INK} strokeWidth="3" />
-      {mood === "storm" ? (
-        <path d="M14 30l3 1.5M15 37l3-.5M47 29l3-1.5M46 37l3 .5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      ) : (
+    <svg
+      width={size}
+      height={size}
+      viewBox="-13 -6 266 266"
+      className={cn("shrink-0 overflow-visible", live && "lu-a", `lu-m-${mood}`, className)}
+      {...a11y(label)}
+    >
+      <defs>
+        <radialGradient id={id("body")} cx="0.36" cy="0.28" r="0.82">
+          {frosty ? (
+            <>
+              <stop offset="0" stopColor="#FFFBEA" />
+              <stop offset="0.5" stopColor="#ECE4BC" />
+              <stop offset="1" stopColor="#B8AC72" />
+            </>
+          ) : (
+            <>
+              <stop offset="0" stopColor="#FFF3B8" />
+              <stop offset="0.32" stopColor="#FFDA4D" />
+              <stop offset="0.68" stopColor="#F6C324" />
+              <stop offset="1" stopColor="#D08F04" />
+            </>
+          )}
+        </radialGradient>
+        <radialGradient id={id("shade")} cx="0.42" cy="0.38" r="0.66">
+          <stop offset="0.72" stopColor="#9A5B00" stopOpacity="0" />
+          <stop offset="1" stopColor="#9A5B00" stopOpacity="0.32" />
+        </radialGradient>
+        <radialGradient id={id("limb")} cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor={frosty ? "#F6F0D2" : "#FFE47E"} />
+          <stop offset="1" stopColor={frosty ? "#C2B681" : "#DFA00A"} />
+        </radialGradient>
+        <linearGradient id={id("foot")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={frosty ? "#DCD2A0" : "#F3B51E"} />
+          <stop offset="1" stopColor={frosty ? "#AFA36A" : "#C08404"} />
+        </linearGradient>
+        <radialGradient id={id("eye")} cx="0.42" cy="0.32" r="0.75">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#E7E6DE" />
+        </radialGradient>
+        <radialGradient id={id("iris")} cx="0.38" cy="0.32" r="0.7">
+          <stop offset="0" stopColor="#6B4515" />
+          <stop offset="0.55" stopColor="#2A1A08" />
+          <stop offset="1" stopColor={INK} />
+        </radialGradient>
+        <radialGradient id={id("blush")} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#F48FA8" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#F48FA8" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={id("leaf")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={frosty ? "#B9D8C4" : "#6EDC9C"} />
+          <stop offset="1" stopColor={frosty ? "#6E9C80" : "#1F9A5B"} />
+        </linearGradient>
+        <radialGradient id={id("ground")} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor={INK} stopOpacity="0.24" />
+          <stop offset="1" stopColor={INK} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={id("water")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F2FAFF" />
+          <stop offset="1" stopColor="#8FD0FF" />
+        </linearGradient>
+      </defs>
+
+      <ellipse className="lu-shadow" cx="120" cy="250" rx="78" ry="9" fill={url("ground")} />
+
+      <g className="lu-move">
+        <ellipse cx="90" cy="236" rx="24" ry="13" fill={url("foot")} stroke={INK} strokeWidth={sw(3.5)} />
+        <ellipse cx="150" cy="236" rx="24" ry="13" fill={url("foot")} stroke={INK} strokeWidth={sw(3.5)} />
+
+        <g className="lu-body">
+          <ellipse cx="36" cy="164" rx="15" ry="25" transform="rotate(24 36 164)" fill={url("limb")} stroke={INK} strokeWidth={sw(3.5)} />
+          {wave ? (
+            <g className="lu-wave">
+              <ellipse cx="212" cy="104" rx="15" ry="26" transform="rotate(-32 212 104)" fill={url("limb")} stroke={INK} strokeWidth={sw(3.5)} />
+            </g>
+          ) : (
+            <ellipse cx="204" cy="164" rx="15" ry="25" transform="rotate(-24 204 164)" fill={url("limb")} stroke={INK} strokeWidth={sw(3.5)} />
+          )}
+
+          <path d={LULU_BODY} fill={url("body")} stroke={INK} strokeWidth={sw(4)} />
+          <path d={LULU_BODY} fill={url("shade")} />
+          <ellipse cx="82" cy="88" rx="30" ry="16" transform="rotate(-28 82 88)" fill="#FFFFFF" opacity="0.5" />
+          {size > 32 ? (
+            <>
+              <ellipse cx="60" cy="116" rx="6" ry="4" transform="rotate(-28 60 116)" fill="#FFFFFF" opacity="0.45" />
+              <path d="M176 206q-18 18-44 22" fill="none" stroke="#FFF3B8" strokeWidth="4" strokeLinecap="round" opacity="0.55" />
+            </>
+          ) : null}
+
+          <g className="lu-sprout">
+            <path d="M118 46C114 30 120 16 134 12" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+            <path d="M134 12C142 0 162 -1 170 8C162 20 146 22 134 12Z" fill={url("leaf")} stroke={INK} strokeWidth={sw(3)} strokeLinejoin="round" />
+          </g>
+
+          {frosty ? (
+            <path d="M44 150l12 4M46 168l12-2M196 150l-12 4M194 168l-12-2" stroke="#FFFFFF" strokeWidth={sw(3.5)} strokeLinecap="round" />
+          ) : mood !== "sad" ? (
+            <>
+              <circle cx="64" cy="166" r="17" fill={url("blush")} />
+              <circle cx="176" cy="166" r="17" fill={url("blush")} />
+            </>
+          ) : null}
+
+          {mood === "dream" && (
+            <>
+              <path d="M78 100q14-8 28-2M134 98q14-6 28 2" fill="none" stroke={INK} strokeWidth={sw(4)} strokeLinecap="round" />
+              <g className="lu-eyes">
+                {eyeWhite(94, 132, 18, 23)}
+                {eyeWhite(146, 132, 18, 23)}
+                <g className="lu-pupils">
+                  <circle cx="97" cy="122" r="11" fill={url("iris")} />
+                  <circle cx="149" cy="122" r="11" fill={url("iris")} />
+                  <circle cx="101" cy="117" r="4.2" fill="#FFFFFF" />
+                  <circle cx="153" cy="117" r="4.2" fill="#FFFFFF" />
+                </g>
+              </g>
+              <path d="M106 172q14 13 28 0" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+            </>
+          )}
+
+          {mood === "kept" && (
+            <>
+              <path d="M78 96q14-12 28-4M134 92q14-8 28 4" fill="none" stroke={INK} strokeWidth={sw(4)} strokeLinecap="round" />
+              <path d="M76 138q18-20 36 0M128 138q18-20 36 0" fill="none" stroke={INK} strokeWidth={sw(5.5)} strokeLinecap="round" />
+              <path d="M98 160h44q-2 30-22 30t-22-30z" fill="#3A1306" stroke={INK} strokeWidth={sw(3.5)} strokeLinejoin="round" />
+              <path d="M106 179q14-10 28 0q-4 10-14 10t-14-10z" fill="#F28B8B" />
+              <path d="M103 162h34" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+            </>
+          )}
+
+          {mood === "worried" && (
+            <>
+              <path d="M76 110l24-10M164 110l-24-10" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+              <g className="lu-eyes">
+                {eyeWhite(94, 136, 17, 21)}
+                {eyeWhite(146, 136, 17, 21)}
+                <g className="lu-pupils">
+                  <circle cx="94" cy="140" r="8" fill={url("iris")} />
+                  <circle cx="146" cy="140" r="8" fill={url("iris")} />
+                  <circle cx="96.5" cy="137" r="3" fill="#FFFFFF" />
+                  <circle cx="148.5" cy="137" r="3" fill="#FFFFFF" />
+                </g>
+              </g>
+              <path d="M104 182q8-8 16 0t16 0" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+              {fx ? <path className="lu-sweat" d="M180 96q-8 12 0 17q8-5 0-17z" fill={url("water")} stroke={INK} strokeWidth={sw(2.5)} strokeLinejoin="round" /> : null}
+            </>
+          )}
+
+          {mood === "gloomy" && (
+            <>
+              <g className="lu-eyes">
+                {eyeWhite(94, 138, 17, 18)}
+                {eyeWhite(146, 138, 17, 18)}
+                <circle cx="94" cy="144" r="8.5" fill={url("iris")} />
+                <circle cx="146" cy="144" r="8.5" fill={url("iris")} />
+                {/* Heavy lids */}
+                <path d="M76 138a18 18 0 0 1 36 0zM128 138a18 18 0 0 1 36 0z" fill={url("limb")} stroke={INK} strokeWidth={sw(3.5)} strokeLinejoin="round" />
+              </g>
+              <path d="M106 182h28" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+            </>
+          )}
+
+          {mood === "sad" && (
+            <>
+              <path d="M76 116l24-12M164 116l-24-12" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+              <g className="lu-eyes">
+                {eyeWhite(94, 140, 16, 19)}
+                {eyeWhite(146, 140, 16, 19)}
+                <circle cx="94" cy="147" r="9.5" fill={url("iris")} />
+                <circle cx="146" cy="147" r="9.5" fill={url("iris")} />
+                <circle cx="97" cy="143" r="3.4" fill="#FFFFFF" />
+                <circle cx="149" cy="143" r="3.4" fill="#FFFFFF" />
+              </g>
+              <path className="lu-tear1" d="M82 158q-7 11 0 15q7-4 0-15z" fill={url("water")} stroke={INK} strokeWidth={sw(2.2)} strokeLinejoin="round" />
+              {fx ? <path className="lu-tear2" d="M158 158q-7 11 0 15q7-4 0-15z" fill={url("water")} stroke={INK} strokeWidth={sw(2.2)} strokeLinejoin="round" /> : null}
+              <path d="M102 194q18-16 36 0" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+            </>
+          )}
+
+          {mood === "storm" && (
+            <>
+              <path d="M76 112l24-8M164 112l-24-8" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+              <path d="M78 140q16 12 32 0M130 140q16 12 32 0" fill="none" stroke={INK} strokeWidth={sw(5)} strokeLinecap="round" />
+              <path d="M98 190l6-6 6 6 6-6 6 6 6-6 6 6 6-6" fill="none" stroke={INK} strokeWidth={sw(4)} strokeLinecap="round" strokeLinejoin="round" />
+            </>
+          )}
+        </g>
+      </g>
+
+      {fx && mood === "dream" ? (
         <>
-          <circle cx="17.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
-          <circle cx="46.5" cy="40.5" r="3" fill="#F4A3B5" opacity=".85" />
+          {star("M196 60l3 7 7 3-7 3-3 7-3-7-7-3 7-3z", "#FFFFFF", "lu-float1")}
+          {star("M40 74l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z", "#F6C324", "lu-float2")}
         </>
-      )}
-      {mood === "dream" && (
+      ) : null}
+      {fx && mood === "kept" ? (
         <>
-          <ellipse cx="25" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <ellipse cx="39" cy="31" rx="5.6" ry="7" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <circle cx="26.2" cy="27.6" r="2.7" fill={INK} />
-          <circle cx="40.2" cy="27.6" r="2.7" fill={INK} />
-          <path d="M27.5 42.5q4.5 3.6 9 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+          {star("M28 70l4 9 9 4-9 4-4 9-4-9-9-4 9-4z", "#F6C324", "lu-tw1")}
+          {star("M212 46l3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z", "#FFFFFF", "lu-tw2")}
+          {star("M222 140l3 6.5 6.5 3-6.5 3-3 6.5-3-6.5-6.5-3 6.5-3z", "#2DB36F", "lu-tw3")}
         </>
-      )}
-      {mood === "kept" && (
-        <>
-          <path d="M20.5 32q4.5-6 9 0M34.5 32q4.5-6 9 0" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
-          <path d="M25 39.5h14q-1 8-7 8t-7-8z" fill={INK} stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-          <path d="M28 44.5q4 2.2 8 0" fill="none" stroke="#F28B8B" strokeWidth="2.4" strokeLinecap="round" />
-        </>
-      )}
-      {mood === "worried" && (
-        <>
-          <ellipse cx="25" cy="32" rx="5.2" ry="6.4" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <ellipse cx="39" cy="32" rx="5.2" ry="6.4" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <circle cx="25" cy="34.6" r="2.5" fill={INK} />
-          <circle cx="39" cy="34.6" r="2.5" fill={INK} />
-          <path d="M19.5 24.5l8 2.2M44.5 24.5l-8 2.2" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M27.5 45q2.25-2.4 4.5 0t4.5 0" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
-        </>
-      )}
-      {mood === "gloomy" && (
-        <>
-          <ellipse cx="25" cy="32" rx="5.4" ry="5.8" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <ellipse cx="39" cy="32" rx="5.4" ry="5.8" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <circle cx="25" cy="34.4" r="2.4" fill={INK} />
-          <circle cx="39" cy="34.4" r="2.4" fill={INK} />
-          {/* Heavy lids */}
-          <path d="M19.2 32.4a5.8 5.8 0 0 1 11.6 0zM33.2 32.4a5.8 5.8 0 0 1 11.6 0z" fill="#F6C324" stroke={INK} strokeWidth="2.6" strokeLinejoin="round" />
-          <path d="M27.5 45.5h9" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
-        </>
-      )}
-      {mood === "sad" && (
-        <>
-          <path d="M20 26.8l7-2.6M44 26.8l-7-2.6" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
-          <ellipse cx="25" cy="32.5" rx="5.2" ry="6" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <ellipse cx="39" cy="32.5" rx="5.2" ry="6" fill="#fff" stroke={INK} strokeWidth="2.6" />
-          <circle cx="25" cy="35" r="2.5" fill={INK} />
-          <circle cx="39" cy="35" r="2.5" fill={INK} />
-          {/* Tear */}
-          <path d="M20.5 40q-2.2 3.4 0 5q2.2-1.6 0-5z" fill="#fff" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M26.5 47.5q5.5-5.2 11 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
-        </>
-      )}
-      {mood === "storm" && (
-        <>
-          {/* Eyes squeezed shut, mouth wobbling */}
-          <path d="M20.5 32.5q4.5 3.6 9 0M34.5 32.5q4.5 3.6 9 0" fill="none" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
-          <path d="M20 26.5l7-2.4M44 26.5l-7-2.4" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M25.5 47.5l2.2-2.4 2.2 2.4 2.1-2.4 2.1 2.4 2.2-2.4 2.2 2.4" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </>
-      )}
+      ) : null}
     </svg>
   );
 }

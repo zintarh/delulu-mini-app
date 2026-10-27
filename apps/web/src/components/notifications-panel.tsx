@@ -170,7 +170,7 @@ function PanelContent({ onClose }: { onClose: () => void }) {
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center gap-3 px-4 text-center">
-            <span className="animate-bob">
+            <span>
               <Lulu size={64} />
             </span>
             <p className="text-sm font-semibold text-muted-foreground">Nothing here yet</p>

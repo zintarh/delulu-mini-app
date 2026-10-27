@@ -52,7 +52,7 @@ export function TryItPhone() {
       />
       <div className="absolute right-[calc(50%-230px)] top-0 z-[3]">
         <span key={stake} className="inline-block animate-bounce-in">
-          <span className="inline-block animate-bob">
+          <span className="inline-block">
             <Lulu size={104} mood={word ? "dream" : "kept"} />
           </span>
         </span>

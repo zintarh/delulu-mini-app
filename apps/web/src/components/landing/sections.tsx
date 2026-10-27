@@ -423,7 +423,7 @@ export function FaqSection() {
     <section id="faq" className="border-y-2 border-line bg-white">
       <div className="mx-auto flex max-w-[820px] flex-col gap-10 px-6 py-[110px]">
         <div className="flex flex-wrap items-center justify-center gap-[18px] text-center">
-          <span className="inline-flex animate-bob">
+          <span className="inline-flex">
             <Lulu size={72} />
           </span>
           <h2 className="reveal m-0 font-display text-[clamp(44px,5.4vw,76px)] font-extrabold uppercase leading-[0.9]">Questions?</h2>
@@ -473,8 +473,8 @@ export function FinalCta() {
             </Link>
           </div>
         </div>
-        <span className="relative inline-flex animate-bob">
-          <Lulu size={200} mood="kept" />
+        <span className="relative inline-flex">
+          <Lulu size={200} mood="kept" wave className="lu-sticker" />
         </span>
       </div>
     </section>
