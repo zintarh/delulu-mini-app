@@ -95,14 +95,9 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav — Leaderboard after New contract, Rewards immediately before Profile */
+/** Mobile bottom nav — five items so New contract sits centred. Rewards lives in the top HUD. */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
-  return [
-    ...coreNavItems(),
-    getLeaderboardNavItem(),
-    getRewardsNavItem(),
-    getProfileNavItem(authenticated),
-  ];
+  return [...coreNavItems(), getLeaderboardNavItem(), getProfileNavItem(authenticated)];
 }
 
 export function isMainNavItemActive(

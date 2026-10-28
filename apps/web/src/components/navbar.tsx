@@ -1,27 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, Gift } from "lucide-react";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { Wordmark } from "@/components/wordmark";
-import { Bolt, Coin, Flame, HudPill } from "@/components/ds";
+import { Flame, HudPill } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
-import { formatCompact, getLevel } from "@/lib/levels";
+import { getLevel } from "@/lib/levels";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { formatGAmount } from "@/lib/utils";
+import { usePendingReward } from "@/hooks/use-reward-vault";
 
 interface NavbarProps {
   onLogoutClick?: () => void;
 }
 
 /**
- * Mobile top HUD (redesign): avatar + level badge, streak, G$ balance
- * (or points before the wallet holds any G$), alerts.
+ * Mobile top HUD (redesign): avatar + level badge, streak, Rewards (gift +
+ * G$ balance, dotted when a reward is waiting), alerts. Rewards lives here
+ * rather than in the bottom nav; Leaderboard took its slot there.
  * Guests see the wordmark and the account menu (sign in).
  */
 export function Navbar({ onLogoutClick }: NavbarProps) {
@@ -34,6 +36,11 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
   const { formatted: gBalance } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const gNum = Number(gBalance ?? 0);
   const hasG = Number.isFinite(gNum) && gNum > 0;
+  const { pending } = usePendingReward(
+    authenticated ? (address as `0x${string}` | undefined) : undefined,
+    GOODDOLLAR_ADDRESSES.mainnet,
+  );
+  const rewardWaiting = pending > 0n;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full bg-paper/95 backdrop-blur-sm">
@@ -64,21 +71,18 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
                 {currentStreak}
               </HudPill>
             </Link>
-            {hasG ? (
-              <Link href="/rewards" aria-label={`${formatGAmount(gNum)} G$`}>
-                <HudPill>
-                  <Coin size={20} />
-                  {formatGAmount(gNum)}
-                </HudPill>
-              </Link>
-            ) : (
-              <Link href="/leaderboard" aria-label={`${points ?? 0} points`}>
-                <HudPill>
-                  <Bolt size={20} />
-                  {formatCompact(points ?? 0)}
-                </HudPill>
-              </Link>
-            )}
+            <Link
+              href="/rewards"
+              aria-label={`Rewards${hasG ? `, ${formatGAmount(gNum)} G$` : ""}${rewardWaiting ? ", reward waiting" : ""}`}
+            >
+              <HudPill className={hasG ? undefined : "px-[9px]"}>
+                <Gift className="h-5 w-5" strokeWidth={2.2} />
+                {hasG ? formatGAmount(gNum) : null}
+                {rewardWaiting ? (
+                  <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-paper bg-green" aria-hidden />
+                ) : null}
+              </HudPill>
+            </Link>
             <button type="button" onClick={toggleNotifications} aria-label="Notifications">
               <HudPill className="px-[9px]">
                 <Bell className="h-5 w-5" strokeWidth={2} />
