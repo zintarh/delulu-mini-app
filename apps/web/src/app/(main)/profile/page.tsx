@@ -83,7 +83,7 @@ export default function ProfilePage() {
       </Suspense>
 
       {uploadToast && (
-        <div className="fixed bottom-24 left-1/2 z-[120] -translate-x-1/2">
+        <div className="fixed bottom-24 left-[calc(50%_+_var(--desktop-sidebar-w)_/_2)] lg:bottom-6 z-[120] -translate-x-1/2">
           <div
             className={cn(
               "rounded-full border px-4 py-2 text-xs font-semibold shadow-lg",

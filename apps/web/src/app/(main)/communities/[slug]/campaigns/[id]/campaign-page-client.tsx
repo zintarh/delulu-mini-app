@@ -66,7 +66,7 @@ function CommunityCampaignDetailSkeleton() {
         ))}
       </div>
 
-      <div className="fixed inset-x-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+      <div className="fixed left-[var(--desktop-sidebar-w)] right-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
         <div className="h-14 rounded-2xl bg-muted" />
       </div>
     </div>

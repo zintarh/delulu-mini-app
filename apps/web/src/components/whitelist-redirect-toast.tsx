@@ -29,7 +29,7 @@ export function WhitelistRedirectToast() {
     <div
       role="status"
       className={cn(
-        "fixed bottom-24 left-1/2 z-[80] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
+        "fixed bottom-24 left-[calc(50%_+_var(--desktop-sidebar-w)_/_2)] lg:bottom-6 z-[80] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
         "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
         "rounded-xl border border-border bg-card px-4 py-3 shadow-lg",
         "animate-in fade-in slide-in-from-bottom-2 duration-300",

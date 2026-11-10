@@ -26,8 +26,20 @@ const BottomNav = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 shadow-[0_-6px_20px_rgba(26,26,25,0.06)]"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 lg:hidden shadow-[0_-6px_20px_rgba(26,26,25,0.06)]"
         style={{ height: "var(--mobile-bottom-nav-bar)" }}
+        aria-hidden
+      />
+    ),
+  },
+);
+const DesktopSidebar = dynamic(
+  () => import("@/components/desktop-sidebar").then((m) => m.DesktopSidebar),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="hidden h-full w-[var(--desktop-sidebar-w)] shrink-0 border-r-2 border-line bg-white lg:block"
         aria-hidden
       />
     ),
@@ -259,6 +271,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
       <LogoutSheetProvider>
       <div className="h-dvh overflow-hidden">
         <div className="flex h-dvh bg-background">
+          <DesktopSidebar />
           <ProfileLoader />
           <NotificationsPanel />
           <ClaimPanel />
@@ -272,7 +285,8 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <AppIntro />
           <OnboardingGiftModal />
 
-          <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
+          {/* relative: on desktop the HUD pins to this column, not the window */}
+          <div className="relative flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden transition-[flex] duration-300 ease-out">
             <MainAppHeader />
             <MainAppContent>{children}</MainAppContent>
             {/* Reserves space so fixed BottomNav never covers scroll content */}

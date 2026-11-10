@@ -43,7 +43,7 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
   const rewardWaiting = pending > 0n;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 w-full bg-paper/95 backdrop-blur-sm">
+    <header className="fixed inset-x-0 top-0 z-50 w-full bg-paper/95 backdrop-blur-sm lg:absolute">
       <nav className="mx-auto flex min-h-[66px] max-w-3xl items-center gap-2 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top,0px))] xl:max-w-3xl">
         {authenticated ? (
           <div className="relative shrink-0">
