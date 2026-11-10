@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const walletAddress = searchParams.get("address")?.toLowerCase();
-  if (!walletAddress) return NextResponse.json({ error: "address is required" }, { status: 400 });
+  if (!walletAddress) return NextResponse.json({ error: "Address is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

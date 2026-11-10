@@ -18,7 +18,7 @@ import { destinationLabel, formatStakeAmount } from "@/components/forfeit/forfei
 import { FORFEIT_PROOF_POINTS_LOW, forfeitProofPointsForStake } from "@/lib/dashboard/campaign-constants";
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
-import { cn } from "@/lib/utils";
+import { capitalizeFirst, cn } from "@/lib/utils";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { goalIconFor, goalTintFor } from "@/components/goal-icon";
 import { SubmitProofModal } from "@/components/submit-proof-modal";
@@ -147,7 +147,7 @@ export default function ContractDetailPage() {
 
   if (!isLoading && !item) {
     return (
-      <MainPage>
+      <MainPage className="bg-wash min-h-full">
         <div className="mx-auto flex max-w-md flex-col items-center px-5 py-20 text-center">
           <Lulu size={72} mood="worried" />
           <p className="mt-4 text-lg font-extrabold">Contract not found</p>
@@ -162,9 +162,15 @@ export default function ContractDetailPage() {
 
   const ROW = 62;
   const pathHeight = (total + 1) * ROW + 40;
+  // The zig-zag isn't symmetric for short goals (e.g. 3 days only swings right),
+  // so centre the nodes actually drawn (days + finish chest), not the raw offsets —
+  // that keeps the path lined up with the Prove today button below.
+  const usedOffsets = Array.from({ length: total + 1 }, (_, i) => OFFSETS[i % OFFSETS.length]);
+  const pathShift = (Math.min(...usedOffsets) + Math.max(...usedOffsets)) / 2;
+  const nodeX = (i: number) => OFFSETS[i % OFFSETS.length] - pathShift;
 
   return (
-    <MainPage className="flex h-full min-h-0 flex-col">
+    <MainPage className="bg-wash flex h-full min-h-0 flex-col">
       <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-5 pt-4">
         <Link href={APP_HOME} aria-label="Back" className={ICON_BUTTON_CLASS}>
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
@@ -174,7 +180,7 @@ export default function ContractDetailPage() {
           <div className="label-mono truncate text-[10px] text-muted-foreground">
             Nº {String(id).padStart(4, "0")} · {proofLabel}
           </div>
-          <div className="mt-0.5 truncate text-lg font-bold">{item?.title ?? "Loading…"}</div>
+          <div className="mt-0.5 truncate text-lg font-bold">{item?.title ? capitalizeFirst(item.title) : "Loading…"}</div>
         </div>
         <div className="relative shrink-0">
           <button type="button" aria-label="More" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} className={ICON_BUTTON_CLASS}>
@@ -216,7 +222,9 @@ export default function ContractDetailPage() {
       <div className="mx-auto mt-2 w-full max-w-3xl flex-1 overflow-y-auto scrollbar-hide">
         <div className="relative" style={{ height: pathHeight }}>
           {nodes.map((state, i) => {
-            const x = OFFSETS[i % OFFSETS.length];
+            const x = nodeX(i);
+            // Which side the "Prove today" bubble goes on follows the zig-zag, not the shift.
+            const swingsRight = OFFSETS[i % OFFSETS.length] > 0;
             const top = 20 + i * ROW;
             const isNow = state === "now";
             const common = "absolute flex items-center justify-center rounded-full font-display text-[22px] font-extrabold";
@@ -240,12 +248,12 @@ export default function ContractDetailPage() {
                   </button>
                   <span
                     className="absolute animate-bob whitespace-nowrap rounded-[14px] bg-ink px-3.5 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
-                    style={{ left: `calc(50% + ${x}px + ${x > 0 ? -196 : 50}px)`, top: top + 10 }}
+                    style={{ left: `calc(50% + ${x}px + ${swingsRight ? -196 : 50}px)`, top: top + 10 }}
                   >
                     Prove today
                     <span
                       aria-hidden
-                      className={cn("absolute top-1/2 -mt-1.5 h-3 w-3 rotate-45 bg-ink", x > 0 ? "-right-1.5" : "-left-1.5")}
+                      className={cn("absolute top-1/2 -mt-1.5 h-3 w-3 rotate-45 bg-ink", swingsRight ? "-right-1.5" : "-left-1.5")}
                     />
                   </span>
                 </div>
@@ -277,14 +285,14 @@ export default function ContractDetailPage() {
           <span
             aria-label="Finish reward"
             className="absolute flex h-16 w-[72px] -translate-x-1/2 items-center justify-center rounded-full bg-line shadow-[0_5px_0_#cfcfc8]"
-            style={{ left: `calc(50% + ${OFFSETS[total % OFFSETS.length]}px)`, top: 20 + total * ROW }}
+            style={{ left: `calc(50% + ${nodeX(total)}px)`, top: 20 + total * ROW }}
           >
             <Chest size={44} grey={chain?.active === false && keptCount < total} />
           </span>
         </div>
       </div>
 
-      <div className="border-t-2 border-line bg-paper px-5 pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
+      <div className="border-t-2 border-line/70 bg-white/55 px-5 backdrop-blur-md pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
         <div className="mx-auto max-w-md">
           {chain?.active && !todayDone ? (
             <button type="button" onClick={openProof} className={gameButtonClass({ full: true })}>

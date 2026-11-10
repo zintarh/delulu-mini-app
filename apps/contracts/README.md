@@ -34,9 +34,8 @@ pnpm verify
 - `pnpm upgrade:sepolia` / `pnpm upgrade:celo` — Run the upgrade script against Celo Sepolia / Celo mainnet
 - `pnpm verify` — Verify contracts on Celoscan/Blockscout
 - `pnpm clean` — Clean artifacts and cache
-- `pnpm typechain` — Generate TypeChain bindings
 
-For a fresh (non-upgrade) deployment, use `hardhat run scripts/deploy-delulu-v3.cjs --network <network> --config hardhat.config.cjs`. The `pnpm deploy*` scripts still point at the Hardhat Ignition sample module and are not the real deployment path for this contract.
+For a fresh (non-upgrade) deployment, use `hardhat run scripts/deploy-delulu-v3.cjs --network <network> --config hardhat.config.cjs`.
 
 ## Networks
 
@@ -85,9 +84,7 @@ scripts/               # Deployment and upgrade tooling
 ├── simulate-uups-upgrade-hardhat.cjs
 └── set-token-support.cjs
 
-ignition/modules/Lock.ts  # Unused Hardhat Ignition sample, not part of the real deploy flow
-
-hardhat.config.cjs / hardhat.config.ts  # Hardhat configuration
+hardhat.config.cjs     # Hardhat configuration
 tsconfig.json          # TypeScript configuration
 ```
 

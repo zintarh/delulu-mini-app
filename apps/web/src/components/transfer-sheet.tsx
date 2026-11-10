@@ -121,7 +121,6 @@ export function TransferSheet({
   const [tokenId, setTokenId] = useState<TokenId>("gdollar");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
@@ -240,7 +239,6 @@ export function TransferSheet({
     setTokenId("gdollar");
     setRecipient("");
     setAmount("");
-    setTxHash(undefined);
     setTxError(null);
     setDropdownOpen(false);
   }, []);
@@ -248,7 +246,6 @@ export function TransferSheet({
   const handleTransfer = useCallback(async () => {
     if (!canSubmit || !address) return;
     setTxError(null);
-    setTxHash(undefined);
     setIsPending(true);
 
     const spendAmount = amountNum;
@@ -291,7 +288,6 @@ export function TransferSheet({
       }));
       appliedOptimistic = true;
       onTransferBroadcast?.({ tokenId: spendToken, amount: spendAmount });
-      setTxHash(hash);
       setIsPending(false);
       setIsConfirming(true);
 

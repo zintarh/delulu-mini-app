@@ -1,12 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ChevronRight, Trophy } from "lucide-react";
-import { Fuse, Stamp, Ticket, Trophy as TrophyArt } from "@/components/ds";
+import { Check, Clock, Sparkles, Trophy } from "lucide-react";
+import { Stamp, Trophy as TrophyArt } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { isCampaignFunded, isCampaignExpired, getEffectiveDisplayEndsAt } from "@/lib/community/campaign-types";
 import { AvatarStack, type AvatarStackParticipant } from "@/components/ui/avatar-stack";
+import { compactStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
+import { useImageAccent } from "@/hooks/use-image-accent";
 
 export type ActiveMilestoneData = {
   milestone_id: number;
@@ -237,125 +240,63 @@ function compactAmount(n: number) {
   return n.toLocaleString("en-US");
 }
 
-/** Featured campaign (design: Campaigns.dc.html, blue card with stats and fuse). */
-export function CampaignFeaturedCard({ campaign, className }: { campaign: CampaignExploreCardData; className?: string }) {
-  const { closed, left, elapsed } = campaignTiming(campaign);
-  const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
-  return (
-    <Link
-      href={campaignHref(campaign)}
-      className={cn(
-        "block animate-rise rounded-3xl bg-[#fdf1c7] p-5 text-ink no-underline transition-transform active:scale-[0.98]",
-        className,
-      )}
-    >
-      {campaign.coverImageUrl ? (
-        <div className="relative -mx-1 -mt-1 mb-4 aspect-[2/1] overflow-hidden rounded-2xl border-2 border-white bg-white/60">
-          <Image src={campaign.coverImageUrl} alt="" fill sizes="(max-width: 640px) 100vw, 576px" className={cn("object-cover", closed && "grayscale")} unoptimized />
-        </div>
-      ) : null}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className="label-mono block truncate text-[#8a6a00]">{campaign.community?.name ?? "Campaign"}</span>
-          <div className="mt-1.5 line-clamp-2 text-[19px] font-bold">{campaign.title}</div>
-        </div>
-        {campaign.isJoined ? (
-          <Stamp tone="ink" className="bg-transparent text-[10px] shadow-none">
-            Joined
-          </Stamp>
-        ) : null}
-      </div>
-      <div className={cn("mt-5 grid gap-2", pool > 0 ? "grid-cols-3" : "grid-cols-2")}>
-        {pool > 0 ? (
-          <div>
-            <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{compactAmount(pool)}</div>
-            <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">G$ pool</div>
-          </div>
-        ) : null}
-        <div>
-          <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{campaign.participantCount}</div>
-          <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">In</div>
-        </div>
-        <div>
-          <div className="font-display text-[26px] font-extrabold uppercase leading-[0.88]">{campaign.milestoneCount}</div>
-          <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">Proofs</div>
-        </div>
-      </div>
-      <Fuse value={closed ? 1 : elapsed} light spark={false} className="mt-[18px]" />
-      <div className="mt-2 flex items-center justify-between">
-        <span className="label-mono text-[10px] text-muted-foreground">
-          {closed ? "Ended" : left === 0 ? "Ends today" : `${left ?? campaign.durationDays} days left`}
-        </span>
-        <ChevronRight className="h-4 w-4 text-[#8a6a00]/50" strokeWidth={2.5} />
-      </div>
-    </Link>
-  );
-}
+/**
+ * Grid for lists of CampaignPhotoCard (Explore, search): one column on phones,
+ * two from tablet up, so cards stay the same size and density as on Home.
+ */
+export const CAMPAIGN_CARD_GRID_CLASS = "grid grid-cols-1 gap-4 sm:grid-cols-2";
 
-const TICKET_TINTS = ["bg-yellow-soft", "bg-[#e6f3eb]", "bg-[#fdf1c7]", "bg-pink-soft"];
+/** Bold colour blocks for campaigns without a cover photo — picked per campaign so a row varies. */
+const PHOTO_FALLBACK_TINTS = ["bg-yellow", "bg-[#f7c6d9]", "bg-[#bfe6cf]", "bg-[#fdf1c7]"];
 
-/** Campaign as a ticket row (design: Campaigns.dc.html, "Open now"). */
-export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignExploreCardData; index?: number }) {
-  const { closed, left } = campaignTiming(campaign);
-  const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
-  const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
-  const meta = [campaign.community?.name, closed ? "Ended" : `${left ?? campaign.durationDays}d`].filter(Boolean).join(" · ");
-  return (
-    <Link href={campaignHref(campaign)} className="block animate-rise text-ink no-underline">
-      <Ticket
-        stubWidth={84}
-        className="press-edge shadow-[0_0_0_1px_#e6e6e0]"
-        stub={
-          <>
-            <span className="font-display text-[30px] font-extrabold uppercase leading-[0.88]">{pool > 0 ? compactAmount(pool) : stake > 0 ? compactAmount(stake) : "Free"}</span>
-            <span className="label-mono -mt-1.5 text-[9px] text-muted-foreground">
-              {pool > 0 ? "G$ pool" : stake > 0 ? "to join" : "Join"}
-            </span>
-          </>
-        }
-      >
-        <div className="flex items-center gap-3 p-3.5">
-          <span
-            className={cn(
-              "relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl",
-              TICKET_TINTS[index % TICKET_TINTS.length],
-            )}
-          >
-            {campaign.coverImageUrl ? (
-              <Image src={campaign.coverImageUrl} alt="" fill className={cn("object-cover", closed && "grayscale")} unoptimized />
-            ) : (
-              <TrophyArt size={36} />
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-bold">{campaign.title}</div>
-            <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">{meta}</div>
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" strokeWidth={2.5} />
-        </div>
-      </Ticket>
-    </Link>
-  );
+function tintFor(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return PHOTO_FALLBACK_TINTS[Math.abs(h) % PHOTO_FALLBACK_TINTS.length];
 }
 
 /**
- * Photo-first campaign card (Home): the cover fills the card and the title,
- * community and stats sit on a dark scrim over it. Without a cover it falls
- * back to a yellow card with the trophy so it still reads as a campaign.
+ * Home campaign card, styled like a fitness-app challenge: full-bleed cover,
+ * big uppercase title, and a stat strip that leads with what it costs to join
+ * and what a missed milestone costs (the campaign's own %). A time-left bar
+ * runs along the bottom edge. No cover → a bold colour block with the trophy.
  */
 export function CampaignPhotoCard({ campaign, className }: { campaign: CampaignExploreCardData; className?: string }) {
-  const { closed, left } = campaignTiming(campaign);
+  const { closed, left, elapsed } = campaignTiming(campaign);
   const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
+  const terms = getForfeitTerms(campaign);
   const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
+  const token = campaign.joinToken ?? "G$";
   const hasImage = Boolean(campaign.coverImageUrl);
-  const when = closed ? "Ended" : left === 0 ? "Ends today" : `${left ?? campaign.durationDays} days left`;
-  const price = pool > 0 ? `${compactAmount(pool)} G$ prize` : stake > 0 ? `${compactAmount(stake)} G$ to join` : "Free to join";
+  const endsToday = !closed && left === 0;
+  const when = closed ? "Ended" : endsToday ? "Ends today" : `${left ?? campaign.durationDays} days left`;
+  const cadence = campaign.proofCadence === "weekly" ? "Weekly" : "Daily";
+  const onDark = hasImage;
+
+  const stats: { value: ReactNode; label: string; warn?: boolean }[] = [
+    stake > 0
+      ? { value: compactStake(stake), label: `${token} to join` }
+      : { value: "Free", label: "To join" },
+    terms
+      ? { value: `${terms.pct}%`, label: "Lost per miss", warn: true }
+      : { value: campaign.milestoneCount || "—", label: "Proofs" },
+    {
+      value:
+        campaign.participantAvatars && campaign.participantAvatars.length > 0 ? (
+          <AvatarStack participants={campaign.participantAvatars} total={campaign.participantCount} size={22} max={3} />
+        ) : (
+          campaign.participantCount
+        ),
+      label: "Joined",
+    },
+  ];
+
   return (
     <Link
       href={campaignHref(campaign)}
       className={cn(
-        "press-edge group relative block aspect-[4/3] animate-rise overflow-hidden rounded-3xl border-2 border-line text-ink no-underline shadow-edge",
-        hasImage ? "bg-ink" : "bg-[#fdf1c7]",
+        "press-edge group relative block aspect-[4/5] animate-rise overflow-hidden rounded-3xl border-2 border-line text-ink no-underline shadow-edge",
+        hasImage ? "bg-ink" : tintFor(campaign.id),
         className,
       )}
     >
@@ -365,70 +306,203 @@ export function CampaignPhotoCard({ campaign, className }: { campaign: CampaignE
             src={campaign.coverImageUrl!}
             alt=""
             fill
-            sizes="(max-width: 640px) 85vw, 360px"
+            sizes="(max-width: 640px) 80vw, 340px"
             className={cn("object-cover transition-transform duration-500 group-hover:scale-105", closed && "grayscale")}
             unoptimized
           />
           {/* Scrim so white text reads on any photo. */}
-          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" aria-hidden />
         </>
       ) : (
-        <span className="absolute -right-3 top-6 opacity-90" aria-hidden>
-          <TrophyArt size={120} />
+        <span className="absolute -right-6 top-10 rotate-[8deg] opacity-90" aria-hidden>
+          <TrophyArt size={170} />
         </span>
       )}
 
+      {/* Tags */}
       <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            "label-mono rounded-full px-2.5 py-1 text-[10px] font-semibold",
+            onDark ? "bg-black/45 text-white backdrop-blur-sm" : "bg-white/80 text-ink",
+          )}
+        >
+          {campaign.durationDays}-day · {cadence}
+        </span>
         {campaign.isJoined ? (
           <Stamp tone="kept" className="bg-white text-[10px]">
             <Check className="h-3 w-3" strokeWidth={3} />
             Joined
           </Stamp>
-        ) : campaign.community?.name ? (
-          <span className="label-mono max-w-[60%] truncate rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-ink">
-            {campaign.community.name}
+        ) : pool > 0 ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-yellow px-2.5 py-1 text-[11px] font-extrabold text-ink shadow-[0_2px_0_#c99a0a]">
+            <Trophy className="h-3 w-3" strokeWidth={2.6} />
+            {compactAmount(pool)} G$ prize
           </span>
-        ) : (
-          <span />
-        )}
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold",
-            pool > 0 ? "bg-yellow text-ink shadow-[0_2px_0_#c99a0a]" : "bg-white/90 text-ink",
-          )}
-        >
-          {pool > 0 ? <Trophy className="h-3 w-3" strokeWidth={2.6} /> : null}
-          {price}
-        </span>
+        ) : null}
       </div>
 
-      <div className={cn("absolute inset-x-4 bottom-4", hasImage ? "text-white" : "text-ink")}>
+      <div className={cn("absolute inset-x-4 bottom-5", onDark ? "text-white" : "text-ink")}>
         <h3
           className={cn(
-            "m-0 line-clamp-2 text-[20px] font-extrabold leading-tight [text-wrap:balance]",
-            hasImage ? "text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]" : "text-ink",
+            "m-0 line-clamp-2 font-display text-[30px] font-extrabold uppercase leading-[0.92] tracking-[-0.01em] [text-wrap:balance]",
+            onDark && "[text-shadow:0_2px_12px_rgba(0,0,0,0.5)]",
           )}
         >
           {campaign.title}
         </h3>
-        <div className="mt-2 flex items-center gap-2">
-          {campaign.participantAvatars && campaign.participantAvatars.length > 0 ? (
-            <AvatarStack participants={campaign.participantAvatars} total={campaign.participantCount} size={20} />
-          ) : null}
-          <span className={cn("label-mono text-[10px]", hasImage ? "text-white/85" : "text-muted-foreground")}>
-            {campaign.participantCount > 0 ? `${campaign.participantCount} in · ` : ""}
-            {when}
-          </span>
+
+        <div
+          className={cn(
+            "mt-4 grid grid-cols-3 divide-x border-t pt-3",
+            onDark ? "divide-white/20 border-white/20" : "divide-ink/15 border-ink/15",
+          )}
+        >
+          {stats.map((s, i) => (
+            <div key={s.label} className={cn("min-w-0", i > 0 && "pl-3")}>
+              <div
+                className={cn(
+                  "flex h-[26px] items-center truncate font-display text-[26px] font-extrabold uppercase leading-none tabular-nums",
+                  s.warn && (onDark ? "text-[#ffb38a]" : "text-orange"),
+                )}
+              >
+                {s.value}
+              </div>
+              <div className={cn("label-mono mt-1 truncate text-[9px]", onDark ? "text-white/70" : "text-ink/60")}>
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
+
+        <div className={cn("label-mono mt-3 text-[10px]", endsToday ? (onDark ? "text-[#ffb38a]" : "text-orange") : onDark ? "text-white/75" : "text-ink/60")}>
+          {when}
+        </div>
+      </div>
+
+      {/* Time-left bar along the bottom edge */}
+      <div className={cn("absolute inset-x-0 bottom-0 h-1.5", onDark ? "bg-white/15" : "bg-ink/10")} aria-hidden>
+        <div
+          className={cn("h-full", endsToday ? "bg-orange" : "bg-yellow")}
+          style={{ width: `${Math.round((closed ? 1 : elapsed) * 100)}%` }}
+        />
       </div>
     </Link>
   );
 }
 
 export function CampaignPhotoCardSkeleton({ className }: { className?: string }) {
-  return <div className={cn("aspect-[4/3] animate-pulse rounded-3xl border-2 border-line bg-white", className)} />;
+  return <div className={cn("aspect-[4/5] animate-pulse rounded-3xl border-2 border-line bg-white", className)} />;
 }
 
-export function CampaignTicketRowSkeleton() {
-  return <div className="h-[92px] animate-pulse rounded-3xl border-2 border-line bg-white" />;
+/**
+ * Explore card (design: challenge-app "Race" / "For good" cards): a wide,
+ * full-bleed cover with a status chip on top, a white title with a faint
+ * money line under it, then who's in ("You + 4 others" once you've joined).
+ * The % lost per miss lives in the join modal, not here. No cover → a dark
+ * ink panel with the trophy so it still reads as a campaign.
+ */
+export function CampaignBannerCard({ campaign, className }: { campaign: CampaignExploreCardData; className?: string }) {
+  const { closed, left } = campaignTiming(campaign);
+  const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
+  const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
+  const token = campaign.joinToken ?? "G$";
+  const hasImage = Boolean(campaign.coverImageUrl);
+  const accent = useImageAccent(campaign.coverImageUrl);
+  // No milestones yet = set up but not running; the campaign page can't take joins until it has them.
+  const startingSoon = !closed && campaign.milestoneCount === 0;
+  const endsToday = !closed && !startingSoon && left === 0;
+  const status = closed
+    ? "Finished"
+    : startingSoon
+      ? "Starting soon"
+      : endsToday
+        ? "Ends today"
+        : `Ends in ${left ?? campaign.durationDays} day${(left ?? campaign.durationDays) === 1 ? "" : "s"}`;
+  // "Starting soon" keeps its yellow; every other status pill takes the photo's colour.
+  const tint = startingSoon ? null : accent;
+  const joined = campaign.participantCount;
+  const avatars = campaign.participantAvatars ?? [];
+  const others = Math.max(0, joined - (campaign.isJoined ? 1 : 0));
+  const peopleLine = campaign.isJoined
+    ? others > 0
+      ? `You + ${others.toLocaleString()} other${others === 1 ? "" : "s"}`
+      : "Just you so far"
+    : `+${joined.toLocaleString()} ${joined === 1 ? "person" : "people"}`;
+
+  return (
+    <Link
+      href={campaignHref(campaign)}
+      className={cn(
+        // min-h: chip + 2-line title + money line + people row must fit on a phone-width card.
+        // min-w-0: aspect-ratio + min-h would otherwise force a 384px minimum width and spill
+        // into the neighbouring grid column / past a narrow phone's swipe slot.
+        "group relative block aspect-[16/11] min-h-[264px] min-w-0 animate-rise overflow-hidden rounded-[32px] text-white no-underline",
+        "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
+        hasImage ? "bg-ink" : "bg-gradient-to-br from-ink-3 via-ink-2 to-ink",
+        className,
+      )}
+    >
+      {hasImage ? (
+        <Image
+          src={campaign.coverImageUrl!}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 90vw, 400px"
+          className={cn("object-cover transition-transform duration-500 group-hover:scale-105", closed && "grayscale")}
+          unoptimized
+        />
+      ) : (
+        <span className="absolute -right-4 -top-2 rotate-[10deg] opacity-90" aria-hidden>
+          <TrophyArt size={150} />
+        </span>
+      )}
+      {/* Scrim: light at the top for the chip, strong at the bottom for the text. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/5" aria-hidden />
+
+      <div className="absolute inset-x-5 top-5 flex flex-wrap items-center gap-2">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-extrabold transition-colors duration-500",
+            startingSoon ? "bg-yellow text-ink" : "bg-white text-ink",
+            endsToday && !tint && "text-orange",
+          )}
+          // Tinted from the cover so each card's pill matches its photo (falls back to white).
+          style={tint ? { backgroundColor: tint.bg, color: tint.fg } : undefined}
+        >
+          {startingSoon ? <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Clock className="h-3.5 w-3.5" strokeWidth={2.6} />}
+          {status}
+        </span>
+        {pool > 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-1.5 text-[12px] font-extrabold text-ink">
+            <Trophy className="h-3.5 w-3.5" strokeWidth={2.6} />
+            {compactAmount(pool)} G$ prize
+          </span>
+        ) : null}
+      </div>
+
+      <div className="absolute inset-x-5 bottom-5">
+        <h3 className="m-0 line-clamp-2 text-[22px] font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]">
+          {campaign.title}
+        </h3>
+        <p className="m-0 mt-1 truncate text-[13px] font-medium text-white/70">
+          {stake > 0 ? `${compactStake(stake)} ${token} to join this challenge` : "Free to join this challenge"}
+        </p>
+
+        {joined > 0 ? (
+          <div className="mt-3 flex items-center gap-2">
+            {avatars.length > 0 ? (
+              // total = shown, so the stack doesn't add its own "+N" bubble — the line below says it.
+              <AvatarStack participants={avatars.slice(0, 3)} total={Math.min(3, avatars.length)} size={24} max={3} />
+            ) : null}
+            <span className="truncate text-[13px] font-bold text-white">{peopleLine}</span>
+          </div>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
+export function CampaignBannerCardSkeleton({ className }: { className?: string }) {
+  return <div className={cn("aspect-[16/11] min-h-[264px] animate-pulse rounded-[32px] bg-ink/10", className)} />;
 }

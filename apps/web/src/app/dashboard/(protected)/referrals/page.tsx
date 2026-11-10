@@ -1,5 +1,6 @@
 "use client";
 
+import { REFERRAL_GDOLLARS_REWARD } from "@/lib/referral/campaign";
 import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, RefreshCw, Search, Sparkles, Wallet, X } from "lucide-react";
 import { AdminKpiStrip, AdminPagination } from "@/components/admin/admin-ui";
@@ -23,7 +24,6 @@ import {
   PEOPLE_SECTION_TABS,
 } from "@/components/dashboard/dashboard-section-tabs";
 
-const REFERRAL_GDOLLARS_REWARD = 6000;
 // Buffer covering a burst of simultaneous referral payouts — worth flagging
 // before the wallet actually fails a deposit.
 const LOW_BALANCE_THRESHOLD = 10 * REFERRAL_GDOLLARS_REWARD;

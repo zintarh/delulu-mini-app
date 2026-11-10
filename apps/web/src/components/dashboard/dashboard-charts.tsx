@@ -46,7 +46,7 @@ function colorFor(d: ChartDatum, i: number) {
 }
 
 // Chart.js/canvas can't read CSS variables, so axis/label colors are
-// resolved per-theme here — same pattern as home-daily-breakdown-chart.tsx.
+// resolved per-theme here.
 const GRID_LIGHT = "rgba(26, 26, 25, 0.06)";
 const GRID_DARK = "rgba(242, 241, 236, 0.1)";
 const TICK_LIGHT = "#8a8a82";

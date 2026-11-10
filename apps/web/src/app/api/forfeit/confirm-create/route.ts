@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
     : null;
 
   if (!txHash.startsWith("0x")) {
-    return NextResponse.json({ error: "txHash is required", retryable: false }, { status: 400 });
+    return NextResponse.json({ error: "Tx hash is required", retryable: false }, { status: 400 });
   }
   if (!walletAddress) {
-    return NextResponse.json({ error: "walletAddress is required", retryable: false }, { status: 400 });
+    return NextResponse.json({ error: "Wallet address is required", retryable: false }, { status: 400 });
   }
 
   const normalizedEvidenceType = (

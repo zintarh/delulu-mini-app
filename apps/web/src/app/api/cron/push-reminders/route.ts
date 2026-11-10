@@ -12,6 +12,12 @@ import {
   getMilestoneEndTimeMs,
 } from "@/lib/milestone-utils";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
+import {
+  type ForfeitTerms,
+  forfeitProgress,
+  formatStake,
+  getForfeitTerms,
+} from "@/lib/community/campaign-forfeit";
 import { buildOffChainMilestoneSchedule } from "@/lib/community/milestone-submit-eligibility";
 import { PARTICIPATING_STATUSES, isCampaignExpired } from "@/lib/community/campaign-types";
 
@@ -32,6 +38,9 @@ type SubgraphMilestoneRow = {
 };
 
 export const maxDuration = 300;
+
+/** "You missed a milestone" goes out for milestones closed within this window, never older. */
+const MISSED_PUSH_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 
 function configureVapid() {
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@staydelulu.xyz";
@@ -95,7 +104,9 @@ async function sendCampaignMilestoneDuePushReminders(
 
   const { data: campaignData, error: campaignErr } = await supabase
     .from("community_campaigns")
-    .select("id, title, display_ends_at, created_at, duration_days, proof_cadence")
+    .select(
+      "id, title, display_ends_at, created_at, duration_days, proof_cadence, is_free_to_join, join_amount, forfeit_pct, join_token",
+    )
     .in("status", [...PARTICIPATING_STATUSES]);
 
   if (campaignErr) {
@@ -116,7 +127,7 @@ async function sendCampaignMilestoneDuePushReminders(
   const [participantResult, milestoneResult] = await Promise.all([
     supabase
       .from("campaign_participants")
-      .select("campaign_id, wallet_address")
+      .select("campaign_id, wallet_address, joined_at")
       .in("campaign_id", campaignIds)
       .eq("status", "joined"),
     supabase
@@ -163,19 +174,42 @@ async function sendCampaignMilestoneDuePushReminders(
 
   const campaignById = new Map<
     string,
-    { title: string; display_ends_at: string | null; duration_days: number; proof_cadence: string }
+    {
+      title: string;
+      display_ends_at: string | null;
+      duration_days: number;
+      proof_cadence: string;
+      forfeit: ForfeitTerms | null;
+    }
   >();
   for (const c of activeCampaigns) {
-    campaignById.set((c as { id: string }).id, {
-      title: (c as { title: string }).title,
-      display_ends_at: (c as { display_ends_at: string | null }).display_ends_at,
-      duration_days: Number((c as { duration_days: number }).duration_days ?? 30),
-      proof_cadence: (c as { proof_cadence?: string }).proof_cadence ?? "daily",
+    const row = c as {
+      id: string;
+      title: string;
+      display_ends_at: string | null;
+      duration_days: number;
+      proof_cadence?: string;
+      is_free_to_join?: boolean | null;
+      join_amount?: number | null;
+      forfeit_pct?: number | null;
+      join_token?: string | null;
+    };
+    campaignById.set(row.id, {
+      title: row.title,
+      display_ends_at: row.display_ends_at,
+      duration_days: Number(row.duration_days ?? 30),
+      proof_cadence: row.proof_cadence ?? "daily",
+      forfeit: getForfeitTerms({
+        isFreeToJoin: row.is_free_to_join !== false,
+        joinAmount: Number(row.join_amount ?? 0),
+        forfeitPct: Number(row.forfeit_pct ?? 0),
+        joinToken: row.join_token ?? "G$",
+      }),
     });
   }
 
   for (const participant of participants) {
-    const pRow = participant as { campaign_id: string; wallet_address: string };
+    const pRow = participant as { campaign_id: string; wallet_address: string; joined_at?: string | null };
     const address = pRow.wallet_address.toLowerCase();
     const campaignId = pRow.campaign_id;
     const campaign = campaignById.get(campaignId);
@@ -195,15 +229,45 @@ async function sendCampaignMilestoneDuePushReminders(
       nowMs,
     });
 
+    const forfeit = campaign.forfeit;
+    const joinedAtMs = pRow.joined_at ? new Date(pRow.joined_at).getTime() : null;
+    // Matches the joined dashboard + contract: only milestones closed since joining count.
+    const missedSoFar = schedule.filter(
+      (s) => s.is_overdue && !s.completed && (joinedAtMs == null || new Date(s.deadline).getTime() > joinedAtMs),
+    );
+
     for (const m of schedule) {
+      const deadlineMs = m.deadline ? new Date(m.deadline).getTime() : NaN;
+
+      // Missed: tell them once what it cost (paid campaigns with a forfeit only).
+      // Only recently-closed ones, so a deploy never back-fills old history.
+      if (forfeit && m.is_overdue && !m.completed && nowMs - deadlineMs < MISSED_PUSH_LOOKBACK_MS) {
+        if (joinedAtMs != null && deadlineMs <= joinedAtMs) continue;
+        const { left } = forfeitProgress(forfeit, missedSoFar.length);
+        const lost = `${formatStake(forfeit.perMiss)} ${forfeit.token}`;
+        const result = await notifyManyRecipients(supabase, [address], {
+          title: "You missed a milestone",
+          body: `${lost} of your stake in ${campaign.title} went to the Delulu pool. ${formatStake(left)} ${forfeit.token} left.`,
+          url: `/community/campaigns/${campaignId}`,
+          // Reuses an allowed type: notifications_type_check rejects unknown types.
+          type: "campaign_milestone_due",
+          message: `You missed **${m.label}** in **${campaign.title}** — **${lost}** went to the Delulu pool. **${formatStake(left)} ${forfeit.token}** left.`,
+          eventKeyFor: (addr) => `campaign_milestone_missed_push:${campaignId}:${m.milestone_id}:${addr}`,
+        });
+        stats.sent += result.sent;
+        stats.skipped += result.skipped;
+        continue;
+      }
+
       if (m.completed || m.is_overdue) continue;
-      const deadlineSec = m.deadline ? Math.floor(new Date(m.deadline).getTime() / 1000) : null;
+      const deadlineSec = Number.isFinite(deadlineMs) ? Math.floor(deadlineMs / 1000) : null;
       if (!deadlineSec) continue;
       if (deadlineSec <= windowStartSec || deadlineSec > windowEndSec) continue;
 
+      const stakeNote = forfeit ? ` Miss it and lose ${formatStake(forfeit.perMiss)} ${forfeit.token}.` : "";
       const result = await notifyManyRecipients(supabase, [address], {
         title: "Proof due soon",
-        body: `"${m.label}" in ${campaign.title} is due in 30 minutes.`,
+        body: `"${m.label}" in ${campaign.title} is due in 30 minutes.${stakeNote}`,
         url: `/community/campaigns/${campaignId}`,
         type: "campaign_milestone_due",
         message: `Your proof for **${m.label}** in **${campaign.title}** is due in **30 minutes**.`,

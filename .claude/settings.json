@@ -5,7 +5,8 @@
       "Read(//tmp/**)",
       "Bash(\n# Filter out files that match Next.js special naming conventions\n# These should not be included in the unused list:\n# - opengraph-image.tsx\n# - twitter-image.tsx  \n# - sitemap.ts\n# - robots.ts\n# - app.tsx \\(next\\)\n# - document.tsx \\(next\\)\n\ncat /tmp/unused_files.txt | grep -vE \"\\(opengraph-image|twitter-image|sitemap|robots|^app\\\\.tsx|^document\\\\.tsx|DailyClaimClient\\)\" > /tmp/unused_files_filtered.txt\n\nwc -l /tmp/unused_files_filtered.txt\n)",
       "Bash(sleep 8; tail -n 60 /tmp/delulu-web-dev.log; echo \"---\"; curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "mcp__claude-in-chrome__tabs_context_mcp"
     ],
     "additionalDirectories": [
       "/tmp"

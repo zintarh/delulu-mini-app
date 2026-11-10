@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   if (!code?.trim()) {
-    return NextResponse.json({ error: "code is required" }, { status: 400 });
+    return NextResponse.json({ error: "Code is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

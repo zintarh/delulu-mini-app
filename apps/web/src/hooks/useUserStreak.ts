@@ -41,7 +41,10 @@ function toMidnightUtc(ts: number): number {
 }
 
 export function useUserStreak(address: string | undefined): UserStreakResult {
-  const nowSec = String(Math.floor(Date.now() / 1000));
+  // Rounded to the hour: a per-second value made every render a new query (cache miss →
+  // refetch → loading), so anything showing the streak flashed back to its skeleton.
+  // It only filters out delulus already resolved, so hour precision is plenty.
+  const nowSec = String(Math.floor(Date.now() / 3_600_000) * 3_600);
 
   const { data, loading } = useQuery<{ milestones: { id: string; verifiedAt: string | null }[] }>(
     USER_VERIFIED_MILESTONES_QUERY,

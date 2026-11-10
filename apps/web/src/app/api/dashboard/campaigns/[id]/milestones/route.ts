@@ -54,7 +54,7 @@ export async function POST(
   const title = String(body.title ?? "").slice(0, 200).trim();
   const duration_days = Math.max(1, Number(body.duration_days) || 7);
 
-  if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
+  if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

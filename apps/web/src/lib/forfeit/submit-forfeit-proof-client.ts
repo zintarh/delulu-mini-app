@@ -1,5 +1,5 @@
 import { formatProofError } from "@/lib/community/format-proof-error";
-import { resetProofReward, startProofReward } from "@/lib/proof-reward/client";
+import { startProofReward } from "@/lib/proof-reward/client";
 
 type ProofStep = "idle" | "uploading" | "ai-verifying" | "wallet-sign" | "confirming";
 
@@ -22,7 +22,6 @@ export async function submitForfeitProofWithWallet(input: {
   resolveSuccessOnChain: (commitmentId: number) => Promise<`0x${string}`>;
   onStepChange?: (step: ProofStep) => void;
 }): Promise<{ commitmentEnded: boolean; awaitingVerifier: boolean }> {
-  resetProofReward();
   input.onStepChange?.("ai-verifying");
   const res = await fetch("/api/forfeit/submit-proof", {
     method: "POST",

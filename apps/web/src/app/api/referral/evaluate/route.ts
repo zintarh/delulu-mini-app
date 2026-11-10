@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const { walletAddress } = await request.json().catch(() => ({}));
 
     if (!walletAddress || typeof walletAddress !== "string") {
-      return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
+      return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
     }
 
     const normalizedAddress = walletAddress.toLowerCase();

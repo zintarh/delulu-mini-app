@@ -786,6 +786,19 @@ textarea {
 
 /* ---------- Redesign: motion + pressable surfaces ---------- */
 @layer components {
+  /*
+   * Warm page wash for Home and Explore — our own palette only: yellow-soft up
+   * top, paper through the middle, pink-soft at the bottom, with soft yellow
+   * and pink glows so the dark photo cards pop.
+   */
+  .bg-wash {
+    background-color: #f7f7f4;
+    background-image:
+      radial-gradient(120% 60% at 100% 0%, rgba(246, 195, 36, 0.28) 0%, rgba(246, 195, 36, 0) 60%),
+      radial-gradient(90% 50% at 0% 100%, rgba(236, 91, 141, 0.16) 0%, rgba(236, 91, 141, 0) 65%),
+      linear-gradient(180deg, #fdf1c7 0%, #f7f7f4 42%, #f7f7f4 62%, #fde6ef 100%);
+  }
+
   /* Solid bottom "edge" that presses down on tap (cards, buttons, pills) */
   .press-edge {
     transition: transform 80ms ease, box-shadow 80ms ease;

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
@@ -48,7 +48,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { authenticated, logout } = useAuth();
   const { isInitialized } = useWeb3Auth();
   const { connect, connectTo } = useWeb3AuthConnect();
@@ -75,7 +74,7 @@ export default function SignInPage() {
   const [isGoingBack, setIsGoingBack] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  const { routeState, address, isCheckingAccount, refreshGoodDollarStatus, skipVerification } =
+  const { routeState, isCheckingAccount, refreshGoodDollarStatus, skipVerification } =
     usePostAuthRoute();
 
   // Skip the face check: the faucet sends enough gas for the profile

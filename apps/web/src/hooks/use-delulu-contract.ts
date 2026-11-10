@@ -3,7 +3,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { useChainId } from "wagmi";
-import { parseUnits, parseEventLogs, createWalletClient, custom } from "viem";
+import { parseEventLogs, createWalletClient, custom } from "viem";
 import { celo } from "wagmi/chains";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { useState, useMemo } from "react";

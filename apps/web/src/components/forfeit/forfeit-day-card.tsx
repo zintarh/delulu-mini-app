@@ -12,7 +12,7 @@ import {
   Plus,
   ShieldCheck,
 } from "lucide-react";
-import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, Stamp, gameButtonClass } from "@/components/ds";
+import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, SectionHeading, Stamp, gameButtonClass } from "@/components/ds";
 import { formatCountdown } from "@/components/home-stakes-hero";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -35,7 +35,7 @@ import { useFastResolveForfeit } from "@/lib/forfeit/use-fast-resolve-forfeit";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-amounts";
 import { FORFEIT_CREATION_ENABLED } from "@/lib/constant";
-import { cn } from "@/lib/utils";
+import { cn, capitalizeFirst } from "@/lib/utils";
 import {
   buildForfeitCalendarSlots,
   dayKey,
@@ -487,12 +487,12 @@ function ForfeitTaskCard({
         {href ? (
           <Link
             href={href}
-            className="block truncate text-base font-bold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
+            className="block truncate text-base font-extrabold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
           >
-            {item.title || "Untitled contract"}
+            {capitalizeFirst(item.title || "Untitled contract")}
           </Link>
         ) : (
-          <p className="truncate text-base font-bold text-ink">{item.title || "Untitled contract"}</p>
+          <p className="truncate text-base font-extrabold text-ink">{capitalizeFirst(item.title || "Untitled contract")}</p>
         )}
         {outcome === "won" ? (
           <div className="mt-1.5 flex items-center gap-1.5">
@@ -583,7 +583,7 @@ function ForfeitVerifyCard({ day }: { day: DayItem }) {
             {label}
           </p>
           <p className="mt-0.5 text-sm font-extrabold leading-snug text-foreground">
-            {item.title || "Untitled forfeit"}
+            {capitalizeFirst(item.title || "Untitled forfeit")}
           </p>
         </div>
       </div>
@@ -690,7 +690,7 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
             If they miss it
           </p>
           <p className="mt-0.5 text-sm font-extrabold leading-snug text-foreground">
-            {item.title || "Untitled forfeit"}
+            {capitalizeFirst(item.title || "Untitled forfeit")}
           </p>
         </div>
         <FriendProgressRing index={completedPeriods} count={totalPeriods} />
@@ -962,11 +962,9 @@ export function ForfeitDayCard({
 
   return (
     <section className={cn(className)}>
-      <div className="mb-2.5 flex items-center justify-between gap-2">
-        <span className="label-mono text-muted-foreground">
-          {dayKey(selectedDate) === dayKey(new Date()) ? "Today's quests" : formatForfeitDayLabel(label)}
-        </span>
-      </div>
+      <SectionHeading>
+        {dayKey(selectedDate) === dayKey(new Date()) ? "Today's quests" : formatForfeitDayLabel(label)}
+      </SectionHeading>
 
       {currentDays.length === 0 ? (
         <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-10 text-center shadow-edge">

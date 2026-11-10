@@ -6,7 +6,7 @@ import {
   hasQualifyingForfeitProofOnGraph,
 } from "@/lib/community/campaign-subgraph";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
-import { isReferralCampaignOver } from "@/lib/referral/campaign";
+import { isInCurrentReferralCampaign, isReferralCampaignOver } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -31,7 +31,8 @@ export type ReferralEvaluationResult =
         | "already_credited"
         | "no_qualifying_action"
         | "not_verified"
-        | "campaign_ended";
+        | "campaign_ended"
+        | "signed_up_outside_campaign";
     };
 
 /**
@@ -52,10 +53,15 @@ export async function evaluateAndCreditReferral(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("referred_by")
+    .select("referred_by, created_at")
     .eq("address", wallet)
     .maybeSingle();
   if (!profile?.referred_by) return { credited: false, reason: "no_referrer" };
+  // Only friends who signed up during this campaign count — not leftovers from
+  // a previous one, or sign-ups through old links while referrals were off.
+  if (!isInCurrentReferralCampaign(profile.created_at as string | null)) {
+    return { credited: false, reason: "signed_up_outside_campaign" };
+  }
 
   const { data: existingCredit } = await admin
     .from("referral_credits")

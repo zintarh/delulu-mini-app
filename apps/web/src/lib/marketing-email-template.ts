@@ -30,7 +30,6 @@ export function buildMarketingEmailInnerHtml(params: {
 }): string {
   const appUrl = normalizeMarketingAppUrl(params.appUrl);
   const logoUrl = `${appUrl}/favicon_io/android-chrome-192x192.png`;
-  const safeSubject = escapeMarketingHtml(params.subject.trim());
   const safeUsername = escapeMarketingHtml(params.username.trim() || "there");
   const bodyHtml =
     params.messagePlain.trim() === ""

@@ -29,7 +29,7 @@ export async function PATCH(
 
   if (body.name !== undefined) {
     const name = String(body.name).trim();
-    if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
+    if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
     updates.name = name;
     updates.slug = slugify(name);
   }

@@ -213,19 +213,14 @@ function StakeReclaimRow({
           {item.title}
         </p>
         <p className="text-xs text-muted-foreground" style={MANROPE}>
-          {item.communityName ? `${item.communityName} · ` : ""}
-          You&apos;ll receive{" "}
-          {formatStakeDisplay(item.netAmountWei, item.tokenAddress)} {item.tokenSymbol}
+          Back {formatStakeDisplay(item.netAmountWei, item.tokenAddress)} of{" "}
+          {formatStakeDisplay(item.amountWei, item.tokenAddress)} {item.tokenSymbol}
         </p>
-        {item.missedMilestones > 0 ? (
+        {item.missedMilestones > 0 && item.amountWei !== item.netAmountWei ? (
+          // Neutral on where it went: campaigns from before the upgrade fed the prize pool.
           <p className="mt-0.5 text-[11px] font-medium text-orange" style={MANROPE}>
-            Missed {item.missedMilestones}/{item.totalMilestones} milestone
-            {item.missedMilestones === 1 ? "" : "s"} · original stake{" "}
-            {formatStakeDisplay(item.amountWei, item.tokenAddress)} {item.tokenSymbol}
-          </p>
-        ) : item.amountWei !== item.netAmountWei ? (
-          <p className="mt-0.5 text-[11px] text-muted-foreground" style={MANROPE}>
-            Original stake {formatStakeDisplay(item.amountWei, item.tokenAddress)}{" "}
+            Missed {item.missedMilestones} milestone{item.missedMilestones === 1 ? "" : "s"} · −
+            {formatStakeDisplay((BigInt(item.amountWei) - BigInt(item.netAmountWei)).toString(), item.tokenAddress)}{" "}
             {item.tokenSymbol}
           </p>
         ) : null}

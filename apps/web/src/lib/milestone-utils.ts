@@ -57,22 +57,6 @@ export function getMilestoneEndTimeMs(
 }
 
 /**
- * Duration in days from milestone startTime to endTimeMs. Matches delulu card calculation.
- */
-export function getMilestoneDurationDays(
-  m: MilestoneWithDeadline,
-  endTimeMs: number
-): number | null {
-  if (m.startTime && m.startTime.getTime() > 0) {
-    const startMs = m.startTime.getTime();
-    const diffMs = endTimeMs - startMs;
-    if (diffMs <= 0) return null;
-    return Math.round((diffMs / MS_PER_DAY) * 100) / 100;
-  }
-  return null;
-}
-
-/**
  * Countdown string for display. Format: "Ended" | "Xd HH:MM:SS" | "HH:MM:SS".
  * Same as delulu card (formatTimeLeftWithSeconds).
  */
@@ -103,28 +87,6 @@ export function formatMilestoneCountdownDHMS(nowMs: number, targetMs: number): s
   const days = Math.floor(totalSeconds / 86400);
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${days}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
-
-/**
- * Time display as "Xd H:M:S" (e.g. "3d 4:05:04"). For countdown or duration.
- */
-export function formatMilestoneTimeDisplayDHMS(nowMs: number, targetMs: number): string {
-  const raw = formatMilestoneCountdownDHMS(nowMs, targetMs);
-  const [d, h, m, s] = raw.split(":");
-  return `${d}d ${h}:${m}:${s}`;
-}
-
-/**
- * Duration in days to "Xd H:M:S" (e.g. "2d 12:00:00") for past milestones.
- */
-export function formatDurationDaysToDHMS(days: number): string {
-  const totalSeconds = Math.round(days * 86400);
-  const d = Math.floor(totalSeconds / 86400);
-  const h = Math.floor((totalSeconds % 86400) / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
 /**

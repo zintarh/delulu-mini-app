@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Share2, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function DeluluShareMenu({
   shareUrl,

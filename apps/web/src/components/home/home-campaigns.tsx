@@ -3,22 +3,22 @@
 import Link from "next/link";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import {
-  CampaignPhotoCard,
-  CampaignPhotoCardSkeleton,
+  CampaignBannerCard,
+  CampaignBannerCardSkeleton,
   isCampaignOpen,
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
 import { cn } from "@/lib/utils";
-import { MonoLabel } from "@/components/ds";
+import { SectionHeading } from "@/components/ds";
 import { feedItemToCardData } from "@/components/home-campaigns-section";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
 import { useHomeCampaignsFeed } from "@/hooks/use-home-campaigns-feed";
 import { useJoinedCampaignDashboard } from "@/hooks/use-user-campaign-milestones";
 
 /** Open campaigns shown when there's room (no forfeits yet). */
-const EXPANDED_LIMIT = 5;
+const EXPANDED_LIMIT = 6;
 /** Open campaigns shown under today's quests. */
-const COMPACT_LIMIT = 3;
+const COMPACT_LIMIT = 4;
 /** Fetch one past the cap so we know whether "See all" has more behind it. */
 const FETCH_LIMIT = EXPANDED_LIMIT + 1;
 
@@ -56,24 +56,27 @@ export function useHomeCampaignLists(address: string | undefined): HomeCampaignL
   };
 }
 
+/** Phones: a swipe row bleeding to the edges (next card peeks in). Tablet up: a 2-up grid. */
+const CARD_ROW_CLASS =
+  "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0";
+const CARD_IN_ROW_CLASS = "w-[86%] shrink-0 snap-start sm:w-full";
+
 function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExploreCardData[]; limit: number; heading: string }) {
   if (campaigns.length === 0) return null;
   const visible = campaigns.slice(0, limit);
   return (
     <section>
-      <div className="mb-2.5 flex items-center justify-between gap-2">
-        <MonoLabel>{heading}</MonoLabel>
-        <Link href="/explore" className="text-[11px] font-semibold text-blue no-underline">
-          {campaigns.length > visible.length ? "See all" : "Explore"}
-        </Link>
-      </div>
+      <SectionHeading action={<Link href="/explore">{campaigns.length > visible.length ? "See all →" : "Explore →"}</Link>}>
+        {heading}
+      </SectionHeading>
       {visible.length === 1 ? (
-        <CampaignPhotoCard campaign={visible[0]!} />
+        <div className="sm:grid sm:grid-cols-2 sm:gap-4">
+          <CampaignBannerCard campaign={visible[0]!} className="w-full" />
+        </div>
       ) : (
-        // Swipe row, bleeding to the screen edges; the next card peeks in so it reads as swipeable.
-        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2">
+        <div className={CARD_ROW_CLASS}>
           {visible.map((c) => (
-            <CampaignPhotoCard key={c.id} campaign={c} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
+            <CampaignBannerCard key={c.id} campaign={c} className={CARD_IN_ROW_CLASS} />
           ))}
         </div>
       )}
@@ -100,10 +103,10 @@ export function HomeCampaigns({
   if (lists.isLoading) {
     return (
       <section role="status" aria-label="Loading campaigns">
-        <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
-        <div className="-mx-5 flex gap-3 overflow-hidden px-5">
+        <div className="mb-3 h-6 w-52 animate-pulse rounded-lg bg-ink/10" />
+        <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
           {[0, 1].map((i) => (
-            <CampaignPhotoCardSkeleton key={i} className={cn("w-[82%] max-w-[340px] shrink-0")} />
+            <CampaignBannerCardSkeleton key={i} className={cn("w-[86%] shrink-0 sm:w-full")} />
           ))}
         </div>
       </section>
@@ -116,13 +119,13 @@ export function HomeCampaigns({
   const limit = noForfeits ? EXPANDED_LIMIT : COMPACT_LIMIT;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-10">
       {joined ? <ActiveCampaignsSection address={address} variant="quest" heading="Your campaigns" showMax={5} /> : null}
       {showOpen ? (
         <OpenCampaigns
           campaigns={lists.open}
           limit={limit}
-          heading={joined ? "More campaigns" : "Join a campaign"}
+          heading="Recommended campaigns"
         />
       ) : null}
     </div>

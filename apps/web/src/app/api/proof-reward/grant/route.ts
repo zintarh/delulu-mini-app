@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
   const proofTxHash = String(body.proofTxHash ?? "").trim();
 
   if (kind !== "campaign" && kind !== "forfeit") {
-    return NextResponse.json({ error: "kind must be campaign or forfeit" }, { status: 400 });
+    return NextResponse.json({ error: "Kind must be campaign or forfeit" }, { status: 400 });
   }
   if (!/^0x[0-9a-fA-F]{64}$/.test(proofTxHash)) {
-    return NextResponse.json({ error: "proofTxHash is required" }, { status: 400 });
+    return NextResponse.json({ error: "Proof tx hash is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

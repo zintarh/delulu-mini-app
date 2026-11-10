@@ -26,7 +26,7 @@ export async function POST(
   const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
   const merkleRoot = String(body.merkleRoot ?? "").trim().toLowerCase();
   if (!txHash.startsWith("0x") || !merkleRoot.startsWith("0x")) {
-    return NextResponse.json({ error: "txHash and merkleRoot are required" }, { status: 400 });
+    return NextResponse.json({ error: "Tx hash and merkleRoot are required" }, { status: 400 });
   }
 
   const { id } = await params;
@@ -52,7 +52,7 @@ export async function POST(
     return NextResponse.json({ error: "No payout snapshot on this campaign." }, { status: 400 });
   }
   if (campaign.payout_merkle_root.toLowerCase() !== merkleRoot) {
-    return NextResponse.json({ error: "merkleRoot does not match snapshot." }, { status: 400 });
+    return NextResponse.json({ error: "Merkle root does not match snapshot." }, { status: 400 });
   }
 
   let parsed;

@@ -34,7 +34,7 @@ export function CreateChallengeSheet({
   onOpenChange,
   onSuccess,
 }: CreateChallengeSheetProps) {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const apolloClient = useApolloClient();
   const [challengeTitle, setChallengeTitle] = useState("");
   const [challengeDescription, setChallengeDescription] = useState("");
@@ -66,7 +66,6 @@ export function CreateChallengeSheet({
     isPending: isApproving,
     isConfirming: isApprovingConfirming,
     isSuccess: isApprovalSuccess,
-    isLoadingAllowance,
   } = useTokenApproval(selectedToken);
 
   // Token balances
@@ -104,7 +103,6 @@ export function CreateChallengeSheet({
   const selectedTokenBalance = tokenBalances.find(
     (tb) => tb.token.address === selectedToken
   );
-  const isLoadingBalance = tokenBalances.some((tb) => tb.isLoading);
 
   useEffect(() => {
     if (isSuccess) {

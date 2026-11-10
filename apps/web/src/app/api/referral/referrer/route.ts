@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const code = normalizeReferralCode(request.nextUrl.searchParams.get("code"));
-  if (!code) return NextResponse.json({ error: "code is required" }, { status: 400 });
+  if (!code) return NextResponse.json({ error: "Code is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

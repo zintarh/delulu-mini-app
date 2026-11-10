@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowLeft, Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { useUsernameAvailability } from "@/hooks/use-username-availability";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { hashEmail } from "@/lib/email-hash";
@@ -173,11 +173,6 @@ export function UserSetupModal({
     }
     setEmailError("");
     return true;
-  }, []);
-
-  const handleUsernameNext = useCallback(() => {
-    // No longer used (single-step flow)
-    return;
   }, []);
 
   const handleSubmitProfile = useCallback(async () => {

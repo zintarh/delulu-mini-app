@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get("sort") === "recent" ? "recent" : "participants";
 
   if (!address) {
-    return NextResponse.json({ error: "address is required" }, { status: 400 });
+    return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

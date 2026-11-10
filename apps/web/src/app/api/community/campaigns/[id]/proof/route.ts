@@ -76,7 +76,7 @@ export async function POST(
 
   const challengeId = campaign.on_chain_challenge_id;
   if (milestoneId == null || Number.isNaN(milestoneId)) {
-    return NextResponse.json({ error: "milestoneId is required" }, { status: 400 });
+    return NextResponse.json({ error: "Milestone id is required" }, { status: 400 });
   }
 
   const milestones = await fetchCommunityCampaignMilestonesFromGraph(

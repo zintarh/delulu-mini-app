@@ -20,7 +20,7 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
   if (!txHash.startsWith("0x")) {
-    return NextResponse.json({ error: "txHash is required" }, { status: 400 });
+    return NextResponse.json({ error: "Tx hash is required" }, { status: 400 });
   }
 
   const { id } = await params;

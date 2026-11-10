@@ -233,4 +233,89 @@ describe("CommunityMarketV1", function () {
       /NoStakeToClaim/,
     );
   });
+
+  async function joinPaid(market, currency, creator, participant, joinAmount, pct) {
+    await market.write.setCommunityCampaignEconomics(
+      [0n, true, currency.address, joinAmount, pct],
+      { account: creator.account },
+    );
+    await currency.write.approve([market.address, joinAmount], { account: participant.account });
+    await market.write.joinCommunityCampaign([0n], { account: participant.account });
+  }
+
+  async function reclaim(market, currency, participant) {
+    const before = await currency.read.balanceOf([participant.account.address]);
+    await market.write.claimCommunityJoinStake([0n], { account: participant.account });
+    return (await currency.read.balanceOf([participant.account.address])) - before;
+  }
+
+  it("sends forfeited stake to Delulu, not the prize pool", async function () {
+    const { market, currency, creator, participant, owner } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator); // 2 daily milestones
+
+    const joinAmount = parseEther("20000");
+    await joinPaid(market, currency, creator, participant, joinAmount, 5);
+    expect(await market.read.campaignForfeitToDelulu([0n])).to.equal(true);
+
+    // Prove day 1, miss day 2 → 5% forfeit.
+    await market.write.submitCommunityCampaignMilestoneProof(
+      [0n, 0n, "https://proof.example/1"],
+      { account: participant.account },
+    );
+    await time.increase(2n * ONE_DAY + 1n);
+    await market.write.endCommunityChallenge([0n], { account: creator.account });
+
+    const poolBefore = (await market.read.campaigns([0n]))[1];
+    const forfeited = (joinAmount * 5n) / 100n; // 1,000 G$
+    expect(await reclaim(market, currency, participant)).to.equal(joinAmount - forfeited);
+    expect((await market.read.campaigns([0n]))[1]).to.equal(poolBefore);
+    expect(await market.read.forfeitedStakeByToken([currency.address])).to.equal(forfeited);
+
+    const ownerBefore = await currency.read.balanceOf([owner.account.address]);
+    await market.write.withdrawForfeitedStake([currency.address, owner.account.address, forfeited], {
+      account: owner.account,
+    });
+    expect((await currency.read.balanceOf([owner.account.address])) - ownerBefore).to.equal(forfeited);
+    expect(await market.read.forfeitedStakeByToken([currency.address])).to.equal(0n);
+  });
+
+  it("deducts the admin-set % for each missed milestone", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    const joinAmount = parseEther("1000");
+    await joinPaid(market, currency, creator, participant, joinAmount, 10);
+    await time.increase(2n * ONE_DAY + 1n);
+    await market.write.endCommunityChallenge([0n], { account: creator.account });
+
+    // Missed both at 10% each → 20% lost.
+    expect(await reclaim(market, currency, participant)).to.equal((joinAmount * 80n) / 100n);
+    expect(await market.read.forfeitedStakeByToken([currency.address])).to.equal((joinAmount * 20n) / 100n);
+  });
+
+  it("doesn't charge for milestones that hadn't closed when the campaign ended", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    const joinAmount = parseEther("1000");
+    await joinPaid(market, currency, creator, participant, joinAmount, 10);
+    await market.write.endCommunityChallenge([0n], { account: creator.account }); // ended early
+
+    expect(await reclaim(market, currency, participant)).to.equal(joinAmount);
+    expect(await market.read.forfeitedStakeByToken([currency.address])).to.equal(0n);
+  });
+
+  it("doesn't charge a late joiner for milestones that closed before they joined", async function () {
+    const { market, currency, creator, participant } = await loadFixture(deployFixture);
+    await createCampaignWithMilestones(market, creator);
+
+    await time.increase(ONE_DAY + 1n); // day 1 closed
+    const joinAmount = parseEther("1000");
+    await joinPaid(market, currency, creator, participant, joinAmount, 10);
+    await time.increase(ONE_DAY); // day 2 closes unproven
+    await market.write.endCommunityChallenge([0n], { account: creator.account });
+
+    // Only day 2 was theirs to miss → 10%, not 20%.
+    expect(await reclaim(market, currency, participant)).to.equal((joinAmount * 90n) / 100n);
+  });
 });

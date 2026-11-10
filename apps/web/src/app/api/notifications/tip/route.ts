@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const tokenSymbol = typeof body.tokenSymbol === "string" ? body.tokenSymbol : "G$";
 
     if (!tipperAddress || !creatorAddress || !deluluId) {
-      return NextResponse.json({ error: "tipperAddress, creatorAddress, deluluId required" }, { status: 400 });
+      return NextResponse.json({ error: "TipperAddress, creatorAddress, deluluId required" }, { status: 400 });
     }
 
     // Don't notify if the tipper is the creator

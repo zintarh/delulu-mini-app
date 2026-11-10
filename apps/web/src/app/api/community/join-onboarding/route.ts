@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     return walletAuthErrorResponse(err);
   }
 
-  if (!walletAddress) return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
-  if (!inviteCode) return NextResponse.json({ error: "inviteCode is required" }, { status: 400 });
+  if (!walletAddress) return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
+  if (!inviteCode) return NextResponse.json({ error: "Invite code is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

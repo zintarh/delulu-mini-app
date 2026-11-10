@@ -26,10 +26,10 @@ export async function POST(
   const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
   const poolAmount = Number(body.poolAmount ?? 0);
   if (!txHash.startsWith("0x")) {
-    return NextResponse.json({ error: "txHash is required" }, { status: 400 });
+    return NextResponse.json({ error: "Tx hash is required" }, { status: 400 });
   }
   if (!Number.isFinite(poolAmount) || poolAmount <= 0) {
-    return NextResponse.json({ error: "poolAmount must be > 0" }, { status: 400 });
+    return NextResponse.json({ error: "Pool amount must be > 0" }, { status: 400 });
   }
 
   const { id } = await params;

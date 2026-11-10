@@ -12,7 +12,6 @@ export async function hashEmail(email: string): Promise<string> {
     throw new Error("Email is required and must be a string");
   }
 
-  // Normalize email (lowercase, trim)
   const normalizedEmail = email.toLowerCase().trim();
   
   if (!normalizedEmail) {

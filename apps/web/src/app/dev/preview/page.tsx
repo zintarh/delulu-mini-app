@@ -12,7 +12,7 @@ function mockOpen(title: string, cover: string | null, pool: number, joinAmount:
     id: title, title, proposedPoolAmount: pool, durationDays: 30, coverImageUrl: cover,
     displayEndsAt: new Date(Date.now() + 12 * 24 * HOUR).toISOString(), status: pool > 0 ? "active" : "approved",
     participantCount: 24, milestoneCount: 10, isJoined: false, isFreeToJoin: joinAmount === 0, joinAmount,
-    joinToken: "G$", community: { name: "Lagos Readers", slug: "x" },
+    joinToken: "G$", forfeitPct: joinAmount > 0 ? 5 : 0, proofCadence: "daily", community: { name: "Lagos Readers", slug: "x" },
   };
 }
 function mockCampaign(title: string, done: number, total: number, startOffsetH: number | null): JoinedDashboardCampaign {
@@ -21,7 +21,7 @@ function mockCampaign(title: string, done: number, total: number, startOffsetH: 
     campaign_id: title, challenge_id: 1, title, community: { name: "Lagos Runners", slug: "x" },
     cover_image_url: null, display_ends_at: null, duration_days: 30, proof_type: "screenshot",
     live_camera_duration_seconds: null, is_free_to_join: true, join_token: "G$", join_amount: 0, forfeit_pct: 0,
-    participant_count: 12, milestone_count: total, completed_count: done,
+    participant_count: 12, milestone_count: total, completed_count: done, missed_count: 0,
     next_milestones:
       startOffsetH == null
         ? []
@@ -32,11 +32,42 @@ function mockCampaign(title: string, done: number, total: number, startOffsetH: 
           }],
   };
 }
+function paidCampaign(title: string, missed: number, dueNow: boolean): JoinedDashboardCampaign {
+  const c = mockCampaign(title, 3, 30, dueNow ? -1 : 20);
+  return { ...c, is_free_to_join: false, join_amount: 20000, forfeit_pct: 5, missed_count: missed };
+}
+function luluState(label: string, p: Omit<LuluHeroViewProps, "messages"> & { campaigns?: JoinedDashboardCampaign[]; goals?: LuluGoal[]; hour?: number }) {
+  const now = new Date();
+  if (p.hour != null) now.setHours(p.hour, 0, 0, 0);
+  return {
+    label,
+    props: {
+      ...p,
+      now,
+      messages: pickLuluMessages({
+        kept: p.kept, total: p.total, streak: p.streak, pendingReward: p.pendingReward,
+        campaigns: p.campaigns ?? [], seenMissed: {}, now, name: "kate", goals: p.goals ?? [],
+      }),
+    },
+  };
+}
+const LULU_STATES = [
+  luluState("morning, campaign due", { weather: "waiting", kept: 0, total: 2, streak: 4, pendingReward: 0, campaigns: [paidCampaign("50 squats daily", 0, true)] }),
+  luluState("goal due in 40m, friend gets stake", { weather: "waiting", kept: 1, total: 2, streak: 6, pendingReward: 0,
+    goals: [{ id: "357", title: "my 10,000 steps", deadlineMs: Date.now() + 40 * 60_000, stake: "500 G$", destination: "your friend @ada" }] }),
+  luluState("celebrating", { weather: "waiting", kept: 2, total: 2, streak: 7, pendingReward: 0, hour: 15, celebrating: "Kept! 7 days in a row. Look at you go." }),
+  luluState("day, missed + reward", { weather: "gloomy", kept: 1, total: 3, streak: 0, pendingReward: 30, campaigns: [paidCampaign("read 10 pages", 1, false)], hour: 13 }),
+  luluState("evening, all done", { weather: "sunny", kept: 3, total: 3, streak: 12, pendingReward: 0, hour: 18 }),
+  luluState("night, storm, new user", { weather: "storm", kept: 0, total: 0, streak: 0, pendingReward: 0, hour: 23 }),
+  luluState("night, sunny", { weather: "sunny", kept: 2, total: 2, streak: 5, pendingReward: 120, hour: 22 }),
+];
 import { DailyMoneyCardView } from "@/components/home/daily-money-card";
+import { LuluHeroView, pickLuluMessages, type LuluGoal, type LuluHeroViewProps } from "@/components/home/lulu-hero";
 import { AddToHomeSheet } from "@/components/pwa/add-to-home-sheet";
 import { AppIntroView } from "@/components/app-intro";
 import { Lulu } from "@/components/ds";
-import { CampaignPhotoCard, type CampaignExploreCardData } from "@/components/community/campaign-explore-card";
+import { type CampaignExploreCardData } from "@/components/community/campaign-explore-card";
+import { HomeCampaigns } from "@/components/home/home-campaigns";
 import { DailyGoalCardView, WeekFlamesView } from "@/components/home/home-progress";
 
 /**
@@ -71,6 +102,10 @@ export default function DevPreviewPage() {
           <Lulu size={44} />
           <Lulu size={64} mood="kept" wave />
         </div>
+        <span className="label-mono text-muted-foreground">Lulu hero (Home)</span>
+        {LULU_STATES.map((st) => (
+          <LuluHeroView key={st.label} {...st.props} />
+        ))}
         <span className="label-mono text-muted-foreground">Free daily money</span>
         <DailyMoneyCardView state="loading" />
         <DailyMoneyCardView state="verify" />
@@ -78,11 +113,21 @@ export default function DevPreviewPage() {
         <DailyMoneyCardView state="claimed" nextClaim="1:00 PM · in 4:59" />
         <DailyMoneyCardView state="claimed" nextClaim="tomorrow 1:00 PM · in 23:12" />
         <DailyMoneyCardView state="empty" />
-        <span className="label-mono text-muted-foreground">Join a campaign (Home)</span>
-        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
-          <CampaignPhotoCard campaign={mockOpen("Build a habit of reading daily", "/bg1.jpg", 0, 10000)} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
-          <CampaignPhotoCard campaign={mockOpen("30-day morning run challenge", null, 50000, 0)} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
-        </div>
+        <span className="label-mono text-muted-foreground">Recommended campaigns (Home)</span>
+        {/* The real Home section, with two open campaigns. */}
+        <HomeCampaigns
+          address={undefined}
+          noForfeits
+          lists={{
+            isLoading: false,
+            joinedCount: 0,
+            hasAny: true,
+            open: [
+              mockOpen("Build a habit of reading daily", "/bg1.jpg", 0, 10000),
+              mockOpen("30-day morning run challenge", "/user-avatar.jpg", 50000, 0),
+            ],
+          }}
+        />
         <span className="label-mono text-muted-foreground">Your campaigns (Home)</span>
         <CampaignQuestRow campaign={mockCampaign("30-day morning run", 3, 10, -1)} nowMs={Date.now()} proofBusy={false} onProve={() => {}} />
         <CampaignQuestRow campaign={mockCampaign("Read 10 pages daily", 5, 14, 20)} nowMs={Date.now()} proofBusy={false} onProve={() => {}} />

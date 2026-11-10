@@ -2,7 +2,6 @@
 
 import { CheckCircle, XCircle } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
-import { ModalHeader, ModalTitle } from "@/components/ui/modal";
 
 interface FeedbackModalProps {
   isOpen: boolean;

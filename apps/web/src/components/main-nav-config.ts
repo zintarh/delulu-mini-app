@@ -55,7 +55,7 @@ export function isNavHrefActive(pathname: string, href: string) {
 const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: APP_HOME, action: "home" },
   { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
-  { icon: Plus, label: "New contract", href: "/forfeit", action: "forfeit" },
+  { icon: Plus, label: "New delulu", href: "/forfeit", action: "forfeit" },
 ];
 
 export function getRewardsNavItem(): MainNavItem {
@@ -65,11 +65,6 @@ export function getRewardsNavItem(): MainNavItem {
     href: "/rewards",
     action: "rewards",
   };
-}
-
-/** @deprecated Use getRewardsNavItem */
-export function getWalletNavItem(): MainNavItem {
-  return getRewardsNavItem();
 }
 
 /** Desktop left sidebar */
@@ -95,7 +90,7 @@ export function getProfileNavItem(authenticated: boolean): MainNavItem {
   };
 }
 
-/** Mobile bottom nav — five items so New contract sits centred. Rewards lives in the top HUD. */
+/** Mobile bottom nav — five items with New delulu in the middle. Rewards lives in the top HUD. */
 export function getMobileBottomNavItems(authenticated: boolean): MainNavItem[] {
   return [...coreNavItems(), getLeaderboardNavItem(), getProfileNavItem(authenticated)];
 }

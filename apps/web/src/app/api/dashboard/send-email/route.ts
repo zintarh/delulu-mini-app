@@ -64,13 +64,13 @@ export async function POST(request: NextRequest) {
   const { emails, subject, message } = body;
 
   if (!Array.isArray(emails) || emails.length === 0) {
-    return NextResponse.json({ error: "emails must be a non-empty array" }, { status: 400 });
+    return NextResponse.json({ error: "Emails must be a non-empty array" }, { status: 400 });
   }
   if (!subject?.trim()) {
-    return NextResponse.json({ error: "subject is required" }, { status: 400 });
+    return NextResponse.json({ error: "Subject is required" }, { status: 400 });
   }
   if (!message?.trim()) {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
+    return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();

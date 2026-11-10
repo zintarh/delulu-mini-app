@@ -66,31 +66,6 @@ export function monthlyCampaignLeaderboardSinceUnixSeconds(now = new Date()): nu
 }
 
 /**
- * Forfeit campaign: qualify by forfeiting a single commitment worth
- * FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE+ G$ to Charity or Delulu (on-chain
- * CommunityPool) within the window below. Top FORFEIT_CAMPAIGN_TOP_N by total
- * G$ forfeited share the pool.
- *
- * 2026-08-04 00:00:00 UTC start, 2 weeks → 2026-08-18 00:00:00 UTC end.
- */
-export const FORFEIT_CAMPAIGN_START_UNIX = Math.floor(
-  Date.UTC(2026, 7, 4, 0, 0, 0) / 1000,
-);
-export const FORFEIT_CAMPAIGN_END_UNIX = Math.floor(
-  Date.UTC(2026, 7, 18, 0, 0, 0) / 1000,
-);
-export const FORFEIT_CAMPAIGN_MIN_STAKE_WHOLE = 1_000;
-export const FORFEIT_CAMPAIGN_POOL_USD = 50;
-export const FORFEIT_CAMPAIGN_TOP_N = 5;
-
-/**
- * Leaderboard "Forfeit" tab: wallets with FORFEIT_STAKED_MIN_WHOLE+ G$ currently
- * locked across their active (non-cancelled) Forfeit commitments — summed per
- * wallet across multiple commitments, not a single-commitment minimum.
- */
-export const FORFEIT_STAKED_MIN_WHOLE = 20_000;
-
-/**
  * Points per kept forfeit day, tiered by stake — mirrors forfeitProofPoints in
  * apps/delulu-subgraph/src/forfeit-market.ts (which is what actually credits
  * them). A word-only stake (0) is the low tier. Thresholds are raw 18-decimal

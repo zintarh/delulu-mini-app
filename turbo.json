@@ -19,18 +19,9 @@
     },
     "compile": {
       "dependsOn": ["^compile"],
-      "outputs": ["artifacts/**", "cache/**", "typechain-types/**"]
+      "outputs": ["artifacts/**", "cache/**"]
     },
     "test": {
-      "dependsOn": ["compile"]
-    },
-    "deploy": {
-      "dependsOn": ["compile"]
-    },
-    "deploy:sepolia": {
-      "dependsOn": ["compile"]
-    },
-    "deploy:celo": {
       "dependsOn": ["compile"]
     }
   }

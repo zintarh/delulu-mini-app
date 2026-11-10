@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import {
   canSubmitMilestone,
-  formatMilestoneOpensAt,
   getActiveMilestone,
 } from "@/lib/community/milestone-submit-eligibility";
 

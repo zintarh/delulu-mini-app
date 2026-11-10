@@ -1,107 +1,129 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { Lulu, MonoLabel, Segmented } from "@/components/ds";
+import { useEffect, useMemo } from "react";
+import { Lulu } from "@/components/ds";
 import {
-  CampaignFeaturedCard,
-  CampaignTicketRow,
-  CampaignTicketRowSkeleton,
+  CampaignBannerCard,
+  CampaignBannerCardSkeleton,
   campaignDaysLeft,
   isCampaignOpen,
+  type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
+import { CAMPAIGN_CATEGORIES, OTHER_CATEGORY, campaignCategoryFor } from "@/lib/community/campaign-category";
+import { cn } from "@/lib/utils";
 
-type Tab = "open" | "ending" | "joined";
+/** Finished campaigns shown at the bottom — the most recent few, not the whole archive. */
+const FINISHED_LIMIT = 6;
 
-const TABS: { value: Tab; label: string }[] = [
-  { value: "open", label: "Open" },
-  { value: "ending", label: "Ending" },
-  { value: "joined", label: "Joined" },
-];
+type Section = { key: string; label: string; campaigns: CampaignExploreCardData[] };
 
-/** Campaign list (design: docs/redesign/screens/Campaigns.dc.html). */
+/** One category: a big heading, then a swipe row on phones / a 2-up grid from tablet. */
+function CategoryRow({ section }: { section: Section }) {
+  const single = section.campaigns.length === 1;
+  return (
+    <section className="animate-rise">
+      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink">{section.label}</h2>
+      <div
+        className={cn(
+          single
+            ? "sm:grid sm:grid-cols-2 sm:gap-4"
+            : // Bleed to the screen edges so the next card peeks in and reads as swipeable.
+              "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0",
+        )}
+      >
+        {section.campaigns.map((c) => (
+          <CampaignBannerCard
+            key={c.id}
+            campaign={c}
+            className={single ? "w-full" : "w-[86%] shrink-0 snap-start sm:w-full"}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Explore: campaigns grouped by category (Workout, Reading, …) as big photo
+ * cards, then recently finished ones. Categories come from each campaign's
+ * title/description (lib/community/campaign-category.ts); empty ones are hidden.
+ */
 export function ExploreCampaignsSection({ address }: { address?: string }) {
-  const [tab, setTab] = useState<Tab>("open");
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error, refetch, isRefetching } =
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage, error, refetch, isRefetching } =
     useExploreCampaigns(address, "recent", {});
-  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Grouping needs the whole list (it's small) — otherwise categories reshuffle as pages land.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const campaigns = useMemo(() => data?.pages.flatMap((page) => page.campaigns) ?? [], [data]);
 
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage && !isLoading) {
-          void fetchNextPage();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
-
-  const { featured, rows, heading } = useMemo(() => {
+  const sections = useMemo<Section[]>(() => {
     const open = campaigns.filter(isCampaignOpen);
-    if (tab === "joined") {
-      return { featured: null, rows: campaigns.filter((c) => c.isJoined), heading: "Joined" };
+    const byKey = new Map<string, CampaignExploreCardData[]>();
+    for (const c of open) {
+      const { key } = campaignCategoryFor(c.title, c.description);
+      byKey.set(key, [...(byKey.get(key) ?? []), c]);
     }
-    if (tab === "ending") {
-      const ending = [...open].sort((a, b) => (campaignDaysLeft(a) ?? 1e9) - (campaignDaysLeft(b) ?? 1e9));
-      return { featured: null, rows: ending, heading: "Ending soon" };
-    }
-    const pick = open.find((c) => c.isJoined) ?? open[0] ?? null;
-    return { featured: pick, rows: open.filter((c) => c !== pick), heading: "Open now" };
-  }, [campaigns, tab]);
+    // Within a category: yours first, then the ones ending soonest.
+    const order = (list: CampaignExploreCardData[]) =>
+      [...list].sort(
+        (a, b) =>
+          Number(b.isJoined) - Number(a.isJoined) ||
+          (campaignDaysLeft(a) ?? 1e9) - (campaignDaysLeft(b) ?? 1e9),
+      );
+    const result: Section[] = [...CAMPAIGN_CATEGORIES, OTHER_CATEGORY]
+      .filter((cat) => byKey.has(cat.key))
+      .map((cat) => ({ key: cat.key, label: cat.label, campaigns: order(byKey.get(cat.key)!) }));
+
+    const finished = campaigns.filter((c) => !isCampaignOpen(c)).slice(0, FINISHED_LIMIT);
+    if (finished.length > 0) result.push({ key: "finished", label: "Finished", campaigns: finished });
+    return result;
+  }, [campaigns]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {[0, 1].map((i) => (
+          <div key={i}>
+            <div className="mb-3 h-7 w-40 animate-pulse rounded-lg bg-ink/10" />
+            <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0">
+              <CampaignBannerCardSkeleton className="w-[86%] shrink-0 sm:w-full" />
+              <CampaignBannerCardSkeleton className="w-[86%] shrink-0 sm:w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-12 text-center">
+        <p className="text-sm text-muted-foreground">Couldn&apos;t load campaigns. Try again.</p>
+        <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline">
+          {isRefetching ? "Retrying…" : "Retry"}
+        </button>
+      </div>
+    );
+  }
+
+  if (sections.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-14 text-center">
+        <Lulu size={64} mood="dream" />
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">No campaigns right now</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <Segmented options={TABS} value={tab} onChange={setTab} ariaLabel="Campaign filter" />
-
-      {isLoading ? (
-        <div className="mt-6 flex flex-col gap-3">
-          <div className="h-[186px] animate-pulse rounded-3xl bg-[#fdf1c7]" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <CampaignTicketRowSkeleton key={i} />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center">
-          <p className="text-sm text-muted-foreground">Couldn&apos;t load campaigns. Try again.</p>
-          <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-blue">
-            {isRefetching ? "Retrying…" : "Retry"}
-          </button>
-        </div>
-      ) : !featured && rows.length === 0 ? (
-        <div className="flex flex-col items-center py-14 text-center">
-          <Lulu size={64} mood="dream" />
-          <p className="mt-3 text-sm font-semibold text-muted-foreground">
-            {tab === "joined" ? "You haven't joined a campaign yet" : "No open campaigns right now"}
-          </p>
-        </div>
-      ) : (
-        <>
-          {featured ? <CampaignFeaturedCard campaign={featured} className="mt-6" /> : null}
-          {rows.length > 0 ? (
-            <div className="mt-6 flex flex-col gap-3">
-              <MonoLabel>{heading}</MonoLabel>
-              {rows.map((c, i) => (
-                <CampaignTicketRow key={c.id} campaign={c} index={i} />
-              ))}
-            </div>
-          ) : null}
-        </>
-      )}
-
-      <div ref={sentinelRef} className="h-1" />
-      {isFetchingNextPage ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : null}
+    <div className="space-y-9">
+      {sections.map((section) => (
+        <CategoryRow key={section.key} section={section} />
+      ))}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { HomeDashboard } from "@/components/home-dashboard";
 import { MainPage } from "@/components/main-app-header";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,7 +9,6 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 
 export default function HomePage() {
-  const router = useRouter();
   const { address } = useAuth();
   const { navigateToCreate } = useNavigateToCreate();
   const { updateUsername, updateAddress, user } = useUserStore();
@@ -37,7 +35,8 @@ export default function HomePage() {
   ]);
 
   return (
-    <MainPage>
+    // Same warm wash as Explore; min-h-full so it reaches the bottom on short feeds.
+    <MainPage className="bg-wash min-h-full">
       <div className="mx-auto w-full max-w-3xl xl:max-w-3xl lg:pt-6">
         <HomeDashboard onCreateClick={() => void navigateToCreate()} />
       </div>

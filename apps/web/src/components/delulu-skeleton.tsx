@@ -40,8 +40,44 @@ export function SocialFeedCardSkeleton({
 function HomeGreetingSkeleton() {
   return (
     <div className="space-y-2">
-      <div className="h-7 w-44 animate-pulse rounded-lg bg-line" />
-      <div className="h-4 w-56 animate-pulse rounded bg-line" />
+      <div className="h-[34px] w-52 animate-pulse rounded-lg bg-ink/10" />
+      <div className="h-4 w-56 animate-pulse rounded bg-ink/10" />
+    </div>
+  );
+}
+
+/** Section heading at SectionHeading's size (20px). */
+function HomeSectionHeadingSkeleton({ width = "w-40" }: { width?: string }) {
+  return <div className={cn("mb-4 h-6 animate-pulse rounded-lg bg-ink/10", width)} />;
+}
+
+/** Lulu hero (LuluHero): Lulu in her ring + a speech bubble, stats row underneath. */
+function HomeLuluSkeleton() {
+  return (
+    <div className="rounded-[28px] border-2 border-line bg-yellow-soft/70 p-5 shadow-edge">
+      <div className="flex items-center gap-4">
+        <div className="h-[120px] w-[120px] shrink-0 animate-pulse rounded-full bg-white/70" />
+        <div className="flex-1 space-y-2 rounded-2xl bg-white/80 p-3.5">
+          <div className="h-4 w-full animate-pulse rounded bg-line" />
+          <div className="h-4 w-4/5 animate-pulse rounded bg-line" />
+          <div className="mt-3 h-10 w-24 animate-pulse rounded-xl bg-line" />
+        </div>
+      </div>
+      <div className="mt-4 h-6 w-24 animate-pulse rounded-full bg-white/70" />
+    </div>
+  );
+}
+
+/** Wide campaign cards (CampaignBannerCard) in their swipe row / 2-up grid. */
+function HomeCampaignsSkeleton() {
+  return (
+    <div>
+      <HomeSectionHeadingSkeleton width="w-56" />
+      <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
+        {[0, 1].map((i) => (
+          <div key={i} className="aspect-[16/11] min-h-[264px] w-[86%] shrink-0 animate-pulse rounded-[32px] bg-ink/10 sm:w-full" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -82,7 +118,7 @@ export function HomeDailyGoalSkeleton() {
 function HomeQuestsSkeleton({ rows = 2 }: { rows?: number }) {
   return (
     <div>
-      <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
+      <HomeSectionHeadingSkeleton />
       <div className="space-y-2.5">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
@@ -103,12 +139,12 @@ function HomeQuestsSkeleton({ rows = 2 }: { rows?: number }) {
 export function HomeGuestSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("mx-auto flex w-full flex-col gap-4 px-5 pb-6 pt-2.5", className)}
+      className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}
       role="status"
       aria-label="Loading"
     >
       <HomeGreetingSkeleton />
-      <HomeQuestsSkeleton rows={1} />
+      <HomeCampaignsSkeleton />
     </div>
   );
 }
@@ -116,17 +152,19 @@ export function HomeGuestSkeleton({ className }: { className?: string }) {
 /** Loading placeholder for the signed-in home dashboard — mirrors HomeDashboard's layout. */
 export function HomeSignedInSkeleton({ className }: { className?: string }) {
   return (
+    // Same container, gaps and blocks as HomeDashboard, so the swap to real content doesn't shift.
     <div
-      className={cn("mx-auto flex w-full flex-col gap-4 px-5 pb-6 pt-2.5", className)}
+      className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}
       role="status"
       aria-label="Loading dashboard"
     >
       <HomeGreetingSkeleton />
-      <HomeDailyMoneySkeleton />
-      <HomeDailyGoalSkeleton />
-      <div className="mt-2">
-        <HomeQuestsSkeleton />
+      <div className="flex flex-col gap-4">
+        <HomeLuluSkeleton />
+        <HomeDailyMoneySkeleton />
       </div>
+      <HomeQuestsSkeleton />
+      <HomeCampaignsSkeleton />
     </div>
   );
 }

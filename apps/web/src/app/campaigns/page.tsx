@@ -3,7 +3,6 @@
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAccount } from "wagmi";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -29,7 +28,6 @@ import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 
 export default function ChallengesPage() {
   const router = useRouter();
-  const { address } = useAccount();
   const { authenticated } = useAuth();
   const { isAdmin } = useIsAdmin();
   const chainId = useChainId();
@@ -109,7 +107,7 @@ function ChallengesContent({
   onShowCreateChallengeSheet: (open: boolean) => void;
   onChallengeCreated: () => void;
 }) {
-  const { challenges, isLoading, error, refetch } = useChallenges();
+  const { challenges, isLoading, error } = useChallenges();
   const hasCampaigns = challenges.length > 0;
 
   const { data: currencyAddress } = useReadContract({

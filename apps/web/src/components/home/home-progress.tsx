@@ -19,16 +19,19 @@ export function useTodayQuests(address: string | undefined) {
     const ok = (p: { proofUrl: string | null; verifierAction: string | null } | null | undefined) =>
       Boolean(p?.proofUrl) && p?.verifierAction !== "rejected" && p?.verifierAction !== "timed_out";
     const today = new Date().toDateString();
-    const kept = active.filter((f) => {
+    const isKept = (f: (typeof active)[number]) => {
       const idx = f.onChain?.currentPeriodIndex ?? 0;
       const current = f.periods?.find((x) => x.periodIndex === idx) ?? f.currentPeriod;
       if (ok(current)) return true;
       const previous = f.periods?.find((x) => x.periodIndex === idx - 1);
       return ok(previous) && !!previous?.resolvedAt && new Date(previous.resolvedAt).toDateString() === today;
-    }).length;
+    };
+    const kept = active.filter(isKept).length;
+    /** Still to prove today — Lulu counts these down. */
+    const pendingItems = active.filter((f) => !isKept(f));
     // isLoading: no answer yet — callers hold their spot rather than show the
     // "no contracts" version and then swap it out a moment later.
-    return { total: active.length, kept, left: active.length - kept, isLoading };
+    return { total: active.length, kept, left: active.length - kept, pendingItems, isLoading };
   }, [data, isLoading]);
 }
 
@@ -52,7 +55,7 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
           : `${left} quests left today.`;
   return (
     <div className="animate-rise">
-      <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">
+      <h1 className="m-0 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
         {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
         {name
           ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
@@ -90,7 +93,7 @@ export function DailyGoalCardView({
     <GameCard className="flex animate-rise items-center gap-4 p-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between">
-          <span className="font-extrabold">Daily goal</span>
+          <span className="text-base font-extrabold">Daily goal</span>
           <span className=" tracking-tighter text-[11px] font-semibold text-ink">
             {kept} / {total}
           </span>

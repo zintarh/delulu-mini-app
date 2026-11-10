@@ -25,34 +25,6 @@ export function AdminKpiStrip({
   );
 }
 
-export function AdminStatusBadge({
-  isResolved,
-  isCancelled,
-}: {
-  isResolved: boolean;
-  isCancelled: boolean;
-}) {
-  if (isCancelled) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-        Cancelled
-      </span>
-    );
-  }
-  if (isResolved) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-        Resolved
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-delulu-blue-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-delulu-blue">
-      Active
-    </span>
-  );
-}
-
 export function AdminFilterPill({
   active,
   onClick,

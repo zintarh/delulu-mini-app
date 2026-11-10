@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /** Cheap read of current gift state — no on-chain check, safe to call on every page load. */
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address")?.trim().toLowerCase();
-  if (!address) return NextResponse.json({ error: "address is required" }, { status: 400 });
+  if (!address) return NextResponse.json({ error: "Address is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

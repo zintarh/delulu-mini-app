@@ -191,3 +191,25 @@ export function Ticket({
 export function MonoLabel({ className, children }: { className?: string; children: ReactNode }) {
   return <span className={cn("label-mono text-muted-foreground", className)}>{children}</span>;
 }
+
+/**
+ * Section header used across Home (and anywhere sections stack): one size,
+ * one weight, optional action link on the right. Keeps the type scale honest —
+ * page title 28px › section 20px › card title 16px › mono label 10px.
+ */
+export function SectionHeading({
+  children,
+  action,
+  className,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-4 flex items-end justify-between gap-3", className)}>
+      <h2 className="m-0 text-[20px] font-extrabold leading-tight tracking-[-0.015em] text-ink">{children}</h2>
+      {action ? <div className="shrink-0 text-[13px] font-bold text-ink/70 [&_a:hover]:text-ink [&_a]:no-underline">{action}</div> : null}
+    </div>
+  );
+}

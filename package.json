@@ -10,10 +10,7 @@
     "clean": "turbo clean",
     "type-check": "turbo type-check",
     "contracts:compile": "turbo run compile --filter=hardhat",
-    "contracts:test": "turbo run test --filter=hardhat",
-    "contracts:deploy": "turbo run deploy --filter=hardhat",
-    "contracts:deploy:sepolia": "turbo run deploy:sepolia --filter=hardhat",
-    "contracts:deploy:celo": "turbo run deploy:celo --filter=hardhat"
+    "contracts:test": "turbo run test --filter=hardhat"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",

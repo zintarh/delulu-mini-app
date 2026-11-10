@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
     if (!message || !signature) {
-      return NextResponse.json({ error: "message and signature are required" }, { status: 400 });
+      return NextResponse.json({ error: "Message and signature are required" }, { status: 400 });
     }
 
     const valid = await verifyWalletOwnership(address, message, signature);

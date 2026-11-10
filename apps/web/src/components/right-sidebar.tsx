@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ExternalLink, Search, X, Loader2, ChevronRight } from "lucide-react";
 import { useDeluluLeaderboard } from "@/hooks/graph";
 import { useRouter } from "next/navigation";
-import { cn, formatGAmountInt } from "@/lib/utils";
+import { formatGAmountInt } from "@/lib/utils";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { GoalIconPanel } from "@/components/goal-icon";

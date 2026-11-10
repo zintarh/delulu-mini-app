@@ -1,6 +1,5 @@
 "use client";
 
-import { env } from "@/lib/env";
 import dynamic from "next/dynamic";
 import { ReactNode } from "react";
 

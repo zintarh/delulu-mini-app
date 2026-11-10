@@ -59,13 +59,6 @@ export function usesNestedScroll(pathname: string): boolean {
 }
 
 /**
- * Full padding clearance for pages that render their own BottomNav
- * (outside the main layout spacer). Prefer the layout spacer instead.
- */
-export const MOBILE_BOTTOM_NAV_CLEARANCE =
-  "pb-[calc(var(--mobile-bottom-nav-clearance)+20px)]";
-
-/**
  * Reserves space under the main column so fixed BottomNav never covers
  * scroll content. Matches bar height + a little breathing room.
  */
