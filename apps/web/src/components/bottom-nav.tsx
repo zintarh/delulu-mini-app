@@ -46,7 +46,7 @@ export function BottomNav(_props: BottomNavProps = {}) {
 
   return (
     <nav
-      className="fixed inset-x-5 z-50 mx-auto flex h-[68px] max-w-3xl items-center justify-around rounded-full bg-ink px-2 shadow-[0_18px_40px_-16px_rgba(22,22,21,0.55)] xl:max-w-3xl"
+      className="fixed inset-x-5 z-50 mx-auto flex h-[68px] max-w-3xl items-center justify-around rounded-full bg-ink px-2 shadow-[0_18px_40px_-16px_rgba(22,22,21,0.55)] xl:max-w-3xl lg:hidden"
       style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 20px)" }}
       aria-label="Main navigation"
     >

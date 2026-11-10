@@ -43,7 +43,7 @@ export function AppToast() {
     <div
       role="status"
       className={cn(
-        "fixed bottom-24 left-1/2 z-[200] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
+        "fixed bottom-24 left-[calc(50%_+_var(--desktop-sidebar-w)_/_2)] lg:bottom-6 z-[200] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2",
         "lg:bottom-6 lg:left-1/2",
         "animate-in fade-in slide-in-from-bottom-2 duration-300",
       )}

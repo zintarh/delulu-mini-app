@@ -74,7 +74,7 @@ export function MobileBottomNavSpacer() {
   if (hidesBottomNav(pathname)) return null;
   return (
     <div
-      className="shrink-0"
+      className="shrink-0 lg:hidden"
       style={{ height: "var(--mobile-bottom-nav-clearance)" }}
       aria-hidden
     />
