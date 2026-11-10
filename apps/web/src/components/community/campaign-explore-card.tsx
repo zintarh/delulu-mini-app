@@ -338,6 +338,97 @@ export function CampaignTicketRow({ campaign, index = 0 }: { campaign: CampaignE
   );
 }
 
+/**
+ * Photo-first campaign card (Home): the cover fills the card and the title,
+ * community and stats sit on a dark scrim over it. Without a cover it falls
+ * back to a yellow card with the trophy so it still reads as a campaign.
+ */
+export function CampaignPhotoCard({ campaign, className }: { campaign: CampaignExploreCardData; className?: string }) {
+  const { closed, left } = campaignTiming(campaign);
+  const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
+  const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
+  const hasImage = Boolean(campaign.coverImageUrl);
+  const when = closed ? "Ended" : left === 0 ? "Ends today" : `${left ?? campaign.durationDays} days left`;
+  const price = pool > 0 ? `${compactAmount(pool)} G$ prize` : stake > 0 ? `${compactAmount(stake)} G$ to join` : "Free to join";
+  return (
+    <Link
+      href={campaignHref(campaign)}
+      className={cn(
+        "press-edge group relative block aspect-[4/3] animate-rise overflow-hidden rounded-3xl border-2 border-line text-ink no-underline shadow-edge",
+        hasImage ? "bg-ink" : "bg-[#fdf1c7]",
+        className,
+      )}
+    >
+      {hasImage ? (
+        <>
+          <Image
+            src={campaign.coverImageUrl!}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 85vw, 360px"
+            className={cn("object-cover transition-transform duration-500 group-hover:scale-105", closed && "grayscale")}
+            unoptimized
+          />
+          {/* Scrim so white text reads on any photo. */}
+          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
+        </>
+      ) : (
+        <span className="absolute -right-3 top-6 opacity-90" aria-hidden>
+          <TrophyArt size={120} />
+        </span>
+      )}
+
+      <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+        {campaign.isJoined ? (
+          <Stamp tone="kept" className="bg-white text-[10px]">
+            <Check className="h-3 w-3" strokeWidth={3} />
+            Joined
+          </Stamp>
+        ) : campaign.community?.name ? (
+          <span className="label-mono max-w-[60%] truncate rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-ink">
+            {campaign.community.name}
+          </span>
+        ) : (
+          <span />
+        )}
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+            pool > 0 ? "bg-yellow text-ink shadow-[0_2px_0_#c99a0a]" : "bg-white/90 text-ink",
+          )}
+        >
+          {pool > 0 ? <Trophy className="h-3 w-3" strokeWidth={2.6} /> : null}
+          {price}
+        </span>
+      </div>
+
+      <div className={cn("absolute inset-x-4 bottom-4", hasImage ? "text-white" : "text-ink")}>
+        <h3
+          className={cn(
+            "m-0 line-clamp-2 text-[20px] font-extrabold leading-tight [text-wrap:balance]",
+            hasImage ? "text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]" : "text-ink",
+          )}
+        >
+          {campaign.title}
+        </h3>
+        <div className="mt-2 flex items-center gap-2">
+          {campaign.participantAvatars && campaign.participantAvatars.length > 0 ? (
+            <AvatarStack participants={campaign.participantAvatars} total={campaign.participantCount} size={20} />
+          ) : null}
+          <span className={cn("label-mono text-[10px]", hasImage ? "text-white/85" : "text-muted-foreground")}>
+            {campaign.participantCount > 0 ? `${campaign.participantCount} in · ` : ""}
+            {when}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export function CampaignPhotoCardSkeleton({ className }: { className?: string }) {
+  return <div className={cn("aspect-[4/3] animate-pulse rounded-3xl border-2 border-line bg-white", className)} />;
+}
+
 export function CampaignTicketRowSkeleton() {
   return <div className="h-[92px] animate-pulse rounded-3xl border-2 border-line bg-white" />;
 }

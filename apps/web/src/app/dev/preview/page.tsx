@@ -7,6 +7,14 @@ import { CampaignQuestRow } from "@/components/active-campaigns-section";
 import type { JoinedDashboardCampaign } from "@/hooks/use-user-campaign-milestones";
 
 const HOUR = 3600_000;
+function mockOpen(title: string, cover: string | null, pool: number, joinAmount: number): CampaignExploreCardData {
+  return {
+    id: title, title, proposedPoolAmount: pool, durationDays: 30, coverImageUrl: cover,
+    displayEndsAt: new Date(Date.now() + 12 * 24 * HOUR).toISOString(), status: pool > 0 ? "active" : "approved",
+    participantCount: 24, milestoneCount: 10, isJoined: false, isFreeToJoin: joinAmount === 0, joinAmount,
+    joinToken: "G$", community: { name: "Lagos Readers", slug: "x" },
+  };
+}
 function mockCampaign(title: string, done: number, total: number, startOffsetH: number | null): JoinedDashboardCampaign {
   const now = Date.now();
   return {
@@ -28,6 +36,7 @@ import { DailyMoneyCardView } from "@/components/home/daily-money-card";
 import { AddToHomeSheet } from "@/components/pwa/add-to-home-sheet";
 import { AppIntroView } from "@/components/app-intro";
 import { Lulu } from "@/components/ds";
+import { CampaignPhotoCard, type CampaignExploreCardData } from "@/components/community/campaign-explore-card";
 import { DailyGoalCardView, WeekFlamesView } from "@/components/home/home-progress";
 
 /**
@@ -69,6 +78,11 @@ export default function DevPreviewPage() {
         <DailyMoneyCardView state="claimed" nextClaim="1:00 PM · in 4:59" />
         <DailyMoneyCardView state="claimed" nextClaim="tomorrow 1:00 PM · in 23:12" />
         <DailyMoneyCardView state="empty" />
+        <span className="label-mono text-muted-foreground">Join a campaign (Home)</span>
+        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
+          <CampaignPhotoCard campaign={mockOpen("Build a habit of reading daily", "/bg1.jpg", 0, 10000)} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
+          <CampaignPhotoCard campaign={mockOpen("30-day morning run challenge", null, 50000, 0)} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
+        </div>
         <span className="label-mono text-muted-foreground">Your campaigns (Home)</span>
         <CampaignQuestRow campaign={mockCampaign("30-day morning run", 3, 10, -1)} nowMs={Date.now()} proofBusy={false} onProve={() => {}} />
         <CampaignQuestRow campaign={mockCampaign("Read 10 pages daily", 5, 14, 20)} nowMs={Date.now()} proofBusy={false} onProve={() => {}} />

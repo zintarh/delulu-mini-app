@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, bottomSheetShellClassName } from "./sheet";
-import { Modal, ModalContent, ModalHeader, ModalTitle } from "./modal";
+import { Modal, ModalClose, ModalContent, ModalTitle } from "./modal";
 import { cn } from "@/lib/utils";
 
 interface ResponsiveSheetProps {
@@ -19,6 +20,31 @@ interface ResponsiveSheetProps {
   modalClassName?: string;
 }
 
+const DESKTOP_QUERY = "(min-width: 1024px)"; // lg — matches the desktop sidebar
+
+/**
+ * Read synchronously on first render so a sheet that mounts already open
+ * doesn't flash as a bottom sheet for a frame before switching to the modal.
+ */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return isDesktop;
+}
+
+/**
+ * Bottom sheet on mobile (unchanged); on desktop a centred dialog in the
+ * redesign's card style — 2px line border, chunky edge shadow, game-style
+ * close button — rather than a stretched mobile sheet.
+ */
 export function ResponsiveSheet({
   open,
   onOpenChange,
@@ -31,20 +57,9 @@ export function ResponsiveSheet({
   modalClassName,
   showClose = true,
 }: ResponsiveSheetProps) {
-  const [isMobile, setIsMobile] = useState(true);
+  const isDesktop = useIsDesktop();
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  if (isMobile) {
-    // Mobile: Use bottom sheet
+  if (!isDesktop) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
@@ -58,23 +73,41 @@ export function ResponsiveSheet({
     );
   }
 
-  // Desktop: Use modal
+  const visibleTitle = title && !hideTitleVisually;
+
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
-        className={cn("max-w-md", modalClassName, contentClassName)}
-        showClose={showClose}
+        showClose={false}
+        overlayClassName="bg-ink/50 backdrop-blur-[3px]"
+        className={cn(
+          "w-[calc(100%-3rem)] max-w-[480px] max-h-[86vh] overflow-y-auto scrollbar-hide",
+          "rounded-[28px] border-2 border-line bg-white p-7 text-ink",
+          "shadow-[0_8px_0_#e6e6e0,0_32px_64px_-24px_rgba(22,22,21,0.45)]",
+          modalClassName,
+          contentClassName,
+        )}
       >
         {title && (
-          hideTitleVisually ? (
-            <ModalTitle className="sr-only">{title}</ModalTitle>
-          ) : (
-            <ModalHeader>
-              <ModalTitle>{title}</ModalTitle>
-            </ModalHeader>
-          )
+          <ModalTitle
+            className={cn(
+              visibleTitle
+                ? "mb-5 pr-14 text-[22px] font-extrabold leading-tight tracking-[-0.01em] text-ink"
+                : "sr-only",
+            )}
+          >
+            {title}
+          </ModalTitle>
         )}
         {children}
+        {showClose && (
+          <ModalClose
+            className="press-edge absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-line bg-white text-ink shadow-edge-sm hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={3} />
+          </ModalClose>
+        )}
       </ModalContent>
     </Modal>
   );

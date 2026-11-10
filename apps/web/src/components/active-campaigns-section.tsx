@@ -81,11 +81,11 @@ export function CampaignQuestRow({
         state === "due" ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
       )}
     >
-      <span className="relative flex h-[50px] w-[50px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#fdf1c7]">
+      <span className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#fdf1c7] shadow-[inset_0_0_0_1px_rgba(22,22,21,0.06)]">
         {c.cover_image_url ? (
-          <Image src={c.cover_image_url} alt="" fill className="object-cover" unoptimized />
+          <Image src={c.cover_image_url} alt="" fill sizes="68px" className="object-cover" unoptimized />
         ) : (
-          <TrophyArt size={30} />
+          <TrophyArt size={38} />
         )}
       </span>
       <div className="min-w-0 flex-1">
@@ -131,7 +131,7 @@ export function CampaignQuestRow({
 function CampaignQuestRowSkeleton() {
   return (
     <div className="flex animate-pulse items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
-      <div className="h-[50px] w-[50px] rounded-2xl bg-line" />
+      <div className="h-[68px] w-[68px] rounded-2xl bg-line" />
       <div className="flex-1 space-y-2">
         <div className="h-4 w-2/3 rounded bg-line" />
         <div className="h-2.5 w-1/3 rounded bg-line" />

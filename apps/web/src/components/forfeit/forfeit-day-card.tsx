@@ -844,31 +844,16 @@ export function ForfeitDayCard({
     if (!isLoading) onEmptyChange?.(isEmpty);
   }, [isLoading, isEmpty, onEmptyChange]);
 
-  // Navigation is over the calendar itself, not just days that have a
-  // forfeit — the arrows can land on an empty day and just show that state.
-  const [selectedDate, setSelectedDate] = useState<Date>(() =>
-    startOfDay(new Date()),
-  );
-  const bucketsKey = dayBuckets.map((b) => b.key).join("|");
-
-  // Land on today (or nearest day with forfeits) when the calendar shape changes.
-  useEffect(() => {
-    if (dayBuckets.length === 0) return;
-    const todayKey = dayKey(new Date());
-    const todayBucket = dayBuckets.find((b) => b.key === todayKey);
-    if (todayBucket) {
-      setSelectedDate(todayBucket.dayDate);
-      return;
-    }
-    // Only ever jump forward to the soonest upcoming day — never default
-    // backward into a past day. A forfeit that's already over must not make
-    // the dashboard look stuck in the past when reopened today.
-    const upcoming = dayBuckets.find(
-      (b) => b.dayDate.getTime() > startOfDay(new Date()).getTime(),
-    );
-    setSelectedDate(upcoming ? upcoming.dayDate : startOfDay(new Date()));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when keys change
-  }, [bucketsKey]);
+  // Today if it has forfeits, else the soonest upcoming day. Worked out
+  // during render (not corrected in an effect afterwards), so the card never
+  // flashes "No forfeit for today" before jumping to the real day. Never
+  // defaults backward: a finished forfeit mustn't make Home look stuck in the past.
+  const selectedDate = useMemo<Date>(() => {
+    const today = startOfDay(new Date());
+    if (dayBuckets.some((b) => b.key === dayKey(today))) return today;
+    const upcoming = dayBuckets.find((b) => b.dayDate.getTime() > today.getTime());
+    return upcoming ? upcoming.dayDate : today;
+  }, [dayBuckets]);
 
   const currentBucket =
     dayBuckets.find((b) => b.key === dayKey(selectedDate)) ?? null;

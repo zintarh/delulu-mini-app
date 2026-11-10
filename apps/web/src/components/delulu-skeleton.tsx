@@ -62,7 +62,7 @@ function HomeDailyMoneySkeleton() {
 }
 
 /** Daily goal card: title + count, progress bar, hint, Lulu scene (DailyGoalCardView). */
-function HomeDailyGoalSkeleton() {
+export function HomeDailyGoalSkeleton() {
   return (
     <div className="flex items-center gap-4 rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
       <div className="min-w-0 flex-1">

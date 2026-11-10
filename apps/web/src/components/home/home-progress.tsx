@@ -6,10 +6,11 @@ import { Flame, GameCard, LuluScene, ProgressBar, luluWeatherFor, type LuluWeath
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { cn } from "@/lib/utils";
+import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
 
 /** Today's quest tally from the user's active contracts. */
 export function useTodayQuests(address: string | undefined) {
-  const { data } = useCreatorForfeits(address);
+  const { data, isLoading } = useCreatorForfeits(address);
   return useMemo(() => {
     const active = (data ?? []).filter((f) => isActiveForfeit(f) && f.onChain?.active);
     // Kept today = the current period already has a proof, or the previous
@@ -25,8 +26,10 @@ export function useTodayQuests(address: string | undefined) {
       const previous = f.periods?.find((x) => x.periodIndex === idx - 1);
       return ok(previous) && !!previous?.resolvedAt && new Date(previous.resolvedAt).toDateString() === today;
     }).length;
-    return { total: active.length, kept, left: active.length - kept };
-  }, [data]);
+    // isLoading: no answer yet — callers hold their spot rather than show the
+    // "no contracts" version and then swap it out a moment later.
+    return { total: active.length, kept, left: active.length - kept, isLoading };
+  }, [data, isLoading]);
 }
 
 function greetingFor(date = new Date()) {
@@ -37,9 +40,10 @@ function greetingFor(date = new Date()) {
 }
 
 export function HomeGreeting({ name, address }: { name: string; address: string | undefined }) {
-  const { total, left } = useTodayQuests(address);
-  const sub =
-    total === 0
+  const { total, left, isLoading } = useTodayQuests(address);
+  const sub = isLoading
+    ? null
+    : total === 0
       ? "Make today count."
       : left === 0
         ? "All done today. Nice work."
@@ -54,7 +58,8 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
           ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
           : `Good ${greetingFor().toLowerCase()}`}
       </h1>
-      <p className="mt-1 text-sm text-muted-foreground">{sub}</p>
+      {/* Same height while loading, so nothing below jumps when the line arrives. */}
+      <p className="mt-1 min-h-5 text-sm text-muted-foreground">{sub}</p>
     </div>
   );
 }
@@ -107,8 +112,9 @@ export function DailyGoalCardView({
 }
 
 export function DailyGoalCard({ address }: { address: string }) {
-  const { total, kept } = useTodayQuests(address);
+  const { total, kept, isLoading } = useTodayQuests(address);
   const { daysSinceKept } = useUserStreak(address);
+  if (isLoading) return <HomeDailyGoalSkeleton />;
   return <DailyGoalCardView kept={kept} total={total} daysSinceKept={daysSinceKept} />;
 }
 
