@@ -27,7 +27,7 @@ export type ClaimableCampaignItem = {
 export async function GET(request: NextRequest) {
   const addressRaw = request.nextUrl.searchParams.get("address")?.trim() ?? "";
   if (!addressRaw.startsWith("0x") || addressRaw.length < 42) {
-    return NextResponse.json({ error: "address is required" }, { status: 400 });
+    return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
 
   let wallet: Address;

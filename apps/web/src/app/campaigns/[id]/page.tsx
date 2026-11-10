@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { useAccount } from "wagmi";
 import { LeftSidebar } from "@/components/left-sidebar";
 import { RightSidebar } from "@/components/right-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -15,7 +14,7 @@ import { useReadContract, useChainId } from "wagmi";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
 import { ArrowLeft, Trophy, Loader2 } from "lucide-react";
-import { cn, formatGAmount } from "@/lib/utils";
+import { formatGAmount } from "@/lib/utils";
 import { TokenBadge } from "@/components/token-badge";
 import { CampaignLeaderboardSkeleton } from "@/components/campaign-leaderboard-skeleton";
 import type { Challenge } from "@/hooks/use-challenges";
@@ -23,7 +22,6 @@ import type { Challenge } from "@/hooks/use-challenges";
 export default function ChallengeDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { address } = useAccount();
   const { authenticated } = useAuth();
   const { redirectToSignIn } = useRedirectToSignIn();
   const { challenges, isLoading: isLoadingChallenges } = useChallenges();

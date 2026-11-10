@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress, verifyMessage } from "viem";
 import { isWalletAuthMessageValid } from "@/lib/auth/wallet-auth-message";
 
-export { buildWalletAuthMessage } from "@/lib/auth/wallet-auth-message";
 
 export const WALLET_SESSION_COOKIE = "delulu_wallet_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;

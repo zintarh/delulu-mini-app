@@ -19,7 +19,7 @@ export function StartFreeCard() {
     <GameCard tone="yellow" className="flex animate-rise items-center gap-3 py-3 pl-3.5 pr-3">
       <Lulu size={44} />
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[15px] font-extrabold leading-tight">You have 0 G$</p>
+        <p className="m-0 text-base font-extrabold leading-tight">You have 0 G$</p>
         <p className="m-0 mt-0.5 text-xs leading-snug text-muted-foreground">
           Claim free money above, or start free with just your word
         </p>

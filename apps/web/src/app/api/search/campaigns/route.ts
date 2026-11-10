@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { fetchBatchCampaignStats } from "@/lib/community/campaign-subgraph";
+import {
+  fetchDbMilestoneCounts,
+  isValidOnChainChallengeId,
+  mergeMilestoneCount,
+} from "@/lib/community/campaign-milestone-counts";
+import {
+  fetchCampaignParticipantAvatars,
+  type ParticipantAvatar,
+} from "@/lib/community/campaign-participant-avatars";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +27,15 @@ export type CampaignSearchResult = {
   join_token: string | null;
   community_name: string;
   community_slug: string;
+  /** Same stats the Home/Explore campaign cards show. */
+  status: string;
+  proposed_pool_amount: number;
+  proof_cadence: string;
+  forfeit_pct: number;
+  created_at: string;
+  participant_count: number;
+  participant_avatars: ParticipantAvatar[];
+  milestone_count: number;
 };
 
 export async function GET(req: NextRequest) {
@@ -33,7 +52,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await admin
     .from("community_campaigns")
     .select(
-      "id, title, description, cover_image_url, display_ends_at, duration_days, is_free_to_join, join_amount, join_token, communities ( name, slug )",
+      "id, title, description, cover_image_url, display_ends_at, duration_days, is_free_to_join, join_amount, join_token, status, proposed_pool_amount, proof_cadence, forfeit_pct, created_at, on_chain_challenge_id, communities ( name, slug )",
     )
     .neq("status", "draft")
     .eq("is_hidden", false)
@@ -43,10 +62,24 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ results: [] });
 
-  const results: CampaignSearchResult[] = (data ?? []).map((row) => {
+  const rows = data ?? [];
+  const ids = rows.map((row) => String(row.id));
+  const onChainIds = rows
+    .map((row) => row.on_chain_challenge_id as number | null)
+    .filter(isValidOnChainChallengeId);
+  const [dbMilestoneCounts, chainStats, avatarsByCampaign] = await Promise.all([
+    fetchDbMilestoneCounts(admin, ids),
+    fetchBatchCampaignStats(onChainIds),
+    fetchCampaignParticipantAvatars(admin, ids),
+  ]);
+
+  const results: CampaignSearchResult[] = rows.map((row) => {
+    const id = String(row.id);
+    const challengeId = row.on_chain_challenge_id as number | null;
+    const stats = isValidOnChainChallengeId(challengeId) ? chainStats.get(challengeId) : undefined;
     const community = (Array.isArray(row.communities) ? row.communities[0] : row.communities) as { name: string; slug: string } | null;
     return {
-      id: String(row.id),
+      id,
       title: String(row.title),
       description: (row.description as string | null) ?? null,
       cover_image_url: (row.cover_image_url as string | null) ?? null,
@@ -57,6 +90,14 @@ export async function GET(req: NextRequest) {
       join_token: (row.join_token as string | null) ?? null,
       community_name: community?.name ?? "",
       community_slug: community?.slug ?? "",
+      status: String(row.status ?? "active"),
+      proposed_pool_amount: Number(row.proposed_pool_amount ?? 0),
+      proof_cadence: String(row.proof_cadence ?? "daily"),
+      forfeit_pct: Number(row.forfeit_pct ?? 0),
+      created_at: String(row.created_at),
+      participant_count: stats?.participantCount ?? 0,
+      participant_avatars: avatarsByCampaign.get(id) ?? [],
+      milestone_count: mergeMilestoneCount(dbMilestoneCounts.get(id) ?? 0, stats?.milestoneCount ?? 0),
     };
   });
 

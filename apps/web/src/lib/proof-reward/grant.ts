@@ -2,7 +2,7 @@ import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
-import { payoutProofReward, proofRewardRewardId } from "@/lib/celo/reward-vault-payout";
+import { getRewarderStatus, payoutProofReward, proofRewardRewardId } from "@/lib/celo/reward-vault-payout";
 import { parseCommunityMilestoneProofSubmittedFromTx } from "@/lib/dashboard/parse-challenge-tx";
 import { parseProofSubmittedFromTx } from "@/lib/dashboard/parse-forfeit-tx";
 
@@ -214,4 +214,44 @@ export async function grantProofReward(
       .neq("status", "sent");
     return { status: "failed", amount };
   }
+}
+
+/**
+ * Re-pays proof rewards whose vault credit failed — typically because the
+ * RewardVault pool ran dry. Without this they'd stay 'failed' forever, since
+ * grantProofReward only runs again when the proof itself is re-approved.
+ * Goes back through grantProofReward, so every check re-runs; a 'failed' row
+ * keeps the daily slot it reserved (no cap overrun) and the on-chain
+ * usedRewardId check means nothing is ever paid twice. Skips the batch when
+ * the pool can't cover even one reward, so an empty vault costs one RPC read.
+ */
+export async function retryFailedProofRewards(
+  admin: SupabaseAdmin,
+  // Each paid row waits on a tx receipt (~5–10s); keep well inside the cron's 120s budget.
+  limit = 10,
+): Promise<{ found: number; retried: number; stillFailed: number; poolEmpty: boolean }> {
+  const { data: rows, error } = await admin
+    .from("proof_rewards")
+    .select("kind, proof_tx_hash")
+    .eq("status", "failed")
+    .not("proof_tx_hash", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(`[proof-reward] failed-row lookup: ${error.message}`);
+  const found = rows?.length ?? 0;
+  if (found === 0) return { found, retried: 0, stillFailed: 0, poolEmpty: false };
+
+  const available = Number((await getRewarderStatus()).poolAvailable);
+  const affordable = Math.floor(available / PROOF_REWARD_GDOLLARS);
+  if (affordable <= 0) return { found, retried: 0, stillFailed: found, poolEmpty: true };
+
+  let retried = 0;
+  for (const row of (rows ?? []).slice(0, affordable)) {
+    const result = await grantProofReward(admin, {
+      kind: row.kind as ProofRewardKind,
+      proofTxHash: row.proof_tx_hash as `0x${string}`,
+    });
+    if (result.status === "sent") retried++;
+  }
+  return { found, retried, stillFailed: found - retried, poolEmpty: affordable < found };
 }

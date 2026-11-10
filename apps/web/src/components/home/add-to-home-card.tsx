@@ -15,7 +15,7 @@ export function AddToHomeCardView({ onOpen, onHide }: { onOpen: () => void; onHi
           <SquarePlus className="h-5 w-5" strokeWidth={2.4} />
         </span>
         <span className="min-w-0">
-          <span className="block text-[15px] font-extrabold leading-tight">Add Delulu to your home screen</span>
+          <span className="block text-base font-extrabold leading-tight">Add Delulu to your home screen</span>
           <span className="block text-xs text-muted-foreground">Opens full-screen, like an app</span>
         </span>
       </button>

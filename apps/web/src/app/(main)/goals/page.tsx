@@ -125,7 +125,7 @@ export default function GoalsPage() {
       if (q) params.set("q", q.toLowerCase());
       if (country) params.set("country", country);
       const res = await fetch(`/api/search?${params.toString()}`, { signal });
-      if (!res.ok) throw new Error("search failed");
+      if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setApiResults(data.results ?? []);
       if (q) recordSearchKeyword(q);

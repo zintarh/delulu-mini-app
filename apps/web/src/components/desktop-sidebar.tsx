@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
-import { Bell, Compass, Home, LogIn, Plus, Settings, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, Compass, Home, LogIn, Plus, type LucideIcon } from "lucide-react";
+import { capitalizeFirst, cn } from "@/lib/utils";
 import { Lulu } from "@/components/ds/art";
 import { Wordmark } from "@/components/wordmark";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -52,7 +52,8 @@ function Tip({ label }: { label: string }) {
 const rowCls = (active: boolean) =>
   cn(
     "relative flex h-12 w-12 items-center justify-center gap-3 rounded-2xl text-[15px] font-bold transition-colors xl:w-full xl:justify-start xl:px-3.5",
-    active ? "bg-ink text-white" : "text-ink/60 hover:bg-line/60 hover:text-ink",
+    // Inactive stays readable (ink at 80%), not washed out; active is the solid ink pill.
+    active ? "bg-ink text-white" : "text-ink/80 hover:bg-line/60 hover:text-ink",
   );
 
 function RowInner({
@@ -112,11 +113,13 @@ export function DesktopSidebar() {
 
   const creating = isNavHrefActive(path, "/forfeit");
   const profileActive = isNavHrefActive(path, "/profile") && !notificationsOpen;
-  const settingsActive = isNavHrefActive(path, "/settings");
-  const displayName =
-    user?.displayName?.trim() ||
-    user?.username ||
-    (address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Your account");
+  // Names start with a capital ("kate" → "Kate"); a wallet-address fallback stays as-is.
+  const name = user?.displayName?.trim() || user?.username;
+  const displayName = name
+    ? capitalizeFirst(name)
+    : address
+      ? `${address.slice(0, 6)}…${address.slice(-4)}`
+      : "Your account";
 
   return (
     <aside
@@ -136,32 +139,6 @@ export function DesktopSidebar() {
           <Wordmark size={26} />
         </span>
       </Link>
-
-      {/* Primary action — mirrors the dock's raised yellow tile. */}
-      <div className="group relative mb-6 xl:w-full">
-        <Link
-          href={authenticated ? "/forfeit" : "/sign-in"}
-          onClick={(e) => {
-            closePanels();
-            if (!authenticated) {
-              e.preventDefault();
-              toSignIn();
-            }
-          }}
-          aria-label="New contract"
-          aria-current={creating ? "page" : undefined}
-          className={cn(
-            "press-edge flex h-12 w-12 items-center justify-center gap-2 rounded-2xl bg-yellow text-ink shadow-edge-yellow xl:h-[52px] xl:w-full",
-            creating && "ring-2 ring-ink ring-offset-2",
-          )}
-        >
-          <Plus className="h-6 w-6" strokeWidth={2.8} />
-          <span className="hidden text-[14px] font-extrabold uppercase tracking-[0.06em] xl:inline">
-            New contract
-          </span>
-        </Link>
-        <Tip label="New contract" />
-      </div>
 
       <nav className="flex flex-col items-center gap-1.5 xl:items-stretch">
         {PAGES.map((item) => {
@@ -203,21 +180,34 @@ export function DesktopSidebar() {
       </nav>
 
       <div className="mt-auto flex flex-col items-center gap-1.5 pt-6 xl:items-stretch">
+        {/* Primary action — sits at the bottom, where Settings used to be (Settings moved to the top bar). */}
+        <div className="group relative mb-2 xl:w-full">
+          <Link
+            href={authenticated ? "/forfeit" : "/sign-in"}
+            onClick={(e) => {
+              closePanels();
+              if (!authenticated) {
+                e.preventDefault();
+                toSignIn();
+              }
+            }}
+            aria-label="New delulu"
+            aria-current={creating ? "page" : undefined}
+            className={cn(
+              // Compact on wide screens: a normal-size button, not a full-width slab.
+              "press-edge flex h-12 w-12 items-center justify-center gap-1.5 rounded-2xl bg-yellow text-ink shadow-edge-yellow xl:h-10 xl:w-auto xl:rounded-xl xl:px-4",
+              creating && "ring-2 ring-ink ring-offset-2",
+            )}
+          >
+            <Plus className="h-6 w-6 xl:h-4 xl:w-4" strokeWidth={2.8} />
+            <span className="hidden text-[13px] font-extrabold uppercase tracking-[0.06em] xl:inline">
+              New delulu
+            </span>
+          </Link>
+          <Tip label="New delulu" />
+        </div>
         {authenticated ? (
           <>
-            <div className="group relative">
-              <Link
-                href="/settings"
-                onClick={() => closePanels()}
-                aria-label="Settings"
-                aria-current={settingsActive ? "page" : undefined}
-                className={rowCls(settingsActive)}
-              >
-                <RowInner icon={Settings} label="Settings" active={settingsActive} />
-              </Link>
-              <Tip label="Settings" />
-            </div>
-
             <div className="group relative">
               <Link
                 href="/profile"

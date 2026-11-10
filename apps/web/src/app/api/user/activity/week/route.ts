@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
   if (!ISO_DATE.test(weekStart)) {
     return NextResponse.json(
-      { error: "weekStart must be a Monday date (YYYY-MM-DD)" },
+      { error: "Week start must be a Monday date (YYYY-MM-DD)" },
       { status: 400 },
     );
   }
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const toUnix = Number(toRaw);
   if (!Number.isFinite(fromUnix) || !Number.isFinite(toUnix) || toUnix <= fromUnix) {
     return NextResponse.json(
-      { error: "from and to unix timestamps are required (to > from)" },
+      { error: "From and to unix timestamps are required (to > from)" },
       { status: 400 },
     );
   }
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   const tzOffsetMinutes = Number(tzRaw);
   if (!Number.isFinite(tzOffsetMinutes)) {
     return NextResponse.json(
-      { error: "tzOffsetMinutes is required" },
+      { error: "Tz offset minutes is required" },
       { status: 400 },
     );
   }

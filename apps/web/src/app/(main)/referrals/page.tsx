@@ -10,9 +10,8 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Lulu } from "@/components/ds";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
-import { isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
+import { REFERRAL_GDOLLARS_REWARD, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
 
-const REFERRAL_GDOLLARS_REWARD = 6000;
 
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
   { key: "signedUp", label: "Signed up", next: "Sign up" },
@@ -162,7 +161,12 @@ export default function MyReferralsPage() {
         ) : (
           <ul className="space-y-3">
             {referrals.map((r, i) => (
-              <ReferralRow key={`${r.username ?? "anon"}-${i}`} r={r} ended={ended} />
+              <ReferralRow
+                key={`${r.username ?? "anon"}-${i}`}
+                r={r}
+                // A friend from a previous campaign is closed even while a new one runs.
+                ended={ended || !isInCurrentReferralCampaign(r.joinedAt)}
+              />
             ))}
           </ul>
         )}

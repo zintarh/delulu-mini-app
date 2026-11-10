@@ -23,7 +23,7 @@ export async function POST(
   const { id: communityId } = await params;
   const body = await request.json().catch(() => ({}));
   const email = String(body.email ?? "").trim().toLowerCase();
-  if (!email) return NextResponse.json({ error: "email is required" }, { status: 400 });
+  if (!email) return NextResponse.json({ error: "Email is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

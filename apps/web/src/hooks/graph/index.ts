@@ -13,17 +13,10 @@ export { useGraphDelulu } from "./useGraphDelulu";
 export type { GraphStake } from "./useGraphDelulu";
 
 // ─── Leaderboards ───────────────────────────────────────────────
-export { useCreatorLeaderboard } from "./useCreatorLeaderboard";
 export { useDeluluLeaderboard } from "./useDeluluLeaderboard";
 export type { DeluluLeaderboardEntry } from "./useDeluluLeaderboard";
 export { useAllUsersLeaderboard } from "./useAllUsersLeaderboard";
 export type { UserLeaderboardEntry } from "./useAllUsersLeaderboard";
-
-// ─── User Profile Hooks ─────────────────────────────────────────
-export { useGraphUserDelulus } from "./useGraphUserDelulus";
-export { useGraphStakedDelulus } from "./useGraphStakedDelulus";
-export { useGraphUserStats } from "./useGraphUserStats";
-export type { UserStats } from "./useGraphUserStats";
 
 // ─── Stakes & Claims ────────────────────────────────────────────
 export { useGraphDeluluStakes } from "./useGraphDeluluStakes";

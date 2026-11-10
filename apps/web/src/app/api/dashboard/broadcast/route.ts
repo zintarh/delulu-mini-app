@@ -150,13 +150,13 @@ export async function POST(request: NextRequest) {
   const { addresses, subject, message } = body;
 
   if (!Array.isArray(addresses) || addresses.length === 0) {
-    return NextResponse.json({ error: "addresses must be a non-empty array" }, { status: 400 });
+    return NextResponse.json({ error: "Addresses must be a non-empty array" }, { status: 400 });
   }
   if (!subject?.trim()) {
-    return NextResponse.json({ error: "subject is required" }, { status: 400 });
+    return NextResponse.json({ error: "Subject is required" }, { status: 400 });
   }
   if (!message?.trim()) {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
+    return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
 
   const appUrl = process.env.NEXT_PUBLIC_URL ?? "https://delulu.app";

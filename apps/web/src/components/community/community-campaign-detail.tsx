@@ -23,6 +23,8 @@ import {
   getEffectiveDisplayEndsAt,
 } from "@/lib/community/campaign-types";
 import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
+import { forfeitProgress, forfeitRuleLine, formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
+import { useJoinedCampaignDashboard } from "@/hooks/use-user-campaign-milestones";
 import { useClaimCommunityCampaignReward } from "@/hooks/use-community-campaign-onchain";
 
 export type CommunityCampaignDetailData = {
@@ -299,6 +301,9 @@ export function CommunityCampaignDetail({
     !claimSuccess;
 
   const completedCount = milestones.filter((m) => m.completed).length;
+  // Same source as Home's quest rows, so "lost so far" matches everywhere (and reclaim).
+  const { data: joinedDashboard } = useJoinedCampaignDashboard(isJoined ? address : undefined);
+  const myJoinedRow = joinedDashboard?.find((c) => c.campaign_id === campaign.id);
 
   const activeMilestone = useMemo(
     () => getActiveMilestone(milestones),
@@ -310,17 +315,23 @@ export function CommunityCampaignDetail({
   const [showAllStandings, setShowAllStandings] = useState(false);
   const proofDone = activeMilestone?.completed ?? false;
   const cadence = (campaign.proof_cadence || "daily").toLowerCase();
+  const forfeit = getForfeitTerms({
+    isFreeToJoin: !isPaidJoin,
+    joinAmount: joinStakeAmount,
+    forfeitPct: campaign.forfeit_pct,
+    joinToken: stakeToken,
+    milestoneCount: milestoneCount || milestones.length,
+  });
+  const myMissed = myJoinedRow?.missed_count ?? 0;
+  const myProgress = forfeit ? forfeitProgress(forfeit, myMissed) : null;
   const rules = [
     campaign.proof_instructions?.trim() || `Prove it ${cadence}`,
-    `Each verified proof earns ${pointsPerMilestone.toLocaleString()} points`,
-    showPrizePool
-      ? `Top ${topN} split the pool by points at the end`
-      : isPaidJoin && joinStakeAmount > 0
-        ? `Stake ${joinStakeAmount.toLocaleString()} ${stakeToken} to join · reclaim it after`
-        : "Points rank you on the standings",
-    ...(isPaidJoin && (campaign.forfeit_pct ?? 0) > 0
-      ? [`Miss a milestone, lose ${campaign.forfeit_pct}% of your stake`]
+    ...(isPaidJoin && joinStakeAmount > 0
+      ? [`Stake ${formatStake(joinStakeAmount)} ${stakeToken} to join · get it back at the end`]
       : []),
+    ...(forfeit ? [forfeitRuleLine(forfeit)] : []),
+    `Each verified proof earns ${pointsPerMilestone.toLocaleString()} points`,
+    showPrizePool ? `Top ${topN} split the prize by points at the end` : "Points rank you on the standings",
   ];
   const poolValue = showPrizePool ? claimablePrize : proposedPrize;
   const compact = (n: number) =>
@@ -383,7 +394,8 @@ export function CommunityCampaignDetail({
   ) : null;
 
   const stats = [
-    ...(poolValue > 0 ? [{ value: compact(poolValue), label: "G$ pool" }] : []),
+    ...(isPaidJoin && joinStakeAmount > 0 ? [{ value: compact(joinStakeAmount), label: `${stakeToken} to join` }] : []),
+    ...(poolValue > 0 ? [{ value: compact(poolValue), label: "G$ prize" }] : []),
     { value: String(participantCount), label: "In" },
     { value: isClosed ? "End" : `${daysLeft}D`, label: isClosed ? "Status" : "Left" },
   ];
@@ -427,6 +439,38 @@ export function CommunityCampaignDetail({
             ))}
           </div>
         </div>
+
+        {/* Your stake — what you've lost so far, and what today's miss would cost */}
+        {isJoined && forfeit && myProgress ? (
+          <div className="px-5 pt-5">
+            <div
+              className={cn(
+                "flex animate-rise items-center gap-3 rounded-[20px] border-2 px-4 py-3",
+                myProgress.lost > 0 ? "border-orange/30 bg-orange-soft" : "border-line bg-white",
+              )}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[24px] font-extrabold uppercase leading-none tabular-nums">
+                  {formatStake(myProgress.left)} {forfeit.token}
+                </div>
+                <div className="label-mono mt-1 text-[10px] text-muted-foreground">
+                  Left of your {formatStake(forfeit.stake)} stake
+                </div>
+              </div>
+              <div className="text-right text-[12px] font-bold">
+                {myProgress.lost > 0 ? (
+                  <span className="text-orange">
+                    −{formatStake(myProgress.lost)} · {myMissed} missed
+                  </span>
+                ) : !isClosed && activeMilestone && !proofDone ? (
+                  <span className="text-orange">Prove today or lose {formatStake(forfeit.perMiss)}</span>
+                ) : (
+                  <span className="text-green-edge">Nothing lost</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Rules */}
         <div className="flex flex-col gap-2.5 px-5 pt-6">
@@ -570,7 +614,8 @@ export function CommunityCampaignDetail({
       </main>
 
       {cta ? (
-        <div className="fixed left-[var(--desktop-sidebar-w)] right-0 z-40 mx-auto max-w-xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+        // Same width as the page content (main is max-w-3xl + px-5), so the button spans the column.
+        <div className="fixed left-[var(--desktop-sidebar-w)] right-0 z-40 mx-auto max-w-3xl px-5" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
           {cta}
         </div>
       ) : null}

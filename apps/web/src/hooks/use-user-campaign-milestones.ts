@@ -21,6 +21,8 @@ export type JoinedDashboardCampaign = {
   participant_avatars?: { address: string; username: string | null; pfpUrl: string | null }[];
   milestone_count: number;
   completed_count: number;
+  /** Milestones that closed unproven since this wallet joined — what reclaim will forfeit. */
+  missed_count: number;
   next_milestones: CommunityCampaignMilestoneRow[];
 };
 

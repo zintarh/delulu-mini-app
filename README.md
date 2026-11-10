@@ -80,9 +80,8 @@ Smart Contract Scripts
 Script | Description
 pnpm contracts:compile | Compile smart contracts in apps/contracts.
 pnpm contracts:test | Run smart contract tests.
-pnpm contracts:deploy | Run the Hardhat Ignition deploy task (see apps/contracts/README.md for the real deployment/upgrade flow).
-pnpm contracts:deploy:sepolia | Deploy to Celo Sepolia testnet.
-pnpm contracts:deploy:celo | Deploy to Celo mainnet.
+
+Deployments and upgrades are run with the Hardhat scripts in apps/contracts/scripts (see apps/contracts/README.md).
 
 ### Contributing
 

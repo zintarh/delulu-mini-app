@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
 import { Bolt, Coin, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
-import { resetProofReward } from "@/lib/proof-reward/client";
 
 export async function fireConfetti() {
   try {
@@ -74,7 +73,7 @@ export function ProofSuccessCard({
 
   const onShareX = () => {
     const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
-    const tweet = `just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nstaying delusional, staying accountable 💪`;
+    const tweet = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪`;
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(shareUrl ?? "")}`,
       "_blank",
@@ -84,7 +83,7 @@ export function ProofSuccessCard({
 
   const onShareWhatsApp = () => {
     const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
-    const msg = `just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nstaying delusional, staying accountable 💪\n\n${shareUrl ?? ""}`;
+    const msg = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪\n\n${shareUrl ?? ""}`;
     window.open(
       `https://wa.me/?text=${encodeURIComponent(msg)}`,
       "_blank",
@@ -191,12 +190,7 @@ export function ProofSuccessCard({
       <GameButton
         full
         className="mt-4"
-        onClick={() => {
-          // An unclaimed reward stays in the vault (rewards banner picks it
-          // up) — just stop this outcome from showing on the next card.
-          resetProofReward();
-          onDone();
-        }}
+        onClick={onDone}
       >
         Continue
       </GameButton>

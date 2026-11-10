@@ -22,6 +22,7 @@ import { MainPage } from "@/components/main-app-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { RewardsDailyCard } from "@/components/home/daily-money-card";
+import { ReferralInviteCard } from "@/components/referral-invite-card";
 import { useClaimPanel, useFaceCheck } from "@/contexts/right-panel-context";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
@@ -472,6 +473,9 @@ export default function RewardsPage() {
 
             </>
           )}
+
+          {/* Invite link while a referral campaign is live; past referrals otherwise */}
+          <ReferralInviteCard address={address} />
 
           {/* Campaign prizes, stake reclaims, friend rewards: only when something is claimable */}
           <WalletClaimsTab address={address} onlyWhenClaimable />

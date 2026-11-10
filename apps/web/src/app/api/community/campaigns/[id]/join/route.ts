@@ -28,7 +28,7 @@ export async function POST(
   const walletAddress = String(body.walletAddress ?? "").trim().toLowerCase();
 
   if (!walletAddress) {
-    return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
+    return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

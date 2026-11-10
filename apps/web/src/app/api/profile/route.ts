@@ -74,10 +74,10 @@ export async function PATCH(request: NextRequest) {
     const { address, pfpUrl } = await request.json();
 
     if (!address || typeof address !== "string") {
-      return NextResponse.json({ error: "address is required" }, { status: 400 });
+      return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
     if (!pfpUrl || typeof pfpUrl !== "string") {
-      return NextResponse.json({ error: "pfpUrl is required" }, { status: 400 });
+      return NextResponse.json({ error: "Pfp url is required" }, { status: 400 });
     }
 
     const normalizedAddress = address.toLowerCase();
@@ -138,10 +138,10 @@ export async function POST(request: NextRequest) {
     const { address, username, email, pfpUrl, referredByCode, auth_provider } = await request.json();
 
     if (!address || typeof address !== "string") {
-      return NextResponse.json({ error: "address is required" }, { status: 400 });
+      return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
     if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     const normalizedAddress = address.toLowerCase();

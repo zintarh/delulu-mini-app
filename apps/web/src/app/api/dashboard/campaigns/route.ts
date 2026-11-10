@@ -146,8 +146,8 @@ export async function POST(request: NextRequest) {
       ? String(body.coverImageUrl).trim()
       : null;
 
-  if (!communityId) return NextResponse.json({ error: "communityId is required" }, { status: 400 });
-  if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
+  if (!communityId) return NextResponse.json({ error: "Community id is required" }, { status: 400 });
+  if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
   const poolAmount =
     body.proposedPoolAmount != null && Number.isFinite(Number(body.proposedPoolAmount))

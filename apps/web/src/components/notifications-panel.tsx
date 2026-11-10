@@ -107,7 +107,7 @@ function PanelContent({ onClose }: { onClose: () => void }) {
     setLoading(true);
     try {
       const res = await fetch(`/api/notifications?address=${address}`);
-      if (!res.ok) throw new Error("fetch failed");
+      if (!res.ok) throw new Error("Fetch failed");
       const data = await res.json();
       const rows: NotificationRow[] = data.notifications ?? [];
       setNotifications(rows);

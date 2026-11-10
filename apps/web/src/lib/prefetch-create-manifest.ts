@@ -3,7 +3,3 @@
 export function prefetchCreateManifestStep() {
   void import("@/components/create-manifest-step");
 }
-
-export function prefetchCreateDelusionContent() {
-  void import("@/components/create-delusion-content");
-}

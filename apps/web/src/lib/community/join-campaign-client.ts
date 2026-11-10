@@ -4,7 +4,7 @@ import { joinCommunityCampaign as joinCommunityCampaignApi } from "@/hooks/use-h
 import { celebrateCampaignJoin } from "@/lib/celebrate";
 import { waitForMilestoneCompletionInGraph } from "@/lib/community/campaign-subgraph";
 import { formatProofError } from "@/lib/community/format-proof-error";
-import { resetProofReward, startProofReward } from "@/lib/proof-reward/client";
+import { startProofReward } from "@/lib/proof-reward/client";
 
 type JoinOnChain = (challengeId: number | bigint) => Promise<`0x${string}` | string>;
 
@@ -60,7 +60,6 @@ export async function submitCommunityProofWithWallet(input: {
   ) => Promise<unknown>;
   onStepChange?: (step: ProofStep) => void;
 }) {
-  resetProofReward();
   input.onStepChange?.("ai-verifying");
   const res = await fetch(`/api/community/campaigns/${input.campaignId}/proof`, {
     method: "POST",

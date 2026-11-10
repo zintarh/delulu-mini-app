@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   const name = String(body.name ?? "").trim();
   const description = String(body.description ?? "").trim() || null;
 
-  if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
+  if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });

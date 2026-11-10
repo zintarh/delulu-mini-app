@@ -49,7 +49,7 @@ export async function POST(
   const userAddress = typeof body.userAddress === "string" ? body.userAddress.toLowerCase() : null;
   const creatorAddress = typeof body.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
 
-  if (!userAddress) return NextResponse.json({ error: "userAddress required" }, { status: 400 });
+  if (!userAddress) return NextResponse.json({ error: "User address required" }, { status: 400 });
 
   const { data: existing } = await supabase
     .from("delulu_likes")

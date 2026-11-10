@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useWaitForTransactionReceipt, useBalance } from "wagmi";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
@@ -39,13 +39,6 @@ const DeluluDetailPinCard = dynamic(
       (m) => m.DeluluDetailPinCard,
     ),
 );
-// const DeluluDetailCommentsSection = dynamic(
-//   () =>
-//     import("@/components/delulu-detail/delulu-detail-comments-section").then(
-//       (m) => m.DeluluDetailCommentsSection,
-//     ),
-//   { ssr: false },
-// );
 const DeluluClaimSection = dynamic(
   () =>
     import("@/components/delulu-detail/delulu-claim-section").then(
@@ -101,9 +94,7 @@ const RelatedDelulusSection = dynamic(
 );
 
 import { usePfps } from "@/hooks/use-profile-pfp";
-import { useUsernameByAddress } from "@/hooks/use-username-by-address";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import { cn } from "@/lib/utils";
 import { normalizeDeluluImageSrc } from "@/lib/normalize-image-src";
 import {
   DELULU_CHAIN_ID,
@@ -113,7 +104,6 @@ import {
 import {
   formatUsdEquivalent,
   getDefaultTipAmount,
-  getTipQuickAmounts,
   getTokenSymbol,
   parseTokenAmount,
 } from "@/lib/token-amounts";
@@ -125,9 +115,6 @@ import {
 import {
   getMilestoneEndTimeMs,
   getDeluluCreatedAtMs,
-  getMilestoneLabel,
-  formatMilestoneCountdown,
-  formatResolutionEndsLine,
 } from "@/lib/milestone-utils";
 import { getContractErrorDisplay, isInsufficientGasError } from "@/lib/contract-error";
 import { sumDeluluEarnedPoints } from "@/lib/delulu-earned-points";
@@ -135,18 +122,15 @@ import {
   buildDeluluLeaderboard,
   getDeluluRemainingDaysTotal,
   getMaxDaysPerRow,
-  getNewMilestoneTiming,
 } from "./delulu-page-helpers";
 
 export default function DeluluPage() {
-  const router = useRouter();
   const params = useParams();
   const deluluId = params.id as string;
 
   const { authenticated, isConnected, address } = useAuth();
   const { redirectToSignIn } = useRedirectToSignIn();
   const { ensureWhitelisted } = useRequireGoodDollarWhitelist();
-  const { username: currentUserUsername } = useUsernameByAddress(address as `0x${string}` | undefined);
   const apolloClient = useApolloClient();
   const queryClient = useQueryClient();
 
@@ -238,7 +222,6 @@ export default function DeluluPage() {
 
   const {
     data: stakes,
-    isLoading: isLoadingStakes,
     refetch: refetchStakes,
   } = useGraphDeluluStakes(deluluId || null, delulu?.tokenAddress);
 
@@ -280,9 +263,6 @@ export default function DeluluPage() {
     id: string;
     label?: string;
   } | null>(null);
-  const [milestoneProofLinks, setMilestoneProofLinks] = useState<
-    Record<string, string>
-  >({});
   const [activeProofMilestoneId, setActiveProofMilestoneId] = useState<
     string | null
   >(null);
@@ -417,10 +397,6 @@ export default function DeluluPage() {
   const totalSupportUsd = totalSupportUsdStr
     ? parseFloat(totalSupportUsdStr)
     : null;
-  const avgSupportUsd =
-    totalSupportUsd && supportersCount > 0
-      ? totalSupportUsd / supportersCount
-      : null;
   const tokenSymbol = getTokenSymbol(marketToken);
   const walletBalanceNum = Number(tokenBalance?.formatted ?? "0");
   const walletBalanceLabel = Number.isFinite(walletBalanceNum)
@@ -483,16 +459,6 @@ export default function DeluluPage() {
     isSuccess: isSubmitMilestoneSuccess,
   } = useWaitForTransactionReceipt({ hash: submitMilestoneHash });
   const {
-    writeContract: writeResetMilestones,
-    data: resetMilestonesHash,
-    isPending: isResettingMilestones,
-    error: resetMilestonesError,
-  } = useUnifiedWriteContract();
-  const {
-    isLoading: isConfirmingResetMilestones,
-    isSuccess: isResetMilestonesSuccess,
-  } = useWaitForTransactionReceipt({ hash: resetMilestonesHash });
-  const {
     writeContract: writeDeleteMilestone,
     data: deleteMilestoneHash,
     isPending: isDeletingMilestone,
@@ -517,7 +483,6 @@ export default function DeluluPage() {
     const err =
       submitMilestoneError ??
       addMilestonesError ??
-      resetMilestonesError ??
       claimError ??
       null;
     if (err) {
@@ -529,7 +494,6 @@ export default function DeluluPage() {
   }, [
     submitMilestoneError,
     addMilestonesError,
-    resetMilestonesError,
     claimError,
   ]);
 
@@ -811,17 +775,10 @@ export default function DeluluPage() {
     });
   };
 
-  const openProofModal = (
-    milestoneId: string,
-    existingProof?: string | null,
-  ) => {
+  const openProofModal = (milestoneId: string) => {
     proofSubmittedRef.current = null;
     setProofSubmitSuccess(false);
     setProofAiError(null);
-    setMilestoneProofLinks((prev) => ({
-      ...prev,
-      [milestoneId]: prev[milestoneId] ?? existingProof ?? "",
-    }));
     setActiveProofMilestoneId(milestoneId);
   };
 
@@ -887,14 +844,6 @@ export default function DeluluPage() {
     isClaimed || isClaimSuccess
       ? (lastClaimedAmount ?? (isCreator ? supportAmount : claimableAmount))
       : claimableAmount;
-
-  useEffect(() => {
-    if (isResetMilestonesSuccess) {
-      refetchDeluluData(apolloClient, deluluId);
-      setNewMilestones([{ description: "", days: "" }]);
-      setShowMilestoneForm(true);
-    }
-  }, [isResetMilestonesSuccess, deluluId, apolloClient]);
 
   useEffect(() => {
     if (isDeleteMilestoneSuccess) {
@@ -1168,14 +1117,6 @@ export default function DeluluPage() {
                 userAddress={address}
                 username={safeDelulu.username}
               />
-
-              {/* <DeluluDetailCommentsSection
-                deluluId={safeDelulu.id}
-                deluluCreator={safeDelulu.creator}
-                userAddress={address}
-                username={currentUserUsername ?? null}
-                onRequireAuth={() => redirectToSignIn()}
-              /> */}
 
                 {shouldShowClaimSection ? (
                   <DeluluClaimSection

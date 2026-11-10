@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   const tokenSymbol = (body.tokenSymbol ?? "").trim();
   if (!tokenSymbol) {
-    return NextResponse.json({ error: "tokenSymbol is required" }, { status: 400 });
+    return NextResponse.json({ error: "Token symbol is required" }, { status: 400 });
   }
 
   const rawToken = body.tokenAddress?.trim() ?? "";
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const amountWei = (body.amountWei ?? "").trim();
   if (!/^\d+$/.test(amountWei)) {
-    return NextResponse.json({ error: "amountWei is required" }, { status: 400 });
+    return NextResponse.json({ error: "Amount wei is required" }, { status: 400 });
   }
 
   const rawSender = body.senderAddress?.trim() ?? "";

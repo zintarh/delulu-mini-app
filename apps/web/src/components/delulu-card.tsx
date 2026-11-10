@@ -30,11 +30,7 @@ import { refetchDeluluData } from "@/lib/graph/refetch-utils";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { isDeluluCreator } from "@/lib/delulu-utils";
-import {
-  getMilestoneEndTimeMs,
-  getDeluluCreatedAtMs,
-  shouldShowBuyButton,
-} from "@/lib/milestone-utils";
+import { shouldShowBuyButton } from "@/lib/milestone-utils";
 import type { FeedMilestone } from "@/hooks/graph/useAllDelulus";
 import { resolveIPFSContent } from "@/lib/graph/ipfs-cache";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -195,7 +191,6 @@ export function DeluluCard({
   const hasEnoughForTip =
     isLoadingGBalance ||
     (Number.isFinite(gBalanceNum) && gBalanceNum >= tipAmount);
-  const userKey = address?.toLowerCase() ?? null;
 
   const [localNow, setLocalNow] = useState(() => Date.now());
   useEffect(() => {

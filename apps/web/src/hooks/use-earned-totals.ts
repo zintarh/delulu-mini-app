@@ -57,16 +57,6 @@ export function useEarnedTotalsByAddresses(addresses: string[]) {
   return { totalsByAddress, isLoading };
 }
 
-/** Single-wallet earned total (USDT) for wallet / home / settings. */
-export function useUserEarnedTotal(address: string | undefined) {
-  const addresses = useMemo(() => (address ? [address] : []), [address]);
-  const { totalsByAddress, isLoading } = useEarnedTotalsByAddresses(addresses);
-  const totalEarned = address
-    ? (totalsByAddress[address.toLowerCase()] ?? 0)
-    : 0;
-  return { totalEarned, isLoading };
-}
-
 /** Format earned USDT for compact UI (e.g. leaderboard). */
 export function formatEarnedUsdt(amount: number): string {
   if (!Number.isFinite(amount) || amount <= 0) return "$0";

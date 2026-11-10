@@ -24,7 +24,7 @@ export async function POST(
   const milestoneId = body.milestoneId;
 
   if (!walletAddress) {
-    return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
+    return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

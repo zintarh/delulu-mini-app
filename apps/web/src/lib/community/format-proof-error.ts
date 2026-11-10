@@ -114,7 +114,7 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
     },
   },
   {
-    test: /walletaddress is required/i,
+    test: /wallet ?address is required/i,
     display: {
       title: "Wallet needed",
       message: "Connect your wallet to submit proof.",
@@ -122,7 +122,7 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
     },
   },
   {
-    test: /proofurls is required/i,
+    test: /proof ?urls is required/i,
     display: {
       title: "No frames received",
       message: "No proof frames were received. Record again and try uploading.",

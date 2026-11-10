@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Gift } from "lucide-react";
+import { Bell, Gift, Settings } from "lucide-react";
 import { NavbarProfileMenu } from "@/components/navbar-profile-menu";
 import { Wordmark } from "@/components/wordmark";
 import { Flame, HudPill } from "@/components/ds";
@@ -93,6 +93,11 @@ export function Navbar({ onLogoutClick }: NavbarProps) {
                 )}
               </HudPill>
             </button>
+            <Link href="/settings" aria-label="Settings">
+              <HudPill className="px-[9px]">
+                <Settings className="h-5 w-5" strokeWidth={2} />
+              </HudPill>
+            </Link>
           </>
         ) : (
           <NavbarProfileMenu onLogoutClick={onLogoutClick} size="compact" />

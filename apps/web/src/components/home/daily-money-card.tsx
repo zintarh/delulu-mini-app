@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useReportHomeReady } from "@/components/home/home-ready";
 import { formatUnits } from "viem";
 import { Loader2, Lock } from "lucide-react";
 import { CheckDot, Chest, CoinStack, GameButton, GameCard } from "@/components/ds";
@@ -8,6 +9,28 @@ import { cn } from "@/lib/utils";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { formatCountdown } from "@/components/home-stakes-hero";
 import { useFaceCheck } from "@/contexts/right-panel-context";
+import { useAuth } from "@/hooks/use-auth";
+
+/** When this wallet's next free-money claim opens — set after a claim, read on the next visit. */
+const CLAIMED_UNTIL_KEY = (address: string) => `delulu:gd-claimed-until:${address.toLowerCase()}`;
+
+function readClaimedUntil(address: string | undefined): number | null {
+  if (!address || typeof window === "undefined") return null;
+  try {
+    const n = Number(window.localStorage.getItem(CLAIMED_UNTIL_KEY(address)));
+    return Number.isFinite(n) && n > Date.now() ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeClaimedUntil(address: string, until: number) {
+  try {
+    window.localStorage.setItem(CLAIMED_UNTIL_KEY(address), String(until));
+  } catch {
+    /* storage blocked — the card just shows its loading state next visit */
+  }
+}
 
 function useNow(enabled: boolean) {
   const [now, setNow] = useState(() => Date.now());
@@ -104,12 +127,12 @@ export function DailyMoneyCardView({
           </>
         ) : state === "empty" ? (
           <>
-            <span className="text-[17px] font-extrabold leading-tight">Nothing to claim yet</span>
+            <span className="text-base font-extrabold leading-tight">Nothing to claim yet</span>
             <span className="truncate text-xs text-muted-foreground">From GoodDollar · check back soon</span>
           </>
         ) : (
           <>
-            <span className="text-[17px] font-extrabold leading-tight">Claimed</span>
+            <span className="text-base font-extrabold leading-tight">Claimed</span>
             {nextClaim ? (
               <span className="truncate text-xs text-muted-foreground">
                 Next <span className="font-semibold tabular-nums text-ink">{nextClaim}</span>
@@ -161,6 +184,47 @@ export function DailyMoneyCard() {
             ? "claimed"
             : "empty";
 
+  // Already claimed today (remembered on this device until the next claim opens)?
+  // Then don't render at all — not even a loading state — while GoodDollar answers.
+  const { address } = useAuth();
+  const [claimedUntil, setClaimedUntil] = useState<number | null>(() => readClaimedUntil(address));
+  useEffect(() => setClaimedUntil(readClaimedUntil(address)), [address]);
+  useEffect(() => {
+    if (!address || !hasClaimed || !nextClaimTime) return;
+    const until = nextClaimTime.getTime();
+    writeClaimedUntil(address, until);
+    setClaimedUntil(until);
+  }, [address, hasClaimed, nextClaimTime]);
+  // Bring the card back the moment the next claim opens, without a reload.
+  useEffect(() => {
+    if (!claimedUntil) return;
+    const ms = claimedUntil - Date.now();
+    if (ms <= 0 || ms > 2_147_000_000) return;
+    const id = window.setTimeout(() => setClaimedUntil(null), ms + 1_000);
+    return () => window.clearTimeout(id);
+  }, [claimedUntil]);
+  const knownClaimed = claimedUntil != null && claimedUntil > Date.now();
+
+  useReportHomeReady("money", isInitialized || knownClaimed);
+
+  // Claimed (or nothing to claim) → nothing to do here until the next window opens,
+  // so Home doesn't carry a done card all day. Right after claiming in this visit,
+  // the "Claimed" state shows briefly so the tap clearly worked, then folds away.
+  const [justClaimed, setJustClaimed] = useState(false);
+  const prevState = useRef(state);
+  useEffect(() => {
+    const was = prevState.current;
+    prevState.current = state;
+    if (was === "claimable" && state === "claimed") {
+      setJustClaimed(true);
+      const id = window.setTimeout(() => setJustClaimed(false), 3500);
+      return () => window.clearTimeout(id);
+    }
+  }, [state]);
+
+  if (knownClaimed && !justClaimed && state !== "claimable") return null;
+  if ((state === "claimed" && !justClaimed) || state === "empty") return null;
+
   return (
     <DailyMoneyCardView
       state={state}
@@ -201,7 +265,7 @@ export function RewardsDailyCard() {
         </span>
         <div className="flex flex-1 flex-col gap-2">
           <div>
-            <div className="text-[17px] font-extrabold">Daily G$</div>
+            <div className="text-base font-extrabold">Daily G$</div>
             <div className="label-mono mt-0.5 text-[10px] text-blue">Free every day · verify to unlock</div>
           </div>
           <GameButton variant="blue" size="sm" className="self-start" onClick={startFaceCheck}>
@@ -224,7 +288,7 @@ export function RewardsDailyCard() {
       </span>
       <div className="flex flex-1 flex-col gap-2">
         <div>
-          <div className="text-[17px] font-extrabold">Daily G$</div>
+          <div className="text-base font-extrabold">Daily G$</div>
           <div className={cn("label-mono mt-0.5 text-[10px]", canClaim ? "text-green-edge" : "text-muted-foreground")}>
             {canClaim
               ? "Face verified · ready"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatStake } from "@/lib/community/campaign-forfeit";
 import Image from "next/image";
 import { Clock, Loader2, Star, Target, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -185,11 +186,11 @@ export function MissionCard({
 
         {atRisk ? (
           <span className="font-semibold text-orange">
-            Miss it, forfeit {forfeitPct}% of your stake
+            Miss it, lose {forfeitPct}% ({formatStake((joinAmount * forfeitPct) / 100)} {joinToken}) to the Delulu pool
           </span>
         ) : hasStake ? (
           <span className="text-muted-foreground">
-            {joinAmount} {joinToken} staked
+            {formatStake(joinAmount)} {joinToken} staked
           </span>
         ) : null}
 

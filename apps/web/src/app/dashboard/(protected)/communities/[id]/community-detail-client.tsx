@@ -32,7 +32,6 @@ import {
   DashboardPrimaryButton,
   DashboardTableCard,
   DashboardTableLoading,
-  DashboardTableEmptyState,
   DashboardTableScroll,
   DashboardTableHead,
   DashboardTableHeadRow,

@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
   const walletAddress = String(body.walletAddress ?? "").trim().toLowerCase();
 
   if (!proofTxHash && !resolveTxHash) {
-    return NextResponse.json({ error: "proofTxHash or resolveTxHash is required" }, { status: 400 });
+    return NextResponse.json({ error: "Proof tx hash or resolveTxHash is required" }, { status: 400 });
   }
   if (!walletAddress) {
-    return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
+    return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { address, auth_provider = "web3auth" } = await request.json();
 
     if (!address || typeof address !== "string") {
-      return NextResponse.json({ error: "address is required" }, { status: 400 });
+      return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
     const normalizedAddress = address.toLowerCase();
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     const address = searchParams.get("address")?.toLowerCase();
 
     if (!address) {
-      return NextResponse.json({ error: "address is required" }, { status: 400 });
+      return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();

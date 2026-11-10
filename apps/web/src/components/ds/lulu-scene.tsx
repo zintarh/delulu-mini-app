@@ -76,13 +76,13 @@ function Rain({ heavy }: { heavy: boolean }) {
  * Lulu with weather that matches the mood.
  * Decorative: the card next to it carries the words.
  */
-export function LuluScene({ weather, className }: { weather: LuluWeather; className?: string }) {
+export function LuluScene({ weather, className, wave = false }: { weather: LuluWeather; className?: string; wave?: boolean }) {
   const showCloud = weather === "gloomy" || weather === "sad" || weather === "storm";
   return (
     <span className={cn("relative block h-[84px] w-[76px] shrink-0", className)} aria-hidden>
       <span className="absolute bottom-0 left-1/2 block -translate-x-1/2">
         {/* Lulu moves on its own now (hop, droop, shiver per mood). */}
-        <Lulu size={60} mood={FACE[weather]} animated />
+        <Lulu size={60} mood={FACE[weather]} animated wave={wave} />
       </span>
       {/* Weather layer, over Lulu's head */}
       <svg viewBox="0 0 54 34" className="absolute left-1/2 top-0 h-[34px] w-[54px] -translate-x-1/2 overflow-visible">

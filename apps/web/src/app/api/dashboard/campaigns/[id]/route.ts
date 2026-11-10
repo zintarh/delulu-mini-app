@@ -158,7 +158,7 @@ export async function PATCH(
   if (canEditMetadata) {
     if (body.title !== undefined) {
       const title = String(body.title).trim();
-      if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
+      if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
       updates.title = title;
       metadataEdited = true;
     }

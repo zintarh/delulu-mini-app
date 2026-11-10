@@ -2,11 +2,15 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
 import { isReferralCreditCountable } from "@/lib/referral/eligibility";
 import { getReferrerStanding } from "@/lib/referral/standing";
-import { isReferralCampaignOver } from "@/lib/referral/campaign";
+import {
+  REFERRAL_GDOLLARS_REWARD,
+  isInCurrentReferralCampaign,
+  isReferralCampaignOver,
+} from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
-export const REFERRAL_GDOLLARS_REWARD = 6000;
+export { REFERRAL_GDOLLARS_REWARD };
 
 /**
  * Pays out every not-yet-paid referral credit for a referrer — every
@@ -64,6 +68,10 @@ export async function payReferralCredit(
     console.error(`[referral/payout] lookup failed for credit ${referralCreditId}:`, error);
     return;
   }
+
+  // Earned in a previous campaign — that campaign's payouts are closed for
+  // good. Leave the row as-is so the record stays honest.
+  if (!isInCurrentReferralCampaign(credit.credited_at as string)) return;
 
   // Held (not lost) while the referrer is behind on their own campaign — the
   // retry cron pays it once they've posted today's proof.

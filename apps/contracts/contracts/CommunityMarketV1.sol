@@ -99,10 +99,20 @@ contract CommunityMarketV1 is
     mapping(uint256 => uint256) public communityPayoutTotalClaimable;
     mapping(uint256 => mapping(address => bool)) public communityRewardClaimed;
 
-    /// @dev Only used when a campaign's join token differs from `currency` — forfeited stake
-    ///      can't be folded into poolAmount (denominated in currency) without mixing tokens,
-    ///      so it accrues here instead for the owner to handle separately.
+    /// @dev Forfeited stake held for Delulu (owner withdraws via `withdrawForfeitedStake`):
+    ///      all forfeits from `campaignForfeitToDelulu` campaigns, plus — for older campaigns —
+    ///      forfeits in a token other than `currency`, which couldn't join poolAmount.
     mapping(address => uint256) public forfeitedStakeByToken;
+
+    /// @dev Set for every campaign whose economics are configured after this upgrade:
+    ///      forfeited stake accrues to `forfeitedStakeByToken` (Delulu, owner-withdrawable)
+    ///      instead of the campaign's prize pool. Campaigns configured earlier keep the old
+    ///      pool behaviour so their already-computed payouts aren't affected.
+    mapping(uint256 => bool) public campaignForfeitToDelulu;
+
+    /// @dev Join time, so a late joiner is never charged for milestones that closed before
+    ///      they joined (used for `campaignForfeitToDelulu` campaigns).
+    mapping(uint256 => mapping(address => uint256)) public participantJoinedAt;
 
     // --- EVENTS ---
     event CommunityChallengeCreated(
@@ -229,6 +239,7 @@ contract CommunityMarketV1 is
         campaignJoinToken[campaignId]  = joinToken;
         campaignJoinAmount[campaignId] = joinAmount;
         campaignForfeitPct[campaignId] = forfeitPct;
+        campaignForfeitToDelulu[campaignId] = true;
         emit CommunityCampaignPaidConfigured(campaignId, isPaid, joinToken, joinAmount, forfeitPct);
     }
 
@@ -281,6 +292,7 @@ contract CommunityMarketV1 is
         }
 
         campaignJoined[campaignId][msg.sender] = true;
+        participantJoinedAt[campaignId][msg.sender] = block.timestamp;
         campaignParticipantCount[campaignId]++;
         emit CommunityCampaignJoined(campaignId, msg.sender);
     }
@@ -387,9 +399,9 @@ contract CommunityMarketV1 is
 
     /**
      * @notice After a campaign ends, reclaim your paid join stake — minus `campaignForfeitPct`%
-     *         per milestone you didn't complete (capped at 100%). Forfeited stake is added to
-     *         `poolAmount` (when the join token matches `currency`), growing the prize pool
-     *         winners claim from via `claimCommunityCampaignReward`.
+     *         per milestone you didn't complete (capped at 100%). Forfeited stake goes to
+     *         Delulu (`forfeitedStakeByToken`) for campaigns flagged `campaignForfeitToDelulu`;
+     *         older campaigns add it to `poolAmount` when the join token matches `currency`.
      *         Free joins have zero stake and revert.
      */
     function claimCommunityJoinStake(uint256 campaignId) external nonReentrant {
@@ -403,9 +415,7 @@ contract CommunityMarketV1 is
 
         participantStake[campaignId][msg.sender] = 0;
 
-        uint256 totalMilestones = campaignMilestoneCount[campaignId];
-        uint256 completed = participantCompletedMilestones[campaignId][msg.sender];
-        uint256 missed = totalMilestones > completed ? totalMilestones - completed : 0;
+        uint256 missed = _missedMilestones(campaignId, msg.sender);
 
         address token = campaignJoinToken[campaignId];
         IERC20 stakeToken = (token == address(0)) ? currency : IERC20(token);
@@ -422,7 +432,10 @@ contract CommunityMarketV1 is
             // address(currency) means the same thing — treat both identically
             // so forfeited stake always reaches the pool when it's actually the
             // same token, regardless of which form was used to configure it.
-            if (token == address(0) || token == address(currency)) {
+            if (campaignForfeitToDelulu[campaignId]) {
+                // Forfeits go to Delulu, never the prize pool winners claim from.
+                forfeitedStakeByToken[address(stakeToken)] += forfeited;
+            } else if (token == address(0) || token == address(currency)) {
                 c.poolAmount += forfeited;
             } else {
                 // Different token than the pool's currency — can't mix denominations.
@@ -465,6 +478,32 @@ contract CommunityMarketV1 is
 
     // --- INTERNAL ---
 
+    /// @dev Milestones forfeited at reclaim. For `campaignForfeitToDelulu` campaigns, only
+    ///      milestones that were the participant's to do count: deadline after they joined and
+    ///      already passed (an early end doesn't charge for days that never happened). Older
+    ///      campaigns keep the original rule: every milestone not completed.
+    function _missedMilestones(uint256 campaignId, address participant) internal view returns (uint256) {
+        uint256 total = campaignMilestoneCount[campaignId];
+        uint256 joinedAt = participantJoinedAt[campaignId][participant];
+        if (!campaignForfeitToDelulu[campaignId] || joinedAt == 0) {
+            uint256 completed = participantCompletedMilestones[campaignId][participant];
+            return total > completed ? total - completed : 0;
+        }
+        uint256 missed;
+        for (uint256 i = 0; i < total;) {
+            uint256 deadline = campaignMilestoneDeadline[campaignId][i];
+            if (
+                deadline > joinedAt &&
+                deadline <= block.timestamp &&
+                !milestoneCompleted[campaignId][i][participant]
+            ) {
+                ++missed;
+            }
+            unchecked { ++i; }
+        }
+        return missed;
+    }
+
     function _requireCreatorOrOwner(uint256 campaignId) internal view {
         Campaign storage c = campaigns[campaignId];
         if (c.creator == address(0)) revert CampaignNotFound();
@@ -473,6 +512,11 @@ contract CommunityMarketV1 is
 
     // --- VIEW HELPERS ---
 
+    /// @notice Milestones that reclaiming right now would forfeit — the exact count the UI shows.
+    function missedMilestones(uint256 campaignId, address participant) external view returns (uint256) {
+        return _missedMilestones(campaignId, participant);
+    }
+
     function isCampaignActive(uint256 campaignId) external view returns (bool) {
         Campaign storage c = campaigns[campaignId];
         return c.active && !c.ended && block.timestamp <= c.startTime + c.duration;
@@ -480,6 +524,7 @@ contract CommunityMarketV1 is
 
     /// @dev Reserved for future storage without breaking upgrades.
     /// Reduced from 50 → 47 for communityPayoutRoot / TotalClaimable / RewardClaimed,
-    /// then 47 → 46 for forfeitedStakeByToken.
-    uint256[46] private __gap;
+    /// then 47 → 46 for forfeitedStakeByToken, then 46 → 44 for campaignForfeitToDelulu
+    /// and participantJoinedAt.
+    uint256[44] private __gap;
 }

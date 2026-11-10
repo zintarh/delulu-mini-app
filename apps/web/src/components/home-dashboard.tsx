@@ -6,10 +6,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
 import { AddToHomeCard } from "@/components/home/add-to-home-card";
+import { LuluHero } from "@/components/home/lulu-hero";
+import { HomeReadyGate } from "@/components/home/home-ready";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
 import { StartFreeCard } from "@/components/home/start-free-card";
-import { DailyGoalCard, HomeGreeting } from "@/components/home/home-progress";
+import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
 
@@ -53,42 +55,53 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
     return sessionHint ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton />;
   }
 
-  return (
-    <div className={cn("mx-auto flex w-full flex-col gap-4 px-5 pb-6 pt-2.5", className)}>
-      <HomeGreeting name={name} address={address} />
+  // Signed in: wait for Lulu + daily money (they report in) and for forfeits + campaigns (known here).
+  // Guests: just campaigns. Either way one skeleton, then the whole page at once.
+  const pageDataReady = address ? noForfeits !== null && !campaigns.isLoading : !campaigns.isLoading;
 
-      {address ? (
-        <>
-          <DailyMoneyCard />
-          <StartFreeCard />
-          <DailyGoalCard address={address} />
-          <div
-            id="forfeit-day-card"
-            className={cn("mt-2", noForfeits && campaignsFillEmpty && "hidden")}
-          >
-            <ForfeitDayCard
+  return (
+    <HomeReadyGate
+      waitFor={address ? ["lulu", "money"] : []}
+      extraReady={pageDataReady}
+      skeleton={address ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton className={className} />}
+    >
+      <div className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}>
+        <HomeGreeting name={name} address={address} />
+
+        {address ? (
+          <>
+            {/* Today at a glance — Lulu leads (progress, what matters now, what a miss costs),
+                money sits right under it; sections below get the bigger gap. */}
+            <div className="flex flex-col gap-4">
+              <LuluHero address={address} />
+              <DailyMoneyCard />
+              <StartFreeCard />
+            </div>
+            <div id="forfeit-day-card" className={cn(noForfeits && campaignsFillEmpty && "hidden")}>
+              <ForfeitDayCard
+                address={address}
+                onEmptyChange={setNoForfeits}
+                hideEmptyState={campaignsFillEmpty}
+              />
+            </div>
+            {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
+            <HomeCampaigns
               address={address}
-              onEmptyChange={setNoForfeits}
-              hideEmptyState={campaignsFillEmpty}
+              lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
+              noForfeits={noForfeits === true}
             />
-          </div>
-          {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
-          <HomeCampaigns
-            address={address}
-            lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
-            noForfeits={noForfeits === true}
-          />
-          <AddToHomeCard />
-        </>
-      ) : (
-        <>
-          {/* Guests: campaigns first, then the "Get started" card as the way in. */}
-          <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
-          <div id="forfeit-day-card">
-            <ForfeitDayCard address={undefined} />
-          </div>
-        </>
-      )}
-    </div>
+            <AddToHomeCard />
+          </>
+        ) : (
+          <>
+            {/* Guests: campaigns first, then the "Get started" card as the way in. */}
+            <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
+            <div id="forfeit-day-card">
+              <ForfeitDayCard address={undefined} />
+            </div>
+          </>
+        )}
+      </div>
+    </HomeReadyGate>
   );
 }

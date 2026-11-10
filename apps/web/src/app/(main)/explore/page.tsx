@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { ExploreCampaignsSection } from "@/components/explore-campaigns-section";
 import {
-  CampaignTicketRow,
-  CampaignTicketRowSkeleton,
+  CAMPAIGN_CARD_GRID_CLASS,
+  CampaignBannerCard,
+  CampaignBannerCardSkeleton,
 } from "@/components/community/campaign-explore-card";
+
 import type { CampaignSearchResult } from "@/hooks/use-campaign-search";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -39,7 +41,7 @@ export default function CampaignsPage() {
           `/api/search/campaigns?q=${encodeURIComponent(q)}`,
           { signal },
         );
-        if (!res.ok) throw new Error("search failed");
+        if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         setCampaignResults(data.results ?? []);
       } catch (err) {
@@ -75,7 +77,7 @@ export default function CampaignsPage() {
   }, [isSearchMode, fetchCampaignResults]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-paper">
+    <div className="bg-wash flex h-full min-h-0 flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-20 -mb-[2px] h-[2px] w-full overflow-hidden pointer-events-none lg:top-0">
           {isCampaignSearching && (
@@ -95,9 +97,11 @@ export default function CampaignsPage() {
         >
           {!isSearchMode ? (
             <>
-              <header className="mb-4">
-                <span className="label-mono block leading-normal text-muted-foreground">Prize pools</span>
-                <h1 className="m-0 mt-1 animate-rise text-2xl font-bold tracking-[-0.02em]">Campaigns</h1>
+              <header className="mb-6">
+                <h1 className="m-0 animate-rise font-display text-[40px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em] text-ink">
+                  Campaigns
+                </h1>
+                <p className="m-0 mt-2 text-sm font-semibold text-ink/60">Pick a habit, join the crew, prove it daily.</p>
               </header>
               <ExploreCampaignsSection address={address} />
             </>
@@ -124,9 +128,9 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               ) : isCampaignSearching ? (
-                <div className="flex flex-col gap-3">
+                <div className={CAMPAIGN_CARD_GRID_CLASS}>
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <CampaignTicketRowSkeleton key={i} />
+                    <CampaignBannerCardSkeleton key={i} />
                   ))}
                 </div>
               ) : campaignResults.length === 0 ? (
@@ -143,26 +147,29 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {campaignResults.map((c, i) => (
-                    <CampaignTicketRow
+                <div className={CAMPAIGN_CARD_GRID_CLASS}>
+                  {campaignResults.map((c) => (
+                    <CampaignBannerCard
                       key={c.id}
-                      index={i}
                       campaign={{
                         id: c.id,
                         title: c.title,
                         description: c.description,
-                        proposedPoolAmount: 0,
+                        proposedPoolAmount: c.proposed_pool_amount,
                         durationDays: c.duration_days,
                         coverImageUrl: c.cover_image_url,
                         displayEndsAt: c.display_ends_at,
-                        status: "active",
-                        participantCount: 0,
-                        milestoneCount: 0,
+                        createdAt: c.created_at,
+                        status: c.status,
+                        participantCount: c.participant_count,
+                        participantAvatars: c.participant_avatars,
+                        milestoneCount: c.milestone_count,
                         isJoined: false,
                         isFreeToJoin: c.is_free_to_join,
                         joinAmount: c.join_amount,
                         joinToken: c.join_token ?? undefined,
+                        forfeitPct: c.forfeit_pct,
+                        proofCadence: c.proof_cadence,
                         community: {
                           name: c.community_name,
                           slug: c.community_slug,

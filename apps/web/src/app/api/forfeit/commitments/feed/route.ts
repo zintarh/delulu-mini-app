@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     roleParam === "verifier" ? "verifier" : roleParam === "destination" ? "destination" : "creator";
 
   if (!address) {
-    return NextResponse.json({ error: "address is required" }, { status: 400 });
+    return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

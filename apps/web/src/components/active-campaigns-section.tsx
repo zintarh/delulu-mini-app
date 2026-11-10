@@ -17,10 +17,27 @@ import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
 import { getActiveMilestone, getUpcomingMilestone } from "@/lib/community/milestone-submit-eligibility";
-import { CheckDot, GameButton, MonoLabel, ProgressBar, Trophy as TrophyArt } from "@/components/ds";
+import { CheckDot, GameButton, ProgressBar, SectionHeading, Trophy as TrophyArt } from "@/components/ds";
 import type { JoinedDashboardCampaign } from "@/hooks/use-user-campaign-milestones";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
+import { forfeitProgress, formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
+
+/** Stake line for a joined paid campaign: what's been lost, or what today's miss would cost. */
+export function campaignStakeLine(c: JoinedDashboardCampaign, due: boolean): { text: string; warn: boolean } | null {
+  const terms = getForfeitTerms({
+    isFreeToJoin: c.is_free_to_join,
+    joinAmount: c.join_amount,
+    forfeitPct: c.forfeit_pct,
+    joinToken: c.join_token,
+    milestoneCount: c.milestone_count,
+  });
+  if (!terms) return null;
+  const { lost, left } = forfeitProgress(terms, c.missed_count ?? 0);
+  if (lost > 0) return { text: `−${formatStake(lost)} ${terms.token} lost · ${formatStake(left)} left`, warn: true };
+  if (due) return { text: `Prove or lose ${formatStake(terms.perMiss)} ${terms.token}`, warn: true };
+  return { text: `${formatStake(terms.stake)} ${terms.token} staked`, warn: false };
+}
 
 type QuestState = "due" | "upcoming" | "done" | "idle";
 
@@ -63,16 +80,17 @@ export function CampaignQuestRow({
   onProve: (_milestone: CommunityCampaignMilestoneRow) => void;
 }) {
   const { state, milestone } = questStateFor(c, nowMs);
+  const stakeLine = campaignStakeLine(c, state === "due");
   const total = c.milestone_count;
   const progress = total > 0 ? `${c.completed_count}/${total}` : null;
   const meta =
     state === "due" && milestone
-      ? `due ${formatDeadline(milestone.deadline, nowMs)}`
+      ? `Due ${formatDeadline(milestone.deadline, nowMs)}`
       : state === "upcoming" && milestone
-        ? `next ${formatDeadline(milestone.start_time, nowMs)}`
+        ? `Next ${formatDeadline(milestone.start_time, nowMs)}`
         : state === "done"
-          ? "all proofs in"
-          : "no proof due";
+          ? "All proofs in"
+          : "No proof due";
 
   return (
     <div
@@ -91,7 +109,7 @@ export function CampaignQuestRow({
       <div className="min-w-0 flex-1">
         <Link
           href={`/communities/${c.community.slug}/campaigns/${c.campaign_id}`}
-          className="block truncate text-base font-bold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
+          className="block truncate text-base font-extrabold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
         >
           {c.title}
         </Link>
@@ -110,6 +128,11 @@ export function CampaignQuestRow({
             <span className="normal-case">{meta}</span>
           </span>
         </div>
+        {stakeLine ? (
+          <div className={cn("mt-1 truncate text-[11px] font-bold", stakeLine.warn ? "text-orange" : "text-muted-foreground")}>
+            {stakeLine.text}
+          </div>
+        ) : null}
       </div>
       <div className="relative z-10 shrink-0">
         {state === "due" && milestone ? (
@@ -292,14 +315,9 @@ export function ActiveCampaignsSection({
     return (
       <section>
         {heading ? (
-          <div className="mb-2.5 flex items-center justify-between gap-2">
-            <MonoLabel>{heading}</MonoLabel>
-            {hiddenCount > 0 ? (
-              <Link href="/explore" className="text-[11px] font-semibold text-blue no-underline">
-                +{hiddenCount} more
-              </Link>
-            ) : null}
-          </div>
+          <SectionHeading action={hiddenCount > 0 ? <Link href="/explore">+{hiddenCount} more →</Link> : undefined}>
+            {heading}
+          </SectionHeading>
         ) : null}
         <div className="space-y-2.5">
           {visible.map((c) => (

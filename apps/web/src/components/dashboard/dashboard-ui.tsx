@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,21 +24,6 @@ export function DashboardPage({
   return (
     <div className={cn("mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8", className)}>
       {children}
-    </div>
-  );
-}
-
-export function DashboardPageHeader({
-  title,
-  action,
-}: {
-  title: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-6 flex items-center justify-between gap-4">
-      <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h1>
-      {action}
     </div>
   );
 }
@@ -209,36 +193,6 @@ export function StatusChip({ status }: { status: string }) {
 }
 
 /* ─── Nav card (overview quick links) ────────────────────────────────── */
-
-export function DashboardNavCard({
-  href,
-  icon: Icon,
-  label,
-  badge,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  badge?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-sm hover:border-delulu-blue/30 transition-all"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-delulu-blue-light text-delulu-blue">
-        <Icon className="h-5 w-5" />
-      </div>
-      <span className="flex-1 text-sm font-semibold text-foreground">{label}</span>
-      {badge !== undefined && badge > 0 ? (
-        <span className="rounded-full bg-delulu-blue px-2 py-0.5 text-[10px] font-bold text-white tabular-nums">
-          {badge}
-        </span>
-      ) : null}
-      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-delulu-blue transition-colors" />
-    </Link>
-  );
-}
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
 

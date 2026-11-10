@@ -45,7 +45,6 @@ It only takes a minute — head to your delulu and add your first milestone toda
 
 /* ─── Email preview renderer ─────────────────────────────────────────────── */
 function EmailPreview({ subject, message }: { subject: string; message: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_URL ?? "https://delulu.app";
   const safeMessage = message
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

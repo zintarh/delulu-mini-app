@@ -275,7 +275,7 @@ export function useEmailFilterData() {
   const nowMs = nowSec * 1000;
   const cutoffMs = nowSec * 1000 + ENDING_SOON_WINDOW_SEC * 1000;
 
-  const { activeRows, endedRows, soonRows } = useMemo(() => {
+  const { activeRows, soonRows } = useMemo(() => {
     const active: EmailDeluluSnapshotRow[] = [];
     const ended: EmailDeluluSnapshotRow[] = [];
     const soon: EmailDeluluSnapshotRow[] = [];

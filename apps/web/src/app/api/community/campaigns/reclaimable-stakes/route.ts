@@ -48,7 +48,7 @@ export type ReclaimableStakeItem = {
 export async function GET(request: NextRequest) {
   const addressRaw = request.nextUrl.searchParams.get("address")?.trim() ?? "";
   if (!addressRaw.startsWith("0x") || addressRaw.length < 42) {
-    return NextResponse.json({ error: "address is required" }, { status: 400 });
+    return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
 
   let wallet: Address;
@@ -147,6 +147,17 @@ export async function GET(request: NextRequest) {
               args: [BigInt(challengeId)],
             }),
           ]);
+        // Exact count the contract will forfeit (post-upgrade view); before the
+        // upgrade it isn't there, so fall back to the original rule.
+        const onChainMissed = await publicClient
+          .readContract({
+            address: contract,
+            abi: COMMUNITY_CAMPAIGN_ABI,
+            functionName: "missedMilestones",
+            args: [BigInt(challengeId), wallet],
+          })
+          .then((n) => Number(n as bigint))
+          .catch(() => null);
         return {
           campaign,
           challengeId,
@@ -154,6 +165,7 @@ export async function GET(request: NextRequest) {
           joinTokenRaw,
           totalMilestones: Number(totalMilestones),
           completed: Number(completed),
+          missed: onChainMissed ?? Math.max(0, Number(totalMilestones) - Number(completed)),
           forfeitPctPerMiss: Number(forfeitPctPerMiss),
         };
       } catch {
@@ -164,6 +176,7 @@ export async function GET(request: NextRequest) {
           joinTokenRaw: zeroAddress,
           totalMilestones: 0,
           completed: 0,
+          missed: 0,
           forfeitPctPerMiss: 0,
         };
       }
@@ -186,7 +199,7 @@ export async function GET(request: NextRequest) {
       ? row.campaign.communities[0]
       : row.campaign.communities;
 
-    const missed = Math.max(0, row.totalMilestones - row.completed);
+    const missed = row.missed;
     const totalForfeitPct = Math.min(100, row.forfeitPctPerMiss * missed);
     // Mirror the contract's exact order of operations (forfeited amount first,
     // then subtracted) rather than computing the complement directly — integer

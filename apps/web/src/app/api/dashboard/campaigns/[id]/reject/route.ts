@@ -18,7 +18,7 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}));
   const reason = String(body.reason ?? "").trim();
-  if (!reason) return NextResponse.json({ error: "reason is required" }, { status: 400 });
+  if (!reason) return NextResponse.json({ error: "Reason is required" }, { status: 400 });
 
   const { id } = await params;
   const admin = getSupabaseAdmin();

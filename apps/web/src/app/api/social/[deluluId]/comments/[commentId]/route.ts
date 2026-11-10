@@ -18,7 +18,7 @@ export async function DELETE(
   const requesterId = typeof body.requesterId === "string" ? body.requesterId.toLowerCase() : null;
   const deluluCreator = typeof body.deluluCreator === "string" ? body.deluluCreator.toLowerCase() : null;
 
-  if (!requesterId) return NextResponse.json({ error: "requesterId required" }, { status: 400 });
+  if (!requesterId) return NextResponse.json({ error: "Requester id required" }, { status: 400 });
 
   // Fetch the comment to verify existence and get the author
   const { data: comment, error: fetchError } = await supabase

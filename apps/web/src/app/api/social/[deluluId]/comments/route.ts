@@ -51,7 +51,7 @@ export async function POST(
   const creatorAddress = typeof body.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
 
   if (!authorAddress || !displayName || !text) {
-    return NextResponse.json({ error: "authorAddress, displayName, and text are required" }, { status: 400 });
+    return NextResponse.json({ error: "AuthorAddress, displayName, and text are required" }, { status: 400 });
   }
   if (text.length > 1000) {
     return NextResponse.json({ error: "Comment too long (max 1000 chars)" }, { status: 400 });

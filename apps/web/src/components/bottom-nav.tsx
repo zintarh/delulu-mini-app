@@ -21,8 +21,8 @@ interface BottomNavProps {
 }
 
 /**
- * Floating ink dock (redesign). Icon-only items; the centre "New contract"
- * item is a raised yellow tile. Height is mirrored by the
+ * Floating ink dock (redesign). Icon-only items, all the same — "New delulu"
+ * included. Height is mirrored by the
  * --mobile-bottom-nav-* vars in globals.css.
  */
 export function BottomNav(_props: BottomNavProps = {}) {
@@ -53,16 +53,13 @@ export function BottomNav(_props: BottomNavProps = {}) {
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = isMainNavItemActive(item, path, activeOptions);
-        const isCreate = item.action === "forfeit";
+        // Create is a regular tab now (no raised tile), same size and states as the rest.
+        const cls = cn(
+          "flex h-12 w-12 items-center justify-center rounded-full transition-colors touch-manipulation",
+          isActive ? "bg-white text-ink" : "text-[#a3a39c] hover:text-white",
+        );
 
-        const cls = isCreate
-          ? "-translate-y-[22px] active:scale-95 transition-transform flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-yellow text-ink shadow-[0_0_0_6px_#f7f7f4]"
-          : cn(
-              "flex h-12 w-12 items-center justify-center rounded-full transition-colors touch-manipulation",
-              isActive ? "bg-white text-ink" : "text-[#a3a39c] hover:text-white",
-            );
-
-        const icon = <Icon className={isCreate ? "h-7 w-7" : "h-[22px] w-[22px]"} strokeWidth={isCreate ? 2.6 : 2.2} />;
+        const icon = <Icon className="h-[22px] w-[22px]" strokeWidth={2.2} />;
 
         if (item.href) {
           return (

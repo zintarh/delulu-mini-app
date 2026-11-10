@@ -1,7 +1,9 @@
 "use client";
 
-import { Loader2, Target, Trophy, Wallet } from "lucide-react";
+import { CalendarX, Loader2, Target, TrendingDown, Trophy, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Coin, GameButton } from "@/components/ds";
+import { formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
 
 export type CampaignJoinInfo = {
   title: string;
@@ -56,168 +58,112 @@ export function CampaignJoinModal({
 
   const joinAmount = info.joinAmount ?? 0;
   const joinToken = info.joinToken ?? "G$";
-  const cadenceLabel = info.proofCadence === "weekly" ? "Weekly" : "Daily";
+  const isPaid = !info.isFreeToJoin && joinAmount > 0;
+  const cadence = info.proofCadence === "weekly" ? "weekly" : "daily";
   // Claimable prize is funded G$ only — never treat proposed as claimable.
   const claimablePrize = info.fundedPoolAmount ?? info.totalPrizePoolAmount ?? 0;
-  const hasPool = claimablePrize > 0;
-  const hasForfeit = !info.isFreeToJoin && (info.forfeitPct ?? 0) > 0;
-  const forfeitPerMiss =
-    hasForfeit && joinAmount > 0
-      ? ((joinAmount * (info.forfeitPct ?? 0)) / 100).toFixed(2)
-      : null;
-  const maxForfeitTotal = info.maxForfeitTotal ?? 0;
-  const stakeIsGd = joinToken === "G$";
+  const terms = getForfeitTerms(info);
   const endsLabel = info.endsAt
-    ? new Date(info.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : null;
+    ? new Date(info.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : `${info.durationDays} days`;
+
+  const rules: { icon: typeof CalendarX; text: string; warn?: boolean }[] = terms
+    ? [
+        {
+          icon: CalendarX,
+          text: `Miss a milestone → lose ${terms.pct}% (${formatStake(terms.perMiss)} ${terms.token})`,
+          warn: true,
+        },
+        { icon: TrendingDown, text: "Lost stake goes to the Delulu pool" },
+        terms.missesToLoseAll != null
+          ? { icon: CalendarX, text: `Miss ${terms.missesToLoseAll} → lose it all` }
+          : { icon: CalendarX, text: `Most you can lose: ${formatStake(terms.maxLoss)} ${terms.token}` },
+        { icon: Undo2, text: "The rest comes back when the campaign ends" },
+      ]
+    : isPaid
+      ? [{ icon: Undo2, text: "You get it all back when the campaign ends" }]
+      : [];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
-        onClick={joining ? undefined : onCancel}
-      />
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={joining ? undefined : onCancel} />
 
-      <div className="relative w-full max-w-sm overflow-hidden rounded-t-3xl sm:rounded-2xl bg-background shadow-xl">
-        <div className="mx-auto mt-3 mb-1 h-1 w-10 rounded-full bg-border sm:hidden" />
+      <div className="relative w-full max-w-sm overflow-hidden rounded-t-3xl border-2 border-line bg-white shadow-xl sm:rounded-3xl">
+        <div className="mx-auto mb-1 mt-3 h-1 w-10 rounded-full bg-line sm:hidden" />
 
-        <div className="px-5 pt-4 pb-5" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
-          {/* Header */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            {info.communityName}
+        <div className="px-5 pb-5 pt-3" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
+          <h2 className="m-0 font-display text-[22px] font-extrabold uppercase leading-[0.95] text-ink">{info.title}</h2>
+          <p className="label-mono mt-1.5 text-[10px] text-muted-foreground">
+            {info.milestoneCount} {cadence} proofs · ends {endsLabel}
           </p>
-          <h2 className="mt-0.5 text-[17px] font-extrabold leading-snug text-foreground">
-            {info.title}
-          </h2>
 
-          {/* Stats row */}
-          <div className="mt-4 flex gap-2">
-            <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
-              <p className="text-[11px] text-muted-foreground">Milestones</p>
-              <p className="mt-0.5 text-sm font-extrabold text-foreground">{info.milestoneCount}</p>
-            </div>
-            <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
-              <p className="text-[11px] text-muted-foreground">Proofs</p>
-              <p className="mt-0.5 text-sm font-extrabold text-foreground">{cadenceLabel}</p>
-            </div>
-            <div className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-center">
-              <p className="text-[11px] text-muted-foreground">Ends</p>
-              <p className="mt-0.5 text-sm font-extrabold text-foreground">
-                {endsLabel ?? `${info.durationDays}d`}
-              </p>
+          {/* Stake */}
+          <div className="mt-4 flex items-center gap-3 rounded-[20px] bg-yellow-soft px-4 py-3.5">
+            <Coin size={40} />
+            <div className="min-w-0">
+              <div className="font-display text-[34px] font-extrabold uppercase leading-none tabular-nums">
+                {isPaid ? `${formatStake(joinAmount)} ${joinToken}` : "Free"}
+              </div>
+              <div className="label-mono mt-1 text-[10px] text-muted-foreground">
+                {isPaid ? "Your stake to join" : "No stake needed"}
+              </div>
             </div>
           </div>
 
-          {/* Stake required (paid campaigns) */}
-          {!info.isFreeToJoin && joinAmount > 0 ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <p className="text-sm font-extrabold text-foreground">
-                  {joinAmount} {joinToken} stake required
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Held until the campaign ends — reclaim from Rewards (minus any forfeit)
-                </p>
-              </div>
+          {/* The rules, before they pay */}
+          {rules.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {rules.map(({ icon: Icon, text, warn }) => (
+                <li key={text} className={cn("flex items-center gap-2.5 text-[13px] font-semibold", warn ? "text-orange" : "text-ink")}>
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2.4} />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {claimablePrize > 0 ? (
+            <div className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-ink">
+              <Trophy className="h-4 w-4 shrink-0 text-yellow-edge" strokeWidth={2.4} />
+              {formatStake(claimablePrize)} G$ prize · top {info.prizeWinnerCount} by points
             </div>
           ) : null}
 
-          {/* Claimable prize pool (always G$) */}
-          {hasPool ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-delulu-yellow/30 bg-delulu-yellow/10 px-3 py-2.5 dark:bg-delulu-yellow/[0.08]">
-              <Trophy className="h-4 w-4 shrink-0 text-[#9a7b0a] dark:text-delulu-yellow" />
-              <div className="min-w-0">
-                <p className="text-sm font-extrabold text-foreground">
-                  {claimablePrize} G$ prize pool
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Top {info.prizeWinnerCount} share by points
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Proof instructions */}
           {info.proofInstructions ? (
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-border/50 bg-muted/30 px-3 py-2.5">
+            <div className="mt-3 flex items-start gap-2 rounded-2xl bg-paper px-3 py-2.5">
               <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">{info.proofInstructions}</p>
+              <p className="m-0 text-xs text-muted-foreground">{info.proofInstructions}</p>
             </div>
-          ) : null}
-
-          {/* Forfeit warning — only for paid with forfeit */}
-          {hasForfeit ? (
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Miss a milestone? You forfeit {info.forfeitPct}%
-              {forfeitPerMiss ? ` (${forfeitPerMiss} ${joinToken})` : ""} per miss
-              {maxForfeitTotal > 0
-                ? ` — up to ${maxForfeitTotal} ${joinToken} (capped at your stake)`
-                : ""}
-              {stakeIsGd
-                ? ". Forfeited stake is added to the G$ prize when you reclaim."
-                : ". Forfeited stake is deducted when you reclaim after the campaign ends."}
-            </p>
           ) : null}
 
           {atJoinLimit ? (
-            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs font-semibold text-orange">
-                Campaign limit reached
-              </p>
-              <p className="mt-0.5 text-[11px] text-orange">{JOIN_LIMIT_MESSAGE}</p>
-            </div>
+            <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">{JOIN_LIMIT_MESSAGE}</p>
           ) : insufficientBalance ? (
-            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs font-semibold text-orange">
-                Insufficient balance
-              </p>
-              <p className="mt-0.5 text-[11px] text-orange">
-                You need {joinAmount} {joinToken} to join.
-                {userBalance !== undefined ? ` Your balance: ${userBalance.toFixed(2)} ${joinToken}.` : ""}
-              </p>
-            </div>
-          ) : joinError ? (
-            <p className="mt-3 rounded-xl border border-destructive/20 bg-destructive/8 px-3 py-2 text-xs text-destructive">
-              {joinError}
+            <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">
+              You need {formatStake(joinAmount)} {joinToken} to join.
+              {userBalance !== undefined ? ` You have ${formatStake(userBalance)}.` : ""}
             </p>
+          ) : joinError ? (
+            <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">{joinError}</p>
           ) : null}
 
-          {/* Actions */}
-          <div className={cn("mt-4 grid gap-2 grid-cols-2")}>
-            <button
-              type="button"
-              disabled={joining}
-              onClick={onCancel}
-              className="rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
-            >
+          <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+            <GameButton variant="line" disabled={joining} onClick={onCancel}>
               Cancel
-            </button>
-            <button
-              type="button"
-              disabled={joining || !!insufficientBalance || !!atJoinLimit}
-              onClick={onConfirm}
-              className="rounded-xl bg-delulu-blue px-4 py-3 text-sm font-bold text-white shadow-[0_4px_14px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+            </GameButton>
+            <GameButton variant="yellow" full disabled={joining || !!insufficientBalance || !!atJoinLimit} onClick={onConfirm}>
               {joining ? (
-                <span className="inline-flex items-center gap-2 justify-center">
+                <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {joiningLabel ?? "Joining…"}
-                </span>
-              ) : info.isFreeToJoin ? (
-                "Join for free"
+                </>
+              ) : isPaid ? (
+                terms ? `Stake ${formatStake(joinAmount)} · I agree` : `Stake ${formatStake(joinAmount)} ${joinToken}`
               ) : (
-                `Stake ${joinAmount} ${joinToken}`
+                "Join for free"
               )}
-            </button>
+            </GameButton>
           </div>
-
-          {/* Wallet note */}
-          <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-            {info.isFreeToJoin
-              ? "You'll need to sign a wallet transaction to confirm your join."
-              : "Your stake stays on-chain until the campaign ends. Reclaim from Rewards afterward."}
-          </p>
         </div>
       </div>
     </div>

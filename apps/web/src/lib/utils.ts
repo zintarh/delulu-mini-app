@@ -10,58 +10,6 @@ export function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const months = Math.floor(days / 30);
-
-  if (seconds < 60) return "Just now";
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 30) return `${days}d`;
-  if (months < 12) {
-    const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return `${monthNames[date.getMonth()]} ${date.getDate()}`;
-  }
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${
-    monthNames[date.getMonth()]
-  } ${date.getDate()}, ${date.getFullYear()}`;
-}
-
-
-
-
 /**
  * Format a G$ (or other token) amount for display: use K for thousands, M for millions.
  * Use everywhere we display G$ amounts for consistent, compact display.
@@ -89,4 +37,10 @@ export function formatGAmount(value: number): string {
   if (value >= 0.01) return value.toFixed(2);
   if (value > 0) return value.toFixed(4);
   return "0";
+}
+
+/** "my 10,000 steps" → "My 10,000 steps". Only the first letter changes; the rest is left as typed. */
+export function capitalizeFirst(text: string): string {
+  const t = text.trimStart();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
