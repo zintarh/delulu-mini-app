@@ -72,7 +72,12 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               hideEmptyState={campaignsFillEmpty}
             />
           </div>
-          <HomeCampaigns address={address} lists={campaigns} noForfeits={noForfeits === true} />
+          {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
+          <HomeCampaigns
+            address={address}
+            lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
+            noForfeits={noForfeits === true}
+          />
           <AddToHomeCard />
         </>
       ) : (

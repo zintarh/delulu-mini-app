@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import {
-  CampaignTicketRow,
-  CampaignTicketRowSkeleton,
+  CampaignPhotoCard,
+  CampaignPhotoCardSkeleton,
   isCampaignOpen,
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
+import { cn } from "@/lib/utils";
 import { MonoLabel } from "@/components/ds";
 import { feedItemToCardData } from "@/components/home-campaigns-section";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
@@ -66,11 +67,16 @@ function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExplo
           {campaigns.length > visible.length ? "See all" : "Explore"}
         </Link>
       </div>
-      <div className="flex flex-col gap-3">
-        {visible.map((c, i) => (
-          <CampaignTicketRow key={c.id} campaign={c} index={i} />
-        ))}
-      </div>
+      {visible.length === 1 ? (
+        <CampaignPhotoCard campaign={visible[0]!} />
+      ) : (
+        // Swipe row, bleeding to the screen edges; the next card peeks in so it reads as swipeable.
+        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2">
+          {visible.map((c) => (
+            <CampaignPhotoCard key={c.id} campaign={c} className="w-[82%] max-w-[340px] shrink-0 snap-start" />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -95,9 +101,9 @@ export function HomeCampaigns({
     return (
       <section role="status" aria-label="Loading campaigns">
         <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
-        <div className="flex flex-col gap-3">
+        <div className="-mx-5 flex gap-3 overflow-hidden px-5">
           {[0, 1].map((i) => (
-            <CampaignTicketRowSkeleton key={i} />
+            <CampaignPhotoCardSkeleton key={i} className={cn("w-[82%] max-w-[340px] shrink-0")} />
           ))}
         </div>
       </section>

@@ -10,8 +10,10 @@ import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
  * start right now with a word pledge (no money, no face check needed).
  */
 export function StartFreeCard() {
-  const { formatted, isLoading } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
-  if (isLoading || Number(formatted) > 0) return null;
+  const { balance, formatted } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  // Only once the balance is actually known — before that it reads as "0",
+  // which flashed this card up and then away for people who do hold G$.
+  if (!balance || Number(formatted) > 0) return null;
 
   return (
     <GameCard tone="yellow" className="flex animate-rise items-center gap-3 py-3 pl-3.5 pr-3">

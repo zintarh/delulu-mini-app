@@ -31,10 +31,11 @@ const ModalContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     showClose?: boolean
+    overlayClassName?: string
   }
->(({ className, children, showClose = true, ...props }, ref) => (
+>(({ className, children, showClose = true, overlayClassName, ...props }, ref) => (
   <ModalPortal>
-    <ModalOverlay />
+    <ModalOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
