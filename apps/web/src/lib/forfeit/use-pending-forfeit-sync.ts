@@ -7,6 +7,7 @@ import {
   readPendingForfeitConfirm,
   type PendingForfeitConfirm,
 } from "@/lib/forfeit/pending-forfeit-confirm";
+import { capitalizeFirst } from "@/lib/utils";
 
 /** Map a just-staked pending confirm into a feed-shaped card so the UI never blanks. */
 export function pendingToOptimisticFeedItem(
@@ -18,7 +19,7 @@ export function pendingToOptimisticFeedItem(
   return {
     id: `pending:${pending.txHash}`,
     onChainCommitmentId: null,
-    title: pending.title || "Forfeit",
+    title: capitalizeFirst(pending.title || "Forfeit"),
     description: pending.description,
     evidenceType: pending.evidenceType,
     verificationMethod: pending.verificationMethod,

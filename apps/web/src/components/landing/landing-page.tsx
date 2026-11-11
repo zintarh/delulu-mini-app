@@ -15,7 +15,6 @@ import {
   ProblemSection,
   StoriesSection,
   TwoWaysSection,
-  WeekSection,
 } from "@/components/landing/sections";
 
 /**
@@ -46,7 +45,6 @@ export function LandingPage() {
       <FreeMoneyBanner />
       <ProblemSection />
       <TwoWaysSection />
-      <WeekSection />
       <FeaturesSection />
       <StoriesSection />
       <FaqSection />

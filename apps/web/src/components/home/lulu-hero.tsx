@@ -459,11 +459,11 @@ export function LuluHeroView({
           <div className="relative min-w-0 flex-1">
             <span aria-hidden className="absolute -left-2 top-6 h-4 w-4 rotate-45 rounded-[3px] bg-white" />
             {/* w-fit: the bubble hugs its words like a chat message instead of filling the row. */}
-            <div className="relative w-fit max-w-full rounded-2xl rounded-tl-md bg-white px-3.5 py-3 text-ink shadow-[0_6px_18px_-8px_rgba(22,22,21,0.35)]">
+            <div className="relative w-fit max-w-full rounded-2xl rounded-tl-md bg-white px-3 py-2.5 text-ink sm:px-3.5 sm:py-3 shadow-[0_6px_18px_-8px_rgba(22,22,21,0.35)]">
               <p
                 key={bubble.id}
                 aria-live="polite"
-                className={cn("m-0 animate-rise text-[15px] font-bold leading-snug", bubble.tone === "bad" && "text-orange")}
+                className={cn("m-0 animate-rise text-[13px] font-bold leading-snug sm:text-[15px]", bubble.tone === "bad" && "text-orange")}
               >
                 {bubble.lead ? (
                   <span className={cn("font-extrabold tabular-nums", bubble.hot ? "text-orange" : "text-ink")}>{bubble.lead} </span>

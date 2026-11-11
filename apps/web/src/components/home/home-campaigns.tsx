@@ -69,6 +69,15 @@ function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExplo
       <SectionHeading action={<Link href="/explore">{campaigns.length > visible.length ? "See all →" : "Explore →"}</Link>}>
         {heading}
       </SectionHeading>
+      {/* One line of context for people who don't know what a campaign is yet. */}
+      <p className="m-0 -mt-1 mb-3 text-sm leading-snug text-muted-foreground">
+        Join others on a challenge.
+        {/* Desktop: two short lines instead of one long one. */}
+        <br className="hidden sm:inline" />{" "}
+        <span className="lg:whitespace-nowrap">
+          Prove it with a photo each day, keep your streak, and climb the leaderboard together.
+        </span>
+      </p>
       {visible.length === 1 ? (
         <div className="sm:grid sm:grid-cols-2 sm:gap-4">
           <CampaignBannerCard campaign={visible[0]!} className="w-full" />

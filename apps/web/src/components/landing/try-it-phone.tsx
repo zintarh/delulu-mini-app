@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageCircle, X } from "lucide-react";
-import { Chip, Coin, ConfettiStatic, Lulu, gameButtonClass } from "@/components/ds";
+import { DollarSign, MessageCircle, X } from "lucide-react";
+import { Chip, ConfettiStatic, Lulu, gameButtonClass } from "@/components/ds";
 import { cn } from "@/lib/utils";
 
 const HABITS = [
@@ -24,7 +24,7 @@ type Stake = "word" | "money";
 export function TryItPhone() {
   const [habit, setHabit] = useState<HabitId>("read");
   const [auto, setAuto] = useState(true);
-  const [stake, setStake] = useState<Stake>("word");
+  const [stake, setStake] = useState<Stake>("money");
 
   useEffect(() => {
     if (!auto) return;
@@ -74,7 +74,7 @@ export function TryItPhone() {
               <Chip
                 key={h.id}
                 selected={habit === h.id}
-                className="h-9 px-3 text-[13px]"
+                className="h-7 px-2.5 text-[11px]"
                 onClick={() => {
                   setHabit(h.id);
                   setAuto(false);
@@ -111,6 +111,18 @@ export function TryItPhone() {
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="What's on the line">
             <button
               type="button"
+              aria-pressed={!word}
+              onClick={() => setStake("money")}
+              className={cn(
+                "press-edge flex h-[50px] items-center justify-center gap-1.5 rounded-[14px] border-2 text-sm font-extrabold",
+                !word ? "border-ink bg-yellow-soft shadow-[0_3px_0_#161615]" : "border-line bg-white shadow-edge-sm",
+              )}
+            >
+              <DollarSign className="h-[18px] w-[18px] text-green" strokeWidth={2.6} />
+              Money
+            </button>
+            <button
+              type="button"
               aria-pressed={word}
               onClick={() => setStake("word")}
               className={cn(
@@ -120,18 +132,6 @@ export function TryItPhone() {
             >
               <MessageCircle className="h-[18px] w-[18px] text-pink" strokeWidth={2.4} />
               My word
-            </button>
-            <button
-              type="button"
-              aria-pressed={!word}
-              onClick={() => setStake("money")}
-              className={cn(
-                "press-edge flex h-[50px] items-center justify-center gap-1.5 rounded-[14px] border-2 text-sm font-extrabold",
-                !word ? "border-ink bg-yellow-soft shadow-[0_3px_0_#161615]" : "border-line bg-white shadow-edge-sm",
-              )}
-            >
-              <Coin size={18} />
-              Money
             </button>
           </div>
 

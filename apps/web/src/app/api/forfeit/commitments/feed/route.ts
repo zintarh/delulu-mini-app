@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchBatchForfeitCommitmentState } from "@/lib/forfeit/forfeit-subgraph";
 import { resolveUsernameForAddress } from "@/lib/resolve-username";
+import { capitalizeFirst } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -356,7 +357,7 @@ export async function GET(request: NextRequest) {
       return {
         id: c.id,
         onChainCommitmentId: c.on_chain_commitment_id,
-        title: c.title,
+        title: capitalizeFirst(c.title ?? ""),
         description: null,
         evidenceType: c.evidence_type,
         verificationMethod: c.verification_method,

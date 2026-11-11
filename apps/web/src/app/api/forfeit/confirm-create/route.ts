@@ -11,6 +11,7 @@ import { normalizeMarketingAppUrl } from "@/lib/marketing-email-template";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { resolveUsernameForAddress } from "@/lib/resolve-username";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { capitalizeFirst } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 /** Allow RPC retries — stake is already locked; finishing the save can take a bit. */
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const txHash = String(body.txHash ?? "").trim() as `0x${string}`;
   const walletAddress = String(body.walletAddress ?? "").trim().toLowerCase();
-  const title = String(body.title ?? "").trim().slice(0, 100) || "Forfeit";
+  const title = capitalizeFirst(String(body.title ?? "").trim().slice(0, 100)) || "Forfeit";
   const description = String(body.description ?? "").trim().slice(0, 500) || title;
   const evidenceType = String(body.evidenceType ?? "photo").trim();
   const verificationMethodRaw = String(body.verificationMethod ?? "ai").trim();

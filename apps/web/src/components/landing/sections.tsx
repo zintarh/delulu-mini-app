@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, FileText, MessageCircle, Plus, X } from "lucide-react";
+import { MessageCircle, Plus, X } from "lucide-react";
 import {
   Bolt,
   CheckDot,
@@ -51,11 +51,10 @@ export function LandingHeader({ signedIn = false }: { signedIn?: boolean }) {
         </Link>
         <nav aria-label="Primary" className="flex flex-wrap gap-7 text-[15px] font-bold max-sm:hidden">
           <a href="#ways" className="no-underline hover:text-ink">Ways to play</a>
-          <a href="#week" className="no-underline hover:text-ink">How it works</a>
           <a href="#faq" className="no-underline hover:text-ink">FAQ</a>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href={signedIn ? APP_HOME : "/sign-in"} className={gameButtonClass({ size: "sm" })}>
+          <Link href={APP_HOME} className={gameButtonClass({ size: "sm" })}>
             {signedIn ? "Open app" : "Start now"}
           </Link>
         </div>
@@ -75,11 +74,23 @@ export function HeroCopy() {
         </Pill>
       </span>
       <div className="flex flex-col gap-3.5">
-        <h1 className="m-0 animate-rise font-display text-[clamp(46px,5.4vw,80px)] font-extrabold uppercase leading-[0.92] [animation-delay:.1s]">
-          Build habits
-          <br />
-          you can&apos;t skip.
-        </h1>
+        {/* Lulu says the headline, the same way she speaks on Home: a speech
+            bubble with its tail pointing down at a happy, waving Lulu. */}
+        <div className="flex animate-rise flex-col items-start [animation-delay:.1s]">
+          {/* Phones: chat-message sized (30px, tight padding). Grows at sm and lg. */}
+          <div className="relative w-fit max-w-full rounded-[22px] rounded-bl-md border-2 border-line bg-white px-4 py-3 shadow-edge sm:rounded-[28px] sm:rounded-bl-lg sm:px-6 sm:py-4 lg:px-7 lg:py-5">
+            <h1 className="m-0 font-display text-[30px] font-extrabold uppercase leading-[0.95] sm:text-[44px] lg:text-[clamp(52px,5vw,80px)] lg:leading-[0.92]">
+              Build habits
+              <br />
+              you can&apos;t skip.
+            </h1>
+            <span
+              aria-hidden
+              className="absolute -bottom-[8px] left-7 h-3.5 w-3.5 rotate-45 rounded-[3px] border-b-2 border-r-2 border-line bg-white sm:-bottom-[9px] sm:left-9 sm:h-4 sm:w-4"
+            />
+          </div>
+          <Lulu size={84} mood="kept" wave className="ml-2 mt-1.5 h-16 w-16 sm:ml-3 sm:mt-2 sm:h-[84px] sm:w-[84px]" />
+        </div>
         <div className="flex animate-rise flex-wrap items-center gap-2.5 text-[clamp(20px,2vw,26px)] font-extrabold [animation-delay:.2s]">
           <span>Say it.</span>
           <span className="rounded-[10px] bg-yellow px-3 py-0.5 shadow-edge-yellow">Stake it.</span>
@@ -90,7 +101,7 @@ export function HeroCopy() {
         Pick a habit, put your word or a little money on it, and prove it each day with a photo. Free to start.
       </p>
       <div className="flex animate-rise flex-wrap gap-3.5 [animation-delay:.4s]">
-        <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
+        <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
           Start now
         </Link>
       </div>
@@ -214,7 +225,7 @@ export function TwoWaysSection() {
               {row("AI checks every proof in seconds")}
               {row("Streaks, badges and share cards")}
             </div>
-            <Link href="/sign-in" className={gameButtonClass({ variant: "line", full: true, className: "mt-auto" })}>
+            <Link href={APP_HOME} className={gameButtonClass({ variant: "line", full: true, className: "mt-auto" })}>
               Start now
             </Link>
           </div>
@@ -241,58 +252,10 @@ export function TwoWaysSection() {
               {row("Join challenges with cash prizes")}
               {row("Free daily money after a quick face check")}
             </div>
-            <Link href="/sign-in" className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto" })}>
+            <Link href={APP_HOME} className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto" })}>
               Start now
             </Link>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- a week with delulu */
-function Tag({ children, tone }: { children: React.ReactNode; tone: "pts" | "grey" | "green" }) {
-  const cls = { pts: "bg-blue-tint text-blue", grey: "bg-[#ecece7] text-ink", green: "bg-green-soft text-green-edge" }[tone];
-  return <span className={cn("rounded-lg px-[7px] py-1 font-mono text-[9px] font-semibold", cls)}>{children}</span>;
-}
-
-const WEEK: { day: string; art: React.ReactNode; title: string; tag: React.ReactNode; up?: boolean }[] = [
-  { day: "MON", art: <FileText className="h-10 w-10" strokeWidth={2.2} />, title: "Sign your contract", tag: <Tag tone="grey">Nº 0042</Tag> },
-  { day: "TUE", art: <Camera className="h-10 w-10 text-blue" strokeWidth={2.2} />, title: "Snap a photo as proof. AI checks it.", tag: <Tag tone="pts">+1,000</Tag>, up: true },
-  { day: "WED", art: <Flame size={48} />, title: "Day 2 in a row. Your streak begins.", tag: <Tag tone="pts">+1,000</Tag> },
-  { day: "THU", art: <Lulu size={64} mood="worried" />, title: "A reminder saves the day. Photo in at 20:59.", tag: <Tag tone="pts">+1,000</Tag>, up: true },
-  { day: "FRI", art: <Medal label="5" bg="#FFD9BF" edge="#E0915A" size={56} />, title: "Badge unlocked: 5-day streak", tag: <Tag tone="pts">+1,000</Tag> },
-  { day: "SAT", art: <Trophy size={52} />, title: "You climb to #5 this week", tag: <Tag tone="green">▲ 3</Tag>, up: true },
-  { day: "SUN", art: <Lulu size={64} mood="kept" />, title: "Done! Money back, plus 7,000 points", tag: <Tag tone="green">Kept</Tag> },
-];
-
-export function WeekSection() {
-  return (
-    <section id="week" className="border-y-[3px] border-ink bg-yellow">
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-7 px-6 pb-[90px] pt-[100px]">
-        <div className="flex flex-col gap-3.5">
-          <h2 className="reveal m-0 font-display text-[clamp(48px,6vw,88px)] font-extrabold uppercase leading-[0.9]">A week with Delulu.</h2>
-          <p style={revealDelay(0.1)} className="reveal m-0 text-[17px] font-medium leading-normal">One habit, seven days. Here&apos;s what it looks like.</p>
-        </div>
-        <div className="grid snap-x grid-cols-[repeat(7,minmax(168px,1fr))] gap-4 overflow-x-auto px-1 pb-6 pt-7 scrollbar-hide">
-          {WEEK.map((d, i) => (
-            <div
-              key={d.day}
-              style={revealDelay(i * 0.07)}
-              className={cn(
-                "reveal relative flex min-h-[220px] snap-start flex-col gap-3 rounded-[22px] border-2 border-ink bg-white p-4 shadow-[0_5px_0_#161615]",
-                d.up && "-top-[18px]",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] font-semibold">{d.day}</span>
-                {d.tag}
-              </div>
-              <div className="flex h-[84px] items-center justify-center rounded-2xl bg-paper">{d.art}</div>
-              <div className="text-[17px] font-extrabold leading-tight">{d.title}</div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
@@ -468,7 +431,7 @@ export function FinalCta() {
           </h2>
           <p className="m-0 text-lg text-[#c9c9c2]">Start free with your word. Earn 10× the points with money.</p>
           <div className="flex flex-wrap gap-3.5">
-            <Link href="/sign-in" className={gameButtonClass({ size: "lg" })}>
+            <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
               Start now
             </Link>
           </div>
@@ -490,7 +453,7 @@ export function LandingFooter() {
         <div className="flex flex-wrap gap-14">
           <div className="flex flex-col gap-3">
             <span className="label-mono text-muted-foreground">Product</span>
-            <a href="#week" className="no-underline">How it works</a>
+            <a href="#ways" className="no-underline">How it works</a>
             <Link href="/explore" className="no-underline">Challenges</Link>
             <Link href="/profile/flex" className="no-underline">Share cards</Link>
           </div>

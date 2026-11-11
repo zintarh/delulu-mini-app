@@ -12,8 +12,7 @@ import {
   Plus,
   ShieldCheck,
 } from "lucide-react";
-import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, SectionHeading, Stamp, gameButtonClass } from "@/components/ds";
-import { formatCountdown } from "@/components/home-stakes-hero";
+import { CheckDot, GameButton, HabitTile, Lulu, ProgressBar, SectionHeading, Stamp } from "@/components/ds";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import {
@@ -97,14 +96,44 @@ type DayBucket = {
   items: DayItem[];
 };
 
-/** e.g. "Sunday, July 26" — no year */
-/** Local clock time, compact and lowercase: "5:30pm". */
+/** Local clock time: "5:30 PM". */
 function formatClockTime(d: Date) {
-  return d
-    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
-    .replace(/\s/g, "")
-    .toLowerCase();
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
+
+/**
+ * A day + time people read at a glance: "Today, 5:30 PM", "Tomorrow, 5:30 PM",
+ * "Yesterday, 9:00 AM", "Fri, 5:30 PM" within the week, otherwise
+ * "Nov 14, 5:30 PM" (with the year only when it isn't this year).
+ */
+function formatDayAndTime(d: Date, nowMs: number): string {
+  const time = formatClockTime(d);
+  const today = startOfDay(new Date(nowMs)).getTime();
+  const diffDays = Math.round((startOfDay(d).getTime() - today) / 86_400_000);
+  if (diffDays === 0) return `Today, ${time}`;
+  if (diffDays === 1) return `Tomorrow, ${time}`;
+  if (diffDays === -1) return `Yesterday, ${time}`;
+  if (diffDays > 1 && diffDays < 7) {
+    return `${d.toLocaleDateString("en-US", { weekday: "short" })}, ${time}`;
+  }
+  const sameYear = d.getFullYear() === new Date(nowMs).getFullYear();
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+  return `${date}, ${time}`;
+}
+
+/** Time left, spelled out so it can't be mistaken for a clock: "2d 4h left", "3h 5m left", "45m left". */
+function formatTimeLeft(remainingSec: number): string {
+  if (remainingSec <= 0) return "Overdue";
+  const totalMinutes = Math.floor(remainingSec / 60);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return hours > 0 ? `${days}d ${hours}h left` : `${days}d left`;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m left` : `${hours}h left`;
+  return `${Math.max(1, minutes)}m left`;
+}
+
+/** e.g. "Sunday, July 26" — no year */
 
 function formatForfeitDayLabel(d: Date) {
   return d.toLocaleDateString("en-US", {
@@ -462,24 +491,28 @@ function ForfeitTaskCard({
   const isDue = canSubmit && !proofSubmitted;
   const tileIcon = goalIconFor(item.title);
   const tileTint = goalTintFor(String(item.onChainCommitmentId ?? item.title ?? ""));
-  const dayLabel = `${day.calendarPeriodIndex + 1}/${totalPeriods}`;
+  // One-off contracts have no "Day 1 of 1" — just the when.
+  const dayLabel = totalPeriods > 1 ? `Day ${day.calendarPeriodIndex + 1} of ${totalPeriods}` : null;
   const timeLabel = (() => {
     if (outcome === "won" && day.period?.resolvedAt) {
-      return formatClockTime(new Date(day.period.resolvedAt));
+      return `Done ${formatDayAndTime(new Date(day.period.resolvedAt), nowMs)}`;
     }
     if (isDue) {
-      const remainingSec = Math.floor((day.periodDeadline.getTime() - nowMs) / 1000);
-      return formatCountdown(remainingSec).label.toLowerCase();
+      return formatTimeLeft(Math.floor((day.periodDeadline.getTime() - nowMs) / 1000));
     }
-    return formatClockTime(day.periodDeadline);
+    if (outcome === "failed" || outcome === "overdue") {
+      return `Was due ${formatDayAndTime(day.periodDeadline, nowMs)}`;
+    }
+    return `Due ${formatDayAndTime(day.periodDeadline, nowMs)}`;
   })();
+  const metaLine = dayLabel ? `${dayLabel} · ${timeLabel}` : timeLabel;
   const href = item.onChainCommitmentId != null ? `/forfeit/${item.onChainCommitmentId}` : null;
 
   return (
     <div
       className={cn(
         "relative flex items-center gap-3 rounded-[20px] border-2 bg-white p-3",
-        isDue ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
+        "border-line shadow-edge",
       )}
     >
       <HabitTile icon={tileIcon} tint={tileTint} />
@@ -495,10 +528,10 @@ function ForfeitTaskCard({
           <p className="truncate text-base font-extrabold text-ink">{capitalizeFirst(item.title || "Untitled contract")}</p>
         )}
         {outcome === "won" ? (
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="label-mono text-[10px] text-blue">{dayLabel}</span>
-            <span className="label-mono text-[10px] normal-case text-muted-foreground">· {timeLabel}</span>
-          </div>
+          <p className="m-0 mt-1 truncate text-xs font-semibold text-muted-foreground">
+            {dayLabel ? <span className="text-blue">{dayLabel} · </span> : null}
+            {timeLabel}
+          </p>
         ) : (
           <div className="mt-[7px] flex items-center gap-2">
             {showProgress || isDue ? (
@@ -510,8 +543,8 @@ function ForfeitTaskCard({
                 label={`Day ${day.calendarPeriodIndex + 1} of ${totalPeriods}`}
               />
             ) : null}
-            <span className="label-mono text-[10px] text-muted-foreground">
-              {dayLabel} · <span className="normal-case">{timeLabel}</span>
+            <span className={cn("truncate text-xs font-semibold", isDue ? "text-ink" : "text-muted-foreground")}>
+              {metaLine}
             </span>
           </div>
         )}
@@ -710,45 +743,50 @@ function ForfeitDestinationCard({ day }: { day: DayItem }) {
   );
 }
 
-/** Single empty CTA — no promo banner above it. Guests see the same empty
- * state as signed-in users with nothing yet; tapping create just routes them
- * through sign-in first instead of the button being hidden or disabled. */
+/** Compact first-run CTA: one tappable row instead of a big empty card, so a
+ * new user's Home isn't dominated by "nothing here yet". Guests tapping it go
+ * through sign-in first and land on /forfeit after. */
 function ForfeitEmptyState({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
-  const cta = "inline-flex";
-
-  return (
-    <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-9 text-center shadow-edge">
-      <span>
-        <Lulu size={72} />
+  const rowClass =
+    "press-edge flex w-full items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-left text-ink no-underline shadow-edge";
+  const content = (
+    <>
+      <Lulu size={36} mood="kept" animated={false} />
+      <span className="min-w-0 flex-1 text-[15px] font-extrabold leading-tight">
+        New here? <span className="text-muted-foreground">Create your first delulu</span>
       </span>
-      <p className="mt-3 text-lg font-extrabold">No quests yet</p>
-      <p className="mt-1 max-w-[16rem] text-sm text-muted-foreground">
-        Make your first habit contract. Your word or a little money on the line.
-      </p>
-      {!FORFEIT_CREATION_ENABLED ? (
-        <GameButton className="mt-5" disabled title="Creating contracts is temporarily paused">
-          <Plus className="h-4 w-4" strokeWidth={2.6} />
-          New contract
-        </GameButton>
-      ) : authenticated ? (
-        <Link href="/forfeit" className={gameButtonClass({ className: `mt-5 ${cta}` })}>
-          <Plus className="h-4 w-4" strokeWidth={2.6} />
-          New contract
-        </Link>
-      ) : (
-        <GameButton
-          className="mt-5"
-          onClick={() => {
-            persistSignInRedirect("/forfeit");
-            router.push(buildSignInUrl("/forfeit"));
-          }}
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.6} />
-          Get started
-        </GameButton>
-      )}
-    </div>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow shadow-edge-yellow">
+        <Plus className="h-4 w-4" strokeWidth={2.8} />
+      </span>
+    </>
+  );
+
+  if (!FORFEIT_CREATION_ENABLED) {
+    return (
+      <div className={cn(rowClass, "opacity-60")} title="Creating contracts is temporarily paused" aria-disabled>
+        {content}
+      </div>
+    );
+  }
+  if (authenticated) {
+    return (
+      <Link href="/forfeit" className={rowClass}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={rowClass}
+      onClick={() => {
+        persistSignInRedirect("/forfeit");
+        router.push(buildSignInUrl("/forfeit"));
+      }}
+    >
+      {content}
+    </button>
   );
 }
 
