@@ -18,6 +18,7 @@ import {
   Bell,
   Building2,
   Flame,
+  Coins,
 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
@@ -93,6 +94,7 @@ function pageTitle(pathname: string): string {
     return "People";
   }
   if (pathname.startsWith(`${BASE}/forfeit`)) return "Forfeit";
+  if (pathname.startsWith(`${BASE}/reward-engine`)) return "Rewards";
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
   if (pathname.startsWith(`${BASE}/communities/`)) return "Community";
   if (
@@ -125,6 +127,10 @@ function isPeoplePath(pathname: string) {
     pathname.startsWith(`${BASE}/rewards`) ||
     pathname.startsWith(`${BASE}/referrals`)
   );
+}
+
+function isRewardEnginePath(pathname: string) {
+  return pathname.startsWith(`${BASE}/reward-engine`);
 }
 
 function isForfeitPath(pathname: string) {
@@ -221,6 +227,13 @@ export function AdminShell({
                 label="Forfeit"
                 href={`${BASE}/forfeit`}
                 active={isForfeitPath(pathname)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={Coins}
+                label="Rewards"
+                href={`${BASE}/reward-engine`}
+                active={isRewardEnginePath(pathname)}
                 onNavigate={closeMobile}
               />
               <NavItem

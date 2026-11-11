@@ -1,42 +1,15 @@
-import { createPublicClient, http } from "viem";
-import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
-import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
-import { getRewarderStatus, payoutProofReward, proofRewardRewardId } from "@/lib/celo/reward-vault-payout";
-import { parseCommunityMilestoneProofSubmittedFromTx } from "@/lib/dashboard/parse-challenge-tx";
-import { parseProofSubmittedFromTx } from "@/lib/dashboard/parse-forfeit-tx";
+import { getPoolAvailableWhole, payoutProofReward } from "@/lib/celo/reward-vault-payout";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
-export const PROOF_REWARD_GDOLLARS = 10;
-export const PROOF_REWARD_DAILY_CAP = 5;
-/** "Today" for the daily cap — most users are in Nigeria, so the cap resets at their midnight, not UTC's. */
-const REWARD_TIMEZONE = "Africa/Lagos";
-
 export type ProofRewardKind = "campaign" | "forfeit";
 
-export type ProofRewardResult =
-  | { status: "sent"; amount: number; paidToday: number; cap: number }
-  | { status: "capped"; amount: number; cap: number }
-  | { status: "not_verified"; amount: number }
-  | { status: "self_verified"; amount: number }
-  | { status: "awaiting_verifier"; amount: number }
-  | { status: "not_eligible"; amount: number; reason: string }
-  | { status: "failed"; amount: number };
-
-const CELO_RPC =
-  process.env.NEXT_PUBLIC_CELO_RPC_URL ??
-  process.env.NEXT_PUBLIC_RPC_URL ??
-  process.env.CELO_RPC_URL ??
-  "https://forno.celo.org";
-
-const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC) });
-
 /**
- * Records that a proof passed off-chain review (AI verdict), so a later
- * on-chain submission carrying this exact proof URL can be paid. Called from
- * the AI proof routes; never overwrites an existing row's status, so a
- * re-reviewed URL can't reset an already-paid reward.
+ * Records that a proof passed off-chain review (AI verdict, or a friend's
+ * approval), so a later on-chain submission carrying this exact proof URL
+ * counts as a verified event for the Rewards Engine (lib/rewards/engine.ts).
+ * Never overwrites an existing row, so re-reviewing a URL can't reset it.
  */
 export async function recordApprovedProof(
   admin: SupabaseAdmin,
@@ -54,185 +27,20 @@ export async function recordApprovedProof(
   if (error) console.error("[proof-reward] failed to record approved proof", error);
 }
 
-function rewardDayFor(date: Date): string {
-  // en-CA formats as YYYY-MM-DD, which is exactly Postgres's date literal.
-  return new Intl.DateTimeFormat("en-CA", { timeZone: REWARD_TIMEZONE }).format(date);
-}
-
-async function proofTxDay(txHash: `0x${string}`): Promise<string> {
-  // The proof's own block time, not "now" — a retried grant the next morning
-  // still counts against the day the proof was actually submitted.
-  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
-  const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
-  return rewardDayFor(new Date(Number(block.timestamp) * 1000));
-}
-
-type ResolvedProof = { wallet: string; proofUrl: string; rowId: string } | ProofRewardResult;
-
 /**
- * Re-derives who submitted what from the on-chain tx (never trusts the
- * caller), then finds the approval row that proves this exact proof was
- * reviewed. Friend-verified forfeits have no AI review — they're gated on the
- * friend's on-chain approval instead, and get their row created here.
+ * Finishes the retired 10 G$ per-proof reward for rows that failed before
+ * the Rewards Engine replaced it (they had already reserved their slot, so
+ * the user is owed them). Pays the row's own amount under its original
+ * rewardId — usedRewardId makes a repeat a no-op. Nothing new ever becomes
+ * 'failed' here, so this drains to zero and can then be removed.
  */
-async function resolveProof(
+export async function retryLegacyFailedProofRewards(
   admin: SupabaseAdmin,
-  kind: ProofRewardKind,
-  proofTxHash: `0x${string}`,
-): Promise<ResolvedProof> {
-  const amount = PROOF_REWARD_GDOLLARS;
-
-  if (kind === "campaign") {
-    const event = await parseCommunityMilestoneProofSubmittedFromTx(proofTxHash);
-    if (!event) return { status: "not_eligible", amount, reason: "proof_not_found" };
-    const { data: row } = await admin
-      .from("proof_rewards")
-      .select("id")
-      .eq("wallet", event.participant)
-      .eq("proof_url", event.proofLink)
-      .eq("kind", "campaign")
-      .maybeSingle();
-    if (!row) return { status: "not_eligible", amount, reason: "not_reviewed" };
-    return { wallet: event.participant, proofUrl: event.proofLink, rowId: row.id as string };
-  }
-
-  const event = await parseProofSubmittedFromTx(proofTxHash);
-  if (!event) return { status: "not_eligible", amount, reason: "proof_not_found" };
-
-  const { data: commitment } = await admin
-    .from("forfeit_commitments")
-    .select("id, verification_method")
-    .eq("on_chain_commitment_id", Number(event.commitmentId))
-    .maybeSingle();
-  if (!commitment) return { status: "not_eligible", amount, reason: "commitment_not_found" };
-
-  // Self-verified: the creator approves their own proof, so paying for it
-  // would be free G$ for any photo. Deliberately never rewarded.
-  if (commitment.verification_method === "self") return { status: "self_verified", amount };
-
-  if (commitment.verification_method === "friend") {
-    const { data: period } = await admin
-      .from("forfeit_periods")
-      .select("verifier_action")
-      .eq("commitment_id", commitment.id)
-      .eq("period_index", event.periodIndex)
-      .maybeSingle();
-    if (period?.verifier_action !== "approved") return { status: "awaiting_verifier", amount };
-    await recordApprovedProof(admin, {
-      wallet: event.creator,
-      kind: "forfeit",
-      proofUrl: event.proofLink,
-      refId: commitment.id,
-    });
-  }
-
-  const { data: row } = await admin
-    .from("proof_rewards")
-    .select("id")
-    .eq("wallet", event.creator)
-    .eq("proof_url", event.proofLink)
-    .eq("kind", "forfeit")
-    .maybeSingle();
-  if (!row) return { status: "not_eligible", amount, reason: "not_reviewed" };
-  return { wallet: event.creator, proofUrl: event.proofLink, rowId: row.id as string };
-}
-
-async function countPaidOnDay(admin: SupabaseAdmin, wallet: string, day: string): Promise<number> {
-  const { count } = await admin
-    .from("proof_rewards")
-    .select("id", { count: "exact", head: true })
-    .eq("wallet", wallet)
-    .eq("reward_day", day)
-    .eq("status", "sent");
-  return count ?? 0;
-}
-
-/**
- * Pays PROOF_REWARD_GDOLLARS into RewardVault for one approved, on-chain
- * proof — at most PROOF_REWARD_DAILY_CAP paid proofs per wallet per Lagos
- * day, GoodDollar-verified wallets only. Safe to call repeatedly for the
- * same tx: the daily slot is reserved atomically in Postgres and the
- * on-chain rewardId is keyed by the proof tx, so nothing is ever paid twice.
- */
-export async function grantProofReward(
-  admin: SupabaseAdmin,
-  params: { kind: ProofRewardKind; proofTxHash: `0x${string}` },
-): Promise<ProofRewardResult> {
-  const amount = PROOF_REWARD_GDOLLARS;
-  const cap = PROOF_REWARD_DAILY_CAP;
-  const proofTxHash = params.proofTxHash.toLowerCase() as `0x${string}`;
-
-  const resolved = await resolveProof(admin, params.kind, proofTxHash);
-  if ("status" in resolved) return resolved;
-  const { wallet, rowId } = resolved;
-
-  const verified = await isGoodDollarVerified(wallet);
-  if (!verified) return { status: "not_verified", amount };
-
-  const day = await proofTxDay(proofTxHash);
-
-  const { data: slot, error: slotError } = await admin.rpc("reserve_proof_reward_slot", {
-    p_id: rowId,
-    p_wallet: wallet,
-    p_day: day,
-    p_tx_hash: proofTxHash,
-    p_cap: cap,
-  });
-  if (slotError) {
-    console.error("[proof-reward] slot reservation failed", slotError);
-    return { status: "failed", amount };
-  }
-  if (slot === "capped") return { status: "capped", amount, cap };
-  if (slot === "sent") {
-    return { status: "sent", amount, paidToday: await countPaidOnDay(admin, wallet, day), cap };
-  }
-  if (slot !== "paying" && slot !== "failed") return { status: "failed", amount };
-
-  try {
-    const result = await payoutProofReward({
-      wallet: wallet as `0x${string}`,
-      proofTxHash,
-      amountWhole: amount,
-    });
-    await admin
-      .from("proof_rewards")
-      .update({
-        status: "sent",
-        reward_id: result.rewardId,
-        deposit_tx_hash: result.txHash,
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", rowId);
-    return { status: "sent", amount, paidToday: await countPaidOnDay(admin, wallet, day), cap };
-  } catch (err) {
-    console.error(`[proof-reward] deposit failed for ${proofTxHash}:`, err);
-    // Never downgrade a row a concurrent call already marked paid.
-    await admin
-      .from("proof_rewards")
-      .update({ status: "failed", reward_id: proofRewardRewardId(proofTxHash) })
-      .eq("id", rowId)
-      .neq("status", "sent");
-    return { status: "failed", amount };
-  }
-}
-
-/**
- * Re-pays proof rewards whose vault credit failed — typically because the
- * RewardVault pool ran dry. Without this they'd stay 'failed' forever, since
- * grantProofReward only runs again when the proof itself is re-approved.
- * Goes back through grantProofReward, so every check re-runs; a 'failed' row
- * keeps the daily slot it reserved (no cap overrun) and the on-chain
- * usedRewardId check means nothing is ever paid twice. Skips the batch when
- * the pool can't cover even one reward, so an empty vault costs one RPC read.
- */
-export async function retryFailedProofRewards(
-  admin: SupabaseAdmin,
-  // Each paid row waits on a tx receipt (~5–10s); keep well inside the cron's 120s budget.
   limit = 10,
 ): Promise<{ found: number; retried: number; stillFailed: number; poolEmpty: boolean }> {
   const { data: rows, error } = await admin
     .from("proof_rewards")
-    .select("kind, proof_tx_hash")
+    .select("id, wallet, amount, proof_tx_hash")
     .eq("status", "failed")
     .not("proof_tx_hash", "is", null)
     .order("created_at", { ascending: true })
@@ -241,17 +49,31 @@ export async function retryFailedProofRewards(
   const found = rows?.length ?? 0;
   if (found === 0) return { found, retried: 0, stillFailed: 0, poolEmpty: false };
 
-  const available = Number((await getRewarderStatus()).poolAvailable);
-  const affordable = Math.floor(available / PROOF_REWARD_GDOLLARS);
-  if (affordable <= 0) return { found, retried: 0, stillFailed: found, poolEmpty: true };
-
+  let budget = await getPoolAvailableWhole();
   let retried = 0;
-  for (const row of (rows ?? []).slice(0, affordable)) {
-    const result = await grantProofReward(admin, {
-      kind: row.kind as ProofRewardKind,
-      proofTxHash: row.proof_tx_hash as `0x${string}`,
-    });
-    if (result.status === "sent") retried++;
+  for (const row of rows ?? []) {
+    const amount = Number(row.amount);
+    if (amount > budget) break;
+    try {
+      const result = await payoutProofReward({
+        wallet: row.wallet as `0x${string}`,
+        proofTxHash: row.proof_tx_hash as `0x${string}`,
+        amountWhole: amount,
+      });
+      await admin
+        .from("proof_rewards")
+        .update({
+          status: "sent",
+          reward_id: result.rewardId,
+          deposit_tx_hash: result.txHash,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      budget -= amount;
+      retried++;
+    } catch (err) {
+      console.error(`[proof-reward] legacy retry failed for ${row.proof_tx_hash}:`, err);
+    }
   }
-  return { found, retried, stillFailed: found - retried, poolEmpty: affordable < found };
+  return { found, retried, stillFailed: found - retried, poolEmpty: retried < found && budget <= 0 };
 }

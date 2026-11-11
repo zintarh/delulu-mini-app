@@ -853,6 +853,8 @@ export async function fetchJoinedCampaignDashboardFromGraph(
       forfeit_pct: number;
       participant_count: number;
       missed_count: number;
+      /** Every closed-without-proof milestone, including ones before joining — any > 0 rules out a full completion. */
+      overdue_count: number;
     }
   >
 > {
@@ -899,6 +901,7 @@ export async function fetchJoinedCampaignDashboardFromGraph(
         missed_count: milestones.filter(
           (m) => m.is_overdue && (p.joinedAtMs == null || new Date(m.deadline).getTime() > p.joinedAtMs),
         ).length,
+        overdue_count: milestones.filter((m) => m.is_overdue).length,
         next_milestones,
       };
     });

@@ -6,10 +6,10 @@ import {
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
-import { grantProofReward } from "@/lib/proof-reward/grant";
+import { processVerifiedProof } from "@/lib/rewards/engine";
 
 export const dynamic = "force-dynamic";
-// Friend approvals also deposit the proof reward (RewardVault tx) before responding.
+// Friend approvals also run the Rewards Engine (RewardVault txs) before responding.
 export const maxDuration = 60;
 
 /**
@@ -216,10 +216,13 @@ async function confirmResolveOnly(
     .maybeSingle();
   if (approvedPeriod?.tx_hash) {
     try {
-      await grantProofReward(admin, {
-        kind: "forfeit",
-        proofTxHash: approvedPeriod.tx_hash as `0x${string}`,
-      });
+      await processVerifiedProof(
+        admin,
+        { kind: "forfeit", proofTxHash: approvedPeriod.tx_hash as `0x${string}` },
+        // Leave headroom in this route's 60s for the work above; anything
+        // unconfirmed is settled by the rewards-payouts cron.
+        { budgetMs: 35_000 },
+      );
     } catch (err) {
       console.error("[forfeit/confirm-proof] proof reward grant failed", err);
     }

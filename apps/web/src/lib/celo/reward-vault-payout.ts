@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, formatEther, formatUnits, http, keccak256, toHex } from "viem";
+import { createPublicClient, createWalletClient, formatEther, formatUnits, http, keccak256, parseAbiItem, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { REWARD_VAULT_ABI } from "@/lib/abi/reward-vault";
@@ -50,6 +50,136 @@ export type VaultDepositResult = {
 
 export type ReferralPayoutResult = VaultDepositResult;
 
+function vaultPublicClient() {
+  return createPublicClient({ chain: celo, transport: http(getRpcUrl()) });
+}
+
+/** Whether RewardVault has already consumed `rewardId` — i.e. that reward was credited on-chain. */
+export async function isRewardIdUsed(rewardId: `0x${string}`): Promise<boolean> {
+  return (await vaultPublicClient().readContract({
+    address: getRewardVaultAddress(CELO_MAINNET_ID),
+    abi: REWARD_VAULT_ABI,
+    functionName: "usedRewardId",
+    args: [rewardId],
+  })) as boolean;
+}
+
+/** Unallocated G$ in the vault pool, in whole G$ — what creditReward can still hand out. */
+export async function getPoolAvailableWhole(): Promise<number> {
+  const available = (await vaultPublicClient().readContract({
+    address: getRewardVaultAddress(CELO_MAINNET_ID),
+    abi: REWARD_VAULT_ABI,
+    functionName: "availableBalance",
+    args: [GOODDOLLAR_ADDRESSES.mainnet],
+  })) as bigint;
+  return Number(formatUnits(available, 18));
+}
+
+export type PoolCreditSubmission =
+  | { kind: "already_used"; amountWei: string }
+  | { kind: "submitted"; txHash: `0x${string}`; amountWei: string };
+
+/**
+ * Broadcasts creditReward and returns as soon as the tx hash is known —
+ * without waiting for it to mine — so the caller can persist the hash first.
+ * A timeout while waiting then leaves a tx we can still look up, instead of
+ * an unknown one. Checks usedRewardId and the pool first, so a retry of a
+ * reward that already landed never sends a doomed tx.
+ */
+export async function submitPoolCredit(params: {
+  recipientWallet: `0x${string}`;
+  amountWhole: number;
+  rewardId: `0x${string}`;
+  context: string;
+}): Promise<PoolCreditSubmission> {
+  const account = getRewarderAccount();
+  const vault = getRewardVaultAddress(CELO_MAINNET_ID);
+  const token = GOODDOLLAR_ADDRESSES.mainnet;
+  const amountWei = parseTokenAmount(params.amountWhole, token, 18);
+  const publicClient = vaultPublicClient();
+
+  if (await isRewardIdUsed(params.rewardId)) {
+    return { kind: "already_used", amountWei: amountWei.toString() };
+  }
+
+  const available = (await publicClient.readContract({
+    address: vault,
+    abi: REWARD_VAULT_ABI,
+    functionName: "availableBalance",
+    args: [token],
+  })) as bigint;
+  if (available < amountWei) {
+    throw new Error(
+      `RewardVault pool is out of G$ (${formatUnits(available, 18)} available) for ${params.context}`,
+    );
+  }
+
+  const walletClient = createWalletClient({ account, chain: celo, transport: http(getRpcUrl()) });
+  const txHash = await walletClient.writeContract({
+    address: vault,
+    abi: REWARD_VAULT_ABI,
+    functionName: "creditReward",
+    args: [params.recipientWallet, token, amountWei, params.rewardId],
+  });
+  return { kind: "submitted", txHash, amountWei: amountWei.toString() };
+}
+
+export type CreditTxState = "confirmed" | "reverted" | "pending";
+
+/** Waits up to `timeoutMs` for a creditReward tx; "pending" means it hasn't mined (or can't be found) yet. */
+export async function waitForPoolCredit(txHash: `0x${string}`, timeoutMs = 60_000): Promise<CreditTxState> {
+  try {
+    const receipt = await vaultPublicClient().waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: 1,
+      timeout: timeoutMs,
+    });
+    return receipt.status === "success" ? "confirmed" : "reverted";
+  } catch {
+    return "pending";
+  }
+}
+
+/** One-shot receipt lookup for reconciling a previously submitted tx. */
+export async function checkPoolCredit(txHash: `0x${string}`): Promise<CreditTxState> {
+  try {
+    const receipt = await vaultPublicClient().getTransactionReceipt({ hash: txHash });
+    return receipt.status === "success" ? "confirmed" : "reverted";
+  } catch {
+    return "pending";
+  }
+}
+
+const REWARD_DEPOSITED_EVENT = parseAbiItem(
+  "event RewardDeposited(address indexed user, address indexed token, uint256 amount, bytes32 indexed rewardId, address depositedBy)",
+);
+
+/**
+ * Finds the tx that consumed `rewardId` — for the rare case where the vault
+ * says it's used but we never saved the hash (a worker died between
+ * broadcast and the DB write). Searches back `lookbackBlocks`; null if the
+ * RPC refuses the range or nothing is found.
+ */
+export async function findPoolCreditTx(
+  rewardId: `0x${string}`,
+  lookbackBlocks = 500_000n,
+): Promise<`0x${string}` | null> {
+  try {
+    const client = vaultPublicClient();
+    const latest = await client.getBlockNumber();
+    const logs = await client.getLogs({
+      address: getRewardVaultAddress(CELO_MAINNET_ID),
+      event: REWARD_DEPOSITED_EVENT,
+      args: { rewardId },
+      fromBlock: latest > lookbackBlocks ? latest - lookbackBlocks : 0n,
+      toBlock: latest,
+    });
+    return logs[0]?.transactionHash ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Credits `amountWhole` G$ from RewardVault's pre-funded pool as a claimable
  * reward for `recipientWallet`, keyed by `rewardId` for idempotency (checked
@@ -63,55 +193,30 @@ async function creditFromRewardPool(params: {
   rewardId: `0x${string}`;
   revertContext: string;
 }): Promise<VaultDepositResult> {
-  const account = getRewarderAccount();
-  const rpc = getRpcUrl();
-  const vault = getRewardVaultAddress(CELO_MAINNET_ID);
-  const token = GOODDOLLAR_ADDRESSES.mainnet;
-  const amountWei = parseTokenAmount(params.amountWhole, token, 18);
   const { rewardId } = params;
-
-  const publicClient = createPublicClient({ chain: celo, transport: http(rpc) });
-
-  // A prior attempt may have gotten the tx mined but crashed before the DB
-  // update landed — check first so a retry never reverts with RewardIdAlreadyUsed.
-  const alreadyUsed = (await publicClient.readContract({
-    address: vault,
-    abi: REWARD_VAULT_ABI,
-    functionName: "usedRewardId",
-    args: [rewardId],
-  })) as boolean;
-  if (alreadyUsed) {
-    return { txHash: null, amountWei: amountWei.toString(), rewardId, alreadyUsed: true };
+  const submission = await submitPoolCredit({
+    recipientWallet: params.recipientWallet,
+    amountWhole: params.amountWhole,
+    rewardId,
+    context: params.revertContext,
+  });
+  if (submission.kind === "already_used") {
+    return { txHash: null, amountWei: submission.amountWei, rewardId, alreadyUsed: true };
   }
-
-  const available = (await publicClient.readContract({
-    address: vault,
-    abi: REWARD_VAULT_ABI,
-    functionName: "availableBalance",
-    args: [token],
-  })) as bigint;
-  if (available < amountWei) {
+  const state = await waitForPoolCredit(submission.txHash);
+  if (state !== "confirmed") {
     throw new Error(
-      `RewardVault pool is out of G$ (${formatUnits(available, 18)} available) for ${params.revertContext}`,
+      state === "reverted"
+        ? `creditReward reverted for ${params.revertContext}`
+        : `creditReward not confirmed in time for ${params.revertContext} (tx ${submission.txHash})`,
     );
   }
+  return { txHash: submission.txHash, amountWei: submission.amountWei, rewardId, alreadyUsed: false };
+}
 
-  const walletClient = createWalletClient({ account, chain: celo, transport: http(rpc) });
-  const hash = await walletClient.writeContract({
-    address: vault,
-    abi: REWARD_VAULT_ABI,
-    functionName: "creditReward",
-    args: [params.recipientWallet, token, amountWei, rewardId],
-  });
-  const receipt = await publicClient.waitForTransactionReceipt({
-    hash,
-    confirmations: 1,
-    timeout: 60_000,
-  });
-  if (receipt.status !== "success") {
-    throw new Error(`creditReward reverted for ${params.revertContext}`);
-  }
-  return { txHash: hash, amountWei: amountWei.toString(), rewardId, alreadyUsed: false };
+/** On-chain rewardId for a Rewards Engine ledger row — derived from its dedupe key, so it's stable across retries. */
+export function engineRewardId(dedupeKey: string): `0x${string}` {
+  return keccak256(toHex(`rewards-engine:${dedupeKey}`));
 }
 
 export async function payoutReferralReward(params: {

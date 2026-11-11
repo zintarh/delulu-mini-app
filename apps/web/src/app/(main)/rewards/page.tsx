@@ -23,6 +23,9 @@ import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { RewardsDailyCard } from "@/components/home/daily-money-card";
 import { ReferralInviteCard } from "@/components/referral-invite-card";
+import { RewardStatusPill, RewardsEarnedCard, RewardsHowYouEarnCard } from "@/components/rewards/rewards-engine-cards";
+import { useRewardsSummary } from "@/hooks/use-rewards-summary";
+import type { HistoryItem } from "@/lib/rewards/summary";
 import { useClaimPanel, useFaceCheck } from "@/contexts/right-panel-context";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
@@ -40,13 +43,31 @@ import { cn, formatGAmount } from "@/lib/utils";
 
 type ActivityItem = {
   id: string;
-  kind: "team_reward" | "delulu_claim" | "forfeit_success" | "forfeit_sent";
+  kind: "team_reward" | "delulu_claim" | "forfeit_success" | "forfeit_sent" | "engine_reward";
   title: string;
   description: string | null;
   amountLabel: string;
+  /** Empty when no tx exists yet (a reward still being sent). */
   txHash: string;
   createdAt: string;
+  /** Rewards Engine rows only: anything but confirmed is not counted as earned. */
+  status?: "pending" | "confirmed" | "failed";
 };
+
+const ENGINE_CATEGORY_TITLE: Record<HistoryItem["category"], string> = {
+  daily_proof: "Proof reward",
+  weekly_consistency: "Weekly streak bonus",
+  campaign_completion: "Campaign completed",
+  goal_completion: "Goal completed",
+};
+
+function engineRewardContext(item: HistoryItem): string | null {
+  if (item.category === "weekly_consistency" && item.rewardDay) {
+    const d = new Date(`${item.rewardDay}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+    return `Week of ${d}`;
+  }
+  return item.goalTitle;
+}
 
 const LEDGER_PAGE_SIZE = 5;
 
@@ -119,6 +140,12 @@ export default function RewardsPage() {
     isLoading: isLoadingForfeitActivity,
     error: forfeitActivityError,
   } = useGraphUserForfeitActivity(address);
+  const {
+    summary: rewardsSummary,
+    isLoading: isLoadingRewardsSummary,
+    error: rewardsSummaryError,
+    refetch: refetchRewardsSummary,
+  } = useRewardsSummary(address);
 
   const activityItems = useMemo((): ActivityItem[] => {
     const fromClaims: ActivityItem[] = claims.map((claim) => ({
@@ -172,13 +199,24 @@ export default function RewardsPage() {
       };
     });
 
-    return [...fromClaims, ...fromGrants, ...fromForfeits].sort(
+    const fromEngine: ActivityItem[] = (rewardsSummary?.history ?? []).map((item) => ({
+      id: `engine-${item.id}`,
+      kind: "engine_reward",
+      title: ENGINE_CATEGORY_TITLE[item.category],
+      description: engineRewardContext(item),
+      amountLabel: `+${formatGAmount(item.amount)} G$`,
+      txHash: item.txHash ?? "",
+      createdAt: item.createdAt,
+      status: item.status,
+    }));
+
+    return [...fromClaims, ...fromGrants, ...fromForfeits, ...fromEngine].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [claims, teamGrants, forfeitActivity]);
+  }, [claims, teamGrants, forfeitActivity, rewardsSummary]);
 
-  const isLoadingActivity = isLoadingClaims || isLoadingGrants || isLoadingForfeitActivity;
-  const activityError = claimsError || grantsError || forfeitActivityError;
+  const isLoadingActivity = isLoadingClaims || isLoadingGrants || isLoadingForfeitActivity || isLoadingRewardsSummary;
+  const activityError = claimsError || grantsError || forfeitActivityError || rewardsSummaryError;
 
   // Clamp when the list shrinks (e.g. after a refetch) so we never sit on an empty page.
   const ledgerPageCount = Math.max(1, Math.ceil(activityItems.length / LEDGER_PAGE_SIZE));
@@ -436,6 +474,14 @@ export default function RewardsPage() {
               {/* Free daily money (GoodDollar UBI) */}
               <RewardsDailyCard />
 
+              {/* G$ earned through the Rewards Engine */}
+              <RewardsEarnedCard
+                summary={rewardsSummary}
+                isLoading={isLoadingRewardsSummary}
+                error={rewardsSummaryError}
+                onRetry={() => void refetchRewardsSummary()}
+              />
+
               {/* Rewards ready to claim */}
               <GameCard className="flex animate-rise items-center gap-3 px-3.5 py-3">
                 <CoinStack className="h-10 w-11" />
@@ -470,6 +516,9 @@ export default function RewardsPage() {
                 </GameButton>
               </GameCard>
               {adminClaimError ? <p className="-mt-2 text-[11px] font-semibold text-orange">{adminClaimError}</p> : null}
+
+              {/* Reward categories with live progress */}
+              <RewardsHowYouEarnCard summary={rewardsSummary} />
 
             </>
           )}
@@ -551,27 +600,43 @@ export default function RewardsPage() {
 
 function LedgerRow({ item }: { item: ActivityItem }) {
   const out = item.kind === "forfeit_sent";
-  const date = new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  // A reward that hasn't confirmed on-chain must never look earned.
+  const unpaid = item.status === "pending" || item.status === "failed";
+  const when = new Date(item.createdAt);
+  const date = when.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const time = item.kind === "engine_reward" ? when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null;
   const amount = item.amountLabel.replace(/^-/, "−").replace(/ G\$$/, "");
-  return (
-    <a
-      href={`https://celoscan.io/tx/${item.txHash}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex animate-rise items-center gap-3.5 border-b border-dashed border-line py-3 text-ink no-underline"
-    >
-      <span className={cn("w-5 font-display text-[28px] font-extrabold leading-none", out ? "text-orange" : "text-green-edge")}>
+  const tone = unpaid ? "text-muted-foreground" : out ? "text-orange" : "text-green-edge";
+  const className = "flex animate-rise items-center gap-3.5 border-b border-dashed border-line py-3 text-ink no-underline";
+  const body = (
+    <>
+      <span className={cn("w-5 font-display text-[28px] font-extrabold leading-none", tone)}>
         {out ? "−" : "+"}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="truncate font-semibold">{item.title}</div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate font-semibold">{item.title}</span>
+          {item.status ? <RewardStatusPill status={item.status} /> : null}
+        </div>
         <div className="label-mono mt-[3px] truncate text-[10px] text-muted-foreground">
-          {[item.description, date].filter(Boolean).join(" · ")}
+          {[item.description, time ? `${date}, ${time}` : date].filter(Boolean).join(" · ")}
         </div>
       </div>
-      <span className={cn("label-mono shrink-0 text-[13px] font-semibold tracking-[0.06em]", out ? "text-orange" : "text-green-edge")}>
+      <span
+        className={cn(
+          "label-mono shrink-0 text-[13px] font-semibold tracking-[0.06em]",
+          tone,
+          item.status === "failed" && "line-through",
+        )}
+      >
         {amount}
       </span>
+    </>
+  );
+  if (!item.txHash) return <div className={className}>{body}</div>;
+  return (
+    <a href={`https://celoscan.io/tx/${item.txHash}`} target="_blank" rel="noopener noreferrer" className={className}>
+      {body}
     </a>
   );
 }

@@ -6,7 +6,6 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payReferralCredit } from "@/lib/referral/payout";
-import { retryFailedProofRewards } from "@/lib/proof-reward/grant";
 
 /**
  * Retries any referral G$ payout whose on-chain deposit previously failed
@@ -17,8 +16,8 @@ import { retryFailedProofRewards } from "@/lib/proof-reward/grant";
  * before sending, so this can never double-credit a referral that actually
  * succeeded despite an earlier error.
  *
- * Also retries proof rewards that failed while the vault pool was empty
- * (see retryFailedProofRewards) — same cause, same schedule.
+ * Proof/weekly/completion rewards have their own upkeep cron:
+ * /api/cron/rewards-payouts.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -48,16 +47,7 @@ export async function GET(req: NextRequest) {
       else stillPending++;
     }
 
-    // Independent of referrals — one failing must not hide the other's result.
-    let proofRewards: Awaited<ReturnType<typeof retryFailedProofRewards>> | { error: string };
-    try {
-      proofRewards = await retryFailedProofRewards(admin);
-    } catch (e: any) {
-      console.error("[cron/referral-payout-retry] proof reward retry failed", e);
-      proofRewards = { error: e?.message ?? "proof reward retry failed" };
-    }
-
-    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending, proofRewards });
+    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending });
   } catch (e: any) {
     return errorResponse(e?.message ?? "Cron failed", 500);
   }

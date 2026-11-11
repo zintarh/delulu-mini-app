@@ -285,6 +285,7 @@ export async function fetchJoinedCampaignDashboard(
           const joinedAtMs = joinedAtMsByCampaign.get(cid) ?? null;
           return m.is_overdue && (joinedAtMs == null || new Date(m.deadline).getTime() > joinedAtMs);
         }).length,
+        overdue_count: scheduled.filter((m) => m.is_overdue).length,
         next_milestones: nextMilestones,
       };
     });

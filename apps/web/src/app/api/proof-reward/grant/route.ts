@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-import { grantProofReward, type ProofRewardKind } from "@/lib/proof-reward/grant";
+import type { ProofRewardKind } from "@/lib/proof-reward/grant";
+import { processVerifiedProof } from "@/lib/rewards/engine";
 
 export const dynamic = "force-dynamic";
-// Waits for the RewardVault deposit to mine so the success card can offer
-// the claim straight away.
+// Waits (within a 45s budget) for the RewardVault credits to mine so the
+// success card can offer the claim straight away; anything slower is left
+// 'submitted' and settled by /api/cron/rewards-payouts.
 export const maxDuration = 60;
 
 /**
- * Grants the per-proof G$ reward for an on-chain proof tx. No wallet in the
- * body on purpose: the recipient is always re-derived from the tx itself
- * (see grantProofReward), so calling this for someone else's proof can only
- * ever pay that someone — never the caller.
+ * Runs the Rewards Engine for an on-chain proof tx: daily proof reward,
+ * weekly consistency bonus, and campaign completion. No wallet in the body
+ * on purpose: the recipient is always re-derived from the tx itself (see
+ * processVerifiedProof), so calling this for someone else's proof can only
+ * ever pay that someone — never the caller. Idempotent, so retries are safe.
  */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -29,13 +32,13 @@ export async function POST(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
 
   try {
-    const result = await grantProofReward(admin, {
+    const result = await processVerifiedProof(admin, {
       kind,
       proofTxHash: proofTxHash as `0x${string}`,
     });
     return NextResponse.json(result);
   } catch (err) {
     console.error("[proof-reward/grant] error:", err);
-    return NextResponse.json({ status: "failed", amount: 0 }, { status: 500 });
+    return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }

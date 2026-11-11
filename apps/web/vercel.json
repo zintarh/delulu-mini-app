@@ -17,6 +17,10 @@
     {
       "path": "/api/cron/referral-payout-retry",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/rewards-payouts",
+      "schedule": "30 2 * * *"
     }
   ]
 }

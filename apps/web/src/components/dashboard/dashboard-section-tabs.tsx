@@ -40,6 +40,7 @@ export function DashboardSectionTabs({
           (match !== "/dashboard" &&
             match !== "/dashboard/communities" &&
             match !== "/dashboard/forfeit" &&
+            match !== "/dashboard/reward-engine" &&
             pathname.startsWith(`${match}/`));
 
         return (
@@ -97,4 +98,11 @@ export const COMMUNITIES_SECTION_TABS: DashboardSectionTab[] = [
 export const FORFEIT_SECTION_TABS: DashboardSectionTab[] = [
   { href: "/dashboard/forfeit", label: "Overview", match: "/dashboard/forfeit" },
   { href: "/dashboard/forfeit/activity", label: "Activity", match: "/dashboard/forfeit/activity" },
+];
+
+export const REWARD_ENGINE_SECTION_TABS: DashboardSectionTab[] = [
+  { href: "/dashboard/reward-engine", label: "Overview", match: "/dashboard/reward-engine" },
+  { href: "/dashboard/reward-engine/activity", label: "Activity", match: "/dashboard/reward-engine/activity" },
+  { href: "/dashboard/reward-engine/settings", label: "Settings", match: "/dashboard/reward-engine/settings" },
+  { href: "/dashboard/reward-engine/audit", label: "Audit log", match: "/dashboard/reward-engine/audit" },
 ];

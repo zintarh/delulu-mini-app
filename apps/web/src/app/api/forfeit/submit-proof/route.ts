@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Lets the on-chain submission of this exact proof URL earn the per-proof
-    // G$ reward (see lib/proof-reward/grant.ts). Only AI-reviewed proofs get
+    // G$ rewards (see lib/rewards/engine.ts). Only AI-reviewed proofs get
     // a row here; friend-verified ones are gated on the friend's approval.
     await recordApprovedProof(admin, {
       wallet: walletAddress,

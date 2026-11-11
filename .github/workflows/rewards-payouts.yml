@@ -1,0 +1,28 @@
+name: Rewards payouts
+
+# Hits /api/cron/rewards-payouts every 15 minutes: confirms submitted
+# RewardVault txs, resends failed or stuck rewards (within the pool's
+# balance), and reserves weekly/completion rewards a request missed. The
+# once-a-day Vercel cron (apps/web/vercel.json) is only a fallback — Hobby
+# allows daily crons only.
+#
+# Uses the same PUSH_CRON_SECRET repo secret as referral-payout-retry.yml.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: rewards-payouts
+  cancel-in-progress: false
+
+jobs:
+  rewards-payouts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call rewards-payouts
+        run: |
+          curl -sf -X GET "https://www.staydelulu.xyz/api/cron/rewards-payouts" \
+            -H "x-cron-secret: ${{ secrets.PUSH_CRON_SECRET }}" \
+            --max-time 280

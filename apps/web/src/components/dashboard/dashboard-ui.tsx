@@ -176,6 +176,12 @@ const STATUS_STYLES: Record<string, string> = {
   ended: "bg-muted text-muted-foreground",
   rejected: "bg-red-50 text-red-600",
   archived: "bg-muted text-muted-foreground",
+  // Reward payouts
+  confirmed: "bg-emerald-50 text-emerald-700",
+  pending: "bg-amber-50 text-amber-700",
+  processing: "bg-amber-50 text-amber-700",
+  submitted: "bg-amber-50 text-amber-700",
+  failed: "bg-red-50 text-red-600",
 };
 
 export function StatusChip({ status }: { status: string }) {
