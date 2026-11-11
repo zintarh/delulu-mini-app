@@ -142,3 +142,9 @@ export function useFaceCheck() {
   const { panel, closeAll, startFaceCheck } = useRightPanel();
   return { isOpen: panel === "facecheck", start: startFaceCheck, close: closeAll };
 }
+
+/** Like useFaceCheck, but null outside RightPanelProvider (for components also used elsewhere). */
+export function useFaceCheckOptional() {
+  const ctx = useContext(RightPanelContext);
+  return ctx ? { start: ctx.startFaceCheck } : null;
+}

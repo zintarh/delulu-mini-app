@@ -158,7 +158,8 @@ export function CampaignJoinModal({
                   {joiningLabel ?? "Joining…"}
                 </>
               ) : isPaid ? (
-                terms ? `Stake ${formatStake(joinAmount)} · I agree` : `Stake ${formatStake(joinAmount)} ${joinToken}`
+                // The stake and what a miss costs are already spelled out above.
+                "I agree"
               ) : (
                 "Join for free"
               )}

@@ -26,6 +26,7 @@ import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-consta
 import { forfeitProgress, forfeitRuleLine, formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
 import { useJoinedCampaignDashboard } from "@/hooks/use-user-campaign-milestones";
 import { useClaimCommunityCampaignReward } from "@/hooks/use-community-campaign-onchain";
+import { useImageAccent } from "@/hooks/use-image-accent";
 
 export type CommunityCampaignDetailData = {
   id: string;
@@ -160,6 +161,7 @@ export function CommunityCampaignDetail({
   onProofDone: () => void;
 }) {
   const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const coverAccent = useImageAccent(campaign.cover_image_url);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [claimInfo, setClaimInfo] = useState<{
@@ -404,7 +406,11 @@ export function CommunityCampaignDetail({
     <>
       <main className={cn("mx-auto max-w-3xl xl:max-w-3xl", cta ? "pb-32" : "pb-10")}>
         {/* Header (design: CampaignDetail.dc.html) */}
-        <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
+        {/* Header tinted from the cover photo (same sampler as the campaign card pills); yellow until it's read. */}
+        <div
+          className="bg-[#fdf1c7] px-5 pb-12 pt-4 transition-colors duration-500"
+          style={coverAccent ? { backgroundColor: coverAccent.soft } : undefined}
+        >
           <div className="flex justify-between">
             <Link href="/explore" aria-label="Back" className={ICON_BUTTON_CLASS}>
               <ChevronLeft className="h-5 w-5" strokeWidth={2} />
@@ -418,7 +424,12 @@ export function CommunityCampaignDetail({
               <Image src={campaign.cover_image_url} alt="" fill sizes="(max-width: 640px) 100vw, 576px" className={cn("object-cover", isClosed && "grayscale")} unoptimized priority />
             </div>
           ) : null}
-          <span className="label-mono mt-6 block text-[#8a6a00]">{communityName} campaign</span>
+          <span
+            className="label-mono mt-6 block text-[#8a6a00] transition-colors duration-500"
+            style={coverAccent ? { color: coverAccent.ink } : undefined}
+          >
+            {communityName} campaign
+          </span>
           <h1 className="m-0 mt-1 animate-rise text-2xl font-bold leading-[1.2] tracking-[-0.02em]">{campaign.title}</h1>
         </div>
 

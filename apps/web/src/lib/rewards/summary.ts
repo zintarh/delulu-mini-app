@@ -263,3 +263,19 @@ export function computeGoalProgress(params: {
   }
   return out.sort(byCloseness);
 }
+
+/**
+ * G$ → dollars at the live G$ price (CoinGecko via /api/prices/gooddollar).
+ * G$ is worth fractions of a cent, so tiny amounts read "< $0.01" instead of
+ * a misleading "$0.00". Null when the price is unknown — never a made-up rate.
+ */
+export function formatUsdFromG(
+  amountG: number,
+  usdPerG: number | null,
+): string | null {
+  if (usdPerG == null || !Number.isFinite(usdPerG) || usdPerG <= 0) return null;
+  const usd = amountG * usdPerG;
+  if (!(usd > 0)) return "$0.00";
+  if (usd < 0.01) return "< $0.01";
+  return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}

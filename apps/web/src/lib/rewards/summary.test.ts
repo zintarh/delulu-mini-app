@@ -153,3 +153,15 @@ test("progress units follow milestone spacing", () => {
   assert.equal(progressUnit(30, 10), "steps");
   assert.equal(progressUnit(30, 0), "steps");
 });
+
+test("dollar equivalents use the live price and never show a fake $0.00", async () => {
+  const { formatUsdFromG } = await import("./summary");
+  const price = 0.00010635; // live G$ price when this was written
+  assert.equal(formatUsdFromG(100, price), "$0.01");
+  assert.equal(formatUsdFromG(50, price), "< $0.01");
+  assert.equal(formatUsdFromG(5000, price), "$0.53");
+  assert.equal(formatUsdFromG(20_000_000, price), "$2,127.00");
+  assert.equal(formatUsdFromG(0, price), "$0.00");
+  assert.equal(formatUsdFromG(100, null), null);
+  assert.equal(formatUsdFromG(100, 0), null);
+});

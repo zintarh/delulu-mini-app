@@ -95,10 +95,11 @@ function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExplo
 
 /**
  * Campaigns on Home:
- * - joined any → just yours, as quest rows you can prove from here;
- * - joined none → open campaigns to join;
- * - no forfeits yet → open campaigns get the room the empty quest card used
- *   to take (more of them, and alongside yours if you've joined some).
+ * - yours first (joined, active), as cards you can prove from;
+ * - then recommended ones — always, as long as there's any campaign you
+ *   haven't joined (the feed already leaves joined ones out). It only goes
+ *   away when there's nothing left to recommend.
+ * - no forfeits yet → recommended gets more room (the empty quest card's).
  */
 export function HomeCampaigns({
   address,
@@ -124,7 +125,7 @@ export function HomeCampaigns({
   if (!lists.hasAny) return null;
 
   const joined = address && lists.joinedCount > 0;
-  const showOpen = !joined || noForfeits;
+  const showOpen = lists.open.length > 0;
   const limit = noForfeits ? EXPANDED_LIMIT : COMPACT_LIMIT;
 
   return (

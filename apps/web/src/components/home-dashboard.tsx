@@ -14,6 +14,7 @@ import { StartFreeCard } from "@/components/home/start-free-card";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
+import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 
 interface HomeDashboardProps {
   className?: string;
@@ -35,10 +36,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   // null until the forfeit lists load.
   const [noForfeits, setNoForfeits] = useState<boolean | null>(null);
   const campaigns = useHomeCampaignLists(address);
-  // With no forfeits, campaigns take the empty quest card's place (it stays as
-  // the fallback when there are no campaigns either). While campaigns load we
-  // hold the space for their skeleton rather than flashing the empty card.
-  const campaignsFillEmpty = campaigns.isLoading || campaigns.hasAny;
 
   useEffect(() => {
     if (!sessionHint || authenticated) {
@@ -76,13 +73,12 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               <LuluHero address={address} />
               <DailyMoneyCard />
               <StartFreeCard />
+              <HowToEarnLink />
             </div>
-            <div id="forfeit-day-card" className={cn(noForfeits && campaignsFillEmpty && "hidden")}>
-              <ForfeitDayCard
-                address={address}
-                onEmptyChange={setNoForfeits}
-                hideEmptyState={campaignsFillEmpty}
-              />
+            {/* Always above campaigns: your own delulus first, or — with none yet —
+                the compact "New here? Create your first delulu" row. */}
+            <div id="forfeit-day-card">
+              <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} />
             </div>
             {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
             <HomeCampaigns
@@ -94,11 +90,14 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           </>
         ) : (
           <>
-            {/* Guests: campaigns first, then the "Get started" card as the way in. */}
-            <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
-            <div id="forfeit-day-card">
-              <ForfeitDayCard address={undefined} />
+            {/* Guests: how earning works, "New here? Create your first delulu", then campaigns. */}
+            <div className="flex flex-col gap-4">
+              <HowToEarnLink />
+              <div id="forfeit-day-card">
+                <ForfeitDayCard address={undefined} />
+              </div>
             </div>
+            <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
           </>
         )}
       </div>

@@ -196,12 +196,14 @@ export function ProofModal({
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleImageSelect} />
       <div
         className={cn(
-          "relative flex h-full w-full flex-col overflow-hidden lg:h-[844px] lg:max-h-[92vh] lg:max-w-[420px] lg:rounded-[32px]",
+          // Desktop: wider and shorter than the phone frame; the success card sizes to its content.
+          "relative flex h-full max-h-[100dvh] w-full flex-col overflow-hidden lg:max-h-[88vh] lg:w-[min(600px,calc(100vw-4rem))] lg:max-w-none lg:rounded-[32px]",
+          submitSuccess ? "lg:h-auto" : "lg:h-[600px]",
           capturing ? "bg-[#0F0F0E] text-white" : "bg-paper text-ink",
         )}
       >
         {submitSuccess ? (
-          <div className="flex-1 overflow-y-auto px-5 pb-8 pt-6 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto px-5 pb-8 pt-6 scrollbar-hide lg:px-10 lg:pb-9 lg:pt-8">
             <ProofSuccessCard
               campaignTitle={campaignTitle}
               communityName={communityName}
@@ -259,7 +261,7 @@ export function ProofModal({
                 {displayError}
               </p>
             ) : null}
-            <div className="flex items-center justify-between px-5 pb-9 pt-[22px]">
+            <div className="flex shrink-0 items-center justify-between px-5 pb-[max(2.25rem,env(safe-area-inset-bottom))] pt-[22px]">
               <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload from gallery" className={DARK_ICON_BUTTON}>
                 <ImageIcon className="h-5 w-5" strokeWidth={2} />
               </button>
@@ -276,17 +278,19 @@ export function ProofModal({
           </>
         ) : (
           /* Review (design: Proof.dc.html, "AI check") */
-          <div className="flex flex-1 flex-col gap-[18px] px-5 pb-9 pt-4">
-            <div className="flex items-center justify-between">
+          <div className="flex min-h-0 flex-1 flex-col gap-[18px] px-5 pb-[max(2.25rem,env(safe-area-inset-bottom))] pt-4">
+            <div className="flex shrink-0 items-center justify-between">
               <button type="button" onClick={clearImage} disabled={busy} aria-label="Back to camera" className={ICON_BUTTON_CLASS}>
                 <ChevronLeft className="h-5 w-5" strokeWidth={2} />
               </button>
               <span className="label-mono text-muted-foreground">AI check</span>
               <span className="w-11" />
             </div>
-            <div className="relative flex-1 -rotate-2 animate-rise bg-white p-3 pb-14 shadow-[0_24px_40px_-26px_rgba(22,22,21,.5)]">
+            {/* min-h-0 + an absolutely placed image: a tall photo fills the frame
+                instead of growing it and pushing Retake/Submit off the screen. */}
+            <div className="relative min-h-[160px] flex-1 -rotate-2 animate-rise bg-white p-3 pb-14 shadow-[0_24px_40px_-26px_rgba(22,22,21,.5)]">
               <div className="relative h-full overflow-hidden bg-[#E2E2DC]">
-                {imagePreview ? <img src={imagePreview} alt="Your proof" className="h-full w-full object-cover" /> : null}
+                {imagePreview ? <img src={imagePreview} alt="Your proof" className="absolute inset-0 h-full w-full object-contain" /> : null}
                 {busy ? (
                   <span
                     aria-hidden
@@ -299,7 +303,7 @@ export function ProofModal({
               </span>
             </div>
             {showErrorBanner ? (
-              <div role="alert" className="rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3">
+              <div role="alert" className="shrink-0 rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3">
                 <p className="text-sm font-bold text-orange">{displayErrorTitle}</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-orange/90">{displayError}</p>
               </div>
@@ -307,7 +311,7 @@ export function ProofModal({
             {activeStep === "wallet-sign" && busy ? (
               <p className="-mt-2 text-center text-xs text-muted-foreground">Open your wallet app</p>
             ) : null}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid shrink-0 grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={clearImage}

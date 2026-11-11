@@ -10,13 +10,15 @@ import {
   Trophy,
 } from "@/components/ds";
 import type { RewardsSummary } from "@/hooks/use-rewards-summary";
-import type { CompletionProgress } from "@/lib/rewards/summary";
+import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
+import { formatUsdFromG, type CompletionProgress } from "@/lib/rewards/summary";
 import { cn } from "@/lib/utils";
 
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const compactG = (n: number) =>
   n >= 1000 && n % 1000 === 0 ? `${n / 1000}k` : fmt(n);
+
 
 function dayLabel(day: string) {
   return new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", {
@@ -67,6 +69,8 @@ export function RewardsEarnedCard({
   error: string | null;
   onRetry: () => void;
 }) {
+  const { usd: usdPerG } = useGoodDollarPrice();
+
   if (!summary) {
     return (
       <GameCard className="animate-rise p-4">
@@ -95,6 +99,8 @@ export function RewardsEarnedCard({
   }
 
   const { totals } = summary;
+  const earnedUsd = formatUsdFromG(totals.earned, usdPerG);
+  const pendingUsd = totals.pending > 0 ? formatUsdFromG(totals.pending, usdPerG) : null;
   const tiles = [
     { label: "Proofs", value: totals.byCategory.daily_proof },
     { label: "Weekly", value: totals.byCategory.weekly_consistency },
@@ -115,10 +121,16 @@ export function RewardsEarnedCard({
         <span className="font-display text-[32px] font-extrabold uppercase leading-none tabular-nums">
           {fmt(totals.earned)} G$
         </span>
+        {earnedUsd ? (
+          <span className="text-sm font-bold tabular-nums text-ink/70">
+            ≈ {earnedUsd}
+          </span>
+        ) : null}
         {totals.pending > 0 ? (
           <span className="label-mono inline-flex items-center gap-1 text-[10px] text-ink/70">
             <Clock className="h-3 w-3" strokeWidth={2.4} />+
             {fmt(totals.pending)} on the way
+            {pendingUsd ? ` (≈ ${pendingUsd})` : ""}
           </span>
         ) : null}
         {totals.failed > 0 ? (
@@ -139,6 +151,9 @@ export function RewardsEarnedCard({
             </div>
             <div className="label-mono mt-0.5 truncate text-[9px] text-muted-foreground">
               {t.label}
+              {t.value > 0 && formatUsdFromG(t.value, usdPerG)
+                ? ` · ${formatUsdFromG(t.value, usdPerG)}`
+                : ""}
             </div>
           </div>
         ))}

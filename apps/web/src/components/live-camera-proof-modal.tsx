@@ -473,7 +473,7 @@ export function LiveCameraProofModal({
         title="Upload proof"
         hideTitleVisually
         sheetClassName="rounded-t-3xl pb-14"
-        modalClassName="max-w-lg"
+        modalClassName="max-w-[600px] lg:px-10"
       >
         <div className="-mt-1 mb-5 flex justify-center lg:hidden">
           <div className="h-1.5 w-12 rounded-full bg-muted-foreground/20" />
@@ -508,7 +508,7 @@ export function LiveCameraProofModal({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-black lg:bg-ink/70 lg:backdrop-blur-[3px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
-          className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-[#0d0d0d] text-white focus:outline-none lg:inset-auto lg:left-1/2 lg:top-1/2 lg:h-[min(780px,88vh)] lg:w-[min(560px,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:shadow-[0_32px_80px_-24px_rgba(0,0,0,0.6)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-[#0d0d0d] text-white focus:outline-none lg:inset-auto lg:left-1/2 lg:top-1/2 lg:h-[min(620px,88vh)] lg:w-[min(680px,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:shadow-[0_32px_80px_-24px_rgba(0,0,0,0.6)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           onEscapeKeyDown={(e) => {
             if (busy) e.preventDefault();
           }}

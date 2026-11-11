@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
-import { CheckDot, Coin, Flame, GameButton, Lulu } from "@/components/ds";
+import { CheckDot, Chest, Coin, Flame, GameButton, Lulu, Trophy } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
@@ -63,7 +63,29 @@ function ProveItArt() {
   );
 }
 
-const SLIDES: { title: string; body: string; art: ReactNode }[] = [
+function EarnItArt() {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <span className="relative">
+        <Lulu size={96} mood="kept" />
+        <Coin size={34} className="absolute -right-5 top-2 rotate-12 animate-bounce-in" />
+      </span>
+      <div className="flex flex-wrap justify-center gap-2">
+        <span className={cn(CHIP, "inline-flex items-center gap-1.5")}>
+          <Chest size={20} /> Free daily
+        </span>
+        <span className={cn(CHIP, "inline-flex items-center gap-1.5 border-ink bg-ink text-white")}>
+          <Coin size={18} /> Per proof
+        </span>
+        <span className={cn(CHIP, "inline-flex items-center gap-1.5")}>
+          <Trophy size={18} /> Monthly
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const SLIDES: { title: string; body: string; art: ReactNode; learnMore?: boolean }[] = [
   { title: "Say it.", body: "Pick one small habit to do every day.", art: <SayItArt /> },
   {
     title: "Stake it.",
@@ -75,6 +97,12 @@ const SLIDES: { title: string; body: string; art: ReactNode }[] = [
     body: "Snap a photo each day. Keep your streak, get your money back and earn rewards.",
     art: <ProveItArt />,
   },
+  {
+    title: "Earn it.",
+    body: "Free money every day, plus G$ for approved proofs, streaks, finishing goals and topping the monthly board.",
+    art: <EarnItArt />,
+    learnMore: true,
+  },
 ];
 
 /** Presentational intro — three slides, swipeable, Skip anytime. */
@@ -82,9 +110,12 @@ export function AppIntroView({
   guest,
   onDone,
   onStart,
+  onLearnMore,
   initialStep = 0,
 }: {
   guest: boolean;
+  /** "How to earn on Delulu" from the earn slide. */
+  onLearnMore?: () => void;
   /** For the dev preview. */
   initialStep?: number;
   /** Skip, finish, or "Look around first". */
@@ -143,6 +174,15 @@ export function AppIntroView({
               {slide.title}
             </h2>
             <p className="mx-auto mt-3 max-w-[300px] text-[15px] leading-snug text-muted-foreground">{slide.body}</p>
+            {slide.learnMore && onLearnMore ? (
+              <button
+                type="button"
+                onClick={onLearnMore}
+                className="mt-3 text-sm font-extrabold text-ink underline decoration-yellow decoration-[3px] underline-offset-4"
+              >
+                How to earn on Delulu →
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -249,6 +289,10 @@ export function AppIntro() {
     <AppIntroView
       guest={!authenticated}
       onDone={done}
+      onLearnMore={() => {
+        done();
+        router.push("/how-to-earn");
+      }}
       onStart={() => {
         done();
         persistSignInRedirect(pathname ?? "/home");

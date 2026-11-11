@@ -17,11 +17,16 @@ import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useUserStore } from "@/stores/useUserStore";
 import { getActiveMilestone, getUpcomingMilestone } from "@/lib/community/milestone-submit-eligibility";
-import { CheckDot, GameButton, ProgressBar, SectionHeading, Trophy as TrophyArt } from "@/components/ds";
+import { GameButton, ProgressBar, SectionHeading, Trophy as TrophyArt } from "@/components/ds";
 import type { JoinedDashboardCampaign } from "@/hooks/use-user-campaign-milestones";
 import type { CommunityCampaignMilestoneRow } from "@/lib/community/campaign-subgraph";
 import { pointsPerMilestoneForJoinAmount } from "@/lib/dashboard/campaign-constants";
 import { forfeitProgress, formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
+import { Check, Clock } from "lucide-react";
+import { AvatarStack } from "@/components/ui/avatar-stack";
+import { useImageAccent } from "@/hooks/use-image-accent";
+import { useRewardsSummary } from "@/hooks/use-rewards-summary";
+import { progressUnit } from "@/lib/rewards/summary";
 
 /** Stake line for a joined paid campaign: what's been lost, or what today's miss would cost. */
 export function campaignStakeLine(c: JoinedDashboardCampaign, due: boolean): { text: string; warn: boolean } | null {
@@ -67,101 +72,179 @@ function formatDeadline(iso: string, nowMs: number): string {
   return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${time}`;
 }
 
-/** Joined campaign as a Home quest row — same shape as a forfeit quest card. */
+export type CampaignFinishBonus = {
+  /** What finishing pays from here (already reduced for a late join), or what was granted. */
+  amount: number;
+  reduced: boolean;
+  state: "on_track" | "completed" | "rewarded";
+};
+
+/**
+ * A joined campaign on Home: photo header with today's status and progress,
+ * then what's at stake, the G$ for finishing (from the Rewards Engine), and
+ * a big Prove button when a proof is due.
+ */
 export function CampaignQuestRow({
   campaign: c,
   nowMs,
   proofBusy,
   onProve,
+  bonus,
+  className,
 }: {
   campaign: JoinedDashboardCampaign;
   nowMs: number;
   proofBusy: boolean;
   onProve: (_milestone: CommunityCampaignMilestoneRow) => void;
+  bonus?: CampaignFinishBonus | null;
+  className?: string;
 }) {
   const { state, milestone } = questStateFor(c, nowMs);
-  const stakeLine = campaignStakeLine(c, state === "due");
+  const due = state === "due" && !!milestone;
+  const stakeLine = campaignStakeLine(c, due);
   const total = c.milestone_count;
-  const progress = total > 0 ? `${c.completed_count}/${total}` : null;
-  const meta =
-    state === "due" && milestone
-      ? `Due ${formatDeadline(milestone.deadline, nowMs)}`
+  const done = Math.min(c.completed_count, total);
+  const unit = progressUnit(c.duration_days, total);
+  const accent = useImageAccent(c.cover_image_url);
+  const avatars = c.participant_avatars ?? [];
+  const others = Math.max(0, c.participant_count - 1);
+
+  const chip =
+    due && milestone
+      ? { text: `Due ${formatDeadline(milestone.deadline, nowMs)}`, icon: <Clock className="h-3.5 w-3.5" strokeWidth={2.6} />, cls: "bg-yellow text-ink" }
       : state === "upcoming" && milestone
-        ? `Next ${formatDeadline(milestone.start_time, nowMs)}`
+        ? { text: `Next ${formatDeadline(milestone.start_time, nowMs)}`, icon: <Clock className="h-3.5 w-3.5" strokeWidth={2.6} />, cls: "bg-white text-ink" }
         : state === "done"
-          ? "All proofs in"
-          : "No proof due";
+          ? { text: "All proofs in", icon: <Check className="h-3.5 w-3.5" strokeWidth={3} />, cls: "bg-green text-white" }
+          : { text: "No proof due", icon: null, cls: "bg-white/90 text-ink" };
 
   return (
     <div
       className={cn(
-        "relative flex items-center gap-3 rounded-[20px] border-2 bg-white p-3",
-        state === "due" ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
+        "group relative flex min-w-0 animate-rise flex-col overflow-hidden rounded-[28px] border-2 bg-white transition-transform active:scale-[0.99]",
+        due ? "border-yellow-line shadow-edge-yellow-line" : "border-line shadow-edge",
+        className,
       )}
     >
-      <span className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#fdf1c7] shadow-[inset_0_0_0_1px_rgba(22,22,21,0.06)]">
+      {/* Photo header */}
+      <div
+        className={cn("relative h-36 overflow-hidden", c.cover_image_url ? "bg-ink" : "bg-gradient-to-br from-ink-3 via-ink-2 to-ink")}
+        style={!c.cover_image_url && accent ? { backgroundColor: accent.bg } : undefined}
+      >
         {c.cover_image_url ? (
-          <Image src={c.cover_image_url} alt="" fill sizes="68px" className="object-cover" unoptimized />
+          <Image
+            src={c.cover_image_url}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 90vw, 400px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized
+          />
         ) : (
-          <TrophyArt size={38} />
+          <span className="absolute -right-3 -top-3 rotate-[10deg] opacity-90" aria-hidden>
+            <TrophyArt size={120} />
+          </span>
         )}
-      </span>
-      <div className="min-w-0 flex-1">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" aria-hidden />
+
+        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
+          <span className="truncate rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+            {c.community.name}
+          </span>
+          <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-extrabold", chip.cls)}>
+            {chip.icon}
+            {chip.text}
+          </span>
+        </div>
+
+        <div className="absolute inset-x-4 bottom-3.5 flex items-end justify-between gap-3">
+          {total > 0 ? (
+            <div className="leading-none text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)]">
+              <span className="font-display text-[34px] font-extrabold tabular-nums">{done}</span>
+              <span className="font-display text-lg font-extrabold text-white/70">/{total}</span>
+              <span className="label-mono ml-1.5 text-[10px] text-white/80">{unit}</span>
+            </div>
+          ) : (
+            <span />
+          )}
+          {avatars.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <AvatarStack participants={avatars.slice(0, 3)} total={Math.min(3, avatars.length)} size={22} max={3} />
+              {others > 0 ? <span className="text-[12px] font-bold text-white">+{others.toLocaleString()}</span> : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-4">
         <Link
           href={`/communities/${c.community.slug}/campaigns/${c.campaign_id}`}
-          className="block truncate text-base font-extrabold text-ink no-underline after:absolute after:inset-0 after:rounded-[18px] after:content-['']"
+          className="line-clamp-2 text-[17px] font-extrabold leading-snug text-ink no-underline after:absolute after:inset-0 after:rounded-[26px] after:content-['']"
         >
           {c.title}
         </Link>
-        <div className="mt-[7px] flex items-center gap-2">
-          {total > 0 ? (
-            <ProgressBar
-              thin
-              tone="yellow"
-              value={c.completed_count / total}
-              className="w-16"
-              label={`${c.completed_count} of ${total} proofs`}
-            />
-          ) : null}
-          <span className="label-mono truncate text-[10px] text-muted-foreground">
-            {progress ? `${progress} · ` : ""}
-            <span className="normal-case">{meta}</span>
-          </span>
-        </div>
-        {stakeLine ? (
-          <div className={cn("mt-1 truncate text-[11px] font-bold", stakeLine.warn ? "text-orange" : "text-muted-foreground")}>
-            {stakeLine.text}
+        {total > 0 ? (
+          <ProgressBar
+            thin
+            tone={state === "done" ? "green" : "yellow"}
+            value={done / total}
+            className="mt-2.5"
+            label={`${done} of ${total} ${unit}`}
+          />
+        ) : null}
+
+        {stakeLine || bonus ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {stakeLine ? (
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-bold",
+                  stakeLine.warn ? "bg-orange-soft text-orange" : "bg-paper text-muted-foreground",
+                )}
+              >
+                {stakeLine.text}
+              </span>
+            ) : null}
+            {bonus ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2.5 py-1 text-[11px] font-bold text-green-edge">
+                <TrophyArt size={14} />
+                {bonus.state === "rewarded"
+                  ? `+${formatStake(bonus.amount)} G$ earned`
+                  : bonus.state === "completed"
+                    ? "Finishing bonus on its way"
+                    : `${bonus.reduced ? "Up to " : "+"}${formatStake(bonus.amount)} G$ to finish`}
+              </span>
+            ) : null}
           </div>
         ) : null}
-      </div>
-      <div className="relative z-10 shrink-0">
-        {state === "due" && milestone ? (
-          <GameButton size="sm" disabled={proofBusy} onClick={() => onProve(milestone)}>
-            Prove
+
+        {due && milestone ? (
+          <GameButton full className="relative z-10 mt-3.5" disabled={proofBusy} onClick={() => onProve(milestone)}>
+            Prove today
           </GameButton>
-        ) : state === "upcoming" ? (
-          <span className="rounded-full bg-muted/60 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground">
-            Up next
-          </span>
-        ) : state === "done" ? (
-          <CheckDot />
         ) : null}
       </div>
     </div>
   );
 }
 
-function CampaignQuestRowSkeleton() {
+function CampaignQuestRowSkeleton({ className }: { className?: string }) {
   return (
-    <div className="flex animate-pulse items-center gap-3 rounded-[20px] border-2 border-line bg-white p-3 shadow-edge">
-      <div className="h-[68px] w-[68px] rounded-2xl bg-line" />
-      <div className="flex-1 space-y-2">
+    <div className={cn("animate-pulse overflow-hidden rounded-[28px] border-2 border-line bg-white shadow-edge", className)}>
+      <div className="h-36 bg-line" />
+      <div className="space-y-2.5 p-4">
         <div className="h-4 w-2/3 rounded bg-line" />
-        <div className="h-2.5 w-1/3 rounded bg-line" />
+        <div className="h-2 w-full rounded bg-line" />
       </div>
     </div>
   );
 }
+
+/** Phones: a swipe row with the next card peeking in. Tablet up: a 2-up grid. */
+const QUEST_ROW_CLASS =
+  "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0";
+const QUEST_IN_ROW_CLASS = "w-[86%] shrink-0 snap-start sm:w-full";
 
 export function ActiveCampaignsSection({
   address,
@@ -188,6 +271,13 @@ export function ActiveCampaignsSection({
     useSubmitCommunityMilestoneProofOnChain();
   const { data, isLoading } = useJoinedCampaignDashboard(address);
   const { user } = useUserStore();
+  // Finishing bonus per campaign, straight from the Rewards Engine (quest cards only).
+  const { summary: rewardsSummary } = useRewardsSummary(variant === "quest" ? (address as `0x${string}`) : undefined);
+  const finishBonusFor = (campaignId: string): CampaignFinishBonus | null => {
+    const p = rewardsSummary?.completions.find((x) => x.kind === "campaign" && x.ref === campaignId);
+    if (!p || p.state === "missed") return null;
+    return { amount: p.amount, reduced: p.amount < p.fullAmount, state: p.state };
+  };
 
   const [proofOpen, setProofOpen] = useState(false);
   const [proofBusy, setProofBusy] = useState(false);
@@ -297,12 +387,14 @@ export function ActiveCampaignsSection({
   const renderQuests = () => {
     if (isLoading) {
       return (
-        <div className="space-y-2.5">
-          <div className="mb-2.5 h-3 w-28 animate-pulse rounded bg-line" />
-          {[0, 1].map((i) => (
-            <CampaignQuestRowSkeleton key={i} />
-          ))}
-        </div>
+        <section>
+          <div className="mb-4 h-6 w-40 animate-pulse rounded-lg bg-ink/10" />
+          <div className={QUEST_ROW_CLASS}>
+            {[0, 1].map((i) => (
+              <CampaignQuestRowSkeleton key={i} className={QUEST_IN_ROW_CLASS} />
+            ))}
+          </div>
+        </section>
       );
     }
     const nowMs = Date.now();
@@ -312,6 +404,7 @@ export function ActiveCampaignsSection({
     if (sorted.length === 0) return null;
     const visible = sorted.slice(0, showMax);
     const hiddenCount = sorted.length - visible.length;
+    const single = visible.length === 1;
     return (
       <section>
         {heading ? (
@@ -319,7 +412,7 @@ export function ActiveCampaignsSection({
             {heading}
           </SectionHeading>
         ) : null}
-        <div className="space-y-2.5">
+        <div className={single ? "sm:grid sm:grid-cols-2 sm:gap-4" : QUEST_ROW_CLASS}>
           {visible.map((c) => (
             <CampaignQuestRow
               key={c.campaign_id}
@@ -327,6 +420,8 @@ export function ActiveCampaignsSection({
               nowMs={nowMs}
               proofBusy={proofBusy && activeProof?.campaignId === c.campaign_id}
               onProve={(m) => openProof(c, m)}
+              bonus={finishBonusFor(c.campaign_id)}
+              className={single ? "w-full" : QUEST_IN_ROW_CLASS}
             />
           ))}
         </div>

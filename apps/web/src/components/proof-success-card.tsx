@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
 import { Bolt, Coin, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
+import { ProofRewardRow } from "@/components/proof-reward-row";
 
 export async function fireConfetti() {
   try {
@@ -140,6 +141,9 @@ export function ProofSuccessCard({
           ? statBox("Progress", "#157041", progress, ".5s")
           : statBox("Total", "#157041", (myPoints ?? 0).toLocaleString(), ".5s")}
       </div>
+
+      {/* G$ from the Rewards Engine for this proof */}
+      <ProofRewardRow />
 
       {showStakeUpsell ? (
         <div className="mt-4 flex w-full animate-rise items-center gap-3 rounded-2xl border-2 border-yellow-line bg-yellow-soft px-3.5 py-3 text-left [animation-delay:.6s]">

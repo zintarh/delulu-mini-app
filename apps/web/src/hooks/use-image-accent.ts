@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-export type ImageAccent = { bg: string; fg: string };
+export type ImageAccent = {
+  /** Deep tone a white label reads on (pills, chips). */
+  bg: string;
+  fg: string;
+  /** Light tint of the same hue — a page/header background dark text reads on. */
+  soft: string;
+  /** Mid-dark tone of the same hue for small text on `soft`. */
+  ink: string;
+};
 
 /** One sample per image URL for the whole session — cards re-render a lot. */
 const cache = new Map<string, ImageAccent | null>();
@@ -49,11 +57,16 @@ function accentFrom(data: Uint8ClampedArray): ImageAccent {
   if (best.w < 0.6) {
     // Basically black-and-white: a dark neutral pill, a touch warm.
     const l = neutralN ? Math.min(0.28, Math.max(0.18, neutralL / neutralN / 2)) : 0.22;
-    return { bg: `hsl(40 6% ${Math.round(l * 100)}%)`, fg: "#ffffff" };
+    return { bg: `hsl(40 6% ${Math.round(l * 100)}%)`, fg: "#ffffff", soft: "hsl(40 10% 92%)", ink: "hsl(40 8% 32%)" };
   }
   const hue = Math.round(best.h / best.w);
   const sat = Math.round(Math.min(0.7, Math.max(0.35, best.s / best.w)) * 100);
-  return { bg: `hsl(${hue} ${sat}% 30%)`, fg: "#ffffff" };
+  return {
+    bg: `hsl(${hue} ${sat}% 30%)`,
+    fg: "#ffffff",
+    soft: `hsl(${hue} ${Math.min(sat + 10, 75)}% 91%)`,
+    ink: `hsl(${hue} ${sat}% 28%)`,
+  };
 }
 
 function sample(url: string): Promise<ImageAccent | null> {
