@@ -29,6 +29,7 @@ import {
 import { submitForfeitProofWithWallet } from "@/lib/forfeit/submit-forfeit-proof-client";
 import { proofErrorMessage } from "@/lib/community/format-proof-error";
 import { useUserStore } from "@/stores/useUserStore";
+import { VisibilityPill } from "@/components/support/visibility-sheet";
 
 type NodeState = "kept" | "missed" | "now" | "now-done" | "locked";
 
@@ -217,6 +218,7 @@ export default function ContractDetailPage() {
             {destination ? ` → ${destination}` : ` ${symbol}`}
           </HudPill>
         ) : null}
+        {item?.onChainCommitmentId != null ? <VisibilityPill onChainId={item.onChainCommitmentId} /> : null}
       </div>
 
       <div className="mx-auto mt-2 w-full max-w-3xl flex-1 overflow-y-auto scrollbar-hide">

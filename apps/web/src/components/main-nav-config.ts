@@ -1,6 +1,7 @@
 import {
   Compass,
   Gift,
+  HeartHandshake,
   Home,
   Plus,
   Trophy,
@@ -36,7 +37,8 @@ export type MainNavItem = {
     | "explore"
     | "leaderboard"
     | "profile"
-    | "rewards";
+    | "rewards"
+    | "support";
 };
 
 /** Normalize for comparisons; never use startsWith("/") — every path starts with "/". */
@@ -67,9 +69,13 @@ export function getRewardsNavItem(): MainNavItem {
   };
 }
 
+export function getSupportNavItem(): MainNavItem {
+  return { icon: HeartHandshake, label: "Support", href: "/support", action: "support" };
+}
+
 /** Desktop left sidebar */
 export function getMainNavItems(_authenticated: boolean): MainNavItem[] {
-  return [...coreNavItems(), getLeaderboardNavItem()];
+  return [...coreNavItems(), getSupportNavItem(), getLeaderboardNavItem()];
 }
 
 export function getLeaderboardNavItem(): MainNavItem {
@@ -133,6 +139,8 @@ export function isMainNavItemActive(
         options.layoutSegment === "leaderboard" ||
         isNavHrefActive(path, "/leaderboard")
       );
+    case "support":
+      return options.layoutSegment === "support" || isNavHrefActive(path, "/support");
     case "profile":
       return (
         options.layoutSegment === "profile" ||

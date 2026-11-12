@@ -8,6 +8,8 @@ import {
   type PendingForfeitConfirm,
 } from "@/lib/forfeit/pending-forfeit-confirm";
 import { capitalizeFirst } from "@/lib/utils";
+import { flushPendingVisibility } from "@/lib/support/pending-visibility";
+import { flushPendingSupport } from "@/lib/support/pending-support";
 
 /** Map a just-staked pending confirm into a feed-shaped card so the UI never blanks. */
 export function pendingToOptimisticFeedItem(
@@ -62,6 +64,8 @@ export function usePendingForfeitSync(address: string | undefined) {
       setPending(null);
       return;
     }
+    flushPendingVisibility(address);
+    flushPendingSupport(address);
     const stored = readPendingForfeitConfirm(address);
     setPending(stored);
     setSynced(false);

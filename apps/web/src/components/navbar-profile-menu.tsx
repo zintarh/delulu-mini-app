@@ -282,6 +282,9 @@ export function NavbarProfileMenu({
                   >
                     Transfer
                   </MenuAction>
+                  <MenuAction href="/support" className="px-1" onClick={close}>
+                    Support
+                  </MenuAction>
                   <MenuAction href="/leaderboard" className="px-1" onClick={close}>
                     Leaderboard
                   </MenuAction>
@@ -325,6 +328,9 @@ export function NavbarProfileMenu({
               <div>
                 <SectionLabel>Your account</SectionLabel>
                 <div className="mt-2 flex flex-col">
+                  <MenuAction href="/support" className="px-1" onClick={close}>
+                    Support
+                  </MenuAction>
                   <MenuAction href="/leaderboard" className="px-1" onClick={close}>
                     Leaderboard
                   </MenuAction>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifySupportersOfCompletion } from "@/lib/support/service";
 import {
   parsePeriodResolvedSuccessFromTx,
   parseProofSubmittedFromTx,
@@ -116,6 +117,9 @@ export async function POST(request: NextRequest) {
 
     if (commitmentEnded) {
       await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
+      await notifySupportersOfCompletion(admin, commitment.id).catch((err) =>
+        console.error("[forfeit/confirm-proof] supporter notify failed", err),
+      );
     }
 
     // Best-effort: a stake >=1000 G$ just earned the base points tier — the
@@ -197,6 +201,9 @@ async function confirmResolveOnly(
 
   if (resolveEvent.commitmentEnded) {
     await admin.from("forfeit_commitments").update({ status: "completed" }).eq("id", commitment.id);
+    await notifySupportersOfCompletion(admin, commitment.id).catch((err) =>
+      console.error("[forfeit/confirm-proof] supporter notify failed", err),
+    );
   }
 
   // Best-effort: points go to the creator, not the friend-verifier who resolved

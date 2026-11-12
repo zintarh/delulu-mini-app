@@ -35,7 +35,7 @@ function formatWhen(iso: string): string {
 /** Timeline dot color for a new item, by what it's about. */
 function dotColor(item: NotificationRow): string {
   const t = `${item.type} ${item.message}`.toLowerCase();
-  if (/verif|approv|kept|returned|claimed|reward/.test(t)) return "bg-[#17804A]";
+  if (/verif|approv|kept|returned|claimed|reward|support|milestone/.test(t)) return "bg-[#17804A]";
   if (/deadline|left to|reminder|miss|forfeit|overdue|reject/.test(t)) return "bg-orange";
   return "bg-yellow";
 }

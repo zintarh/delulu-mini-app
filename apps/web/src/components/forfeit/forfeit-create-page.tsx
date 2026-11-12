@@ -34,7 +34,7 @@ import { getForfeitMarketAddress, FORFEIT_CREATION_ENABLED } from "@/lib/constan
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { formatUsdEquivalent } from "@/lib/token-amounts";
 import { TokenBadge } from "@/components/token-badge";
-import { FeedbackModal } from "@/components/feedback-modal";
+import { ContractSignedSheet } from "@/components/support/contract-signed-sheet";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   ForfeitCadence,
@@ -733,6 +733,8 @@ export function ForfeitCreatePage() {
   };
 
   const [showSuccess, setShowSuccess] = useState(false);
+  /** Create tx of the Delulu just signed — the visibility prompt keys off it. */
+  const [signedTx, setSignedTx] = useState<string | null>(null);
   // Survives refresh. Once the stake lands we persist + show success immediately;
   // DB confirm runs silently in the background so users never feel money is "gone".
   const resumeStartedRef = useRef(false);
@@ -854,6 +856,7 @@ export function ForfeitCreatePage() {
 
     resumeStartedRef.current = true;
     resetFormToDefaults();
+    setSignedTx(stored.txHash);
     setShowSuccess(true);
     syncPendingInBackground(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -864,8 +867,9 @@ export function ForfeitCreatePage() {
     // Never open a second stake while a previous one still needs indexing.
     if (address && readPendingForfeitConfirm(address)) {
       resetFormToDefaults();
-      setShowSuccess(true);
       const stored = readPendingForfeitConfirm(address);
+      setSignedTx(stored?.txHash ?? null);
+      setShowSuccess(true);
       if (stored) syncPendingInBackground(stored);
       return;
     }
@@ -925,6 +929,7 @@ export function ForfeitCreatePage() {
       );
       writePendingForfeitConfirm(pending);
       resetFormToDefaults();
+      setSignedTx(txHash);
       setShowSuccess(true);
       syncPendingInBackground(pending);
     } catch (err) {
@@ -1264,16 +1269,14 @@ export function ForfeitCreatePage() {
         </div>
       </div>
 
-      <FeedbackModal
-        isOpen={showSuccess}
-        type="success"
-        title="Contract signed!"
-        message="Your stake is locked in. Prove it each day to keep it."
-        onClose={() => {
+      <ContractSignedSheet
+        open={showSuccess}
+        txHash={signedTx}
+        wallet={address}
+        onDone={() => {
           setShowSuccess(false);
           router.push(APP_HOME);
         }}
-        actionText="Done"
       />
 
       {/* Habit sheet */}

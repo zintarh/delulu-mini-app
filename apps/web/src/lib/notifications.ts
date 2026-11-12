@@ -16,7 +16,11 @@ export type NotificationType =
   | "forfeit_verifier_tagged"
   | "forfeit_proof_submitted"
   | "forfeit_destination_tagged"
-  | "forfeit_friend_reward";
+  | "forfeit_friend_reward"
+  | "delulu_supported"
+  | "support_sent"
+  | "support_milestone"
+  | "supported_delulu_completed";
 
 export interface CreateNotificationInput {
   recipientAddress: string;

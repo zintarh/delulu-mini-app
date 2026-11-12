@@ -1,5 +1,7 @@
 "use client";
 
+import { flushPendingVisibility } from "@/lib/support/pending-visibility";
+
 const STORAGE_KEY = "delulu_pending_forfeit_confirm_v1";
 
 export type PendingForfeitConfirm = {
@@ -141,6 +143,8 @@ export async function ensurePendingForfeitConfirmed(
       const result = await postConfirmCreate(pending);
       if (result.ok) {
         clearPendingForfeitConfirm();
+        // A "Make it public" tap made before the row existed lands now.
+        flushPendingVisibility(pending.walletAddress);
         return true;
       }
       if (!result.retryable) {

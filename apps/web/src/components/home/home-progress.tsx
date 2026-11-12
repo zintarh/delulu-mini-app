@@ -7,6 +7,7 @@ import { useUserStreak } from "@/hooks/useUserStreak";
 import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { cn } from "@/lib/utils";
 import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
+import { HeartHandshake } from "lucide-react";
 import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 
 /** Today's quest tally from the user's active contracts. */
@@ -66,7 +67,15 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
         <HowToEarnLink className="mt-1.5" />
       </div>
       {/* Same height while loading, so nothing below jumps when the line arrives. */}
-      <p className="mt-1 min-h-5 text-sm text-muted-foreground">{sub}</p>
+      <div className="mt-1 flex min-h-5 items-center justify-between gap-3">
+        <p className="m-0 min-w-0 text-sm text-muted-foreground">{sub}</p>
+        <Link
+          href="/support"
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline"
+        >
+          <HeartHandshake className="h-3.5 w-3.5 text-pink" strokeWidth={2.6} /> Support others
+        </Link>
+      </div>
     </div>
   );
 }

@@ -277,29 +277,31 @@ export function Flame({ size = 24, lit = true, className, label }: ArtProps & { 
   );
 }
 
+/** Money mark: a plain bold dollar sign in our green (used wherever G$ amounts appear). */
 export function Coin({ size = 24, className, label }: ArtProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={cn("shrink-0", className)} {...a11y(label)}>
-      <circle cx="12" cy="12" r="10" fill="#F6C324" stroke="#C99A0A" strokeWidth="2" />
-      <circle cx="12" cy="12" r="6.3" fill="none" stroke="#C99A0A" strokeWidth="1.5" />
-      <path
-        d="M14.2 9.6a3 3 0 1 0 .3 4.1V12h-2"
-        fill="none"
-        stroke="#7A5A00"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <text
+        x="12"
+        y="12.5"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize="24"
+        fontWeight="900"
+        fontFamily="inherit"
+        fill="#1F9A5B"
+      >
+        $
+      </text>
     </svg>
   );
 }
 
-/** Two overlapping coins, with an optional lock badge (not verified yet). */
+/** Money mark at stack size, with an optional lock badge (not verified yet). */
 export function CoinStack({ locked = false, className }: { locked?: boolean; className?: string }) {
   return (
     <span className={cn("relative block h-11 w-12 shrink-0", className)} aria-hidden>
-      <Coin size={32} className="absolute left-0 top-2.5" />
-      <Coin size={32} className="absolute left-3.5 top-0" />
+      <Coin size={44} className="absolute inset-0 m-auto" />
       {locked && (
         <span className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-white bg-blue text-white">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">

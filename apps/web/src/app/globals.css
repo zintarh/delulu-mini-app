@@ -962,3 +962,18 @@ textarea {
 .lu-sticker-sm {
   filter: drop-shadow(1px 0 0 #f7f7f4) drop-shadow(-1px 0 0 #f7f7f4) drop-shadow(0 1px 0 #f7f7f4) drop-shadow(0 -1px 0 #f7f7f4);
 }
+
+/* Support page: seamless ticker (content is rendered twice, so -50% loops). */
+@keyframes support-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-support-ticker {
+  animation: support-ticker 40s linear infinite;
+}
+.animate-support-ticker:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-support-ticker { animation: none; }
+}
