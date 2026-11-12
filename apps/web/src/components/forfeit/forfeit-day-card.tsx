@@ -1004,7 +1004,10 @@ export function ForfeitDayCard({
         {dayKey(selectedDate) === dayKey(new Date()) ? "Today's quests" : formatForfeitDayLabel(label)}
       </SectionHeading>
 
-      {currentDays.length === 0 ? (
+      {currentDays.length === 0 && showCreateWhenEmpty && dayKey(selectedDate) === dayKey(new Date()) ? (
+        // Nothing due today: the compact create row, not a big empty card.
+        <ForfeitEmptyState authenticated={!!address} />
+      ) : currentDays.length === 0 ? (
         <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-10 text-center shadow-edge">
           <Calendar
             className="h-10 w-10 text-muted-foreground/50"

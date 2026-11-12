@@ -14,7 +14,6 @@ import { StartFreeCard } from "@/components/home/start-free-card";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
-import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 
 interface HomeDashboardProps {
   className?: string;
@@ -73,7 +72,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               <LuluHero address={address} />
               <DailyMoneyCard />
               <StartFreeCard />
-              <HowToEarnLink />
             </div>
             {/* Always above campaigns: your own delulus first, or — with none yet —
                 the compact "New here? Create your first delulu" row. */}
@@ -90,12 +88,9 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           </>
         ) : (
           <>
-            {/* Guests: how earning works, "New here? Create your first delulu", then campaigns. */}
-            <div className="flex flex-col gap-4">
-              <HowToEarnLink />
-              <div id="forfeit-day-card">
-                <ForfeitDayCard address={undefined} />
-              </div>
+            {/* Guests: "New here? Create your first delulu" first, then campaigns. */}
+            <div id="forfeit-day-card">
+              <ForfeitDayCard address={undefined} />
             </div>
             <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
           </>

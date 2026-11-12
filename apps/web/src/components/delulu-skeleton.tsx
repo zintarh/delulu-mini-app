@@ -144,11 +144,8 @@ export function HomeGuestSkeleton({ className }: { className?: string }) {
       aria-label="Loading"
     >
       <HomeGreetingSkeleton />
-      {/* "How to earn" link, then the "New here? Create your first delulu" row */}
-      <div className="flex flex-col gap-4">
-        <div className="h-[60px] w-full animate-pulse rounded-[20px] bg-line" />
-        <div className="h-[66px] w-full animate-pulse rounded-[20px] bg-line" />
-      </div>
+      {/* "New here? Create your first delulu" row */}
+      <div className="h-[66px] w-full animate-pulse rounded-[20px] bg-line" />
       <HomeCampaignsSkeleton />
     </div>
   );
@@ -167,7 +164,6 @@ export function HomeSignedInSkeleton({ className }: { className?: string }) {
       <div className="flex flex-col gap-4">
         <HomeLuluSkeleton />
         <HomeDailyMoneySkeleton />
-        <div className="h-[60px] w-full animate-pulse rounded-[20px] bg-line" />
       </div>
       <HomeQuestsSkeleton />
       <HomeCampaignsSkeleton />

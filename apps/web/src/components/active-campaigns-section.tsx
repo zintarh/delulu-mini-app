@@ -147,10 +147,7 @@ export function CampaignQuestRow({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" aria-hidden />
 
-        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
-          <span className="truncate rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-            {c.community.name}
-          </span>
+        <div className="absolute inset-x-4 top-4 flex items-center justify-end gap-2">
           <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-extrabold", chip.cls)}>
             {chip.icon}
             {chip.text}

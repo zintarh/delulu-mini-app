@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, ChevronRight, Send } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, Play, Send } from "lucide-react";
+import { AppIntroView } from "@/components/app-intro";
+import { useAuth } from "@/hooks/use-auth";
+import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Bolt, CheckDot, Chest, Coin, Flame, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
@@ -72,20 +77,6 @@ function WayToEarn({
   );
 }
 
-const STEPS = [
-  { art: <Lulu size={44} animated={false} />, title: "Say it", sub: "One small daily habit" },
-  { art: <Coin size={36} />, title: "Stake it", sub: "Your word or a little money" },
-  {
-    art: (
-      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-soft">
-        <Camera className="h-5 w-5 text-blue" strokeWidth={2.2} />
-      </span>
-    ),
-    title: "Prove it",
-    sub: "A photo a day, checked by AI",
-  },
-];
-
 /** How to earn on Delulu — every way to earn, with live amounts and real payout numbers. */
 export default function HowToEarnPage() {
   const { data, isLoading } = usePublicRewards();
@@ -95,6 +86,9 @@ export default function HowToEarnPage() {
   const on = c?.categoryEnabled;
   const tiers = c ? [...c.campaignTiers].sort((a, b) => a.minDays - b.minDays) : [];
   const minCashoutUsd = formatUsdFromG(NAIRA_CASHOUT_MIN_G, usdPerG);
+  const [introOpen, setIntroOpen] = useState(false);
+  const { authenticated } = useAuth();
+  const router = useRouter();
 
   return (
     <MainPage>
@@ -117,19 +111,18 @@ export default function HowToEarnPage() {
           </div>
         ) : null}
 
-        {/* How it works */}
-        <section>
-          <h2 className="m-0 mb-3 text-[20px] font-extrabold tracking-[-0.015em]">How it works</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {STEPS.map((s, i) => (
-              <div key={s.title} className="flex animate-rise flex-col items-center rounded-[20px] border-2 border-line bg-white px-2 py-3 text-center shadow-edge" style={{ animationDelay: `${i * 0.06}s` }}>
-                <span className="flex h-12 items-center justify-center">{s.art}</span>
-                <span className="mt-1.5 font-display text-[18px] font-extrabold uppercase leading-none">{s.title}</span>
-                <span className="mt-1 text-[11px] leading-snug text-muted-foreground">{s.sub}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* How it works: replays the first-run intro instead of repeating it here. */}
+        <button
+          type="button"
+          onClick={() => setIntroOpen(true)}
+          className="press-edge flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-left text-ink shadow-edge"
+        >
+          <Lulu size={36} animated={false} />
+          <span className="min-w-0 flex-1 font-extrabold leading-tight">How Delulu works</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow shadow-edge-yellow">
+            <Play className="h-4 w-4 translate-x-[1px] fill-current" strokeWidth={2.4} />
+          </span>
+        </button>
 
         {/* Ways to earn */}
         <section>
@@ -222,6 +215,18 @@ export default function HowToEarnPage() {
           Start your first delulu
         </Link>
       </div>
+
+      {introOpen ? (
+        <AppIntroView
+          guest={!authenticated}
+          onDone={() => setIntroOpen(false)}
+          onStart={() => {
+            setIntroOpen(false);
+            persistSignInRedirect("/how-to-earn");
+            router.push(buildSignInUrl("/how-to-earn"));
+          }}
+        />
+      ) : null}
     </MainPage>
   );
 }

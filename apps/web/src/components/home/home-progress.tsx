@@ -7,6 +7,7 @@ import { useUserStreak } from "@/hooks/useUserStreak";
 import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { cn } from "@/lib/utils";
 import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
+import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 
 /** Today's quest tally from the user's active contracts. */
 export function useTodayQuests(address: string | undefined) {
@@ -55,12 +56,15 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
           : `${left} quests left today.`;
   return (
     <div className="animate-rise">
-      <h1 className="m-0 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
-        {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
-        {name
-          ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
-          : `Good ${greetingFor().toLowerCase()}`}
-      </h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="m-0 min-w-0 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
+          {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
+          {name
+            ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
+            : `Good ${greetingFor().toLowerCase()}`}
+        </h1>
+        <HowToEarnLink className="mt-1.5" />
+      </div>
       {/* Same height while loading, so nothing below jumps when the line arrives. */}
       <p className="mt-1 min-h-5 text-sm text-muted-foreground">{sub}</p>
     </div>
