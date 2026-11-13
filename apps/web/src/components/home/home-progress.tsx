@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
 import { HeartHandshake } from "lucide-react";
 import { HowToEarnLink } from "@/components/home/how-to-earn-link";
+import { useDaypart } from "@/hooks/use-daypart";
+import type { Daypart } from "@/lib/daypart/daypart";
 
 /** Today's quest tally from the user's active contracts. */
 export function useTodayQuests(address: string | undefined) {
@@ -37,15 +39,25 @@ export function useTodayQuests(address: string | undefined) {
   }, [data, isLoading]);
 }
 
-function greetingFor(date = new Date()) {
-  const h = date.getHours();
-  if (h < 12) return "Morning";
-  if (h < 18) return "Afternoon";
-  return "Evening";
+/** Greeting on the same clock as the page wash: rise and shine at dawn, still up at night. */
+function greetingFor(part: Daypart, name: string | null, date = new Date()): string {
+  const who = name ? name.charAt(0).toUpperCase() + name.slice(1) : null;
+  switch (part) {
+    case "dawn":
+      return who ? `Rise and shine, ${who}` : "Rise and shine";
+    case "day":
+      if (date.getHours() < 12) return who ? `Morning, ${who}` : "Good morning";
+      return who ? `Afternoon, ${who}` : "Good afternoon";
+    case "dusk":
+      return who ? `Evening, ${who}` : "Good evening";
+    case "night":
+      return who ? `Still up, ${who}?` : "Still up?";
+  }
 }
 
 export function HomeGreeting({ name, address }: { name: string; address: string | undefined }) {
   const { total, left, isLoading } = useTodayQuests(address);
+  const daypart = useDaypart();
   const sub = isLoading
     ? null
     : total === 0
@@ -60,9 +72,7 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
       <div className="flex items-start justify-between gap-3">
         <h1 className="m-0 min-w-0 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
           {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
-          {name
-            ? `${greetingFor()}, ${name.charAt(0).toUpperCase() + name.slice(1)}`
-            : `Good ${greetingFor().toLowerCase()}`}
+          {greetingFor(daypart, name || null)}
         </h1>
         <HowToEarnLink className="mt-1.5" />
       </div>
@@ -71,7 +81,7 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
         <p className="m-0 min-w-0 text-sm text-muted-foreground">{sub}</p>
         <Link
           href="/support"
-          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline"
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline night:text-white"
         >
           <HeartHandshake className="h-3.5 w-3.5 text-pink" strokeWidth={2.6} /> Support others
         </Link>

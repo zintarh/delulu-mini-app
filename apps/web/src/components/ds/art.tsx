@@ -16,7 +16,7 @@ function a11y(label?: string) {
 
 const INK = "#161615";
 
-export type LuluMood = "dream" | "kept" | "worried" | "gloomy" | "sad" | "storm";
+export type LuluMood = "dream" | "kept" | "worried" | "gloomy" | "sad" | "storm" | "sleep";
 
 /** Path of Lulu's body (viewBox units); shared by the fill and the shading layer. */
 const LULU_BODY = "M120 44C180 44 216 92 216 150C216 206 176 240 120 240C64 240 24 206 24 150C24 92 60 44 120 44Z";
@@ -238,6 +238,20 @@ export function Lulu({
               <path d="M76 112l24-8M164 112l-24-8" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
               <path d="M78 140q16 12 32 0M130 140q16 12 32 0" fill="none" stroke={INK} strokeWidth={sw(5)} strokeLinecap="round" />
               <path d="M98 190l6-6 6 6 6-6 6 6 6-6 6 6 6-6" fill="none" stroke={INK} strokeWidth={sw(4)} strokeLinecap="round" strokeLinejoin="round" />
+            </>
+          )}
+
+          {mood === "sleep" && (
+            <>
+              {/* Closed, content eyes and a small smile — all done, sleeping it off. */}
+              <path d="M78 136q16 13 32 0M130 136q16 13 32 0" fill="none" stroke={INK} strokeWidth={sw(5)} strokeLinecap="round" />
+              <path d="M110 176q10 7 20 0" fill="none" stroke={INK} strokeWidth={sw(4.5)} strokeLinecap="round" />
+              {size > 28 ? (
+                <g className="lu-zzz" fill="#FFFFFF" stroke={INK} strokeWidth={sw(2.2)} strokeLinejoin="round" fontFamily="inherit" fontWeight={900}>
+                  <text x="186" y="74" fontSize="34">z</text>
+                  <text x="208" y="38" fontSize="44">z</text>
+                </g>
+              ) : null}
             </>
           )}
         </g>

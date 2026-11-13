@@ -98,10 +98,10 @@ export default function CampaignsPage() {
           {!isSearchMode ? (
             <>
               <header className="mb-6">
-                <h1 className="m-0 animate-rise font-display text-[40px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em] text-ink">
+                <h1 className="m-0 animate-rise font-display text-[40px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em] text-ink night:text-white">
                   Campaigns
                 </h1>
-                <p className="m-0 mt-2 text-sm font-semibold text-ink/60">Pick a habit, join the crew, prove it daily.</p>
+                <p className="m-0 mt-2 text-sm font-semibold text-ink/60 night:text-white/65">Pick a habit, join the crew, prove it daily.</p>
               </header>
               <ExploreCampaignsSection address={address} />
             </>

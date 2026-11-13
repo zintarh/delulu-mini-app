@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Camera, Check, ChevronLeft, Clock, MoreHorizontal } from "lucide-react"
 import { MainPage } from "@/components/main-app-header";
 import { Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
+import { useDaypart } from "@/hooks/use-daypart";
 import { completionAmountFor } from "@/lib/rewards/rules";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -53,7 +54,7 @@ function LuluSays({
   top: number;
   side: "left" | "right";
   children: React.ReactNode;
-  mood?: "dream" | "kept" | "sad";
+  mood?: "dream" | "kept" | "sad" | "worried" | "sleep";
   withLulu?: boolean;
 }) {
   const left = side === "right";
@@ -219,6 +220,7 @@ export default function ContractDetailPage() {
   }, [total, current, periods, chain?.active]);
 
   const todayDone = nodes[current] === "now-done";
+  const night = useDaypart() === "night";
   const keptCount = nodes.filter((n) => n === "kept" || n === "now-done").length;
 
   if (!isLoading && !item) {
@@ -323,15 +325,20 @@ export default function ContractDetailPage() {
                   >
                     <Camera className="h-[30px] w-[30px]" strokeWidth={2.2} />
                   </button>
-                  <LuluSays x={x} top={top + 2} side={swingsRight ? "left" : "right"}>
+                  <LuluSays x={x} top={top + 2} side={swingsRight ? "left" : "right"} mood={night ? "worried" : "dream"}>
                     {todayReward}
                   </LuluSays>
                 </div>
               );
             }
             return (
+              <Fragment key={i}>
+              {state === "now-done" && night ? (
+                <LuluSays x={x} top={top + 6} side={swingsRight ? "left" : "right"} mood="sleep">
+                  {null}
+                </LuluSays>
+              ) : null}
               <span
-                key={i}
                 aria-label={`Day ${i + 1}: ${state === "locked" ? "upcoming" : state}`}
                 className={cn(
                   common,
@@ -350,6 +357,7 @@ export default function ContractDetailPage() {
                   i + 1
                 )}
               </span>
+              </Fragment>
             );
           })}
           {(() => {
@@ -387,7 +395,7 @@ export default function ContractDetailPage() {
         </div>
       </div>
 
-      <div className="border-t-2 border-line/70 bg-white/55 px-5 backdrop-blur-md pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
+      <div className="border-t-2 border-line/70 bg-white/55 px-5 backdrop-blur-md night:border-white/10 night:bg-[#0f1233]/60 pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
         <div className="mx-auto max-w-md">
           {chain?.active && !todayDone ? (
             <button type="button" onClick={openProof} className={gameButtonClass({ full: true })}>

@@ -791,12 +791,66 @@ textarea {
    * top, paper through the middle, pink-soft at the bottom, with soft yellow
    * and pink glows so the dark photo cards pop.
    */
+  /* Page wash — follows the time of day via html[data-daypart] (lib/daypart).
+     Default (and "day"): bright and sunny. */
   .bg-wash {
     background-color: #f7f7f4;
     background-image:
       radial-gradient(120% 60% at 100% 0%, rgba(246, 195, 36, 0.28) 0%, rgba(246, 195, 36, 0) 60%),
       radial-gradient(90% 50% at 0% 100%, rgba(236, 91, 141, 0.16) 0%, rgba(236, 91, 141, 0) 65%),
       linear-gradient(180deg, #fdf1c7 0%, #f7f7f4 42%, #f7f7f4 62%, #fde6ef 100%);
+    transition: background-color 0.8s ease;
+  }
+
+  /* Dawn: rise and shine — a low peach sun from the top-left. */
+  html[data-daypart="dawn"] .bg-wash {
+    background-color: #faf6ef;
+    background-image:
+      radial-gradient(110% 55% at 0% 0%, rgba(255, 168, 92, 0.34) 0%, rgba(255, 168, 92, 0) 62%),
+      radial-gradient(80% 40% at 100% 8%, rgba(246, 195, 36, 0.22) 0%, rgba(246, 195, 36, 0) 60%),
+      linear-gradient(180deg, #ffe6cc 0%, #fff6e4 30%, #faf6ef 60%, #fdeef0 100%);
+  }
+
+  /* Dusk: golden hour — warm orange into pink and a hint of lilac. */
+  html[data-daypart="dusk"] .bg-wash {
+    background-color: #f8f1f1;
+    background-image:
+      radial-gradient(120% 55% at 100% 0%, rgba(245, 120, 80, 0.3) 0%, rgba(245, 120, 80, 0) 60%),
+      radial-gradient(90% 50% at 0% 100%, rgba(160, 120, 220, 0.18) 0%, rgba(160, 120, 220, 0) 65%),
+      linear-gradient(180deg, #ffd6b8 0%, #fce4dc 30%, #f8f1f1 60%, #efe4f5 100%);
+  }
+
+  /* Night: deep indigo sky, a moon glow and a scatter of stars. */
+  html[data-daypart="night"] .bg-wash {
+    background-color: #1b1d45;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 6%, rgba(255, 255, 255, 0.85) 50%, transparent 51%),
+      radial-gradient(1px 1px at 27% 13%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 44% 4%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+      radial-gradient(1px 1px at 61% 15%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 8% 24%, rgba(255, 255, 255, 0.55) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 93% 22%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+      radial-gradient(1px 1px at 36% 30%, rgba(255, 255, 255, 0.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 72% 34%, rgba(255, 255, 255, 0.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 18% 48%, rgba(255, 255, 255, 0.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 86% 55%, rgba(255, 255, 255, 0.3) 50%, transparent 51%),
+      radial-gradient(90% 40% at 88% 0%, rgba(255, 228, 150, 0.2) 0%, rgba(255, 228, 150, 0) 60%),
+      radial-gradient(90% 50% at 0% 100%, rgba(236, 91, 141, 0.16) 0%, rgba(236, 91, 141, 0) 65%),
+      linear-gradient(180deg, #0f1233 0%, #1b1d45 45%, #262859 100%);
+    color-scheme: dark;
+    /* Text sitting straight on the sky goes light… */
+    color: #f2f1fb;
+    --foreground: 242 241 251;
+    --muted-foreground: 184 182 214;
+  }
+  /* …and anything with its own surface (cards, pills, inputs, sheets) keeps
+     normal ink text. :where() = zero specificity, so a surface's own text
+     colour class (e.g. text-white on bg-ink) still wins. */
+  :where(html[data-daypart="night"] .bg-wash [class*="bg-"]:not([class*="bg-transparent"]):not([class*="bg-white/"]):not([class*="bg-ink"])) {
+    color: #161615;
+    color-scheme: light;
+    --foreground: 22 22 21;
+    --muted-foreground: 92 92 86;
   }
 
   /* Solid bottom "edge" that presses down on tap (cards, buttons, pills) */
@@ -914,6 +968,11 @@ textarea {
 .lu-a.lu-m-sad .lu-eyes { animation: lu-blink 6s ease-in-out infinite; }
 .lu-a.lu-m-storm .lu-move { animation: lu-nervous 2.6s linear infinite; }
 .lu-a.lu-m-storm .lu-sprout { animation: none; }
+.lu-a.lu-m-sleep .lu-move { animation: lu-breathe 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.lu-zzz text { animation: lu-z 3s ease-in-out infinite; opacity: 0; }
+.lu-zzz text + text { animation-delay: 1.5s; }
+@keyframes lu-z { 0% { opacity: 0; transform: translate(0, 6px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -10px); } }
+@media (prefers-reduced-motion: reduce) { .lu-zzz text { animation: none; opacity: 1; } }
 
 .lu-a .lu-float1 { animation: lu-float 2.8s ease-out infinite; }
 .lu-a .lu-float2 { animation: lu-float 2.8s ease-out 1.4s infinite; }

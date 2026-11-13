@@ -44,6 +44,7 @@ function luluState(label: string, p: Omit<LuluHeroViewProps, "messages"> & { cam
     props: {
       ...p,
       now,
+      skyHour: now.getHours(),
       messages: pickLuluMessages({
         kept: p.kept, total: p.total, streak: p.streak, pendingReward: p.pendingReward,
         campaigns: p.campaigns ?? [], seenMissed: {}, now, name: "kate", goals: p.goals ?? [],

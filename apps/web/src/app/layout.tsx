@@ -5,6 +5,8 @@ import "./globals.css";
 import { ProvidersShell } from "@/components/providers/providers-shell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AppSplashScreen } from "@/components/app-splash-screen";
+import { DAYPART_BOOT_SCRIPT } from "@/lib/daypart/daypart";
+import { DaypartSync } from "@/hooks/use-daypart";
 
 /* Redesign type system — see docs/redesign/README.md. Self-hosted (latin)
    rather than next/font/google so builds never depend on a Google Fonts fetch,
@@ -94,12 +96,15 @@ export default function RootLayout({
             __html: `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__deluluInstallPrompt=e;});`,
           }}
         />
+        {/* Time-of-day background, set before first paint (see lib/daypart). */}
+        <script dangerouslySetInnerHTML={{ __html: DAYPART_BOOT_SCRIPT }} />
       </head>
       <body
         className={`${body.variable} ${display.variable} ${mono.variable} ${brand.variable} antialiased`}
       >
         <ThemeProvider>
           <AppSplashScreen />
+          <DaypartSync />
           <ProvidersShell>{children}</ProvidersShell>
         </ThemeProvider>
       </body>

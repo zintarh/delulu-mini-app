@@ -221,7 +221,7 @@ export function SupportRails({ onSupport }: { onSupport: (_d: PublicDeluluDto, _
               aria-pressed={on}
               className={cn(
                 "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-extrabold transition",
-                on ? "bg-ink text-white" : "bg-white/70 text-muted-foreground",
+                on ? "bg-ink text-white" : "bg-white/70 text-muted-foreground night:bg-white/10 night:text-white/80",
               )}
             >
               {r.icon}

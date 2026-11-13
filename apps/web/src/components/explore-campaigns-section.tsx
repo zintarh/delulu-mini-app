@@ -23,7 +23,7 @@ function CategoryRow({ section }: { section: Section }) {
   const single = section.campaigns.length === 1;
   return (
     <section className="animate-rise">
-      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink">{section.label}</h2>
+      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">{section.label}</h2>
       <div
         className={cn(
           single
@@ -103,7 +103,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     return (
       <div className="flex flex-col items-center gap-2 py-12 text-center">
         <p className="text-sm text-muted-foreground">Couldn&apos;t load campaigns. Try again.</p>
-        <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline">
+        <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline night:text-white">
           {isRefetching ? "Retrying…" : "Retry"}
         </button>
       </div>

@@ -17,6 +17,8 @@ import { getActiveMilestone } from "@/lib/community/milestone-submit-eligibility
 import { forfeitProgress, formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
 import { fireConfetti } from "@/lib/celebrate";
 import { useReportHomeReady } from "@/components/home/home-ready";
+import { useDaypart } from "@/hooks/use-daypart";
+import { daypartFor, type Daypart } from "@/lib/daypart/daypart";
 import { capitalizeFirst, cn, formatGAmount } from "@/lib/utils";
 
 /* ─────────────────────────────── Messages ─────────────────────────────── */
@@ -267,14 +269,13 @@ export function pickLuluMessages(input: LuluInput): LuluMessage[] {
 
 type Sky = "morning" | "day" | "evening" | "night" | "grey" | "storm";
 
-function skyFor(weather: LuluWeather, now: Date): Sky {
+const SKY_FOR_PART: Record<Daypart, Sky> = { dawn: "morning", day: "day", dusk: "evening", night: "night" };
+
+/** Same clock as the page wash (lib/daypart), unless Lulu's mood calls for clouds. */
+function skyFor(weather: LuluWeather, part: Daypart): Sky {
   if (weather === "storm" || weather === "sad") return "storm";
   if (weather === "gloomy") return "grey";
-  const h = now.getHours();
-  if (h >= 5 && h < 11) return "morning";
-  if (h >= 11 && h < 17) return "day";
-  if (h >= 17 && h < 20) return "evening";
-  return "night";
+  return SKY_FOR_PART[part];
 }
 
 /** Our palette only: yellow / pink / paper tints by day, ink at night, greys when Lulu's down. */
@@ -348,6 +349,8 @@ export type LuluHeroViewProps = {
   onActed?: (_id: string) => void;
   /** Play the entrance animation (first time this session only). */
   intro?: boolean;
+  /** Dev previews: pin the sky to this hour instead of the live time of day. */
+  skyHour?: number;
 };
 
 /**
@@ -363,11 +366,13 @@ export function LuluHeroView({
   streak,
   pendingReward,
   messages,
-  now = new Date(),
+  now: nowProp,
   celebrating = null,
   onActed,
   intro = true,
+  skyHour,
 }: LuluHeroViewProps) {
+  const now = nowProp ?? new Date();
   const [index, setIndex] = useState(0);
   const [quip, setQuip] = useState<string | null>(null);
   const [poke, setPoke] = useState(0);
@@ -375,7 +380,9 @@ export function LuluHeroView({
   const quipTimer = useRef<number | null>(null);
 
   const mood: LuluWeather = celebrating ? "sunny" : weather;
-  const sky = skyFor(mood, now);
+  const livePart = useDaypart();
+  // Real use follows the page's daypart (incl. ?daypart=); previews can pin an hour.
+  const sky = skyFor(mood, skyHour != null ? daypartFor(new Date(2000, 0, 1, skyHour)) : livePart);
   const onDark = sky === "night";
   const safeIndex = Math.min(index, Math.max(0, messages.length - 1));
   const msg = messages[safeIndex];
@@ -440,7 +447,7 @@ export function LuluHeroView({
             key={`${poke}:${celebrating ?? ""}`}
             className={cn("absolute inset-0 flex items-end justify-center pb-4", (poke > 0 || celebrating) && "animate-bounce-in")}
           >
-            <LuluScene weather={mood} wave={Boolean(quip || celebrating)} className="origin-bottom scale-[1.15]" />
+            <LuluScene weather={mood} wave={Boolean(quip || celebrating)} night={sky === "night"} className="origin-bottom scale-[1.15]" />
           </span>
           {total > 0 ? (
             <span
