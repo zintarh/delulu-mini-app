@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Globe2, HeartHandshake } from "lucide-react";
+import { Clock, HeartHandshake } from "lucide-react";
 import { Coin, Flame, GameSwitch, Lulu } from "@/components/ds";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -132,8 +132,9 @@ export function MakePublicBanner() {
   const [done, setDone] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const items = (data?.items ?? []).slice(0, 3);
-  if (!authenticated || items.length === 0) return null;
+  const next = (data?.items ?? []).find((it) => !done.has(it.id));
+  if (!authenticated || !next) return null;
+  const more = (data?.items ?? []).filter((it) => !done.has(it.id)).length - 1;
 
   const flip = async (id: number) => {
     setBusy(id);
@@ -151,39 +152,18 @@ export function MakePublicBanner() {
   };
 
   return (
-    <section className="animate-rise rounded-[24px] border-2 border-yellow-line bg-yellow-soft p-4 shadow-edge-yellow-line">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white">
-          <HeartHandshake className="h-5 w-5 text-pink" strokeWidth={2.4} />
-        </span>
+    <section className="animate-rise rounded-[20px] border-2 border-yellow-line bg-yellow-soft px-3.5 py-3">
+      <div className="flex items-center gap-3">
+        <HeartHandshake className="h-5 w-5 shrink-0 text-pink" strokeWidth={2.4} />
         <div className="min-w-0 flex-1">
-          <div className="font-extrabold leading-tight">Let people back you</div>
-          <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">Support goes straight to your wallet</div>
+          <div className="truncate text-sm font-extrabold">Let people back &ldquo;{next.title}&rdquo;</div>
+          <div className="label-mono mt-0.5 text-[9px] text-muted-foreground">
+            {more > 0 ? `+${more} more private` : "Support goes to your wallet"}
+          </div>
         </div>
-      </div>
-      <div className="mt-3 flex flex-col gap-2">
-        {items.map((it) => {
-          const on = done.has(it.id);
-          return (
-            <div key={it.id} className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5">
-              {on ? (
-                <Globe2 className="h-4 w-4 shrink-0 text-green-edge" strokeWidth={2.4} />
-              ) : (
-                <span className="h-4 w-4 shrink-0" />
-              )}
-              <span className="min-w-0 flex-1 truncate text-sm font-bold">{it.title}</span>
-              {on ? (
-                <Link href={`/support/${it.id}`} className="label-mono shrink-0 text-[10px] text-green-edge no-underline">
-                  Public ✓
-                </Link>
-              ) : (
-                <span className={cn(busy === it.id && "pointer-events-none opacity-60")}>
-                  <GameSwitch checked={false} onChange={() => void flip(it.id)} label={`Make "${it.title}" public`} />
-                </span>
-              )}
-            </div>
-          );
-        })}
+        <span className={cn(busy === next.id && "pointer-events-none opacity-60")}>
+          <GameSwitch checked={false} onChange={() => void flip(next.id)} label={`Make "${next.title}" public`} />
+        </span>
       </div>
       {error ? <p className="m-0 mt-2 text-center text-[13px] font-semibold text-orange">{error}</p> : null}
     </section>
@@ -202,35 +182,18 @@ export function useSupportRails(enabled: boolean) {
   });
 }
 
-function Rail({
-  icon,
-  title,
-  items,
-  onSupport,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  items: PublicDeluluDto[];
-  onSupport: (_d: PublicDeluluDto, _amount?: number) => void;
-}) {
-  if (items.length === 0) return null;
-  return (
-    <section>
-      <h2 className="m-0 mb-2.5 flex items-center gap-2 text-[18px] font-extrabold tracking-[-0.015em]">
-        {icon}
-        {title}
-      </h2>
-      <div className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide">
-        {items.map((d) => (
-          <SupportDeluluCard key={d.id} delulu={d} onSupport={onSupport} compact />
-        ))}
-      </div>
-    </section>
-  );
-}
+const RAILS = [
+  { key: "beFirst", label: "Be the first", icon: <HeartHandshake className="h-4 w-4 text-pink" strokeWidth={2.6} /> },
+  { key: "onFire", label: "On fire", icon: <Flame size={18} /> },
+  { key: "finalStretch", label: "Final stretch", icon: <Clock className="h-4 w-4 text-orange" strokeWidth={2.6} /> },
+] as const;
+type RailKey = (typeof RAILS)[number]["key"];
 
+/** One spotlight row with a tiny switcher instead of three stacked rails. */
 export function SupportRails({ onSupport }: { onSupport: (_d: PublicDeluluDto, _amount?: number) => void }) {
   const { data, isLoading } = useSupportRails(true);
+  const [picked, setPicked] = useState<RailKey | null>(null);
+
   if (isLoading) {
     return (
       <div className="-mx-5 flex gap-3 overflow-hidden px-5">
@@ -241,11 +204,37 @@ export function SupportRails({ onSupport }: { onSupport: (_d: PublicDeluluDto, _
     );
   }
   if (!data) return null;
+  const available = RAILS.filter((r) => data[r.key].length > 0);
+  if (available.length === 0) return null;
+  const active = available.find((r) => r.key === picked) ?? available[0];
+
   return (
-    <>
-      <Rail icon={<HeartHandshake className="h-5 w-5 text-pink" strokeWidth={2.6} />} title="Be the first" items={data.beFirst} onSupport={onSupport} />
-      <Rail icon={<Flame size={22} />} title="On fire" items={data.onFire} onSupport={onSupport} />
-      <Rail icon={<Clock className="h-5 w-5 text-orange" strokeWidth={2.6} />} title="Final stretch" items={data.finalStretch} onSupport={onSupport} />
-    </>
+    <section>
+      <div className="-mx-5 mb-2.5 flex gap-1.5 overflow-x-auto px-5 scrollbar-hide">
+        {available.map((r) => {
+          const on = r.key === active.key;
+          return (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setPicked(r.key)}
+              aria-pressed={on}
+              className={cn(
+                "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-extrabold transition",
+                on ? "bg-ink text-white" : "bg-white/70 text-muted-foreground",
+              )}
+            >
+              {r.icon}
+              {r.label}
+            </button>
+          );
+        })}
+      </div>
+      <div key={active.key} className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide">
+        {data[active.key].map((d) => (
+          <SupportDeluluCard key={d.id} delulu={d} onSupport={onSupport} compact />
+        ))}
+      </div>
+    </section>
   );
 }

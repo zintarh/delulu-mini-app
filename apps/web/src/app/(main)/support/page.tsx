@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { ArrowUpDown, Search, X } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { Chip, Lulu, Segmented, gameButtonClass } from "@/components/ds";
 import { SupportCardSkeleton, SupportDeluluCard } from "@/components/support/support-delulu-card";
@@ -54,10 +54,7 @@ function SupportPageInner() {
   return (
     <MainPage className="bg-wash min-h-full">
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-5 pb-12 pt-5">
-        <div>
-          <span className="label-mono block text-muted-foreground">Back someone&apos;s Delulu</span>
-          <h1 className="m-0 mt-1 animate-rise text-2xl font-bold tracking-[-0.02em]">Support</h1>
-        </div>
+        <h1 className="m-0 animate-rise text-2xl font-bold tracking-[-0.02em]">Support</h1>
 
         <Segmented
           ariaLabel="Support sections"
@@ -77,10 +74,7 @@ function SupportPageInner() {
             <MakePublicBanner />
             {browsing ? <SupportRails onSupport={onSupport} /> : null}
 
-            <h2 className="m-0 mt-2 text-[18px] font-extrabold tracking-[-0.015em]">
-              {browsing ? "All Delulus" : "Results"}
-            </h2>
-            <div className="flex gap-2">
+            <div className="mt-1 flex gap-2">
               <label className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-line bg-white px-3.5 focus-within:border-ink">
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2.4} />
                 <input
@@ -96,18 +90,26 @@ function SupportPageInner() {
                   </button>
                 ) : null}
               </label>
-              <select
-                aria-label="Sort"
-                value={sort}
-                onChange={(e) => setParam("sort", e.target.value === "trending" ? null : e.target.value)}
-                className="h-12 shrink-0 rounded-2xl border-2 border-line bg-white px-3 text-sm font-semibold outline-none focus:border-ink"
+              <label
+                className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-white focus-within:border-ink"
+                title={`Sort: ${SORT_OPTIONS.find((o) => o.value === sort)?.label}`}
               >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                <ArrowUpDown className="h-4 w-4" strokeWidth={2.4} />
+                {sort !== "trending" ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-pink-bright" /> : null}
+                {/* Native picker on top, invisible: tiny footprint, real mobile sheet. */}
+                <select
+                  aria-label="Sort"
+                  value={sort}
+                  onChange={(e) => setParam("sort", e.target.value === "trending" ? null : e.target.value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-hide">

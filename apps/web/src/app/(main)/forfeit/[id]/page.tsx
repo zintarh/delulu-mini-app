@@ -6,7 +6,9 @@ import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, ChevronLeft, Clock, MoreHorizontal } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
-import { Chest, Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
+import { Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
+import { usePublicRewards } from "@/hooks/use-public-rewards";
+import { completionAmountFor } from "@/lib/rewards/rules";
 import { useAuth } from "@/hooks/use-auth";
 import {
   forfeitFeedKeys,
@@ -32,6 +34,53 @@ import { useUserStore } from "@/stores/useUserStore";
 import { VisibilityPill } from "@/components/support/visibility-sheet";
 
 type NodeState = "kept" | "missed" | "now" | "now-done" | "locked";
+
+const fmtWhole = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+/**
+ * Lulu hanging beside a node with a speech bubble — what this step pays.
+ * `side` is where it sits relative to the anchor x.
+ */
+function LuluSays({
+  x,
+  top,
+  side,
+  children,
+  mood = "dream",
+  withLulu = true,
+}: {
+  x: number;
+  top: number;
+  side: "left" | "right";
+  children: React.ReactNode;
+  mood?: "dream" | "kept" | "sad";
+  withLulu?: boolean;
+}) {
+  const left = side === "right";
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute flex animate-bob items-center gap-1",
+        left ? "flex-row" : "-translate-x-full flex-row-reverse",
+      )}
+      style={{ left: `calc(50% + ${x + (left ? 46 : -46)}px)`, top }}
+    >
+      {withLulu ? <Lulu size={40} mood={mood} /> : null}
+      {children ? (
+        <span className="relative flex items-center gap-0.5 whitespace-nowrap rounded-[14px] border-2 border-ink bg-white px-2.5 py-1.5 font-display text-[16px] font-extrabold tabular-nums text-ink shadow-[0_3px_0_#14140f]">
+          {children}
+          <span
+            aria-hidden
+            className={cn(
+              "absolute top-1/2 -mt-[5px] h-2.5 w-2.5 rotate-45 border-ink bg-white",
+              left ? "-left-[6px] border-b-2 border-l-2" : "-right-[6px] border-r-2 border-t-2",
+            )}
+          />
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 /** Zig-zag x offsets (px) for the path, repeating. */
 const OFFSETS = [0, 58, 86, 58, 0, -58, -86, -58];
@@ -132,6 +181,32 @@ export default function ContractDetailPage() {
   const proofPoints = forfeitProofPointsForStake(chain?.stakeAmount);
   const symbol = chain?.token ? getTokenSymbol(chain.token) : "G$";
   const destination = item ? destinationLabel(item) : null;
+
+  // What each step pays. G$ only when money is staked and someone else reviews
+  // the proof (word pledges and self-verified goals earn points only).
+  const rewardsConfig = usePublicRewards().data?.config;
+  let hasStake = false;
+  try {
+    hasStake = BigInt(chain?.stakeAmount ?? 0) > BigInt(0);
+  } catch {
+    hasStake = false;
+  }
+  const earnsMoney = hasStake && item?.verificationMethod !== "self";
+  const dailyMoney = earnsMoney && rewardsConfig?.categoryEnabled.daily_proof ? rewardsConfig.dailyAmount : 0;
+  const durationDays = Math.round((total * Number(chain?.periodSeconds ?? 86_400)) / 86_400);
+  const finishMoney =
+    earnsMoney && rewardsConfig?.categoryEnabled.goal_completion
+      ? completionAmountFor(durationDays, rewardsConfig.goalTiers)
+      : 0;
+  const todayReward: React.ReactNode =
+    dailyMoney > 0 ? (
+      <>
+        <Coin size={18} />
+        {fmtWhole(dailyMoney)}
+      </>
+    ) : earnsMoney && !rewardsConfig ? null : (
+      <span className="text-[14px]">+{fmtWhole(proofPoints)} pts</span>
+    );
 
   const nodes = useMemo(() => {
     return Array.from({ length: total }, (_, i): NodeState => {
@@ -248,16 +323,9 @@ export default function ContractDetailPage() {
                   >
                     <Camera className="h-[30px] w-[30px]" strokeWidth={2.2} />
                   </button>
-                  <span
-                    className="absolute animate-bob whitespace-nowrap rounded-[14px] bg-ink px-3.5 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
-                    style={{ left: `calc(50% + ${x}px + ${swingsRight ? -196 : 50}px)`, top: top + 10 }}
-                  >
-                    Prove today
-                    <span
-                      aria-hidden
-                      className={cn("absolute top-1/2 -mt-1.5 h-3 w-3 rotate-45 bg-ink", swingsRight ? "-right-1.5" : "-left-1.5")}
-                    />
-                  </span>
+                  <LuluSays x={x} top={top + 2} side={swingsRight ? "left" : "right"}>
+                    {todayReward}
+                  </LuluSays>
                 </div>
               );
             }
@@ -284,13 +352,38 @@ export default function ContractDetailPage() {
               </span>
             );
           })}
-          <span
-            aria-label="Finish reward"
-            className="absolute flex h-16 w-[72px] -translate-x-1/2 items-center justify-center rounded-full bg-line shadow-[0_5px_0_#cfcfc8]"
-            style={{ left: `calc(50% + ${nodeX(total)}px)`, top: 20 + total * ROW }}
-          >
-            <Chest size={44} grey={chain?.active === false && keptCount < total} />
-          </span>
+          {(() => {
+            const finished = chain?.active === false;
+            const won = finished && keptCount >= total;
+            const lost = finished && !won;
+            const fx = nodeX(total);
+            const ftop = 20 + total * ROW;
+            return (
+              <>
+                <span
+                  aria-label={finishMoney > 0 ? `Finish reward: ${fmtWhole(finishMoney)}` : "Finish"}
+                  className={cn(
+                    "absolute flex h-16 w-[72px] -translate-x-1/2 items-center justify-center rounded-full",
+                    won
+                      ? "bg-green-strong shadow-[0_5px_0_#157041]"
+                      : lost
+                        ? "bg-line opacity-70 shadow-[0_5px_0_#cfcfc8]"
+                        : "bg-yellow-soft shadow-[0_5px_0_#e8cf7a]",
+                  )}
+                  style={{ left: `calc(50% + ${fx}px)`, top: ftop }}
+                >
+                  <Lulu size={50} mood={won ? "kept" : lost ? "sad" : "dream"} />
+                </span>
+                {finishMoney > 0 && !lost ? (
+                  <LuluSays withLulu={false} x={fx} top={ftop + 14} side={OFFSETS[total % OFFSETS.length] > 0 ? "left" : "right"}>
+                    <span className="label-mono mr-1 text-[9px] text-muted-foreground">{won ? "Won" : "Finish"}</span>
+                    <Coin size={18} />
+                    {fmtWhole(finishMoney)}
+                  </LuluSays>
+                ) : null}
+              </>
+            );
+          })()}
         </div>
       </div>
 

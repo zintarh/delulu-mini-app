@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Coin, Flame, ProgressBar, gameButtonClass } from "@/components/ds";
+import { Heart } from "lucide-react";
+import { Coin, Flame, ProgressBar } from "@/components/ds";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { goalIconFor } from "@/components/goal-icon";
 import { compactCount } from "@/lib/rewards/public-stats";
-import { SUPPORT_CATEGORY_LABELS, SUPPORT_PRESET_AMOUNTS } from "@/lib/support/rules";
+import { SUPPORT_CATEGORY_LABELS } from "@/lib/support/rules";
 import { CATEGORY_THEME } from "@/lib/support/category-theme";
 import type { PublicDeluluDto, PublicProfile } from "@/lib/support/server";
 import { cn } from "@/lib/utils";
-
-const QUICK_AMOUNT = SUPPORT_PRESET_AMOUNTS[0];
 
 export function durationLabel(d: Pick<PublicDeluluDto, "cadence" | "progress">): string {
   if (d.cadence === "once") return "One-off";
@@ -48,8 +47,8 @@ function Badge({ d }: { d: PublicDeluluDto }) {
 
 /**
  * Discovery card: colour band by category with the goal's icon, creator
- * avatar overlapping it, progress, who's backing it, and two ways to give —
- * one-tap quick amount or the full picker.
+ * avatar overlapping it, progress, who's backing it, and a heart that opens
+ * the support picker.
  */
 export function SupportDeluluCard({
   delulu: d,
@@ -69,13 +68,13 @@ export function SupportDeluluCard({
     <div
       className={cn(
         "relative flex animate-rise flex-col overflow-hidden rounded-[24px] border-2 border-line bg-white shadow-edge transition-transform hover:-translate-y-0.5",
-        compact && "w-[272px] shrink-0 snap-start",
+        compact && "w-[248px] shrink-0 snap-start",
       )}
     >
       <Link href={`/support/${d.id}`} className="absolute inset-0 z-0" aria-label={d.title} />
 
       {/* Colour band */}
-      <div className={cn("pointer-events-none relative h-[86px]", theme.band)}>
+      <div className={cn("pointer-events-none relative", compact ? "h-[64px]" : "h-[78px]", theme.band)}>
         <Icon
           className={cn("absolute -right-3 -top-3 h-[104px] w-[104px] rotate-[-12deg] opacity-25", theme.icon)}
           strokeWidth={2}
@@ -125,49 +124,36 @@ export function SupportDeluluCard({
           <ProgressBar value={pct} thin />
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-auto flex items-center gap-2 pt-3.5">
           {d.support.faces.length > 0 ? (
             <AvatarStack participants={facesToStack(d.support.faces)} total={d.support.supporters} max={3} size={22} />
           ) : null}
-          <span className="flex min-w-0 items-center gap-0.5 text-[13px] font-extrabold tabular-nums">
+          <span className="flex min-w-0 flex-1 items-center gap-0.5 text-[13px] font-extrabold tabular-nums">
             <Coin size={16} />
             {compactCount(d.support.totalG)}
             <span className="ml-1 truncate font-semibold text-muted-foreground">
               {d.support.supporters === 0 ? "· no backers yet" : "raised"}
             </span>
           </span>
-        </div>
-
-        {d.isOwn ? (
-          <span className="label-mono relative mt-3.5 self-start rounded-full bg-yellow-soft px-3 py-1.5 text-[10px] text-ink">
-            Yours
-          </span>
-        ) : (
-          <div className="pointer-events-auto relative z-10 mt-3.5 flex gap-2">
-            <button
-              type="button"
-              disabled={!d.accepting}
-              onClick={() => onSupport(d, QUICK_AMOUNT)}
-              className={gameButtonClass({ variant: "line", size: "sm", className: "shrink-0 px-3 tabular-nums" })}
-              aria-label={`Send ${QUICK_AMOUNT.toLocaleString("en-US")} G$`}
-            >
-              <Coin size={16} />+{QUICK_AMOUNT / 1000}K
-            </button>
+          {d.isOwn ? (
+            <span className="label-mono shrink-0 rounded-full bg-yellow-soft px-3 py-1.5 text-[10px] text-ink">Yours</span>
+          ) : (
             <button
               type="button"
               disabled={!d.accepting}
               onClick={() => onSupport(d)}
-              className={gameButtonClass({ size: "sm", full: true })}
+              aria-label={`Support ${d.title}`}
+              className="pointer-events-auto relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pink-bright text-white shadow-[0_3px_0_#c23e6e] transition active:translate-y-[2px] active:shadow-[0_1px_0_#c23e6e] disabled:opacity-40"
             >
-              Support
+              <Heart className="h-5 w-5" fill="currentColor" strokeWidth={2.4} />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export function SupportCardSkeleton({ compact = false }: { compact?: boolean }) {
-  return <div className={cn("h-[300px] animate-pulse rounded-[24px] bg-line/70", compact && "w-[272px] shrink-0")} />;
+  return <div className={cn("h-[300px] animate-pulse rounded-[24px] bg-line/70", compact && "w-[248px] shrink-0")} />;
 }

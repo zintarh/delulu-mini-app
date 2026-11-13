@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { usePublicRewards } from "@/hooks/use-public-rewards";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Play, Send } from "lucide-react";
@@ -12,7 +12,6 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Bolt, CheckDot, Chest, Coin, Flame, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
-import type { PublicRewardsDto } from "@/app/api/rewards/public/route";
 import { compactCount } from "@/lib/rewards/public-stats";
 import { formatUsdFromG } from "@/lib/rewards/summary";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
@@ -20,18 +19,6 @@ import { cn } from "@/lib/utils";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const compactG = (n: number) => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : fmt(n));
-
-function usePublicRewards() {
-  return useQuery<PublicRewardsDto>({
-    queryKey: ["rewards-public"],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const res = await fetch("/api/rewards/public");
-      if (!res.ok) throw new Error("Failed to load");
-      return res.json();
-    },
-  });
-}
 
 function Stat({ value, label, sub }: { value: string; label: string; sub?: string | null }) {
   return (

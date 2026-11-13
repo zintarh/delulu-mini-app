@@ -57,6 +57,8 @@ export type ProofRewardsResult =
   | { status: "disabled" }
   | { status: "not_eligible"; reason: string }
   | { status: "self_verified" }
+  /** Word-only Forfeit goal (no money staked): earns points, never G$. */
+  | { status: "no_stake" }
   | { status: "awaiting_verifier" }
   | { status: "not_verified" }
   | {
@@ -127,11 +129,12 @@ async function resolveVerifiedProof(
 
   const { data: commitment } = await admin
     .from("forfeit_commitments")
-    .select("id, verification_method")
+    .select("id, verification_method, stake_amount_wei::text")
     .eq("on_chain_commitment_id", Number(event.commitmentId))
     .maybeSingle();
   if (!commitment) return { status: "not_eligible", reason: "commitment_not_found" };
   if (commitment.verification_method === "self") return { status: "self_verified" };
+  if (!(await hasMoneyStake(commitment.stake_amount_wei, event.commitmentId))) return { status: "no_stake" };
 
   if (commitment.verification_method === "friend") {
     const { data: period } = await admin
@@ -164,6 +167,29 @@ async function resolveVerifiedProof(
     goalKind: "forfeit",
     goalRef: commitment.id as string,
   };
+}
+
+/**
+ * Whether a Forfeit goal has money on the line. Word pledges (stake 0) earn
+ * points only — G$ rewards are for people who put money behind their goal.
+ * Uses the stake snapshot from confirm-create; older rows without one are
+ * read from the contract.
+ */
+async function hasMoneyStake(snapshotWei: string | null | undefined, onChainId: bigint | number | string): Promise<boolean> {
+  if (snapshotWei != null && snapshotWei !== "") {
+    try {
+      return BigInt(snapshotWei) > BigInt(0);
+    } catch {
+      // fall through to the chain
+    }
+  }
+  const c = (await publicClient.readContract({
+    address: getForfeitMarketAddress(DELULU_CHAIN_ID),
+    abi: FORFEIT_MARKET_ABI,
+    functionName: "commitments",
+    args: [BigInt(onChainId)],
+  })) as readonly unknown[];
+  return (c[2] as bigint) > BigInt(0);
 }
 
 /** The proof's own block day — a retry tomorrow still counts toward the day it was submitted. */
@@ -553,7 +579,7 @@ export async function evaluateGoalCompletion(
   // Cheap DB checks first — most proofs aren't a goal's last.
   const { data: commitment } = await admin
     .from("forfeit_commitments")
-    .select("id, status, verification_method, on_chain_commitment_id, creator_wallet")
+    .select("id, status, verification_method, on_chain_commitment_id, creator_wallet, stake_amount_wei::text")
     .eq("id", commitmentId)
     .maybeSingle();
   if (
@@ -568,6 +594,8 @@ export async function evaluateGoalCompletion(
 
   const market = getForfeitMarketAddress(DELULU_CHAIN_ID);
   const onChainId = BigInt(commitment.on_chain_commitment_id);
+  // Word pledges never earn G$ (normally they have no rewarded proofs anyway; this guards legacy ones).
+  if (!(await hasMoneyStake(commitment.stake_amount_wei, onChainId))) return { result: "not_complete" };
   const c = (await publicClient.readContract({
     address: market,
     abi: FORFEIT_MARKET_ABI,
@@ -624,7 +652,7 @@ export async function evaluateGoalCompletion(
  *
  * Only verified events count: the proof must be reviewed (AI or friend) and
  * submitted on-chain, the wallet must be GoodDollar face-verified, and the
- * goal can't be self-verified.
+ * goal can't be self-verified or a word-only pledge (no money staked).
  */
 export async function processVerifiedProof(
   admin: SupabaseAdmin,
