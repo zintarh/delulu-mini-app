@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchMonthlyCampaignPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
+import { fetchLiveStreaks } from "@/lib/rewards/live-streaks";
 import { monthlyCampaignLeaderboardSinceUnixSeconds } from "@/lib/dashboard/campaign-constants";
 import { isLeaderboardBlacklisted } from "@/lib/constant";
 
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
     points_total: row.points_total,
     username: row.username,
   }));
+  const streaks = await fetchLiveStreaks(admin, pageRows.map((r) => r.wallet_address));
+  const pageWithStreaks = pageRows.map((r) => ({ ...r, streak: streaks[r.wallet_address.toLowerCase()] ?? 0 }));
 
   let myEntry: { rank: number; points_total: number } | null = null;
   if (address) {
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    leaderboard: pageRows,
+    leaderboard: pageWithStreaks,
     hasMore: from + PAGE_SIZE < totalCount,
     totalCount,
     myEntry,

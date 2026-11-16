@@ -25,6 +25,8 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
   const [copied, setCopied] = useState(false);
   const [topupState, setTopupState] = useState<TopupState>("idle");
   const [topupReason, setTopupReason] = useState<string | null>(null);
+  const [topupMessage, setTopupMessage] = useState<string | null>(null);
+  const [retryable, setRetryable] = useState(true);
   const topupCalledRef = useRef(false);
 
   const handleGetGas = () => {
@@ -33,9 +35,14 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
     setTopupState("claiming");
     fetch("/api/faucet/topup", { method: "POST" })
       .then((r) => r.json())
-      .then((data: { success: boolean; reason?: string }) => {
+      .then((data: { success: boolean; reason?: string; message?: string }) => {
         setTopupState(data.success ? "sent" : "rejected");
-        if (!data.success) setTopupReason(data.reason ?? null);
+        setTopupReason(data.reason ?? null);
+        setTopupMessage(data.message ?? null);
+        // Temporary problems can be retried; the rest won't change on a retry.
+        const canRetry = ["gas_too_high", "in_flight", "send_failed", "unavailable"].includes(data.reason ?? "");
+        setRetryable(canRetry);
+        if (!data.success && canRetry) topupCalledRef.current = false;
       })
       .catch(() => { setTopupState("error"); topupCalledRef.current = false; });
   };
@@ -95,12 +102,14 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
 
           {/* Actions */}
           <div className="space-y-2.5">
-            {/* Auto top-up button — shown unless rejected for abuse (low_nonce) */}
+            {/* Auto top-up button — hidden once refused for a reason a retry won't fix */}
             {topupState === "sent" ? (
               <div className="rounded-xl border border-emerald-500/30 bg-green-soft px-4 py-3 text-sm text-green-edge">
-                0.3 CELO sent — retry your transaction in a moment.
+                {topupReason === "has_enough"
+                  ? "You have enough gas — retry your transaction."
+                  : "Gas sent — retry your transaction in a moment."}
               </div>
-            ) : topupReason === "low_nonce" ? null : (
+            ) : topupState === "rejected" && !retryable ? null : (
               <button
                 type="button"
                 onClick={handleGetGas}
@@ -116,10 +125,8 @@ export function NoGasModal({ open, onClose }: NoGasModalProps) {
             )}
 
             {/* Contextual message after rejection */}
-            {topupState === "rejected" && topupReason === "too_soon" ? (
-              <p className="text-center text-xs text-muted-foreground">You received gas recently. Join Telegram if you need more.</p>
-            ) : topupState === "rejected" && topupReason === "ip_rate_exceeded" ? (
-              <p className="text-center text-xs text-muted-foreground">Daily limit reached. Try again tomorrow.</p>
+            {topupState === "rejected" && topupMessage ? (
+              <p className="text-center text-xs text-muted-foreground">{topupMessage}</p>
             ) : topupState === "error" ? (
               <p className="text-center text-xs text-muted-foreground">Couldn&apos;t reach the faucet. Try Telegram below.</p>
             ) : null}

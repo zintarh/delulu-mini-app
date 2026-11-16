@@ -7,6 +7,7 @@ export const REWARD_CATEGORY_LABEL: Record<RewardCategory, string> = {
   weekly_consistency: "Weekly consistency",
   campaign_completion: "Campaign completion",
   goal_completion: "Goal completion",
+  streak_milestone: "Streak milestone",
 };
 
 export const REWARD_CATEGORIES = Object.keys(REWARD_CATEGORY_LABEL) as RewardCategory[];
@@ -48,13 +49,15 @@ export function configPathLabel(path: string): string {
     "dailyProof.idleReleaseDays": "Daily proof · idle goal release (days)",
     "weeklyConsistency.enabled": "Weekly consistency · on",
     "weeklyConsistency.amount": "Weekly consistency · amount",
-    "weeklyConsistency.minProofs": "Weekly consistency · proofs needed",
+    "weeklyConsistency.minProofs": "Weekly consistency · days in a row",
     "campaignCompletion.enabled": "Campaign completion · on",
     "campaignCompletion.tiers": "Campaign completion · tiers",
     "campaignCompletion.lateJoinExponent": "Campaign completion · late-join curve",
     "goalCompletion.enabled": "Goal completion · on",
     "goalCompletion.tiers": "Goal completion · tiers",
     "goalCompletion.shareExponent": "Goal completion · slot-share curve",
+    "streakMilestones.enabled": "Streak milestones · on",
+    "streakMilestones.tiers": "Streak milestones · tiers",
     "limits.dailyBudget": "Platform daily budget (G$)",
   };
   return map[path] ?? path;

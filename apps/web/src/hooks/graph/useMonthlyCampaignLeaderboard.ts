@@ -7,6 +7,8 @@ export type MonthlyCampaignLeaderboardEntry = {
   wallet_address: string;
   points_total: number;
   username: string | null;
+  /** Live days in a row (0 = none). */
+  streak?: number;
 };
 
 type ApiResponse = {

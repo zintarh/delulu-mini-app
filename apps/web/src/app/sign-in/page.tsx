@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +26,7 @@ import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider"
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
 import { AppLoader } from "@/components/app-loader";
+import { Turnstile, TURNSTILE_SITE_KEY, type TurnstileHandle } from "@/components/turnstile";
 
 /** Generous — spans the user actually reading/typing their OTP, not just a network round-trip. */
 const SIGN_IN_TIMEOUT_MS = 3 * 60 * 1000;
@@ -81,31 +82,40 @@ export default function SignInPage() {
   // transaction, which is the only reason signup needs verification at all.
   const [isSkipping, setIsSkipping] = useState(false);
   const [skipError, setSkipError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const handleSkipVerify = async () => {
     if (isSkipping) return;
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setSkipError("One moment — checking you're human.");
+      return;
+    }
     setIsSkipping(true);
     setSkipError(null);
     try {
-      const res = await fetch("/api/faucet/claim", { method: "POST", credentials: "include" });
+      const res = await fetch("/api/faucet/claim", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ captchaToken }),
+      });
       if (res.status === 401) {
         setSkipError("Still connecting your account. Try again in a moment.");
         return;
       }
-      const json = (await res.json().catch(() => ({}))) as { success?: boolean; reason?: string };
-      // Already funded earlier (e.g. skipped, then left before the profile step).
-      if (json.success || json.reason === "already_received_wallet") {
+      const json = (await res.json().catch(() => ({}))) as { success?: boolean; reason?: string; message?: string };
+      // Funded now, already holds enough, or a drip is already on its way.
+      if (json.success || json.reason === "in_flight") {
         skipVerification();
         return;
       }
-      setSkipError(
-        json.reason === "ip_rate_exceeded" || json.reason === "already_received_email"
-          ? "Skipping isn't available on this device. Verify to continue."
-          : "Skipping isn't available right now. Verify to continue.",
-      );
+      setSkipError(json.message ?? "Free gas isn't available right now. Verify to continue.");
     } catch {
       setSkipError("Something went wrong. Try again.");
     } finally {
       setIsSkipping(false);
+      // Captcha tokens are single-use.
+      turnstileRef.current?.reset();
     }
   };
 
@@ -328,6 +338,7 @@ export default function SignInPage() {
               )}
             </button>
             <p className="m-0 text-xs text-muted-foreground">You&apos;ll start with 0 G$ until you verify.</p>
+            <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
             {skipError ? (
               <p className="m-0 text-xs text-destructive" role="alert">
                 {skipError}

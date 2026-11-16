@@ -94,6 +94,7 @@ export async function GET() {
         weekly_consistency: config.weeklyConsistency.enabled,
         campaign_completion: config.campaignCompletion.enabled,
         goal_completion: config.goalCompletion.enabled,
+        streak_milestone: config.streakMilestones.enabled,
       },
     };
     return NextResponse.json(body);

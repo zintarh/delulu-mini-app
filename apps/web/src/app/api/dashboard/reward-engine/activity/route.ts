@@ -6,7 +6,7 @@ import type { RewardCategory } from "@/lib/rewards/rules";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 25;
-const CATEGORIES: RewardCategory[] = ["daily_proof", "weekly_consistency", "campaign_completion", "goal_completion"];
+const CATEGORIES: RewardCategory[] = ["daily_proof", "weekly_consistency", "campaign_completion", "goal_completion", "streak_milestone"];
 const STATUS_GROUPS = {
   pending: ["pending", "processing", "submitted"],
   confirmed: ["confirmed"],
@@ -48,7 +48,7 @@ const clean = (v: string) => v.replace(/[%_,()]/g, "").trim();
  * GET /api/dashboard/reward-engine/activity
  *   ?user=        wallet (or part of one) or username
  *   &campaign=    campaign id or title
- *   &category=    daily_proof | weekly_consistency | campaign_completion | goal_completion
+ *   &category=    daily_proof | weekly_consistency | campaign_completion | goal_completion | streak_milestone
  *   &status=      pending | confirmed | failed
  *   &from=&to=    YYYY-MM-DD (inclusive, UTC, by grant time)
  *   &page=

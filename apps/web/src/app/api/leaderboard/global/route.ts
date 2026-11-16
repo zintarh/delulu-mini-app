@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchGlobalAppPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
+import { fetchLiveStreaks } from "@/lib/rewards/live-streaks";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export async function GET(request: NextRequest) {
     delulu_points: row.delulu_points,
     campaign_points: row.campaign_points,
   }));
+  const streaks = await fetchLiveStreaks(admin, pageRows.map((r) => r.wallet_address));
+  const pageWithStreaks = pageRows.map((r) => ({ ...r, streak: streaks[r.wallet_address.toLowerCase()] ?? 0 }));
 
   let myEntry: {
     rank: number;
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    leaderboard: pageRows,
+    leaderboard: pageWithStreaks,
     hasMore: from + PAGE_SIZE < totalCount,
     totalCount,
     myEntry,

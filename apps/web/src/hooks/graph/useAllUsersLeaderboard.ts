@@ -12,6 +12,8 @@ export interface UserLeaderboardEntry {
   totalStaked: number;
   totalClaimed: number;
   deluluCount: number;
+  /** Live days in a row (0 = none). */
+  streak?: number;
 }
 
 type ApiRow = {
@@ -19,6 +21,7 @@ type ApiRow = {
   wallet_address: string;
   points_total: number;
   username: string | null;
+  streak?: number;
 };
 
 type ApiResponse = {
@@ -67,6 +70,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
             address: row.wallet_address,
             username: row.username,
             points: row.points_total,
+            streak: row.streak ?? 0,
             totalStaked: 0,
             totalClaimed: 0,
             deluluCount: 0,

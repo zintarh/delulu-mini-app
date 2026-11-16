@@ -248,14 +248,16 @@ export function RewardsHowYouEarnCard({
   summary: RewardsSummary | null;
 }) {
   if (!summary || !summary.config.enabled) return null;
-  const { config, daily, weekly, completions, totals, unavailable } = summary;
+  const { config, daily, weekly, streak, completions, totals, unavailable } = summary;
   // Admins can switch categories off; never advertise a reward that won't be paid.
   const on = config.categoryEnabled ?? {
     daily_proof: true,
     weekly_consistency: true,
     campaign_completion: true,
     goal_completion: true,
+    streak_milestone: false,
   };
+  const streakOn = on.streak_milestone && (config.streakTiers ?? []).some((t) => t.amount > 0);
   const completionOn = on.campaign_completion || on.goal_completion;
   if (!on.daily_proof && !on.weekly_consistency && !completionOn) return null;
   const weeklyReward = weekly.reward;
@@ -335,15 +337,52 @@ export function RewardsHowYouEarnCard({
                 <ProgressBar
                   thin
                   className="mt-1.5"
-                  value={weekly.proofs / weekly.needed}
+                  value={weekly.streak / weekly.needed}
                   tone="yellow"
                   label="Weekly streak progress"
                 />
-                <div className="label-mono mt-1 text-[10px] text-muted-foreground">
-                  {Math.min(weekly.proofs, weekly.needed)} of {weekly.needed}{" "}
-                  proofs · resets in {daysToMonday}d
+                <div
+                  className={cn(
+                    "label-mono mt-1 text-[10px]",
+                    weekly.broken ? "text-orange" : "text-muted-foreground",
+                  )}
+                >
+                  {!weekly.reachable
+                    ? `Missed a day · new week in ${daysToMonday}d`
+                    : weekly.broken
+                      ? `Missed a day · start again today`
+                      : `${Math.min(weekly.streak, weekly.needed)} of ${weekly.needed} days in a row`}
                 </div>
               </>
+            )}
+          </Row>
+        ) : null}
+
+        {streakOn && streak ? (
+          <Row
+            art={<Flame size={30} />}
+            title="Days in a row"
+            amount={streak.next ? `+${fmt(streak.next.amount)} G$` : "All earned"}
+          >
+            {streak.next ? (
+              <>
+                <ProgressBar
+                  thin
+                  className="mt-1.5"
+                  value={streak.days / streak.next.minDays}
+                  tone="yellow"
+                  label="Streak progress"
+                />
+                <div className="label-mono mt-1 text-[10px] text-muted-foreground">
+                  {streak.days === 0
+                    ? `Prove today to start · ${streak.next.minDays}-day bonus`
+                    : `${streak.days} of ${streak.next.minDays} days`}
+                </div>
+              </>
+            ) : (
+              <div className="label-mono mt-1 flex items-center gap-1.5 text-[10px] text-green-edge">
+                <CheckCircle2 className="h-3 w-3" strokeWidth={2.6} /> {streak.days} days in a row
+              </div>
             )}
           </Row>
         ) : null}

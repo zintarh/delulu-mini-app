@@ -104,5 +104,6 @@ export const REWARD_ENGINE_SECTION_TABS: DashboardSectionTab[] = [
   { href: "/dashboard/reward-engine", label: "Overview", match: "/dashboard/reward-engine" },
   { href: "/dashboard/reward-engine/activity", label: "Activity", match: "/dashboard/reward-engine/activity" },
   { href: "/dashboard/reward-engine/settings", label: "Settings", match: "/dashboard/reward-engine/settings" },
+  { href: "/dashboard/reward-engine/gas", label: "Gas", match: "/dashboard/reward-engine/gas" },
   { href: "/dashboard/reward-engine/audit", label: "Audit log", match: "/dashboard/reward-engine/audit" },
 ];

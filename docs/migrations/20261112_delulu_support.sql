@@ -12,7 +12,7 @@ do $$
 begin
   if to_regclass('public.forfeit_commitments') is null then
     raise exception 'Wrong database: public.forfeit_commitments is missing here (current_database=%). Open the Supabase project with ref rwqvqsglqqzgabzjpinb (main branch, not a preview branch) and run this again.', current_database();
-  end if;
+  end if;=
 end $$;
 
 -- ---------------------------------------------------------------------------

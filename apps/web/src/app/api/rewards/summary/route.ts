@@ -13,6 +13,8 @@ import {
   computeGoalProgress,
   computeTotals,
   computeWeeklyProgress,
+  computeStreakProgress,
+  type StreakProgress,
   displayStatus,
   type CompletionProgress,
   type HistoryInput,
@@ -34,6 +36,8 @@ export type RewardsSummaryDto = {
     weeklyMinProofs: number;
     campaignTiers: CompletionTier[];
     goalTiers: CompletionTier[];
+    /** Streak milestones: days in a row → G$, once per streak. */
+    streakTiers: CompletionTier[];
     /** Per-category switches (already folded with the master switch). */
     categoryEnabled: Record<RewardCategory, boolean>;
   };
@@ -47,6 +51,7 @@ export type RewardsSummaryDto = {
     coolingUntil: string[];
   };
   weekly: WeeklyProgress;
+  streak: StreakProgress;
   completions: CompletionProgress[];
   history: HistoryItem[];
   /** Sections whose live data couldn't be loaded (shown as unavailable, never as zero progress). */
@@ -184,6 +189,13 @@ export async function GET(request: NextRequest) {
       config,
     });
 
+    const streak = computeStreakProgress({
+      today,
+      engineDailyDays: engineDaily.map((i) => i.rewardDay!).filter(Boolean),
+      streakRewards: items.filter((i) => i.category === "streak_milestone"),
+      config,
+    });
+
     const campaignProgress = joined
       ? computeCampaignProgress({
           config,
@@ -255,11 +267,13 @@ export async function GET(request: NextRequest) {
         weeklyMinProofs: config.weeklyConsistency.minProofs,
         campaignTiers: config.campaignCompletion.tiers,
         goalTiers: config.goalCompletion.tiers,
+        streakTiers: config.streakMilestones.tiers,
         categoryEnabled: {
           daily_proof: isCategoryEnabled(config, "daily_proof"),
           weekly_consistency: isCategoryEnabled(config, "weekly_consistency"),
           campaign_completion: isCategoryEnabled(config, "campaign_completion"),
           goal_completion: isCategoryEnabled(config, "goal_completion"),
+          streak_milestone: isCategoryEnabled(config, "streak_milestone"),
         },
       },
       totals: computeTotals(items),
@@ -276,6 +290,7 @@ export async function GET(request: NextRequest) {
           .map((s) => s.cooldown_until as string),
       },
       weekly,
+      streak,
       completions: [
         ...(isCategoryEnabled(config, "goal_completion") ? goalProgress : goalProgress.filter((p) => p.reward)),
         ...(isCategoryEnabled(config, "campaign_completion") ? campaignProgress : campaignProgress.filter((p) => p.reward)),

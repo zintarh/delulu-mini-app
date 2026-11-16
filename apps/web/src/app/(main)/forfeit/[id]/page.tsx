@@ -4,7 +4,8 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, ChevronLeft, Clock, MoreHorizontal } from "lucide-react";
+import { Camera, Check, ChevronLeft, Clock, Lock, MoreHorizontal } from "lucide-react";
+import { periodOpensAt } from "@/lib/forfeit/period-window";
 import { MainPage } from "@/components/main-app-header";
 import { Coin, HabitTile, HudPill, Lulu, gameButtonClass } from "@/components/ds";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
@@ -172,7 +173,11 @@ export default function ContractDetailPage() {
   const total = Math.max(1, chain?.totalPeriods ?? 1);
   const current = chain?.currentPeriodIndex ?? 0;
   const deadline = chain?.currentPeriodDeadline ? Number(chain.currentPeriodDeadline) : null;
-  const countdown = useCountdown(chain?.active ? deadline : null);
+  // Proved the last day early: the next day exists on-chain but isn't open yet.
+  // Show it as done and count down to when it opens (the countdown re-renders
+  // every second, so this flips on its own).
+  const opensAt = chain?.active && deadline ? periodOpensAt({ ...chain, currentPeriodDeadline: deadline }) : null;
+  const countdown = useCountdown(chain?.active ? (opensAt ?? deadline) : null);
   const [menuOpen, setMenuOpen] = useState(false);
   const proofLabel =
     item?.evidenceType === "camera" ? "Live camera" : item?.evidenceType === "gps-checkin" ? "Check-in" : "Daily photo";
@@ -209,17 +214,20 @@ export default function ContractDetailPage() {
       <span className="text-[14px]">+{fmtWhole(proofPoints)} pts</span>
     );
 
+  const waiting = opensAt != null;
   const nodes = useMemo(() => {
     return Array.from({ length: total }, (_, i): NodeState => {
       const p = periods.find((x) => x.periodIndex === i);
+      if (waiting && i === current - 1) return "now-done";
+      if (waiting && i === current) return "locked";
       if (i < current) return periodKept(p) ? "kept" : "missed";
       if (i === current && chain?.active) return periodKept(p) || p?.proofUrl ? "now-done" : "now";
       if (i === current && !chain?.active) return periodKept(p) ? "kept" : "missed";
       return "locked";
     });
-  }, [total, current, periods, chain?.active]);
+  }, [total, current, periods, chain?.active, waiting]);
 
-  const todayDone = nodes[current] === "now-done";
+  const todayDone = waiting || nodes[current] === "now-done";
   const night = useDaypart() === "night";
   const keptCount = nodes.filter((n) => n === "kept" || n === "now-done").length;
 
@@ -283,8 +291,8 @@ export default function ContractDetailPage() {
 
       <div className="mx-auto flex w-full max-w-3xl flex-wrap gap-2 px-5 pt-4">
         {countdown ? (
-          <HudPill className="text-orange">
-            <Clock className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          <HudPill className={waiting ? "text-muted-foreground" : "text-orange"}>
+            {waiting ? <Lock className="h-[16px] w-[16px]" strokeWidth={2.4} /> : <Clock className="h-[18px] w-[18px]" strokeWidth={2.2} />}
             <span className="tabular-nums">{countdown}</span>
           </HudPill>
         ) : null}

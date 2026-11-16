@@ -51,19 +51,20 @@ test("totals: failed and pending never count as earned", () => {
     item({ amount: 100, status: "failed" }),
   ]);
   assert.equal(totals.earned, 360);
-  assert.deepEqual(totals.byCategory, { daily_proof: 110, weekly_consistency: 250, campaign_completion: 0, goal_completion: 0 });
+  assert.deepEqual(totals.byCategory, { daily_proof: 110, weekly_consistency: 250, campaign_completion: 0, goal_completion: 0, streak_milestone: 0 });
   assert.equal(totals.pending, 500);
   assert.equal(totals.failed, 100);
 });
 
-test("weekly progress counts only this Mon–Sun week's daily rewards", () => {
+test("weekly progress counts days in a row within this Mon–Sun week", () => {
   const p = computeWeeklyProgress({
     today: "2026-11-11", // Wed; week is Nov 9–15
-    engineDailyDays: ["2026-11-08", "2026-11-09", "2026-11-09", "2026-11-11", "2026-11-16"],
+    engineDailyDays: ["2026-11-08", "2026-11-09", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-16"],
     weeklyRewards: [],
     config,
   });
-  assert.equal(p.proofs, 3);
+  assert.equal(p.streak, 3); // Sun the 8th is last week; two proofs on the 9th are one day
+  assert.equal(p.broken, false);
   assert.equal(p.needed, 5);
   assert.equal(p.amount, 250);
   assert.equal(p.reward, null);
@@ -164,4 +165,23 @@ test("dollar equivalents use the live price and never show a fake $0.00", async 
   assert.equal(formatUsdFromG(0, price), "$0.00");
   assert.equal(formatUsdFromG(100, null), null);
   assert.equal(formatUsdFromG(100, 0), null);
+});
+
+test("streak progress: live streak, next milestone, earned for this streak only", async () => {
+  const { computeStreakProgress } = await import("./summary");
+  const days = Array.from({ length: 15 }, (_, i) => `2026-11-${String(i + 1).padStart(2, "0")}`);
+  const p = computeStreakProgress({
+    today: "2026-11-16", // not proved yet today — still alive
+    engineDailyDays: days,
+    streakRewards: [
+      item({ category: "streak_milestone", amount: 500, periodKey: "2026-11-01:14" }),
+      item({ category: "streak_milestone", amount: 500, periodKey: "2026-10-01:14" }), // an older streak
+    ],
+    config,
+  });
+  assert.equal(p.days, 15);
+  assert.equal(p.start, "2026-11-01");
+  assert.deepEqual(p.next, { minDays: 30, amount: 1000 });
+  assert.equal(p.earned.length, 1);
+  assert.equal(p.earned[0].minDays, 14);
 });

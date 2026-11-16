@@ -72,6 +72,7 @@ export default function HowToEarnPage() {
   const stats = data?.stats;
   const on = c?.categoryEnabled;
   const tiers = c ? [...c.campaignTiers].sort((a, b) => a.minDays - b.minDays) : [];
+  const streakTiers = c ? [...(c.streakTiers ?? [])].filter((t) => t.amount > 0).sort((a, b) => a.minDays - b.minDays) : [];
   const minCashoutUsd = formatUsdFromG(NAIRA_CASHOUT_MIN_G, usdPerG);
   const [introOpen, setIntroOpen] = useState(false);
   const { authenticated } = useAuth();
@@ -132,8 +133,16 @@ export default function HowToEarnPage() {
                   <WayToEarn
                     art={<Flame size={36} />}
                     title="Weekly streak"
-                    sub={`${c.weeklyMinProofs} proofs in a week`}
+                    sub={`${c.weeklyMinProofs} days in a row`}
                     badge={`+${fmt(c.weeklyAmount)} G$`}
+                  />
+                ) : null}
+                {on?.streak_milestone && streakTiers.length > 0 ? (
+                  <WayToEarn
+                    art={<Flame size={36} />}
+                    title="Days in a row"
+                    sub={streakTiers.map((t) => `${t.minDays} days · ${compactG(t.amount)}`).join("  ·  ")}
+                    badge={`Up to ${compactG(Math.max(...streakTiers.map((t) => t.amount)))} G$`}
                   />
                 ) : null}
                 {(on?.campaign_completion || on?.goal_completion) && tiers.length > 0 ? (

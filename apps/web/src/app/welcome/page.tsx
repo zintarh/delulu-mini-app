@@ -144,6 +144,13 @@ export default function WelcomePage() {
         body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
       }).catch(() => {});
 
+      // Profile is on-chain now, so the starter gas drip unlocks: enough for a
+      // first goal and proofs. The server checks the profile itself and only
+      // tops up what's missing. A short wait lets the RPC see the new block.
+      window.setTimeout(() => {
+        fetch("/api/faucet/topup", { method: "POST", credentials: "include" }).catch(() => {});
+      }, 3000);
+
       finishOnboarding();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

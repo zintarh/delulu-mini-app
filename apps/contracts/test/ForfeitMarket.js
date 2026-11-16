@@ -353,6 +353,31 @@ describe("ForfeitMarket", function () {
     });
   });
 
+  describe("period window", function () {
+    it("does not let the next period be proved before it opens", async function () {
+      const { market, token, creator } = await loadFixture(deployFixture);
+      await approveAndCreate(market, token, creator, {
+        cadence: Cadence.Daily,
+        totalPeriods: 3,
+        periodSeconds: ONE_DAY,
+      });
+      // Day 1 proved just before its deadline...
+      await time.increase(ONE_DAY - 600n);
+      await market.write.resolveCommitmentSuccess([0n], { account: creator.account });
+      // ...day 2 can't be proved in the same sitting.
+      await expect(
+        market.write.submitProof([0n, "ipfs://day2"], { account: creator.account }),
+      ).to.be.rejectedWith("PeriodNotOpen");
+      await expect(
+        market.write.resolveCommitmentSuccess([0n], { account: creator.account }),
+      ).to.be.rejectedWith("PeriodNotOpen");
+      // Once day 2's window starts, it works.
+      await time.increase(601n);
+      await market.write.submitProof([0n, "ipfs://day2"], { account: creator.account });
+      await market.write.resolveCommitmentSuccess([0n], { account: creator.account });
+    });
+  });
+
   describe("cancelCommitment", function () {
     it("forfeits the stake to a Friend destination's pending reward, minus the platform fee — no refund to the creator", async function () {
       const { market, token, creator, friend } = await loadFixture(deployFixture);

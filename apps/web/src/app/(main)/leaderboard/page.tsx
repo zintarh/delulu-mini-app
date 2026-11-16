@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
-import { Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
+import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
@@ -19,7 +19,22 @@ const PAGE_SIZE = 10;
 
 type Tab = "monthly" | "global";
 
-type Entry = { address: string; username: string | null; points: number; rank: number };
+type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number };
+
+/** Days in a row — what we reward. Shown next to points so consistency is visible, not just volume. */
+function StreakFlame({ days, className }: { days?: number; className?: string }) {
+  if (!days || days < 2) return null;
+  return (
+    <span
+      className={cn("label-mono inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-orange", className)}
+      aria-label={`${days} days in a row`}
+      title={`${days} days in a row`}
+    >
+      <Flame size={14} />
+      {days}
+    </span>
+  );
+}
 
 function formatAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
@@ -76,6 +91,7 @@ function Row({
       <span className="min-w-0 flex-1 truncate font-bold">
         {isMe ? "You" : entry.username ? `@${entry.username}` : formatAddr(entry.address)}
       </span>
+      <StreakFlame days={entry.streak} />
       <span className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="label-mono text-xs font-semibold text-ink">
           {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
@@ -114,7 +130,10 @@ function Podium({
             </span>
           </span>
           <span className="mt-1.5 max-w-full truncate text-sm font-bold">{e.username ? `@${e.username}` : formatAddr(e.address)}</span>
-          <span className="label-mono text-[10px] text-muted-foreground">{formatCompact(e.points)}</span>
+          <span className="label-mono flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            {formatCompact(e.points)}
+            <StreakFlame days={e.streak} className="text-[10px]" />
+          </span>
           {(earnedByAddress[e.address.toLowerCase()] ?? 0) > 0 ? (
             <span className="label-mono text-[9px] text-muted-foreground/80">
               {formatEarnedUsdt(earnedByAddress[e.address.toLowerCase()])}
@@ -173,7 +192,7 @@ function MonthlyLeaderboard() {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
   const { entries: raw, hasNextPage, isLoading, totalCount, error, refetch } = useMonthlyCampaignLeaderboard(page, address);
-  const entries: Entry[] = raw.map((e) => ({ address: e.wallet_address, username: e.username, points: e.points_total, rank: e.rank }));
+  const entries: Entry[] = raw.map((e) => ({ address: e.wallet_address, username: e.username, points: e.points_total, rank: e.rank, streak: e.streak }));
   const pfpMap = usePfps(entries.map((e) => e.address.toLowerCase()));
   const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses(entries.map((e) => e.address));
 

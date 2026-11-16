@@ -59,12 +59,17 @@ const ENGINE_CATEGORY_TITLE: Record<HistoryItem["category"], string> = {
   weekly_consistency: "Weekly streak bonus",
   campaign_completion: "Campaign completed",
   goal_completion: "Goal completed",
+  streak_milestone: "Streak bonus",
 };
 
 function engineRewardContext(item: HistoryItem): string | null {
   if (item.category === "weekly_consistency" && item.rewardDay) {
     const d = new Date(`${item.rewardDay}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
     return `Week of ${d}`;
+  }
+  if (item.category === "streak_milestone" && item.periodKey) {
+    const days = item.periodKey.split(":")[1];
+    return days ? `${days} days in a row` : null;
   }
   return item.goalTitle;
 }

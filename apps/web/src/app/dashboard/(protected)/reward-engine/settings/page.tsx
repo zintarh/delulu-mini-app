@@ -275,6 +275,7 @@ export default function RewardEngineSettingsPage() {
     draft.weeklyConsistency.amount || 0,
     ...draft.campaignCompletion.tiers.map((t) => t.amount || 0),
     ...draft.goalCompletion.tiers.map((t) => t.amount || 0),
+    ...draft.streakMilestones.tiers.map((t) => t.amount || 0),
   );
 
   return (
@@ -361,7 +362,7 @@ export default function RewardEngineSettingsPage() {
 
         <Section
           title="Weekly consistency"
-          description="Once per user per Mon–Sun week."
+          description="Once per user per Mon–Sun week. A missed day resets the streak."
           enabled={draft.weeklyConsistency.enabled}
           onEnabled={(v) => update((c) => void (c.weeklyConsistency.enabled = v))}
         >
@@ -373,11 +374,11 @@ export default function RewardEngineSettingsPage() {
             issue={issueAt("weeklyConsistency.amount")}
           />
           <NumberField
-            label="Weekly limit (proofs needed)"
+            label="Days in a row needed"
             value={draft.weeklyConsistency.minProofs}
             onChange={(v) => update((c) => void (c.weeklyConsistency.minProofs = v))}
             issue={issueAt("weeklyConsistency.minProofs")}
-            hint="Daily-rewarded proofs needed in one week."
+            hint="1–7. Each day needs a daily-rewarded proof, inside one Mon–Sun week."
           />
         </Section>
 
@@ -419,6 +420,19 @@ export default function RewardEngineSettingsPage() {
             value={draft.goalCompletion.shareExponent}
             onChange={(v) => update((c) => void (c.goalCompletion.shareExponent = v))}
             issue={issueAt("goalCompletion.shareExponent")}
+          />
+        </Section>
+
+        <Section
+          title="Streak milestones"
+          description="Days in a row with a daily-rewarded proof. Once per milestone per streak; a missed day starts over."
+          enabled={draft.streakMilestones.enabled}
+          onEnabled={(v) => update((c) => void (c.streakMilestones.enabled = v))}
+        >
+          <TiersEditor
+            tiers={draft.streakMilestones.tiers}
+            onChange={(t) => update((c) => void (c.streakMilestones.tiers = t))}
+            issue={issueAt("streakMilestones.tiers")}
           />
         </Section>
       </div>

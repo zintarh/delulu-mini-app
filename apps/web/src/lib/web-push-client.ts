@@ -118,6 +118,68 @@ export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> 
   });
 }
 
+function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
+  if (!a) return false;
+  const av = new Uint8Array(a);
+  if (av.length !== b.length) return false;
+  for (let i = 0; i < av.length; i++) if (av[i] !== b[i]) return false;
+  return true;
+}
+
+/** Chrome/Edge/Brave throw AbortError "Registration failed - push service error"
+ *  when the browser can't reach its push service (FCM). */
+function isPushServiceError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return err.name === "AbortError" || /push service error/i.test(err.message);
+}
+
+function pushServiceErrorMessage(): string {
+  const isBrave =
+    typeof navigator !== "undefined" &&
+    Boolean((navigator as Navigator & { brave?: unknown }).brave);
+  return isBrave
+    ? "Brave blocks push by default. Turn on \"Use Google services for push messaging\" in brave://settings/privacy, then try again."
+    : "Your browser couldn't reach its push service. Check your connection, VPN or ad blocker and try again.";
+}
+
+async function getOrCreateSubscription(
+  reg: ServiceWorkerRegistration,
+  key: Uint8Array,
+): Promise<PushSubscription> {
+  const existing = await reg.pushManager.getSubscription();
+  // A subscription made with an old VAPID key can't receive our pushes, and
+  // subscribe() with a new key throws InvalidStateError until it's removed.
+  if (existing) {
+    if (sameKey(existing.options?.applicationServerKey, key)) return existing;
+    await existing.unsubscribe().catch(() => {});
+  }
+
+  const opts: PushSubscriptionOptionsInit = {
+    userVisibleOnly: true,
+    applicationServerKey: key as BufferSource,
+  };
+
+  try {
+    return await reg.pushManager.subscribe(opts);
+  } catch (err) {
+    if (err instanceof Error && err.name === "InvalidStateError") {
+      const stale = await reg.pushManager.getSubscription();
+      await stale?.unsubscribe().catch(() => {});
+      return reg.pushManager.subscribe(opts);
+    }
+    if (!isPushServiceError(err)) throw err;
+  }
+
+  // Push service errors are often transient (FCM hiccup, SW just activated).
+  await new Promise((r) => window.setTimeout(r, 1500));
+  try {
+    return await reg.pushManager.subscribe(opts);
+  } catch (err) {
+    if (isPushServiceError(err)) throw new Error(pushServiceErrorMessage());
+    throw err;
+  }
+}
+
 export async function subscribeToWebPush(address: string): Promise<void> {
   if (!env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
     throw new Error("Push is not configured (missing VAPID public key).");
@@ -129,13 +191,10 @@ export async function subscribeToWebPush(address: string): Promise<void> {
     throw new Error("Notifications permission not granted.");
   }
 
-  const existing = await reg.pushManager.getSubscription();
-  const subscription =
-    existing ??
-    (await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
-    }));
+  const subscription = await getOrCreateSubscription(
+    reg,
+    urlBase64ToUint8Array(env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+  );
 
   const json = subscription.toJSON();
 

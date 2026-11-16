@@ -35,6 +35,7 @@ contract ForfeitMarket is
     error DeadlinePassed();
     error DeadlineNotPassed();
     error PeriodAlreadyResolved();
+    error PeriodNotOpen();
     error VerifierAlreadySet();
     error InvalidInviteCode();
     error CharityNotApproved();
@@ -407,6 +408,15 @@ contract ForfeitMarket is
         emit VerifierInviteRevoked(commitmentId, newVerifier);
     }
 
+    /// @dev A period after the first opens `periodSeconds` before its deadline.
+    ///      Without this, resolving period N instantly opened N+1, so one sitting
+    ///      just before a deadline could cover two (or every) periods.
+    function _requirePeriodOpen(Commitment storage c) private view {
+        if (c.currentPeriodIndex > 0 && block.timestamp < c.currentPeriodDeadline - c.periodSeconds) {
+            revert PeriodNotOpen();
+        }
+    }
+
     /// @notice Records evidence for the current period. Deliberately evidence-agnostic —
     ///         the contract never interprets what kind of proof this is, so new evidence
     ///         types (GPS, Strava, ...) never require a contract change.
@@ -418,6 +428,7 @@ contract ForfeitMarket is
         if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
             revert PeriodAlreadyResolved();
         }
+        _requirePeriodOpen(c);
         emit ProofSubmitted(commitmentId, c.currentPeriodIndex, msg.sender, proofLink);
     }
 
@@ -436,6 +447,7 @@ contract ForfeitMarket is
         if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
             revert PeriodAlreadyResolved();
         }
+        _requirePeriodOpen(c);
 
         bool authorized;
         if (c.verifier != address(0)) {

@@ -261,6 +261,10 @@ function ActivityInner() {
                           )
                         ) : r.category === "weekly_consistency" ? (
                           <span className="text-muted-foreground">Week {r.periodKey}</span>
+                        ) : r.category === "streak_milestone" && r.periodKey ? (
+                          <span className="text-muted-foreground">
+                            {r.periodKey.split(":")[1]} days from {r.periodKey.split(":")[0]}
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

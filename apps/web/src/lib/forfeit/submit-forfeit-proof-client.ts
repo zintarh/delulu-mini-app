@@ -30,6 +30,8 @@ export async function submitForfeitProofWithWallet(input: {
       onChainCommitmentId: input.onChainCommitmentId,
       walletAddress: input.walletAddress,
       proofUrls: input.proofUrls,
+      // Device zone, so the server reads the photo's capture time correctly.
+      tzOffsetMinutes: -new Date().getTimezoneOffset(),
     }),
   });
   const json = await res.json().catch(() => ({}));

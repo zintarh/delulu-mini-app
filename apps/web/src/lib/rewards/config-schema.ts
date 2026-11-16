@@ -59,17 +59,17 @@ export const rewardsConfigSchema = z
     goalCompletion: z
       .object({ enabled: z.boolean(), tiers: tiersSchema, shareExponent: z.number().min(1).max(4) })
       .strict(),
+    streakMilestones: z.object({ enabled: z.boolean(), tiers: tiersSchema }).strict(),
     limits: z.object({ dailyBudget: int(0, 100_000_000) }).strict(),
   })
   .strict()
   .superRefine((c, ctx) => {
-    // At most maxEligibleGoals daily rewards a day → at most 7× that a week.
-    const reachable = c.dailyProof.maxEligibleGoals * 7;
-    if (c.weeklyConsistency.minProofs > reachable) {
+    // A streak of days in a row inside one Mon–Sun week: at most 7.
+    if (c.weeklyConsistency.minProofs > 7) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["weeklyConsistency", "minProofs"],
-        message: `Unreachable: at most ${reachable} proofs can earn in a week with ${c.dailyProof.maxEligibleGoals} goals/day`,
+        message: "Unreachable: a week has 7 days, so the streak can be at most 7 days in a row",
       });
     }
     if (c.limits.dailyBudget > 0) {
@@ -78,6 +78,7 @@ export const rewardsConfigSchema = z
         c.weeklyConsistency.amount,
         ...c.campaignCompletion.tiers.map((t) => t.amount),
         ...c.goalCompletion.tiers.map((t) => t.amount),
+        ...c.streakMilestones.tiers.map((t) => t.amount),
       );
       if (c.limits.dailyBudget < largest) {
         ctx.addIssue({

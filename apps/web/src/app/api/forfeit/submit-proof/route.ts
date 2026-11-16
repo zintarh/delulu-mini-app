@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyImageProof } from "@/lib/ai/verify-image-proof";
+import { reviewProof } from "@/lib/proof-integrity/review";
+import { parseTzOffset } from "@/lib/proof-integrity/check";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { recordApprovedProof } from "@/lib/proof-reward/grant";
+import { createPublicClient, http } from "viem";
+import { celo } from "viem/chains";
+import { FORFEIT_MARKET_ABI } from "@/lib/abi/forfeit-market";
+import { DELULU_CHAIN_ID, getForfeitMarketAddress } from "@/lib/constant";
+import { periodOpensAt } from "@/lib/forfeit/period-window";
+
+const publicClient = createPublicClient({ chain: celo, transport: http() });
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
  * Pre-flight for forfeit proof submission — runs the same AI image check
- * campaigns use (verifyImageProof) before the client ever spends gas on
+ * campaigns use (reviewProof: reused / old photo checks + AI) before the client ever spends gas on
  * submitProof/resolveCommitmentSuccess. Only gates the "ai" verification
  * method; "self" and "friend" commitments skip straight to on-chain since
  * either the creator vouches for themselves or a human verifier reviews it.
@@ -20,6 +28,7 @@ export async function POST(request: NextRequest) {
   const proofUrls = Array.isArray(body.proofUrls)
     ? body.proofUrls.map((u: unknown) => String(u).trim()).filter(Boolean)
     : [];
+  const tzOffsetMinutes = parseTzOffset(body.tzOffsetMinutes);
 
   if (!walletAddress) {
     return NextResponse.json({ error: "Connect your wallet to submit proof." }, { status: 400 });
@@ -48,6 +57,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "This forfeit isn't active anymore." }, { status: 400 });
   }
 
+  // Next period not open yet — don't let one sitting cover two days. The
+  // contract enforces this too once upgraded; this also stops the AI check
+  // (and the proof reward row) from running for a period that hasn't started.
+  let periodIndex: number;
+  try {
+    const c = (await publicClient.readContract({
+      address: getForfeitMarketAddress(DELULU_CHAIN_ID),
+      abi: FORFEIT_MARKET_ABI,
+      functionName: "commitments",
+      args: [BigInt(onChainCommitmentId)],
+    })) as readonly unknown[];
+    const opensAt = periodOpensAt({
+      periodSeconds: c[6] as bigint,
+      currentPeriodDeadline: c[7] as bigint,
+      currentPeriodIndex: Number(c[8]),
+    });
+    periodIndex = Number(c[8]);
+    if (opensAt) {
+      return NextResponse.json(
+        { error: "Today's proof is in. The next one opens when its day starts.", opensAt },
+        { status: 409 },
+      );
+    }
+  } catch (err) {
+    console.error("[forfeit/submit-proof] period window check failed", err);
+    return NextResponse.json({ error: "Couldn't check your goal right now. Try again." }, { status: 503 });
+  }
+
   const isLiveCamera = commitment.evidence_type === "camera";
   if (isLiveCamera && proofUrls.length < 2) {
     return NextResponse.json({ error: "At least 2 frames are required for live camera proof." }, { status: 400 });
@@ -56,14 +93,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Exactly one proof image is required." }, { status: 400 });
   }
 
-  if (commitment.verification_method === "ai") {
-    let verdict;
+  // Self-verified goals never earn, so they skip the gate. Friend-verified
+  // ones still get the integrity checks (no reused or old photos) since an
+  // approval there earns too; only "ai" goals get the AI review.
+  if (commitment.verification_method === "ai" || commitment.verification_method === "friend") {
+    let review;
     try {
-      verdict = await verifyImageProof({
-        imageUrl: isLiveCamera ? proofUrls : proofUrls[0],
-        goal: commitment.title,
-        milestone: commitment.description ?? undefined,
-      });
+      review = await reviewProof(
+        admin,
+        {
+          wallet: walletAddress,
+          kind: "forfeit",
+          refId: commitment.id,
+          periodKey: `${commitment.id}:${periodIndex}`,
+          tzOffsetMinutes,
+        },
+        proofUrls,
+        {
+          liveCamera: isLiveCamera,
+          ai:
+            commitment.verification_method === "ai"
+              ? { goal: commitment.title, milestone: commitment.description ?? undefined }
+              : null,
+        },
+      );
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Verification failed";
       const friendly =
@@ -77,25 +130,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: friendly }, { status: 503 });
     }
 
-    if (!verdict.verified) {
-      const reason =
-        (verdict.reason && String(verdict.reason).trim()) ||
-        "Your proof wasn't accepted. Try a clearer photo that shows the activity.";
+    if (!review.ok) {
       return NextResponse.json(
-        { verified: false, reason, error: reason },
+        { verified: false, code: review.code, reason: review.reason, error: review.reason },
         { status: 422 },
       );
     }
 
-    // Lets the on-chain submission of this exact proof URL earn the per-proof
-    // G$ rewards (see lib/rewards/engine.ts). Only AI-reviewed proofs get
-    // a row here; friend-verified ones are gated on the friend's approval.
-    await recordApprovedProof(admin, {
-      wallet: walletAddress,
-      kind: "forfeit",
-      proofUrl: proofUrls[0],
-      refId: commitment.id,
-    });
+    if (commitment.verification_method === "ai") {
+      // Lets the on-chain submission of this exact proof URL earn the per-proof
+      // G$ rewards (see lib/rewards/engine.ts). Only AI-reviewed proofs get
+      // a row here; friend-verified ones are gated on the friend's approval.
+      await recordApprovedProof(admin, {
+        wallet: walletAddress,
+        kind: "forfeit",
+        proofUrl: proofUrls[0],
+        refId: commitment.id,
+      });
+    }
   }
 
   // "self" and "friend" methods aren't AI-gated: resolveCommitmentSuccess itself

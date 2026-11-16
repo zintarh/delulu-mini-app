@@ -3,7 +3,8 @@ import {
   isCampaignExpired,
   isCampaignParticipatable,
 } from "@/lib/community/campaign-types";
-import { verifyImageProof } from "@/lib/ai/verify-image-proof";
+import { reviewProof } from "@/lib/proof-integrity/review";
+import { parseTzOffset } from "@/lib/proof-integrity/check";
 import { fetchCommunityCampaignMilestonesFromGraph } from "@/lib/community/campaign-subgraph";
 import { canSubmitMilestone } from "@/lib/community/milestone-submit-eligibility";
 import { isValidOnChainChallengeId } from "@/lib/community/campaign-milestone-counts";
@@ -26,6 +27,7 @@ export async function POST(
   const milestoneIdRaw = body.milestoneId;
   const milestoneId =
     milestoneIdRaw != null && milestoneIdRaw !== "" ? Number(milestoneIdRaw) : null;
+  const tzOffsetMinutes = parseTzOffset(body.tzOffsetMinutes);
 
   if (!walletAddress) {
     return NextResponse.json(
@@ -109,13 +111,20 @@ export async function POST(
     return NextResponse.json({ error: "Exactly one proof image is required." }, { status: 400 });
   }
 
-  let verdict;
+  let review;
   try {
-    verdict = await verifyImageProof({
-      imageUrl: isLiveCamera ? proofUrls : proofUrls[0],
-      goal: campaign.title,
-      milestone: milestone.label,
-    });
+    review = await reviewProof(
+      admin,
+      {
+        wallet: walletAddress,
+        kind: "campaign",
+        refId: String(campaign.id),
+        periodKey: `${campaign.id}:${milestoneId}`,
+        tzOffsetMinutes,
+      },
+      proofUrls,
+      { liveCamera: isLiveCamera, ai: { goal: campaign.title, milestone: milestone.label } },
+    );
   } catch (err) {
     const raw = err instanceof Error ? err.message : "Verification failed";
     const friendly =
@@ -131,9 +140,9 @@ export async function POST(
     return NextResponse.json({ error: friendly }, { status: 503 });
   }
 
-  if (!verdict.verified) {
+  if (!review.ok) {
     return NextResponse.json(
-      { verified: false, reason: verdict.reason ?? "Proof was not accepted." },
+      { verified: false, code: review.code, reason: review.reason },
       { status: 422 },
     );
   }
@@ -153,7 +162,7 @@ export async function POST(
     requiresOnChain: true,
     challengeId,
     milestoneId,
-    reason: verdict.reason,
+    reason: review.reason,
     proofUrl: proofUrls[0],
   });
 }

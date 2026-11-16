@@ -100,10 +100,11 @@ export function ProofRewardRow() {
 
   const bonuses = [
     earned(r.weekly) ? { key: "weekly", art: <Flame size={16} />, text: `+${fmt(r.weekly.amount)} G$ weekly streak` } : null,
+    earned(r.streak) ? { key: "streak", art: <Flame size={16} />, text: `+${fmt(r.streak.amount)} G$ streak bonus` } : null,
     earned(r.completion) ? { key: "completion", art: <Trophy size={16} />, text: `+${fmt(r.completion.amount)} G$ for finishing` } : null,
   ].filter((b): b is NonNullable<typeof b> => !!b);
 
-  const all = [r.daily, r.weekly, r.completion].filter(earned);
+  const all = [r.daily, r.weekly, r.streak, r.completion].filter(earned);
   const total = all.reduce((sum, o) => sum + o.amount, 0);
   const allPaid = all.length > 0 && all.every((o) => o.result === "paid");
 
@@ -144,6 +145,9 @@ export function ProofRewardRow() {
 
   if (r.daily.result === "daily_limit") {
     return <Shell tone="plain" art={<Coin size={28} />} title="Today's G$ proof rewards are done" sub="Back tomorrow" />;
+  }
+  if (r.daily.result === "same_habit") {
+    return <Shell tone="plain" art={<Coin size={28} />} title="This habit already earned today" sub="One G$ reward per habit a day" />;
   }
   if (r.daily.result === "goal_limit") {
     return (

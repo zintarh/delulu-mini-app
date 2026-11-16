@@ -6,6 +6,7 @@ import { Flame, GameCard, LuluScene, ProgressBar, luluWeatherFor, type LuluWeath
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeits";
 import { cn } from "@/lib/utils";
+import { periodOpensAt } from "@/lib/forfeit/period-window";
 import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
 import { HeartHandshake } from "lucide-react";
 import { HowToEarnLink } from "@/components/home/how-to-earn-link";
@@ -25,6 +26,8 @@ export function useTodayQuests(address: string | undefined) {
     const today = new Date().toDateString();
     const isKept = (f: (typeof active)[number]) => {
       const idx = f.onChain?.currentPeriodIndex ?? 0;
+      // Next day not open yet — nothing to prove right now.
+      if (f.onChain && periodOpensAt(f.onChain) != null) return true;
       const current = f.periods?.find((x) => x.periodIndex === idx) ?? f.currentPeriod;
       if (ok(current)) return true;
       const previous = f.periods?.find((x) => x.periodIndex === idx - 1);

@@ -8,6 +8,9 @@ import {
   isoWeekKey,
   proratedCompletionAmount,
   weekBounds,
+  weeklyStreak,
+  dayRunEndingAt,
+  nextStreakMilestone,
   type RewardCategory,
   type RewardsConfig,
 } from "./rules";
@@ -63,7 +66,7 @@ export type RewardTotals = {
 export function computeTotals(items: HistoryItem[]): RewardTotals {
   const totals: RewardTotals = {
     earned: 0,
-    byCategory: { daily_proof: 0, weekly_consistency: 0, campaign_completion: 0, goal_completion: 0 },
+    byCategory: { daily_proof: 0, weekly_consistency: 0, campaign_completion: 0, goal_completion: 0, streak_milestone: 0 },
     pending: 0,
     failed: 0,
   };
@@ -84,8 +87,12 @@ export type WeeklyProgress = {
   weekKey: string;
   weekStart: string;
   weekEnd: string;
-  /** Daily-rewarded proofs this week — exactly what the engine counts. */
-  proofs: number;
+  /** Days in a row still alive this week (what the progress bar shows). */
+  streak: number;
+  /** Progress was lost to a missed day this week. */
+  broken: boolean;
+  /** False once the days left this week can't complete the streak. */
+  reachable: boolean;
   needed: number;
   amount: number;
   /** This week's bonus, if already granted. */
@@ -105,17 +112,48 @@ export function computeWeeklyProgress(params: {
 }): WeeklyProgress {
   const { start, end } = weekBounds(params.today);
   const weekKey = isoWeekKey(params.today);
-  const proofs = params.engineDailyDays.filter((d) => d >= start && d <= end).length;
+  const needed = params.config.weeklyConsistency.minProofs;
+  const s = weeklyStreak(params.engineDailyDays, params.today, needed);
   const reward = params.weeklyRewards.find((r) => r.periodKey === weekKey) ?? null;
   return {
     weekKey,
     weekStart: start,
     weekEnd: end,
-    proofs,
-    needed: params.config.weeklyConsistency.minProofs,
+    streak: Math.max(s.current, s.best >= needed ? needed : 0),
+    broken: s.broken,
+    reachable: s.reachable,
+    needed,
     amount: params.config.weeklyConsistency.amount,
     reward: reward ? { status: reward.status, amount: reward.amount } : null,
   };
+}
+
+export type StreakProgress = {
+  /** Days in a row with a daily-rewarded proof, still alive (ends today or yesterday). */
+  days: number;
+  /** First day of that streak; null when there is none. */
+  start: string | null;
+  /** Next milestone to reach, or null when every milestone is behind it. */
+  next: { minDays: number; amount: number } | null;
+  /** Milestones already granted for this streak, shortest first. */
+  earned: { minDays: number; amount: number; status: DisplayStatus }[];
+};
+
+/** Same days and rules as the engine's streak milestones (see evaluateStreakMilestones). */
+export function computeStreakProgress(params: {
+  today: string;
+  engineDailyDays: string[];
+  streakRewards: HistoryItem[];
+  config: RewardsConfig;
+}): StreakProgress {
+  const run = dayRunEndingAt(params.engineDailyDays, params.today, true);
+  const earned = run.start
+    ? params.streakRewards
+        .filter((r) => r.periodKey?.startsWith(`${run.start}:`))
+        .map((r) => ({ minDays: Number(r.periodKey!.split(":")[1]), amount: r.amount, status: r.status }))
+        .sort((a, b) => a.minDays - b.minDays)
+    : [];
+  return { days: run.length, start: run.start, next: nextStreakMilestone(params.config, run.length), earned };
 }
 
 export type CampaignInput = {

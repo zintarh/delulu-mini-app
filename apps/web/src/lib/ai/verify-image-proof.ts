@@ -3,7 +3,13 @@ import OpenAI from "openai";
 export interface VerifyImageProofResult {
   verified: boolean;
   reason: string;
+  /** Set when an earlier image was passed in `compareWith` and the AI judged it the same photo. */
+  sameAsPrevious?: boolean;
+  /** Why it was rejected, for abuse review. "none" when verified. */
+  issue?: string;
 }
+
+type ImageInput = { bytes: Buffer; contentType: string };
 
 function isIPFSHash(str: string): boolean {
   return (
@@ -14,55 +20,71 @@ function isIPFSHash(str: string): boolean {
   );
 }
 
-const SYSTEM_PROMPT = `You are a very lenient proof reviewer for a personal goal-tracking app.
+const SYSTEM_PROMPT = `You review photo proof for a habit app where people earn money for doing their daily goal. Some people try to cheat with photos that aren't theirs or aren't from today. Your job is to tell a genuine, first-hand proof from a fake one.
 
-Your job is simple: does this image show ANY connection to the stated goal?
+ACCEPT when the image is plausibly something this person captured themselves, recently, showing the goal's activity:
+- A casual phone photo of the activity, its result, or its setting (a book open on a desk, a plate of food, a gym, a running route, a workout tracker).
+- A screenshot of their own app or device that shows the activity (step counter, fitness app, reading app, study timer, their own social post) — only when the goal is something you'd naturally prove with a screenshot.
+- Quality does not matter: blurry, dark, tilted, partial or messy photos are fine if they look genuinely first-hand.
 
-Rules:
-- Default answer is YES. Only say NO if the image has zero conceivable connection to the goal.
-- You are verifying effort and context, not perfection.
-- Gym, workout clothes, weights, sweat = any fitness or exercise goal.
-- Food, meals, cooking, grocery = any diet, nutrition, or cooking goal.
-- Books, notes, screen with text, study desk = any study, reading, or learning goal.
-- Outdoor scenery, running shoes, a path = any running, walking, or outdoor goal.
-- A completed app screen, calendar, habit tracker = any productivity or habit goal.
-- A blurry, dark, or partial image that hints at the activity = YES.
-- When in doubt: YES.
-- Only say NO if you can clearly describe what you see AND explain why it has absolutely no link to the goal.
+REJECT when any of these is true:
+- stock: a professional, posed, studio-lit or model-style photo, a marketing or product shot, or anything that looks taken from the internet or an image search (watermarks, stock-site styling, perfect composition with a model, very low-resolution thumbnail).
+- generated: it looks AI-generated, a render, an illustration, a meme or a graphic.
+- not_first_hand: a photo of another screen showing someone else's photo, a screenshot of someone else's content, or a screenshot of a social post, chat or app that is not clearly the user's own activity.
+- old: ONLY for a screenshot of a post, chat, receipt or app whose own timestamp is clearly readable and is more than one day BEFORE today's date. Never use "old" for a camera photo, for dates printed on posters, books, flyers or packaging, for page numbers, for future dates, or when no date is clearly readable — none of those say when the proof was made.
+- unrelated: no real connection to the goal.
 
-Tone: second person, one sentence only. Never mention AI or technical systems.
+If you are unsure whether the image is genuine, prefer rejecting with a clear, friendly tip about what photo to take instead.
+
+Reason: one short sentence, second person, plain words, never mention AI, rules or cheating. On rejection say what to send instead.
 
 Return ONLY valid JSON:
-{"verified": true | false, "reason": "one sentence"}`;
+{"verified": true | false, "issue": "none" | "stock" | "generated" | "not_first_hand" | "old" | "unrelated" | "unclear", "reason": "one sentence"}`;
 
-function userPrompt(goal: string, milestone?: string, imageCount = 1) {
-  const lines: string[] = [`Goal: "${goal}"`];
-  if (milestone && milestone !== goal) lines.push(`Current step: "${milestone}"`);
-  const subject = imageCount > 1 ? "these images (frames from a short recording)" : "this image";
-  lines.push(
-    "",
-    `Look at ${subject}. Is there any connection — even loose or indirect — between what you see and this goal?`,
-    "",
-    'Return exactly: {"verified": true | false, "reason": "one sentence in second person"}',
-  );
+const SAME_PHOTO_PROMPT = `You compare two images. Image A is a new upload. Image B was uploaded earlier.
+
+Answer whether A is the SAME capture as B: the same photo or screenshot, even if resized, cropped, re-compressed, filtered, brightened, rotated or screenshotted again.
+
+A NEW photo of a similar scene, the same room, the same dish, the same book or the same app screen with any different content, numbers, text, angle, lighting or moment is NOT the same.
+
+Return ONLY valid JSON: {"same": true | false}`;
+
+function userPrompt(input: {
+  goal: string;
+  milestone?: string;
+  imageCount: number;
+  today: string;
+}) {
+  const lines: string[] = [`Goal: "${input.goal}"`];
+  if (input.milestone && input.milestone !== input.goal) lines.push(`Current step: "${input.milestone}"`);
+  lines.push(`Today's date: ${input.today}`);
+  const subject =
+    input.imageCount > 1 ? `these ${input.imageCount} images (frames from a live recording in the app)` : "this image";
+  lines.push("", `Review ${subject} as today's proof for this goal.`);
+  lines.push("", 'Return exactly: {"verified": true | false, "issue": "...", "reason": "one sentence"}');
   return lines.join("\n");
 }
 
-async function toDataUri(url: string): Promise<string> {
+async function urlToImage(url: string): Promise<ImageInput> {
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) {
     throw new Error("We couldn't load your proof images. Please try uploading again.");
   }
-  const contentType = res.headers.get("content-type") ?? "image/jpeg";
-  const buffer = await res.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return `data:${contentType};base64,${base64}`;
+  return { bytes: Buffer.from(await res.arrayBuffer()), contentType: res.headers.get("content-type") ?? "image/jpeg" };
 }
+
+const toDataUri = (img: ImageInput) => `data:${img.contentType};base64,${img.bytes.toString("base64")}`;
 
 export async function verifyImageProof(input: {
   imageUrl: string | string[];
   goal: string;
   milestone?: string;
+  /** Already-downloaded bytes for `imageUrl`, same order — skips a second fetch. */
+  images?: ImageInput[];
+  /** An earlier accepted proof that looks close: the AI decides if it's the same photo. */
+  compareWith?: ImageInput | null;
+  /** The user's device zone (minutes east of UTC), for "today" in visible dates. */
+  tzOffsetMinutes?: number | null;
 }): Promise<VerifyImageProofResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Proof review is temporarily unavailable. Please try again later.");
@@ -85,7 +107,16 @@ export async function verifyImageProof(input: {
   if (!goal) throw new Error("A valid goal description is required");
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 60_000 });
-  const imagePayloads = await Promise.all(urls.map((url) => toDataUri(url)));
+  const images =
+    input.images && input.images.length === urls.length ? input.images : await Promise.all(urls.map(urlToImage));
+
+  const today = new Date(Date.now() + (input.tzOffsetMinutes ?? 0) * 60_000).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -94,11 +125,19 @@ export async function verifyImageProof(input: {
       {
         role: "user",
         content: [
-          ...imagePayloads.map((payload) => ({
+          ...images.map((img) => ({
             type: "image_url" as const,
-            image_url: { url: payload, detail: "auto" as const },
+            image_url: { url: toDataUri(img), detail: "auto" as const },
           })),
-          { type: "text", text: userPrompt(goal, readableMilestone || undefined, imagePayloads.length) },
+          {
+            type: "text",
+            text: userPrompt({
+              goal,
+              milestone: readableMilestone || undefined,
+              imageCount: images.length,
+              today,
+            }),
+          },
         ],
       },
     ],
@@ -110,13 +149,44 @@ export async function verifyImageProof(input: {
   const raw = completion.choices[0]?.message?.content;
   if (!raw) throw new Error("No response from AI");
 
-  const parsed = JSON.parse(raw) as VerifyImageProofResult;
+  const parsed = JSON.parse(raw) as { verified?: unknown; reason?: unknown; issue?: unknown };
   if (typeof parsed.verified !== "boolean" || typeof parsed.reason !== "string") {
     throw new Error("Invalid AI response format");
   }
+  const issue = typeof parsed.issue === "string" ? parsed.issue : parsed.verified ? "none" : "unclear";
+  const verdict: VerifyImageProofResult = { verified: parsed.verified, reason: parsed.reason.slice(0, 300), issue };
 
-  return {
-    verified: parsed.verified,
-    reason: parsed.reason.slice(0, 300),
-  };
+  // Only a proof that passes on its own needs the copy check.
+  if (verdict.verified && input.compareWith) {
+    const same = await isSamePhoto(openai, images[0], input.compareWith);
+    if (same) return { verified: false, reason: verdict.reason, issue: "same_as_previous", sameAsPrevious: true };
+  }
+  return { ...verdict, sameAsPrevious: false };
+}
+
+/** Separate call: judging "same photo?" alongside "valid proof?" muddles both answers. */
+async function isSamePhoto(openai: OpenAI, current: ImageInput, previous: ImageInput): Promise<boolean> {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: SAME_PHOTO_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Image A (new):" },
+          { type: "image_url", image_url: { url: toDataUri(current), detail: "auto" } },
+          { type: "text", text: "Image B (earlier):" },
+          { type: "image_url", image_url: { url: toDataUri(previous), detail: "auto" } },
+        ],
+      },
+    ],
+    temperature: 0,
+    max_tokens: 20,
+    response_format: { type: "json_object" },
+  });
+  try {
+    return JSON.parse(completion.choices[0]?.message?.content ?? "{}").same === true;
+  } catch {
+    return false;
+  }
 }

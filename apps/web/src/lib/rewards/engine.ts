@@ -31,6 +31,10 @@ import {
   rewardDayFor,
   weekBounds,
   weeklyConsistencyDedupeKey,
+  longestDayRun,
+  dayRunEndingAt,
+  streakMilestoneDedupeKey,
+  streakTiersAscending,
   type GoalKind,
   type GoalState,
   type RewardsConfig,
@@ -50,7 +54,7 @@ const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC)
 export type RewardOutcome =
   | { result: "paid" | "in_flight" | "queued" | "failed"; amount: number; payoutStatus: PayoutStatus }
   | {
-      result: "daily_limit" | "goal_limit" | "goal_released" | "not_reached" | "not_complete" | "no_tier" | "legacy" | "disabled";
+      result: "daily_limit" | "goal_limit" | "goal_released" | "same_habit" | "not_reached" | "not_complete" | "no_tier" | "legacy" | "disabled";
     };
 
 export type ProofRewardsResult =
@@ -67,6 +71,8 @@ export type ProofRewardsResult =
       day: string;
       daily: RewardOutcome;
       weekly: RewardOutcome;
+      /** A streak milestone reached with this proof's day (not_reached on other days). */
+      streak: RewardOutcome;
       completion: RewardOutcome;
     };
 
@@ -341,6 +347,7 @@ async function evaluateDaily(
   if (!isCategoryEnabled(config, "daily_proof")) return { result: "disabled" };
   const dedupeKey = dailyProofDedupeKey(proof.wallet, proof.goalKind, proof.goalRef, day);
   const amount = config.dailyProof.amount;
+  const siblingRefs = proof.goalKind === "forfeit" ? await sameHabitGoalRefs(admin, proof.wallet, proof.goalRef) : [];
   const { data, error } = await admin.rpc("reserve_daily_proof_reward", {
     p_wallet: proof.wallet,
     p_goal_kind: proof.goalKind,
@@ -351,20 +358,49 @@ async function evaluateDaily(
     p_dedupe_key: dedupeKey,
     p_reward_id: engineRewardId(dedupeKey),
     p_source_proof_id: proof.proofRowId,
+    // Only sent when there are siblings, so the call also works against the
+    // pre-20261116 function signature.
+    ...(siblingRefs.length > 0 ? { p_sibling_refs: siblingRefs } : {}),
   });
   if (error) throw new Error(`[rewards] daily reservation: ${error.message}`);
   const res = data as { outcome: string; payout_id?: string; status?: PayoutStatus };
   if (res.outcome === "reserved" || res.outcome === "exists") {
     return pay(admin, res.payout_id!, amount, res.status ?? "pending", deadline);
   }
-  return { result: res.outcome as "daily_limit" | "goal_limit" | "goal_released" };
+  return { result: res.outcome as "daily_limit" | "goal_limit" | "goal_released" | "same_habit" };
+}
+
+/** "Reading for 30 minutes" and "reading for 30 minutes!" are one habit. */
+export function habitKey(title: string | null | undefined): string {
+  return (title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 /**
- * 250 G$ once per user per Mon–Sun week, after `minProofs` proofs that each
- * earned a daily reward that week. Counting daily-rewarded proofs (rather
- * than every proof) means extra goals or several proofs in one sitting can't
- * stand in for showing up on several days.
+ * The wallet's other Forfeit goals for the same habit. They share one daily
+ * reward: two copies of "Reading for 30 minutes" don't earn twice a day.
+ */
+async function sameHabitGoalRefs(admin: SupabaseAdmin, wallet: string, goalRef: string): Promise<string[]> {
+  const { data, error } = await admin
+    .from("forfeit_commitments")
+    .select("id, title")
+    .eq("creator_wallet", wallet)
+    .limit(500);
+  if (error) {
+    console.error("[rewards] same-habit lookup failed", error);
+    return [];
+  }
+  const rows = (data ?? []) as { id: string; title: string | null }[];
+  const key = habitKey(rows.find((r) => r.id === goalRef)?.title);
+  if (!key) return [];
+  return rows.filter((r) => r.id !== goalRef && habitKey(r.title) === key).map((r) => r.id);
+}
+
+/**
+ * 250 G$ once per user per Mon–Sun week, after a streak of `minProofs` days
+ * in a row, each with a proof that earned a daily reward. Missing a day
+ * breaks the streak and it starts over, so scattered days never add up.
+ * Counting days (not proofs) means extra goals or several proofs in one
+ * sitting can't stand in for showing up.
  */
 export async function evaluateWeekly(
   admin: SupabaseAdmin,
@@ -375,15 +411,16 @@ export async function evaluateWeekly(
 ): Promise<RewardOutcome> {
   if (!isCategoryEnabled(config, "weekly_consistency")) return { result: "disabled" };
   const { start, end } = weekBounds(day);
-  const { count, error } = await admin
+  const { data: rows, error } = await admin
     .from("reward_payouts")
-    .select("id", { count: "exact", head: true })
+    .select("reward_day")
     .eq("wallet", wallet)
     .eq("category", "daily_proof")
     .gte("reward_day", start)
     .lte("reward_day", end);
-  if (error) throw new Error(`[rewards] weekly count: ${error.message}`);
-  if ((count ?? 0) < config.weeklyConsistency.minProofs) return { result: "not_reached" };
+  if (error) throw new Error(`[rewards] weekly days: ${error.message}`);
+  const streakDays = longestDayRun((rows ?? []).map((r) => r.reward_day as string));
+  if (streakDays < config.weeklyConsistency.minProofs) return { result: "not_reached" };
 
   const weekKey = isoWeekKey(day);
   const dedupeKey = weeklyConsistencyDedupeKey(wallet, weekKey);
@@ -396,9 +433,70 @@ export async function evaluateWeekly(
     rewardId: engineRewardId(dedupeKey),
     periodKey: weekKey,
     rewardDay: start,
-    metadata: { qualifyingProofs: count, weekStart: start, weekEnd: end },
+    metadata: { streakDays, weekStart: start, weekEnd: end },
   });
   return pay(admin, reserved.id, amount, reserved.status, deadline);
+}
+
+/**
+ * Streak milestones: N days in a row with a daily-rewarded proof (the same
+ * days the weekly bonus counts, so extra goals, self-verified goals and word
+ * pledges can't grow it). Once per milestone per streak — the dedupe key
+ * carries the streak's first day, so a broken streak starts its milestones
+ * over and a late joiner earns exactly what their own days add up to.
+ *
+ * Normally pays only the milestone reached ON `day`. `catchUp` (cron sweep)
+ * reserves every milestone the live streak has passed, for requests that
+ * crashed before granting.
+ */
+export async function evaluateStreakMilestones(
+  admin: SupabaseAdmin,
+  wallet: string,
+  day: string,
+  config: RewardsConfig,
+  deadline: number,
+  { catchUp = false }: { catchUp?: boolean } = {},
+): Promise<RewardOutcome> {
+  if (!isCategoryEnabled(config, "streak_milestone")) return { result: "disabled" };
+  const tiers = streakTiersAscending(config);
+  if (tiers.length === 0) return { result: "no_tier" };
+  const longest = tiers[tiers.length - 1].minDays;
+
+  // One day more than the longest milestone, so a streak that fits shows its
+  // first day. A streak filling the whole window is past every milestone
+  // (granted back when each was reached) and its start can't be seen here.
+  const window = longest + 1;
+  const { data: rows, error } = await admin
+    .from("reward_payouts")
+    .select("reward_day")
+    .eq("wallet", wallet)
+    .eq("category", "daily_proof")
+    .gte("reward_day", addDays(day, -(window - 1)))
+    .lte("reward_day", day)
+    .limit(5000);
+  if (error) throw new Error(`[rewards] streak days: ${error.message}`);
+  const run = dayRunEndingAt((rows ?? []).map((r) => r.reward_day as string), day);
+  if (run.length === 0 || run.length >= window || !run.start) return { result: "not_reached" };
+
+  const due = tiers.filter((t) => (catchUp ? t.minDays <= run.length : t.minDays === run.length));
+  if (due.length === 0) return { result: "not_reached" };
+
+  let outcome: RewardOutcome = { result: "not_reached" };
+  for (const tier of due) {
+    const dedupeKey = streakMilestoneDedupeKey(wallet, run.start, tier.minDays);
+    const reserved = await reserveReward(admin, {
+      wallet,
+      category: "streak_milestone",
+      amount: tier.amount,
+      dedupeKey,
+      rewardId: engineRewardId(dedupeKey),
+      periodKey: `${run.start}:${tier.minDays}`,
+      rewardDay: addDays(run.start, tier.minDays - 1),
+      metadata: { streakDays: tier.minDays, streakStart: run.start },
+    });
+    outcome = await pay(admin, reserved.id, tier.amount, reserved.status, deadline);
+  }
+  return outcome;
 }
 
 const CAMPAIGN_PROGRESS_QUERY = `
@@ -698,13 +796,18 @@ export async function processVerifiedProof(
     return { result: "not_reached" } as RewardOutcome;
   });
 
+  const streak = await evaluateStreakMilestones(admin, proof.wallet, day, config, deadline).catch((err) => {
+    console.error("[rewards] streak evaluation failed", err);
+    return { result: "not_reached" } as RewardOutcome;
+  });
+
   const evaluateCompletion = proof.goalKind === "campaign" ? evaluateCampaignCompletion : evaluateGoalCompletion;
   const completion = await evaluateCompletion(admin, proof.wallet, proof.goalRef, config, deadline).catch((err) => {
     console.error("[rewards] completion evaluation failed", err);
     return { result: "not_complete" } as RewardOutcome;
   });
 
-  return { status: "processed", wallet: proof.wallet, day, daily, weekly, completion };
+  return { status: "processed", wallet: proof.wallet, day, daily, weekly, streak, completion };
 }
 
 /**
@@ -716,10 +819,10 @@ export async function processVerifiedProof(
 export async function sweepMissedRewards(
   admin: SupabaseAdmin,
   opts: { deadlineMs?: number; maxCompletionChecks?: number } = {},
-): Promise<{ weeklyChecked: number; completionChecked: number; granted: number }> {
+): Promise<{ weeklyChecked: number; streakChecked: number; completionChecked: number; granted: number }> {
   const deadline = Date.now() + (opts.deadlineMs ?? 30_000);
   const config = await loadRewardsConfig(admin);
-  const out = { weeklyChecked: 0, completionChecked: 0, granted: 0 };
+  const out = { weeklyChecked: 0, streakChecked: 0, completionChecked: 0, granted: 0 };
   if (!config.enabled) return out;
 
   const today = rewardDayFor(new Date(), config.timezone);
@@ -733,15 +836,15 @@ export async function sweepMissedRewards(
     .limit(5000);
   if (error) throw new Error(`[rewards] sweep daily rows: ${error.message}`);
 
-  const perWalletWeek = new Map<string, { wallet: string; day: string; count: number }>();
+  const perWalletWeek = new Map<string, { wallet: string; day: string; days: string[] }>();
   for (const r of dailyRows ?? []) {
     const key = `${r.wallet}|${isoWeekKey(r.reward_day as string)}`;
-    const entry = perWalletWeek.get(key) ?? { wallet: r.wallet as string, day: r.reward_day as string, count: 0 };
-    entry.count++;
+    const entry = perWalletWeek.get(key) ?? { wallet: r.wallet as string, day: r.reward_day as string, days: [] };
+    entry.days.push(r.reward_day as string);
     perWalletWeek.set(key, entry);
   }
-  for (const { wallet, day, count } of perWalletWeek.values()) {
-    if (count < config.weeklyConsistency.minProofs || Date.now() > deadline) continue;
+  for (const { wallet, day, days } of perWalletWeek.values()) {
+    if (longestDayRun(days) < config.weeklyConsistency.minProofs || Date.now() > deadline) continue;
     const { data: existing } = await admin
       .from("reward_payouts")
       .select("id")
@@ -752,6 +855,28 @@ export async function sweepMissedRewards(
     // Reserve only; reconcilePayouts sends it within the pool budget.
     const outcome = await evaluateWeekly(admin, wallet, day, config, 0);
     if ("amount" in outcome) out.granted++;
+  }
+
+  // Streak milestones for anyone whose streak is still live (proof today or
+  // yesterday). Reserve only; reconcilePayouts sends them.
+  if (isCategoryEnabled(config, "streak_milestone")) {
+    const latest = new Map<string, string>();
+    for (const r of dailyRows ?? []) {
+      const d = r.reward_day as string;
+      if (d < addDays(today, -1)) continue;
+      const w = r.wallet as string;
+      if (!latest.has(w) || d > latest.get(w)!) latest.set(w, d);
+    }
+    for (const [wallet, day] of latest) {
+      if (Date.now() > deadline) break;
+      out.streakChecked++;
+      try {
+        const outcome = await evaluateStreakMilestones(admin, wallet, day, config, 0, { catchUp: true });
+        if ("amount" in outcome) out.granted++;
+      } catch (err) {
+        console.error(`[rewards] streak sweep ${wallet} failed`, err);
+      }
+    }
   }
 
   // Completions (campaigns and Forfeit goals) with a verified proof lately.

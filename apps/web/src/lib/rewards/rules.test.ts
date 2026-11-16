@@ -149,3 +149,48 @@ test("owed milestones exclude ones that closed before joining", () => {
   assert.deepEqual(owedMilestoneIds(ms, 25), [2, 3]);
   assert.deepEqual(owedMilestoneIds(ms, 20), [2, 3]); // deadline exactly at join: already closed
 });
+
+test("weekly streak: days in a row, a missed day resets it", async () => {
+  const { weeklyStreak, longestDayRun } = await import("./rules");
+  // Week is Mon Nov 9 – Sun Nov 15, 2026.
+  assert.equal(longestDayRun(["2026-11-09", "2026-11-10", "2026-11-10", "2026-11-12"]), 2);
+
+  const alive = weeklyStreak(["2026-11-09", "2026-11-10", "2026-11-11"], "2026-11-12", 5);
+  assert.deepEqual(alive, { current: 3, best: 3, broken: false, reachable: true });
+
+  // Missed Thu: streak broken, and Fri–Sun (3 days) can't reach 5.
+  const broken = weeklyStreak(["2026-11-09", "2026-11-10", "2026-11-11"], "2026-11-13", 5);
+  assert.deepEqual(broken, { current: 0, best: 3, broken: true, reachable: false });
+
+  // Scattered days never add up to the bonus.
+  const scattered = weeklyStreak(["2026-11-09", "2026-11-11", "2026-11-13", "2026-11-15"], "2026-11-15", 2);
+  assert.equal(scattered.best, 1);
+
+  // Earned once reached, even if the streak breaks after.
+  const earned = weeklyStreak(["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13"], "2026-11-15", 5);
+  assert.equal(earned.best, 5);
+  assert.equal(earned.reachable, true);
+});
+
+test("day streak: runs, gaps, late joiners and milestones", async () => {
+  const { dayRunEndingAt, nextStreakMilestone, streakMilestoneDedupeKey, resolveRewardsConfig } = await import("./rules");
+  const days = ["2026-11-01", "2026-11-02", "2026-11-04", "2026-11-05", "2026-11-05", "2026-11-06"];
+  assert.deepEqual(dayRunEndingAt(days, "2026-11-06"), { length: 3, start: "2026-11-04" });
+  // Today not proved yet — the streak is still alive from yesterday.
+  assert.deepEqual(dayRunEndingAt(days, "2026-11-07", true), { length: 3, start: "2026-11-04" });
+  // Missed a whole day — gone.
+  assert.equal(dayRunEndingAt(days, "2026-11-08", true).length, 0);
+
+  const config = resolveRewardsConfig({});
+  assert.deepEqual(nextStreakMilestone(config, 0), { minDays: 14, amount: 500 });
+  assert.deepEqual(nextStreakMilestone(config, 30), { minDays: 60, amount: 2500 });
+  assert.equal(nextStreakMilestone(config, 90), null);
+
+  // A new streak gets its own milestones; the same streak never pays twice.
+  assert.notEqual(streakMilestoneDedupeKey("0xA", "2026-11-01", 14), streakMilestoneDedupeKey("0xa", "2026-11-04", 14));
+  assert.equal(streakMilestoneDedupeKey("0xA", "2026-11-04", 14), streakMilestoneDedupeKey("0xa", "2026-11-04", 14));
+
+  // Admin can switch it off or empty the tiers.
+  assert.equal(resolveRewardsConfig({ streakMilestones: { tiers: [] } }).streakMilestones.tiers.length, 0);
+  assert.equal(resolveRewardsConfig({ streakMilestones: { enabled: false } }).streakMilestones.enabled, false);
+});

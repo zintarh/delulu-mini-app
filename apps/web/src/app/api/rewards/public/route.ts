@@ -15,6 +15,8 @@ export type PublicRewardsDto = {
     weeklyMinProofs: number;
     campaignTiers: CompletionTier[];
     goalTiers: CompletionTier[];
+    /** Streak milestones: days in a row → G$, once per streak. */
+    streakTiers: CompletionTier[];
     categoryEnabled: Record<RewardCategory, boolean>;
     proofPoints: { staked: number; free: number };
   };
@@ -70,11 +72,13 @@ export async function GET() {
         weeklyMinProofs: config.weeklyConsistency.minProofs,
         campaignTiers: config.campaignCompletion.tiers,
         goalTiers: config.goalCompletion.tiers,
+        streakTiers: config.streakMilestones.tiers,
         categoryEnabled: {
           daily_proof: isCategoryEnabled(config, "daily_proof"),
           weekly_consistency: isCategoryEnabled(config, "weekly_consistency"),
           campaign_completion: isCategoryEnabled(config, "campaign_completion"),
           goal_completion: isCategoryEnabled(config, "goal_completion"),
+          streak_milestone: isCategoryEnabled(config, "streak_milestone"),
         },
         proofPoints: { staked: BASE_PROOF_POINTS, free: REDUCED_PROOF_POINTS },
       },

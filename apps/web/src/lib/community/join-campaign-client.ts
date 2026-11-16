@@ -68,6 +68,8 @@ export async function submitCommunityProofWithWallet(input: {
       walletAddress: input.walletAddress,
       proofUrls: input.proofUrls,
       milestoneId: input.milestoneId,
+      // Device zone, so the server reads the photo's capture time correctly.
+      tzOffsetMinutes: -new Date().getTimezoneOffset(),
     }),
   });
   const json = await res.json().catch(() => ({}));

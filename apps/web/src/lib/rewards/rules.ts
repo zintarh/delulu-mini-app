@@ -5,17 +5,27 @@
  * Categories:
  *  - daily_proof          one per eligible goal per reward day, at most
  *                         `dailyProof.maxEligibleGoals` goals per user
- *  - weekly_consistency   once per user per Mon–Sun week, after
- *                         `weeklyConsistency.minProofs` qualifying proofs
+ *  - weekly_consistency   once per user per Mon–Sun week, after a streak of
+ *                         `weeklyConsistency.minProofs` days in a row with a
+ *                         daily-rewarded proof; a missed day resets it
  *  - campaign_completion  once per successfully completed campaign, amount
  *                         by the campaign's length (tiers); late joiners get
  *                         a reduced share
  *  - goal_completion      once per completed Forfeit goal, amount by the
  *                         goal's length, scaled by how much of it the goal
  *                         spent in one of the user's earning slots
+ *  - streak_milestone     once per milestone per streak: N days in a row,
+ *                         each with a daily-rewarded proof. Any number of
+ *                         goals or proofs in a day is still one day; a missed
+ *                         day ends the streak and its milestones start over
  */
 
-export type RewardCategory = "daily_proof" | "weekly_consistency" | "campaign_completion" | "goal_completion";
+export type RewardCategory =
+  | "daily_proof"
+  | "weekly_consistency"
+  | "campaign_completion"
+  | "goal_completion"
+  | "streak_milestone";
 export type GoalKind = "campaign" | "forfeit";
 
 export type CompletionTier = { minDays: number; amount: number };
@@ -39,7 +49,11 @@ export type RewardsConfig = {
   weeklyConsistency: {
     enabled: boolean;
     amount: number;
-    /** Qualifying (daily-rewarded) proofs needed within one week. */
+    /**
+     * Days in a row (each with a daily-rewarded proof) needed within one
+     * Mon–Sun week. A missed day breaks the streak and it restarts from 0.
+     * 1..7. (Named minProofs for stored-config compatibility.)
+     */
     minProofs: number;
   };
   campaignCompletion: {
@@ -64,6 +78,15 @@ export type RewardsConfig = {
      */
     shareExponent: number;
   };
+  streakMilestones: {
+    enabled: boolean;
+    /**
+     * `minDays` = streak length (days in a row) that pays `amount`, once per
+     * streak. Joining late doesn't matter: 30 days in a row is 30 days
+     * whenever it starts. Empty list = no streak bonuses.
+     */
+    tiers: CompletionTier[];
+  };
   limits: {
     /**
      * Platform-wide G$ the engine may send per UTC day (same day as the
@@ -87,6 +110,15 @@ export const DEFAULT_REWARDS_CONFIG: RewardsConfig = {
   weeklyConsistency: { enabled: true, amount: 250, minProofs: 5 },
   campaignCompletion: { enabled: true, tiers: DEFAULT_COMPLETION_TIERS, lateJoinExponent: 2 },
   goalCompletion: { enabled: true, tiers: DEFAULT_COMPLETION_TIERS, shareExponent: 2 },
+  streakMilestones: {
+    enabled: true,
+    tiers: [
+      { minDays: 90, amount: 5000 },
+      { minDays: 60, amount: 2500 },
+      { minDays: 30, amount: 1000 },
+      { minDays: 14, amount: 500 },
+    ],
+  },
   limits: { dailyBudget: 0 },
 };
 
@@ -102,6 +134,8 @@ export function isCategoryEnabled(config: RewardsConfig, category: RewardCategor
       return config.campaignCompletion.enabled;
     case "goal_completion":
       return config.goalCompletion.enabled;
+    case "streak_milestone":
+      return config.streakMilestones.enabled;
   }
 }
 
@@ -136,6 +170,7 @@ export function resolveRewardsConfig(override: unknown, base: RewardsConfig = DE
   const weekly = isPlainObject(override.weeklyConsistency) ? override.weeklyConsistency : {};
   const completion = isPlainObject(override.campaignCompletion) ? override.campaignCompletion : {};
   const goal = isPlainObject(override.goalCompletion) ? override.goalCompletion : {};
+  const streak = isPlainObject(override.streakMilestones) ? override.streakMilestones : {};
   const limits = isPlainObject(override.limits) ? override.limits : {};
   const pickBool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
 
@@ -152,7 +187,8 @@ export function resolveRewardsConfig(override: unknown, base: RewardsConfig = DE
     weeklyConsistency: {
       enabled: pickBool(weekly.enabled, base.weeklyConsistency.enabled),
       amount: pickNumber(weekly.amount, base.weeklyConsistency.amount),
-      minProofs: pickNumber(weekly.minProofs, base.weeklyConsistency.minProofs, { min: 1, integer: true }),
+      // Older configs counted proofs (up to 14); a streak can't exceed 7 days.
+      minProofs: Math.min(7, pickNumber(weekly.minProofs, base.weeklyConsistency.minProofs, { min: 1, integer: true })),
     },
     campaignCompletion: {
       enabled: pickBool(completion.enabled, base.campaignCompletion.enabled),
@@ -163,6 +199,10 @@ export function resolveRewardsConfig(override: unknown, base: RewardsConfig = DE
       enabled: pickBool(goal.enabled, base.goalCompletion.enabled),
       tiers: pickTiers(goal.tiers, base.goalCompletion.tiers),
       shareExponent: pickNumber(goal.shareExponent, base.goalCompletion.shareExponent, { min: 1 }),
+    },
+    streakMilestones: {
+      enabled: pickBool(streak.enabled, base.streakMilestones.enabled),
+      tiers: pickTiers(streak.tiers, base.streakMilestones.tiers),
     },
     limits: {
       dailyBudget: pickNumber(limits.dailyBudget, base.limits.dailyBudget),
@@ -249,6 +289,91 @@ export function daysBetween(fromDay: string, toDay: string): number {
   return Math.round((parseDay(toDay).getTime() - parseDay(fromDay).getTime()) / 86_400_000);
 }
 
+// ── Weekly streak ───────────────────────────────────────────────────────────
+
+/** Longest run of consecutive calendar days in `days` (duplicates ignored). */
+export function longestDayRun(days: string[]): number {
+  const sorted = [...new Set(days)].sort();
+  let best = 0;
+  let run = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    run = i > 0 && daysBetween(sorted[i - 1], sorted[i]) === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
+export type WeeklyStreak = {
+  /** Days in a row still alive: ends today, or yesterday (today isn't missed yet). */
+  current: number;
+  /** Best run this week — the bonus is earned once this reaches `needed`. */
+  best: number;
+  /** True when the week had progress but a day was missed since, so it reset to 0. */
+  broken: boolean;
+  /** False when the days left this week can't reach `needed` any more. */
+  reachable: boolean;
+};
+
+/**
+ * The weekly bonus streak for the Mon–Sun week containing `today`.
+ * `days` are reward days with a daily-rewarded proof (any week; filtered here).
+ */
+export function weeklyStreak(days: string[], today: string, needed: number): WeeklyStreak {
+  const { start, end } = weekBounds(today);
+  const inWeek = [...new Set(days.filter((d) => d >= start && d <= end && d <= today))].sort();
+  const best = longestDayRun(inWeek);
+  const set = new Set(inWeek);
+
+  const yesterday = addDays(today, -1);
+  let cursor = set.has(today) ? today : yesterday;
+  let current = 0;
+  while (cursor >= start && set.has(cursor)) {
+    current++;
+    cursor = addDays(cursor, -1);
+  }
+
+  const daysLeftAfterToday = daysBetween(today, end);
+  const canStillAdd = daysLeftAfterToday + (set.has(today) ? 0 : 1);
+  return {
+    current,
+    best,
+    broken: current === 0 && inWeek.length > 0,
+    reachable: best >= needed || current + canStillAdd >= needed,
+  };
+}
+
+// ── Day streak (streak milestones, leaderboard flame) ───────────────────────
+
+export type DayRun = { length: number; start: string | null };
+
+/**
+ * The run of consecutive days ending on `endDay` (or the day before, when
+ * `allowYesterday` — today isn't missed until it's over). `days` may hold
+ * duplicates and other dates. length 0 → no live streak.
+ */
+export function dayRunEndingAt(days: string[], endDay: string, allowYesterday = false): DayRun {
+  const set = new Set(days);
+  let cursor = set.has(endDay) ? endDay : allowYesterday ? addDays(endDay, -1) : endDay;
+  let length = 0;
+  let start: string | null = null;
+  while (set.has(cursor)) {
+    length++;
+    start = cursor;
+    cursor = addDays(cursor, -1);
+  }
+  return { length, start };
+}
+
+/** Longest milestone first is how tiers are stored; this returns them shortest first. */
+export function streakTiersAscending(config: RewardsConfig): CompletionTier[] {
+  return [...config.streakMilestones.tiers].filter((t) => t.amount > 0).sort((a, b) => a.minDays - b.minDays);
+}
+
+/** The next milestone above `length`, or null once every milestone is behind it. */
+export function nextStreakMilestone(config: RewardsConfig, length: number): CompletionTier | null {
+  return streakTiersAscending(config).find((t) => t.minDays > length) ?? null;
+}
+
 // ── Idempotency keys ────────────────────────────────────────────────────────
 // One key per reward that may ever exist. It's unique in reward_payouts and
 // also hashes into the on-chain rewardId, so the same reward can't be paid
@@ -262,6 +387,11 @@ export function dailyProofDedupeKey(wallet: string, kind: GoalKind, goalRef: str
 
 export function weeklyConsistencyDedupeKey(wallet: string, weekKey: string): string {
   return `weekly_consistency:${wallet.toLowerCase()}:${weekKey}`;
+}
+
+/** One per milestone per streak — a streak is identified by the day it started. */
+export function streakMilestoneDedupeKey(wallet: string, streakStart: string, minDays: number): string {
+  return `streak_milestone:${wallet.toLowerCase()}:${streakStart}:${minDays}`;
 }
 
 export function campaignCompletionDedupeKey(wallet: string, campaignId: string): string {

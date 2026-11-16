@@ -120,6 +120,11 @@ export const FORFEIT_MARKET_ABI = [
   },
   {
     "inputs": [],
+    "name": "PeriodNotOpen",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
     "type": "error"
   },

@@ -9,6 +9,7 @@ import { reconcilePayouts } from "@/lib/rewards/ledger";
 import { sweepMissedRewards } from "@/lib/rewards/engine";
 import { retryLegacyFailedProofRewards } from "@/lib/proof-reward/grant";
 import { reconcileSupports } from "@/lib/support/service";
+import { reconcileFaucetClaims } from "@/lib/faucet/service";
 
 /**
  * Rewards Engine upkeep. Hit every 15 minutes by GitHub Actions
@@ -18,6 +19,7 @@ import { reconcileSupports } from "@/lib/support/service";
  *  2. reconcile: settles submitted txs from their receipts, resends failed
  *                or stuck rewards within the vault pool's balance
  *  3. legacy:    drains old 10 G$ per-proof rewards that had failed
+ *  4. gas:       settles sponsored-gas drips a request didn't finish
  *
  * Each step is independent and idempotent — one failing doesn't hide the others.
  */
@@ -38,8 +40,9 @@ export async function GET(req: NextRequest) {
   const sweep = await step("sweep", () => sweepMissedRewards(admin, { deadlineMs: 20_000 }));
   const reconcile = await step("reconcile", () => reconcilePayouts(admin, { deadlineMs: 60_000 }));
   const legacy = await step("legacy", () => retryLegacyFailedProofRewards(admin, 5));
+  const gas = await step("gas", () => reconcileFaucetClaims(admin, { limit: 100 }));
   // Delulu Support: settle submitted transfers, recover lost hashes, expire leftovers.
   const support = await step("support", () => reconcileSupports(admin, { deadlineMs: 25_000 }));
 
-  return jsonResponse({ ok: true, sweep, reconcile, legacy, support });
+  return jsonResponse({ ok: true, sweep, reconcile, legacy, gas, support });
 }
