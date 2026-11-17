@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { giftModalState } from "@/lib/onboarding/gift-join";
 import { evaluateAndCreditOnboardingGift, ONBOARDING_GIFT_GDOLLARS } from "@/lib/onboarding/gift";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +24,14 @@ export async function POST(request: NextRequest) {
 
   const result = await evaluateAndCreditOnboardingGift(admin, address);
 
+  const { data: profile } = await admin.from("profiles").select("onboarding_gift_claimed_at").eq("address", address).maybeSingle();
+  const claimedAt = (profile?.onboarding_gift_claimed_at as string | null) ?? result.claimedAt;
+  const state = await giftModalState(admin, address, result.status, claimedAt);
   return NextResponse.json({
     status: result.status,
-    claimedAt: result.claimedAt,
+    claimedAt,
     justGranted: result.justGranted,
     amount: ONBOARDING_GIFT_GDOLLARS,
-    mustClaim: result.status === "sent" && !result.claimedAt,
+    ...state,
   });
 }

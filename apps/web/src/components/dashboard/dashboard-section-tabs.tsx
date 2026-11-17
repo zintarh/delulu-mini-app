@@ -88,6 +88,7 @@ export const OUTREACH_SECTION_TABS: DashboardSectionTab[] = [
     match: "/dashboard/broadcasts",
   },
   { href: "/dashboard/send-email", label: "Custom email", match: "/dashboard/send-email" },
+  { href: "/dashboard/winback", label: "Win back", match: "/dashboard/winback" },
 ];
 
 export const COMMUNITIES_SECTION_TABS: DashboardSectionTab[] = [

@@ -2,6 +2,7 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { payoutOnboardingGift } from "@/lib/celo/reward-vault-payout";
 import { isReferralCampaignOver } from "@/lib/referral/campaign";
+import { findGiftJoinTarget } from "@/lib/onboarding/gift-join";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -72,6 +73,13 @@ export async function evaluateAndCreditOnboardingGift(
 
   const verified = await isGoodDollarVerified(wallet);
   if (!verified) {
+    return { status: "not_eligible", claimedAt: null, justGranted: false };
+  }
+
+  // Only deposit while there's something to join with it — the gift is a
+  // stake for their first Bingo, not cash to walk off with. Re-checked on
+  // every Home load, so it lands as soon as a Bingo opens.
+  if (!(await findGiftJoinTarget(admin, wallet))) {
     return { status: "not_eligible", claimedAt: null, justGranted: false };
   }
 

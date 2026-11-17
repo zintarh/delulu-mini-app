@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { giftModalState } from "@/lib/onboarding/gift-join";
 import { ONBOARDING_GIFT_GDOLLARS } from "@/lib/onboarding/gift";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +22,7 @@ export async function GET(request: NextRequest) {
   const status = profile?.onboarding_gift_status ?? "not_eligible";
   const claimedAt = profile?.onboarding_gift_claimed_at ?? null;
 
-  return NextResponse.json({
-    status,
-    claimedAt,
-    amount: ONBOARDING_GIFT_GDOLLARS,
-    // The modal blocks exactly this state: granted, not yet claimed.
-    mustClaim: status === "sent" && !claimedAt,
-  });
+  // The modal blocks: granted but not claimed, then claimed but not yet joined.
+  const state = await giftModalState(admin, address, status, claimedAt);
+  return NextResponse.json({ status, claimedAt, amount: ONBOARDING_GIFT_GDOLLARS, ...state });
 }

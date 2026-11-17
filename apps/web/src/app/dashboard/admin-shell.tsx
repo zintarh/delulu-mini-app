@@ -81,7 +81,8 @@ function pageTitle(pathname: string): string {
   }
   if (
     pathname.startsWith(`${BASE}/broadcasts`) ||
-    pathname.startsWith(`${BASE}/send-email`)
+    pathname.startsWith(`${BASE}/send-email`) ||
+    pathname.startsWith(`${BASE}/winback`)
   ) {
     return "Outreach";
   }
