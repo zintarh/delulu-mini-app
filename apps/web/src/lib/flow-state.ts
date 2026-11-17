@@ -6,7 +6,7 @@
 export const FLOW_STATE = {
   active: true,
   /** e.g. "https://flowstate.network/flow-councils/celo/0x…" — paste Delulu's page here. */
-  voteUrl: "",
+  voteUrl: "https://flowstate.network/flow-councils/42220/0x889e0aadaa3f8b28a794ef70da147827c620a590",
   /** Optional "Voting ends Fri 28 Nov" line; null hides it. */
   endsOn: null as string | null,
 };
