@@ -4,6 +4,7 @@
  * square closing tonight beats a general "come back".
  */
 import type { Person } from "@/lib/nudges/people";
+import { referralPhase } from "@/lib/referral/campaign";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -29,6 +30,8 @@ export const NUDGE_RULES = [
   "verify_for_gift",
   "gift_not_played",
   "install_app",
+  "level_up",
+  "referral_week",
   "come_back",
 ] as const;
 export type NudgeRule = (typeof NUDGE_RULES)[number];
@@ -40,8 +43,38 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   verify_for_gift: "Not verified (no gift)",
   gift_not_played: "Gift not played",
   install_app: "App not installed",
-  come_back: "Quiet 3+ days",
+  level_up: "Finished a 3-day → 7-day",
+  referral_week: "Referral round is open",
+  come_back: "Quiet 3+ days / dormant",
 };
+
+/** What a person's nudge history looks like (for cadence and "stop if ignored"). */
+export type NudgeHistory = { rule: string; sentAt: string; acted: boolean }[];
+
+/**
+ * Everything Delulu is offering right now — appended to every email so each
+ * nudge also sells the rest. `skip` drops the one the nudge itself is about.
+ */
+/** Same new-users-only cutoff as the welcome gift (lib/onboarding/gift.ts NEW_USER_CUTOFF_ISO). */
+const GIFT_NEW_USER_CUTOFF_MS = Date.parse("2026-09-21T00:00:00+01:00");
+
+/** Can this person still get the 1,000 G$ welcome gift? (Newer accounts that haven't had it.) */
+export const canStillGetGift = (p: Pick<Person, "createdAt" | "giftSent">) => !p.giftSent && Date.parse(p.createdAt) >= GIFT_NEW_USER_CUTOFF_MS;
+
+export function offerLines(nowMs: number, skip: "gift" | "photo" | "finish" | "referral" | null = null, giftEligible = true): string {
+  const lines: string[] = [];
+  if (skip !== "gift" && giftEligible) lines.push("🎁 1,000 G$ free to start your first Bingo (after one quick face check)");
+  if (skip !== "photo") lines.push("📸 100 G$ for every Bingo photo you post (face-verified players)");
+  if (skip !== "finish") lines.push("🏆 Up to +2,000 G$ for finishing a 7-day Bingo — and your stake back");
+  const ref = referralPhase(new Date(nowMs));
+  if (skip !== "referral" && ref.phase !== "off") {
+    lines.push(`🤝 ${ref.round.reward.toLocaleString("en-US")} G$ for every friend you invite${ref.phase === "soon" ? " (opens soon)" : " this week"}`);
+  }
+  lines.push("💸 Free money to claim every day");
+  return `What's waiting for you on Delulu:\n${lines.join("\n")}`;
+}
+const withOffers = (body: string, nowMs: number, skip: Parameters<typeof offerLines>[1] = null, p?: Pick<Person, "createdAt" | "giftSent">) =>
+  `${body}\n\n${offerLines(nowMs, skip, p ? canStillGetGift(p) : false)}`;
 
 /** Lagos hour 0–23 (UTC+1, no DST). */
 export const lagosHour = (nowMs: number) => (new Date(nowMs).getUTCHours() + 1) % 24;
@@ -55,7 +88,7 @@ const hoursLeft = (iso: string, nowMs: number) => (Date.parse(iso) - nowMs) / HO
 const fmtHours = (h: number) => (h >= 1 ? `${Math.floor(h)}h` : `${Math.max(1, Math.round(h * 60))}m`);
 const name = (p: Person) => (p.username ? `${p.username}, ` : "");
 
-export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
+export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory = []): Nudge | null {
   const age = nowMs - Date.parse(p.createdAt);
   const card = p.activeCard;
 
@@ -72,7 +105,7 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
         path: `/bingo/${card.slug}`,
         emailSubject: `Day ${card.today + 1} of ${card.title} closes in ${fmtHours(left)}`,
         emailHeading: `Don't lose your card, ${p.username ?? "friend"}`,
-        emailBody: `Today's square on ${card.title} is still empty: ${mission}.\n\nIt closes in ${fmtHours(left)}. One photo and you're through to day ${card.today + 2 <= card.days ? card.today + 2 : card.days}.`,
+        emailBody: withOffers(`Today's square on ${card.title} is still empty: ${mission}.\n\nIt closes in ${fmtHours(left)}. One photo earns you 100 G$ and keeps your card alive.`, nowMs, "photo", p),
         cta: "Add today's photo",
       };
     }
@@ -89,7 +122,7 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
       path: `/bingo/${fresh.slug}`,
       emailSubject: "A fresh start is waiting",
       emailHeading: "Missed a day? Happens to everyone.",
-      emailBody: `Your ${p.recentMiss.title} card ended on a missed day. The best streaks start right after a miss.\n\nStart ${fresh.title}: one photo a day, and you earn G$ for every photo.`,
+      emailBody: withOffers(`Your ${p.recentMiss.title} card ended on a missed day. The best streaks start right after a miss.\n\nStart ${fresh.title} today: one photo a day, 100 G$ for every photo.`, nowMs, "photo", p),
       cta: `Start ${fresh.title}`,
     };
   }
@@ -104,7 +137,7 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
       path: "/home",
       emailSubject: "Your 1,000 G$ welcome gift is waiting",
       emailHeading: `${name(p)}you're one step away`,
-      emailBody: "You started signing up for Delulu but didn't finish.\n\nTake one minute to finish setting up and unlock your free 1,000 G$ welcome gift. Then use it to start your first Bingo.",
+      emailBody: withOffers("You started signing up for Delulu but didn't finish.\n\nTake one minute to finish setting up and unlock your free 1,000 G$ welcome gift. Then use it to start your first Bingo.", nowMs, "gift", p),
       cta: "Finish setting up",
     };
   }
@@ -119,7 +152,7 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
       path: "/home",
       emailSubject: "One quick face check unlocks 1,000 G$",
       emailHeading: "Unlock your welcome gift",
-      emailBody: "Your 1,000 G$ welcome gift is ready — it just needs one quick face check to make sure you're a real person.\n\nIt takes under a minute, and you only do it once.",
+      emailBody: withOffers("Your 1,000 G$ welcome gift is ready — it just needs one quick face check to make sure you're a real person.\n\nIt takes under a minute, and you only do it once.", nowMs, "gift", p),
       cta: "Verify now",
     };
   }
@@ -135,7 +168,7 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
       path: "/bingo/delulu-debut",
       emailSubject: "Your 1,000 G$ could be earning",
       emailHeading: "Start your Delulu Debut",
-      emailBody: "Your welcome gift is in your wallet. Put it into Delulu Debut: three days, one photo a day.\n\nYou earn 100 G$ for every photo, and your 1,000 G$ comes back when you finish.",
+      emailBody: withOffers("Your welcome gift is in your wallet. Put it into Delulu Debut: three days, one photo a day.\n\nYou earn 100 G$ for every photo, and your 1,000 G$ comes back when you finish.", nowMs, "gift", p),
       cta: "Start Delulu Debut",
     };
   }
@@ -151,24 +184,81 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
       path: "/home",
       emailSubject: "Never miss a day: add Delulu to your home screen",
       emailHeading: "Keep Delulu one tap away",
-      emailBody:
-        "Add Delulu to your home screen so you can post in one tap — and we can remind you before a day closes.\n\nAndroid (Chrome): open Delulu, tap ⋮ → \"Add to Home screen\".\niPhone (Safari): open Delulu, tap Share → \"Add to Home Screen\".",
+      emailBody: withOffers(
+        "Add Delulu to your home screen so you can post in one tap — and we can remind you before a day closes, so you never lose a card.\n\nAndroid (Chrome): open Delulu, tap ⋮ → \"Add to Home screen\".\niPhone (Safari): open Delulu, tap Share → \"Add to Home Screen\".",
+        nowMs, null, p),
       cta: "Open Delulu",
     };
   }
 
-  // 7. Quiet for 3+ days after getting started — once a week at most.
   const lastActive = Math.max(...[p.lastSeenAt, p.lastProofAt].filter(Boolean).map((d) => Date.parse(d!)), 0);
-  if (!card && (p.onboardedAt || p.everStartedBingo) && lastActive > 0 && nowMs - lastActive >= 3 * DAY) {
+
+  // 7. Finished a 3-day Bingo, nothing going now → the 7-day one pays the most.
+  if (!card && p.completedDays === 3 && p.lastCompletedAt && nowMs - Date.parse(p.lastCompletedAt) <= 4 * DAY) {
+    return {
+      rule: "level_up",
+      dedupeKey: p.lastCompletedAt.slice(0, 10),
+      title: "Ready for the big one? 🏆",
+      body: "Start a 7-day Bingo — up to +2,000 G$ for finishing, plus 100 G$ a photo.",
+      path: "/bingo/outside-your-bubble",
+      emailSubject: "You finished! Now level up: up to +2,000 G$",
+      emailHeading: `${name(p)}you did it 🎉`,
+      emailBody: withOffers(
+        "You finished a 3-day Bingo — that's real momentum.\n\nThe 7-day Bingo is the next level: pick 1,000, 2,000 or 3,000 G$, post one photo a day, and finish for +500, +1,200 or +2,000 G$ on top of your stake back. Plus 100 G$ for every photo.",
+        nowMs,
+        "finish", p),
+      cta: "Start the 7-day Bingo",
+    };
+  }
+
+  // 8. A referral round is open — tell active players once per round.
+  const ref = referralPhase(new Date(nowMs));
+  if (ref.phase === "live" && (p.everStartedBingo || p.bestDays > 0) && lastActive > 0 && nowMs - lastActive <= 14 * DAY) {
+    const reward = ref.round.reward.toLocaleString("en-US");
+    return {
+      rule: "referral_week",
+      dedupeKey: ref.round.start.slice(0, 10),
+      title: `🤝 ${reward} G$ for every friend this week`,
+      body: "Invite a friend — when they post their first Bingo photo, you get paid.",
+      path: "/rewards#invite",
+      emailSubject: `This week only: ${reward} G$ for every friend you bring`,
+      emailHeading: `${reward} G$ per friend — this week`,
+      emailBody: withOffers(
+        `Referrals are open this week. Share your link from Rewards → Invite friends.\n\nYour friend gets 1,000 G$ free to start, and when they post their first Bingo photo, ${reward} G$ lands with you. Each week's budget is limited, so the earliest invites count first.`,
+        nowMs,
+        "referral", p),
+      cta: "Get my invite link",
+    };
+  }
+
+  // 9. Quiet for a while. Recent players: after 3 days, weekly. Dormant
+  //    accounts: every 2 weeks, and we stop after 3 ignored in a row.
+  const comeBacks = history.filter((h) => h.rule === "come_back");
+  const ignoredInARow = (() => {
+    let n = 0;
+    for (const h of [...comeBacks].sort((a, b) => b.sentAt.localeCompare(a.sentAt))) {
+      if (h.acted) break;
+      n++;
+    }
+    return n;
+  })();
+  const recentlyQuiet = !card && (p.onboardedAt || p.everStartedBingo) && lastActive > 0 && nowMs - lastActive >= 3 * DAY;
+  const dormant = !card && p.dormant && !!p.onboardedAt;
+  if ((recentlyQuiet || dormant) && ignoredInARow < 3) {
+    const period = dormant ? 14 * DAY : 7 * DAY;
     return {
       rule: "come_back",
-      dedupeKey: `w${Math.floor(nowMs / (7 * DAY))}`,
+      dedupeKey: `${dormant ? "d" : "w"}${Math.floor(nowMs / period)}`,
       title: "Lulu misses you 🥺",
-      body: "A new Bingo is open — one photo a day, G$ for every photo.",
+      body: canStillGetGift(p) ? "Bingo is here: one photo a day, 100 G$ a photo — and 1,000 G$ free to start." : "Bingo is here: one photo a day, 100 G$ for every photo.",
       path: "/explore",
-      emailSubject: "Lulu misses you",
-      emailHeading: `${name(p)}come back for a quick win`,
-      emailBody: "It's been a few days. A Bingo is open right now: one photo a day, and you earn G$ for every photo you post.\n\nYour free daily G$ is waiting too.",
+      emailSubject: dormant ? "Delulu has changed — there's free money waiting" : "Lulu misses you (and so does your G$)",
+      emailHeading: dormant ? `${name(p)}a lot has changed 👀` : `${name(p)}come back for a quick win`,
+      emailBody: withOffers(
+        dormant
+          ? "Delulu now has Bingo: pick a 3- or 7-day card, post one photo a day, and get paid for every photo.\n\nNew here or coming back, you can start in a minute."
+          : "It's been a few days. A Bingo is open right now: one photo a day, and you earn G$ for every photo you post.",
+        nowMs, null, p),
       cta: "See today's Bingo",
     };
   }
@@ -192,6 +282,9 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
     case "install_app":
       return after(p.installedAt);
     case "come_back":
+    case "referral_week":
       return after(p.lastSeenAt) || after(p.lastProofAt);
+    case "level_up":
+      return !!p.activeCard || after(p.lastProofAt);
   }
 }

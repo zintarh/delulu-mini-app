@@ -21,7 +21,12 @@ export type Person = {
   everStartedBingo: boolean;
   bestDays: number; // most daily squares filled on any one card
   completedBingo: boolean;
+  /** Longest Bingo they've finished (3 or 7 days), 0 if none. */
+  completedDays: number;
+  lastCompletedAt: string | null;
   lastProofAt: string | null;
+  /** Signed up before the window and nothing since — the win-back crowd. */
+  dormant: boolean;
   /** The card they're playing now (3- or 7-day, own clock), if any. */
   activeCard: null | {
     attemptId: string;
@@ -105,10 +110,30 @@ const chunks = <T,>(arr: T[], n = 300) => Array.from({ length: Math.ceil(arr.len
  * anyone older who played a Bingo or posted an approved proof since then
  * (most players joined before the window; they still need day reminders).
  */
-export async function loadPeople(admin: Admin, sinceIso: string, nowMs = Date.now(), opts: { includeActive?: boolean } = {}): Promise<Person[]> {
+export async function loadPeople(
+  admin: Admin,
+  sinceIso: string,
+  nowMs = Date.now(),
+  opts: { includeActive?: boolean; includeDormant?: boolean } = {},
+): Promise<Person[]> {
   const profiles = await all<Record<string, unknown>>((f, t) =>
     admin.from("profiles").select("*").gte("created_at", sinceIso).order("created_at", { ascending: true }).range(f, t),
   );
+  if (opts.includeDormant) {
+    // Everyone older who once set up an account and has a real inbox.
+    const older = await all<Record<string, unknown>>((f, t) =>
+      admin
+        .from("profiles")
+        .select("*")
+        .lt("created_at", sinceIso)
+        .not("onboarded_at", "is", null)
+        .not("email", "is", null)
+        .not("email", "like", "%@wallet.local")
+        .order("created_at", { ascending: true })
+        .range(f, t),
+    );
+    profiles.push(...older);
+  }
   if (opts.includeActive) {
     const seen = new Set(profiles.map((p) => String(p.address).toLowerCase()));
     const [{ data: cards }, { data: provers }] = await Promise.all([
@@ -217,7 +242,15 @@ export async function loadPeople(admin: Admin, sinceIso: string, nowMs = Date.no
       everStartedBingo: cards.length > 0,
       bestDays: cards.reduce((m, a) => Math.max(m, a.required_filled), 0),
       completedBingo: cards.some((a) => a.status === "completed" || a.required_filled >= camp(a).duration_days),
+      completedDays: cards.filter((a) => a.required_filled >= camp(a).duration_days).reduce((m, a) => Math.max(m, camp(a).duration_days), 0),
+      lastCompletedAt:
+        cards
+          .filter((a) => a.required_filled >= camp(a).duration_days)
+          .map((a) => a.ends_at)
+          .sort()
+          .at(-1) ?? null,
       lastProofAt: lastProof.get(wallet) ?? null,
+      dormant: String(p.created_at) < sinceIso && !lastProof.has(wallet) && !active && cards.every((a) => Date.parse(a.started_at) < Date.parse(sinceIso)),
       activeCard,
       recentMiss: missed ? { attemptId: missed.id, slug: camp(missed).slug, title: camp(missed).title, oneTime: camp(missed).recurrence === "one_time" } : null,
     };

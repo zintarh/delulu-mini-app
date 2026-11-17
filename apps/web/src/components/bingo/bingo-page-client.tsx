@@ -14,6 +14,7 @@ import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { useBingo, useBingoBoard, useBingoList, type BoardCard } from "@/hooks/use-bingo";
 import { NextStepCard } from "@/components/next-step-card";
+import { suggestInstall } from "@/components/pwa/install-prompt-gate";
 import { bingoNextStep } from "@/lib/next-step";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { fireConfetti, showAppToast } from "@/lib/celebrate";
@@ -97,6 +98,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
       void board.reload();
       void reloadAll();
       const square = bingo?.missions[index];
+      if (before === 0) suggestInstall("proof");
       if (square && !square.bonus && before + 1 >= required) {
         void fireConfetti();
         showAppToast("BINGO! Your card is complete");
@@ -264,6 +266,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
           onJoined={async () => {
             await reload();
             void board.reload();
+            // Reminders are what keep a card alive — ask to install right as they commit.
+            suggestInstall("joined");
           }}
         />
       ) : null}

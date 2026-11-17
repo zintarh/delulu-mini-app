@@ -23,7 +23,18 @@ function StepRow({ n, icon, children }: { n: number; icon: ReactNode; children: 
  * from inside WhatsApp/Instagram (their browsers can't do it at all).
  * Bottom sheet on phones, centered card on larger screens.
  */
-export function AddToHomeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AddToHomeSheet({
+  open,
+  onClose,
+  title = "Add Delulu to your home screen",
+  subtitle = "Opens full-screen, like an app.",
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Why now — e.g. "Never miss a day" right after joining a Bingo. */
+  title?: string;
+  subtitle?: string;
+}) {
   const { canPrompt, prompt } = useInstallPrompt();
   const [device, setDevice] = useState<Device | null>(null);
   const [busy, setBusy] = useState(false);
@@ -148,9 +159,9 @@ export function AddToHomeSheet({ open, onClose }: { open: boolean; onClose: () =
           <Lulu size={64} />
           <div>
             <h2 id="add-to-home-title" className="m-0 text-[22px] font-extrabold leading-tight">
-              Add Delulu to your home screen
+              {title}
             </h2>
-            <p className="m-0 mt-1 text-sm text-muted-foreground">Opens full-screen, like an app.</p>
+            <p className="m-0 mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
         </div>
 

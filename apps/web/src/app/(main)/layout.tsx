@@ -68,6 +68,10 @@ const NoGasBanner = dynamic(
   () => import("@/components/no-gas-banner").then((m) => m.NoGasBanner),
   { ssr: false },
 );
+const InstallPromptGate = dynamic(
+  () => import("@/components/pwa/install-prompt-gate").then((m) => m.InstallPromptGate),
+  { ssr: false },
+);
 const EnableNotificationsBanner = dynamic(
   () =>
     import("@/components/enable-notifications-banner").then(
@@ -280,6 +284,7 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <AppToast />
           <NoGasBanner />
           <EnableNotificationsBanner />
+          <InstallPromptGate />
           <RewardsClaimBanner />
           {/* First-run intro goes first; the gift and email modals wait for it. */}
           <AppIntro />
