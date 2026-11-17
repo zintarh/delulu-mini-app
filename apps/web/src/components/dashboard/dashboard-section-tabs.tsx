@@ -76,6 +76,7 @@ export function DashboardSectionTabs({
 
 export const PEOPLE_SECTION_TABS: DashboardSectionTab[] = [
   { href: "/dashboard/users", label: "Directory", match: "/dashboard/users" },
+  { href: "/dashboard/analytics", label: "Retention", match: "/dashboard/analytics" },
   { href: "/dashboard/leaderboard", label: "Leaderboard", match: "/dashboard/leaderboard" },
   { href: "/dashboard/rewards", label: "Reward history", match: "/dashboard/rewards" },
   { href: "/dashboard/referrals", label: "Referrals", match: "/dashboard/referrals" },

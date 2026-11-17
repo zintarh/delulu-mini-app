@@ -1,0 +1,35 @@
+# Runs Delulu's nudge engine every 30 minutes (Vercel's free crons are daily-only).
+# The route decides who needs what: one nudge per person per day, quiet 10pm–8am
+# Lagos, push first and email when push is off. Every send is logged (nudge_log).
+#
+# Uses the same PUSH_CRON_SECRET repo secret as the other cron workflows.
+name: Nudges
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Dry run (show who would be nudged, send nothing)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: nudges
+  cancel-in-progress: false
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Run nudge engine
+        env:
+          CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+          DRY: ${{ github.event.inputs.dry == 'true' && '1' || '0' }}
+        run: |
+          url="https://www.staydelulu.xyz/api/cron/nudges?dry=${DRY}"
+          code=$(curl -sS -o out.json -w "%{http_code}" --max-time 300 -H "x-cron-secret: ${CRON_SECRET}" "$url")
+          head -c 2000 out.json; echo
+          test "$code" = "200"

@@ -11,6 +11,7 @@ import { web3AuthContextConfig } from "@/lib/web3auth-config";
 import { Web3AuthWagmiSync } from "@/components/web3auth-wagmi-sync";
 import { WalletSessionBootstrap } from "@/components/wallet-session-bootstrap";
 import { PrivyWalletSessionBootstrap } from "@/components/privy-wallet-session-bootstrap";
+import { PresencePing } from "@/components/presence-ping";
 import { NoGasProvider } from "@/contexts/no-gas-context";
 import { NotificationCountProvider } from "@/contexts/notification-count-context";
 
@@ -53,6 +54,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             <Web3AuthWagmiSync />
             <WalletSessionBootstrap />
             <PrivyWalletSessionBootstrap />
+            <PresencePing />
             <ApolloProvider>
               <NoGasProvider>
                 <NotificationCountProvider>
