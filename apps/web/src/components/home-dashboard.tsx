@@ -5,13 +5,12 @@ import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-ske
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
-import { AddToHomeCard } from "@/components/home/add-to-home-card";
 import { LuluHero } from "@/components/home/lulu-hero";
 import { HomeReadyGate } from "@/components/home/home-ready";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
-import { StartFreeCard } from "@/components/home/start-free-card";
 import { HomeBingo } from "@/components/home/home-bingo";
+import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -37,8 +36,10 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   // null until the forfeit lists load.
   const [noForfeits, setNoForfeits] = useState<boolean | null>(null);
   const campaigns = useHomeCampaignLists(address);
-  // Start the Bingo fetch with the rest of Home (shared cache), so the section is ready when it mounts.
-  useBingoList();
+  const next = useHomeNextStep();
+  const { bingos: homeBingos } = useBingoList();
+  // New = no goals of their own and never had a Bingo card.
+  const newcomer = noForfeits === true && !!homeBingos && !homeBingos.some((b) => b.me);
 
   useEffect(() => {
     if (!sessionHint || authenticated) {
@@ -70,36 +71,31 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
 
         {address ? (
           <>
-            {/* Today at a glance — Lulu leads (progress, what matters now, what a miss costs),
-                money sits right under it; sections below get the bigger gap. */}
+            {/* Today: Lulu (mood, progress, news), then the ONE next step, then money. */}
             <div className="flex flex-col gap-4">
               <LuluHero address={address} />
+              <HomeNextStep />
               <DailyMoneyCard />
-              <StartFreeCard />
             </div>
-            {/* Always above campaigns: your own delulus first, or — with none yet —
-                the compact "New here? Create your first delulu" row. */}
-            {/* New players: Delulu Debut is the way in, so it leads; everyone else sees their goals first. */}
-            {noForfeits === true ? <HomeBingo newcomer /> : null}
+            {/* Your own delulus — the empty "create your first" row is gone: a first
+                delulu is the next step after a 7-day Bingo ("make it a habit"). */}
             <div id="forfeit-day-card">
-              <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} />
+              <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>
-            {noForfeits === true ? null : <HomeBingo />}
-            {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
-            <HomeCampaigns
-              address={address}
-              lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
-              noForfeits={noForfeits === true}
-            />
-            <AddToHomeCard />
+            <HomeBingo exclude={next?.featuredSlug ?? null} />
+            {/* Missions once someone has played — a newcomer has one thing to do. */}
+            {newcomer ? null : (
+              <HomeCampaigns
+                address={address}
+                lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
+                noForfeits={noForfeits === true}
+              />
+            )}
           </>
         ) : (
           <>
-            {/* Guests: "New here? Create your first delulu" first, then campaigns. */}
+            {/* Guests: the first Bingo is the way in, then missions to browse. */}
             <HomeBingo newcomer />
-            <div id="forfeit-day-card">
-              <ForfeitDayCard address={undefined} />
-            </div>
             <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
           </>
         )}

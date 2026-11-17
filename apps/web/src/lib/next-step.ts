@@ -7,6 +7,9 @@ import type { BingoView } from "@/lib/bingo/view";
 
 const DAY_MS = 86_400_000;
 
+/** In-page actions a next step can trigger (links use `href`). */
+export type NextStepAction = "join" | "today" | "verify";
+
 export type NextStep = {
   tone: "go" | "wait" | "win" | "warn";
   title: string;
@@ -16,7 +19,7 @@ export type NextStep = {
   untilLabel?: "opens" | "closes";
   /** Offer push reminders when the next step is "come back later". */
   remind?: boolean;
-  cta?: { label: string; href?: string; action?: "join" | "today" };
+  cta?: { label: string; href?: string; action?: NextStepAction };
 };
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -158,4 +161,63 @@ export function proofNextStep(input: { milestoneIndex?: number | null; milestone
     body: i != null && n > 0 ? `Day ${i + 2} of ${n} opens tomorrow — keep your streak.` : "Your next proof keeps your streak going.",
     remind: true,
   };
+}
+
+const playingNow = (b: BingoView) => !!b.me && b.me.status === "active" && b.me.phase !== "ended" && !b.me.missedDay;
+
+/**
+ * Home's single next step — the spine of the whole app. Same order as the
+ * nudges: today's square → just finished / missed → verify → start the
+ * starter Bingo → the 7-day one → explore. `featuredSlug` is the Bingo this
+ * step is about, so Home doesn't show it a second time below.
+ */
+export function homeNextStep(input: {
+  bingos: BingoView[];
+  /** Face-verified (rewards and the welcome gift need it). null = still checking. */
+  verified: boolean | null;
+}): { step: NextStep; featuredSlug: string | null } {
+  const { bingos } = input;
+
+  // 1. A card in play: today's square, or "done for today".
+  const playing = bingos
+    .filter(playingNow)
+    .sort((a, b) => Number(a.me!.todayUsed) - Number(b.me!.todayUsed) || Date.parse(a.me!.startedAt) - Date.parse(b.me!.startedAt));
+  if (playing[0]) return { step: bingoNextStep(playing[0], bingos), featuredSlug: playing[0].slug };
+
+  // 2. Just finished or missed a card → its own next step (level up, make it a habit, fresh start).
+  const recent = bingos.find((b) => b.me && (b.me.requiredFilled >= b.missions.filter((m) => !m.bonus).length || b.me.missedDay));
+  if (recent) return { step: bingoNextStep(recent, bingos), featuredSlug: recent.slug };
+
+  // 3. Not verified yet — the one thing every reward (and the welcome gift) needs.
+  if (input.verified === false) {
+    return {
+      step: {
+        tone: "go",
+        title: "One quick face check unlocks your rewards",
+        body: "Verify once — then every Bingo photo pays G$, and new players get 1,000 G$ free to start.",
+        cta: { label: "Verify now", action: "verify" },
+      },
+      featuredSlug: null,
+    };
+  }
+
+  // 4. The way in: the one-time starter Bingo, else the always-on 7-day one.
+  const starter = bingos.find((b) => b.enrollment === "rolling" && b.recurrence === "one_time" && b.joinable);
+  const weekly = bingos.find((b) => b.durationDays === 7 && b.joinable);
+  const pick = starter ?? weekly ?? bingos.find((b) => b.joinable) ?? null;
+  if (pick) {
+    const stake = Math.min(...pick.tiers.map((t) => t.stake));
+    const days = pick.durationDays;
+    return {
+      step: {
+        tone: "go",
+        title: pick === starter ? `Start here: ${pick.title}` : `Next up: ${pick.title}`,
+        body: `${days} days, one photo a day${pick.rewards.perProof > 0 ? `, ${fmt(pick.rewards.perProof)} G$ a photo` : ""} — stake ${fmt(stake)} G$ and get it back when you finish.`,
+        cta: { label: pick === starter ? "Start my first Bingo" : `Start · ${fmt(stake)} G$`, href: `/bingo/${pick.slug}` },
+      },
+      featuredSlug: pick.slug,
+    };
+  }
+
+  return { step: { tone: "wait", title: "New Bingos are on the way", body: "Explore missions while you wait.", cta: { label: "Explore", href: "/explore" } }, featuredSlug: null };
 }

@@ -7,7 +7,7 @@ import { GameButton, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { getPushSupportState, subscribeToWebPush } from "@/lib/web-push-client";
 import { fmtUntil } from "@/lib/bingo/format";
-import { nextBingoFor, proofNextStep, type NextStep } from "@/lib/next-step";
+import { nextBingoFor, proofNextStep, type NextStep, type NextStepAction } from "@/lib/next-step";
 import { useBingoList } from "@/hooks/use-bingo";
 import { cn } from "@/lib/utils";
 
@@ -65,8 +65,8 @@ export function NextStepCard({
   className,
 }: {
   step: NextStep;
-  /** Handles in-page actions ("join", "today"); links are followed directly. */
-  onAction?: (action: "join" | "today") => void;
+  /** Handles in-page actions ("join", "today", "verify"); links are followed directly. */
+  onAction?: (action: NextStepAction) => void;
   className?: string;
 }) {
   useMinuteTick();

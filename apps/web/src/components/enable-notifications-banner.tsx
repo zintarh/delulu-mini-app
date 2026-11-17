@@ -13,6 +13,7 @@ import {
   subscribeToWebPush,
 } from "@/lib/web-push-client";
 import { cn } from "@/lib/utils";
+import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
 
 const DISMISS_KEY = "delulu_push_prompt_dismissed_at_v1";
 /** After a successful enable, never soft-prompt again on this browser. */
@@ -103,7 +104,13 @@ export function EnableNotificationsBanner() {
             setVisible(false);
             return;
           }
-          // permission === "default" — soft prompt is appropriate
+          // permission === "default" — soft prompt is appropriate, but only as this
+          // visit's one automatic prompt (never over intro/gift, never with the install sheet).
+          if (!canAutoShow("push")) {
+            setVisible(false);
+            return;
+          }
+          takeAutoSlot("push");
           setVisible(true);
           return;
         }

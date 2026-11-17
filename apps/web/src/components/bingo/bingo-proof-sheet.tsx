@@ -6,7 +6,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { GameButton } from "@/components/ds";
 import { ProofRewardRow } from "@/components/proof-reward-row";
 import { NextStepCard } from "@/components/next-step-card";
-import type { NextStep } from "@/lib/next-step";
+import type { NextStep, NextStepAction } from "@/lib/next-step";
 import { useJoinCommunityCampaignOnChain, useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof } from "@/hooks/use-create-forfeit-commitment";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,7 +40,7 @@ export function BingoProofSheet({
   onFilled: (index: number) => void | Promise<void>;
   /** What to do next once the square is filled (from the refreshed card). */
   nextStep?: NextStep | null;
-  onNextAction?: (action: "join" | "today") => void;
+  onNextAction?: (action: NextStepAction) => void;
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);

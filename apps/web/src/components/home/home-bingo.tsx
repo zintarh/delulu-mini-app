@@ -16,8 +16,10 @@ const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.mi
  * away), then Bingos open to join. New players get Delulu Debut up top as
  * their way in — 3 days, 3 photos, stake back when they finish.
  */
-export function HomeBingo({ newcomer = false }: { newcomer?: boolean }) {
-  const { bingos } = useBingoList();
+export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boolean; exclude?: string | null }) {
+  const { bingos: all } = useBingoList();
+  // The Bingo "Your next step" is about isn't shown twice.
+  const bingos = all?.filter((b) => b.slug !== exclude) ?? null;
   if (!bingos || bingos.length === 0) return null;
 
   const mine = bingos.filter(playing);
@@ -32,7 +34,7 @@ export function HomeBingo({ newcomer = false }: { newcomer?: boolean }) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-xl font-extrabold uppercase">Bingo</h2>
+        <h2 className="font-display text-xl font-extrabold uppercase">{newcomer ? "Bingo" : "More to play"}</h2>
         <Link href="/explore" className="label-mono text-[11px] text-muted-foreground no-underline">
           All
         </Link>

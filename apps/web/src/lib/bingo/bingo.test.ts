@@ -173,3 +173,37 @@ test("after a 7-day card: make it a personal habit", async () => {
   assert.equal(step.title, "You did 7 days! 🎉");
   assert.match(step.cta?.href ?? "", /^\/forfeit\?habit=/);
 });
+
+test("Home always has exactly one next step, in the right order", async () => {
+  const { homeNextStep } = await import("@/lib/next-step");
+  const mk = (slug: string, days: 3 | 7, recurrence: "one_time" | "automatic", me: Record<string, unknown> | null = null) =>
+    ({
+      id: slug, slug, title: slug, description: null, coverImageUrl: null, durationDays: days, enrollment: "rolling", recurrence,
+      missions: Array.from({ length: days }, (_, i) => ({ title: `M${i}`, bonus: false })), cycle: null,
+      tiers: [{ key: "t", label: "T", stake: 1000, forfeitPct: 0, campaignId: null, challengeId: null, ready: true }],
+      joinable: !me, visible: true, players: 1, photos: [], rewards: { perProof: 100, completion: 500 },
+      me: me && {
+        attemptId: "a", wallet: "0x1", username: null, avatarUrl: null, tierKey: "t", tierLabel: "T", stake: 1000, status: "active",
+        squaresFilled: 0, requiredFilled: 0, lastFilledAt: null, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 3 * DAY_MS).toISOString(),
+        squares: [], phase: "live", today: 0, todayUsed: false, nextSquareAt: null, dayOrdered: true, missedDay: false, ...me,
+      },
+    }) as never;
+  const debut = mk("delulu-debut", 3, "one_time");
+  const weekly = mk("outside-your-bubble", 7, "automatic");
+
+  // Not verified → verify first.
+  assert.equal(homeNextStep({ bingos: [debut, weekly], verified: false }).step.cta?.action, "verify");
+  // Verified newcomer → the starter Bingo, featured (so the list below skips it).
+  const start = homeNextStep({ bingos: [debut, weekly], verified: true });
+  assert.equal(start.featuredSlug, "delulu-debut");
+  assert.match(start.step.title, /^Start here/);
+  // Playing → today's square beats everything (even unverified).
+  const playing = homeNextStep({ bingos: [mk("delulu-debut", 3, "one_time", {}), weekly], verified: false });
+  assert.equal(playing.step.cta?.action, "today");
+  // Done today → "done for today", no button to chase.
+  const done = homeNextStep({ bingos: [mk("delulu-debut", 3, "one_time", { todayUsed: true, requiredFilled: 1, nextSquareAt: new Date(Date.now() + 3600e3).toISOString() }), weekly], verified: true });
+  assert.equal(done.step.title, "Done for today 🎉");
+  // Finished Debut → level up to the 7-day.
+  const finished = homeNextStep({ bingos: [mk("delulu-debut", 3, "one_time", { requiredFilled: 3, squaresFilled: 3, todayUsed: true, today: 2 }), weekly], verified: true });
+  assert.equal(finished.step.cta?.href, "/bingo/outside-your-bubble");
+});

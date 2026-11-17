@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AddToHomeSheet } from "@/components/pwa/add-to-home-sheet";
 import { isMobileDevice, isStandalone } from "@/hooks/use-install-prompt";
 import { useAuth } from "@/hooks/use-auth";
+import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
 
 const DISMISSED_KEY = "delulu:install-prompt-dismissed-at";
 const WAIT_MS = 2 * 24 * 60 * 60 * 1000;
@@ -39,7 +40,15 @@ export function InstallPromptGate() {
     } catch {
       /* storage blocked */
     }
-    const t = Date.now() - dismissedAt > WAIT_MS ? window.setTimeout(() => setOpen(true), 2500) : undefined;
+    // Automatic: from the 2nd visit, at most one prompt a visit, never over the intro or gift.
+    const t =
+      Date.now() - dismissedAt > WAIT_MS
+        ? window.setTimeout(() => {
+            if (!canAutoShow("install")) return;
+            takeAutoSlot("install");
+            setOpen(true);
+          }, 2500)
+        : undefined;
     const onSuggest = (e: Event) => {
       const reason = (e as CustomEvent<{ reason?: "joined" | "proof" }>).detail?.reason ?? "joined";
       setCopy(COPY[reason]);

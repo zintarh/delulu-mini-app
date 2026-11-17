@@ -17,6 +17,7 @@ import type { GiftJoinTarget } from "@/lib/onboarding/gift-join";
 import { CampaignJoinFlowOverlay } from "@/components/community/campaign-join-flow-overlay";
 import type { CampaignJoinSource } from "@/lib/community/campaign-join-info";
 import { useIntroDone } from "@/lib/app-intro";
+import { setBlockingOverlay } from "@/lib/overlay-slot";
 import { useOnboardingGiftRecheck } from "@/contexts/onboarding-gift-context";
 
 const GOOD_DOLLAR = GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`;
@@ -59,6 +60,12 @@ export function OnboardingGiftModal() {
   const { recheckToken } = useOnboardingGiftRecheck();
   // Never stack on the first-run intro — show once it's finished.
   const introDone = useIntroDone();
+  // Must-see: automatic prompts (install, notifications) wait while the gift is
+  // being checked or is on screen.
+  useEffect(() => {
+    setBlockingOverlay("gift", Boolean(address) && (!checked || mustClaim || step === "upsell"));
+    return () => setBlockingOverlay("gift", false);
+  }, [address, checked, mustClaim, step]);
 
   useEffect(() => {
     setMounted(true);

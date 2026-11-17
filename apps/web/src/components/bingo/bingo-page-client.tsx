@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBingo, useBingoBoard, useBingoList, type BoardCard } from "@/hooks/use-bingo";
 import { NextStepCard } from "@/components/next-step-card";
 import { suggestInstall } from "@/components/pwa/install-prompt-gate";
-import { bingoNextStep } from "@/lib/next-step";
+import { bingoNextStep, type NextStepAction } from "@/lib/next-step";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { fireConfetti, showAppToast } from "@/lib/celebrate";
 import { buildSquares, type BingoSquareView, type BingoView } from "@/lib/bingo/view";
@@ -161,7 +161,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   // One clear next step, always: today's square, come back tomorrow, or what to play next.
   const step = bingoNextStep(bingo, allBingos ?? []);
-  const onStepAction = (action: "join" | "today") => {
+  const onStepAction = (action: NextStepAction) => {
     if (action === "join") return requireAuth(() => setJoinOpen(true));
     if (!me) return;
     const target = me.dayOrdered

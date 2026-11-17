@@ -272,14 +272,9 @@ export function pickLuluMessages(input: LuluInput): LuluMessage[] {
     });
   } else if (input.kept > 0 && left > 0 && due.length === 0) {
     out.push({ id: `progress:${input.kept}`, tone: "progress", text: `${hey}${input.kept} down, ${left} to go. One more makes my day.` });
-  } else if (input.total === 0 && input.campaigns.length === 0) {
-    out.push({
-      id: "start",
-      tone: "progress",
-      text: `${hey}make one promise to yourself. I'll help you keep it.`,
-      cta: { label: "New delulu", href: "/forfeit" },
-    });
   }
+  // Nothing to do yet? No "start" here — Home's "Your next step" card owns what to do next,
+  // so Lulu never sends a newcomer somewhere different.
 
   const real = out.filter((m) => !done.has(m.id)).map((m) => ({ ...m, text: m.lead ? m.text : capitalizeFirst(m.text) }));
 
