@@ -31,6 +31,14 @@ function nextBingoCta(next: BingoView | null) {
   return next ? { label: next.durationDays === 7 ? `Join ${next.title}` : `Start ${next.title}`, href: `/bingo/${next.slug}` } : { label: "See Bingos", href: "/explore" };
 }
 
+/** The everyday habit a Bingo grows into, for "make it yours". */
+export function habitFor(bingoTitle: string): string {
+  if (/pray/i.test(bingoTitle)) return "Pray every day";
+  if (/work ?out|fit|gym|run|walk/i.test(bingoTitle)) return "Workout";
+  if (/read|book/i.test(bingoTitle)) return "Read every day";
+  return "One good photo of my day";
+}
+
 export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   const me = b.me;
   const required = b.missions.filter((m) => !m.bonus).length;
@@ -53,6 +61,15 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
 
   const complete = me.requiredFilled >= required;
   if (complete) {
+    // A whole week done: turn it into their own habit, at their own pace.
+    if (rolling && b.durationDays === 7) {
+      return {
+        tone: "win",
+        title: "You did 7 days! 🎉",
+        body: `Your ${fmt(me.stake)} G$ is back. Make it yours — start a personal delulu and keep going.`,
+        cta: { label: "Make it a habit", href: `/forfeit?habit=${encodeURIComponent(habitFor(b.title))}` },
+      };
+    }
     if (rolling) {
       return {
         tone: "win",

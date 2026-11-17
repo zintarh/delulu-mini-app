@@ -249,7 +249,16 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
             challengeId: t.on_chain_challenge_id,
             ready: t.setup_step === "ready",
           }))
-        : v.tiers.map((t) => ({ key: t.key, label: t.label, stake: t.stake, forfeitPct: t.forfeitPct, campaignId: null, challengeId: null, ready: rolling })),
+        : v.tiers.map((t) => ({
+            key: t.key,
+            label: t.label,
+            stake: t.stake,
+            forfeitPct: t.forfeitPct,
+            campaignId: null,
+            challengeId: null,
+            ready: rolling,
+            completionReward: t.completionReward,
+          })),
     joinable,
     visible: rolling || !!me || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)),
     players,

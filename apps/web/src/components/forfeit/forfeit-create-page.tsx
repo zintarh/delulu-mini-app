@@ -397,10 +397,14 @@ export function ForfeitCreatePage() {
   // `?stake=word` (home's "start with your word" link) opens on a word pledge.
   // Read on mount rather than via useSearchParams to avoid a Suspense boundary.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("stake") === "word") {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("stake") === "word") {
       setForfeitAmount(0);
       setAmountDraft("0");
     }
+    // `?habit=Workout` (e.g. "make it yours" after a 7-day Bingo) pre-fills the habit.
+    const habit = q.get("habit")?.trim().slice(0, 100);
+    if (habit) setDescription(habit);
   }, []);
   // Neutral default — "charity" shouldn't be silently pre-selected for anyone
   // who never opens the destination picker; that's an intent worth an explicit choice.

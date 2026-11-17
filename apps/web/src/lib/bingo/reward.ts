@@ -10,6 +10,18 @@ type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
  * forfeit_commitments.id (rolling card).
  */
 export async function bingoRewardPerSquare(admin: Admin, goalKind: "campaign" | "forfeit", goalRef: string): Promise<number | null> {
+  const tier = await bingoTierFor(admin, goalKind, goalRef);
+  return typeof tier?.rewardPerSquare === "number" ? tier.rewardPerSquare : null;
+}
+
+/** G$ for finishing a Bingo card on its tier (e.g. 7-day Pro: 1,200), or null → engine default. */
+export async function bingoCompletionReward(admin: Admin, goalKind: "campaign" | "forfeit", goalRef: string): Promise<number | null> {
+  const tier = await bingoTierFor(admin, goalKind, goalRef);
+  return typeof tier?.completionReward === "number" ? tier.completionReward : null;
+}
+
+/** The Bingo tier (as frozen in the card's version) behind a goal, or null when it isn't a Bingo card. */
+async function bingoTierFor(admin: Admin, goalKind: "campaign" | "forfeit", goalRef: string): Promise<BingoTier | null> {
   let versionId: string | null = null;
   let tierKey: string | null = null;
   if (goalKind === "campaign") {
@@ -35,8 +47,7 @@ export async function bingoRewardPerSquare(admin: Admin, goalKind: "campaign" | 
     tierKey = data.tier_key as string;
   }
   const { data: version } = await admin.from("bingo_versions").select("tiers").eq("id", versionId).maybeSingle();
-  const tier = ((version?.tiers ?? []) as BingoTier[]).find((t) => t.key === tierKey);
-  return typeof tier?.rewardPerSquare === "number" ? tier.rewardPerSquare : null;
+  return ((version?.tiers ?? []) as BingoTier[]).find((t) => t.key === tierKey) ?? null;
 }
 
 /** What a card shows per daily square: the tier's own amount if it sets one, else the global one. */

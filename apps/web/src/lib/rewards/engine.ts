@@ -1,4 +1,4 @@
-import { bingoRewardPerSquare } from "@/lib/bingo/reward";
+import { bingoCompletionReward, bingoRewardPerSquare } from "@/lib/bingo/reward";
 import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
@@ -746,7 +746,10 @@ export async function evaluateGoalCompletion(
   if (lastOutcome !== PERIOD_OUTCOME_SUCCESS) return { result: "not_complete" };
 
   const durationDays = Math.round((totalPeriods * periodSeconds) / 86_400);
-  const fullAmount = completionAmountFor(durationDays, config.goalCompletion.tiers);
+  // A Bingo tier sets its own finishing reward (7-day Starter/Pro/Elite); other goals use the length tiers.
+  const fullAmount =
+    (await bingoCompletionReward(admin, "forfeit", commitmentId).catch(() => null)) ??
+    completionAmountFor(durationDays, config.goalCompletion.tiers);
   if (fullAmount <= 0) return { result: "no_tier" };
 
   const rewardedProofs = await countRewardedGoalProofs(admin, wallet, commitmentId);

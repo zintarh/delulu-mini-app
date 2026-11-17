@@ -25,6 +25,8 @@ export const tierSchema = z
     forfeitPct: z.union([z.literal(0), z.literal(2), z.literal(5), z.literal(10)]),
     /** G$ per approved daily photo on this tier; unset = the Rewards Engine's global daily amount. */
     rewardPerSquare: z.number().int().min(0).max(100_000).optional(),
+    /** G$ for finishing the whole card on this tier; unset = the engine's default by length. */
+    completionReward: z.number().int().min(0).max(1_000_000).optional(),
   })
   .strict();
 

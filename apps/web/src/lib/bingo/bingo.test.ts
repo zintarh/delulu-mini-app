@@ -153,3 +153,23 @@ test("per-photo reward: a tier's own amount wins, else the global one", async ()
   assert.equal(perSquareFor(mixed, "elite", 100), 200);
   assert.equal(perSquareFor(mixed, null, 100), 100);
 });
+
+test("after a 7-day card: make it a personal habit", async () => {
+  const { bingoNextStep, habitFor } = await import("@/lib/next-step");
+  assert.equal(habitFor("Prayer Streak"), "Pray every day");
+  assert.equal(habitFor("Outside Your Bubble Bingo"), "One good photo of my day");
+  const missions = Array.from({ length: 7 }, (_, i) => ({ title: `M${i}`, bonus: false }));
+  const step = bingoNextStep({
+    id: "oyb", slug: "outside-your-bubble", title: "Outside Your Bubble Bingo", description: null, coverImageUrl: null,
+    durationDays: 7, enrollment: "rolling", recurrence: "automatic", missions, cycle: null,
+    tiers: [{ key: "pro", label: "Pro", stake: 2000, forfeitPct: 0, campaignId: null, challengeId: null, ready: true, completionReward: 1200 }],
+    joinable: true, visible: true, players: 3, photos: [], rewards: { perProof: 100, completion: 500 },
+    me: {
+      attemptId: "a", wallet: "0x1", username: null, avatarUrl: null, tierKey: "pro", tierLabel: "Pro", stake: 2000, status: "active",
+      squaresFilled: 7, requiredFilled: 7, lastFilledAt: null, startedAt: new Date().toISOString(), endsAt: new Date().toISOString(),
+      squares: [], phase: "live", today: 6, todayUsed: true, nextSquareAt: null, dayOrdered: true, missedDay: false,
+    },
+  } as never);
+  assert.equal(step.title, "You did 7 days! 🎉");
+  assert.match(step.cta?.href ?? "", /^\/forfeit\?habit=/);
+});

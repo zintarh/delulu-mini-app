@@ -37,6 +37,8 @@ export type BingoTierView = {
   campaignId: string | null;
   challengeId: number | null;
   ready: boolean;
+  /** G$ for finishing the card on this tier, when the tier sets its own. */
+  completionReward?: number;
 };
 
 export type BingoView = {

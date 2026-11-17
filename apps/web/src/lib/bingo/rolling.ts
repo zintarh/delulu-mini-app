@@ -64,7 +64,6 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
   }
   const { data: version } = await admin.from("bingo_versions").select("*").eq("id", campaign.current_version_id).single();
   const v = version as BingoVersionRow;
-  const tier = v.tiers[0];
 
   if (campaign.recurrence === "one_time") {
     const { data: before } = await admin
@@ -86,17 +85,19 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
   if (existing) return existing.id as string;
 
   const c = await readCommitment(onChainId);
+  // The stake picks the tier (7-day Bingos offer 1,000 / 2,000 / 3,000 G$).
+  const tier = v.tiers.find((t) => c.stake === parseUnits(String(t.stake), 18));
   const ok =
+    !!tier &&
     c.creator === wallet &&
     c.token === GOODDOLLAR_ADDRESSES.mainnet.toLowerCase() &&
-    c.stake === parseUnits(String(tier.stake), 18) &&
     c.destinationType === COMMUNITY_POOL_DESTINATION &&
     c.cadence === DAILY_CADENCE &&
     c.periodSeconds === DAY_MS / 1000 &&
     c.totalPeriods === campaign.duration_days &&
     c.verifier === "0x0000000000000000000000000000000000000000" &&
     c.active;
-  if (!ok) throw new Error("That stake doesn't match this Bingo's terms.");
+  if (!ok || !tier) throw new Error("That stake doesn't match this Bingo's terms.");
 
   const { data: goal } = await admin
     .from("forfeit_commitments")

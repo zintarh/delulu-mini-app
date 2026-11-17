@@ -77,14 +77,15 @@ export function BingoJoinSheet({
 
   const rules = useMemo(() => {
     if (!tier) return [];
+    const finish = typeof tier.completionReward === "number" ? tier.completionReward : bingo.rewards.completion;
     const earn =
-      bingo.rewards.perProof > 0 || bingo.rewards.completion > 0
+      bingo.rewards.perProof > 0 || finish > 0
         ? {
             icon: Coins,
             text:
               [
                 bingo.rewards.perProof > 0 ? `up to ${fmtG(bingo.rewards.perProof)} G$ a photo` : null,
-                bingo.rewards.completion > 0 ? `${fmtG(bingo.rewards.completion)} G$ for a full card` : null,
+                finish > 0 ? `${fmtG(finish)} G$ for a full card` : null,
               ]
                 .filter(Boolean)
                 .join(" + ") + " (verified players)",
@@ -192,7 +193,12 @@ export function BingoJoinSheet({
               >
                 <span className="label-mono text-[10px] opacity-70">{t.label}</span>
                 <span className="font-display text-xl font-extrabold leading-none">{fmtG(t.stake)}</span>
-                <span className="text-[10px] font-bold opacity-70">G$</span>
+                <span className="text-[10px] font-bold opacity-70">G$ stake</span>
+                {typeof t.completionReward === "number" && t.completionReward > 0 ? (
+                  <span className={cn("mt-1 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold", t.key === tier?.key ? "bg-green text-ink" : "bg-green-soft text-green-edge")}>
+                    +{fmtG(t.completionReward)} finish
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>

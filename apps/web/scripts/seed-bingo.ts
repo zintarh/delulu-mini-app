@@ -1,15 +1,14 @@
 /**
  * Seeds the launch Bingos (idempotent by slug; an existing Bingo is left alone).
  *
- *   Outside Your Bubble — 7 days, Nov 18–24 2026 (Lagos), one-time
- *   Everyday Life       — 7 days, Nov 25 – Dec 1 2026, one-time
+ *   Outside Your Bubble — always-on 7-day Bingo (own clock), 1k/2k/3k G$ tiers
+ *   Everyday Life       — same format, saved as a draft for a later launch
  *   Delulu Debut — the evergreen 3-day newcomer Bingo (stake the 1,000 G$ gift,
  *     100 G$ a photo, personal clock), live, one card per wallet
  *   Prayer Streak — 3 days of you praying, same terms, replayable
  *   Little Adventures / Good Vibes Only — more 3-day Bingos, saved as drafts
  *
- * Weekly tiers: Starter 1,000 · Pro 10,000 · Elite 20,000 G$, 10% of the
- * stake per missed day (the contract's max; 7 misses = 70%).
+ * 7-day tiers: Starter 1,000 (+500 to finish) · Pro 2,000 (+1,200) · Elite 3,000 (+2,000).
  *
  * Usage (from apps/web):  npx tsx --env-file=.env.local scripts/seed-bingo.ts [--apply]
  */
@@ -18,10 +17,12 @@ import { lagosMidnight, versionSchemaFor, DAY_MS, type BingoMission, type BingoT
 
 const APPLY = process.argv.includes("--apply");
 
+// Always-on 7-day Bingos: your own clock from the moment you join; a missed day forfeits the stake.
+// Finish to get the stake back plus the tier's finishing reward (and 100 G$ a photo).
 const WEEKLY_TIERS: BingoTier[] = [
-  { key: "starter", label: "Starter", stake: 1_000, forfeitPct: 10 },
-  { key: "pro", label: "Pro", stake: 10_000, forfeitPct: 10 },
-  { key: "elite", label: "Elite", stake: 20_000, forfeitPct: 10 },
+  { key: "starter", label: "Starter", stake: 1_000, forfeitPct: 0, completionReward: 500 },
+  { key: "pro", label: "Pro", stake: 2_000, forfeitPct: 0, completionReward: 1_200 },
+  { key: "elite", label: "Elite", stake: 3_000, forfeitPct: 0, completionReward: 2_000 },
 ];
 // 3-day Bingos: stake the 1,000 G$ welcome gift, earn 100 G$ a photo, get the stake back on finishing.
 const NEWCOMER_TIERS: BingoTier[] = [{ key: "entry", label: "Entry", stake: 1000, forfeitPct: 0, rewardPerSquare: 100 }];
@@ -48,11 +49,10 @@ const SEEDS: Seed[] = [
     title: "Outside Your Bubble Bingo",
     description: "Seven days, seven small moments outside your usual. One photo a day fills your card.",
     duration: 7,
-    enrollment: "fixed",
-    recurrence: "one_time",
+    enrollment: "rolling",
+    recurrence: "automatic",
     status: "live",
     sort: 10,
-    firstCycle: "2026-11-18",
     missions: [
       m("Show us what you ate today"),
       m("Find something beautiful"),
@@ -61,8 +61,6 @@ const SEEDS: Seed[] = [
       m("Capture the sky"),
       m("Show us your happy place"),
       m("Share something that made you smile"),
-      m("Your shoes today", true),
-      m("Something green", true),
     ],
     tiers: WEEKLY_TIERS,
   },
@@ -71,11 +69,10 @@ const SEEDS: Seed[] = [
     title: "Everyday Life Bingo",
     description: "The little things that make your week. One photo a day fills your card.",
     duration: 7,
-    enrollment: "fixed",
-    recurrence: "one_time",
-    status: "live",
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "draft",
     sort: 20,
-    firstCycle: "2026-11-25",
     missions: [
       m("Your favourite drink"),
       m("Something colourful"),
@@ -84,8 +81,6 @@ const SEEDS: Seed[] = [
       m("Something you love"),
       m("A picture with a friend"),
       m("Your favourite part of the week"),
-      m("Where you work or study", true),
-      m("Something old you still love", true),
     ],
     tiers: WEEKLY_TIERS,
   },
