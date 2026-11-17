@@ -4,6 +4,7 @@ import {
   checkProofImages,
   recordProofImages,
   REJECT_COPY,
+  aiRejectCopy,
   type ProofContext,
   type ProofRejectCode,
 } from "@/lib/proof-integrity/check";
@@ -52,7 +53,7 @@ export async function reviewProof(
       const code: ProofRejectCode = verdict.sameAsPrevious ? "ai_same_as_previous" : "ai_rejected";
       const userReason = verdict.sameAsPrevious
         ? REJECT_COPY.same_as_previous(check.compareWith?.sameWallet ?? false)
-        : verdict.reason.trim() || "Your proof wasn't accepted. Take a clear photo of what you did today.";
+        : aiRejectCopy(verdict.issue, opts.ai.goal, verdict.reason);
       await recordProofImages(admin, ctx, check.images, {
         status: "rejected",
         code,

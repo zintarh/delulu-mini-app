@@ -68,19 +68,51 @@ function formatDay(date: Date, tzOffsetMinutes?: number | null): string {
   return shifted.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 }
 
+/**
+ * What the player reads when a proof is rejected: what's wrong with THIS
+ * photo, then exactly what to send instead. Kept under ~180 chars so the
+ * app shows it whole.
+ */
 export const REJECT_COPY = {
-  reused_own: "You've used this photo before. Take a new one for today.",
-  reused_other: "This photo has already been used on Delulu. Take your own photo today.",
-  too_small: "This image is too small to check. Take a full photo with your camera.",
-  foreign_host: "Upload your proof in the app and try again.",
-  fetch_failed: "We couldn't load your proof image. Try uploading it again.",
+  reused_own: "You've already used this exact photo for a proof. Each day needs a new photo — take one now.",
+  reused_other: "Someone else already submitted this exact photo. Take your own photo of what you did today.",
+  too_small:
+    "This image is too small to be a camera photo — it looks like a thumbnail or a download. Send the original photo from your camera.",
+  foreign_host: "This photo didn't upload through the app. Pick it again in the app and resubmit.",
+  fetch_failed: "We couldn't open your photo. Try uploading it again.",
   too_old: (taken: Date, tz?: number | null) =>
-    `This photo was taken on ${formatDay(taken, tz)}. Use one taken in the last 24 hours.`,
+    `This photo was taken on ${formatDay(taken, tz)}. Proofs must be photos taken in the last 24 hours — take a new one today.`,
   same_as_previous: (sameWallet: boolean) =>
     sameWallet
-      ? "You've used this photo before. Take a new one for today."
-      : "This photo has already been used on Delulu. Take your own photo today.",
+      ? "This is a photo you've already used, just cropped or edited. Each day needs a new photo — take one now."
+      : "This matches a photo someone else already used. Take your own photo of what you did today.",
 } as const;
+
+const shortGoal = (goal: string) => {
+  const g = goal.trim().replace(/\s+/g, " ");
+  return g.length > 40 ? `${g.slice(0, 39)}…` : g;
+};
+
+/** Clear copy for each AI verdict: why it failed, then what to send — not the model's free text. */
+export function aiRejectCopy(issue: string | undefined, goal: string, aiReason: string): string {
+  const g = shortGoal(goal);
+  switch (issue) {
+    case "stock":
+      return `This looks like a picture from the internet (a stock photo or ad), not one you took. Take your own photo for “${g}”.`;
+    case "generated":
+      return `This looks AI-generated or heavily edited, not a real photo. Take a real photo for “${g}”.`;
+    case "not_first_hand":
+      return "This looks like someone else's photo or post, not yours. Send a photo you took, or a screenshot of your own post.";
+    case "old":
+      return "The date shown in this screenshot isn't today. Send proof from today — a new screenshot or a fresh photo.";
+    case "unrelated":
+      return `This photo doesn't show your goal, “${g}”. Take a photo of you doing it, or of the result.`;
+    default: {
+      const why = aiReason.trim();
+      return why && why.length <= 180 ? why : `We couldn't match this photo to “${g}”. Take a clear photo of what you did today.`;
+    }
+  }
+}
 
 function storageHost(): string | null {
   try {

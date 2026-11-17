@@ -94,3 +94,28 @@ test("habit key ignores case, punctuation and spacing", () => {
   assert.notEqual(habitKey("Reading for 30 minutes"), habitKey("Reading for 60 minutes"));
   assert.equal(habitKey(null), "");
 });
+
+test("rejection copy says why and what to send, and fits on screen", async () => {
+  const { REJECT_COPY, aiRejectCopy } = await import("@/lib/proof-integrity/check");
+  const { formatProofError } = await import("@/lib/community/format-proof-error");
+  const goal = "Eating a balanced diet with lots of vegetables every day";
+  const msgs = [
+    REJECT_COPY.reused_own,
+    REJECT_COPY.reused_other,
+    REJECT_COPY.too_small,
+    REJECT_COPY.too_old(new Date("2026-11-12T10:00:00Z"), 60),
+    REJECT_COPY.same_as_previous(true),
+    REJECT_COPY.same_as_previous(false),
+    ...["stock", "generated", "not_first_hand", "old", "unrelated"].map((i) => aiRejectCopy(i, goal, "")),
+  ];
+  for (const m of msgs) {
+    assert.ok(m.length <= 180, `too long (${m.length}): ${m}`);
+    // Shown intact under the "Proof not accepted" title, not swapped for generic copy.
+    const shown = formatProofError(new Error(m));
+    assert.equal(shown.message, m);
+    assert.equal(shown.title, "Proof not accepted");
+  }
+  assert.match(aiRejectCopy("stock", goal, ""), /internet/);
+  assert.match(aiRejectCopy("unrelated", "Saving", ""), /“Saving”/);
+  assert.match(REJECT_COPY.too_old(new Date("2026-11-12T10:00:00Z"), 60), /Thu 12 Nov.*last 24 hours/);
+});

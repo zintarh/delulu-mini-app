@@ -154,7 +154,7 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
     },
   },
   {
-    test: /campaign has ended/i,
+    test: /(campaign|mission) has ended/i,
     display: {
       title: "Mission ended",
       message: "This mission has ended, so proof can't be submitted.",
@@ -458,7 +458,9 @@ export function formatProofError(error: unknown): ProofErrorDisplay {
       lower.includes("doesn't look") ||
       lower.includes("does not look") ||
       lower.includes("unrelated") ||
-      lower.includes("instead")
+      lower.includes("instead") ||
+      // Proof rejections all talk about the photo/screenshot ("This photo was taken on…").
+      /\b(photo|picture|screenshot|image)\b/.test(lower)
         ? "ai"
         : lower.includes("wallet") || lower.includes("transaction") || lower.includes("gas")
           ? "wallet"
