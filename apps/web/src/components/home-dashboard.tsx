@@ -11,6 +11,7 @@ import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
 import { HomeBingo } from "@/components/home/home-bingo";
 import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step";
+import { FlowStateCard } from "@/components/home/flow-state-card";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -75,6 +76,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             <div className="flex flex-col gap-4">
               <LuluHero address={address} />
               <HomeNextStep />
+              <FlowStateCard />
               <DailyMoneyCard />
             </div>
             {/* Your own delulus — the empty "create your first" row is gone: a first

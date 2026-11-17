@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, ChevronRight, Copy, Loader2, LogOut, Mail, Send, ShieldCheck, User, Wallet } from "lucide-react";
+import { Bell, Check, ChevronRight, Copy, KeyRound, Loader2, LogOut, Mail, Send, ShieldCheck, User, Wallet } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -131,7 +131,7 @@ export default function SettingsPage() {
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
                   </Row>
                 )}
-                <Row icon={<Wallet className="h-5 w-5" strokeWidth={2} />} title="Wallet" last>
+                <Row icon={<Wallet className="h-5 w-5" strokeWidth={2} />} title="Wallet">
                   <span className="label-mono text-muted-foreground">{formatAddress(address)}</span>
                   <button
                     type="button"
@@ -141,6 +141,9 @@ export default function SettingsPage() {
                   >
                     {copied ? <Check className="h-4 w-4 text-green-edge" strokeWidth={2.4} /> : <Copy className="h-4 w-4" strokeWidth={1.8} />}
                   </button>
+                </Row>
+                <Row icon={<KeyRound className="h-5 w-5" strokeWidth={2} />} title="Use your wallet in MetaMask" href="/flow-state" last>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
                 </Row>
               </SettingsCard>
             </section>
