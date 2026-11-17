@@ -141,7 +141,8 @@ export function pickNudge(p: Person, nowMs = Date.now()): Nudge | null {
   }
 
   // 6. Posting proofs but hasn't installed the app (and can't get pushes).
-  if (p.lastProofAt && !p.installedAt && !p.pushOn && age <= 14 * DAY) {
+  // Only once we've seen them since install tracking began — before that "not installed" just means "unknown".
+  if (p.lastProofAt && p.lastSeenAt && !p.installedAt && !p.pushOn && age <= 14 * DAY) {
     return {
       rule: "install_app",
       dedupeKey: "once",

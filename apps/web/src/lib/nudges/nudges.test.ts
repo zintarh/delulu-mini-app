@@ -37,6 +37,8 @@ test("first-days journey: setup → verify → play → install", () => {
   assert.equal(pickNudge(base({ giftSent: false, everStartedBingo: false, lastProofAt: null }), now)?.rule, "verify_for_gift");
   assert.equal(pickNudge(base({ everStartedBingo: false, lastProofAt: null }), now)?.rule, "gift_not_played");
   assert.equal(pickNudge(base({ pushOn: false }), now)?.rule, "install_app");
+  // Not seen since tracking began → we don't know they haven't installed; don't nag.
+  assert.notEqual(pickNudge(base({ pushOn: false, lastSeenAt: null }), now)?.rule, "install_app");
   assert.equal(pickNudge(base({ pushOn: true }), now), null); // installed-or-push and playing fine → leave them be
 });
 
