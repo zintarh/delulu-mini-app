@@ -225,7 +225,7 @@ export function RightSidebar() {
               {!flyerImageError ? (
                 <img
                   src="/flyer.png"
-                  alt="Delulu Monday campaign flyer"
+                  alt="Delulu Monday flyer"
                   className="w-full h-full object-cover"
                   onError={() => setFlyerImageError(true)}
                 />

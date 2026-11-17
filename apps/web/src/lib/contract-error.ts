@@ -25,7 +25,7 @@ const DELULU_ERROR_MESSAGES: Record<string, ContractErrorDisplay> = {
   ChallengeNotFound: { title: "Challenge not found", message: "The challenge could not be found." },
   ChallengeExpired: { title: "Too late", message: "This challenge has expired." },
   ChallengeNotClosed: { title: "Challenge still open", message: "Wait for the challenge to close." },
-  ChallengePoolEmpty: { title: "Pool empty", message: "This campaign pool was already withdrawn." },
+  ChallengePoolEmpty: { title: "Pool empty", message: "This mission pool was already withdrawn." },
   MilestoneNotFound: { title: "Step not found", message: "This step doesn't exist or was removed." },
   MilestoneAlreadyCompleted: { title: "Already done", message: "This step is already verified." },
   MilestoneExpired: { title: "Too late", message: "The deadline for this step has passed." },

@@ -11,6 +11,8 @@ import { HomeReadyGate } from "@/components/home/home-ready";
 import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
 import { StartFreeCard } from "@/components/home/start-free-card";
+import { HomeBingo } from "@/components/home/home-bingo";
+import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,8 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   // null until the forfeit lists load.
   const [noForfeits, setNoForfeits] = useState<boolean | null>(null);
   const campaigns = useHomeCampaignLists(address);
+  // Start the Bingo fetch with the rest of Home (shared cache), so the section is ready when it mounts.
+  useBingoList();
 
   useEffect(() => {
     if (!sessionHint || authenticated) {
@@ -75,9 +79,12 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             </div>
             {/* Always above campaigns: your own delulus first, or — with none yet —
                 the compact "New here? Create your first delulu" row. */}
+            {/* New players: My First 3 is the way in, so it leads; everyone else sees their goals first. */}
+            {noForfeits === true ? <HomeBingo newcomer /> : null}
             <div id="forfeit-day-card">
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} />
             </div>
+            {noForfeits === true ? null : <HomeBingo />}
             {/* Hold campaigns until forfeits are known too: how many to show depends on it. */}
             <HomeCampaigns
               address={address}
@@ -89,6 +96,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
         ) : (
           <>
             {/* Guests: "New here? Create your first delulu" first, then campaigns. */}
+            <HomeBingo newcomer />
             <div id="forfeit-day-card">
               <ForfeitDayCard address={undefined} />
             </div>

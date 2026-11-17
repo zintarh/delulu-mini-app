@@ -36,7 +36,7 @@ export async function POST(
     .maybeSingle();
 
   if (!campaign) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
   }
 
   const community = Array.isArray(campaign.communities)

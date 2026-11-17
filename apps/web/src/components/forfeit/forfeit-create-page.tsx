@@ -1,5 +1,6 @@
 "use client";
 
+import { LowBalancePanel } from "@/components/low-balance-panel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useChainId } from "wagmi";
@@ -1228,7 +1229,14 @@ export function ForfeitCreatePage() {
             ) : null}
 
           {hasInsufficientBalance ? (
-            <p className="text-sm font-semibold text-orange">Not enough {selectedTokenSymbol}. Claim your free daily money or lower the amount.</p>
+            selectedTokenSymbol === "G$" ? (
+              <div className="flex flex-col gap-2">
+                <p className="m-0 text-sm font-semibold text-orange">Not enough G$ — lower the amount, or:</p>
+                <LowBalancePanel need={forfeitAmount} have={parseFloat(selectedTokenBalance.formatted) || 0} />
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-orange">Not enough {selectedTokenSymbol}. Lower the amount.</p>
+            )
           ) : !isWordPledge && forfeitAmount < minForfeitAmount ? (
             <p className="text-sm font-semibold text-orange">
               Minimum is {minForfeitAmount.toLocaleString()} {selectedTokenSymbol}

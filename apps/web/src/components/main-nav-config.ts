@@ -19,7 +19,8 @@ export function hidesBottomNav(pathname: string): boolean {
     pathname.startsWith("/settings") ||
     pathname.startsWith("/notifications") ||
     pathname === "/profile/flex" ||
-    /^\/communities\/[^/]+\/campaigns\/[^/]+$/.test(pathname)
+    /^\/communities\/[^/]+\/campaigns\/[^/]+$/.test(pathname) ||
+    /^\/bingo\/[^/]+$/.test(pathname)
   );
 }
 
@@ -56,7 +57,7 @@ export function isNavHrefActive(pathname: string, href: string) {
 
 const coreNavItems = (): MainNavItem[] => [
   { icon: Home, label: "Home", href: APP_HOME, action: "home" },
-  { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
+  { icon: Compass, label: "Missions", href: "/explore", action: "explore" },
   { icon: Plus, label: "New delulu", href: "/forfeit", action: "forfeit" },
 ];
 

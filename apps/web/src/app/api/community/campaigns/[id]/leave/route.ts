@@ -26,7 +26,7 @@ export async function POST(
     .maybeSingle();
 
   if (!campaign) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
   }
 
   // Paid stake stays on-chain until end; leaving would hide proofs and force forfeit.
@@ -34,7 +34,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Paid campaigns can't be left. Your stake stays locked until the campaign ends — then reclaim from Rewards.",
+          "Paid missions can't be left. Your stake stays locked until the mission ends — then reclaim from Rewards.",
       },
       { status: 400 },
     );
@@ -48,7 +48,7 @@ export async function POST(
     .maybeSingle();
 
   if (!participant) {
-    return NextResponse.json({ error: "You are not a participant in this campaign" }, { status: 404 });
+    return NextResponse.json({ error: "You are not a participant in this mission" }, { status: 404 });
   }
 
   if (participant.status === "left") {

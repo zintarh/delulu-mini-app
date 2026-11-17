@@ -183,10 +183,10 @@ export function CreateChallengeSheet({
 
     try {
       if (!challengeTitle.trim()) {
-        throw new Error("Please enter a campaign title");
+        throw new Error("Please enter a mission title");
       }
       if (!challengeDescription.trim()) {
-        throw new Error("Please enter a campaign description");
+        throw new Error("Please enter a mission description");
       }
       if (!isFinite(currentPoolAmount) || currentPoolAmount < 1) {
         throw new Error("Pool amount must be at least 1");
@@ -218,13 +218,13 @@ export function CreateChallengeSheet({
       setIsUploading(false);
 
       if (!contentHash || typeof contentHash !== "string") {
-        throw new Error("Failed to upload campaign description to IPFS");
+        throw new Error("Failed to upload mission description to IPFS");
       }
 
       await createChallenge(contentHash, currentPoolAmount, selectedDuration);
     } catch (error) {
       setIsUploading(false);
-      setErrorMessage(error instanceof Error ? error.message : "Failed to create campaign");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to create mission");
       setShowErrorModal(true);
     }
   };
@@ -276,7 +276,7 @@ export function CreateChallengeSheet({
                   }
                 }}
                 maxLength={500}
-                placeholder="Describe the campaign... What do participants need to achieve?"
+                placeholder="Describe the mission... What do participants need to achieve?"
                 className="w-full bg-card border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:border-foreground"
                 minRows={4}
               />
@@ -526,7 +526,7 @@ export function CreateChallengeSheet({
                   <span>{isUploading ? "Uploading..." : "Creating..."}</span>
                 </>
               ) : (
-                <span>Launch Campaign</span>
+                <span>Launch Mission</span>
               )}
             </button>
           </div>
@@ -537,8 +537,8 @@ export function CreateChallengeSheet({
       <FeedbackModal
         isOpen={showSuccessModal}
         type="success"
-        title="Campaign Created! 🎉"
-        message="Your campaign has been successfully launched. Participants can now join and compete!"
+        title="Mission Created! 🎉"
+        message="Your mission has been successfully launched. Participants can now join and compete!"
         onClose={handleSuccessClose}
         actionText="Done"
       />
@@ -548,7 +548,7 @@ export function CreateChallengeSheet({
         isOpen={showErrorModal}
         type="error"
         title="Oops! Something went wrong"
-        message={errorMessage || "Failed to create campaign. Please try again."}
+        message={errorMessage || "Failed to create mission. Please try again."}
         onClose={() => {
           setShowErrorModal(false);
         }}

@@ -57,7 +57,7 @@ type ActivityItem = {
 const ENGINE_CATEGORY_TITLE: Record<HistoryItem["category"], string> = {
   daily_proof: "Proof reward",
   weekly_consistency: "Weekly streak bonus",
-  campaign_completion: "Campaign completed",
+  campaign_completion: "Mission completed",
   goal_completion: "Goal completed",
   streak_milestone: "Streak bonus",
 };
@@ -403,7 +403,7 @@ export default function RewardsPage() {
                 {[
                   { art: <Chest size={44} grey />, title: "Daily G$", sub: "Free every day" },
                   { art: <Coin size={40} />, title: "Stake money", sub: "Put G$ on your contracts" },
-                  { art: <Trophy size={42} />, title: "Campaign prizes", sub: "Join pools with real G$" },
+                  { art: <Trophy size={42} />, title: "Mission prizes", sub: "Join pools with real G$" },
                 ].map((row) => (
                   <button
                     key={row.title}

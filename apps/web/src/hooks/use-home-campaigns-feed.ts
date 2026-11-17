@@ -35,7 +35,7 @@ async function fetchFeedPage(
 
   const res = await fetch(`/api/community/campaigns/feed?${params}`);
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.error ?? "Failed to load campaigns");
+  if (!res.ok) throw new Error(json?.error ?? "Failed to load missions");
   return {
     campaigns: json.campaigns ?? [],
     nextCursor: json.nextCursor ?? null,

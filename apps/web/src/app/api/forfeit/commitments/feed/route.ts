@@ -144,6 +144,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Bingo cards run on their own Forfeit goal — they live on the Bingo card, not in this list.
+  {
+    const ids = commitments.map((c) => c.on_chain_commitment_id).filter((id): id is number => id != null);
+    if (ids.length > 0) {
+      const { data: bingo } = await admin.from("bingo_attempts").select("forfeit_commitment_id").in("forfeit_commitment_id", ids);
+      const hidden = new Set((bingo ?? []).map((b) => Number(b.forfeit_commitment_id)));
+      if (hidden.size > 0) commitments = commitments.filter((c) => c.on_chain_commitment_id == null || !hidden.has(c.on_chain_commitment_id));
+    }
+  }
+
   if (commitments.length === 0) {
     return NextResponse.json({ items: [] });
   }

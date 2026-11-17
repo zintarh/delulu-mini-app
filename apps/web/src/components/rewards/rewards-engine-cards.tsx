@@ -292,7 +292,7 @@ export function RewardsHowYouEarnCard({
                   key={`${g.kind}:${g.ref}`}
                   className="max-w-full truncate rounded-full border-2 border-line px-2 py-[1px] text-[11px] font-semibold"
                 >
-                  {g.title ?? (g.kind === "campaign" ? "Campaign" : "Goal")}
+                  {g.title ?? (g.kind === "campaign" ? "Mission" : "Goal")}
                 </span>
               ))}
               {Array.from({

@@ -1,3 +1,4 @@
+import { bingoRewardPerSquare } from "@/lib/bingo/reward";
 import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
@@ -54,8 +55,13 @@ const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC)
 export type RewardOutcome =
   | { result: "paid" | "in_flight" | "queued" | "failed"; amount: number; payoutStatus: PayoutStatus }
   | {
-      result: "daily_limit" | "goal_limit" | "goal_released" | "same_habit" | "not_reached" | "not_complete" | "no_tier" | "legacy" | "disabled";
-    };
+      result: "daily_limit" | "goal_released" | "same_habit" | "not_reached" | "not_complete" | "no_tier" | "legacy" | "disabled";
+    }
+  /**
+   * No free earning slot. `freeOn` is set when every slot is locked by a
+   * missed or idle goal's cooldown: the first day one opens again.
+   */
+  | { result: "goal_limit"; freeOn: string | null };
 
 export type ProofRewardsResult =
   | { status: "disabled" }
@@ -346,7 +352,8 @@ async function evaluateDaily(
 ): Promise<RewardOutcome> {
   if (!isCategoryEnabled(config, "daily_proof")) return { result: "disabled" };
   const dedupeKey = dailyProofDedupeKey(proof.wallet, proof.goalKind, proof.goalRef, day);
-  const amount = config.dailyProof.amount;
+  // A Bingo tier can set its own per-photo amount (My First 3: 50 G$); everything else uses the global one.
+  const amount = (await bingoRewardPerSquare(admin, proof.goalKind, proof.goalRef).catch(() => null)) ?? config.dailyProof.amount;
   const siblingRefs = proof.goalKind === "forfeit" ? await sameHabitGoalRefs(admin, proof.wallet, proof.goalRef) : [];
   const { data, error } = await admin.rpc("reserve_daily_proof_reward", {
     p_wallet: proof.wallet,
@@ -367,7 +374,27 @@ async function evaluateDaily(
   if (res.outcome === "reserved" || res.outcome === "exists") {
     return pay(admin, res.payout_id!, amount, res.status ?? "pending", deadline);
   }
-  return { result: res.outcome as "daily_limit" | "goal_limit" | "goal_released" | "same_habit" };
+  if (res.outcome === "goal_limit") return { result: "goal_limit", freeOn: await slotFreeOn(admin, proof.wallet, day) };
+  return { result: res.outcome as "daily_limit" | "goal_released" | "same_habit" };
+}
+
+/**
+ * When the wallet next gets an earning slot back, if all its slots are only
+ * cooling down (after a missed or idle goal). null while any slot is held by
+ * an ongoing goal — that frees whenever the goal ends, not on a set day.
+ */
+async function slotFreeOn(admin: SupabaseAdmin, wallet: string, day: string): Promise<string | null> {
+  const { data, error } = await admin
+    .from("reward_goal_slots")
+    .select("released_at, cooldown_until")
+    .eq("wallet", wallet);
+  if (error || !data) return null;
+  if (data.some((s) => s.released_at == null)) return null;
+  const cooling = data
+    .map((s) => s.cooldown_until as string | null)
+    .filter((d): d is string => d != null && d > day)
+    .sort();
+  return cooling[0] ?? null;
 }
 
 /** "Reading for 30 minutes" and "reading for 30 minutes!" are one habit. */

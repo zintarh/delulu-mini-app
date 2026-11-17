@@ -10,6 +10,9 @@ import {
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
+import { useBingoList } from "@/hooks/use-bingo";
+import { BingoBannerCard } from "@/components/bingo/bingo-tile";
+import type { BingoView } from "@/lib/bingo/view";
 import { CAMPAIGN_CATEGORIES, OTHER_CATEGORY, campaignCategoryFor } from "@/lib/community/campaign-category";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +47,30 @@ function CategoryRow({ section }: { section: Section }) {
   );
 }
 
+/** Bingos sit with campaigns as their own row: yours first, then ones you can join. */
+function BingoRow({ bingos }: { bingos: BingoView[] }) {
+  const single = bingos.length === 1;
+  return (
+    <section className="animate-rise">
+      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">Bingo</h2>
+      <div
+        className={cn(
+          single
+            ? "sm:grid sm:grid-cols-2 sm:gap-4"
+            : "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0",
+        )}
+      >
+        {bingos.map((b) => (
+          <BingoBannerCard key={b.id} bingo={b} className={single ? "w-full" : "w-[86%] shrink-0 snap-start sm:w-full"} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const bingoRank = (b: BingoView) =>
+  b.me && b.me.status === "active" && b.me.phase !== "ended" ? 0 : b.joinable ? 1 : b.cycle?.phase === "upcoming" ? 2 : 3;
+
 /**
  * Explore: campaigns grouped by category (Workout, Reading, …) as big photo
  * cards, then recently finished ones. Categories come from each campaign's
@@ -59,6 +86,14 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const campaigns = useMemo(() => data?.pages.flatMap((page) => page.campaigns) ?? [], [data]);
+  const { bingos: bingoList } = useBingoList();
+  const bingos = useMemo(
+    () =>
+      [...(bingoList ?? [])]
+        .filter((b) => b.joinable || b.me || b.enrollment === "rolling" || b.cycle?.phase === "live" || b.cycle?.phase === "upcoming")
+        .sort((a, b) => bingoRank(a) - bingoRank(b)),
+    [bingoList],
+  );
 
   const sections = useMemo<Section[]>(() => {
     const open = campaigns.filter(isCampaignOpen);
@@ -102,7 +137,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
   if (error) {
     return (
       <div className="flex flex-col items-center gap-2 py-12 text-center">
-        <p className="text-sm text-muted-foreground">Couldn&apos;t load campaigns. Try again.</p>
+        <p className="text-sm text-muted-foreground">Couldn&apos;t load missions. Try again.</p>
         <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline night:text-white">
           {isRefetching ? "Retrying…" : "Retry"}
         </button>
@@ -110,17 +145,18 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     );
   }
 
-  if (sections.length === 0) {
+  if (sections.length === 0 && bingos.length === 0) {
     return (
       <div className="flex flex-col items-center py-14 text-center">
         <Lulu size={64} mood="dream" />
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">No campaigns right now</p>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">No missions right now</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-9">
+      {bingos.length > 0 ? <BingoRow bingos={bingos} /> : null}
       {sections.map((section) => (
         <CategoryRow key={section.key} section={section} />
       ))}

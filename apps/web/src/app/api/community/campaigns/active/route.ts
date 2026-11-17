@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
     `)
     .in("status", ["approved", "active"])
     .eq("is_hidden", false)
+    .is("bingo_cycle_id", null)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
 

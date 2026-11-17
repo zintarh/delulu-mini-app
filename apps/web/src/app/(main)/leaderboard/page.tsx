@@ -198,7 +198,7 @@ function MonthlyLeaderboard() {
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
-  if (entries.length === 0) return <EmptyState message="No one has joined a campaign this month yet." />;
+  if (entries.length === 0) return <EmptyState message="No one has joined a mission this month yet." />;
 
   const me = address?.toLowerCase();
   return (
@@ -209,7 +209,7 @@ function MonthlyLeaderboard() {
         </span>
         <div>
           <div className="text-lg font-extrabold">This month</div>
-          <div className="label-mono mt-[3px] text-[10px] text-muted-foreground">Campaign points · resets monthly</div>
+          <div className="label-mono mt-[3px] text-[10px] text-muted-foreground">Mission points · resets monthly</div>
         </div>
       </div>
       <div className="flex flex-col gap-1 pt-3">

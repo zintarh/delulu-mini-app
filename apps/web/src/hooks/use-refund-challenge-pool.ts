@@ -22,7 +22,7 @@ export function useRefundChallengePool() {
 
   const refundChallengePool = async (challengeId: number) => {
     if (!Number.isFinite(challengeId) || challengeId <= 0) {
-      throw new Error("Invalid campaign id");
+      throw new Error("Invalid mission id");
     }
     await writeContract({
       address: getDeluluContractAddress(chainId),
@@ -39,16 +39,16 @@ export function useRefundChallengePool() {
       return "Transaction cancelled";
     }
     if (message.includes("challengenotclosed")) {
-      return "Campaign has not ended yet";
+      return "Mission has not ended yet";
     }
     if (message.includes("challengepoolempty")) {
       return "Pool already withdrawn";
     }
     if (message.includes("challengenotfound")) {
-      return "Campaign not found on-chain";
+      return "Mission not found on-chain";
     }
     if (message.includes("ownable") || message.includes("unauthorized")) {
-      return "Only the wallet that created this campaign can withdraw";
+      return "Only the wallet that created this mission can withdraw";
     }
     return error.message;
   };

@@ -16,7 +16,7 @@ import { REFERRAL_GDOLLARS_REWARD, isInCurrentReferralCampaign, isReferralCampai
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
   { key: "signedUp", label: "Signed up", next: "Sign up" },
   { key: "verified", label: "Face verified", next: "Needs face verification" },
-  { key: "joined", label: "Joined a campaign", next: "Needs to join a campaign" },
+  { key: "joined", label: "Joined a mission", next: "Needs to join a mission" },
   { key: "proofApproved", label: "Proof approved", next: "Needs an approved proof" },
 ];
 
@@ -28,11 +28,11 @@ function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
       </span>
     ) : (
       <span className="font-bold text-foreground">
-        {ended ? "Counted · campaign ended" : "Counted · payout pending"}
+        {ended ? "Counted · referrals ended" : "Counted · payout pending"}
       </span>
     );
   }
-  if (ended) return <span className="font-semibold text-muted-foreground">Campaign ended</span>;
+  if (ended) return <span className="font-semibold text-muted-foreground">Referrals ended</span>;
   const next = STEPS.find((s) => !r.steps[s.key]);
   return <span className="font-semibold text-orange">{next?.next}</span>;
 }
@@ -125,7 +125,7 @@ export default function MyReferralsPage() {
           )}
         >
           <Clock className="h-4 w-4 shrink-0" />
-          {ended ? "Referral campaign has ended" : `Referral campaign ends ${referralCampaignEndLabel()}`}
+          {ended ? "Referrals have ended" : `Referrals end ${referralCampaignEndLabel()}`}
         </div>
 
         {!ended && !isLoadingEligibility && standing?.locked && standing.campaign ? (

@@ -70,7 +70,7 @@ export async function evaluateAndCreditReferral(
     .maybeSingle();
   if (existingCredit) return { credited: false, reason: "already_credited" };
 
-  let qualifyingAction: "forfeit" | "campaign_join" | null = null;
+  let qualifyingAction: "forfeit" | "campaign_join" | "bingo_join" | null = null;
 
   // Grandfather clause: a join/Forfeit-create from before the proof requirement
   // rolled out still qualifies on its own, same as it always did.
@@ -92,6 +92,20 @@ export async function evaluateAndCreditReferral(
       .limit(1)
       .maybeSingle();
     if (legacyJoin) qualifyingAction = "campaign_join";
+  }
+
+  // Bingo: joining a card with a real stake counts on its own (My First 3's
+  // 100 G$ included) — the attempt row only exists once the stake is verified
+  // on-chain, so this is money on the line, not a click.
+  if (!qualifyingAction) {
+    const { data: bingo } = await admin
+      .from("bingo_attempts")
+      .select("id")
+      .eq("wallet", wallet)
+      .gt("stake_amount", 0)
+      .limit(1)
+      .maybeSingle();
+    if (bingo) qualifyingAction = "bingo_join";
   }
 
   // From the cutoff on: joining a campaign or creating a Forfeit isn't enough on

@@ -40,7 +40,7 @@ const COMMUNITY_PROOF_REVERTS: Record<string, ProofErrorDisplay> = {
   },
   NotJoined: {
     title: "Not joined",
-    message: "Join this campaign before submitting proof.",
+    message: "Join this mission before submitting proof.",
     kind: "validation",
   },
   InvalidProof: {
@@ -54,18 +54,18 @@ const COMMUNITY_PROOF_REVERTS: Record<string, ProofErrorDisplay> = {
     kind: "validation",
   },
   CampaignNotFound: {
-    title: "Campaign not found",
-    message: "This campaign wasn't found on-chain. Refresh and try again.",
+    title: "Mission not found",
+    message: "This mission wasn't found on-chain. Refresh and try again.",
     kind: "validation",
   },
   AlreadyEnded: {
-    title: "Campaign ended",
-    message: "This campaign has already ended.",
+    title: "Mission ended",
+    message: "This mission has already ended.",
     kind: "validation",
   },
   CampaignNotEnded: {
     title: "Still running",
-    message: "This campaign is still running.",
+    message: "This mission is still running.",
     kind: "validation",
   },
   Unauthorized: {
@@ -156,8 +156,8 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
   {
     test: /campaign has ended/i,
     display: {
-      title: "Campaign ended",
-      message: "This campaign has ended, so proof can't be submitted.",
+      title: "Mission ended",
+      message: "This mission has ended, so proof can't be submitted.",
       kind: "validation",
     },
   },
@@ -165,7 +165,7 @@ const API_MESSAGE_MAP: Array<{ test: RegExp; display: ProofErrorDisplay }> = [
     test: /not open for participation/i,
     display: {
       title: "Not open",
-      message: "This campaign isn't open for participation right now.",
+      message: "This mission isn't open for participation right now.",
       kind: "validation",
     },
   },

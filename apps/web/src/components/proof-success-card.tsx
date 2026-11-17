@@ -5,6 +5,7 @@ import { Copy, XIcon } from "lucide-react";
 import { Bolt, Coin, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { ProofRewardRow } from "@/components/proof-reward-row";
+import { ProofNextStep } from "@/components/next-step-card";
 
 export async function fireConfetti() {
   try {
@@ -74,7 +75,7 @@ export function ProofSuccessCard({
 
   const onShareX = () => {
     const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
-    const tweet = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪`;
+    const tweet = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a mission"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪`;
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(shareUrl ?? "")}`,
       "_blank",
@@ -84,7 +85,7 @@ export function ProofSuccessCard({
 
   const onShareWhatsApp = () => {
     const streakLine = (myStreak ?? 0) > 0 ? `\n🔥 ${myStreak}-milestone streak going strong` : "";
-    const msg = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a campaign"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪\n\n${shareUrl ?? ""}`;
+    const msg = `Just nailed ${milestoneLabel} on "${campaignTitle ?? "a mission"}" 🎯${streakLine}\nStaying delusional, staying accountable 💪\n\n${shareUrl ?? ""}`;
     window.open(
       `https://wa.me/?text=${encodeURIComponent(msg)}`,
       "_blank",
@@ -191,9 +192,13 @@ export function ProofSuccessCard({
         </div>
       ) : null}
 
+      {/* Never end on a dead end: when to come back, or what to play next. */}
+      <ProofNextStep milestoneIndex={milestoneIndex} milestoneCount={milestoneCount} />
+
       <GameButton
         full
-        className="mt-4"
+        variant="line"
+        className="mt-3"
         onClick={onDone}
       >
         Continue

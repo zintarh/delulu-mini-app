@@ -167,7 +167,7 @@ export default function JoinedCampaignsPage() {
   if (!authenticated) {
     return (
       <MainPage className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-sm font-semibold text-foreground">Sign in to see your campaigns.</p>
+        <p className="text-sm font-semibold text-foreground">Sign in to see your missions.</p>
       </MainPage>
     );
   }
@@ -198,7 +198,7 @@ export default function JoinedCampaignsPage() {
           My campaigns
         </h1>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {campaigns.length === 0 ? "No campaigns joined yet" : `${campaigns.length} joined`}
+          {campaigns.length === 0 ? "No missions joined yet" : `${campaigns.length} joined`}
         </p>
       </div>
 
@@ -209,7 +209,7 @@ export default function JoinedCampaignsPage() {
       ) : campaigns.length === 0 ? (
         <div className="mx-4 rounded-2xl border border-dashed border-border bg-card shadow-sm px-6 py-14 text-center">
           <Target className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-          <p className="text-sm font-semibold text-foreground">No campaigns joined yet</p>
+          <p className="text-sm font-semibold text-foreground">No missions joined yet</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Browse campaigns and join one to get started.
           </p>

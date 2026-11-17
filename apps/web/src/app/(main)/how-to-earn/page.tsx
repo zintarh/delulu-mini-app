@@ -148,7 +148,7 @@ export default function HowToEarnPage() {
                 {(on?.campaign_completion || on?.goal_completion) && tiers.length > 0 ? (
                   <WayToEarn
                     art={<Trophy size={38} />}
-                    title="Finish a campaign or goal"
+                    title="Finish a mission or goal"
                     sub={tiers.map((t) => `${t.minDays} days · ${compactG(t.amount)}`).join("  ·  ")}
                     badge={`Up to ${compactG(Math.max(...tiers.map((t) => t.amount)))} G$`}
                   />
@@ -162,7 +162,7 @@ export default function HowToEarnPage() {
               badge="Monthly"
               href="/leaderboard"
             />
-            <WayToEarn art={<Coin size={36} />} title="Campaign prizes" sub="Prize pools for top finishers" badge="Prizes" href="/explore" />
+            <WayToEarn art={<Coin size={36} />} title="Mission prizes" sub="Prize pools for top finishers" badge="Prizes" href="/explore" />
             {c ? (
               <WayToEarn
                 art={<Bolt size={36} />}

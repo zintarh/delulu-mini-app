@@ -91,7 +91,7 @@ function displayForCaughtError(err: unknown): ProofErrorDisplay {
   }
   const msg = err instanceof Error ? err.message : "";
   const looksLikeSubmit =
-    /not accept|wallet|transaction|deadline|joined|milestone|campaign|gas|celo|review|verif|already|ended|open yet/i.test(
+    /not accept|wallet|transaction|deadline|joined|milestone|campaign|mission|gas|celo|review|verif|already|ended|open yet/i.test(
       msg,
     );
   return looksLikeSubmit ? formatProofError(err) : formatUploadError(err);

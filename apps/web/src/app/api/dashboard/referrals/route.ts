@@ -14,7 +14,7 @@ export type AdminReferralListItem = {
   referrerUsername: string | null;
   referredAddress: string;
   referredUsername: string | null;
-  qualifyingAction: "forfeit" | "campaign_join";
+  qualifyingAction: "forfeit" | "campaign_join" | "bingo_join";
   gdollarsAmount: number;
   payoutStatus: "not_eligible" | "sent" | "failed";
   payoutTxHash: string | null;
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     referrerUsername: usernameByAddress.get(row.referrer_wallet.toLowerCase()) ?? null,
     referredAddress: String(row.referred_wallet),
     referredUsername: usernameByAddress.get(row.referred_wallet.toLowerCase()) ?? null,
-    qualifyingAction: row.qualifying_action as "forfeit" | "campaign_join",
+    qualifyingAction: row.qualifying_action as "forfeit" | "campaign_join" | "bingo_join",
     gdollarsAmount: Number(row.gdollars_amount) || 0,
     payoutStatus: row.payout_status as "not_eligible" | "sent" | "failed",
     payoutTxHash: row.payout_tx_hash ?? null,

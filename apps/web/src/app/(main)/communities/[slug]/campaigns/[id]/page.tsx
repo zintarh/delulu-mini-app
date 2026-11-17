@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { CommunityCampaignPageClient } from "./campaign-page-client";
 
@@ -29,7 +30,7 @@ export async function generateMetadata({
 
   if (!campaign) {
     return {
-      title: "Campaign · Delulu",
+      title: "Mission · Delulu",
       description: "Join this challenge on Delulu and earn your reward.",
     };
   }
@@ -64,6 +65,24 @@ export async function generateMetadata({
   };
 }
 
-export default function CommunityCampaignPage() {
+/** A Bingo stake tier is a campaign underneath — send every old-style link to its Bingo. */
+async function bingoSlugFor(campaignId: string): Promise<string | null> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("community_campaigns")
+    .select("bingo_cycles(bingo_campaigns(slug))")
+    .eq("id", campaignId)
+    .not("bingo_cycle_id", "is", null)
+    .maybeSingle();
+  const cycle = data?.bingo_cycles as { bingo_campaigns?: { slug?: string } | { slug?: string }[] } | null | undefined;
+  const camp = Array.isArray(cycle?.bingo_campaigns) ? cycle?.bingo_campaigns[0] : cycle?.bingo_campaigns;
+  return camp?.slug ?? null;
+}
+
+export default async function CommunityCampaignPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
+  const { id } = await params;
+  const bingo = await bingoSlugFor(id).catch(() => null);
+  if (bingo) redirect(`/bingo/${bingo}`);
   return <CommunityCampaignPageClient />;
 }

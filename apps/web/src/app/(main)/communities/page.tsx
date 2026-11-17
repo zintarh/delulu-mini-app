@@ -96,7 +96,7 @@ export default function CommunitiesPage() {
                       {c.description}
                     </p>
                   ) : (
-                    <p className="mt-0.5 text-xs text-muted-foreground">View campaigns →</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">View missions →</p>
                   )}
                 </div>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-blue" />

@@ -137,6 +137,7 @@ export async function GET(request: NextRequest) {
     .select(CAMPAIGN_FEED_SELECT)
     .in("status", ["approved", "active"])
     .eq("is_hidden", false)
+    .is("bingo_cycle_id", null) // Bingos have their own section
     .order("created_at", { ascending: false })
     .limit(FETCH_BATCH);
 

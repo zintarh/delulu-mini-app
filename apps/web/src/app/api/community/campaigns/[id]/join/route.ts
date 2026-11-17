@@ -15,6 +15,8 @@ import {
   mergeMilestoneCount,
 } from "@/lib/community/campaign-milestone-counts";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { bingoTierForCampaign, otherTierAttempt } from "@/lib/bingo/attempts";
+import { DAY_MS, isBonusTier } from "@/lib/bingo/types";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 
 export const dynamic = "force-dynamic";
@@ -44,19 +46,45 @@ export async function POST(
     .eq("id", campaignId)
     .maybeSingle();
 
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-  if (campaign.is_hidden) {
-    return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
+  if (!campaign) return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  // Bingo tier rows stay hidden from every campaign list (old app versions
+  // included) — they're joined from their Bingo, so hidden doesn't block them.
+  const bingoTier = await bingoTierForCampaign(admin, campaignId);
+  if (campaign.is_hidden && !bingoTier) {
+    return NextResponse.json({ error: "Mission is not open for participation" }, { status: 400 });
   }
   if (!isCampaignParticipatable(campaign.status)) {
-    return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
+    return NextResponse.json({ error: "Mission is not open for participation" }, { status: 400 });
   }
   if (isCampaignExpired(campaign)) {
-    return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
+    return NextResponse.json({ error: "Mission has ended" }, { status: 400 });
+  }
+
+  // ── Bingo tiers: one card per cycle, no regular campaign slot ──────────
+  if (bingoTier && isBonusTier(bingoTier.tier_key)) {
+    // A bonus square's free campaign: only for players with a card in this cycle, any day it runs.
+    const { data: card } = await admin
+      .from("bingo_attempts")
+      .select("id")
+      .eq("cycle_id", bingoTier.cycle.id)
+      .eq("wallet", walletAddress)
+      .maybeSingle();
+    if (!card || bingoTier.setup_step !== "ready" || Date.now() >= Date.parse(bingoTier.cycle.ends_at)) {
+      return NextResponse.json({ error: "Join the Bingo first to fill bonus squares." }, { status: 400 });
+    }
+  } else if (bingoTier) {
+    const lastDayStarts = Date.parse(bingoTier.cycle.ends_at) - DAY_MS;
+    if (bingoTier.cycle.status !== "ready" || bingoTier.setup_step !== "ready" || Date.now() >= lastDayStarts) {
+      return NextResponse.json({ error: "Joining for this Bingo is closed." }, { status: 400 });
+    }
+    const other = await otherTierAttempt(admin, bingoTier.cycle.id, walletAddress, bingoTier.id);
+    if (other) {
+      return NextResponse.json({ error: "You're already playing this Bingo." }, { status: 409 });
+    }
   }
 
   // ── join limit (ended campaigns free up a slot) ────────────────────────
-  const activeCount = await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
+  const activeCount = bingoTier ? 0 : await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
 
   if (activeCount >= CAMPAIGN_JOIN_LIMIT) {
     return NextResponse.json(
@@ -125,7 +153,7 @@ export async function POST(
   return NextResponse.json(
     {
       error:
-        "This campaign is not live on-chain yet. The community owner must complete on-chain registration before members can join.",
+        "This mission is not live on-chain yet. The community owner must complete on-chain registration before members can join.",
     },
     { status: 403 },
   );

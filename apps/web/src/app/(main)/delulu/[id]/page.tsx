@@ -1144,7 +1144,7 @@ export default function DeluluPage() {
                   <DeluluCampaignSection
                     campaignTitle={
                       currentCampaign?.title ||
-                      `Campaign #${Number(safeDelulu.challengeId)}`
+                      `Mission #${Number(safeDelulu.challengeId)}`
                     }
                     deluluEarnedPoints={deluluEarnedPoints}
                   />

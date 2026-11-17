@@ -63,7 +63,7 @@ export async function celebrateCampaignJoin(campaignTitle?: string) {
   if (typeof window === "undefined") return;
   void fireConfetti();
   showAppToast(
-    campaignTitle ? `You're in — ${campaignTitle}` : "You're in the campaign!",
+    campaignTitle ? `You're in — ${campaignTitle}` : "You're in the mission!",
   );
   await new Promise((resolve) => setTimeout(resolve, 450));
 }

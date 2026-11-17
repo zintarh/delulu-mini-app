@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 /** Mirrors CommunityCampaignDetail: blue header, stats ticket, rules, standings, bottom CTA. */
 function CommunityCampaignDetailSkeleton() {
   return (
-    <div className="mx-auto max-w-3xl animate-pulse pb-32 xl:max-w-3xl" aria-busy aria-label="Loading campaign">
+    <div className="mx-auto max-w-3xl animate-pulse pb-32 xl:max-w-3xl" aria-busy aria-label="Loading mission">
       <div className="bg-[#fdf1c7] px-5 pb-12 pt-4">
         <div className="flex justify-between">
           <div className="h-11 w-11 rounded-full bg-white/80" />

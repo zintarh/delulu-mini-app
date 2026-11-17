@@ -257,7 +257,7 @@ async function sendCampaignMilestoneReminders(
     .is("on_chain_challenge_id", null);
 
   if (campaignErr) {
-    console.error("[email-reminders] campaign query error:", campaignErr.message);
+    console.error("[email-reminders] mission query error:", campaignErr.message);
     return stats;
   }
 
@@ -407,7 +407,7 @@ async function sendCampaignMilestoneReminders(
           profile!.email as string,
           {
             username: profile?.username ?? "Visionary",
-            goalTitle: "A campaign milestone is due in about 1 hour",
+            goalTitle: "A mission milestone is due in about 1 hour",
             pendingHabits: [
               {
                 emoji: "",
@@ -432,7 +432,7 @@ async function sendCampaignMilestoneReminders(
         stats.sendErrors++;
         stats.skipped++;
         await supabase.from("push_events_sent").delete().eq("event_key", eventKey);
-        console.error("[email-reminders] campaign send failed:", {
+        console.error("[email-reminders] mission send failed:", {
           address,
           campaignId,
           milestoneId: m.milestone_id,

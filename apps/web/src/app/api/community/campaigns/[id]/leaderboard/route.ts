@@ -74,7 +74,7 @@ export async function GET(
     .eq("id", id)
     .maybeSingle();
 
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: "Mission not found" }, { status: 404 });
 
   if (campaign.on_chain_challenge_id != null) {
     const { data: members } = await admin

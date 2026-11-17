@@ -27,7 +27,7 @@ export function ChallengesHeader({ onSearchClick }: ChallengesHeaderProps) {
         <Link
           href="/campaigns"
           className="flex items-center justify-center w-10 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Back to campaigns"
+          aria-label="Back to missions"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>

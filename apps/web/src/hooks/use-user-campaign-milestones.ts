@@ -35,7 +35,7 @@ async function fetchJoinedDashboard(address: string): Promise<JoinedDashboardCam
     `/api/community/campaigns/joined-dashboard?address=${encodeURIComponent(address)}`,
   );
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.error ?? "Failed to load joined campaigns");
+  if (!res.ok) throw new Error(json?.error ?? "Failed to load joined missions");
   return json.campaigns ?? [];
 }
 

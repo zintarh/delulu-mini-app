@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
     )
     .neq("status", "draft")
     .eq("is_hidden", false)
+    .is("bingo_cycle_id", null)
     .or(`title.ilike.${pattern},description.ilike.${pattern}`)
     .order("created_at", { ascending: false })
     .limit(MAX_RESULTS);

@@ -1,3 +1,4 @@
+import { bingoAttemptForCommitment } from "@/lib/bingo/rolling";
 import { NextRequest, NextResponse } from "next/server";
 import { reviewProof } from "@/lib/proof-integrity/review";
 import { parseTzOffset } from "@/lib/proof-integrity/check";
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!commitment) return NextResponse.json({ error: "Commitment not found" }, { status: 404 });
+  // A Bingo card's goal: each day's photo is for a specific square, so it goes through the card.
+  if (await bingoAttemptForCommitment(admin, onChainCommitmentId)) {
+    return NextResponse.json({ error: "Add this photo from your Bingo card.", code: "use_bingo_card" }, { status: 409 });
+  }
   if (commitment.creator_wallet !== walletAddress) {
     return NextResponse.json({ error: "Only the creator can submit proof for this forfeit." }, { status: 403 });
   }

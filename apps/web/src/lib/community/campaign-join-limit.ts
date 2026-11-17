@@ -19,12 +19,14 @@ export async function countActiveJoinedCampaigns(
   const { data } = await admin
     .from("campaign_participants")
     .select(
-      `id, community_campaigns!inner(status, display_ends_at, created_at, duration_days)`,
+      `id, community_campaigns!inner(status, display_ends_at, created_at, duration_days, bingo_cycle_id)`,
     )
     .eq("wallet_address", walletAddress)
     .eq("status", "joined")
     .in("community_campaigns.status", PARTICIPATING_STATUSES)
-    .neq("campaign_id", excludeCampaignId);
+    .neq("campaign_id", excludeCampaignId)
+    // Bingos have their own one-card-per-cycle rule and don't use a campaign slot.
+    .is("community_campaigns.bingo_cycle_id", null);
 
   return (data ?? []).filter((row) => {
     const campaign = Array.isArray(row.community_campaigns)

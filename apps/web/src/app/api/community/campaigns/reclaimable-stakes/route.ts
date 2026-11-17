@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
 
     items.push({
       campaignId: row.campaign.id,
-      title: row.campaign.title ?? "Campaign",
+      title: row.campaign.title ?? "Mission",
       communitySlug: community?.slug ?? null,
       communityName: community?.name ?? null,
       onChainChallengeId: row.challengeId,

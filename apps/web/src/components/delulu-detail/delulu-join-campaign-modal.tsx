@@ -56,10 +56,10 @@ export function DeluluJoinCampaignModal({
                 )
               }
             >
-              <option value="">Select a campaign</option>
+              <option value="">Select a mission</option>
               {challenges.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.title || `Campaign #${c.id}`}
+                  {c.title || `Mission #${c.id}`}
                 </option>
               ))}
             </select>
@@ -97,7 +97,7 @@ export function DeluluJoinCampaignModal({
                 Joining...
               </>
             ) : (
-              "Join campaign"
+              "Join mission"
             )}
           </button>
         </div>

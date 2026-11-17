@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bingoTierForCampaign } from "@/lib/bingo/attempts";
 import {
   isCampaignExpired,
   isCampaignParticipatable,
@@ -58,19 +59,23 @@ export async function POST(
     .eq("id", campaignId)
     .maybeSingle();
 
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  // Bingo squares go through /api/bingo — each photo fills a specific square.
+  if (await bingoTierForCampaign(admin, campaign.id)) {
+    return NextResponse.json({ error: "Add this photo from your Bingo card.", code: "use_bingo_card" }, { status: 409 });
+  }
   if (!isCampaignParticipatable(campaign.status)) {
-    return NextResponse.json({ error: "Campaign is not open for participation" }, { status: 400 });
+    return NextResponse.json({ error: "Mission is not open for participation" }, { status: 400 });
   }
   if (isCampaignExpired(campaign)) {
-    return NextResponse.json({ error: "Campaign has ended" }, { status: 400 });
+    return NextResponse.json({ error: "Mission has ended" }, { status: 400 });
   }
 
   if (!isValidOnChainChallengeId(campaign.on_chain_challenge_id)) {
     return NextResponse.json(
       {
         error:
-          "This campaign requires on-chain proof submission. Ask the community owner to finish on-chain registration.",
+          "This mission requires on-chain proof submission. Ask the community owner to finish on-chain registration.",
       },
       { status: 403 },
     );

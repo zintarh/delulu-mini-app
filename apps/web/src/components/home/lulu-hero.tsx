@@ -107,7 +107,7 @@ export function formatCloses(at: number, now: Date): string {
 /** Lowest priority: one rotating tip a day, so Lulu also teaches how Delulu works. */
 const TIPS: { text: string; cta?: { label: string; href: string } }[] = [
   { text: "Tip: a friend can check your proofs for you. It's harder to fool a friend.", cta: { label: "New delulu", href: "/forfeit" } },
-  { text: "Tip: campaigns are habits with a crew. More people, fewer excuses.", cta: { label: "Explore", href: "/explore" } },
+  { text: "Tip: missions are habits with a crew. More people, fewer excuses.", cta: { label: "Explore", href: "/explore" } },
   { text: "Tip: put a little money on a habit and you'll actually show up.", cta: { label: "Try it", href: "/forfeit" } },
   { text: "Tip: every proof you post earns points. Keep the streak and they pile up." },
 ];

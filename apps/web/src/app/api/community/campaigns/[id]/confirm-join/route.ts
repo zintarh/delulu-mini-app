@@ -7,6 +7,7 @@ import {
   countActiveJoinedCampaigns,
 } from "@/lib/community/campaign-join-limit";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { bingoTierForCampaign, openAttemptFromJoin } from "@/lib/bingo/attempts";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +37,15 @@ export async function POST(
     .eq("id", campaignId)
     .maybeSingle();
 
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: "Mission not found" }, { status: 404 });
   if (!isValidOnChainChallengeId(campaign.on_chain_challenge_id)) {
-    return NextResponse.json({ error: "Campaign is not registered on-chain" }, { status: 400 });
+    return NextResponse.json({ error: "Mission is not registered on-chain" }, { status: 400 });
   }
 
   // ── join limit (double-check at confirm time; ended campaigns free up a slot) ──
-  const activeCount = await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
+  // Bingo tiers don't use a campaign slot — and the stake is already on-chain.
+  const bingoTier = await bingoTierForCampaign(admin, campaignId);
+  const activeCount = bingoTier ? 0 : await countActiveJoinedCampaigns(admin, walletAddress, campaignId);
 
   if (activeCount >= CAMPAIGN_JOIN_LIMIT) {
     return NextResponse.json(
@@ -90,10 +93,19 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  let bingoAttemptId: string | null = null;
+  if (bingoTier) {
+    try {
+      bingoAttemptId = await openAttemptFromJoin(admin, campaignId, walletAddress, txHash);
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : "Couldn't open your Bingo card" }, { status: 500 });
+    }
+  }
+
   // Best-effort side effect — never fail the join over this.
   void evaluateAndCreditReferral(admin, walletAddress).catch((err) =>
     console.error("[campaigns/confirm-join] referral credit check failed", err),
   );
 
-  return NextResponse.json({ ok: true, participantId: participant.id });
+  return NextResponse.json({ ok: true, participantId: participant.id, bingoAttemptId });
 }

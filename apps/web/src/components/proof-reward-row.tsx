@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
 const FRESH_MS = 2 * 60_000;
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+/** "2026-11-23" → "Mon 23 Nov" (a reward day, so no timezone shift). */
+const formatSlotDay = (day: string) =>
+  new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const earned = (o: RewardOutcome | null | undefined): o is Extract<RewardOutcome, { amount: number }> =>
   !!o && "amount" in o && o.amount > 0;
 
@@ -150,8 +154,17 @@ export function ProofRewardRow() {
     return <Shell tone="plain" art={<Coin size={28} />} title="This habit already earned today" sub="One G$ reward per habit a day" />;
   }
   if (r.daily.result === "goal_limit") {
-    return (
-      <Shell tone="plain" art={<Coin size={28} />} title="This goal isn't earning G$" sub="Your earning goals are full" />
+    // Slots locked by missed goals reopen on a set day; ones held by ongoing goals don't.
+    const freeOn = "freeOn" in r.daily ? r.daily.freeOn : null;
+    return freeOn ? (
+      <Shell
+        tone="plain"
+        art={<Coin size={28} />}
+        title={`G$ rewards resume ${formatSlotDay(freeOn)}`}
+        sub="Paused after missed goals"
+      />
+    ) : (
+      <Shell tone="plain" art={<Coin size={28} />} title="This goal isn't earning G$" sub="Your other goals are using your earning spots" />
     );
   }
   return null;

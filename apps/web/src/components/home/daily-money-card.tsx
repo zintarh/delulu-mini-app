@@ -251,7 +251,7 @@ export function RewardsDailyCard() {
   const canClaim = !hasClaimed && entitlement !== null && entitlement > 0n;
 
   if (!isInitialized) {
-    return <div className="h-[112px] animate-pulse rounded-[20px] bg-yellow-soft" aria-busy="true" />;
+    return <div className="h-[112px] animate-pulse rounded-[20px] bg-line" aria-busy="true" />;
   }
 
   if (!isWhitelisted) {
@@ -280,7 +280,7 @@ export function RewardsDailyCard() {
     <div
       className={cn(
         "flex animate-rise items-center gap-4 rounded-[20px] border-2 p-4",
-        canClaim ? "border-yellow-line bg-yellow-soft shadow-edge-yellow-line" : "border-line bg-white shadow-edge",
+        canClaim ? "border-ink bg-white shadow-[0_4px_0_#161615]" : "border-line bg-white shadow-edge",
       )}
     >
       <span className={cn("inline-block", canClaim && "animate-wiggle")}>

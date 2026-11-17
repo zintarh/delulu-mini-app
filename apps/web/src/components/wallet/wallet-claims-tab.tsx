@@ -482,7 +482,7 @@ export function WalletClaimsTab({ address, onlyWhenClaimable = false }: { addres
   ) : (
     <div className="space-y-5">
       <p className="text-xs leading-relaxed text-muted-foreground" style={MANROPE}>
-        These are from <span className="font-semibold text-foreground">ended campaigns</span> —
+        These are from <span className="font-semibold text-foreground">ended missions</span> —
         prize wins you earned and join stakes you can reclaim. Team rewards to claim are above.
       </p>
 

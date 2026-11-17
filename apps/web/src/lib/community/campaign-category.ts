@@ -23,7 +23,7 @@ export const CAMPAIGN_CATEGORIES: CampaignCategory[] = [
   { key: "learning", label: "Learning", match: /\b(learn|language|study|course|code|coding|program|leetcode|write|writing|blog|skill)/i },
 ];
 
-export const OTHER_CATEGORY = { key: "more", label: "More campaigns" } as const;
+export const OTHER_CATEGORY = { key: "more", label: "More missions" } as const;
 
 export function campaignCategoryFor(title: string, description?: string | null): { key: string; label: string } {
   // Title decides first: "Read daily (no phone)" is Reading, not Screen time.

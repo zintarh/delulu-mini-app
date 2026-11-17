@@ -1,5 +1,6 @@
 "use client";
 
+import { LowBalancePanel } from "@/components/low-balance-panel";
 import { CalendarX, Loader2, Target, TrendingDown, Trophy, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Coin, GameButton } from "@/components/ds";
@@ -29,7 +30,7 @@ export type CampaignJoinInfo = {
 };
 
 const JOIN_LIMIT_MESSAGE =
-  "You can only join 2 campaigns at a time. Complete your active campaigns to join another.";
+  "You can only join 2 missions at a time. Complete your active missions to join another.";
 
 export function CampaignJoinModal({
   open,
@@ -78,10 +79,10 @@ export function CampaignJoinModal({
         terms.missesToLoseAll != null
           ? { icon: CalendarX, text: `Miss ${terms.missesToLoseAll} → lose it all` }
           : { icon: CalendarX, text: `Most you can lose: ${formatStake(terms.maxLoss)} ${terms.token}` },
-        { icon: Undo2, text: "The rest comes back when the campaign ends" },
+        { icon: Undo2, text: "The rest comes back when the mission ends" },
       ]
     : isPaid
-      ? [{ icon: Undo2, text: "You get it all back when the campaign ends" }]
+      ? [{ icon: Undo2, text: "You get it all back when the mission ends" }]
       : [];
 
   return (
@@ -139,10 +140,14 @@ export function CampaignJoinModal({
           {atJoinLimit ? (
             <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">{JOIN_LIMIT_MESSAGE}</p>
           ) : insufficientBalance ? (
-            <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">
-              You need {formatStake(joinAmount)} {joinToken} to join.
-              {userBalance !== undefined ? ` You have ${formatStake(userBalance)}.` : ""}
-            </p>
+            joinToken === "G$" ? (
+              <LowBalancePanel need={joinAmount} have={userBalance ?? 0} className="mt-3" />
+            ) : (
+              <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">
+                You need {formatStake(joinAmount)} {joinToken} to join.
+                {userBalance !== undefined ? ` You have ${formatStake(userBalance)}.` : ""}
+              </p>
+            )
           ) : joinError ? (
             <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">{joinError}</p>
           ) : null}

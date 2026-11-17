@@ -36,7 +36,7 @@ import {
  */
 const PAGES: MainNavItem[] = [
   { icon: Home, label: "Home", href: APP_HOME, action: "home" },
-  { icon: Compass, label: "Campaigns", href: "/explore", action: "explore" },
+  { icon: Compass, label: "Missions", href: "/explore", action: "explore" },
   getLeaderboardNavItem(),
   getRewardsNavItem(),
 ];

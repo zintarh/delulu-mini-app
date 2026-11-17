@@ -73,7 +73,7 @@ export function CampaignRefundPanel({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground">Withdraw campaign pool</p>
+          <p className="text-sm font-bold text-foreground">Withdraw mission pool</p>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
             This campaign has ended. Recover{" "}
             <span className="font-semibold text-foreground">

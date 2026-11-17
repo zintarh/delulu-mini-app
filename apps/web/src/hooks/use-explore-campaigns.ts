@@ -45,7 +45,7 @@ async function fetchActivePage(
   if (filters?.ended) params.set("status", "ended");
 
   const res = await fetch(`/api/community/campaigns/active?${params}`);
-  if (!res.ok) throw new Error("Failed to load campaigns");
+  if (!res.ok) throw new Error("Failed to load missions");
   return res.json();
 }
 

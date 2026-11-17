@@ -110,7 +110,7 @@ async function sendCampaignMilestoneDuePushReminders(
     .in("status", [...PARTICIPATING_STATUSES]);
 
   if (campaignErr) {
-    console.error("[push-reminders] campaign query error:", campaignErr.message);
+    console.error("[push-reminders] mission query error:", campaignErr.message);
     return stats;
   }
 
@@ -296,7 +296,7 @@ async function sendCampaignEndingPushReminders(
     .in("status", [...PARTICIPATING_STATUSES]);
 
   if (campaignErr) {
-    console.error("[push-reminders] campaign ending query error:", campaignErr.message);
+    console.error("[push-reminders] mission ending query error:", campaignErr.message);
     return stats;
   }
 
@@ -328,7 +328,7 @@ async function sendCampaignEndingPushReminders(
     if (addresses.length === 0) continue;
 
     const result = await notifyManyRecipients(supabase, addresses, {
-      title: "Campaign ending soon",
+      title: "Mission ending soon",
       body: `"${row.title}" ends in 30 minutes.`,
       url: `/community/campaigns/${row.id}`,
       type: "campaign_ending",

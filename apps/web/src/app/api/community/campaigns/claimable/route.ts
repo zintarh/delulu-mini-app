@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     items.push({
       campaignId: campaign.id,
-      title: campaign.title ?? "Campaign",
+      title: campaign.title ?? "Mission",
       communitySlug: community?.slug ?? null,
       communityName: community?.name ?? null,
       onChainChallengeId: campaign.on_chain_challenge_id,

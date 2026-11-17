@@ -41,7 +41,7 @@ export async function GET(
   if (campaign.status !== "ended") {
     return NextResponse.json({
       eligible: false,
-      reason: "Campaign has not ended yet.",
+      reason: "Mission has not ended yet.",
     });
   }
   if (!campaign.payout_merkle_root || !campaign.payout_published_at) {
@@ -53,7 +53,7 @@ export async function GET(
   if (campaign.on_chain_challenge_id == null) {
     return NextResponse.json({
       eligible: false,
-      reason: "Campaign has no on-chain id.",
+      reason: "Mission has no on-chain id.",
     });
   }
 

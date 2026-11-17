@@ -24,7 +24,7 @@ type TabType = "milestones" | "active";
 
 const PROFILE_TABS: { value: TabType; label: string }[] = [
   { value: "active", label: "Contracts" },
-  { value: "milestones", label: "Campaigns" },
+  { value: "milestones", label: "Missions" },
 ];
 
 export default function ProfilePage() {

@@ -145,7 +145,7 @@ function CampaignCard({ campaign, communitySlug }: { campaign: Campaign; communi
               : "bg-blue text-white shadow-[0_2px_10px_rgba(22,22,21,0.25)] hover:bg-delulu-blue/90",
           )}
         >
-          {isClosed ? "View campaign" : "View & join →"}
+          {isClosed ? "View mission" : "View & join →"}
         </Link>
       </div>
     </article>
@@ -222,7 +222,7 @@ export default function CommunityHubPage() {
         {active.length > 0 ? (
           <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Users className="h-3.5 w-3.5" />
-            <span>{active.length} active campaign{active.length !== 1 ? "s" : ""}</span>
+            <span>{active.length} active mission{active.length !== 1 ? "s" : ""}</span>
           </div>
         ) : null}
       </div>
@@ -242,7 +242,7 @@ export default function CommunityHubPage() {
       ) : (
         <div className="rounded-2xl border border-dashed border-border px-4 py-12 text-center">
           <Target className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm font-semibold text-foreground">No active campaigns</p>
+          <p className="text-sm font-semibold text-foreground">No active missions</p>
           <p className="mt-1 text-xs text-muted-foreground">Check back soon for new challenges.</p>
         </div>
       )}

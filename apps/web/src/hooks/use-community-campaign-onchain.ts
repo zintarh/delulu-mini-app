@@ -33,7 +33,7 @@ async function awaitMinedSuccess(
  *  offer a DB-only resync instead of showing a plain failure. */
 export class AlreadyEndedOnChainError extends Error {
   constructor() {
-    super("This campaign was already ended on-chain.");
+    super("This mission was already ended on-chain.");
     this.name = "AlreadyEndedOnChainError";
   }
 }
@@ -51,7 +51,7 @@ function extractContractErrorName(err: unknown): string | null {
 function describeEndCampaignError(errorName: string | null): string {
   switch (errorName) {
     case "CampaignNotFound":
-      return "This campaign was not found on-chain.";
+      return "This mission was not found on-chain.";
     case "Unauthorized":
       return "Only the campaign creator or platform owner can end this campaign.";
     default:
@@ -83,7 +83,7 @@ function formatOnChainError(raw: string): string {
     return "This day isn't open for proof yet. Check back when it starts.";
   }
   if (msg.includes("notjoined")) {
-    return "Join this campaign before submitting proof.";
+    return "Join this mission before submitting proof.";
   }
   if (msg.includes("invalidproof")) {
     return "Your proof was rejected on-chain. Record again showing the activity clearly.";
@@ -206,7 +206,7 @@ export function useSubmitCommunityMilestoneProofOnChain() {
         throw new Error("This day isn't open for proof yet. Check back when it starts.");
       }
       if (name === "NotJoined") {
-        throw new Error("Join this campaign before submitting proof.");
+        throw new Error("Join this mission before submitting proof.");
       }
       if (name === "InvalidProof") {
         throw new Error(
@@ -432,7 +432,7 @@ export function useClaimCommunityCampaignReward() {
                 : decoded.errorName === "NoStakeToClaim"
                   ? "No join stake to reclaim."
                   : decoded.errorName === "CampaignNotEnded"
-                    ? "Campaign has not ended yet."
+                    ? "Mission has not ended yet."
                     : decoded.errorName || "Transaction failed";
       } else if (err && typeof err === "object" && "message" in err) {
         errorMessage = formatOnChainError(err.message as string);
@@ -500,7 +500,7 @@ export function useClaimCommunityJoinStake() {
           decoded.errorName === "NoStakeToClaim"
             ? "No join stake to reclaim."
             : decoded.errorName === "CampaignNotEnded"
-              ? "Campaign has not ended yet."
+              ? "Mission has not ended yet."
               : decoded.errorName === "NotJoined"
                 ? "You did not join this campaign."
                 : decoded.errorName || "Transaction failed";

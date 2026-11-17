@@ -36,7 +36,7 @@ export async function POST(
     .eq("id", campaignId)
     .maybeSingle();
 
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: "Mission not found" }, { status: 404 });
 
   const communitySlug = unwrapRelation(campaign.communities)?.slug ?? null;
 

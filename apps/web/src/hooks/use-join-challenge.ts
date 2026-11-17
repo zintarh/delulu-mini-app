@@ -39,13 +39,13 @@ export function useJoinChallenge() {
         return "Transaction was cancelled";
       }
       if (message.includes("challenge expired")) {
-        return "This campaign has already ended";
+        return "This mission has already ended";
       }
       if (message.includes("challenge not found")) {
-        return "Campaign not found";
+        return "Mission not found";
       }
       if (message.includes("unauthorized")) {
-        return "Only the creator of this delulu can join a campaign";
+        return "Only the creator of this delulu can join a mission";
       }
       return error.message;
     }

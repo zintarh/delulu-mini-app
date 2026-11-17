@@ -33,6 +33,7 @@ export async function GET(
     .eq("community_id", community.id)
     .in("status", [...PARTICIPATING_STATUSES])
     .eq("is_hidden", false)
+    .is("bingo_cycle_id", null)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

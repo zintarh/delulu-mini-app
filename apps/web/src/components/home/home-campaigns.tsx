@@ -112,7 +112,7 @@ export function HomeCampaigns({
 }) {
   if (lists.isLoading) {
     return (
-      <section role="status" aria-label="Loading campaigns">
+      <section role="status" aria-label="Loading missions">
         <div className="mb-3 h-6 w-52 animate-pulse rounded-lg bg-ink/10" />
         <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
           {[0, 1].map((i) => (
@@ -130,12 +130,12 @@ export function HomeCampaigns({
 
   return (
     <div className="flex flex-col gap-10">
-      {joined ? <ActiveCampaignsSection address={address} variant="quest" heading="Your campaigns" showMax={5} /> : null}
+      {joined ? <ActiveCampaignsSection address={address} variant="quest" heading="Your missions" showMax={5} /> : null}
       {showOpen ? (
         <OpenCampaigns
           campaigns={lists.open}
           limit={limit}
-          heading="Recommended campaigns"
+          heading="Recommended missions"
         />
       ) : null}
     </div>

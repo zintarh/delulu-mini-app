@@ -34,7 +34,7 @@ type ReferralRow = {
   referrerUsername: string | null;
   referredAddress: string;
   referredUsername: string | null;
-  qualifyingAction: "forfeit" | "campaign_join";
+  qualifyingAction: "forfeit" | "campaign_join" | "bingo_join";
   gdollarsAmount: number;
   payoutStatus: "not_eligible" | "sent" | "failed";
   payoutTxHash: string | null;
@@ -69,6 +69,7 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 const ACTION_LABEL: Record<ReferralRow["qualifyingAction"], string> = {
   forfeit: "Started a Forfeit",
   campaign_join: "Joined a campaign",
+  bingo_join: "Staked on a Bingo",
 };
 
 const PAYOUT_STATUS_STYLE: Record<ReferralRow["payoutStatus"], string> = {

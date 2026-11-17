@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const runtime = "edge";
-export const alt = "Delulu campaign";
+export const alt = "Delulu mission";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -38,7 +38,7 @@ export default async function Image({
       : campaign.communities
     : null;
 
-  const title = truncate(campaign?.title ?? "Community campaign", 80);
+  const title = truncate(campaign?.title ?? "Community mission", 80);
   const communityName = community?.name ?? "Delulu";
   const cadence =
     campaign?.proof_cadence === "weekly" ? "Weekly proofs" : "Daily proofs";

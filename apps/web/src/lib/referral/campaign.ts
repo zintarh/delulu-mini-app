@@ -16,12 +16,14 @@
  * Shared by server (evaluate/payout/gift) and client (Rewards card,
  * /referrals), so keep it free of server-only imports.
  */
-// Last campaign: Sep 11 → Sep 29 2026 (ended early; was 23:59 WAT).
-export const REFERRAL_CAMPAIGN_START_ISO = "2026-09-11T00:00:00+01:00";
-export const REFERRAL_CAMPAIGN_END_ISO = "2026-09-29T14:45:00+01:00";
+// Current campaign: Nov 18 2026 → Feb 15 2027 (the Bingo season), 2,000 G$ each
+// for now — raise REFERRAL_GDOLLARS_REWARD when the referral push starts.
+// Previous: Sep 11 → Sep 29 2026 at 6,000 G$ (ended early).
+export const REFERRAL_CAMPAIGN_START_ISO = "2026-11-18T00:00:00+01:00";
+export const REFERRAL_CAMPAIGN_END_ISO = "2027-02-15T23:59:00+01:00";
 
 /** G$ paid per counted referral. */
-export const REFERRAL_GDOLLARS_REWARD = 6000;
+export const REFERRAL_GDOLLARS_REWARD = 2000;
 
 const START_MS = Date.parse(REFERRAL_CAMPAIGN_START_ISO);
 const END_MS = Date.parse(REFERRAL_CAMPAIGN_END_ISO);

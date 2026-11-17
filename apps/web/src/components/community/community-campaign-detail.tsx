@@ -378,7 +378,7 @@ export function CommunityCampaignDetail({
         ? "Joining…"
         : isPaidJoin && joinStakeAmount > 0
           ? `Join · stake ${joinStakeAmount.toLocaleString()} ${stakeToken}`
-          : "Join campaign"}
+          : "Join mission"}
       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
         {joining ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" strokeWidth={2.4} />}
       </span>
