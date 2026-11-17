@@ -23,16 +23,34 @@ function parseOffset(raw: unknown): number | null {
  * apps and downloads usually have none. That alone is not a rejection.
  */
 export async function readCaptureDate(bytes: Buffer, tzOffsetMinutes?: number | null): Promise<Date | null> {
+  return (await readCaptureInfo(bytes, tzOffsetMinutes)).takenAt;
+}
+
+export type CaptureInfo = {
+  takenAt: Date | null;
+  /** "Apple iPhone 13", "samsung SM-A155F"… — set when a camera wrote its maker/model. */
+  camera: string | null;
+};
+
+/** Capture date plus the camera that took it (EXIF Make/Model). Both null when the file has no EXIF. */
+export async function readCaptureInfo(bytes: Buffer, tzOffsetMinutes?: number | null): Promise<CaptureInfo> {
   let tags: Record<string, unknown> | undefined;
   try {
     tags = await exifr.parse(bytes, {
-      pick: ["DateTimeOriginal", "CreateDate", "OffsetTimeOriginal", "OffsetTimeDigitized", "OffsetTime"],
+      pick: ["DateTimeOriginal", "CreateDate", "OffsetTimeOriginal", "OffsetTimeDigitized", "OffsetTime", "Make", "Model"],
       reviveValues: false,
     });
   } catch {
-    return null;
+    return { takenAt: null, camera: null };
   }
-  if (!tags) return null;
+  if (!tags) return { takenAt: null, camera: null };
+  const make = typeof tags.Make === "string" ? tags.Make.replace(/\0/g, "").trim() : "";
+  const model = typeof tags.Model === "string" ? tags.Model.replace(/\0/g, "").trim() : "";
+  const camera = [make, model].filter(Boolean).join(" ").slice(0, 80) || null;
+  return { takenAt: parseTakenAt(tags, tzOffsetMinutes), camera };
+}
+
+function parseTakenAt(tags: Record<string, unknown>, tzOffsetMinutes?: number | null): Date | null {
 
   const raw = (tags.DateTimeOriginal ?? tags.CreateDate) as unknown;
   const m = typeof raw === "string" ? EXIF_DATE.exec(raw) : null;

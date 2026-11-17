@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Clock, Grid3x3, Sparkles, Users } from "lucide-react";
-import { BingoBoard, BingoBoardBackground } from "@/components/bingo/bingo-board";
+import { BingoBoardBackground } from "@/components/bingo/bingo-board";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
 import { fmtDay, fmtG, fmtRange, fmtUntil } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,10 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
       href={`/bingo/${bingo.slug}`}
       className={cn("press-edge flex gap-3.5 rounded-[20px] border-2 border-line bg-white p-3 text-ink no-underline shadow-edge", className)}
     >
-      <BingoBoard squares={squares} size="mini" className="w-[92px] shrink-0 -rotate-2 self-start" />
+      {/* The card fills the thumbnail top to bottom: photos as they come in, our stickers until then. */}
+      <span className="relative w-[92px] shrink-0 self-stretch overflow-hidden rounded-xl ring-2 ring-line">
+        <BingoBoardBackground squares={squares} sticker={squares.length <= 3 ? 26 : 20} stack className="absolute inset-0 min-h-[96px] bg-white" />
+      </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="label-mono text-[10px] text-muted-foreground">
           {bingo.durationDays}-day Bingo{c ? ` · ${fmtRange(c.startsAt, c.endsAt)}` : ""}

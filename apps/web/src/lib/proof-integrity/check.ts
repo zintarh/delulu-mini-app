@@ -1,6 +1,6 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fingerprintImage, type ImageFingerprint } from "@/lib/proof-integrity/fingerprint";
-import { readCaptureDate } from "@/lib/proof-integrity/capture-date";
+import { readCaptureInfo } from "@/lib/proof-integrity/capture-date";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -34,6 +34,8 @@ export type ProofImage = {
   contentType: string;
   fp: ImageFingerprint;
   takenAt: Date | null;
+  /** Camera maker/model from EXIF, when the file still has it. */
+  camera: string | null;
 };
 
 export type ProofContext = {
@@ -143,11 +145,11 @@ export async function checkProofImages(
     images = await Promise.all(
       urls.map(async (url) => {
         const { bytes, contentType } = await fetchImage(url);
-        const [fp, takenAt] = await Promise.all([
+        const [fp, info] = await Promise.all([
           fingerprintImage(bytes),
-          opts.liveCamera ? Promise.resolve(null) : readCaptureDate(bytes, ctx.tzOffsetMinutes),
+          opts.liveCamera ? Promise.resolve({ takenAt: null, camera: null }) : readCaptureInfo(bytes, ctx.tzOffsetMinutes),
         ]);
-        return { url, bytes, contentType, fp, takenAt };
+        return { url, bytes, contentType, fp, takenAt: info.takenAt, camera: info.camera };
       }),
     );
   } catch (err) {

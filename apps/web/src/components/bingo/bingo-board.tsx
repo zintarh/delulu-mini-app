@@ -235,13 +235,26 @@ function MiniBoard({ squares, className }: { squares: BingoSquareView[]; classNa
  * The board as a card background (Explore): squares edge to edge, filling
  * with the player's own photos as they play, our stickers until then.
  */
-export function BingoBoardBackground({ squares, className }: { squares: BingoSquareView[]; className?: string }) {
-  // A 3-square card (My First 3) fills the box with its 3 squares as tall tiles; 7-day cards are a 3×3.
+export function BingoBoardBackground({
+  squares,
+  className,
+  sticker,
+  stack = false,
+}: {
+  squares: BingoSquareView[];
+  className?: string;
+  /** Sticker size override (small thumbnails). */
+  sticker?: number;
+  /** 3-square cards: stack the squares top to bottom (narrow thumbnails) instead of side by side. */
+  stack?: boolean;
+}) {
+  // A 3-square card (My First 3) fills the box with its 3 squares; 7-day cards are a 3×3.
   const row = squares.length <= 3;
+  const layout = !row ? "grid-cols-3 grid-rows-3" : stack ? "grid-cols-1 grid-rows-3" : "grid-cols-3 grid-rows-1";
   return (
-    <div className={cn("grid grid-cols-3 gap-[3px] bg-ink", row ? "grid-rows-1" : "grid-rows-3", className)} aria-hidden>
+    <div className={cn("grid gap-[3px] bg-ink", layout, className)} aria-hidden>
       {squares.slice(0, 9).map((s) => (
-        <Cell key={s.index} square={s} sticker={row ? 64 : 44} className="aspect-auto h-full min-h-0" />
+        <Cell key={s.index} square={s} sticker={sticker ?? (row ? 64 : 44)} className="aspect-auto h-full min-h-0" />
       ))}
     </div>
   );

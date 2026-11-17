@@ -35,7 +35,12 @@ export async function reviewProof(
 
   let reason: string | null = null;
   if (opts.ai) {
+    // A phone camera wrote this photo's metadata and dated it within the last day: it's first-hand.
+    const main = check.images[0];
+    const cameraToday =
+      !opts.liveCamera && main?.camera && main.takenAt && Date.now() - main.takenAt.getTime() <= 24 * 3_600_000 ? main.camera : null;
     const verdict = await verifyImageProof({
+      cameraToday,
       imageUrl: opts.liveCamera ? urls : urls[0],
       goal: opts.ai.goal,
       milestone: opts.ai.milestone,

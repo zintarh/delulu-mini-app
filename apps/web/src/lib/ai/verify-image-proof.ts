@@ -20,23 +20,24 @@ function isIPFSHash(str: string): boolean {
   );
 }
 
-const SYSTEM_PROMPT = `You review photo proof for a habit app where people earn money for doing their daily goal. Some people try to cheat with photos that aren't theirs or aren't from today. Your job is to tell a genuine, first-hand proof from a fake one.
+const SYSTEM_PROMPT = `You review photo proof for a habit app where people earn money for doing their daily goal. Most people are honest and take quick photos on their phone. Your job is to stop the few who use images that clearly aren't theirs — not to judge photo quality or style.
 
-ACCEPT when the image is plausibly something this person captured themselves, recently, showing the goal's activity:
-- A casual phone photo of the activity, its result, or its setting (a book open on a desk, a plate of food, a gym, a running route, a workout tracker).
-- A screenshot of their own app or device that shows the activity (step counter, fitness app, reading app, study timer, their own social post) — only when the goal is something you'd naturally prove with a screenshot.
-- Quality does not matter: blurry, dark, tilted, partial or messy photos are fine if they look genuinely first-hand.
+ACCEPT when the image plausibly shows the person doing, finishing or being around today's goal:
+- Any casual or well-taken phone photo of the activity, its result or its setting (a meal, a plate, a book, a gym, a street, the sky, an outfit). Good lighting, a nice angle or a pretty dish is NOT a reason to reject — phones take good photos.
+- A screenshot of an app, tracker or social media post that shows the activity. Treat a social post as the person's own unless it clearly says otherwise.
+- Blurry, dark, tilted or messy photos are fine.
+- Be generous about relevance: a meal counts for any eating or diet goal, any walk or run for an exercise goal, any page of a book for a reading goal. Only the gist has to match.
 
-REJECT when any of these is true:
-- stock: a professional, posed, studio-lit or model-style photo, a marketing or product shot, or anything that looks taken from the internet or an image search (watermarks, stock-site styling, perfect composition with a model, very low-resolution thumbnail).
-- generated: it looks AI-generated, a render, an illustration, a meme or a graphic.
-- not_first_hand: a photo of another screen showing someone else's photo, a screenshot of someone else's content, or a screenshot of a social post, chat or app that is not clearly the user's own activity.
-- old: ONLY for a screenshot of a post, chat, receipt or app whose own timestamp is clearly readable and is more than one day BEFORE today's date. Never use "old" for a camera photo, for dates printed on posters, books, flyers or packaging, for page numbers, for future dates, or when no date is clearly readable — none of those say when the proof was made.
-- unrelated: no real connection to the goal.
+REJECT only with concrete evidence:
+- stock: a watermark, stock-site or shop styling, a white-background product shot, a model posing in a studio, an ad or poster, text overlays like a web page, or a screenshot of an image search. "Looks professional" alone is NOT evidence.
+- generated: AI-generated or rendered images, illustrations, cartoons or memes. AI images of "people doing the goal" are common cheats — tell-tales: a scene staged for the camera around the goal itself (motivational signs or labels like "Save Money", "Dream Big", "Savings" jars, neat props spelling out the habit), flawless glossy skin and lighting, a posed person smiling at the habit, or a too-perfect picture-book composition. Real proof looks like everyday life, not an ad for the habit.
+- not_first_hand: clearly someone else's content — e.g. a photo of a TV or another person's screen, or a post whose visible name says it belongs to a brand or celebrity.
+- old: ONLY a screenshot whose own timestamp is clearly readable and is more than one day BEFORE today's date. Never for camera photos, printed dates, page numbers or future dates.
+- unrelated: has nothing at all to do with the goal (e.g. a random selfie for a reading goal).
 
-If you are unsure whether the image is genuine, prefer rejecting with a clear, friendly tip about what photo to take instead.
+If you are unsure, ACCEPT. A wrong rejection hurts an honest person; the app has other checks for copied images.
 
-Reason: one short sentence, second person, plain words, never mention AI, rules or cheating. On rejection say what to send instead.
+Reason: one short, friendly sentence, second person, plain words, never mention AI, rules or cheating. On rejection say what photo to take instead.
 
 Return ONLY valid JSON:
 {"verified": true | false, "issue": "none" | "stock" | "generated" | "not_first_hand" | "old" | "unrelated" | "unclear", "reason": "one sentence"}`;
@@ -54,10 +55,16 @@ function userPrompt(input: {
   milestone?: string;
   imageCount: number;
   today: string;
+  cameraToday?: string | null;
 }) {
   const lines: string[] = [`Goal: "${input.goal}"`];
   if (input.milestone && input.milestone !== input.goal) lines.push(`Current step: "${input.milestone}"`);
   lines.push(`Today's date: ${input.today}`);
+  if (input.cameraToday) {
+    lines.push(
+      `The photo's own data shows it was taken today on a phone camera (${input.cameraToday}). It is first-hand: do not reject it as stock, not_first_hand or old — only check that it relates to the goal.`,
+    );
+  }
   const subject =
     input.imageCount > 1 ? `these ${input.imageCount} images (frames from a live recording in the app)` : "this image";
   lines.push("", `Review ${subject} as today's proof for this goal.`);
@@ -85,6 +92,8 @@ export async function verifyImageProof(input: {
   compareWith?: ImageInput | null;
   /** The user's device zone (minutes east of UTC), for "today" in visible dates. */
   tzOffsetMinutes?: number | null;
+  /** EXIF says a phone camera took this photo today (maker/model) — trust it as first-hand. */
+  cameraToday?: string | null;
 }): Promise<VerifyImageProofResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Proof review is temporarily unavailable. Please try again later.");
@@ -136,6 +145,7 @@ export async function verifyImageProof(input: {
               milestone: readableMilestone || undefined,
               imageCount: images.length,
               today,
+              cameraToday: input.cameraToday,
             }),
           },
         ],
@@ -154,7 +164,12 @@ export async function verifyImageProof(input: {
     throw new Error("Invalid AI response format");
   }
   const issue = typeof parsed.issue === "string" ? parsed.issue : parsed.verified ? "none" : "unclear";
-  const verdict: VerifyImageProofResult = { verified: parsed.verified, reason: parsed.reason.slice(0, 300), issue };
+  let verdict: VerifyImageProofResult = { verified: parsed.verified, reason: parsed.reason.slice(0, 300), issue };
+  // The photo's own data already proves "taken today on a phone": a style guess can't overrule that,
+  // and "unclear" means unsure, which accepts.
+  if (!verdict.verified && (issue === "unclear" || (input.cameraToday && ["stock", "not_first_hand", "old"].includes(issue)))) {
+    verdict = { verified: true, reason: "Nice — proof logged.", issue: `overruled_${issue}` };
+  }
 
   // Only a proof that passes on its own needs the copy check.
   if (verdict.verified && input.compareWith) {
