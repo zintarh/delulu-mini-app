@@ -20,11 +20,28 @@ export type GiftJoinTarget =
   | { kind: "campaign"; campaignId: string; title: string; stake: number };
 
 /**
- * What to put the gift into right now: a weekly Bingo open to this wallet,
- * on the biggest tier the gift covers (Starter at 1,000 G$); else any live
- * campaign priced at the gift. Null when nothing is joinable.
+ * What to put the gift into right now: the 3-day starter Bingo (Delulu Debut,
+ * 1,000 G$) if this wallet hasn't played it; else a weekly Bingo on the biggest
+ * tier the gift covers; else any live campaign priced at the gift. Null when
+ * nothing is joinable.
  */
 export async function findGiftJoinTarget(admin: Admin, wallet: string): Promise<GiftJoinTarget | null> {
+  // First choice: the 3-day starter Bingo (Delulu Debut) — one per wallet, starts right away,
+  // and its stake is the gift itself, so the 1,000 G$ goes straight into play.
+  const { data: starters } = await admin
+    .from("bingo_campaigns")
+    .select("*")
+    .eq("status", "live")
+    .eq("enrollment", "rolling")
+    .eq("recurrence", "one_time")
+    .order("sort_order", { ascending: true });
+  for (const row of (starters ?? []) as BingoCampaignRow[]) {
+    const view = await buildBingoView(admin, row, wallet.toLowerCase()).catch(() => null);
+    if (!view?.joinable || view.me) continue;
+    const tier = view.tiers.filter((t) => t.ready && t.stake > 0 && t.stake <= ONBOARDING_GIFT_GDOLLARS).sort((a, b) => b.stake - a.stake)[0];
+    if (tier) return { kind: "bingo", slug: view.slug, title: view.title, tierKey: tier.key, stake: tier.stake };
+  }
+
   const { data: bingos } = await admin
     .from("bingo_campaigns")
     .select("*")
@@ -63,7 +80,7 @@ export async function findGiftJoinTarget(admin: Admin, wallet: string): Promise<
 /**
  * Whether they've put real money in since claiming: a Bingo card or a paid
  * campaign joined after the claim, staking at least half the gift (so a
- * 100 G$ My First 3 doesn't count as using it).
+ * 100 G$ starter card from before Delulu Debut doesn't count as using it).
  */
 export async function joinedSinceGift(admin: Admin, wallet: string, claimedAtIso: string): Promise<boolean> {
   const w = wallet.toLowerCase();

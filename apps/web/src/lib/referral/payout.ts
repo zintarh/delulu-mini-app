@@ -4,8 +4,7 @@ import { isReferralCreditCountable } from "@/lib/referral/eligibility";
 import { getReferrerStanding } from "@/lib/referral/standing";
 import {
   REFERRAL_GDOLLARS_REWARD,
-  isInCurrentReferralCampaign,
-  isReferralCampaignOver,
+  referralRoundAt,
 } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -55,10 +54,6 @@ export async function payReferralCredit(
   referrerWallet: `0x${string}` | string,
   referralCreditId: string,
 ): Promise<void> {
-  // Campaign over — the vault pays nothing more, from any path (auto, retry
-  // cron, admin retry). The row keeps its status so the record stays honest.
-  if (isReferralCampaignOver()) return;
-
   const { data: credit, error } = await admin
     .from("referral_credits")
     .select("credited_at")
@@ -69,9 +64,11 @@ export async function payReferralCredit(
     return;
   }
 
-  // Earned in a previous campaign — that campaign's payouts are closed for
-  // good. Leave the row as-is so the record stays honest.
-  if (!isInCurrentReferralCampaign(credit.credited_at as string)) return;
+  // Paid at the reward of the round it was earned in — also after that round
+  // ends. Credits outside every round (the old Sep programme) are closed for good.
+  const round = referralRoundAt(credit.credited_at as string);
+  if (!round) return;
+  const amount = round.reward;
 
   // Held (not lost) while the referrer is behind on their own campaign — the
   // retry cron pays it once they've posted today's proof.
@@ -90,13 +87,13 @@ export async function payReferralCredit(
     const result = await payoutReferralReward({
       referrerWallet: referrerWallet as `0x${string}`,
       referralCreditId,
-      amountWhole: REFERRAL_GDOLLARS_REWARD,
+      amountWhole: amount,
     });
     await admin
       .from("referral_credits")
       .update({
         payout_status: "sent",
-        gdollars_amount: REFERRAL_GDOLLARS_REWARD,
+        gdollars_amount: amount,
         reward_vault_reward_id: result.rewardId,
         payout_tx_hash: result.txHash,
         paid_at: new Date().toISOString(),
@@ -106,7 +103,7 @@ export async function payReferralCredit(
     console.error(`[referral/payout] failed for credit ${referralCreditId}:`, err);
     await admin
       .from("referral_credits")
-      .update({ payout_status: "failed", gdollars_amount: REFERRAL_GDOLLARS_REWARD })
+      .update({ payout_status: "failed", gdollars_amount: amount })
       .eq("id", referralCreditId);
   }
 }

@@ -8,8 +8,9 @@ import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ONBOARDING_STEP_LABELS } from "@/components/referral-onboarding-checklist";
 import { GameButton, GameCard, GameLink, Trophy } from "@/components/ds";
 import {
-  REFERRAL_GDOLLARS_REWARD,
-  isReferralCampaignLive,
+  referralRewardNow,
+  referralOpensLabel,
+  referralPhase,
   referralCampaignEndLabel,
 } from "@/lib/referral/campaign";
 
@@ -56,16 +57,20 @@ function useReferralCode(address: string | null) {
  * Between campaigns: just a way back to past referrals, if there are any.
  */
 export function ReferralInviteCard({ address }: { address: string }) {
-  const live = isReferralCampaignLive();
+  const referral = referralPhase();
+  const live = referral.phase === "live";
+  // Announced but not open yet: show everything, the link opens at the round start.
+  const soon = referral.phase === "soon";
+  const opensLabel = referral.phase === "soon" ? referralOpensLabel(referral.round) : "";
   const { code, count, isLoading: isLoadingCode } = useReferralCode(address);
   // Eligibility hits the subgraph — skip it entirely while referrals are off.
   const { isLoading: isLoadingEligibility, eligible, steps, standing } = useReferralEligibility(
-    live ? address : null,
+    live || soon ? address : null,
   );
   const [copied, setCopied] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
 
-  if (!live) {
+  if (!live && !soon) {
     if (isLoadingCode || count === 0) return null;
     return (
       <Link
@@ -112,14 +117,16 @@ export function ReferralInviteCard({ address }: { address: string }) {
     }
   };
 
-  const sub = locked
+  const sub = soon
+    ? `${referralRewardNow().toLocaleString()} G$ each · opens ${opensLabel}`
+    : locked
     ? "Post today's proof to unlock"
     : eligible
-      ? `${REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$ each · ends ${referralCampaignEndLabel()}`
+      ? `${referralRewardNow().toLocaleString()} G$ each · this round ends ${referralCampaignEndLabel()}`
       : "Finish onboarding first";
 
   return (
-    <GameCard className="animate-rise px-3.5 py-3">
+    <GameCard id="invite" className="animate-rise scroll-mt-24 px-3.5 py-3">
       <div className="flex items-center gap-3">
         <span className="relative shrink-0">
           <Trophy size={40} />
@@ -143,7 +150,11 @@ export function ReferralInviteCard({ address }: { address: string }) {
           </div>
           <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">{sub}</div>
         </div>
-        {locked ? (
+        {soon && eligible && !locked ? (
+          <GameButton variant="line" size="sm" disabled aria-disabled title={`Your invite link opens ${opensLabel}`}>
+            <Lock className="h-3.5 w-3.5" strokeWidth={2.4} /> Opens {opensLabel}
+          </GameButton>
+        ) : locked ? (
           <GameLink href={unlockHref} variant="ink" size="sm">
             Post
           </GameLink>

@@ -5,7 +5,7 @@ import { ArrowRight, Gift } from "lucide-react";
 import { gameButtonClass } from "@/components/ds";
 import { ReferralInviteCard } from "@/components/referral-invite-card";
 import { useAuth } from "@/hooks/use-auth";
-import { REFERRAL_GDOLLARS_REWARD, isReferralCampaignLive } from "@/lib/referral/campaign";
+import { referralRewardNow, isReferralCampaignLive } from "@/lib/referral/campaign";
 import { cn } from "@/lib/utils";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: n < 100 ? 2 : 0 });
@@ -39,7 +39,7 @@ export function LowBalancePanel({
       {referrals && address ? (
         <>
           <p className="label-mono m-0 mt-1 text-center text-[10px] text-muted-foreground">
-            Or invite friends · {fmt(REFERRAL_GDOLLARS_REWARD)} G$ each, once they verify and stake on a Bingo
+            Or invite friends · {fmt(referralRewardNow())} G$ each, once they verify and earn 1,000 points
           </p>
           <ReferralInviteCard address={address} />
         </>

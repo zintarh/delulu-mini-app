@@ -220,6 +220,19 @@ const ART: Record<string, ReactNode> = {
       <path d="M8 48h10M10 42h8" stroke={G} strokeWidth="3" strokeLinecap="round" />
     </>
   ),
+  pray: (
+    <>
+      {/* Glow */}
+      <path d="M32 4v5M14 12l3 3M50 12l-3 3M8 28h4M56 28h-4" fill="none" stroke={Y} strokeWidth="3" strokeLinecap="round" />
+      {/* Two hands, palms together */}
+      <path d="M32 16c-5 5-9 14-9 22v9l9 5z" fill={O2} {...s} />
+      <path d="M32 16c5 5 9 14 9 22v9l-9 5z" fill={O2} {...s} />
+      <path d="M32 16v36" {...s} />
+      {/* Sleeves */}
+      <path d="M20 46l12 7v7H18v-9z" fill={V} {...s} />
+      <path d="M44 46l-12 7v7h14v-9z" fill={V} {...s} />
+    </>
+  ),
   camera: (
     <>
       <path d="M8 22a5 5 0 0 1 5-5h8l4-6h14l4 6h8a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5z" fill={Y} {...s} />
@@ -231,6 +244,7 @@ const ART: Record<string, ReactNode> = {
 };
 
 const MATCH: [RegExp, keyof typeof ART][] = [
+  [/pray|prayer/i, "pray"],
   [/selfie/i, "selfie"],
   [/snack|cookie/i, "snack"],
   [/\b(ate|eat|food|meal|lunch|dinner|breakfast)\b/i, "food"],

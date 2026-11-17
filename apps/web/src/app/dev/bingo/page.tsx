@@ -14,7 +14,7 @@ const MISSIONS = [
 const MORE = [
   "Share a selfie", "Something you love", "Your favourite drink", "Your favourite snack", "Something colourful",
   "Your current view", "A picture with a friend", "Your favourite part of the week", "Where you work or study",
-  "Something old you still love", "Somewhere you went", "Something interesting you discovered", "Read a chapter", "Morning walk", "Anything else",
+  "Something old you still love", "Somewhere you went", "Something interesting you discovered", "Read a chapter", "Morning walk", "Day 1 · You praying", "Anything else",
 ];
 const PHOTOS = [
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300",

@@ -1,57 +1,125 @@
 /**
- * The referral reward campaign window — the single switch for referrals.
+ * Referral rounds — the single switch for referrals.
  *
- * Outside [START, END] nothing is credited (points or G$), RewardVault pays
- * out no referral G$, and the Rewards page shows no invite link. Sign-ups
- * through an old referral link keep working (profiles.referred_by is still
- * recorded); they just earn nothing.
+ * Referrals run in 7-day rounds, two per GoodDollar epoch (2 weeks). Each
+ * round has its own reward per referral and its own G$ budget: once a round's
+ * budget is used up, no more referrals are credited until the next round
+ * (evaluate.ts). Outside every round nothing is credited and the invite link
+ * is hidden; sign-ups through a link keep working, they just earn nothing.
  *
- * Inside the window, only referrals *made during it* count: the referee must
- * have signed up on/after START (evaluate.ts), and only credits from on/after
- * START are paid (payout.ts). So re-opening referrals never pays out credits
- * held from a previous campaign, or friends who signed up between campaigns.
+ * Only friends who signed up on/after the first round's start count (no
+ * leftovers from the old Sep campaign). A credit is paid at the reward of the
+ * round it was earned in — also after that round ends (payout.ts).
  *
- * To run the next campaign: set both dates (WAT, +01:00) and deploy.
+ * To plan the next epoch: add its two rounds below (Lagos midnights) and deploy.
  *
  * Shared by server (evaluate/payout/gift) and client (Rewards card,
  * /referrals), so keep it free of server-only imports.
  */
-// Current campaign: Nov 18 2026 → Feb 15 2027 (the Bingo season), 2,000 G$ each
-// for now — raise REFERRAL_GDOLLARS_REWARD when the referral push starts.
-// Previous: Sep 11 → Sep 29 2026 at 6,000 G$ (ended early).
-export const REFERRAL_CAMPAIGN_START_ISO = "2026-11-18T00:00:00+01:00";
-export const REFERRAL_CAMPAIGN_END_ISO = "2027-02-15T23:59:00+01:00";
+export type ReferralRound = {
+  /** Inclusive start, Lagos midnight. */
+  start: string;
+  /** Exclusive end, Lagos midnight (7 days later). */
+  end: string;
+  /** G$ paid per counted referral in this round. */
+  reward: number;
+  /** Total G$ this round may pay out (reward × referrals). */
+  budget: number;
+};
 
-/** G$ paid per counted referral. */
-export const REFERRAL_GDOLLARS_REWARD = 2000;
+export const REFERRAL_ROUNDS: ReferralRound[] = [
+  // GoodDollar epoch 18 Nov – 1 Dec 2026
+  { start: "2026-11-18T00:00:00+01:00", end: "2026-11-25T00:00:00+01:00", reward: 5000, budget: 50_000 },
+  { start: "2026-11-25T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, budget: 50_000 },
+];
 
-const START_MS = Date.parse(REFERRAL_CAMPAIGN_START_ISO);
-const END_MS = Date.parse(REFERRAL_CAMPAIGN_END_ISO);
+/** Previous programme (Sep 11 → 29 2026, 6,000 G$ each) is closed for good. */
+const SERIES_START_MS = Math.min(...REFERRAL_ROUNDS.map((r) => Date.parse(r.start)));
 
-/** Referrals are being credited and paid right now. */
-export function isReferralCampaignLive(now: Date = new Date()): boolean {
+/** The round running at `now`, if any. */
+export function currentReferralRound(now: Date = new Date()): ReferralRound | null {
   const t = now.getTime();
-  return t >= START_MS && t <= END_MS;
+  return REFERRAL_ROUNDS.find((r) => t >= Date.parse(r.start) && t < Date.parse(r.end)) ?? null;
 }
 
-/** Not running — either ended or the next one hasn't started yet. */
+/** The round a timestamp (a credit) falls in, if any. */
+export function referralRoundAt(iso: string | null | undefined): ReferralRound | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return REFERRAL_ROUNDS.find((r) => t >= Date.parse(r.start) && t < Date.parse(r.end)) ?? null;
+}
+
+/** Max referrals a round can pay (budget ÷ reward). */
+export function roundCapacity(round: ReferralRound): number {
+  return round.reward > 0 ? Math.floor(round.budget / round.reward) : 0;
+}
+
+/** Reward per referral right now (or the next/last round's, for copy shown between rounds). */
+export function referralRewardNow(now: Date = new Date()): number {
+  const t = now.getTime();
+  const next = REFERRAL_ROUNDS.find((r) => Date.parse(r.end) > t);
+  return (currentReferralRound(now) ?? next ?? REFERRAL_ROUNDS[REFERRAL_ROUNDS.length - 1]).reward;
+}
+
+/** @deprecated Use referralRewardNow() — rounds can pay different amounts. */
+export const REFERRAL_GDOLLARS_REWARD = referralRewardNow();
+
+/** Referrals are being credited right now. */
+export function isReferralCampaignLive(now: Date = new Date()): boolean {
+  return currentReferralRound(now) != null;
+}
+
+/** No round running — between rounds or after the last one. */
 export function isReferralCampaignOver(now: Date = new Date()): boolean {
   return !isReferralCampaignLive(now);
 }
 
-/** Whether a timestamp (sign-up, credit) falls on/after the current campaign's start. */
+/** Whether a timestamp (sign-up, credit) is within the round-based programme. */
 export function isInCurrentReferralCampaign(iso: string | null | undefined): boolean {
   if (!iso) return false;
   const t = Date.parse(iso);
-  return Number.isFinite(t) && t >= START_MS;
+  return Number.isFinite(t) && t >= SERIES_START_MS;
 }
 
-/** "today" / "tomorrow" / "Sep 29" — relative to the campaign's own timezone (WAT). */
+/** When the running round ends: "today" / "tomorrow" / "Nov 24" (its last day, WAT). */
 export function referralCampaignEndLabel(now: Date = new Date()): string {
-  const day = (d: Date) =>
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos" }).format(d);
-  const end = new Date(END_MS);
-  if (day(now) === day(end)) return "today";
-  if (day(new Date(now.getTime() + 24 * 60 * 60 * 1000)) === day(end)) return "tomorrow";
-  return new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Lagos", month: "short", day: "numeric" }).format(end);
+  const round = currentReferralRound(now) ?? REFERRAL_ROUNDS[REFERRAL_ROUNDS.length - 1];
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos" }).format(d);
+  const lastDay = new Date(Date.parse(round.end) - 1);
+  if (day(now) === day(lastDay)) return "today";
+  if (day(new Date(now.getTime() + 24 * 60 * 60 * 1000)) === day(lastDay)) return "tomorrow";
+  return new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Lagos", month: "short", day: "numeric" }).format(lastDay);
+}
+
+/** The next round that hasn't started yet, if any. */
+export function nextReferralRound(now: Date = new Date()): ReferralRound | null {
+  const t = now.getTime();
+  return REFERRAL_ROUNDS.find((r) => Date.parse(r.start) > t) ?? null;
+}
+
+/**
+ * Where referrals stand: "live" (link works), "soon" (announced — everything
+ * visible, link opens at the round start), or "off".
+ */
+export type ReferralPhase = { phase: "live"; round: ReferralRound } | { phase: "soon"; round: ReferralRound } | { phase: "off" };
+
+/** How far ahead an upcoming round is announced. */
+const ANNOUNCE_MS = 36 * 60 * 60 * 1000;
+
+export function referralPhase(now: Date = new Date()): ReferralPhase {
+  const live = currentReferralRound(now);
+  if (live) return { phase: "live", round: live };
+  const next = nextReferralRound(now);
+  if (next && Date.parse(next.start) - now.getTime() <= ANNOUNCE_MS) return { phase: "soon", round: next };
+  return { phase: "off" };
+}
+
+/** "tomorrow" / "today" / "Wed 25 Nov" for when a round opens (Lagos time). */
+export function referralOpensLabel(round: ReferralRound, now: Date = new Date()): string {
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos" }).format(d);
+  const start = new Date(round.start);
+  if (day(now) === day(start)) return "today";
+  if (day(new Date(now.getTime() + 24 * 60 * 60 * 1000)) === day(start)) return "tomorrow";
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short" }).format(start);
 }

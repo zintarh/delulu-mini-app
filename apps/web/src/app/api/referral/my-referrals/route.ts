@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
-import {
-  hasEarnedCampaignProofPointsOnGraph,
-  hasQualifyingForfeitProofOnGraph,
-} from "@/lib/community/campaign-subgraph";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
-import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
+import { REFERRAL_MIN_POINTS, evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +18,11 @@ export type MyReferral = {
   pfpUrl: string | null;
   joinedAt: string;
   steps: MyReferralSteps;
-  /** Counted toward the referrer — and whether the 6,000 G$ has gone out yet. */
+  /** Counted toward the referrer — and whether the reward has gone out yet. */
   counted: boolean;
   payout: "sent" | "held" | "failed" | null;
+  /** G$ actually paid for this referral (its round's reward), once sent. */
+  amount?: number | null;
 };
 
 /**
@@ -49,13 +47,16 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false }),
     admin
       .from("referral_credits")
-      .select("referred_wallet, payout_status")
+      .select("referred_wallet, payout_status, gdollars_amount")
       .eq("referrer_wallet", address),
   ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const creditByWallet = new Map(
     (credits ?? []).map((c) => [String(c.referred_wallet).toLowerCase(), c.payout_status as string]),
+  );
+  const amountByWallet = new Map(
+    (credits ?? []).map((c) => [String(c.referred_wallet).toLowerCase(), c.gdollars_amount != null ? Number(c.gdollars_amount) : null]),
   );
 
   const referrals: MyReferral[] = await Promise.all(
@@ -75,17 +76,19 @@ export async function GET(request: NextRequest) {
           steps: { signedUp: true, verified: true, joined: true, proofApproved: true },
           counted: true,
           payout: payoutStatus === "sent" ? "sent" : payoutStatus === "failed" ? "failed" : "held",
+          amount: amountByWallet.get(wallet) ?? null,
         };
       }
 
-      const [verified, joins, forfeits, campaignProof, forfeitProof] = await Promise.all([
+      const [verified, joins, forfeits, bingo, points] = await Promise.all([
         isGoodDollarVerified(wallet),
         admin.from("campaign_participants").select("id").eq("wallet_address", wallet).limit(1),
         admin.from("forfeit_commitments").select("id").eq("creator_wallet", wallet).limit(1),
-        hasEarnedCampaignProofPointsOnGraph(wallet, BASE_PROOF_POINTS),
-        hasQualifyingForfeitProofOnGraph(wallet),
+        admin.from("bingo_attempts").select("id").eq("wallet", wallet).limit(1),
+        totalProofPointsOnGraph(wallet),
       ]);
-      const proofApproved = campaignProof || forfeitProof;
+      // Same bar as the evaluator: 1,000 proof points in total (missions, Bingo, Forfeit goals).
+      const proofApproved = points.total >= REFERRAL_MIN_POINTS;
 
       // Every step done but never credited (a missed trigger) — the evaluator
       // is idempotent, so self-heal it here instead of leaving it stuck.
@@ -110,7 +113,7 @@ export async function GET(request: NextRequest) {
         steps: {
           signedUp: true,
           verified,
-          joined: proofApproved || (joins.data ?? []).length > 0 || (forfeits.data ?? []).length > 0,
+          joined: proofApproved || (joins.data ?? []).length > 0 || (forfeits.data ?? []).length > 0 || (bingo.data ?? []).length > 0,
           proofApproved,
         },
         counted: false,

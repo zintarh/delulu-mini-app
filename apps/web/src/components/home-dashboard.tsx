@@ -79,7 +79,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             </div>
             {/* Always above campaigns: your own delulus first, or — with none yet —
                 the compact "New here? Create your first delulu" row. */}
-            {/* New players: My First 3 is the way in, so it leads; everyone else sees their goals first. */}
+            {/* New players: Delulu Debut is the way in, so it leads; everyone else sees their goals first. */}
             {noForfeits === true ? <HomeBingo newcomer /> : null}
             <div id="forfeit-day-card">
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} />

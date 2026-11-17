@@ -4,8 +4,8 @@ import type { BingoTier } from "@/lib/bingo/types";
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 /**
- * The per-photo G$ a Bingo tier sets for its daily squares (e.g. My First 3:
- * 50), or null when the goal isn't a Bingo card or the tier uses the global
+ * The per-photo G$ a Bingo tier sets for its daily squares (e.g. Delulu
+ * Debut: 100), or null when the goal isn't a Bingo card or the tier uses the global
  * daily amount. goalRef: community_campaigns.id (weekly tier) or
  * forfeit_commitments.id (rolling card).
  */

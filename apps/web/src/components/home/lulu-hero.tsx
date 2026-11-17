@@ -1,5 +1,6 @@
 "use client";
 
+import { referralOpensLabel, referralPhase } from "@/lib/referral/campaign";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -36,6 +37,8 @@ export type LuluMessage = {
   /** Under an hour to go — the countdown turns orange. */
   hot?: boolean;
   cta?: { label: string; href: string };
+  /** Big news (e.g. referrals opening): Lulu waves, hops and the ring bursts. */
+  excited?: boolean;
   /** Called when the person acts on it (e.g. marks a miss as seen). */
   onAct?: () => void;
 };
@@ -234,6 +237,29 @@ export function pickLuluMessages(input: LuluInput): LuluMessage[] {
     });
   }
 
+  // 3b. Referrals: announce the round the day before, cheer while it's open.
+  const referral = referralPhase(now);
+  if (referral.phase !== "off") {
+    const reward = referral.round.reward.toLocaleString("en-US");
+    out.push(
+      referral.phase === "live"
+        ? {
+            id: `referral:${referral.round.start}`,
+            tone: "reward",
+            excited: true,
+            text: `Invite a friend and get ${reward} G$ when they start playing. Let's gooo! 🎉`,
+            cta: { label: "Invite", href: "/rewards#invite" },
+          }
+        : {
+            id: `referral-soon:${referral.round.start}`,
+            tone: "happy",
+            excited: true,
+            text: `Big news! From ${referralOpensLabel(referral.round, now)}, invite friends and get ${reward} G$ each. 🎉`,
+            cta: { label: "See how", href: "/rewards#invite" },
+          },
+    );
+  }
+
   // 4. Where you stand today.
   if (input.total > 0 && left === 0) {
     out.push({
@@ -379,7 +405,9 @@ export function LuluHeroView({
   const touchX = useRef<number | null>(null);
   const quipTimer = useRef<number | null>(null);
 
-  const mood: LuluWeather = celebrating ? "sunny" : weather;
+  // The bubble on screen decides the dance: big news makes Lulu wave and hop too.
+  const shownExcited = !celebrating && !quip && Boolean(messages[Math.min(index, Math.max(0, messages.length - 1))]?.excited);
+  const mood: LuluWeather = celebrating || shownExcited ? "sunny" : weather;
   const livePart = useDaypart();
   // Real use follows the page's daypart (incl. ?daypart=); previews can pin an hour.
   const sky = skyFor(mood, skyHour != null ? daypartFor(new Date(2000, 0, 1, skyHour)) : livePart);
@@ -442,12 +470,12 @@ export function LuluHeroView({
           aria-label="Say hi to Lulu"
           className="relative h-[120px] w-[120px] shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ink"
         >
-          <ProgressRing value={total > 0 ? kept / total : 0} done={done} onDark={onDark} burst={Boolean(celebrating)} />
+          <ProgressRing value={total > 0 ? kept / total : 0} done={done} onDark={onDark} burst={Boolean(celebrating) || shownExcited} />
           <span
-            key={`${poke}:${celebrating ?? ""}`}
-            className={cn("absolute inset-0 flex items-end justify-center pb-4", (poke > 0 || celebrating) && "animate-bounce-in")}
+            key={`${poke}:${celebrating ?? ""}:${shownExcited ? msg?.id : ""}`}
+            className={cn("absolute inset-0 flex items-end justify-center pb-4", (poke > 0 || celebrating || shownExcited) && "animate-bounce-in")}
           >
-            <LuluScene weather={mood} wave={Boolean(quip || celebrating)} night={sky === "night"} className="origin-bottom scale-[1.15]" />
+            <LuluScene weather={mood} wave={Boolean(quip || celebrating || shownExcited)} night={sky === "night"} className="origin-bottom scale-[1.15]" />
           </span>
           {total > 0 ? (
             <span

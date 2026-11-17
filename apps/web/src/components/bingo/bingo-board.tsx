@@ -248,7 +248,7 @@ export function BingoBoardBackground({
   /** 3-square cards: stack the squares top to bottom (narrow thumbnails) instead of side by side. */
   stack?: boolean;
 }) {
-  // A 3-square card (My First 3) fills the box with its 3 squares; 7-day cards are a 3×3.
+  // A 3-square card (Delulu Debut, Prayer Streak) fills the box with its 3 squares; 7-day cards are a 3×3.
   const row = squares.length <= 3;
   const layout = !row ? "grid-cols-3 grid-rows-3" : stack ? "grid-cols-1 grid-rows-3" : "grid-cols-3 grid-rows-1";
   return (

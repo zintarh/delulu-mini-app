@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { BingoPageClient } from "@/components/bingo/bingo-page-client";
 
@@ -22,7 +23,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/** Renamed Bingos keep their old links working. */
+const RENAMED: Record<string, string> = { "my-first-3": "delulu-debut" };
+
 export default async function BingoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (RENAMED[slug]) redirect(`/bingo/${RENAMED[slug]}`);
   return <BingoPageClient slug={slug} />;
 }

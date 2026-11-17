@@ -1,16 +1,14 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { processReferralPayouts } from "@/lib/referral/payout";
-import {
-  hasEarnedCampaignProofPointsOnGraph,
-  hasQualifyingForfeitProofOnGraph,
-} from "@/lib/community/campaign-subgraph";
-import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
-import { isInCurrentReferralCampaign, isReferralCampaignOver } from "@/lib/referral/campaign";
+import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
+import { currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver, roundCapacity } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 const REFERRAL_POINTS = 100;
+/** A referred friend counts once they've earned this many proof points in total. */
+export const REFERRAL_MIN_POINTS = 1000;
 
 /**
  * Rollout instant for the "must have earned proof points" requirement below.
@@ -32,6 +30,7 @@ export type ReferralEvaluationResult =
         | "no_qualifying_action"
         | "not_verified"
         | "campaign_ended"
+        | "budget_reached"
         | "signed_up_outside_campaign";
     };
 
@@ -94,28 +93,13 @@ export async function evaluateAndCreditReferral(
     if (legacyJoin) qualifyingAction = "campaign_join";
   }
 
-  // Bingo: joining a card with a real stake counts on its own (My First 3's
-  // 100 G$ included) — the attempt row only exists once the stake is verified
-  // on-chain, so this is money on the line, not a click.
+  // From the cutoff on: the friend has to have actually played — 1,000 proof
+  // points in total across missions, Bingo (weekly and 3-day) and Forfeit goals.
   if (!qualifyingAction) {
-    const { data: bingo } = await admin
-      .from("bingo_attempts")
-      .select("id")
-      .eq("wallet", wallet)
-      .gt("stake_amount", 0)
-      .limit(1)
-      .maybeSingle();
-    if (bingo) qualifyingAction = "bingo_join";
-  }
-
-  // From the cutoff on: joining a campaign or creating a Forfeit isn't enough on
-  // its own — it must have actually paid off in a real, approved proof (the same
-  // 1000-point bar the app awards for a genuine milestone/period completion).
-  if (!qualifyingAction) {
-    if (await hasQualifyingForfeitProofOnGraph(wallet)) {
-      qualifyingAction = "forfeit";
-    } else if (await hasEarnedCampaignProofPointsOnGraph(wallet, BASE_PROOF_POINTS)) {
-      qualifyingAction = "campaign_join";
+    const points = await totalProofPointsOnGraph(wallet);
+    if (points.total >= REFERRAL_MIN_POINTS) {
+      const { data: bingo } = await admin.from("bingo_attempts").select("id").eq("wallet", wallet).limit(1).maybeSingle();
+      qualifyingAction = bingo ? "bingo_join" : points.goals >= points.missions ? "forfeit" : "campaign_join";
     }
   }
 
@@ -123,6 +107,16 @@ export async function evaluateAndCreditReferral(
 
   const verified = await isGoodDollarVerified(wallet);
   if (!verified) return { credited: false, reason: "not_verified" };
+
+  // Each weekly round has a G$ budget: once it's used up, referrals wait for the next round.
+  const round = currentReferralRound();
+  if (!round) return { credited: false, reason: "campaign_ended" };
+  const { count: usedInRound } = await admin
+    .from("referral_credits")
+    .select("id", { count: "exact", head: true })
+    .gte("credited_at", new Date(round.start).toISOString())
+    .lt("credited_at", new Date(round.end).toISOString());
+  if ((usedInRound ?? 0) >= roundCapacity(round)) return { credited: false, reason: "budget_reached" };
 
   const { error } = await admin.from("referral_credits").insert({
     referrer_wallet: profile.referred_by,

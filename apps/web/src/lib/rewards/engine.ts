@@ -352,7 +352,7 @@ async function evaluateDaily(
 ): Promise<RewardOutcome> {
   if (!isCategoryEnabled(config, "daily_proof")) return { result: "disabled" };
   const dedupeKey = dailyProofDedupeKey(proof.wallet, proof.goalKind, proof.goalRef, day);
-  // A Bingo tier can set its own per-photo amount (My First 3: 50 G$); everything else uses the global one.
+  // A Bingo tier can set its own per-photo amount (e.g. Delulu Debut: 100 G$); everything else uses the global one.
   const amount = (await bingoRewardPerSquare(admin, proof.goalKind, proof.goalRef).catch(() => null)) ?? config.dailyProof.amount;
   const siblingRefs = proof.goalKind === "forfeit" ? await sameHabitGoalRefs(admin, proof.wallet, proof.goalRef) : [];
   const { data, error } = await admin.rpc("reserve_daily_proof_reward", {

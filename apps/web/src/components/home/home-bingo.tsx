@@ -13,7 +13,7 @@ const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.mi
 
 /**
  * Home's Bingo section: the cards you're playing first (next photo one tap
- * away), then Bingos open to join. New players get "My First 3" up top as
+ * away), then Bingos open to join. New players get Delulu Debut up top as
  * their way in — 3 days, 3 photos, stake back when they finish.
  */
 export function HomeBingo({ newcomer = false }: { newcomer?: boolean }) {
@@ -21,7 +21,8 @@ export function HomeBingo({ newcomer = false }: { newcomer?: boolean }) {
   if (!bingos || bingos.length === 0) return null;
 
   const mine = bingos.filter(playing);
-  const starter = bingos.find((b) => b.enrollment === "rolling" && b.joinable);
+  // The one-time onboarding Bingo (Delulu Debut) is the way in; replayable 3-day ones (Prayer Streak) sit in the list.
+  const starter = bingos.find((b) => b.enrollment === "rolling" && b.recurrence === "one_time" && b.joinable);
   // Open to join, or announced and starting soon.
   const open = bingos.filter((b) => !playing(b) && b !== starter && (b.joinable || b.cycle?.phase === "upcoming"));
   const showStarter = starter && mine.length === 0 && newcomer;

@@ -10,21 +10,21 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Lulu } from "@/components/ds";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
-import { REFERRAL_GDOLLARS_REWARD, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
+import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
 
 
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
   { key: "signedUp", label: "Signed up", next: "Sign up" },
   { key: "verified", label: "Face verified", next: "Needs face verification" },
-  { key: "joined", label: "Joined a mission", next: "Needs to join a mission" },
-  { key: "proofApproved", label: "Proof approved", next: "Needs an approved proof" },
+  { key: "joined", label: "Joined a Bingo or mission", next: "Needs to join a Bingo or mission" },
+  { key: "proofApproved", label: "Earned 1,000 points", next: "Needs 1,000 points from proofs" },
 ];
 
 function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
   if (r.counted) {
     return r.payout === "sent" ? (
       <span className="font-bold text-green-edge">
-        +{REFERRAL_GDOLLARS_REWARD.toLocaleString()} G$
+        +{(r.amount ?? referralRewardNow()).toLocaleString()} G$
       </span>
     ) : (
       <span className="font-bold text-foreground">

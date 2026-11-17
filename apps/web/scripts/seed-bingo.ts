@@ -3,8 +3,9 @@
  *
  *   Outside Your Bubble — 7 days, Nov 18–24 2026 (Lagos), one-time
  *   Everyday Life       — 7 days, Nov 25 – Dec 1 2026, one-time
- *   My First 3 — the evergreen 3-day newcomer Bingo (100 G$, personal clock), live,
- *     one card per wallet (recurrence one_time on a rolling Bingo)
+ *   Delulu Debut — the evergreen 3-day newcomer Bingo (stake the 1,000 G$ gift,
+ *     100 G$ a photo, personal clock), live, one card per wallet
+ *   Prayer Streak — 3 days of you praying, same terms, replayable
  *   Little Adventures / Good Vibes Only — more 3-day Bingos, saved as drafts
  *
  * Weekly tiers: Starter 1,000 · Pro 10,000 · Elite 20,000 G$, 10% of the
@@ -22,8 +23,8 @@ const WEEKLY_TIERS: BingoTier[] = [
   { key: "pro", label: "Pro", stake: 10_000, forfeitPct: 10 },
   { key: "elite", label: "Elite", stake: 20_000, forfeitPct: 10 },
 ];
-// My First 3 pays 50 G$ a photo (weekly Bingos use the global 100): a real first win, less to farm.
-const NEWCOMER_TIERS: BingoTier[] = [{ key: "entry", label: "Entry", stake: 100, forfeitPct: 0, rewardPerSquare: 50 }];
+// 3-day Bingos: stake the 1,000 G$ welcome gift, earn 100 G$ a photo, get the stake back on finishing.
+const NEWCOMER_TIERS: BingoTier[] = [{ key: "entry", label: "Entry", stake: 1000, forfeitPct: 0, rewardPerSquare: 100 }];
 
 const m = (title: string, bonus = false): BingoMission => ({ title, bonus });
 
@@ -89,9 +90,9 @@ const SEEDS: Seed[] = [
     tiers: WEEKLY_TIERS,
   },
   {
-    slug: "my-first-3",
-    title: "My First 3",
-    description: "Your first Bingo: three days, three photos. Starts the moment you join.",
+    slug: "delulu-debut",
+    title: "Delulu Debut",
+    description: "Your debut: three days, three photos. Starts the moment you join.",
     duration: 3,
     enrollment: "rolling",
     // Onboarding card: always open to new players, one card per wallet.
@@ -99,6 +100,18 @@ const SEEDS: Seed[] = [
     status: "live",
     sort: 1,
     missions: [m("Share a selfie"), m("Something you love"), m("Something that made you smile")],
+    tiers: NEWCOMER_TIERS,
+  },
+  {
+    slug: "prayer-streak",
+    title: "Prayer Streak",
+    description: "Three days of prayer — one photo of you praying each day.",
+    duration: 3,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 2,
+    missions: [m("Day 1 · You praying"), m("Day 2 · You praying"), m("Day 3 · You praying")],
     tiers: NEWCOMER_TIERS,
   },
   {

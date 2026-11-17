@@ -174,12 +174,17 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
     const mineOver = mine ? attemptClosed(mine, campaign.duration_days, false) : true;
     // Show the last attempt for a day after it ends (results), then move on.
     if (mine && (!mineOver || Date.now() - Date.parse(mine.ends_at) < DAY_MS)) {
+      // A card keeps the terms it started on (stake, reward), even after the Bingo is edited.
+      if (mine.version_id !== v.id) {
+        const { data: own } = await admin.from("bingo_versions").select("*").eq("id", mine.version_id).maybeSingle();
+        if (own) v = own as BingoVersionRow;
+      }
       const label = v.tiers.find((t) => t.key === mine.tier_key)?.label ?? mine.tier_key;
       const r = await myCard(admin, mine, v.missions, label, { startsAt: mine.started_at, endsAt: mine.ends_at, cycleOver: false }, campaign.duration_days);
       const missedDay = mine.required_filled < campaign.duration_days && rollingMissedDay(mine);
       me = { ...r.card, phase: mineOver ? "ended" : r.phase, today: r.today, todayUsed: r.todayUsed, nextSquareAt: r.nextSquareAt, dayOrdered: true, missedDay };
     }
-    // One-time rolling Bingos (My First 3) are an onboarding card: one per wallet, ever.
+    // One-time rolling Bingos (Delulu Debut) are an onboarding card: one per wallet, ever.
     joinable = live && mineOver && !(campaign.recurrence === "one_time" && mine);
   } else if (cycle) {
     const [{ data: t }, { count }, mineRes, cycleVersion] = await Promise.all([

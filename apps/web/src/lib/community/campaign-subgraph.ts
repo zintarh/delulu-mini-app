@@ -1068,3 +1068,33 @@ export async function fetchGlobalAppPointsFromGraph(): Promise<GlobalAppPointsRo
     .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))
     .sort((a, b) => b.points_total - a.points_total);
 }
+
+const WALLET_PROOF_POINTS_TOTAL_QUERY = `
+  query WalletProofPointsTotal($address: String!) {
+    communityCampaignParticipants(where: { participantAddress: $address }, first: 200) {
+      pointsTotal
+    }
+    forfeitPeriodResolutions(where: { creatorAddress: $address, outcome: "success" }, first: 1000) {
+      pointsAwarded
+    }
+  }
+`;
+
+/**
+ * Proof points a wallet has earned in total — missions and weekly Bingos
+ * (CommunityMarket, incl. free bonus squares) plus Forfeit goals and 3-day
+ * Bingo cards (ForfeitMarket). The referral bar is a total across all of them.
+ */
+export async function totalProofPointsOnGraph(walletAddress: string): Promise<{ missions: number; goals: number; total: number }> {
+  try {
+    const data = await fetchSubgraph<{
+      communityCampaignParticipants?: Array<{ pointsTotal: string }>;
+      forfeitPeriodResolutions?: Array<{ pointsAwarded: string | null }>;
+    }>(WALLET_PROOF_POINTS_TOTAL_QUERY, { address: walletAddress.toLowerCase() }, { fresh: true });
+    const missions = (data.communityCampaignParticipants ?? []).reduce((s, p) => s + Number(p.pointsTotal || 0), 0);
+    const goals = (data.forfeitPeriodResolutions ?? []).reduce((s, r) => s + Number(r.pointsAwarded || 0), 0);
+    return { missions, goals, total: missions + goals };
+  } catch {
+    return { missions: 0, goals: 0, total: 0 };
+  }
+}
