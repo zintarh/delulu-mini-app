@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Share2, Users } from "lucide-react";
+import { Camera, ChevronLeft, Share2, Sparkles, Users } from "lucide-react";
 import { GameButton, Lulu, ShieldBadge } from "@/components/ds";
 import { useIdentity } from "@/hooks/identityHook";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
@@ -189,6 +189,11 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   // One clear next step, always: today's square, come back tomorrow, or what to play next.
   const step = bingoNextStep(bingo, allBingos ?? []);
+  // Today's photo, if it can go in now (the add button under the card).
+  const addTarget = me && myLive ? me.squares.find((sq) => !sq.bonus && availability(sq) === "open") ?? null : null;
+  // Bonus squares aren't on the pinboard (it shows the days); they get their own buttons.
+  const openBonus = me && myLive ? me.squares.filter((sq) => sq.bonus && availability(sq) === "open") : [];
+
   const onStepAction = (action: NextStepAction) => {
     if (action === "join") return requireAuth(() => setJoinOpen(true));
     if (!me) return;
@@ -234,49 +239,84 @@ export function BingoPageClient({ slug }: { slug: string }) {
         {/* First Week: lead with what the week pays and what a miss costs. */}
         {slug === FIRST_WEEK_SLUG && !myLive ? <FirstWeekOffer variant="home" className="mt-4 animate-rise" /> : null}
 
-        <section className="relative mt-5 animate-rise [animation-delay:.08s]">
-          <BingoBoard
-            squares={me ? me.squares : previewSquares}
-            availability={me ? availability : undefined}
-            onPick={me ? (s) => setPicked(s) : undefined}
-            complete={complete}
-            reward={bingo.rewards.perProof > 0 ? { perSquare: bingo.rewards.perProof } : undefined}
-          />
-        </section>
+        {me ? (
+          <>
+            {/* Their card as a pinboard: photos fill it as they go; today's empty square is tappable. */}
+            <section className="mt-5 animate-rise [animation-delay:.08s]">
+              <BingoCollage
+                card={me}
+                bingoTitle={bingo.title}
+                required={required}
+                mine
+                canPick={(i) => {
+                  const sq = me.squares.find((x) => x.index === i);
+                  return !!sq && availability(sq) === "open";
+                }}
+                onPick={(i) => {
+                  const sq = me.squares.find((x) => x.index === i);
+                  if (sq) setPicked(sq);
+                }}
+              />
+            </section>
 
-        {me && me.squares.some((s) => !s.bonus && (s.state === "filled" || s.state === "confirming")) ? (
-          <section className="mt-6 animate-rise">
-            <BingoCollage card={me} bingoTitle={bingo.title} required={required} mine />
-            <GameButton variant="yellow" full className="mt-3" onClick={() => void share()}>
-              <Share2 className="h-4 w-4" /> {me.requiredFilled >= required ? "Flex my BINGO" : "Share my card"}
-            </GameButton>
-          </section>
-        ) : me ? (
-          <GameButton variant="line" size="sm" full className="mt-3" onClick={() => void share()}>
-            <Share2 className="h-4 w-4" /> Share my card
-          </GameButton>
-        ) : null}
-        {showVerifyNudge ? (
-          <div className="mt-4 flex animate-rise items-center gap-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-3.5 py-3">
-            <ShieldBadge size={34} />
-            <p className="m-0 min-w-0 flex-1 text-[13px] font-bold leading-snug">
-              Verify once to earn {fmtG(bingo.rewards.perProof)} G$ for every photo
-            </p>
-            <GameButton variant="ink" size="sm" onClick={faceCheck!.start}>
-              Verify
-            </GameButton>
-          </div>
-        ) : null}
-        {me || !bingo.joinable ? (
-          <NextStepCard step={step} onAction={onStepAction} className="mt-4" />
+            {/* Right under it: the one thing to do now. */}
+            {addTarget ? (
+              <GameButton variant="yellow" full size="lg" className="mt-4" onClick={() => setPicked(addTarget)}>
+                <Camera className="h-5 w-5" /> Add Day {addTarget.index + 1} photo
+                {bingo.rewards.perProof > 0 ? ` · +${fmtG(bingo.rewards.perProof)} G$` : ""}
+              </GameButton>
+            ) : complete ? (
+              <GameButton variant="yellow" full size="lg" className="mt-4" onClick={() => void share()}>
+                <Share2 className="h-5 w-5" /> Flex my BINGO
+              </GameButton>
+            ) : null}
+
+            {openBonus.length > 0 ? (
+              <div className="mt-3 flex flex-col gap-2">
+                {openBonus.map((sq) => (
+                  <GameButton key={sq.index} variant="line" size="sm" full onClick={() => setPicked(sq)}>
+                    <Sparkles className="h-4 w-4" /> Bonus photo · {sq.title}
+                  </GameButton>
+                ))}
+              </div>
+            ) : null}
+
+            {showVerifyNudge ? (
+              <div className="mt-4 flex animate-rise items-center gap-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-3.5 py-3">
+                <ShieldBadge size={34} />
+                <p className="m-0 min-w-0 flex-1 text-[13px] font-bold leading-snug">
+                  Verify once to earn {fmtG(bingo.rewards.perProof)} G$ for every photo
+                </p>
+                <GameButton variant="ink" size="sm" onClick={faceCheck!.start}>
+                  Verify
+                </GameButton>
+              </div>
+            ) : null}
+
+            {/* Nothing to add right now (posted today, card ended, missed a day): what's next. */}
+            {addTarget ? null : <NextStepCard step={step} onAction={onStepAction} className="mt-4" />}
+          </>
         ) : (
-          <div className="mt-4 text-center text-[13px] font-semibold text-muted-foreground">{step.title}</div>
+          <>
+            <section className="relative mt-5 animate-rise [animation-delay:.08s]">
+              <BingoBoard
+                squares={previewSquares}
+                complete={false}
+                reward={bingo.rewards.perProof > 0 ? { perSquare: bingo.rewards.perProof } : undefined}
+              />
+            </section>
+            {!bingo.joinable ? (
+              <NextStepCard step={step} onAction={onStepAction} className="mt-4" />
+            ) : (
+              <div className="mt-4 text-center text-[13px] font-semibold text-muted-foreground">{step.title}</div>
+            )}
+          </>
         )}
 
         {showBoard ? (
           <section className="mt-9">
             <div className="flex items-baseline justify-between">
-              <h2 className="font-display text-xl font-extrabold uppercase">Players</h2>
+              <h2 className="font-display text-xl font-extrabold uppercase">Leaderboard</h2>
               <span className="label-mono text-[11px] text-muted-foreground">{board.total} {rolling ? "recent" : "playing"}</span>
             </div>
             <div className="mt-3">
@@ -321,6 +361,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
           onFilled={onFilled}
           nextStep={step}
           onNextAction={onStepAction}
+          reward={bingo.rewards.perProof}
+          closesAt={step.untilLabel === "closes" ? (step.until ?? null) : null}
         />
       ) : null}
     </MainPage>

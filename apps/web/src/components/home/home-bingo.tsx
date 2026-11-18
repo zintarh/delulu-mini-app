@@ -7,23 +7,25 @@ import { BingoBoard } from "@/components/bingo/bingo-board";
 import { BingoTile } from "@/components/bingo/bingo-tile";
 import { useBingoList } from "@/hooks/use-bingo";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
+import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { fmtG } from "@/lib/bingo/format";
 
 const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.missedDay && b.me.phase !== "ended";
 
 /**
  * Home's Bingo section: the cards you're playing first (next photo one tap
- * away), then Bingos open to join. New players get Delulu Debut up top as
- * their way in — 3 days, 3 photos, stake back when they finish.
+ * away), then Bingos open to join. New players get the one-time starter
+ * Bingo up top as their way in. First Week has its own offer at the top of
+ * Home (HomeFirstWeek), so it is never repeated here.
  */
 export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boolean; exclude?: string | null }) {
   const { bingos: all } = useBingoList();
   // The Bingo "Your next step" is about isn't shown twice.
-  const bingos = all?.filter((b) => b.slug !== exclude) ?? null;
+  const bingos = all?.filter((b) => b.slug !== exclude && b.slug !== FIRST_WEEK_SLUG) ?? null;
   if (!bingos || bingos.length === 0) return null;
 
   const mine = bingos.filter(playing);
-  // The one-time onboarding Bingo (Delulu Debut) is the way in; replayable 3-day ones (Prayer Streak) sit in the list.
+  // A one-time onboarding Bingo is the way in; replayable ones (Prayer Streak) sit in the list.
   const starter = bingos.find((b) => b.enrollment === "rolling" && b.recurrence === "one_time" && b.joinable);
   // Open to join, or announced and starting soon.
   const open = bingos.filter((b) => !playing(b) && b !== starter && (b.joinable || b.cycle?.phase === "upcoming"));
@@ -56,7 +58,7 @@ function StarterBingoCard({ bingo }: { bingo: BingoView }) {
       <p className="m-0 mt-1 font-display text-[26px] font-extrabold uppercase leading-[0.95]">{bingo.title}</p>
       <BingoBoard squares={buildSquares(bingo.missions, [], false)} className="mt-3" />
       <p className="m-0 mt-3 text-[13px] font-semibold leading-snug">
-        3 days, 3 photos. Stake {fmtG(stake)} G$ and get it back when you finish
+        {bingo.durationDays} days, {bingo.durationDays} photos. Stake {fmtG(stake)} G$ and get it back when you finish
         {bingo.rewards.perProof > 0 ? ` — plus up to ${fmtG(bingo.rewards.perProof)} G$ a photo` : ""}.
       </p>
       <Link href={`/bingo/${bingo.slug}`} className={gameButtonClass({ variant: "ink", full: true, className: "mt-3" })}>

@@ -258,12 +258,14 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       rule: "gift_not_played",
       dedupeKey: "once",
       title: "Put your 1,000 G$ to work 💪",
-      body: "Start Delulu Debut: 3 days, 3 photos, 100 G$ a photo — and your 1,000 back.",
-      path: "/bingo/delulu-debut",
+      // Eligible players get the First Week copy (FIRST_WEEK_RULES); this is the
+      // fallback, and Home's gift prompt picks whichever Bingo is open for them.
+      body: "Start a Bingo with it: one photo a day, paid for every photo — and your 1,000 back when you finish.",
+      path: "/home",
       emailSubject: "Your 1,000 G$ could be earning",
-      emailHeading: "Start your Delulu Debut",
-      emailBody: withOffers("Your welcome gift is in your wallet. Put it into Delulu Debut: three days, one photo a day.\n\nYou earn 100 G$ for every photo, and your 1,000 G$ comes back when you finish.", nowMs, "gift", p),
-      cta: "Start Delulu Debut",
+      emailHeading: "Start your first Bingo",
+      emailBody: withOffers("Your welcome gift is in your wallet. Put it into a Bingo: one photo a day.\n\nYou earn G$ for every photo, and your 1,000 G$ comes back when you finish.", nowMs, "gift", p),
+      cta: "Start my first Bingo",
     };
   }
 

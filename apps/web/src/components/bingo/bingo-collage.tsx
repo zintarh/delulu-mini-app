@@ -19,12 +19,17 @@ export function BingoCollage({
   bingoTitle,
   required,
   mine = false,
+  canPick,
+  onPick,
   className,
 }: {
   card: BingoCardView;
   bingoTitle: string;
   required: number;
   mine?: boolean;
+  /** Your own card: which empty squares can take a photo right now (e.g. today's). */
+  canPick?: (squareIndex: number) => boolean;
+  onPick?: (squareIndex: number) => void;
   className?: string;
 }) {
   const t = flexTheme(card.tierKey);
@@ -65,6 +70,23 @@ export function BingoCollage({
       );
     }
     const missed = tile.kind === "missed";
+    if (!missed && onPick && canPick?.(tile.index)) {
+      return (
+        <button
+          type="button"
+          onClick={() => onPick(tile.index)}
+          aria-label={`Add photo for ${day}: ${sq.title}`}
+          className="flex items-center gap-2 rounded-[18px] border-2 border-dashed border-current px-2.5 text-left"
+          style={{ ...style, background: squareTint(tile.index).bg }}
+        >
+          <MissionSticker title={sq.title} size={26} />
+          <div className="min-w-0">
+            <p className="m-0 text-[10px] font-extrabold uppercase tracking-wide">{day} · today</p>
+            <p className="m-0 line-clamp-2 text-[11px] font-bold leading-tight">{sq.title}</p>
+          </div>
+        </button>
+      );
+    }
     return (
       <div
         className={cn("flex items-center gap-2 rounded-[18px] px-2.5", missed && "bg-[#ecece7] opacity-70")}
