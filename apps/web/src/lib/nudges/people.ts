@@ -33,6 +33,8 @@ export type Person = {
     slug: string;
     title: string;
     days: number;
+    /** G$ on the line if today's photo is missed. */
+    stake: number;
     startedAt: string;
     today: number;
     todayFilled: boolean;
@@ -176,7 +178,7 @@ export async function loadPeople(
       chunks(wallets).map((c) =>
         admin
           .from("bingo_attempts")
-          .select("id, wallet, status, started_at, ends_at, required_filled, cycle_id, version_id, bingo_campaigns!inner(slug, title, duration_days, recurrence)")
+          .select("id, wallet, status, started_at, ends_at, required_filled, stake_amount, cycle_id, version_id, bingo_campaigns!inner(slug, title, duration_days, recurrence)")
           .in("wallet", c),
       ),
     ),
@@ -200,6 +202,7 @@ export async function loadPeople(
     started_at: string;
     ends_at: string;
     required_filled: number;
+    stake_amount: number | null;
     cycle_id: string | null;
     version_id: string;
     bingo_campaigns: { slug: string; title: string; duration_days: number; recurrence: string } | { slug: string; title: string; duration_days: number; recurrence: string }[];
@@ -248,6 +251,7 @@ export async function loadPeople(
         slug: camp(active).slug,
         title: camp(active).title,
         days: camp(active).duration_days,
+        stake: Number(active.stake_amount ?? 0),
         startedAt: active.started_at,
         today,
         todayFilled: filledSlots.has(`${active.id}:${today}`),

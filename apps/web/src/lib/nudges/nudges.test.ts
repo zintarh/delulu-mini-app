@@ -22,7 +22,7 @@ test("quiet hours are 10pm–8am Lagos", () => {
 });
 
 test("today's square closing within 8h beats everything else", () => {
-  const card = { attemptId: "a1", slug: "delulu-debut", title: "Delulu Debut", days: 3, startedAt: "", today: 1, todayFilled: false, todayMission: "Something you love", dayEndsAt: new Date(now + 5 * H).toISOString() };
+  const card = { attemptId: "a1", slug: "delulu-debut", title: "Delulu Debut", days: 3, stake: 1000, startedAt: "", today: 1, todayFilled: false, todayMission: "Something you love", dayEndsAt: new Date(now + 5 * H).toISOString() };
   const n = pickNudge(base({ activeCard: card, installedAt: null, pushOn: false }), now);
   assert.equal(n?.rule, "square_due");
   assert.equal(n?.dedupeKey, "a1:1");
@@ -45,7 +45,7 @@ test("first-days journey: setup → verify → play → install", () => {
   assert.equal(idle?.rule, "seven_day_start");
   assert.equal(idle?.path, "/bingo/outside-your-bubble");
   // Mid-card and today's square isn't urgent → leave them be.
-  const playing = { attemptId: "a2", slug: "x", title: "X", days: 7, startedAt: "", today: 2, todayFilled: true, todayMission: null, dayEndsAt: new Date(now + 12 * H).toISOString() };
+  const playing = { attemptId: "a2", slug: "x", title: "X", days: 7, stake: 5000, startedAt: "", today: 2, todayFilled: true, todayMission: null, dayEndsAt: new Date(now + 12 * H).toISOString() };
   assert.equal(pickNudge(base({ pushOn: true, activeCard: playing }), now), null);
 });
 
@@ -164,4 +164,15 @@ test("a new player with the gift but no card, or who missed a First Week day, is
   const missed = pickNudge({ ...fresh, everStartedBingo: true, playedSlugs: ["first-week"], recentMiss: { attemptId: "fw1", slug: "first-week", title: "Your First Week", oneTime: true } }, live, [], facts)!;
   assert.equal(missed.rule, "missed_day");
   assert.equal(missed.path, "/bingo/first-week");
+});
+
+test("last call: ~2h before the day closes with today's photo missing, naming the stake", () => {
+  const card = { attemptId: "a7", slug: "outside-your-bubble", title: "Outside Your Bubble Bingo", days: 7, stake: 10000, startedAt: "", today: 3, todayFilled: false, todayMission: "Capture the sky", dayEndsAt: new Date(now + 2 * H).toISOString() };
+  const n = pickNudge(base({ activeCard: card }), now)!;
+  assert.equal(n.rule, "last_call");
+  assert.equal(n.dedupeKey, "a7:3");
+  assert.match(n.title, /2h left — post or lose 10,000 G\$/);
+  // 5h left → the regular "closing" reminder; filled → nothing about today.
+  assert.equal(pickNudge(base({ activeCard: { ...card, dayEndsAt: new Date(now + 5 * H).toISOString() } }), now)?.rule, "square_due");
+  assert.notEqual(pickNudge(base({ activeCard: { ...card, todayFilled: true } }), now)?.rule, "last_call");
 });

@@ -27,6 +27,7 @@ export type Nudge = {
 };
 
 export const NUDGE_RULES = [
+  "last_call",
   "square_due",
   "missed_day",
   "setup_unfinished",
@@ -42,6 +43,7 @@ export const NUDGE_RULES = [
 export type NudgeRule = (typeof NUDGE_RULES)[number];
 
 export const RULE_LABEL: Record<NudgeRule, string> = {
+  last_call: "Last call: ~2h left, stake on the line",
   square_due: "Today's square closing",
   missed_day: "Missed a day",
   setup_unfinished: "Setup not finished",
@@ -93,6 +95,8 @@ export const isQuietHours = (nowMs: number) => {
   return h >= 22 || h < 8;
 };
 
+/** The last-call window before a day closes (the cron runs every 30 min, so ≥ 4 chances). */
+export const LAST_CALL_HOURS = 2.5;
 const hoursLeft = (iso: string, nowMs: number) => (Date.parse(iso) - nowMs) / HOUR;
 const fmtHours = (h: number) => (h >= 1 ? `${Math.floor(h)}h` : `${Math.max(1, Math.round(h * 60))}m`);
 const name = (p: Person) => (p.username ? `${p.username}, ` : "");
@@ -160,6 +164,27 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
   const pitch = sevenDayPitch(facts);
   const age = nowMs - Date.parse(p.createdAt);
   const card = p.activeCard;
+
+  // 0. Last call: ~2h left and today's photo still missing — the stake is on
+  //    the line. The one nudge allowed on top of the daily one (and in quiet hours).
+  if (card && !card.todayFilled) {
+    const left = hoursLeft(card.dayEndsAt, nowMs);
+    if (left > 0.25 && left <= LAST_CALL_HOURS) {
+      const stake = card.stake > 0 ? `${card.stake.toLocaleString("en-US")} G$` : "your card";
+      const mission = card.todayMission?.replace(/^Day \d+ · /, "") ?? "today's photo";
+      return {
+        rule: "last_call",
+        dedupeKey: `${card.attemptId}:${card.today}`,
+        title: `⏰ ${fmtHours(left)} left — post or lose ${stake}`,
+        body: `${card.title}, day ${card.today + 1}: ${mission}. One photo keeps your stake and everything you've earned going.`,
+        path: `/bingo/${card.slug}`,
+        emailSubject: `${fmtHours(left)} left: post today's photo or lose ${stake}`,
+        emailHeading: `Last call, ${p.username ?? "friend"}`,
+        emailBody: `Day ${card.today + 1} of ${card.title} closes in ${fmtHours(left)} and today's photo is still missing: ${mission}.\n\nMiss it and the card ends — ${card.stake > 0 ? `your ${stake} stake goes to the community pool` : "your streak resets"}. One photo now keeps it all.`,
+        cta: "Post today's photo",
+      };
+    }
+  }
 
   // 1. Today's square is still open and closing within 8 hours.
   if (card && !card.todayFilled) {
@@ -427,6 +452,7 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
   const sent = Date.parse(sentAtIso);
   const after = (iso: string | null) => !!iso && Date.parse(iso) >= sent && Date.parse(iso) - sent <= DAY;
   switch (rule) {
+    case "last_call":
     case "square_due":
     case "missed_day":
     case "gift_not_played":

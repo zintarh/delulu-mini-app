@@ -74,7 +74,6 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
 
   const quietHours = isQuietHours(nowMs);
   const result: NudgeRunResult = { dryRun: !!opts.dryRun, quietHours, people: people.length, planned: [], sent: 0, failed: 0, skippedCapped: 0, actedMarked };
-  if (quietHours && !opts.dryRun) return result;
 
   let emails = (log ?? []).filter((l) => l.channel === "email" && lagosDay(Date.parse(l.sent_at)) === today).length;
   let emailsThisRun = 0;
@@ -99,9 +98,10 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
   // Most urgent first, so caps never crowd out a square closing tonight with a win-back email.
   const candidates: { p: Person; n: Nudge }[] = [];
   for (const p of people) {
-    if (nudgedToday.has(p.wallet)) continue; // one nudge a day, tops
     const n = pickNudge(p, nowMs, historyOf.get(p.wallet) ?? [], facts);
     if (!n || sentKeys.has(`${p.wallet}|${n.rule}|${n.dedupeKey}`)) continue;
+    // One nudge a day and nothing 10pm–8am — except the last call before a stake is lost.
+    if (n.rule !== "last_call" && (nudgedToday.has(p.wallet) || quietHours)) continue;
     candidates.push({ p, n });
   }
   candidates.sort((a, b) => NUDGE_RULES.indexOf(a.n.rule) - NUDGE_RULES.indexOf(b.n.rule));
