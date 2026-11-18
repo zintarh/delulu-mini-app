@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { GameCard, gameButtonClass } from "@/components/ds";
 import { BingoBoard } from "@/components/bingo/bingo-board";
-import { BingoTile } from "@/components/bingo/bingo-tile";
+import { BingoBannerCard } from "@/components/bingo/bingo-tile";
+import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import { useBingoList } from "@/hooks/use-bingo";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
@@ -30,7 +31,7 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
   // Open to join, or announced and starting soon.
   const open = bingos.filter((b) => !playing(b) && b !== starter && (b.joinable || b.cycle?.phase === "upcoming"));
   const showStarter = starter && mine.length === 0 && newcomer;
-  const list = [...mine, ...(showStarter ? [] : starter && mine.length === 0 ? [starter] : []), ...open].slice(0, 3);
+  const list = [...mine, ...(showStarter ? [] : starter && mine.length === 0 ? [starter] : []), ...open].slice(0, 4);
   if (!showStarter && list.length === 0) return null;
 
   return (
@@ -42,9 +43,13 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
         </Link>
       </div>
       {showStarter ? <StarterBingoCard bingo={starter} /> : null}
-      {list.map((b) => (
-        <BingoTile key={b.id} bingo={b} />
-      ))}
+      {list.length ? (
+        <PinBoard>
+          {list.map((b, i) => (
+            <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
+          ))}
+        </PinBoard>
+      ) : null}
     </section>
   );
 }

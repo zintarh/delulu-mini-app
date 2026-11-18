@@ -8,7 +8,7 @@ import {
   isCampaignOpen,
   type CampaignExploreCardData,
 } from "@/components/community/campaign-explore-card";
-import { cn } from "@/lib/utils";
+import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import { SectionHeading } from "@/components/ds";
 import { feedItemToCardData } from "@/components/home-campaigns-section";
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
@@ -57,9 +57,6 @@ export function useHomeCampaignLists(address: string | undefined): HomeCampaignL
 }
 
 /** Phones: a swipe row bleeding to the edges (next card peeks in). Tablet up: a 2-up grid. */
-const CARD_ROW_CLASS =
-  "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0";
-const CARD_IN_ROW_CLASS = "w-[86%] shrink-0 snap-start sm:w-full";
 
 function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExploreCardData[]; limit: number; heading: string }) {
   if (campaigns.length === 0) return null;
@@ -83,11 +80,11 @@ function OpenCampaigns({ campaigns, limit, heading }: { campaigns: CampaignExplo
           <CampaignBannerCard campaign={visible[0]!} className="w-full" />
         </div>
       ) : (
-        <div className={CARD_ROW_CLASS}>
-          {visible.map((c) => (
-            <CampaignBannerCard key={c.id} campaign={c} className={CARD_IN_ROW_CLASS} />
+        <PinBoard>
+          {visible.map((c, i) => (
+            <CampaignBannerCard key={c.id} campaign={c} pin={pinAspect(i)} />
           ))}
-        </div>
+        </PinBoard>
       )}
     </section>
   );
@@ -114,11 +111,11 @@ export function HomeCampaigns({
     return (
       <section role="status" aria-label="Loading missions">
         <div className="mb-3 h-6 w-52 animate-pulse rounded-lg bg-ink/10" />
-        <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
+        <PinBoard>
           {[0, 1].map((i) => (
-            <CampaignBannerCardSkeleton key={i} className={cn("w-[86%] shrink-0 sm:w-full")} />
+            <CampaignBannerCardSkeleton key={i} pin={pinAspect(i)} />
           ))}
-        </div>
+        </PinBoard>
       </section>
     );
   }

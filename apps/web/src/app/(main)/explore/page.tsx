@@ -6,10 +6,10 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { ExploreCampaignsSection } from "@/components/explore-campaigns-section";
 import {
-  CAMPAIGN_CARD_GRID_CLASS,
   CampaignBannerCard,
   CampaignBannerCardSkeleton,
 } from "@/components/community/campaign-explore-card";
+import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 
 import type { CampaignSearchResult } from "@/hooks/use-campaign-search";
 import { useAuth } from "@/hooks/use-auth";
@@ -128,11 +128,11 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               ) : isCampaignSearching ? (
-                <div className={CAMPAIGN_CARD_GRID_CLASS}>
+                <PinBoard>
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <CampaignBannerCardSkeleton key={i} />
+                    <CampaignBannerCardSkeleton key={i} pin={pinAspect(i)} />
                   ))}
-                </div>
+                </PinBoard>
               ) : campaignResults.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <Search className="h-10 w-10 text-muted-foreground/30" />
@@ -147,10 +147,11 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className={CAMPAIGN_CARD_GRID_CLASS}>
-                  {campaignResults.map((c) => (
+                <PinBoard>
+                  {campaignResults.map((c, i) => (
                     <CampaignBannerCard
                       key={c.id}
+                      pin={pinAspect(i)}
                       campaign={{
                         id: c.id,
                         title: c.title,
@@ -177,7 +178,7 @@ export default function CampaignsPage() {
                       }}
                     />
                   ))}
-                </div>
+                </PinBoard>
               )}
             </>
           )}

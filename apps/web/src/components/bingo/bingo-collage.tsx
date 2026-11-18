@@ -77,7 +77,8 @@ export function BingoCollage({
           onClick={() => onPick(tile.index)}
           aria-label={`Add photo for ${day}: ${sq.title}`}
           className="flex items-center gap-2 rounded-[18px] border-2 border-dashed border-current px-2.5 text-left"
-          style={{ ...style, background: squareTint(tile.index).bg }}
+          // Pastel tiles carry their own ink — the card's text colour can be white (Pro, Elite, First Week).
+          style={{ ...style, background: squareTint(tile.index).bg, color: squareTint(tile.index).ink }}
         >
           <MissionSticker title={sq.title} size={26} />
           <div className="min-w-0">
@@ -90,7 +91,7 @@ export function BingoCollage({
     return (
       <div
         className={cn("flex items-center gap-2 rounded-[18px] px-2.5", missed && "bg-[#ecece7] opacity-70")}
-        style={missed ? style : { ...style, background: squareTint(tile.index).bg }}
+        style={missed ? { ...style, color: "#5f5f57" } : { ...style, background: squareTint(tile.index).bg, color: squareTint(tile.index).ink }}
       >
         <MissionSticker title={sq.title} size={26} muted={missed} />
         <div className="min-w-0">

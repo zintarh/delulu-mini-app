@@ -402,7 +402,16 @@ export function CampaignPhotoCardSkeleton({ className }: { className?: string })
  * The % lost per miss lives in the join modal, not here. No cover → a dark
  * ink panel with the trophy so it still reads as a campaign.
  */
-export function CampaignBannerCard({ campaign, className }: { campaign: CampaignExploreCardData; className?: string }) {
+export function CampaignBannerCard({
+  campaign,
+  className,
+  pin,
+}: {
+  campaign: CampaignExploreCardData;
+  className?: string;
+  /** Board card (Pinterest-style): compact type, height from this aspect class (see PinBoard/pinAspect). */
+  pin?: string;
+}) {
   const { closed, left } = campaignTiming(campaign);
   const pool = isCampaignFunded(campaign.status) ? campaign.proposedPoolAmount : 0;
   const stake = campaign.isFreeToJoin === false ? (campaign.joinAmount ?? 0) : 0;
@@ -437,7 +446,8 @@ export function CampaignBannerCard({ campaign, className }: { campaign: Campaign
         // min-h: chip + 2-line title + money line + people row must fit on a phone-width card.
         // min-w-0: aspect-ratio + min-h would otherwise force a 384px minimum width and spill
         // into the neighbouring grid column / past a narrow phone's swipe slot.
-        "group relative block aspect-[16/11] min-h-[264px] min-w-0 animate-rise overflow-hidden rounded-[32px] text-white no-underline",
+        "group relative block min-w-0 animate-rise overflow-hidden text-white no-underline",
+        pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
         "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
         hasImage ? "bg-ink" : "bg-gradient-to-br from-ink-3 via-ink-2 to-ink",
         className,
@@ -460,10 +470,11 @@ export function CampaignBannerCard({ campaign, className }: { campaign: Campaign
       {/* Scrim: light at the top for the chip, strong at the bottom for the text. */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/5" aria-hidden />
 
-      <div className="absolute inset-x-5 top-5 flex flex-wrap items-center gap-2">
+      <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-extrabold transition-colors duration-500",
+            "inline-flex items-center gap-1.5 rounded-full font-extrabold transition-colors duration-500",
+            pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]",
             startingSoon ? "bg-yellow text-ink" : "bg-white text-ink",
             endsToday && !tint && "text-orange",
           )}
@@ -474,28 +485,33 @@ export function CampaignBannerCard({ campaign, className }: { campaign: Campaign
           {status}
         </span>
         {pool > 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-1.5 text-[12px] font-extrabold text-ink">
+          <span className={cn("inline-flex items-center gap-1 rounded-full bg-yellow font-extrabold text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
             <Trophy className="h-3.5 w-3.5" strokeWidth={2.6} />
             {compactAmount(pool)} G$ prize
           </span>
         ) : null}
       </div>
 
-      <div className="absolute inset-x-5 bottom-5">
-        <h3 className="m-0 line-clamp-2 text-[22px] font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]">
+      <div className={cn("absolute", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
+        <h3
+          className={cn(
+            "m-0 line-clamp-2 font-extrabold tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]",
+            pin ? "text-[15px] leading-[1.15]" : "text-[22px] leading-[1.15]",
+          )}
+        >
           {campaign.title}
         </h3>
-        <p className="m-0 mt-1 truncate text-[13px] font-medium text-white/70">
+        <p className={cn("m-0 mt-1 truncate font-medium text-white/70", pin ? "text-[11px]" : "text-[13px]")}>
           {stake > 0 ? `${compactStake(stake)} ${token} to join this challenge` : "Free to join this challenge"}
         </p>
 
         {joined > 0 ? (
-          <div className="mt-3 flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", pin ? "mt-2" : "mt-3")}>
             {avatars.length > 0 ? (
               // total = shown, so the stack doesn't add its own "+N" bubble — the line below says it.
-              <AvatarStack participants={avatars.slice(0, 3)} total={Math.min(3, avatars.length)} size={24} max={3} />
+              <AvatarStack participants={avatars.slice(0, 3)} total={Math.min(3, avatars.length)} size={pin ? 18 : 24} max={3} />
             ) : null}
-            <span className="truncate text-[13px] font-bold text-white">{peopleLine}</span>
+            <span className={cn("truncate font-bold text-white", pin ? "text-[11px]" : "text-[13px]")}>{peopleLine}</span>
           </div>
         ) : null}
       </div>
@@ -503,6 +519,6 @@ export function CampaignBannerCard({ campaign, className }: { campaign: Campaign
   );
 }
 
-export function CampaignBannerCardSkeleton({ className }: { className?: string }) {
-  return <div className={cn("aspect-[16/11] min-h-[264px] animate-pulse rounded-[32px] bg-ink/10", className)} />;
+export function CampaignBannerCardSkeleton({ className, pin }: { className?: string; pin?: string }) {
+  return <div className={cn("animate-pulse bg-ink/10", pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]", className)} />;
 }

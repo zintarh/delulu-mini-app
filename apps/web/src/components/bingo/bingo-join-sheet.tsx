@@ -18,6 +18,7 @@ import { celebrateCampaignJoin } from "@/lib/celebrate";
 import { GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "@/lib/constant";
 import type { BingoView } from "@/lib/bingo/view";
 import { finishRollingStart } from "@/lib/bingo/rolling-client";
+import { rollingFirstDeadline, rollingStartsTomorrow } from "@/lib/bingo/types";
 import { fmtDay, fmtG } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { useStakeRules } from "@/hooks/use-stake-rules";
@@ -107,7 +108,12 @@ export function BingoJoinSheet({
         : null;
     const list = rolling
       ? [
-          { icon: Camera, text: `Starts now · 1 photo a day for ${required} days` },
+          {
+            icon: Camera,
+            text: rollingStartsTomorrow()
+              ? `Starts tomorrow · 1 photo a day for ${required} days, each day until midnight`
+              : `Day 1 is today · 1 photo a day for ${required} days, each day until midnight`,
+          },
           { icon: TriangleAlert, text: `Miss a day: your ${fmtG(tier.stake)} G$ goes to the community pool` },
           { icon: RotateCcw, text: `Finish all ${required}: your ${fmtG(tier.stake)} G$ comes straight back` },
         ]
@@ -145,7 +151,8 @@ export function BingoJoinSheet({
       cadence: ForfeitCadence.Daily,
       totalPeriods: required,
       periodSeconds: DAY_S,
-      firstDeadline: Math.floor(Date.now() / 1000) + DAY_S,
+      // Days follow the calendar: day 1 closes at midnight (Lagos), not 24h from now.
+      firstDeadline: rollingFirstDeadline(),
     });
     setStep("saving");
     await finishRollingStart(bingo.slug, address, {

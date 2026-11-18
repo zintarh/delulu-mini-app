@@ -76,14 +76,15 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
  * banner card, with a BINGO badge and a collage of players' real photos
  * (or the empty card until the first square fills).
  */
-export function BingoBannerCard({ bingo, className }: { bingo: BingoView; className?: string }) {
+export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
   const status = bingoStatus(bingo);
   const squares = bingo.me ? bingo.me.squares : buildSquares(bingo.missions, [], false);
   return (
     <Link
       href={`/bingo/${bingo.slug}`}
       className={cn(
-        "group relative block aspect-[16/11] min-h-[264px] min-w-0 animate-rise overflow-hidden rounded-[32px] bg-ink text-white no-underline",
+        "group relative block min-w-0 animate-rise overflow-hidden bg-ink text-white no-underline",
+        pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
         "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
         className,
       )}
@@ -92,25 +93,25 @@ export function BingoBannerCard({ bingo, className }: { bingo: BingoView; classN
       <BingoBoardBackground squares={squares} className="absolute inset-0" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/0" aria-hidden />
 
-      <div className="absolute inset-x-5 top-5 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wide text-ink">
+      <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
           <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-extrabold text-ink">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-white font-extrabold text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
           {status.live ? <Clock className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} />}
           {status.text}
         </span>
       </div>
 
-      <div className="absolute inset-x-5 bottom-5">
-        <h3 className="m-0 line-clamp-2 text-[22px] font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]">
+      <div className={cn("absolute", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
+        <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
           {bingo.title}
         </h3>
-        <p className="m-0 mt-1 truncate text-[13px] font-medium text-white/70">
+        <p className={cn("m-0 mt-1 truncate font-medium text-white/70", pin ? "text-[11px]" : "text-[13px]")}>
           {bingo.durationDays} photos · {bingoCta(bingo)}
         </p>
         {bingo.players > 0 ? (
-          <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] font-bold text-white/85">
+          <p className={cn("m-0 inline-flex items-center gap-1.5 font-bold text-white/85", pin ? "mt-1.5 text-[11px]" : "mt-2 text-[12px]")}>
             <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing
           </p>
         ) : null}

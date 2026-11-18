@@ -180,3 +180,21 @@ export function nextLagosMidnight(nowMs = Date.now()): Date {
 
 export const isBingoMissionList = (v: unknown): v is BingoMission[] =>
   Array.isArray(v) && v.every((m) => missionSchema.safeParse(m).success);
+
+/**
+ * Rolling Bingos run on Lagos calendar days: a day opens at midnight and
+ * closes at the next midnight, whatever time the card was started. Day 1 is
+ * today — unless there are under MIN_FIRST_DAY_HOURS left, then the card
+ * starts tomorrow (nobody should get a 10-minute first day).
+ */
+export const MIN_FIRST_DAY_HOURS = 4;
+
+/** The on-chain first deadline (unix seconds) for a rolling card started at `nowMs`. */
+export function rollingFirstDeadline(nowMs = Date.now()): number {
+  const tonight = nextLagosMidnight(nowMs).getTime();
+  const end = tonight - nowMs < MIN_FIRST_DAY_HOURS * 3_600_000 ? tonight + DAY_MS : tonight;
+  return Math.floor(end / 1000);
+}
+
+/** Whether a card started now would begin tomorrow (shown before staking). */
+export const rollingStartsTomorrow = (nowMs = Date.now()) => rollingFirstDeadline(nowMs) * 1000 - nowMs > DAY_MS;

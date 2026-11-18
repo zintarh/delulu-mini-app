@@ -12,6 +12,7 @@ import {
 import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
 import { useBingoList } from "@/hooks/use-bingo";
 import { BingoBannerCard } from "@/components/bingo/bingo-tile";
+import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import type { BingoView } from "@/lib/bingo/view";
 import { CAMPAIGN_CATEGORIES, OTHER_CATEGORY, campaignCategoryFor } from "@/lib/community/campaign-category";
 import { cn } from "@/lib/utils";
@@ -21,49 +22,30 @@ const FINISHED_LIMIT = 6;
 
 type Section = { key: string; label: string; campaigns: CampaignExploreCardData[] };
 
-/** One category: a big heading, then a swipe row on phones / a 2-up grid from tablet. */
+/** One category: a big heading, then a Pinterest-style board of its missions. */
 function CategoryRow({ section }: { section: Section }) {
-  const single = section.campaigns.length === 1;
   return (
     <section className="animate-rise">
       <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">{section.label}</h2>
-      <div
-        className={cn(
-          single
-            ? "sm:grid sm:grid-cols-2 sm:gap-4"
-            : // Bleed to the screen edges so the next card peeks in and reads as swipeable.
-              "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0",
-        )}
-      >
-        {section.campaigns.map((c) => (
-          <CampaignBannerCard
-            key={c.id}
-            campaign={c}
-            className={single ? "w-full" : "w-[86%] shrink-0 snap-start sm:w-full"}
-          />
+      <PinBoard>
+        {section.campaigns.map((c, i) => (
+          <CampaignBannerCard key={c.id} campaign={c} pin={pinAspect(i)} />
         ))}
-      </div>
+      </PinBoard>
     </section>
   );
 }
 
-/** Bingos sit with campaigns as their own row: yours first, then ones you can join. */
+/** Bingos sit with campaigns on their own board: yours first, then ones you can join. */
 function BingoRow({ bingos }: { bingos: BingoView[] }) {
-  const single = bingos.length === 1;
   return (
     <section className="animate-rise">
       <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">Bingo</h2>
-      <div
-        className={cn(
-          single
-            ? "sm:grid sm:grid-cols-2 sm:gap-4"
-            : "scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0",
-        )}
-      >
-        {bingos.map((b) => (
-          <BingoBannerCard key={b.id} bingo={b} className={single ? "w-full" : "w-[86%] shrink-0 snap-start sm:w-full"} />
+      <PinBoard>
+        {bingos.map((b, i) => (
+          <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
         ))}
-      </div>
+      </PinBoard>
     </section>
   );
 }
@@ -124,10 +106,11 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
         {[0, 1].map((i) => (
           <div key={i}>
             <div className="mb-3 h-7 w-40 animate-pulse rounded-lg bg-ink/10" />
-            <div className="-mx-5 flex gap-3 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0">
-              <CampaignBannerCardSkeleton className="w-[86%] shrink-0 sm:w-full" />
-              <CampaignBannerCardSkeleton className="w-[86%] shrink-0 sm:w-full" />
-            </div>
+            <PinBoard>
+              {[0, 1, 2, 3].map((k) => (
+                <CampaignBannerCardSkeleton key={k} pin={pinAspect(k)} />
+              ))}
+            </PinBoard>
           </div>
         ))}
       </div>

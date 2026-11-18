@@ -207,3 +207,15 @@ test("Home always has exactly one next step, in the right order", async () => {
   const finished = homeNextStep({ bingos: [mk("delulu-debut", 3, "one_time", { requiredFilled: 3, squaresFilled: 3, todayUsed: true, today: 2 }), weekly], verified: true });
   assert.equal(finished.step.cta?.href, "/bingo/outside-your-bubble");
 });
+
+test("rolling Bingo days follow the Lagos calendar: day 1 closes at midnight; late starts begin tomorrow", async () => {
+  const { rollingFirstDeadline, rollingStartsTomorrow } = await import("@/lib/bingo/types");
+  // 3:45pm Lagos (14:45Z) → day 1 ends tonight at Lagos midnight (23:00Z), not 3:45pm tomorrow.
+  const afternoon = Date.parse("2026-11-18T14:45:00Z");
+  assert.equal(new Date(rollingFirstDeadline(afternoon) * 1000).toISOString(), "2026-11-18T23:00:00.000Z");
+  assert.equal(rollingStartsTomorrow(afternoon), false);
+  // 9pm Lagos (20:00Z): only 3h left → the card starts tomorrow, day 1 ends tomorrow midnight.
+  const late = Date.parse("2026-11-18T20:00:00Z");
+  assert.equal(new Date(rollingFirstDeadline(late) * 1000).toISOString(), "2026-11-19T23:00:00.000Z");
+  assert.equal(rollingStartsTomorrow(late), true);
+});
