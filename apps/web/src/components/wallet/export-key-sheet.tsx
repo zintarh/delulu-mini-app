@@ -46,17 +46,21 @@ export function ExportKeySheet({ open, onOpenChange }: { open: boolean; onOpenCh
         await exportWallet({ address: address! });
         return;
       }
-      const raw = (await (web3Auth?.provider as { request: (a: { method: string }) => Promise<unknown> } | undefined)?.request({
-        method: "eth_private_key",
-      })) as string | undefined;
+      // Web3Auth's method is "private_key" (no "eth_" prefix in this SDK version).
+      const provider = web3Auth?.provider as { request: (a: { method: string }) => Promise<unknown> } | null | undefined;
+      if (!provider) throw new Error("no provider");
+      const raw = (await provider.request({ method: "private_key" })) as string | undefined;
       if (!raw) throw new Error("empty");
       setKey(raw.startsWith("0x") ? raw : `0x${raw}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      console.error("[export-key]", e);
       setError(
         /not (allowed|enabled)|disabled|export/i.test(msg) || msg === "empty"
           ? "Exporting your key isn't switched on yet. We're on it — try again soon."
-          : "Couldn't open your key. Make sure you're signed in, then try again.",
+          : msg === "no provider"
+            ? "Your wallet is still loading. Wait a second and try again."
+            : `Couldn't open your key (${msg.slice(0, 80)}). Try again, or reach out to us.`,
       );
     }
   };
