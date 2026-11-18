@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, ChevronRight, Circle, CheckCircle2, Lock, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useReferralSlots } from "@/hooks/use-referral-slots";
+import { slotsLine } from "@/lib/referral/slots-copy";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ONBOARDING_STEP_LABELS } from "@/components/referral-onboarding-checklist";
 import { GameButton, GameCard, GameLink, Trophy } from "@/components/ds";
@@ -68,6 +70,7 @@ export function ReferralInviteCard({ address }: { address: string }) {
     live || soon ? address : null,
   );
   const [copied, setCopied] = useState(false);
+  const slots = useReferralSlots(live);
   const [showSteps, setShowSteps] = useState(false);
 
   if (!live && !soon) {
@@ -122,7 +125,7 @@ export function ReferralInviteCard({ address }: { address: string }) {
     : locked
     ? "Post today's proof to unlock"
     : eligible
-      ? `${referralRewardNow().toLocaleString()} G$ each · this round ends ${referralCampaignEndLabel()}`
+      ? `${referralRewardNow().toLocaleString()} G$ each · ${slotsLine(slots) ?? `this round ends ${referralCampaignEndLabel()}`}`
       : "Finish onboarding first";
 
   return (

@@ -3,7 +3,8 @@ import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { processReferralPayouts } from "@/lib/referral/payout";
 import { payReferralStreakBonus } from "@/lib/referral/streak";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
-import { currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver, roundCapacity } from "@/lib/referral/campaign";
+import { currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver } from "@/lib/referral/campaign";
+import { roundSlots } from "@/lib/referral/slots";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -125,7 +126,8 @@ export async function evaluateAndCreditReferral(
     .select("id", { count: "exact", head: true })
     .gte("credited_at", new Date(round.start).toISOString())
     .lt("credited_at", new Date(round.end).toISOString());
-  if ((usedInRound ?? 0) >= roundCapacity(round)) return { credited: false, reason: "budget_reached" };
+  // Spots for this round (set from the admin): once they're taken, nothing more is credited until the next round.
+  if ((usedInRound ?? 0) >= (await roundSlots(admin, round))) return { credited: false, reason: "budget_reached" };
 
   const { error } = await admin.from("referral_credits").insert({
     referrer_wallet: profile.referred_by,

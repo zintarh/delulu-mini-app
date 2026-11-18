@@ -6,6 +6,7 @@ import { ExternalLink, RefreshCw, Search, Sparkles, Wallet, X } from "lucide-rea
 import { AdminKpiStrip, AdminPagination } from "@/components/admin/admin-ui";
 import { WalletCell } from "@/components/admin/wallet-cell";
 import { ReferrersTable } from "@/components/admin/referrers-table";
+import { ReferralSlotsCard } from "@/components/admin/referral-slots-card";
 import {
   DashboardPage,
   DashboardTableCard,
@@ -274,6 +275,8 @@ export default function AdminReferralsPage() {
               <RewarderStatusKpi status={rewarderStatus} />
             </div>
           ) : null}
+
+          <ReferralSlotsCard />
 
 
           <div className="mb-4 flex flex-wrap items-center gap-3">

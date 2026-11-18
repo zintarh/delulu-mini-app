@@ -7,6 +7,8 @@ import { useReferralCode } from "@/components/referral-invite-card";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { referralCampaignEndLabel, referralOpensLabel, referralPhase } from "@/lib/referral/campaign";
 import { cn } from "@/lib/utils";
+import { useReferralSlots } from "@/hooks/use-referral-slots";
+import { slotsLine } from "@/lib/referral/slots-copy";
 
 /**
  * One slim row for referrals (Home, Profile): what you earn, your link one tap
@@ -18,6 +20,7 @@ export function ReferralBanner({ address, className }: { address: string; classN
   const { code, count } = useReferralCode(address);
   const { eligible, standing, isLoading } = useReferralEligibility(phase.phase === "off" ? null : address);
   const [copied, setCopied] = useState(false);
+  const slots = useReferralSlots(live);
   if (phase.phase === "off") return null;
 
   const reward = phase.round.reward.toLocaleString("en-US");
@@ -31,7 +34,7 @@ export function ReferralBanner({ address, className }: { address: string; classN
         ? "Post today's proof to unlock your link"
         : !eligible
           ? "Finish setting up to unlock your link"
-          : `${count > 0 ? `${count} counted · ` : ""}round ends ${referralCampaignEndLabel()}`;
+          : (slotsLine(slots) ?? `${count > 0 ? `${count} counted · ` : ""}round ends ${referralCampaignEndLabel()}`);
 
   const copy = async () => {
     if (!code) return;

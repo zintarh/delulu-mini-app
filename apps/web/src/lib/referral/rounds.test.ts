@@ -10,9 +10,9 @@ import {
   roundCapacity,
 } from "@/lib/referral/campaign";
 
-test("referral rounds: 7 days each, back to back, Lagos midnights", () => {
+test("referral rounds: one per 2-week epoch, back to back, Lagos midnights", () => {
   for (const [i, r] of REFERRAL_ROUNDS.entries()) {
-    assert.equal(Date.parse(r.end) - Date.parse(r.start), 7 * 86_400_000, `round ${i} is 7 days`);
+    assert.equal(Date.parse(r.end) - Date.parse(r.start), 14 * 86_400_000, `round ${i} is 14 days`);
     assert.match(r.start, /T00:00:00\+01:00$/);
     if (i > 0) assert.equal(r.start, REFERRAL_ROUNDS[i - 1].end, "no gap between rounds");
   }
@@ -23,10 +23,10 @@ test("round 1 starts tomorrow at Lagos midnight and pays 5,000 G$ up to its budg
   const r1 = currentReferralRound(new Date("2026-11-17T23:00:00Z"));
   assert.ok(r1);
   assert.equal(r1.reward, 5000);
-  assert.equal(roundCapacity(r1), Math.floor(r1.budget / 5000));
-  assert.equal(currentReferralRound(new Date("2026-11-24T22:59:59Z")), r1);
-  assert.equal(currentReferralRound(new Date("2026-11-24T23:00:00Z")), REFERRAL_ROUNDS[1]);
-  assert.equal(isReferralCampaignLive(new Date("2026-12-01T23:00:00Z")), false);
+  assert.equal(roundCapacity(r1), r1.slots);
+  assert.equal(currentReferralRound(new Date("2026-12-01T22:59:59Z")), r1);
+  assert.equal(currentReferralRound(new Date("2026-12-01T23:00:00Z")), REFERRAL_ROUNDS[1]);
+  assert.equal(isReferralCampaignLive(new Date("2026-12-29T23:00:00Z")), false);
 });
 
 test("a credit pays at its own round's reward, also after that round ends", () => {

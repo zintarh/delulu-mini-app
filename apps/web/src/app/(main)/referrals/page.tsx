@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, Clock, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useReferralSlots } from "@/hooks/use-referral-slots";
+import { slotsLine } from "@/lib/referral/slots-copy";
 import { useAuth } from "@/hooks/use-auth";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { MainPage } from "@/components/main-app-header";
@@ -118,6 +120,7 @@ export default function MyReferralsPage() {
   const counted = (referrals ?? []).filter((r) => r.counted).length;
   const ended = isReferralCampaignOver();
   const round = currentReferralRound();
+  const slots = useReferralSlots(!ended);
 
   return (
     <MainPage>
@@ -151,7 +154,10 @@ export default function MyReferralsPage() {
                 <p className="m-0 mt-1 text-[11px] font-semibold leading-snug">When they show up 3 days in a row</p>
               </div>
             </div>
-            <p className="m-0 mt-2 text-[11px] font-semibold text-muted-foreground">Nudge your friends to keep going — the bigger part comes at day 3.</p>
+            {slotsLine(slots) ? (
+              <p className={cn("m-0 mt-2 text-[12px] font-extrabold", slots && slots.left === 0 ? "text-orange" : "text-ink")}>{slotsLine(slots)} this round</p>
+            ) : null}
+            <p className="m-0 mt-1 text-[11px] font-semibold text-muted-foreground">Nudge your friends to keep going — the bigger part comes at day 3.</p>
           </div>
         ) : null}
 

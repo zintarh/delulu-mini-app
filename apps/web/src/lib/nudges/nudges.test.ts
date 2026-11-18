@@ -4,7 +4,7 @@ import { isQuietHours, lagosHour, pickNudge } from "@/lib/nudges/rules";
 import type { Person } from "@/lib/nudges/people";
 
 const H = 3_600_000;
-const now = Date.parse("2026-12-10T15:00:00Z"); // 4pm Lagos, no referral round open
+const now = Date.parse("2027-01-14T15:00:00Z"); // 4pm Lagos, no referral round open
 const base = (over: Partial<Person> = {}): Person => ({
   wallet: "0xabc", username: "ada", email: "ada@example.com", createdAt: new Date(now - 30 * H).toISOString(),
   onboardedAt: new Date(now - 29 * H).toISOString(), giftSent: true, giftClaimedAt: new Date(now - 28 * H).toISOString(),

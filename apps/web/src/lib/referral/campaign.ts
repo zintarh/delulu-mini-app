@@ -1,10 +1,11 @@
 /**
  * Referral rounds — the single switch for referrals.
  *
- * Referrals run in 7-day rounds, two per GoodDollar epoch (2 weeks). Each
- * round has its own reward per referral and its own G$ budget: once a round's
- * budget is used up, no more referrals are credited until the next round
- * (evaluate.ts). Outside every round nothing is credited and the invite link
+ * Referrals run in 2-week rounds, one per GoodDollar epoch. Each round has a
+ * reward per referral and a number of spots (set from the admin): once a
+ * round's spots are taken, no more referrals are credited until the next
+ * round (evaluate.ts). Friends who qualify while it's full are credited when
+ * the next round opens, first come first served. Outside every round nothing is credited and the invite link
  * is hidden; sign-ups through a link keep working, they just earn nothing.
  *
  * Only friends who signed up on/after the first round's start count (no
@@ -30,13 +31,22 @@ export type ReferralRound = {
   firstPayment?: number;
   /** Total G$ this round may pay out (reward × referrals). */
   budget: number;
+  /**
+   * Referral spots this round — how many friends can be credited. The admin
+   * can change it per round (referral_round_slots, lib/referral/slots.ts);
+   * this is the default when they haven't.
+   */
+  slots?: number;
 };
 
 export const REFERRAL_ROUNDS: ReferralRound[] = [
   // GoodDollar epoch 18 Nov – 1 Dec 2026
+  // Season 2: one round per GoodDollar epoch (2 weeks), to match the bi-weekly demo days.
   // 5,000 per friend: 2,000 when they qualify + 3,000 after 3 days in a row.
-  { start: "2026-11-18T00:00:00+01:00", end: "2026-11-25T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000 },
-  { start: "2026-11-25T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000 },
+  // Spots per round are set from the admin (Referrals → Referral spots); `slots` is the default.
+  { start: "2026-11-18T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
+  { start: "2026-12-02T00:00:00+01:00", end: "2026-12-16T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
+  { start: "2026-12-16T00:00:00+01:00", end: "2026-12-30T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
 ];
 
 /** Previous programme (Sep 11 → 29 2026, 6,000 G$ each) is closed for good. */
@@ -63,6 +73,7 @@ export function roundFirstPayment(round: ReferralRound): number {
 
 /** Max referrals a round can pay (budget ÷ reward). */
 export function roundCapacity(round: ReferralRound): number {
+  if (typeof round.slots === "number") return round.slots;
   return round.reward > 0 ? Math.floor(round.budget / round.reward) : 0;
 }
 
