@@ -269,7 +269,8 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
             completionReward: t.completionReward,
           })),
     joinable,
-    visible: (rolling && firstWeekOk) || !!me || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)),
+    // Paused Bingos (e.g. Delulu Debut, replaced by First Week) only show to people still playing them.
+    visible: !!me || (campaign.status === "live" && ((rolling && firstWeekOk) || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)))),
     players,
     photos,
     rewards: {
