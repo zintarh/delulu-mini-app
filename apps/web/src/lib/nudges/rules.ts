@@ -5,6 +5,7 @@
  */
 import type { Person } from "@/lib/nudges/people";
 import { referralPhase } from "@/lib/referral/campaign";
+import { NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -31,6 +32,7 @@ export const NUDGE_RULES = [
   "gift_not_played",
   "install_app",
   "level_up",
+  "seven_day_start",
   "referral_week",
   "come_back",
 ] as const;
@@ -44,6 +46,7 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   gift_not_played: "Gift not played",
   install_app: "App not installed",
   level_up: "Finished a 3-day → 7-day",
+  seven_day_start: "Active, nothing running → 7-day Bingo",
   referral_week: "Referral round is open",
   come_back: "Quiet 3+ days / dormant",
 };
@@ -62,16 +65,18 @@ const GIFT_NEW_USER_CUTOFF_MS = Date.parse("2026-09-21T00:00:00+01:00");
 export const canStillGetGift = (p: Pick<Person, "createdAt" | "giftSent">) => !p.giftSent && Date.parse(p.createdAt) >= GIFT_NEW_USER_CUTOFF_MS;
 
 export function offerLines(nowMs: number, skip: "gift" | "photo" | "finish" | "referral" | null = null, giftEligible = true): string {
-  const lines: string[] = [];
+  // Earning every day leads — that's what keeps students coming back.
+  const lines: string[] = ["💸 Free money to claim every day"];
+  if (skip !== "photo") lines.push("📸 100 G$ for every Bingo photo — one photo a day, a minute between classes");
+  if (skip !== "finish") lines.push("🏆 Finish a 7-day Bingo: your stake back + up to 2,000 G$ bonus");
   if (skip !== "gift" && giftEligible) lines.push("🎁 1,000 G$ free to start your first Bingo (after one quick face check)");
-  if (skip !== "photo") lines.push("📸 100 G$ for every Bingo photo you post (face-verified players)");
-  if (skip !== "finish") lines.push("🏆 Up to +2,000 G$ for finishing a 7-day Bingo — and your stake back");
   const ref = referralPhase(new Date(nowMs));
   if (skip !== "referral" && ref.phase !== "off") {
     lines.push(`🤝 ${ref.round.reward.toLocaleString("en-US")} G$ for every friend you invite${ref.phase === "soon" ? " (opens soon)" : " this week"}`);
   }
-  lines.push("💸 Free money to claim every day");
-  return `What's waiting for you on Delulu:\n${lines.join("\n")}`;
+  // Only promise naira once there's someone to message for it.
+  if (NAIRA_CASHOUT_TELEGRAM_URL) lines.push("🇳🇬 Turn your G$ into naira — see Rewards → Cash out");
+  return `Earn on Delulu every day:\n${lines.join("\n")}`;
 }
 const withOffers = (body: string, nowMs: number, skip: Parameters<typeof offerLines>[1] = null, p?: Pick<Person, "createdAt" | "giftSent">) =>
   `${body}\n\n${offerLines(nowMs, skip, p ? canStillGetGift(p) : false)}`;
@@ -192,6 +197,11 @@ export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory =
   }
 
   const lastActive = Math.max(...[p.lastSeenAt, p.lastProofAt].filter(Boolean).map((d) => Date.parse(d!)), 0);
+  // "Dormant" comes from Bingo/proof history; someone who opened the app in the
+  // last 3 days isn't dormant, whatever that history says.
+  const dormantNow = p.dormant && !(lastActive > 0 && nowMs - lastActive < 3 * DAY);
+  // A real player: set up in the new flow, or has played/posted before (older accounts predate onboarding tracking).
+  const isPlayer = !!(p.onboardedAt || p.everStartedBingo || p.lastProofAt);
 
   // 7. Finished a 3-day Bingo, nothing going now → the 7-day one pays the most.
   if (!card && p.completedDays === 3 && p.lastCompletedAt && nowMs - Date.parse(p.lastCompletedAt) <= 4 * DAY) {
@@ -208,6 +218,26 @@ export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory =
         nowMs,
         "finish", p),
       cta: "Start the 7-day Bingo",
+    };
+  }
+
+  // 7b. Active in the last 2 days but nothing running — the "slacking off"
+  //     moment. Point them at the 7-day Bingo, at most once a week.
+  const sevenDaySentThisWeek = history.some((h) => h.rule === "seven_day_start" && nowMs - Date.parse(h.sentAt) < 7 * DAY);
+  if (!card && isPlayer && !dormantNow && !sevenDaySentThisWeek && lastActive > 0 && nowMs - lastActive <= 2 * DAY) {
+    return {
+      rule: "seven_day_start",
+      dedupeKey: `w${Math.floor(nowMs / (7 * DAY))}`,
+      title: "Earn every day this week 💸",
+      body: "Start the 7-day Bingo: 100 G$ for each day's photo, and up to +2,000 G$ when you finish.",
+      path: "/bingo/outside-your-bubble",
+      emailSubject: "7 days, 7 photos, paid every day",
+      emailHeading: `${name(p)}make this week pay`,
+      emailBody: withOffers(
+        "You've got nothing running right now — let's change that.\n\nStart the 7-day Bingo: post one photo a day (it takes a minute between classes) and earn 100 G$ for every photo. Finish all 7 and you get your stake back plus a bonus of up to 2,000 G$.",
+        nowMs,
+        "finish", p),
+      cta: "Start my 7 days",
     };
   }
 
@@ -243,7 +273,7 @@ export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory =
     return n;
   })();
   const recentlyQuiet = !card && (p.onboardedAt || p.everStartedBingo) && lastActive > 0 && nowMs - lastActive >= 3 * DAY;
-  const dormant = !card && p.dormant && !!p.onboardedAt;
+  const dormant = !card && dormantNow && !!p.onboardedAt;
   if ((recentlyQuiet || dormant) && ignoredInARow < 3) {
     const period = dormant ? 14 * DAY : 7 * DAY;
     return {
@@ -285,6 +315,7 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
     case "referral_week":
       return after(p.lastSeenAt) || after(p.lastProofAt);
     case "level_up":
+    case "seven_day_start":
       return !!p.activeCard || after(p.lastProofAt);
   }
 }

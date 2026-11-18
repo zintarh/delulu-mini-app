@@ -34,13 +34,19 @@ test("today's square closing within 8h beats everything else", () => {
 
 test("first-days journey: setup → verify → play → install", () => {
   assert.equal(pickNudge(base({ onboardedAt: null, giftSent: false, everStartedBingo: false, lastProofAt: null, createdAt: new Date(now - 3 * H).toISOString() }), now)?.rule, "setup_unfinished");
-  assert.equal(pickNudge(base({ onboardedAt: null, createdAt: new Date(now - 1 * H).toISOString() }), now), null); // give them 2h first
+  assert.equal(pickNudge(base({ onboardedAt: null, giftSent: false, everStartedBingo: false, lastProofAt: null, createdAt: new Date(now - 1 * H).toISOString() }), now), null); // give them 2h first
   assert.equal(pickNudge(base({ giftSent: false, everStartedBingo: false, lastProofAt: null }), now)?.rule, "verify_for_gift");
   assert.equal(pickNudge(base({ everStartedBingo: false, lastProofAt: null }), now)?.rule, "gift_not_played");
   assert.equal(pickNudge(base({ pushOn: false }), now)?.rule, "install_app");
   // Not seen since tracking began → we don't know they haven't installed; don't nag.
   assert.notEqual(pickNudge(base({ pushOn: false, lastSeenAt: null }), now)?.rule, "install_app");
-  assert.equal(pickNudge(base({ pushOn: true }), now), null); // installed-or-push and playing fine → leave them be
+  // Installed and active, but nothing running → nudge into the 7-day Bingo (once a week).
+  const idle = pickNudge(base({ pushOn: true }), now);
+  assert.equal(idle?.rule, "seven_day_start");
+  assert.equal(idle?.path, "/bingo/outside-your-bubble");
+  // Mid-card and today's square isn't urgent → leave them be.
+  const playing = { attemptId: "a2", slug: "x", title: "X", days: 7, startedAt: "", today: 2, todayFilled: true, todayMission: null, dayEndsAt: new Date(now + 12 * H).toISOString() };
+  assert.equal(pickNudge(base({ pushOn: true, activeCard: playing }), now), null);
 });
 
 test("missed a one-time Debut → point at Prayer Streak; quiet 3+ days → come back weekly", () => {
@@ -57,10 +63,13 @@ test("offers ride along in every email; new moments: level up, referral week, do
   // Finished a 3-day → level up to the 7-day.
   const lvl = pickNudge({ ...p, completedBingo: true, completedDays: 3, lastCompletedAt: new Date(live - 5 * H).toISOString() }, live);
   assert.equal(lvl?.rule, "level_up");
-  assert.match(lvl!.emailBody, /What's waiting for you on Delulu/);
+  assert.match(lvl!.emailBody, /Earn on Delulu every day/);
+  assert.match(lvl!.emailBody, /^💸 Free money to claim every day$/m);
   assert.match(lvl!.emailBody, /5,000 G\$ for every friend/);
-  // Active player during a round → referral nudge, once per round.
-  const ref = pickNudge(p, live);
+  // Active player during a round → referral nudge, once per round (after this week's 7-day nudge).
+  const sevenDay = [{ rule: "seven_day_start", sentAt: new Date(live - 24 * H).toISOString(), acted: false }];
+  assert.equal(pickNudge(p, live)?.rule, "seven_day_start");
+  const ref = pickNudge(p, live, sevenDay);
   assert.equal(ref?.rule, "referral_week");
   assert.equal(ref?.dedupeKey, "2026-11-18");
   // Dormant account → come back every 2 weeks, but stop after 3 ignored in a row.
@@ -80,4 +89,14 @@ test("never promise the welcome gift to accounts that can't get it", async () =>
   assert.doesNotMatch(n!.body, /1,000 G\$ free/);
   const fresh = base({ createdAt: "2026-11-18T08:00:00Z", giftSent: false, dormant: true, lastSeenAt: null, lastProofAt: null, everStartedBingo: false, bestDays: 0 });
   assert.match(pick(fresh, live)!.emailBody, /1,000 G\$ free/);
+});
+
+test("someone in the app this week is never 'dormant'; long-time players get the 7-day nudge", () => {
+  const live = Date.parse("2026-12-10T12:00:00Z");
+  const seenToday = base({ createdAt: "2026-08-01T08:00:00Z", giftClaimedAt: "2026-08-02T08:00:00Z", dormant: true, lastSeenAt: new Date(live - 5 * H).toISOString(), lastProofAt: null, everStartedBingo: false, bestDays: 0, installedAt: "x" });
+  assert.notEqual(pickNudge(seenToday, live)?.rule, "come_back");
+  assert.equal(pickNudge(seenToday, live)?.rule, "seven_day_start");
+  // Old account (no onboarding timestamp) still posting proofs, nothing running.
+  const veteran = base({ onboardedAt: null, createdAt: "2026-08-01T08:00:00Z", installedAt: "x", lastProofAt: new Date(live - 20 * H).toISOString() });
+  assert.equal(pickNudge(veteran, live)?.rule, "seven_day_start");
 });
