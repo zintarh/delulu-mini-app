@@ -3,6 +3,7 @@ import sharp from "sharp";
 import type { NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { squareTint } from "@/lib/bingo/mission-art";
+import { collageColumns } from "@/lib/bingo/collage";
 import type { BingoMission, BingoTier } from "@/lib/bingo/types";
 
 export const runtime = "nodejs";
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       try {
         const res = await fetch(s.proof_url as string, { signal: AbortSignal.timeout(8000) });
         if (!res.ok) return;
-        const jpg = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize(600, 600, { fit: "cover" }).jpeg({ quality: 82 }).toBuffer();
+        const jpg = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize(640, 860, { fit: "inside" }).jpeg({ quality: 82 }).toBuffer();
         filled.set(s.square_index as number, `data:image/jpeg;base64,${jpg.toString("base64")}`);
       } catch {
         /* leave the square empty rather than fail the card */
@@ -73,15 +74,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const name = profile?.username ? `@${profile.username}` : `${String(a.wallet).slice(0, 6)}…${String(a.wallet).slice(-4)}`;
   const origin = request.nextUrl.origin;
 
-  const cells: ({ kind: "sq"; i: number } | { kind: "lulu" } | { kind: "score" })[] = missions.slice(0, 9).map((_, i) => ({ kind: "sq" as const, i }));
-  if (cells.length === 7) cells.push({ kind: "lulu" }, { kind: "score" });
-  const rows: (typeof cells)[] = [];
-  for (let i = 0; i < cells.length; i += 3) rows.push(cells.slice(i, i + 3));
-  // 3-square cards: tall strips that fill the card; 7/9-square cards: a 3×3.
-  const tile = 268;
-  const tileH = cells.length <= 3 ? 640 : tile;
-
-  const text = `${name}${camp.title}${tier?.label ?? ""}${status}BINGO0123456789/ G$·,SQUARESstaydelulu.xyz`;
+  // Same Pinterest-style layout as the in-app card (lib/bingo/collage).
+  const squareStates = missions.map((_, i) => ({
+    index: i,
+    state: (filled.has(i) ? "filled" : (a.status as string) !== "active" ? "missed" : "empty") as "filled" | "missed" | "empty",
+  }));
+  const columns = collageColumns(squareStates, { withScore: true, gapRatio: 20 / 413 });
+  // Card 1080×1350: 60 page margin, 8 border, 48 padding → 848 inside; 22 between columns.
+  const colW = 413;
+  const gap = 20;
+  const collageMax = 760;
+  const tallest = Math.max(...columns.map((col) => col.reduce((sum, t) => sum + t.h * colW, 0) + gap * Math.max(0, col.length - 1)));
+  const scale = Math.min(1, collageMax / tallest);
+  const text = `${name}${camp.title}${tier?.label ?? ""}${status}${missions.map((m) => m.title).join("")}BINGO0123456789/ G$·,DAYS KEPTMISSEDstaydelulu.xyz`;
   const [display, body] = await Promise.all([font("Big+Shoulders+Display", 900, text.toUpperCase() + text), font("Schibsted+Grotesk", 800, text)]);
   const fonts = [
     display && { name: "Display", data: display, weight: 900 as const, style: "normal" as const },
@@ -115,33 +120,36 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           </div>
           <span style={{ marginTop: 22, fontSize: 76, fontFamily: "Display", fontWeight: 900, textTransform: "uppercase", lineHeight: 1 }}>{camp.title}</span>
 
-          <div style={{ marginTop: 26, display: "flex", flexDirection: "column", background: "#fff", border: `6px solid ${t.frame}`, borderRadius: 36, padding: 18, position: "relative" }}>
-            {rows.map((row, r) => (
-              <div key={r} style={{ display: "flex", marginTop: r ? 18 : 0 }}>
-                {row.map((c, k) => {
-                  const box = { width: tile, height: tileH, borderRadius: 26, marginLeft: k ? 18 : 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" as const };
-                  if (c.kind === "lulu")
+          <div style={{ marginTop: 26, display: "flex", position: "relative" }}>
+            {columns.map((col, c) => (
+              <div key={c} style={{ display: "flex", flexDirection: "column", width: colW, marginLeft: c ? 22 : 0 }}>
+                {col.map((tile, k) => {
+                  const h = Math.round(tile.h * colW * scale);
+                  const box = { width: colW, height: h, borderRadius: 30, marginTop: k ? gap : 0, display: "flex", overflow: "hidden" as const, position: "relative" as const };
+                  if (tile.kind === "score")
                     return (
-                      <div key={k} style={{ ...box, flexDirection: "column", background: t.chipBg, color: t.chipFg }}>
+                      <div key={k} style={{ ...box, flexDirection: "column", alignItems: "center", justifyContent: "center", background: t.chipBg, color: t.chipFg }}>
+                        <span style={{ fontFamily: "Display", fontWeight: 900, fontSize: 110, lineHeight: 1.15 }}>{`${a.required_filled}/${required}`}</span>
+                        <span style={{ fontSize: 26, fontWeight: 800, opacity: 0.8, marginTop: 10 }}>DAYS KEPT</span>
+                      </div>
+                    );
+                  const url = filled.get(tile.index);
+                  const day = `Day ${tile.index + 1}`;
+                  if (tile.kind === "photo" && url)
+                    return (
+                      <div key={k} style={{ ...box, background: "#e9e7df" }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`${origin}/favicon_io/android-chrome-192x192.png`} width={130} height={130} />
-                        <span style={{ fontFamily: "Display", fontWeight: 900, fontSize: 40 }}>BINGO</span>
+                        <img src={url} width={colW} height={h} style={{ width: colW, height: h, objectFit: "cover" }} />
+                        <span style={{ position: "absolute", top: 16, left: 16, background: "#ffffff", color: "#161615", borderRadius: 30, padding: "6px 16px", fontSize: 24, fontWeight: 800 }}>{day}</span>
                       </div>
                     );
-                  if (c.kind === "score")
-                    return (
-                      <div key={k} style={{ ...box, flexDirection: "column", background: t.bg, color: t.accent, border: `6px solid ${t.frame}` }}>
-                        <span style={{ fontFamily: "Display", fontWeight: 900, fontSize: 104, lineHeight: 1 }}>{`${a.required_filled}/${required}`}</span>
-                        <span style={{ fontSize: 26, fontWeight: 800, opacity: 0.7 }}>SQUARES</span>
-                      </div>
-                    );
-                  const url = filled.get(c.i);
-                  return url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={k} src={url} width={tile} height={tileH} style={{ ...box, objectFit: "cover" }} />
-                  ) : (
-                    <div key={k} style={{ ...box, background: squareTint(c.i).bg, color: squareTint(c.i).ink, padding: 22, textAlign: "center", fontSize: 30, fontWeight: 800 }}>
-                      {missions[c.i]?.title ?? ""}
+                  return (
+                    <div
+                      key={k}
+                      style={{ ...box, flexDirection: "column", justifyContent: "center", padding: "0 26px", background: tile.kind === "missed" ? "#ecece7" : squareTint(tile.index).bg, color: tile.kind === "missed" ? "#8a8a80" : squareTint(tile.index).ink }}
+                    >
+                      <span style={{ fontSize: 22, fontWeight: 800, opacity: 0.65 }}>{tile.kind === "missed" ? `${day.toUpperCase()} · MISSED` : day.toUpperCase()}</span>
+                      <span style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>{missions[tile.index]?.title ?? ""}</span>
                     </div>
                   );
                 })}
@@ -151,7 +159,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               <div
                 style={{
                   position: "absolute",
-                  top: rows.length > 1 ? 360 : 260,
+                  top: 200,
                   left: 170,
                   display: "flex",
                   transform: "rotate(-10deg)",
@@ -172,9 +180,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
           <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {cells.length !== 9 ? (
-                <span style={{ fontFamily: "Display", fontWeight: 900, fontSize: 120, lineHeight: 1, color: t.accent }}>{`${a.required_filled}/${required}`}</span>
-              ) : null}
               <span style={{ fontSize: 44, fontWeight: 800 }}>{status}</span>
             </div>
             <span style={{ fontSize: 34, fontWeight: 800, opacity: 0.85 }}>staydelulu.xyz</span>

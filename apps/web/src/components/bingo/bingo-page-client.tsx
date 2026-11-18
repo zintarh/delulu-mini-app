@@ -9,7 +9,8 @@ import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { MainPage } from "@/components/main-app-header";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-board";
-import { BingoFlexCard } from "@/components/bingo/bingo-flex-card";
+import { BingoCollage } from "@/components/bingo/bingo-collage";
+import { BingoPlayers } from "@/components/bingo/bingo-players";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
 import { useAuth } from "@/hooks/use-auth";
@@ -243,9 +244,16 @@ export function BingoPageClient({ slug }: { slug: string }) {
           />
         </section>
 
-        {me ? (
+        {me && me.squares.some((s) => !s.bonus && (s.state === "filled" || s.state === "confirming")) ? (
+          <section className="mt-6 animate-rise">
+            <BingoCollage card={me} bingoTitle={bingo.title} required={required} mine />
+            <GameButton variant="yellow" full className="mt-3" onClick={() => void share()}>
+              <Share2 className="h-4 w-4" /> {me.requiredFilled >= required ? "Flex my BINGO" : "Share my card"}
+            </GameButton>
+          </section>
+        ) : me ? (
           <GameButton variant="line" size="sm" full className="mt-3" onClick={() => void share()}>
-            <Share2 className="h-4 w-4" /> {me.requiredFilled >= required ? "Flex my BINGO" : "Share my card"}
+            <Share2 className="h-4 w-4" /> Share my card
           </GameButton>
         ) : null}
         {showVerifyNudge ? (
@@ -271,10 +279,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
               <h2 className="font-display text-xl font-extrabold uppercase">Players</h2>
               <span className="label-mono text-[11px] text-muted-foreground">{board.total} {rolling ? "recent" : "playing"}</span>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {board.cards.map((card) => (
-                <PlayerCard key={card.attemptId} card={card} required={required} mine={card.attemptId === me?.attemptId} rolling={rolling} title={bingo.title} />
-              ))}
+            <div className="mt-3">
+              <BingoPlayers cards={board.cards} required={required} bingoTitle={bingo.title} myAttemptId={me?.attemptId ?? null} />
             </div>
             {board.hasMore ? (
               <GameButton variant="line" size="sm" full className="mt-3" onClick={() => void board.loadMore()} disabled={board.loading}>
@@ -321,7 +327,4 @@ export function BingoPageClient({ slug }: { slug: string }) {
   );
 }
 
-function PlayerCard({ card, required, mine, rolling, title }: { card: BoardCard; required: number; mine: boolean; rolling: boolean; title: string }) {
-  // Rolling cards run on their own clocks — no shared ranking, so no medals there.
-  return <BingoFlexCard card={card} bingoTitle={title} required={required} size="sm" rank={rolling ? undefined : card.rank} mine={mine} />;
-}
+
