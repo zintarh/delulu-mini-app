@@ -20,9 +20,10 @@ const APPLY = process.argv.includes("--apply");
 // Always-on 7-day Bingos: your own clock from the moment you join; a missed day forfeits the stake.
 // Finish to get the stake back plus the tier's finishing reward (and 100 G$ a photo).
 const WEEKLY_TIERS: BingoTier[] = [
-  { key: "starter", label: "Starter", stake: 1_000, forfeitPct: 0, completionReward: 500 },
-  { key: "pro", label: "Pro", stake: 2_000, forfeitPct: 0, completionReward: 1_200 },
-  { key: "elite", label: "Elite", stake: 3_000, forfeitPct: 0, completionReward: 2_000 },
+  // Season 2: 5k minimum; the finish bonus is 30% of the stake.
+  { key: "starter", label: "Starter", stake: 5_000, forfeitPct: 0, completionReward: 1_500 },
+  { key: "pro", label: "Pro", stake: 10_000, forfeitPct: 0, completionReward: 3_000 },
+  { key: "elite", label: "Elite", stake: 20_000, forfeitPct: 0, completionReward: 6_000 },
 ];
 // 3-day Bingos: stake the 1,000 G$ welcome gift, earn 100 G$ a photo, get the stake back on finishing.
 const NEWCOMER_TIERS: BingoTier[] = [{ key: "entry", label: "Entry", stake: 1000, forfeitPct: 0, rewardPerSquare: 100 }];

@@ -4,6 +4,7 @@ import { buildLuluEmailHtml, buildLuluEmailText } from "@/lib/outreach/email";
 import { getEarnFacts } from "@/lib/earn/facts";
 import { fmtMoney, type EarnFacts } from "@/lib/earn/format";
 import { stakesBlock } from "@/lib/nudges/rules";
+import { NAIRA_CASHOUT_MIN_G } from "@/lib/rewards/cash-out";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -21,7 +22,7 @@ export function firstWeekWelcomeEmail(p: { username: string | null; invitedBy: s
     `Show up 7 days in a row and you earn ${amount}. Here's how it pays:\n` +
     `📸 Every day you post one photo: +${k(fw.perPhoto)} G$, paid the same day\n` +
     `🏁 Finish all 7 days: +${k(finish)} G$ more, and your stake back\n\n` +
-    `It takes a minute a day — between classes is enough. Everything you earn is yours to keep and cash out.\n\n` +
+    `It takes a minute a day — between classes is enough. Everything you earn is yours to keep, and you can turn it into naira from ${k(NAIRA_CASHOUT_MIN_G)} G$ (How to earn → Turn G$ into naira).\n\n` +
     `Miss a day and the card ends (you lose your stake), but you keep what you've earned and can start again.\n\n` +
     `After your first week: stake more to earn more, and top players turn their points into cash on the monthly leaderboard.` +
     stakesBlock(facts, "firstWeek");

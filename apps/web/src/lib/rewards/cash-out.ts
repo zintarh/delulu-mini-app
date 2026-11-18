@@ -10,4 +10,4 @@ export const NAIRA_CASHOUT_MIN_G = 5_000;
  * Who to message on Telegram to convert G$ to naira. Null hides the button
  * (the page still explains the minimum).
  */
-export const NAIRA_CASHOUT_TELEGRAM_URL: string | null = null;
+export const NAIRA_CASHOUT_TELEGRAM_URL: string | null = "https://t.me/zintarh";

@@ -5,7 +5,7 @@
  */
 import type { Person } from "@/lib/nudges/people";
 import { referralPhase } from "@/lib/referral/campaign";
-import { NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
+import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { earnersLine, fmtMoney, type EarnFacts } from "@/lib/earn/format";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 
@@ -79,7 +79,7 @@ export function offerLines(nowMs: number, skip: "gift" | "photo" | "finish" | "r
     lines.push(`🤝 ${ref.round.reward.toLocaleString("en-US")} G$ for every friend you invite${ref.phase === "soon" ? " (opens soon)" : " this week"}`);
   }
   // Only promise naira once there's someone to message for it.
-  if (NAIRA_CASHOUT_TELEGRAM_URL) lines.push("🇳🇬 Turn your G$ into naira — see Rewards → Cash out");
+  if (NAIRA_CASHOUT_TELEGRAM_URL) lines.push(`🇳🇬 Turn your G$ into naira from ${NAIRA_CASHOUT_MIN_G.toLocaleString("en-US")} G$ — How to earn → Turn G$ into naira`);
   return `Earn on Delulu every day:\n${lines.join("\n")}`;
 }
 const withOffersBase = (body: string, nowMs: number, skip: Parameters<typeof offerLines>[1] = null, p?: Pick<Person, "createdAt" | "giftSent">) =>
