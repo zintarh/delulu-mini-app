@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BingoFlexCard } from "@/components/bingo/bingo-flex-card";
 import { NextStepCard } from "@/components/next-step-card";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useIdentity } from "@/hooks/identityHook";
@@ -21,16 +23,26 @@ export function HomeNextStep() {
   const router = useRouter();
   const faceCheck = useFaceCheckOptional();
   const next = useHomeNextStep();
+  const { bingos } = useBingoList();
   if (!next) return <div className="h-[104px] animate-pulse rounded-[20px] bg-line" aria-busy="true" />;
 
   const onAction = (action: NextStepAction) => {
     if (action === "verify") return faceCheck?.start();
     if (next.featuredSlug) router.push(`/bingo/${next.featuredSlug}`);
   };
+  // Playing (or just finished)? Show their card too — the thing they're proud of, one tap from the Bingo.
+  const featured = bingos?.find((b) => b.slug === next.featuredSlug && b.me) ?? null;
   return (
-    <section aria-label="Your next step">
-      <p className="label-mono m-0 mb-2 text-[10px] text-muted-foreground">Your next step</p>
-      <NextStepCard step={next.step} onAction={onAction} />
+    <section aria-label="Your next step" className="flex flex-col gap-3">
+      <div>
+        <p className="label-mono m-0 mb-2 text-[10px] text-muted-foreground">Your next step</p>
+        <NextStepCard step={next.step} onAction={onAction} />
+      </div>
+      {featured?.me ? (
+        <Link href={`/bingo/${featured.slug}`} className="block no-underline transition-transform active:scale-[0.99]" aria-label={`Open ${featured.title}`}>
+          <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} />
+        </Link>
+      ) : null}
     </section>
   );
 }

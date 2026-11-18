@@ -9,6 +9,7 @@ import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { MainPage } from "@/components/main-app-header";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-board";
+import { BingoFlexCard } from "@/components/bingo/bingo-flex-card";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,7 +24,6 @@ import { finishRollingStart, pendingRollingStart } from "@/lib/bingo/rolling-cli
 import { fmtDay, fmtG, fmtRange } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 
-const DAY_MS = 86_400_000;
 
 function statusLine(b: BingoView) {
   if (b.enrollment === "rolling") {
@@ -109,11 +109,35 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   const previewSquares = useMemo(() => (bingo ? buildSquares(bingo.missions, [], false) : []), [bingo]);
 
+  /** Share the card itself (an image of their photos), with a link back; link only if not playing. */
   const share = async () => {
     if (!bingo) return;
     const url = `${window.location.origin}/bingo/${bingo.slug}`;
-    const text = me ? `${me.requiredFilled}/${required} on ${bingo.title} Bingo 📸` : `Play ${bingo.title} Bingo with me on Delulu 📸`;
+    const text = me
+      ? me.requiredFilled >= required
+        ? `BINGO! 🎉 I finished ${bingo.title} on Delulu`
+        : `${me.requiredFilled}/${required} on ${bingo.title} 📸 Play with me on Delulu`
+      : `Play ${bingo.title} Bingo with me on Delulu 📸`;
     try {
+      if (me) {
+        const res = await fetch(`/api/og/bingo/${me.attemptId}`);
+        if (res.ok) {
+          const file = new File([await res.blob()], "my-delulu-bingo.png", { type: "image/png" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text: `${text} ${url}` });
+            return;
+          }
+          // No file sharing (desktop): save the image and copy the link.
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(file);
+          a.download = file.name;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          await navigator.clipboard.writeText(`${text} ${url}`).catch(() => {});
+          showAppToast("Card saved · link copied");
+          return;
+        }
+      }
       if (navigator.share) await navigator.share({ text, url });
       else {
         await navigator.clipboard.writeText(`${text} ${url}`);
@@ -123,6 +147,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
       /* cancelled */
     }
   };
+
 
   if (loading) {
     return (
@@ -213,6 +238,11 @@ export function BingoPageClient({ slug }: { slug: string }) {
           />
         </section>
 
+        {me ? (
+          <GameButton variant="line" size="sm" full className="mt-3" onClick={() => void share()}>
+            <Share2 className="h-4 w-4" /> {me.requiredFilled >= required ? "Flex my BINGO" : "Share my card"}
+          </GameButton>
+        ) : null}
         {showVerifyNudge ? (
           <div className="mt-4 flex animate-rise items-center gap-3 rounded-[20px] border-2 border-green-line bg-[#f2fbf5] px-3.5 py-3">
             <ShieldBadge size={34} />
@@ -238,7 +268,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {board.cards.map((card) => (
-                <PlayerCard key={card.attemptId} card={card} required={required} mine={card.attemptId === me?.attemptId} rolling={rolling} />
+                <PlayerCard key={card.attemptId} card={card} required={required} mine={card.attemptId === me?.attemptId} rolling={rolling} title={bingo.title} />
               ))}
             </div>
             {board.hasMore ? (
@@ -286,24 +316,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
   );
 }
 
-function PlayerCard({ card, required, mine, rolling }: { card: BoardCard; required: number; mine: boolean; rolling: boolean }) {
-  const name = card.username ? `@${card.username}` : `${card.wallet.slice(0, 6)}…${card.wallet.slice(-4)}`;
-  const done = card.requiredFilled >= required;
-  // Rolling cards each run on their own clock — show their own day, never a shared rank.
-  const day = Math.min(required, Math.floor((Date.now() - Date.parse(card.startedAt)) / DAY_MS) + 1);
-  const running = Date.now() < Date.parse(card.endsAt) && card.status === "active";
-  return (
-    <div className={cn("rounded-2xl border-2 bg-white p-2 shadow-edge-sm", mine ? "border-ink" : "border-line")}>
-      <BingoBoard squares={card.squares} size="mini" className="ring-0" />
-      <div className="mt-2 flex items-center justify-between gap-1 px-0.5">
-        <span className="min-w-0 truncate text-[12px] font-bold">
-          {rolling ? null : <span className="text-muted-foreground">#{card.rank} </span>}
-          {mine ? "You" : name}
-        </span>
-        <span className={cn("shrink-0 text-[11px] font-extrabold", done ? "text-green-edge" : "text-muted-foreground")}>
-          {done ? "BINGO" : rolling && running ? `Day ${day} · ${card.requiredFilled}/${required}` : `${card.requiredFilled}/${required}`}
-        </span>
-      </div>
-    </div>
-  );
+function PlayerCard({ card, required, mine, rolling, title }: { card: BoardCard; required: number; mine: boolean; rolling: boolean; title: string }) {
+  // Rolling cards run on their own clocks — no shared ranking, so no medals there.
+  return <BingoFlexCard card={card} bingoTitle={title} required={required} size="sm" rank={rolling ? undefined : card.rank} mine={mine} />;
 }
