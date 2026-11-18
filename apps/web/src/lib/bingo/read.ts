@@ -1,3 +1,4 @@
+import { isFirstWeekEligible, isFirstWeekSlug } from "@/lib/bingo/first-week";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { loadRewardsConfig } from "@/lib/rewards/config";
 import { completionAmountFor, isCategoryEnabled } from "@/lib/rewards/rules";
@@ -165,6 +166,7 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
   let players = 0;
   let me: BingoView["me"] = null;
   let joinable = false;
+  let firstWeekOk = true;
   let v = currentVersionRes.data as BingoVersionRow | null;
 
   if (rolling) {
@@ -186,6 +188,11 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
     }
     // One-time rolling Bingos (Delulu Debut) are an onboarding card: one per wallet, ever.
     joinable = live && mineOver && !(campaign.recurrence === "one_time" && mine);
+    // Your First Week: new and invited players only.
+    if (isFirstWeekSlug(campaign.slug)) {
+      firstWeekOk = await isFirstWeekEligible(admin, viewer);
+      joinable = joinable && firstWeekOk;
+    }
   } else if (cycle) {
     const [{ data: t }, { count }, mineRes, cycleVersion] = await Promise.all([
       admin.from("bingo_cycle_tiers").select("*").eq("cycle_id", cycle.id).order("sort_order"),
@@ -260,7 +267,7 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
             completionReward: t.completionReward,
           })),
     joinable,
-    visible: rolling || !!me || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)),
+    visible: (rolling && firstWeekOk) || !!me || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)),
     players,
     photos,
     rewards: {

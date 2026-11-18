@@ -21,6 +21,7 @@ import { finishRollingStart } from "@/lib/bingo/rolling-client";
 import { fmtDay, fmtG } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { useStakeRules } from "@/hooks/use-stake-rules";
+import { isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { seasonPointsForStake } from "@/lib/season/rules";
 
 const DAY_S = 86_400;
@@ -54,7 +55,8 @@ export function BingoJoinSheet({
   const [tierKey, setTierKey] = useState((initialTierKey && tiers.some((t) => t.key === initialTierKey) ? initialTierKey : tiers[0]?.key) ?? "");
   // Season 2: tiers under this wallet's minimum stake are locked.
   const { rules: stakeRules } = useStakeRules(address);
-  const isLocked = (stake: number) => stakeRules.live && stake < stakeRules.minStake;
+  // Your First Week is gated on eligibility, not the Season 2 minimum.
+  const isLocked = (stake: number) => !isFirstWeekSlug(bingo.slug) && stakeRules.live && stake < stakeRules.minStake;
   const firstOpen = tiers.find((t) => !isLocked(t.stake));
   useEffect(() => {
     const cur = tiers.find((t) => t.key === tierKey);

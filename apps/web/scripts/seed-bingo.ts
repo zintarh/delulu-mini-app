@@ -45,6 +45,28 @@ type Seed = {
 
 const SEEDS: Seed[] = [
   {
+    // One-time welcome week for new and referred players (lib/bingo/first-week.ts):
+    // 1,000 G$ a photo + the weekly bonus + 7,750 to finish ≈ 15,000 G$ (~$1.50).
+    slug: "first-week",
+    title: "Your First Week",
+    description: "Show up 7 days in a row — one photo a day — and earn your welcome bonus. New players only, once.",
+    duration: 7,
+    enrollment: "rolling",
+    recurrence: "one_time",
+    status: "draft",
+    sort: 0,
+    missions: [
+      m("Share a selfie"),
+      m("Show us what you ate today"),
+      m("Something you love"),
+      m("Capture the sky"),
+      m("Show us your outfit"),
+      m("Your happy place"),
+      m("Something that made you smile"),
+    ],
+    tiers: [{ key: "entry", label: "First week", stake: 1_000, forfeitPct: 0, rewardPerSquare: 1_000, completionReward: 7_750 }],
+  },
+  {
     slug: "outside-your-bubble",
     title: "Outside Your Bubble Bingo",
     description: "Seven days, seven small moments outside your usual. One photo a day fills your card.",

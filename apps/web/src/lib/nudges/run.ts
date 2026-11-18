@@ -3,6 +3,7 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { sendPushAndNotification } from "@/lib/push/notify-recipients";
 import { buildLuluEmailHtml, buildLuluEmailText } from "@/lib/outreach/email";
 import { loadPeople, type Person } from "@/lib/nudges/people";
+import { getEarnFacts } from "@/lib/earn/facts";
 import { NUDGE_RULES, actedOn, isQuietHours, pickNudge, type Nudge, type NudgeHistory, type NudgeRule } from "@/lib/nudges/rules";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -89,11 +90,17 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
   const from = process.env.RESEND_FROM_EMAIL?.trim() || "Lulu from Delulu <onboarding@resend.dev>";
   const appUrl = process.env.NEXT_PUBLIC_URL || "https://www.staydelulu.xyz";
 
+  // Live "what's at stake" numbers ($ and ₦) for the copy; nudges still go out without them.
+  const facts = await getEarnFacts(admin).catch((err) => {
+    console.error("[nudges] earn facts unavailable", err);
+    return null;
+  });
+
   // Most urgent first, so caps never crowd out a square closing tonight with a win-back email.
   const candidates: { p: Person; n: Nudge }[] = [];
   for (const p of people) {
     if (nudgedToday.has(p.wallet)) continue; // one nudge a day, tops
-    const n = pickNudge(p, nowMs, historyOf.get(p.wallet) ?? []);
+    const n = pickNudge(p, nowMs, historyOf.get(p.wallet) ?? [], facts);
     if (!n || sentKeys.has(`${p.wallet}|${n.rule}|${n.dedupeKey}`)) continue;
     candidates.push({ p, n });
   }

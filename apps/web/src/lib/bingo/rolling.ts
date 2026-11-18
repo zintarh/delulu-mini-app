@@ -1,3 +1,4 @@
+import { isFirstWeekEligible, isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { createPublicClient, http, parseUnits } from "viem";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
@@ -64,6 +65,11 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
   }
   const { data: version } = await admin.from("bingo_versions").select("*").eq("id", campaign.current_version_id).single();
   const v = version as BingoVersionRow;
+
+  // Your First Week: new and invited players only (the list hides it from everyone else).
+  if (isFirstWeekSlug(campaign.slug) && !(await isFirstWeekEligible(admin, wallet))) {
+    throw new Error(`${campaign.title} is for new players — try Outside Your Bubble instead.`);
+  }
 
   if (campaign.recurrence === "one_time") {
     const { data: before } = await admin

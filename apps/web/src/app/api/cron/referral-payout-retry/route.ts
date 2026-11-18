@@ -6,6 +6,53 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payReferralCredit } from "@/lib/referral/payout";
+import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { REFERRAL_ROUNDS, isReferralCampaignLive } from "@/lib/referral/campaign";
+
+/**
+ * Referred friends from this programme with no credit yet. Crediting is
+ * event-driven (proof, join, verification), so a friend whose referrer was
+ * attached after they'd already earned their points, or whose credit insert
+ * failed once, would otherwise never be looked at again.
+ */
+async function sweepUncreditedReferrals(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>) {
+  if (!isReferralCampaignLive()) return { checked: 0, credited: 0, errors: 0 };
+  const seriesStart = new Date(Math.min(...REFERRAL_ROUNDS.map((r) => Date.parse(r.start)))).toISOString();
+
+  const { data: referred, error } = await admin
+    .from("profiles")
+    .select("address")
+    .not("referred_by", "is", null)
+    .gte("created_at", seriesStart)
+    .limit(500);
+  if (error) throw error;
+
+  const wallets = (referred ?? []).map((r) => String(r.address).toLowerCase());
+  if (wallets.length === 0) return { checked: 0, credited: 0, errors: 0 };
+
+  const { data: credited } = await admin
+    .from("referral_credits")
+    .select("referred_wallet")
+    .in("referred_wallet", wallets);
+  const done = new Set((credited ?? []).map((c) => String(c.referred_wallet).toLowerCase()));
+
+  let checked = 0;
+  let newlyCredited = 0;
+  let errors = 0;
+  for (const wallet of wallets) {
+    if (done.has(wallet)) continue;
+    checked++;
+    try {
+      const result = await evaluateAndCreditReferral(admin, wallet);
+      if (result.credited) newlyCredited++;
+      else if (result.reason === "budget_reached" || result.reason === "campaign_ended") break;
+    } catch (err) {
+      errors++;
+      console.error(`[cron/referral-payout-retry] evaluate failed for ${wallet}:`, err);
+    }
+  }
+  return { checked, credited: newlyCredited, errors };
+}
 
 /**
  * Retries any referral G$ payout whose on-chain deposit previously failed
@@ -47,7 +94,9 @@ export async function GET(req: NextRequest) {
       else stillPending++;
     }
 
-    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending });
+    const sweep = await sweepUncreditedReferrals(admin);
+
+    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending, sweep });
   } catch (e: any) {
     return errorResponse(e?.message ?? "Cron failed", 500);
   }

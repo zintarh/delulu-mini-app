@@ -14,6 +14,7 @@ import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step"
 import { FlowStateCard } from "@/components/home/flow-state-card";
 import { ReferralBanner } from "@/components/referral-banner";
 import { SeasonNotice } from "@/components/season-notice";
+import { AtStakeCard } from "@/components/home/at-stake-card";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -78,6 +79,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             <div className="flex flex-col gap-4">
               <LuluHero address={address} />
               <HomeNextStep />
+              <AtStakeCard />
               {/* Slim rows: the two things everyone should see right now. */}
               <SeasonNotice />
               <FlowStateCard />

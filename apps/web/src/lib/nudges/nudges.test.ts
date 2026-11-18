@@ -11,7 +11,7 @@ const base = (over: Partial<Person> = {}): Person => ({
   installedAt: null, lastSeenAt: new Date(now - 2 * H).toISOString(), platform: "android", pushOn: true,
   everStartedBingo: true, bestDays: 1, completedBingo: false, completedDays: 0, lastCompletedAt: null,
   lastProofAt: new Date(now - 20 * H).toISOString(), dormant: false,
-  activeCard: null, recentMiss: null, referredBy: null, ...over,
+  activeCard: null, recentMiss: null, referredBy: null, playedSlugs: [], ...over,
 });
 
 test("quiet hours are 10pm–8am Lagos", () => {
@@ -118,4 +118,36 @@ test("invited friends who go quiet get a nudge every 3 days naming their friend,
   // 5 ignored in a row → falls back to the normal come-back cadence.
   const five = [1, 2, 3, 4, 5].map((i) => ({ rule: "referred_back", sentAt: new Date(live - i * 3 * 24 * H).toISOString(), acted: false }));
   assert.notEqual(pickNudge(friend, live, five)?.rule, "referred_back");
+});
+
+test("new and invited players get the First Week offer ($ and ₦ from live config), once", () => {
+  const live = Date.parse("2026-12-10T12:00:00Z");
+  const money = (g: number) => ({ g, usd: g * 0.0001, ngn: g * 0.0001 * 1350 });
+  const facts = {
+    gdUsd: 0.0001, ngnPerUsd: 1350,
+    sevenDay: { slug: "outside-your-bubble", title: "Outside Your Bubble Bingo", entry: money(1450), top: money(2950), perPhoto: 100 },
+    firstWeek: { slug: "first-week", title: "Your First Week", entry: money(15000), top: money(15000), perPhoto: 1000 },
+    topReferrers: [{ name: "metakay23", usd: 9.54, ngn: 12900 }],
+    topCampaign: [{ name: "amakatdc", usd: 28.4, ngn: 38460 }],
+  };
+  const friend = base({
+    createdAt: "2026-09-20T08:00:00Z", giftClaimedAt: "2026-09-21T08:00:00Z", onboardedAt: null, installedAt: "x",
+    lastSeenAt: null, lastProofAt: null, everStartedBingo: false, bestDays: 0, dormant: true,
+    referredBy: { wallet: "0xref", username: "kaddy" },
+  });
+  const n = pickNudge(friend, live, [], facts)!;
+  assert.equal(n.rule, "referred_back");
+  assert.equal(n.path, "/bingo/first-week");
+  assert.match(n.title, /\$1\.50/);
+  assert.match(n.emailBody, /₦2,030/);
+  assert.match(n.emailBody, /monthly leaderboard/);
+  assert.match(n.emailBody, /@metakay23 \$9\.54/);
+  assert.match(n.emailBody, /@kaddy invited you/);
+  // Already played it → back to the regular copy.
+  assert.notEqual(pickNudge({ ...friend, playedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
+  // An old, uninvited regular never gets it.
+  const regular = base({ createdAt: "2026-08-01T08:00:00Z", giftClaimedAt: "2026-08-02T08:00:00Z", installedAt: "x" });
+  assert.notEqual(pickNudge(regular, live, [], facts)?.path, "/bingo/first-week");
+  // No facts (price feed down / not live yet) → plain copy, no invented numbers.
+  assert.doesNotMatch(pickNudge(friend, live, [], null)!.emailBody, /\$1\.50/);
 });
