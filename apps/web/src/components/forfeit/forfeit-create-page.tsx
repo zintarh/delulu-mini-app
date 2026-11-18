@@ -164,11 +164,9 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   },
 ];
 
-// Floor matches the Delulu flow's MIN_STAKE_WHOLE (100 G$) — low enough that a
-// new user's first GoodDollar UBI claim (~100+ G$) can cover it. Stakes below
-// the 1000 G$ base tier still earn fewer points (see forfeitProofPoints in
-// apps/delulu-subgraph/src/forfeit-market.ts) to keep the incentive to stake more.
-const MIN_FORFEIT_AMOUNT_GOODDOLLAR = 100;
+// 1,000 G$ floor for every money stake — the welcome gift covers it, and small
+// stakes don't move G$. Season 2 raises it to 5,000 for regulars (lib/season/rules).
+const MIN_FORFEIT_AMOUNT_GOODDOLLAR = 1_000;
 
 const FORFEIT_DESTINATIONS = [
   {

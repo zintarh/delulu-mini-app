@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/wallet-session";
 import { ensureReferralCode } from "@/lib/referral/code";
 import { attributeReferral } from "@/lib/referral/attribution";
+import { REFERRAL_COOKIE } from "@/lib/auth-redirect";
 
 // Required Supabase table (run once in your Supabase SQL editor):
 //
@@ -180,7 +181,14 @@ export async function POST(request: NextRequest) {
 
     // Best-effort side effects — never fail the profile save over these.
     try {
-      await attributeReferral(supabase, normalizedAddress, referredByCode);
+      // The body's code comes from the invitee's browser storage; the cookie
+      // (set on /sign-in?ref=) backs it up when sign-up finished in another tab.
+      const cookieCode = request.cookies.get(REFERRAL_COOKIE)?.value;
+      await attributeReferral(
+        supabase,
+        normalizedAddress,
+        referredByCode || (cookieCode ? decodeURIComponent(cookieCode) : null),
+      );
     } catch (err) {
       console.error("[profile] referral attribution failed", err);
     }

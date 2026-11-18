@@ -13,6 +13,8 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const dynamic = "force-dynamic";
 
+const MIN_CAMPAIGN_JOIN_G = 1_000;
+
 const PAGE_SIZE = 20;
 
 export type DashboardCampaign = {
@@ -167,6 +169,10 @@ export async function POST(request: NextRequest) {
   const isFreeToJoin = body.isFreeToJoin !== false;
   const joinToken = isFreeToJoin ? "G$" : (String(body.joinToken ?? "G$").trim() || "G$");
   const joinAmount = isFreeToJoin ? 0 : Math.max(0, Number(body.joinAmount) || 0);
+  // Every new mission needs a real stake: no free or sub-1,000 G$ missions.
+  if (isFreeToJoin || (joinToken === "G$" && joinAmount < MIN_CAMPAIGN_JOIN_G)) {
+    return NextResponse.json({ error: `Missions need a stake of at least ${MIN_CAMPAIGN_JOIN_G.toLocaleString("en-US")} G$` }, { status: 400 });
+  }
   const forfeitPct = isFreeToJoin ? 0 : ([0, 2, 5, 10].includes(Number(body.forfeitPct)) ? Number(body.forfeitPct) : 0);
   const telegramLink =
     body.telegramLink && typeof body.telegramLink === "string" && body.telegramLink.startsWith("https://t.me/")

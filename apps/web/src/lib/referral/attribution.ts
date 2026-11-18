@@ -28,14 +28,29 @@ export async function attributeReferral(
     .select("address")
     .eq("referral_code", code)
     .maybeSingle();
-  if (!referrer) return; // invalid/unknown code — ignore, never block signup
+  if (!referrer) {
+    console.info(`[referral/attribution] unknown code ${code} for ${normalized}`);
+    return; // invalid/unknown code — ignore, never block signup
+  }
 
   const referrerAddress = String(referrer.address).toLowerCase();
   if (referrerAddress === normalized) return; // self-referral guard
 
+  // Only during first sign-up. Later profile saves (photo, email) also reach
+  // here with the invite cookie, and must never re-home an existing user.
+  const { data: self } = await admin
+    .from("profiles")
+    .select("onboarded_at, referred_by")
+    .eq("address", normalized)
+    .maybeSingle();
+  if (!self || self.referred_by || self.onboarded_at) return;
+
   // Backstop for the invite gate on /sign-in: a referrer who's behind on
   // their own campaign can't pick up new referrals until today's proof is in.
-  if ((await getReferrerStanding(admin, referrerAddress)).locked) return;
+  if ((await getReferrerStanding(admin, referrerAddress)).locked) {
+    console.info(`[referral/attribution] ${code} on hold (referrer behind on proof) for ${normalized}`);
+    return;
+  }
 
   await admin
     .from("profiles")

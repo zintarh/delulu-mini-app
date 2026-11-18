@@ -34,6 +34,10 @@ export default function WelcomePage() {
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
   const [addressCopied, setAddressCopied] = useState(false);
+  // Invite code from the ?ref= link (kept across tabs), or typed in by hand
+  // when the link was opened in another browser (e.g. WhatsApp's).
+  const [inviteCode, setInviteCode] = useState("");
+  const [showInvite, setShowInvite] = useState(false);
   const savedRef = useRef(false);
   const profileSubmittedRef = useRef(false);
 
@@ -43,6 +47,14 @@ export default function WelcomePage() {
   useEffect(() => {
     if (resolvedEmail) setEmail(resolvedEmail);
   }, [resolvedEmail]);
+
+  useEffect(() => {
+    const stored = peekReferralCode();
+    if (stored) {
+      setInviteCode(stored);
+      setShowInvite(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isReady && !authenticated) router.replace("/sign-in");
@@ -97,7 +109,7 @@ export default function WelcomePage() {
 
     (async () => {
       setProfileSaveError(null);
-      const referredByCode = peekReferralCode();
+      const referredByCode = inviteCode.trim().toUpperCase() || peekReferralCode();
       try {
         const profileRes = await fetch("/api/profile", {
           method: "POST",
@@ -154,7 +166,7 @@ export default function WelcomePage() {
       finishOnboarding();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuccess, address, email, username, pfpUrl, authProvider, updateUsername, updateProfile]);
+  }, [isSuccess, address, email, username, pfpUrl, inviteCode, authProvider, updateUsername, updateProfile]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -349,6 +361,33 @@ export default function WelcomePage() {
             />
             {emailError ? <p className="px-1 text-xs font-semibold text-orange">{emailError}</p> : null}
           </div>
+
+          {showInvite ? (
+            <div className="flex animate-rise flex-col gap-2">
+              <label htmlFor="welcome-invite" className="label-mono text-muted-foreground">
+                Invite code · optional
+              </label>
+              <input
+                id="welcome-invite"
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 16))}
+                placeholder="ABC12345"
+                autoComplete="off"
+                autoCapitalize="characters"
+                disabled={isSubmittingProfile}
+                className="h-14 rounded-2xl border-2 border-line bg-white px-4 font-mono text-base font-semibold uppercase tracking-[0.08em] text-foreground outline-none transition-colors placeholder:font-medium placeholder:normal-case placeholder:tracking-normal placeholder:text-faint focus:border-ink"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowInvite(true)}
+              className="-mt-2 self-start text-xs font-bold text-muted-foreground underline decoration-dotted underline-offset-4 hover:text-foreground"
+            >
+              Got an invite code?
+            </button>
+          )}
 
           <div className="mt-auto flex flex-col gap-3 pt-4">
             {contractError ? <p className="text-center text-xs font-semibold text-orange">{contractError.message}</p> : null}

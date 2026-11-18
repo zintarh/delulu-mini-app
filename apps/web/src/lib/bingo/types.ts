@@ -21,7 +21,8 @@ export const tierSchema = z
   .object({
     key: z.string().regex(/^[a-z][a-z0-9_]{1,19}$/),
     label: z.string().trim().min(2).max(20),
-    stake: z.number().int().min(1).max(10_000_000),
+    // Nothing below 1,000 G$ — small stakes don't move G$ (see lib/season/rules).
+    stake: z.number().int().min(1_000).max(10_000_000),
     forfeitPct: z.union([z.literal(0), z.literal(2), z.literal(5), z.literal(10)]),
     /** G$ per approved daily photo on this tier; unset = the Rewards Engine's global daily amount. */
     rewardPerSquare: z.number().int().min(0).max(100_000).optional(),

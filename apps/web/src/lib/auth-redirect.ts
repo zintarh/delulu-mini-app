@@ -95,6 +95,17 @@ export function normalizeReferralCode(code: string | null | undefined): string |
   return normalized && normalized.length > 0 ? normalized : null;
 }
 
+/**
+ * The ?ref= code has to survive the whole sign-up, which usually leaves the
+ * tab: face verification opens GoodDollar in a NEW tab (noopener) and the
+ * invitee finishes /welcome there. sessionStorage is per-tab, so keeping the
+ * code only there silently dropped those referrals. It now lives in
+ * localStorage (shared across tabs) with an expiry, plus a first-party cookie
+ * that /api/profile reads as a server-side fallback.
+ */
+export const REFERRAL_COOKIE = "delulu_ref";
+const REFERRAL_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
 export function persistReferralCode(code: string | null | undefined): void {
   const normalized = normalizeReferralCode(code);
   if (!normalized || typeof window === "undefined") return;
@@ -103,26 +114,58 @@ export function persistReferralCode(code: string | null | undefined): void {
   } catch {
     // private mode / quota
   }
+  try {
+    localStorage.setItem(REFERRAL_CODE_KEY, JSON.stringify({ code: normalized, at: Date.now() }));
+  } catch {
+    // private mode / quota
+  }
+  try {
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${REFERRAL_COOKIE}=${encodeURIComponent(normalized)}; Max-Age=${REFERRAL_TTL_MS / 1000}; Path=/; SameSite=Lax${secure}`;
+  } catch {
+    // cookies blocked
+  }
+}
+
+function readStoredReferralCode(): string | null {
+  try {
+    const fromSession = normalizeReferralCode(sessionStorage.getItem(REFERRAL_CODE_KEY));
+    if (fromSession) return fromSession;
+  } catch {
+    // fall through
+  }
+  try {
+    const raw = localStorage.getItem(REFERRAL_CODE_KEY);
+    if (!raw) return null;
+    const { code, at } = JSON.parse(raw) as { code?: string; at?: number };
+    if (typeof at !== "number" || Date.now() - at > REFERRAL_TTL_MS) {
+      localStorage.removeItem(REFERRAL_CODE_KEY);
+      return null;
+    }
+    return normalizeReferralCode(code);
+  } catch {
+    return null;
+  }
 }
 
 export function peekReferralCode(): string | null {
   if (typeof window === "undefined") return null;
-  try {
-    return normalizeReferralCode(sessionStorage.getItem(REFERRAL_CODE_KEY));
-  } catch {
-    return null;
-  }
+  return readStoredReferralCode();
 }
 
 export function consumeReferralCode(): string | null {
   if (typeof window === "undefined") return null;
+  const value = readStoredReferralCode();
   try {
-    const value = sessionStorage.getItem(REFERRAL_CODE_KEY);
     sessionStorage.removeItem(REFERRAL_CODE_KEY);
-    return normalizeReferralCode(value);
-  } catch {
-    return null;
-  }
+  } catch {}
+  try {
+    localStorage.removeItem(REFERRAL_CODE_KEY);
+  } catch {}
+  try {
+    document.cookie = `${REFERRAL_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+  } catch {}
+  return value;
 }
 
 export function buildSignInWithCommunityUrl(communityCode: string, redirectPath?: string): string {

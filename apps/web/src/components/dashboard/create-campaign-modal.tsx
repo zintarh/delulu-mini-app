@@ -53,9 +53,9 @@ export function CreateCampaignModal({
   const [telegramLink, setTelegramLink] = useState("");
 
   // Economics
-  const [isFree, setIsFree] = useState(true);
+  const [isFree] = useState(false); // free missions are retired — kept so the payload shape stays the same
   const [joinToken, setJoinToken] = useState<"G$" | "USDT">("G$");
-  const [joinAmount, setJoinAmount] = useState("");
+  const [joinAmount, setJoinAmount] = useState("1000");
   const [forfeitPct, setForfeitPct] = useState<0 | 2 | 5 | 10>(0);
 
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export function CreateCampaignModal({
     setTitle(""); setDescription(""); setCoverImageUrl(null); setProofInstructions("");
     setCadence("daily"); setDurationDays(30); setPrizeWinnerCount(10);
     setProofType("screenshot"); setLiveCameraDurationMinutes(1);
-    setIsFree(true); setJoinToken("G$"); setJoinAmount(""); setForfeitPct(0);
+    setJoinToken("G$"); setJoinAmount("1000"); setForfeitPct(0);
     setTelegramLink("");
     setError(null);
   };
@@ -228,23 +228,7 @@ export function CreateCampaignModal({
             Joining & rewards
           </p>
 
-          <div className="flex gap-2">
-            {(["free", "paid"] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setIsFree(type === "free")}
-                className={cn(
-                  "flex-1 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
-                  (isFree ? type === "free" : type === "paid")
-                    ? "border-delulu-blue bg-delulu-blue text-white"
-                    : "border-border bg-background text-foreground hover:bg-muted/50",
-                )}
-              >
-                {type === "free" ? "Free to join" : "Paid (stake required)"}
-              </button>
-            ))}
-          </div>
+          {/* Every mission needs a stake — no free or sub-1,000 G$ missions. */}
 
           {!isFree && (
             <div className="space-y-3">
@@ -264,12 +248,12 @@ export function CreateCampaignModal({
                   <DashboardField label="Stake amount">
                     <input
                       type="number"
-                      min="0"
+                      min={joinToken === "G$" ? 1000 : 0}
                       step="any"
                       className={dashboardInputClass}
                       value={joinAmount}
                       onChange={(e) => setJoinAmount(e.target.value)}
-                      placeholder="10"
+                      placeholder="1000"
                     />
                   </DashboardField>
                 </div>
