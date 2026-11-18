@@ -49,6 +49,19 @@ export function cohortRetention(
     });
 }
 
+/** wallet → times of every kept day since `sinceMs` (on-chain proofs + AI-approved photos). */
+export async function loadActivity(admin: Admin, sinceMs: number): Promise<Map<string, number[]>> {
+  const [events, { data: photos }] = await Promise.all([
+    fetchKeptDayEventsSince(Math.floor(sinceMs / 1000)).catch(() => [] as [string, number][]),
+    admin.from("proof_image_fingerprints").select("wallet, created_at").eq("status", "accepted").gte("created_at", new Date(sinceMs).toISOString()).limit(50_000),
+  ]);
+  const activity = new Map<string, number[]>();
+  const add = (w: string, t: number) => activity.set(w, [...(activity.get(w) ?? []), t]);
+  for (const [w, t] of events) add(w, t);
+  for (const p of photos ?? []) add(String(p.wallet).toLowerCase(), Date.parse(String(p.created_at)));
+  return activity;
+}
+
 /** Loads signups + every kept day (on-chain and AI-approved photos) and builds the cohorts. */
 export async function loadRetention(admin: Admin, weeks = 10, nowMs = Date.now()): Promise<{ cohorts: RetentionCohort[]; activeLast7d: number }> {
   const sinceMs = nowMs - weeks * 7 * DAY;

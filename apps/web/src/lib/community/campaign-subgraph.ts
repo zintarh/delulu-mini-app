@@ -1243,3 +1243,38 @@ export async function fetchKeptDayEventsSince(sinceUnix: number): Promise<[strin
     ...f.map((e) => [e.creatorAddress.toLowerCase(), Number(e.createdAt) * 1000] as [string, number]),
   ];
 }
+
+// ── Season analytics: G$ staked through Delulu contracts ─────────────────────
+
+const STAKED_COMMITMENTS_QUERY = `
+  query StakedCommitments($since: BigInt!, $after: String!) {
+    forfeitCommitments(first: 1000, orderBy: id, where: { createdAt_gte: $since, id_gt: $after }) {
+      id
+      stakeAmount
+      token
+      createdAt
+    }
+  }
+`;
+const STAKED_JOINS_QUERY = `
+  query StakedJoins($since: BigInt!, $after: String!) {
+    communityCampaignParticipants(first: 1000, orderBy: id, where: { joinedAt_gte: $since, id_gt: $after }) {
+      id
+      stakeAmount
+      joinedAt
+      challenge { joinToken }
+    }
+  }
+`;
+
+/** [ms, whole G$] for every G$ stake since `sinceUnix` (Forfeit goals, Bingos, mission joins). */
+export async function fetchGStakesSince(sinceUnix: number): Promise<[number, number][]> {
+  const [c, j] = await Promise.all([
+    pageAll<{ id: string; stakeAmount: string; token: string; createdAt: string }>(STAKED_COMMITMENTS_QUERY, "forfeitCommitments", sinceUnix),
+    pageAll<{ id: string; stakeAmount: string; joinedAt: string; challenge: { joinToken: string | null } | null }>(STAKED_JOINS_QUERY, "communityCampaignParticipants", sinceUnix),
+  ]);
+  return [
+    ...c.map((x) => [Number(x.createdAt) * 1000, gDollarWhole(x.stakeAmount, x.token)] as [number, number]),
+    ...j.map((x) => [Number(x.joinedAt) * 1000, gDollarWhole(x.stakeAmount, x.challenge?.joinToken ?? null)] as [number, number]),
+  ].filter(([, g]) => g > 0);
+}

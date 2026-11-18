@@ -52,14 +52,25 @@ export const EPOCH_COUNT = 6;
 const lagosMidnightIso = (dateUtcMs: number) => `${new Date(dateUtcMs).toISOString().slice(0, 10)}T00:00:00+01:00`;
 const seasonDay = (days: number) => Date.parse(`${SEASON_START_LAGOS}T00:00:00Z`) + days * 86_400_000;
 
+/**
+ * Default referral spots per week — a ramp: start small while the season is
+ * young (competitors are small too), grow toward the season target. Each week
+ * can be changed from the admin (Referrals → Referral spots).
+ */
+export const DEFAULT_WEEKLY_SPOTS = [30, 30, 100, 100, 125, 125, 150, 150, 175, 175, 200, 200];
+
 export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
   start: lagosMidnightIso(seasonDay(i * 7)),
   end: lagosMidnightIso(seasonDay((i + 1) * 7)),
   reward: 5000,
   firstPayment: 2000,
   budget: 50_000,
-  slots: 10,
+  slots: DEFAULT_WEEKLY_SPOTS[i] ?? 100,
 }));
+
+/** Per-epoch goals the Season dashboard measures against (G$ circulation is editable from the admin). */
+export const DEFAULT_EPOCH_CIRCULATION_TARGET = 1_000_000;
+export const WEEK2_RETENTION_TARGET = 0.1;
 
 /** The six epochs: two referral rounds each, ending on demo day. */
 export type SeasonEpoch = { number: number; start: string; end: string; demoDay: string; rounds: [ReferralRound, ReferralRound] };

@@ -15,8 +15,9 @@ export type SlotsView = {
   slots: number;
   used: number;
   left: number;
-  /** When the next round (fresh spots) opens. */
+  /** When the next round (fresh spots) opens, and how many it brings. */
   nextStart: string | null;
+  nextSlots: number | null;
   reward: number;
 };
 
@@ -52,9 +53,10 @@ export async function roundUsed(admin: Admin, round: ReferralRound): Promise<num
 export async function slotsView(admin: Admin, now = new Date()): Promise<SlotsView> {
   const round = currentReferralRound(now);
   const next = nextReferralRound(now);
-  if (!round) return { live: false, start: null, end: null, slots: 0, used: 0, left: 0, nextStart: next?.start ?? null, reward: next?.reward ?? 0 };
+  const nextSlots = next ? await roundSlots(admin, next) : null;
+  if (!round) return { live: false, start: null, end: null, slots: 0, used: 0, left: 0, nextStart: next?.start ?? null, nextSlots, reward: next?.reward ?? 0 };
   const [slots, used] = await Promise.all([roundSlots(admin, round), roundUsed(admin, round)]);
-  return { live: true, start: round.start, end: round.end, slots, used, left: Math.max(0, slots - used), nextStart: next?.start ?? null, reward: round.reward };
+  return { live: true, start: round.start, end: round.end, slots, used, left: Math.max(0, slots - used), nextStart: next?.start ?? null, nextSlots, reward: round.reward };
 }
 
 /** Every round with its spots and how many are taken — the admin's view. */
