@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { requirePlatformAdmin } from "@/lib/dashboard/require-platform-admin";
+import { WEEK1_RETENTION_TARGET, loadRetention, type RetentionCohort } from "@/lib/analytics/retention";
 import { FUNNEL, loadPeople, reachedStep, stageOf, type FunnelKey, type Person } from "@/lib/nudges/people";
 import { NUDGE_RULES, RULE_LABEL, pickNudge, type NudgeRule } from "@/lib/nudges/rules";
 
@@ -31,6 +32,8 @@ export type AnalyticsDto = {
   stuck: Record<FunnelKey, AnalyticsPerson[]>;
   nudges: { rule: NudgeRule; label: string; sent7d: number; acted7d: number; dueNow: number }[];
   trackingSince: string | null;
+  /** Weekly signup cohorts: how many were still keeping days in their second week (target 10%). */
+  weekly: { cohorts: RetentionCohort[]; activeLast7d: number; target: number };
 };
 
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
@@ -134,6 +137,7 @@ export async function GET(request: NextRequest) {
     stuck,
     nudges,
     trackingSince: (firstSeen?.[0]?.last_seen_at as string | undefined) ?? null,
+    weekly: { ...(await loadRetention(admin, 10, now)), target: WEEK1_RETENTION_TARGET },
   };
   return NextResponse.json(body);
 }

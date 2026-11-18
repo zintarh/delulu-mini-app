@@ -101,6 +101,51 @@ export default function RetentionAnalyticsPage() {
         </p>
       ) : null}
 
+      {/* The number to move: 1 in 10 new people still here in their second week. */}
+      {data?.weekly ? (
+        <Card
+          className="mb-4"
+          title={`Still here after week 1 · target ${Math.round(data.weekly.target * 100)}%`}
+          sub={`People who signed up each week and kept a day 7–13 days later. ${fmt(data.weekly.activeLast7d)} people kept a day in the last 7 days.`}
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground">
+                  <th className="py-1.5 pr-3 font-semibold">Week of</th>
+                  <th className="py-1.5 pr-3 font-semibold">Signups</th>
+                  <th className="py-1.5 pr-3 font-semibold">Kept ≥1 day</th>
+                  <th className="py-1.5 font-semibold">Still here in week 2</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.weekly.cohorts.map((c) => {
+                  const rate = c.week1 != null && c.signups ? c.week1 / c.signups : null;
+                  return (
+                    <tr key={c.week} className="border-t border-border">
+                      <td className="py-1.5 pr-3 font-semibold">{c.week}</td>
+                      <td className="py-1.5 pr-3">{fmt(c.signups)}</td>
+                      <td className="py-1.5 pr-3">
+                        {fmt(c.started)} ({c.signups ? Math.round((c.started / c.signups) * 100) : 0}%)
+                      </td>
+                      <td className="py-1.5">
+                        {rate == null ? (
+                          <span className="text-muted-foreground">measuring…</span>
+                        ) : (
+                          <span className={cn("rounded-full px-2 py-0.5 font-bold", rate >= data.weekly.target ? "bg-green-100 text-green-800" : "bg-red-50 text-red-700")}>
+                            {fmt(c.week1!)} · {Math.round(rate * 100)}%
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="First-days funnel" sub="How far people got. The biggest drop is where to act.">
           <div className="flex flex-col gap-2">
