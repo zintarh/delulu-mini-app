@@ -8,6 +8,7 @@ import { Camera, Loader2, Settings, Share } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
+import { ReferralBanner } from "@/components/referral-banner";
 import { ActiveCampaignsSection } from "@/components/active-campaigns-section";
 import { ProfileForfeitSection } from "@/components/profile/profile-forfeit-section";
 import { MainPage } from "@/components/main-app-header";
@@ -246,6 +247,9 @@ function ProfileHeader({
         <Share className="h-[18px] w-[18px]" strokeWidth={2.4} />
         Flex your streak
       </GameLink>
+
+      {/* Your referral link, one tap to copy — and › to see who counts. */}
+      {address ? <ReferralBanner address={address} className="mt-3" /> : null}
 
       <div className="mt-6">
         <div className="mb-3.5 flex justify-between">

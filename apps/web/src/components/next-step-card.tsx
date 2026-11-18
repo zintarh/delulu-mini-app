@@ -62,11 +62,14 @@ function useRemindMe() {
 export function NextStepCard({
   step,
   onAction,
+  compact = false,
   className,
 }: {
   step: NextStep;
   /** Handles in-page actions ("join", "today", "verify"); links are followed directly. */
   onAction?: (action: NextStepAction) => void;
+  /** One slim line (waiting states on Home — information, not a task). */
+  compact?: boolean;
   className?: string;
 }) {
   useMinuteTick();
@@ -74,6 +77,28 @@ export function NextStepCard({
   const t = TONE[step.tone];
   const Icon = t.icon;
   const cta = step.cta;
+
+  if (compact) {
+    const until = step.until && Date.parse(step.until) > Date.now() ? ` · ${step.untilLabel === "closes" ? "closes" : "next"} in ${fmtUntil(step.until)}` : "";
+    return (
+      <div className={cn("flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2", t.box, className)}>
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2.4} />
+        <p className="m-0 min-w-0 flex-1 truncate text-[13px] font-extrabold">
+          {step.title}
+          <span className="font-semibold text-muted-foreground">{until}</span>
+        </p>
+        {step.remind && (remind.state === "offer" || remind.state === "busy") ? (
+          <button type="button" onClick={() => void remind.enable()} disabled={remind.state === "busy"} aria-label="Remind me" className="shrink-0 rounded-lg p-1 text-ink">
+            <Bell className="h-4 w-4" />
+          </button>
+        ) : cta?.href ? (
+          <Link href={cta.href} className="shrink-0 text-[12px] font-extrabold text-ink underline">
+            {cta.label}
+          </Link>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("animate-rise rounded-[20px] border-2 p-3.5 text-left shadow-edge-sm", t.box, className)}>

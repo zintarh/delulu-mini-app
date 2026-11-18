@@ -15,7 +15,7 @@ import {
 } from "@/lib/referral/campaign";
 
 /** The wallet's referral code (lazily created server-side) and how many referrals have counted. */
-function useReferralCode(address: string | null) {
+export function useReferralCode(address: string | null) {
   const [state, setState] = useState<{ code: string | null; count: number; isLoading: boolean }>({
     code: null,
     count: 0,
