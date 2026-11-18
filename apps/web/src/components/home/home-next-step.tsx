@@ -47,7 +47,7 @@ export function HomeNextStep() {
           {featured.me.squares.some((q) => !q.bonus && (q.state === "filled" || q.state === "confirming")) ? (
             <BingoCollage card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
           ) : (
-            <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} />
+            <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
           )}
         </Link>
       ) : null}

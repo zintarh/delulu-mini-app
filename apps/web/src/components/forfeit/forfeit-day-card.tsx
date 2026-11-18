@@ -998,6 +998,9 @@ export function ForfeitDayCard({
 
   const label = selectedDate;
 
+  // Nothing due today and Home asked for no empty states: say nothing (Bingo/missions carry the day).
+  if (hideEmptyState && currentDays.length === 0 && dayKey(selectedDate) === dayKey(new Date())) return null;
+
   return (
     <section className={cn(className)}>
       <SectionHeading>

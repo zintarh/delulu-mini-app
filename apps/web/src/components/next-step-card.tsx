@@ -110,9 +110,16 @@ export function NextStepCard({
           <p className="m-0 text-[15px] font-extrabold leading-snug">{step.title}</p>
           {step.body ? <p className="m-0 mt-0.5 text-[13px] font-semibold leading-snug text-muted-foreground">{step.body}</p> : null}
           {step.until && Date.parse(step.until) > Date.now() ? (
-            <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">
-              {step.untilLabel === "closes" ? "Closes" : "Opens"} in {fmtUntil(step.until)}
-            </p>
+            step.untilLabel === "closes" && Date.parse(step.until) - Date.now() < 3 * 3_600_000 ? (
+              // Under 3h: the countdown is the message.
+              <p className="m-0 mt-2 inline-flex items-center gap-1.5 rounded-full bg-orange px-2.5 py-1 text-[12px] font-extrabold text-white">
+                <Clock className="h-3.5 w-3.5" strokeWidth={2.6} /> Closes in {fmtUntil(step.until)}
+              </p>
+            ) : (
+              <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">
+                {step.untilLabel === "closes" ? "Closes" : "Opens"} in {fmtUntil(step.until)}
+              </p>
+            )
           ) : null}
         </div>
       </div>
