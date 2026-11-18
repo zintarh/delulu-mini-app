@@ -53,11 +53,13 @@ const lagosMidnightIso = (dateUtcMs: number) => `${new Date(dateUtcMs).toISOStri
 const seasonDay = (days: number) => Date.parse(`${SEASON_START_LAGOS}T00:00:00Z`) + days * 86_400_000;
 
 /**
- * Default referral spots per week — a ramp: start small while the season is
+ * Default referral spots per week — ONE shared pool for everyone referring
+ * (not per person): every referrer sees the same "N of M spots left" go down
+ * as anyone's friends count. A ramp: start small while the season is
  * young (competitors are small too), grow toward the season target. Each week
  * can be changed from the admin (Referrals → Referral spots).
  */
-export const DEFAULT_WEEKLY_SPOTS = [30, 30, 100, 100, 125, 125, 150, 150, 175, 175, 200, 200];
+export const DEFAULT_WEEKLY_SPOTS = [50, 50, 100, 100, 125, 125, 150, 150, 175, 175, 200, 200];
 
 export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
   start: lagosMidnightIso(seasonDay(i * 7)),
