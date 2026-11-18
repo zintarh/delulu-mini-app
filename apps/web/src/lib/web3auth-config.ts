@@ -25,6 +25,10 @@ export const web3AuthContextConfig: Web3AuthContextConfig = {
       },
     ],
     defaultChainId: "0xa4ec",
+    // Lets people take their wallet to MetaMask (Flow State voting). Also needs
+    // "Key export" switched on in the Web3Auth dashboard for this project.
+    // (loginMode is set by the auth connector itself.)
+    walletServicesConfig: { enableKeyExport: true } as Web3AuthContextConfig["web3AuthOptions"]["walletServicesConfig"],
     modalConfig: {
       connectors: {
         auth: {

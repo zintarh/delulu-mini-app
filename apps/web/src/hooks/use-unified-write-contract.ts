@@ -68,7 +68,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
-          if (isInsufficientGasError(e)) triggerNoGas();
+          if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
           setIsPending(false);
@@ -85,7 +85,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
-          if (isInsufficientGasError(e)) triggerNoGas();
+          if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
           setIsPending(false);
@@ -110,7 +110,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
-          if (isInsufficientGasError(e)) triggerNoGas();
+          if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
           setIsPending(false);

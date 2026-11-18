@@ -46,21 +46,30 @@ export function ExportKeySheet({ open, onOpenChange }: { open: boolean; onOpenCh
         await exportWallet({ address: address! });
         return;
       }
-      // Web3Auth's method is "private_key" (no "eth_" prefix in this SDK version).
       const provider = web3Auth?.provider as { request: (a: { method: string }) => Promise<unknown> } | null | undefined;
       if (!provider) throw new Error("no provider");
-      const raw = (await provider.request({ method: "private_key" })) as string | undefined;
-      if (!raw) throw new Error("empty");
+      // Web3Auth answers to either name depending on the wallet build; try both.
+      let raw: unknown;
+      let firstErr: unknown;
+      for (const method of ["eth_private_key", "private_key"]) {
+        try {
+          raw = await provider.request({ method });
+          if (raw) break;
+        } catch (err) {
+          firstErr ??= err;
+        }
+      }
+      if (typeof raw !== "string" || !raw) throw firstErr ?? new Error("empty");
       setKey(raw.startsWith("0x") ? raw : `0x${raw}`);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = errorText(e);
       console.error("[export-key]", e);
       setError(
-        /not (allowed|enabled)|disabled|export/i.test(msg) || msg === "empty"
-          ? "Exporting your key isn't switched on yet. We're on it — try again soon."
+        /not (allowed|enabled|supported|found)|disabled|export|method/i.test(msg) || msg === "empty"
+          ? "Key export isn't switched on for Delulu yet. We're fixing it — try again soon."
           : msg === "no provider"
             ? "Your wallet is still loading. Wait a second and try again."
-            : `Couldn't open your key (${msg.slice(0, 80)}). Try again, or reach out to us.`,
+            : `Couldn't open your key (${msg.slice(0, 100)}). Try again, or reach out to us.`,
       );
     }
   };
@@ -117,4 +126,20 @@ export function ExportKeySheet({ open, onOpenChange }: { open: boolean; onOpenCh
       </div>
     </ResponsiveSheet>
   );
+}
+
+/** Web3Auth rejects with plain objects ({ code, message }), not Errors. */
+function errorText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as { message?: unknown; data?: { message?: unknown }; code?: unknown };
+    const m = typeof o.message === "string" ? o.message : typeof o.data?.message === "string" ? o.data.message : null;
+    if (m) return o.code != null ? `${m} [${String(o.code)}]` : m;
+    try {
+      return JSON.stringify(e);
+    } catch {
+      /* fall through */
+    }
+  }
+  return String(e);
 }

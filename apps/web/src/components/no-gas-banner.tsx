@@ -29,7 +29,7 @@ export function NoGasBanner() {
   return createPortal(
     <button
       type="button"
-      onClick={trigger}
+      onClick={() => trigger()}
       role="status"
       className={cn(
         "fixed inset-x-3 bottom-[calc(var(--mobile-bottom-nav-bar)+24px)] z-[90] text-left sm:inset-x-auto sm:right-4 sm:w-80",
