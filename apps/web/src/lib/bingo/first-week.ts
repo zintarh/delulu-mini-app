@@ -5,7 +5,7 @@ import { stakeTierFor } from "@/lib/season/rules";
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 /**
- * "Your First Week": a one-time 7-day Bingo with a welcome bonus (~$1.50) to
+ * "Your First Week": a one-time 7-day Bingo with a welcome bonus (~₦1,000, 6,750 G$) to
  * get new players into a 7-day habit. Only for new players (first 2 weeks) and
  * anyone who joined through a friend's invite — and once each (one_time).
  * Everyone else stakes more to earn more on the regular Bingos.

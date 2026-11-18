@@ -7,7 +7,8 @@ import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn, fmtUsd } from "@/lib/earn/format";
 import { cn } from "@/lib/utils";
 
-const k = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(g % 1000 ? 1 : 0)}k` : String(g));
+/** 500 → "500", 3,250 → "3.25k", 8,000 → "8k" — exact, never rounded up. */
+const k = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2).replace(/\.?0+$/, "")}k` : String(g));
 
 /**
  * The First Week offer, big and plain: what 7 days pays ($ and ₦), what each
