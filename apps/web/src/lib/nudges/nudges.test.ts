@@ -4,7 +4,7 @@ import { isQuietHours, lagosHour, pickNudge } from "@/lib/nudges/rules";
 import type { Person } from "@/lib/nudges/people";
 
 const H = 3_600_000;
-const now = Date.parse("2027-01-14T15:00:00Z"); // 4pm Lagos, no referral round open
+const now = Date.parse("2027-03-11T15:00:00Z"); // 4pm Lagos, no referral round open (Season 2 ends 9 Feb)
 const base = (over: Partial<Person> = {}): Person => ({
   wallet: "0xabc", username: "ada", email: "ada@example.com", createdAt: new Date(now - 30 * H).toISOString(),
   onboardedAt: new Date(now - 29 * H).toISOString(), giftSent: true, giftClaimedAt: new Date(now - 28 * H).toISOString(),
@@ -71,7 +71,7 @@ test("offers ride along in every email; new moments: level up, referral week, do
   assert.equal(pickNudge(p, live)?.rule, "seven_day_start");
   const ref = pickNudge(p, live, sevenDay);
   assert.equal(ref?.rule, "referral_week");
-  assert.equal(ref?.dedupeKey, "2026-11-18");
+  assert.equal(ref?.dedupeKey, "2026-11-17");
   // Dormant account → come back every 2 weeks, but stop after 3 ignored in a row.
   const dormant = { ...p, dormant: true, lastSeenAt: null, lastProofAt: null, everStartedBingo: false, bestDays: 0 };
   assert.equal(pickNudge(dormant, live)?.rule, "come_back");

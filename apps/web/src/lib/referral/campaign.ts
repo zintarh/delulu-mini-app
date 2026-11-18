@@ -1,7 +1,7 @@
 /**
  * Referral rounds — the single switch for referrals.
  *
- * Referrals run in 2-week rounds, one per GoodDollar epoch. Each round has a
+ * Referrals run in weekly rounds, two per 2-week epoch. Each round has a
  * reward per referral and a number of spots (set from the admin): once a
  * round's spots are taken, no more referrals are credited until the next
  * round (evaluate.ts). Friends who qualify while it's full are credited when
@@ -39,15 +39,37 @@ export type ReferralRound = {
   slots?: number;
 };
 
-export const REFERRAL_ROUNDS: ReferralRound[] = [
-  // GoodDollar epoch 18 Nov – 1 Dec 2026
-  // Season 2: one round per GoodDollar epoch (2 weeks), to match the bi-weekly demo days.
-  // 5,000 per friend: 2,000 when they qualify + 3,000 after 3 days in a row.
-  // Spots per round are set from the admin (Referrals → Referral spots); `slots` is the default.
-  { start: "2026-11-18T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
-  { start: "2026-12-02T00:00:00+01:00", end: "2026-12-16T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
-  { start: "2026-12-16T00:00:00+01:00", end: "2026-12-30T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000, slots: 10 },
-];
+/**
+ * GoodBuilders Season 2: six 2-week epochs from Tue 17 Nov 2026, each ending on
+ * a Tuesday demo day (1 Dec, 15 Dec, 29 Dec, 12 Jan, 26 Jan, 9 Feb). Referrals
+ * run weekly inside them — two rounds per epoch, Tuesday to Tuesday (Lagos
+ * midnight). 5,000 G$ per friend: 2,000 when they qualify + 3,000 after 3 days
+ * in a row. Spots per round are set from the admin; `slots` is the default.
+ */
+export const SEASON_START_LAGOS = "2026-11-17";
+export const EPOCH_COUNT = 6;
+
+const lagosMidnightIso = (dateUtcMs: number) => `${new Date(dateUtcMs).toISOString().slice(0, 10)}T00:00:00+01:00`;
+const seasonDay = (days: number) => Date.parse(`${SEASON_START_LAGOS}T00:00:00Z`) + days * 86_400_000;
+
+export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
+  start: lagosMidnightIso(seasonDay(i * 7)),
+  end: lagosMidnightIso(seasonDay((i + 1) * 7)),
+  reward: 5000,
+  firstPayment: 2000,
+  budget: 50_000,
+  slots: 10,
+}));
+
+/** The six epochs: two referral rounds each, ending on demo day. */
+export type SeasonEpoch = { number: number; start: string; end: string; demoDay: string; rounds: [ReferralRound, ReferralRound] };
+export const SEASON_EPOCHS: SeasonEpoch[] = Array.from({ length: EPOCH_COUNT }, (_, e) => ({
+  number: e + 1,
+  start: REFERRAL_ROUNDS[e * 2].start,
+  end: REFERRAL_ROUNDS[e * 2 + 1].end,
+  demoDay: REFERRAL_ROUNDS[e * 2 + 1].end.slice(0, 10),
+  rounds: [REFERRAL_ROUNDS[e * 2], REFERRAL_ROUNDS[e * 2 + 1]],
+}));
 
 /** Previous programme (Sep 11 → 29 2026, 6,000 G$ each) is closed for good. */
 const SERIES_START_MS = Math.min(...REFERRAL_ROUNDS.map((r) => Date.parse(r.start)));

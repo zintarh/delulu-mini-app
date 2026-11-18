@@ -110,7 +110,7 @@ export async function sweepReferralStreakBonuses(admin: Admin) {
     .select("referred_wallet")
     .eq("payout_status", "sent")
     .or("streak_status.is.null,streak_status.eq.failed,streak_status.eq.not_eligible")
-    .gte("credited_at", "2026-11-17T23:00:00Z")
+    .gte("credited_at", "2026-11-16T23:00:00Z") // Season 2 start, Tue 17 Nov Lagos
     .limit(300);
   if (error) return { checked: 0, paid: 0, error: error.message };
   let paid = 0;
