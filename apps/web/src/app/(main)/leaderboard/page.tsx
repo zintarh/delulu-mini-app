@@ -326,7 +326,8 @@ function GlobalLeaderboard({ season }: { season: 1 | 2 }) {
 
 /** Leaderboard (design: docs/redesign/screens/Leaderboard.dc.html). */
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("season");
+  // Before Season 2 starts its board is empty — open on this month's instead.
+  const [activeTab, setActiveTab] = useState<Tab>(() => (isSeason2Live() ? "season" : "monthly"));
 
   return (
     <MainPage>

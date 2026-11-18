@@ -38,7 +38,7 @@ export function AtStakeCard({ className }: { className?: string }) {
     head = (
       <>
         <p className="m-0 text-[14px] font-extrabold leading-tight">
-          {me.todayUsed ? `Day ${day} done ✓ — back tomorrow` : `Day ${day} is still open`}
+          {me.todayUsed ? `Day ${day} done ✓ — back tomorrow` : `${me.stake.toLocaleString("en-US")} G$ on the line today`}
         </p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <span className={cn(chip, "text-orange")}>

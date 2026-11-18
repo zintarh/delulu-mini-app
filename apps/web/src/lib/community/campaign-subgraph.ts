@@ -1210,3 +1210,36 @@ export async function fetchSeasonPointsFromGraph(sinceUnix: number): Promise<Glo
     .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))
     .sort((a, b) => b.points_total - a.points_total);
 }
+
+// ── Retention: every kept day on-chain (missions, weekly Bingos, Forfeit goals, 3-/7-day Bingos) ──
+
+const KEPT_MILESTONES_QUERY = `
+  query KeptMilestones($since: BigInt!, $after: String!) {
+    communityCampaignMilestoneCompletions(first: 1000, orderBy: id, where: { createdAt_gte: $since, id_gt: $after }) {
+      id
+      participantAddress
+      createdAt
+    }
+  }
+`;
+const KEPT_FORFEIT_DAYS_QUERY = `
+  query KeptForfeitDays($since: BigInt!, $after: String!) {
+    forfeitPeriodResolutions(first: 1000, orderBy: id, where: { outcome: "success", createdAt_gte: $since, id_gt: $after }) {
+      id
+      creatorAddress
+      createdAt
+    }
+  }
+`;
+
+/** [wallet, ms] for every verified proof since `sinceUnix` — the activity behind retention. */
+export async function fetchKeptDayEventsSince(sinceUnix: number): Promise<[string, number][]> {
+  const [m, f] = await Promise.all([
+    pageAll<{ id: string; participantAddress: string; createdAt: string }>(KEPT_MILESTONES_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
+    pageAll<{ id: string; creatorAddress: string; createdAt: string }>(KEPT_FORFEIT_DAYS_QUERY, "forfeitPeriodResolutions", sinceUnix),
+  ]);
+  return [
+    ...m.map((e) => [e.participantAddress.toLowerCase(), Number(e.createdAt) * 1000] as [string, number]),
+    ...f.map((e) => [e.creatorAddress.toLowerCase(), Number(e.createdAt) * 1000] as [string, number]),
+  ];
+}

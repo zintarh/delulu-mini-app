@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BingoFlexCard } from "@/components/bingo/bingo-flex-card";
+import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { NextStepCard } from "@/components/next-step-card";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useIdentity } from "@/hooks/identityHook";
@@ -42,7 +43,12 @@ export function HomeNextStep() {
       </div>
       {featured?.me ? (
         <Link href={`/bingo/${featured.slug}`} className="block no-underline transition-transform active:scale-[0.99]" aria-label={`Open ${featured.title}`}>
-          <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} />
+          {/* Once there's a photo, the card is a collage of them; before that, the sticker card. */}
+          {featured.me.squares.some((q) => !q.bonus && (q.state === "filled" || q.state === "confirming")) ? (
+            <BingoCollage card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
+          ) : (
+            <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
+          )}
         </Link>
       ) : null}
     </section>

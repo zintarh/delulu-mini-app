@@ -1,7 +1,10 @@
 "use client";
 
+import { MissionSticker } from "@/components/bingo/mission-stickers";
+import { fmtUntil } from "@/lib/bingo/format";
+
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImageIcon, Loader2, Star } from "lucide-react";
+import { Camera, Clock, ImageIcon, Loader2, Star } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { GameButton } from "@/components/ds";
 import { ProofRewardRow } from "@/components/proof-reward-row";
@@ -32,6 +35,8 @@ export function BingoProofSheet({
   onFilled,
   nextStep,
   onNextAction,
+  reward,
+  closesAt,
 }: {
   attemptId: string;
   square: BingoSquareView | null;
@@ -41,6 +46,10 @@ export function BingoProofSheet({
   /** What to do next once the square is filled (from the refreshed card). */
   nextStep?: NextStep | null;
   onNextAction?: (action: NextStepAction) => void;
+  /** G$ this photo earns (face-verified players). */
+  reward?: number;
+  /** When today's square closes, for the countdown. */
+  closesAt?: string | null;
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -221,6 +230,23 @@ export function BingoProofSheet({
           </div>
         ) : (
           <>
+            {square && !square.bonus ? (
+              <div className="flex items-center gap-3">
+                <MissionSticker title={square.title} size={40} />
+                <div className="min-w-0 flex-1">
+                  <p className="label-mono m-0 text-[10px] text-muted-foreground">Day {square.index + 1}</p>
+                  <p className="m-0 text-[17px] font-extrabold leading-tight">{square.title}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {reward ? <span className="rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-extrabold text-green-edge">+{reward.toLocaleString("en-US")} G$</span> : null}
+                    {closesAt && Date.parse(closesAt) > Date.now() ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-soft px-2 py-0.5 text-[11px] font-extrabold text-orange">
+                        <Clock className="h-3 w-3" /> closes in {fmtUntil(closesAt)}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => !busy && !resumeUrl && cameraRef.current?.click()}

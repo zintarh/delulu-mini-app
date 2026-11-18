@@ -20,13 +20,14 @@ export type GiftJoinTarget =
   | { kind: "campaign"; campaignId: string; title: string; stake: number };
 
 /**
- * What to put the gift into right now: the 3-day starter Bingo (Delulu Debut,
- * 1,000 G$) if this wallet hasn't played it; else a weekly Bingo on the biggest
+ * What to put the gift into right now: the live one-time starter Bingo
+ * (Your First Week since 18 Nov; Delulu Debut before, now paused) if this
+ * wallet can still play it; else a weekly Bingo on the biggest
  * tier the gift covers; else any live campaign priced at the gift. Null when
  * nothing is joinable.
  */
 export async function findGiftJoinTarget(admin: Admin, wallet: string): Promise<GiftJoinTarget | null> {
-  // First choice: the 3-day starter Bingo (Delulu Debut) — one per wallet, starts right away,
+  // First choice: the live one-time starter Bingo (Your First Week) — one per wallet, starts right away,
   // and its stake is the gift itself, so the 1,000 G$ goes straight into play.
   const { data: starters } = await admin
     .from("bingo_campaigns")
