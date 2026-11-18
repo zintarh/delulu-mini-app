@@ -79,43 +79,64 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
 export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
   const status = bingoStatus(bingo);
   const squares = bingo.me ? bingo.me.squares : buildSquares(bingo.missions, [], false);
+  // Photos can take a dark scrim; pastel stickers can't (they go muddy grey), so those get a solid panel instead.
+  const hasPhotos = squares.some((q) => q.state === "filled" && q.photoUrl);
+
+  const chips = (
+    <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
+      <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink shadow-[0_1px_0_#161615]", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
+        <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
+      </span>
+      <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-ink font-extrabold text-white", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
+        {status.live ? <Clock className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} />}
+        {status.text}
+      </span>
+    </div>
+  );
+  const text = (
+    <>
+      <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-wrap:balance]", hasPhotos && "[text-shadow:0_1px_10px_rgba(0,0,0,0.35)]", pin ? "text-[15px]" : "text-[22px]")}>
+        {bingo.title}
+      </h3>
+      <p className={cn("m-0 mt-1 truncate font-semibold text-white/80", pin ? "text-[11px]" : "text-[13px]")}>
+        {bingo.durationDays} photos · {bingoCta(bingo)}
+      </p>
+      {bingo.players > 0 ? (
+        <p className={cn("m-0 inline-flex items-center gap-1.5 font-bold text-white/90", pin ? "mt-1.5 text-[11px]" : "mt-2 text-[12px]")}>
+          <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing
+        </p>
+      ) : null}
+    </>
+  );
+
   return (
     <Link
       href={`/bingo/${bingo.slug}`}
       className={cn(
-        "group relative block min-w-0 animate-rise overflow-hidden bg-ink text-white no-underline",
+        "group relative flex min-w-0 animate-rise flex-col overflow-hidden border-2 border-ink bg-ink text-white no-underline",
         pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
         "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
         className,
       )}
     >
-      {/* The player's own board is the card: their photos fill it as they play, our stickers until then. */}
-      <BingoBoardBackground squares={squares} className="absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/0" aria-hidden />
-
-      <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
-          <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
-        </span>
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-white font-extrabold text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
-          {status.live ? <Clock className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Sparkles className="h-3.5 w-3.5" strokeWidth={2.6} />}
-          {status.text}
-        </span>
-      </div>
-
-      <div className={cn("absolute", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
-        <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.35)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
-          {bingo.title}
-        </h3>
-        <p className={cn("m-0 mt-1 truncate font-medium text-white/70", pin ? "text-[11px]" : "text-[13px]")}>
-          {bingo.durationDays} photos · {bingoCta(bingo)}
-        </p>
-        {bingo.players > 0 ? (
-          <p className={cn("m-0 inline-flex items-center gap-1.5 font-bold text-white/85", pin ? "mt-1.5 text-[11px]" : "mt-2 text-[12px]")}>
-            <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing
-          </p>
-        ) : null}
-      </div>
+      {hasPhotos ? (
+        <>
+          {/* Players' photos are the art: full-bleed, with a scrim for the text. */}
+          <BingoBoardBackground squares={squares} className="absolute inset-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/0" aria-hidden />
+          {chips}
+          <div className={cn("absolute", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>{text}</div>
+        </>
+      ) : (
+        <>
+          {/* No photos yet: the sticker card stays crisp on top, the words sit on solid ink below. */}
+          <div className="relative min-h-0 flex-1">
+            <BingoBoardBackground squares={squares} sticker={pin ? (squares.length <= 3 ? 40 : 26) : undefined} className="absolute inset-0 bg-white" />
+            {chips}
+          </div>
+          <div className={cn("shrink-0 bg-ink", pin ? "px-3 pb-3 pt-2.5" : "px-5 pb-5 pt-4")}>{text}</div>
+        </>
+      )}
     </Link>
   );
 }

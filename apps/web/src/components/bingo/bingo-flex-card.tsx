@@ -15,11 +15,12 @@ import { cn } from "@/lib/utils";
  */
 export type FlexTheme = { bg: string; fg: string; sub: string; accent: string; frame: string; chipBg: string; chipFg: string };
 
+// White text needs ≥ 4.5:1 on the card: Pro and Entry/First Week use deeper shades than the brand pink/green.
 export const FLEX_THEMES: Record<string, FlexTheme> = {
   starter: { bg: "#F6C324", fg: "#161615", sub: "#5c4a0a", accent: "#161615", frame: "#161615", chipBg: "#161615", chipFg: "#F6C324" },
-  pro: { bg: "#EC5B8D", fg: "#ffffff", sub: "#ffe3ee", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#C23E6E" },
+  pro: { bg: "#C93A6C", fg: "#ffffff", sub: "#ffe3ee", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#C23E6E" },
   elite: { bg: "#161615", fg: "#ffffff", sub: "#bdbdb5", accent: "#F6C324", frame: "#F6C324", chipBg: "#F6C324", chipFg: "#161615" },
-  entry: { bg: "#2DB36F", fg: "#ffffff", sub: "#dff7e9", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#157041" },
+  entry: { bg: "#15784A", fg: "#ffffff", sub: "#dff7e9", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#157041" },
 };
 export const flexTheme = (tierKey: string) => FLEX_THEMES[tierKey] ?? FLEX_THEMES.starter;
 

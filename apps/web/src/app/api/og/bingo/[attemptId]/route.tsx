@@ -12,9 +12,9 @@ export const dynamic = "force-dynamic";
 /** Same palette as the in-app flex card (components/bingo/bingo-flex-card.tsx). */
 const THEMES: Record<string, { bg: string; fg: string; sub: string; accent: string; frame: string; chipBg: string; chipFg: string }> = {
   starter: { bg: "#F6C324", fg: "#161615", sub: "#5c4a0a", accent: "#161615", frame: "#161615", chipBg: "#161615", chipFg: "#F6C324" },
-  pro: { bg: "#EC5B8D", fg: "#ffffff", sub: "#ffe3ee", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#C23E6E" },
+  pro: { bg: "#C93A6C", fg: "#ffffff", sub: "#ffe3ee", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#C23E6E" },
   elite: { bg: "#161615", fg: "#ffffff", sub: "#bdbdb5", accent: "#F6C324", frame: "#F6C324", chipBg: "#F6C324", chipFg: "#161615" },
-  entry: { bg: "#2DB36F", fg: "#ffffff", sub: "#dff7e9", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#157041" },
+  entry: { bg: "#15784A", fg: "#ffffff", sub: "#dff7e9", accent: "#ffffff", frame: "#161615", chipBg: "#ffffff", chipFg: "#157041" },
 };
 
 async function font(family: string, weight: number, text: string): Promise<ArrayBuffer | null> {
