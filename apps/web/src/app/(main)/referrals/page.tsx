@@ -10,7 +10,7 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Lulu } from "@/components/ds";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
-import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel } from "@/lib/referral/campaign";
+import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel, currentReferralRound, roundFirstPayment } from "@/lib/referral/campaign";
 
 
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
@@ -117,6 +117,7 @@ export default function MyReferralsPage() {
 
   const counted = (referrals ?? []).filter((r) => r.counted).length;
   const ended = isReferralCampaignOver();
+  const round = currentReferralRound();
 
   return (
     <MainPage>
@@ -135,6 +136,24 @@ export default function MyReferralsPage() {
           <Clock className="h-4 w-4 shrink-0" />
           {ended ? "Referrals have ended" : `Referrals end ${referralCampaignEndLabel()}`}
         </div>
+
+        {/* How a referral pays — the same split each friend's row tracks below. */}
+        {!ended && round && roundFirstPayment(round) < round.reward ? (
+          <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[0_3px_0_#000]">
+            <p className="label-mono m-0 text-[10px] text-muted-foreground">How you get paid · {round.reward.toLocaleString()} G$ per friend</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-green-soft px-3 py-2.5">
+                <p className="m-0 font-display text-[22px] font-extrabold leading-none text-green-edge">+{roundFirstPayment(round).toLocaleString()}</p>
+                <p className="m-0 mt-1 text-[11px] font-semibold leading-snug">When they verify and earn 1,000 points</p>
+              </div>
+              <div className="rounded-2xl bg-yellow-soft px-3 py-2.5">
+                <p className="m-0 font-display text-[22px] font-extrabold leading-none">+{(round.reward - roundFirstPayment(round)).toLocaleString()}</p>
+                <p className="m-0 mt-1 text-[11px] font-semibold leading-snug">When they show up 3 days in a row</p>
+              </div>
+            </div>
+            <p className="m-0 mt-2 text-[11px] font-semibold text-muted-foreground">Nudge your friends to keep going — the bigger part comes at day 3.</p>
+          </div>
+        ) : null}
 
         {!ended && !isLoadingEligibility && standing?.locked && standing.campaign ? (
           <Link
