@@ -1,24 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Flame, Lock, Trophy } from "lucide-react";
 import { useBingoList } from "@/hooks/use-bingo";
-import { fmtMoney, fmtNgn, fmtUsd, type EarnFacts } from "@/lib/earn/format";
+import { fmtNgn, fmtUsd, toMoney } from "@/lib/earn/format";
+import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { cn } from "@/lib/utils";
-
-function useEarnFacts() {
-  return useQuery({
-    queryKey: ["earn-facts"],
-    staleTime: 15 * 60_000,
-    queryFn: async (): Promise<EarnFacts> => {
-      const res = await fetch("/api/earn/facts");
-      if (!res.ok) throw new Error("earn facts unavailable");
-      return res.json();
-    },
-  }).data;
-}
 
 const chip = "inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold";
 
@@ -33,7 +21,6 @@ export function AtStakeCard({ className }: { className?: string }) {
   if (!facts || !bingos) return null;
 
   const playing = bingos.find((b) => b.enrollment === "rolling" && b.me && b.me.phase === "live" && !b.me.missedDay);
-  const firstWeek = bingos.find((b) => b.slug === FIRST_WEEK_SLUG && !b.me && b.cycle === null);
   const bonusFor = (slug: string) =>
     slug === facts.firstWeek?.slug ? facts.firstWeek.entry : slug === facts.sevenDay?.slug ? facts.sevenDay.entry : null;
   const top = [...facts.topCampaign.slice(0, 1), ...facts.topReferrers.slice(0, 1)];
@@ -44,6 +31,9 @@ export function AtStakeCard({ className }: { className?: string }) {
     const me = playing.me;
     const day = (me.today ?? 0) + 1;
     const bonus = bonusFor(playing.slug);
+    // First Week pays as you go — show what they'd walk away from.
+    const perPhoto = playing.slug === facts.firstWeek?.slug ? facts.firstWeek.perPhoto : playing.rewards.perProof;
+    const earned = toMoney(me.requiredFilled * perPhoto, facts.gdUsd, facts.ngnPerUsd);
     href = `/bingo/${playing.slug}`;
     head = (
       <>
@@ -54,6 +44,11 @@ export function AtStakeCard({ className }: { className?: string }) {
           <span className={cn(chip, "text-orange")}>
             <Lock className="h-3 w-3" /> Miss a day: lose {me.stake.toLocaleString("en-US")} G$
           </span>
+          {earned.g > 0 ? (
+            <span className={chip}>
+              Earned: {earned.g.toLocaleString("en-US")} G$ · {fmtNgn(earned.ngn)}
+            </span>
+          ) : null}
           {bonus ? (
             <span className={cn(chip, "text-green-edge")}>
               <Flame className="h-3 w-3" /> Finish: {fmtUsd(bonus.usd)} · {fmtNgn(bonus.ngn)}
@@ -62,14 +57,9 @@ export function AtStakeCard({ className }: { className?: string }) {
         </div>
       </>
     );
-  } else if (firstWeek && facts.firstWeek) {
-    href = `/bingo/${FIRST_WEEK_SLUG}`;
-    head = (
-      <>
-        <p className="m-0 text-[14px] font-extrabold leading-tight">Earn {fmtMoney(facts.firstWeek.entry)} in 7 days</p>
-        <p className="m-0 mt-0.5 text-[11px] font-semibold text-muted-foreground">One photo a day · new players · once</p>
-      </>
-    );
+  } else if (bingos.some((b) => b.slug === FIRST_WEEK_SLUG && b.joinable)) {
+    // The First Week hero at the top of Home already carries this.
+    return null;
   } else if (top.length) {
     href = "/leaderboard";
     head = <p className="m-0 text-[14px] font-extrabold leading-tight">Stake more, earn more</p>;

@@ -74,13 +74,19 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
   if (campaign.recurrence === "one_time") {
     const { data: before } = await admin
       .from("bingo_attempts")
-      .select("id, join_tx")
+      .select("id, join_tx, required_filled")
       .eq("campaign_id", campaign.id)
       .eq("wallet", wallet)
-      .limit(1);
-    // A retry of the same stake is fine; a second card is not.
-    if (before?.length && before[0].join_tx !== txHash.toLowerCase()) throw new Error(`${campaign.title} is a one-time Bingo — you've already played it.`);
-    if (before?.length) return before[0].id as string;
+      .order("started_at", { ascending: false });
+    // A retry of the same stake is fine.
+    const same = (before ?? []).find((a) => a.join_tx === txHash.toLowerCase());
+    if (same) return same.id as string;
+    // First Week: a card that ended on a missed day doesn't use it up — only finishing does
+    // (a still-running card is caught below). Other one-time Bingos: one card, ever.
+    const usedUp = isFirstWeekSlug(campaign.slug)
+      ? (before ?? []).some((a) => Number(a.required_filled) >= campaign.duration_days)
+      : (before ?? []).length > 0;
+    if (usedUp) throw new Error(`${campaign.title} is a one-time Bingo — you've already played it.`);
   }
 
   const created = await parseForfeitCommitmentCreatedFromTx(txHash);

@@ -39,8 +39,10 @@ export type Person = {
     todayMission: string | null;
     dayEndsAt: string;
   };
-  /** Bingo slugs they've ever started (one-time Bingos are never offered twice). */
+  /** Bingo slugs they've ever started. */
   playedSlugs: string[];
+  /** Bingo slugs they've finished (all days filled) — a finished First Week is never offered again. */
+  finishedSlugs: string[];
   /** Joined through a friend's invite link — we pay for these, so we keep them coming back. */
   referredBy: null | { wallet: string; username: string | null };
   /** A card that ended on a missed day in the last 2 days. */
@@ -279,6 +281,7 @@ export async function loadPeople(
       dormant: String(p.created_at) < sinceIso && !lastProof.has(wallet) && !active && cards.every((a) => Date.parse(a.started_at) < Date.parse(sinceIso)),
       activeCard,
       playedSlugs: [...new Set(cards.map((a) => camp(a).slug))],
+      finishedSlugs: [...new Set(cards.filter((a) => a.required_filled >= camp(a).duration_days).map((a) => camp(a).slug))],
       referredBy: p.referred_by
         ? { wallet: String(p.referred_by).toLowerCase(), username: referrerNames.get(String(p.referred_by).toLowerCase()) ?? null }
         : null,

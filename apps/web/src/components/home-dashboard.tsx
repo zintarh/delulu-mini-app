@@ -15,6 +15,7 @@ import { FlowStateCard } from "@/components/home/flow-state-card";
 import { ReferralBanner } from "@/components/referral-banner";
 import { SeasonNotice } from "@/components/season-notice";
 import { AtStakeCard } from "@/components/home/at-stake-card";
+import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -72,6 +73,8 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
     >
       <div className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}>
         <HomeGreeting name={name} address={address} />
+        {/* New and invited players: the First Week offer comes before everything else. */}
+        <HomeFirstWeek guest={!address} />
 
         {address ? (
           <>

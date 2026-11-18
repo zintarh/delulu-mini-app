@@ -187,7 +187,9 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
       me = { ...r.card, phase: mineOver ? "ended" : r.phase, today: r.today, todayUsed: r.todayUsed, nextSquareAt: r.nextSquareAt, dayOrdered: true, missedDay };
     }
     // One-time rolling Bingos (Delulu Debut) are an onboarding card: one per wallet, ever.
-    joinable = live && mineOver && !(campaign.recurrence === "one_time" && mine);
+    // Your First Week: a missed day ends the card but not the chance — only finishing uses it up.
+    const usedUp = isFirstWeekSlug(campaign.slug) ? !!mine && mine.required_filled >= campaign.duration_days : !!mine;
+    joinable = live && mineOver && !(campaign.recurrence === "one_time" && usedUp);
     // Your First Week: new and invited players only.
     if (isFirstWeekSlug(campaign.slug)) {
       firstWeekOk = await isFirstWeekEligible(admin, viewer);

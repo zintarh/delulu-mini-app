@@ -3,8 +3,8 @@
  * Shown on the How to earn page.
  */
 
-/** Smallest amount we convert. */
-export const NAIRA_CASHOUT_MIN_G = 50_000;
+/** Smallest amount we convert — low enough that a new player's First Week earnings qualify. */
+export const NAIRA_CASHOUT_MIN_G = 5_000;
 
 /**
  * Who to message on Telegram to convert G$ to naira. Null hides the button

@@ -116,8 +116,9 @@ export function stakesBlock(f: EarnFacts | null | undefined, skip: "firstWeek" |
 }
 
 /** New (first 2 weeks) or invited, and hasn't played Your First Week yet. */
-export function canDoFirstWeek(p: Pick<Person, "createdAt" | "referredBy" | "playedSlugs">, nowMs: number): boolean {
-  if (p.playedSlugs.includes(FIRST_WEEK_SLUG)) return false;
+export function canDoFirstWeek(p: Pick<Person, "createdAt" | "referredBy" | "finishedSlugs">, nowMs: number): boolean {
+  // A missed day ends a First Week card but not the offer — only finishing it does.
+  if (p.finishedSlugs.includes(FIRST_WEEK_SLUG)) return false;
   return !!p.referredBy || nowMs - Date.parse(p.createdAt) < 14 * DAY;
 }
 

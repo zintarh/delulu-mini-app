@@ -19,6 +19,7 @@ import {
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { ReferralInviteHold, useInviteHold } from "@/components/referral-invite-hold";
+import { FirstWeekOffer } from "@/components/first-week-offer";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { gameButtonClass } from "@/components/ds";
@@ -383,7 +384,10 @@ export default function SignInPage() {
             <Wordmark size={26} />
           </Link>
 
-          <div className="mt-16">
+          {/* First thing a new (or invited) player sees: what their first week pays. */}
+          <FirstWeekOffer variant="invite" invitedBy={inviteCode ? invite.username : null} className="mt-6 animate-rise" />
+
+          <div className="mt-10">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
               Make it a
               <br />

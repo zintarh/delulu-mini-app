@@ -23,6 +23,8 @@ import { buildSquares, type BingoSquareView, type BingoView } from "@/lib/bingo/
 import { finishRollingStart, pendingRollingStart } from "@/lib/bingo/rolling-client";
 import { fmtDay, fmtG, fmtRange } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
+import { FirstWeekOffer } from "@/components/first-week-offer";
+import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 
 
 function statusLine(b: BingoView) {
@@ -227,6 +229,9 @@ export function BingoPageClient({ slug }: { slug: string }) {
             ) : null}
           </div>
         </header>
+
+        {/* First Week: lead with what the week pays and what a miss costs. */}
+        {slug === FIRST_WEEK_SLUG && !myLive ? <FirstWeekOffer variant="home" className="mt-4 animate-rise" /> : null}
 
         <section className="relative mt-5 animate-rise [animation-delay:.08s]">
           <BingoBoard

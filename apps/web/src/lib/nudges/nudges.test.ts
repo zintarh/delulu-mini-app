@@ -11,7 +11,7 @@ const base = (over: Partial<Person> = {}): Person => ({
   installedAt: null, lastSeenAt: new Date(now - 2 * H).toISOString(), platform: "android", pushOn: true,
   everStartedBingo: true, bestDays: 1, completedBingo: false, completedDays: 0, lastCompletedAt: null,
   lastProofAt: new Date(now - 20 * H).toISOString(), dormant: false,
-  activeCard: null, recentMiss: null, referredBy: null, playedSlugs: [], ...over,
+  activeCard: null, recentMiss: null, referredBy: null, playedSlugs: [], finishedSlugs: [], ...over,
 });
 
 test("quiet hours are 10pm–8am Lagos", () => {
@@ -143,8 +143,9 @@ test("new and invited players get the First Week offer ($ and ₦ from live conf
   assert.match(n.emailBody, /monthly leaderboard/);
   assert.match(n.emailBody, /@metakay23 \$9\.54/);
   assert.match(n.emailBody, /@kaddy invited you/);
-  // Already played it → back to the regular copy.
-  assert.notEqual(pickNudge({ ...friend, playedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
+  // Missed a day on it (played, not finished) → still offered; finished → back to the regular copy.
+  assert.equal(pickNudge({ ...friend, playedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
+  assert.notEqual(pickNudge({ ...friend, playedSlugs: ["first-week"], finishedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
   // An old, uninvited regular never gets it.
   const regular = base({ createdAt: "2026-08-01T08:00:00Z", giftClaimedAt: "2026-08-02T08:00:00Z", installedAt: "x" });
   assert.notEqual(pickNudge(regular, live, [], facts)?.path, "/bingo/first-week");
