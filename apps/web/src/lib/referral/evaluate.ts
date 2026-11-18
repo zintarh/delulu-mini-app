@@ -1,6 +1,7 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { processReferralPayouts } from "@/lib/referral/payout";
+import { payReferralStreakBonus } from "@/lib/referral/streak";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
 import { currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver, roundCapacity } from "@/lib/referral/campaign";
 
@@ -67,7 +68,15 @@ export async function evaluateAndCreditReferral(
     .select("id")
     .eq("referred_wallet", wallet)
     .maybeSingle();
-  if (existingCredit) return { credited: false, reason: "already_credited" };
+  if (existingCredit) {
+    // Already credited: maybe their 3-days-in-a-row bonus is due now (called on every proof approval).
+    try {
+      await payReferralStreakBonus(admin, wallet);
+    } catch (err) {
+      console.error(`[referral/evaluate] streak bonus check failed for ${wallet}:`, err);
+    }
+    return { credited: false, reason: "already_credited" };
+  }
 
   let qualifyingAction: "forfeit" | "campaign_join" | "bingo_join" | null = null;
 

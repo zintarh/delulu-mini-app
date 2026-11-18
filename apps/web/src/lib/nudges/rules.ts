@@ -4,7 +4,7 @@
  * square closing tonight beats a general "come back".
  */
 import type { Person } from "@/lib/nudges/people";
-import { referralPhase } from "@/lib/referral/campaign";
+import { referralPhase, roundFirstPayment } from "@/lib/referral/campaign";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { earnersLine, fmtMoney, type EarnFacts } from "@/lib/earn/format";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
@@ -344,12 +344,12 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       rule: "referral_week",
       dedupeKey: ref.round.start.slice(0, 10),
       title: `🤝 ${reward} G$ for every friend this week`,
-      body: "Invite a friend — when they post their first Bingo photo, you get paid.",
+      body: `Invite a friend: ${roundFirstPayment(ref.round).toLocaleString("en-US")} G$ when they get going, the rest at 3 days in a row.`,
       path: "/rewards#invite",
       emailSubject: `This week only: ${reward} G$ for every friend you bring`,
       emailHeading: `${reward} G$ per friend — this week`,
       emailBody: withOffers(
-        `Referrals are open this week. Share your link from Rewards → Invite friends.\n\nYour friend gets 1,000 G$ free to start, and when they post their first Bingo photo, ${reward} G$ lands with you. Each week's budget is limited, so the earliest invites count first.`,
+        `Referrals are open this week. Share your link from Rewards → Invite friends.\n\nYou earn ${reward} G$ per friend: ${roundFirstPayment(ref.round).toLocaleString("en-US")} G$ when they verify and earn their first 1,000 points, and the rest once they've shown up 3 days in a row — so help them keep going. Each week's budget is limited, so the earliest invites count first.`,
         nowMs,
         "referral", p),
       cta: "Get my invite link",

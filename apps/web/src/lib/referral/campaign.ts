@@ -21,16 +21,22 @@ export type ReferralRound = {
   start: string;
   /** Exclusive end, Lagos midnight (7 days later). */
   end: string;
-  /** G$ paid per counted referral in this round. */
+  /** G$ per counted referral in this round, in total (what the app advertises). */
   reward: number;
+  /**
+   * Paid when the friend qualifies; the rest of `reward` follows once they've
+   * shown up 3 days in a row (lib/referral/streak.ts). Unset = all at once.
+   */
+  firstPayment?: number;
   /** Total G$ this round may pay out (reward × referrals). */
   budget: number;
 };
 
 export const REFERRAL_ROUNDS: ReferralRound[] = [
   // GoodDollar epoch 18 Nov – 1 Dec 2026
-  { start: "2026-11-18T00:00:00+01:00", end: "2026-11-25T00:00:00+01:00", reward: 5000, budget: 50_000 },
-  { start: "2026-11-25T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, budget: 50_000 },
+  // 5,000 per friend: 2,000 when they qualify + 3,000 after 3 days in a row.
+  { start: "2026-11-18T00:00:00+01:00", end: "2026-11-25T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000 },
+  { start: "2026-11-25T00:00:00+01:00", end: "2026-12-02T00:00:00+01:00", reward: 5000, firstPayment: 2000, budget: 50_000 },
 ];
 
 /** Previous programme (Sep 11 → 29 2026, 6,000 G$ each) is closed for good. */
@@ -48,6 +54,11 @@ export function referralRoundAt(iso: string | null | undefined): ReferralRound |
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return null;
   return REFERRAL_ROUNDS.find((r) => t >= Date.parse(r.start) && t < Date.parse(r.end)) ?? null;
+}
+
+/** What the first payment is (the rest is the 3-day bonus). */
+export function roundFirstPayment(round: ReferralRound): number {
+  return Math.min(round.reward, round.firstPayment ?? round.reward);
 }
 
 /** Max referrals a round can pay (budget ÷ reward). */

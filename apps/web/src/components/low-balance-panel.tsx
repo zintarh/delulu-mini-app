@@ -39,7 +39,7 @@ export function LowBalancePanel({
       {referrals && address ? (
         <>
           <p className="label-mono m-0 mt-1 text-center text-[10px] text-muted-foreground">
-            Or invite friends · {fmt(referralRewardNow())} G$ each, once they verify and earn 1,000 points
+            Or invite friends · up to {fmt(referralRewardNow())} G$ each · paid as they verify, earn points and show up 3 days
           </p>
           <ReferralInviteCard address={address} />
         </>

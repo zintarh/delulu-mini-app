@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
 import { REFERRAL_MIN_POINTS, evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { hasConsecutiveDays, payReferralStreakBonus } from "@/lib/referral/streak";
+import { referralRoundAt, roundFirstPayment } from "@/lib/referral/campaign";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,8 @@ export type MyReferralSteps = {
   verified: boolean;
   joined: boolean;
   proofApproved: boolean;
+  /** Showed up 3 days in a row — unlocks the second part of the reward. */
+  streak3: boolean;
 };
 
 export type MyReferral = {
@@ -21,8 +25,10 @@ export type MyReferral = {
   /** Counted toward the referrer — and whether the reward has gone out yet. */
   counted: boolean;
   payout: "sent" | "held" | "failed" | null;
-  /** G$ actually paid for this referral (its round's reward), once sent. */
+  /** G$ actually paid for this referral's first part, once sent. */
   amount?: number | null;
+  /** The 3-days-in-a-row bonus: what it is and whether it's been paid. */
+  bonus?: { amount: number; paid: boolean } | null;
 };
 
 /**
@@ -47,9 +53,23 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false }),
     admin
       .from("referral_credits")
-      .select("referred_wallet, payout_status, gdollars_amount")
-      .eq("referrer_wallet", address),
+      .select("referred_wallet, payout_status, gdollars_amount, credited_at, streak_status")
+      .eq("referrer_wallet", address)
+      // Before the streak-bonus migration the column isn't there — fall back without it.
+      .then(async (r) =>
+        r.error && /streak_status/.test(r.error.message)
+          ? admin.from("referral_credits").select("referred_wallet, payout_status, gdollars_amount, credited_at").eq("referrer_wallet", address)
+          : r,
+      ),
   ]);
+  const creditRow = new Map(
+    ((credits ?? []) as { referred_wallet: string; credited_at: string; streak_status?: string | null }[]).map((c) => [String(c.referred_wallet).toLowerCase(), c]),
+  );
+  // 3 days in a row, from each friend's accepted photos.
+  const streakOf = async (wallet: string) => {
+    const { data } = await admin.from("proof_image_fingerprints").select("created_at").eq("status", "accepted").ilike("wallet", wallet).limit(500);
+    return hasConsecutiveDays((data ?? []).map((p) => String(p.created_at)));
+  };
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const creditByWallet = new Map(
@@ -69,14 +89,24 @@ export async function GET(request: NextRequest) {
         joinedAt: r.created_at as string,
       };
 
-      // Already counted — every step is done by definition.
+      // Already counted — the first four steps are done by definition.
       if (payoutStatus) {
+        const row = creditRow.get(wallet);
+        const round = row ? referralRoundAt(row.credited_at) : null;
+        const bonusAmount = round ? round.reward - roundFirstPayment(round) : 0;
+        const streak3 = await streakOf(wallet);
+        let bonusPaid = row?.streak_status === "sent";
+        // Due but not paid yet (a missed trigger) — settle it here too.
+        if (streak3 && bonusAmount > 0 && !bonusPaid && payoutStatus === "sent") {
+          bonusPaid = (await payReferralStreakBonus(admin, wallet).catch(() => "failed")) === "paid";
+        }
         return {
           ...base,
-          steps: { signedUp: true, verified: true, joined: true, proofApproved: true },
+          steps: { signedUp: true, verified: true, joined: true, proofApproved: true, streak3 },
           counted: true,
           payout: payoutStatus === "sent" ? "sent" : payoutStatus === "failed" ? "failed" : "held",
           amount: amountByWallet.get(wallet) ?? null,
+          bonus: bonusAmount > 0 ? { amount: bonusAmount, paid: bonusPaid } : null,
         };
       }
 
@@ -98,7 +128,7 @@ export async function GET(request: NextRequest) {
           if (result.credited) {
             return {
               ...base,
-              steps: { signedUp: true, verified: true, joined: true, proofApproved: true },
+              steps: { signedUp: true, verified: true, joined: true, proofApproved: true, streak3: false },
               counted: true,
               payout: "held" as const,
             };
@@ -115,6 +145,7 @@ export async function GET(request: NextRequest) {
           verified,
           joined: proofApproved || (joins.data ?? []).length > 0 || (forfeits.data ?? []).length > 0 || (bingo.data ?? []).length > 0,
           proofApproved,
+          streak3: await streakOf(wallet),
         },
         counted: false,
         payout: null,

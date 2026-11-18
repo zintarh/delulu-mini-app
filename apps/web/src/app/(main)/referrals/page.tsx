@@ -18,6 +18,7 @@ const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
   { key: "verified", label: "Face verified", next: "Needs face verification" },
   { key: "joined", label: "Joined a Bingo or mission", next: "Needs to join a Bingo or mission" },
   { key: "proofApproved", label: "Earned 1,000 points", next: "Needs 1,000 points from proofs" },
+  { key: "streak3", label: "3 days in a row", next: "Needs 3 days in a row" },
 ];
 
 function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
@@ -25,6 +26,13 @@ function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
     return r.payout === "sent" ? (
       <span className="font-bold text-green-edge">
         +{(r.amount ?? referralRewardNow()).toLocaleString()} G$
+        {r.bonus ? (
+          r.bonus.paid ? (
+            <> · +{r.bonus.amount.toLocaleString()} G$</>
+          ) : (
+            <span className="font-semibold text-muted-foreground"> · +{r.bonus.amount.toLocaleString()} at 3 days in a row</span>
+          )
+        ) : null}
       </span>
     ) : (
       <span className="font-bold text-foreground">
@@ -56,7 +64,7 @@ function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
         </div>
       </div>
 
-      <ol className="mt-3 grid grid-cols-4 gap-1.5">
+      <ol className="mt-3 grid grid-cols-5 gap-1.5">
         {STEPS.map(({ key, label }) => {
           const done = r.steps[key];
           return (

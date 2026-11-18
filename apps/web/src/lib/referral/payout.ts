@@ -5,6 +5,7 @@ import { getReferrerStanding } from "@/lib/referral/standing";
 import {
   REFERRAL_GDOLLARS_REWARD,
   referralRoundAt,
+  roundFirstPayment,
 } from "@/lib/referral/campaign";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -68,7 +69,8 @@ export async function payReferralCredit(
   // ends. Credits outside every round (the old Sep programme) are closed for good.
   const round = referralRoundAt(credit.credited_at as string);
   if (!round) return;
-  const amount = round.reward;
+  // The first part; the 3-day bonus is paid separately (lib/referral/streak.ts).
+  const amount = roundFirstPayment(round);
 
   // Held (not lost) while the referrer is behind on their own campaign — the
   // retry cron pays it once they've posted today's proof.

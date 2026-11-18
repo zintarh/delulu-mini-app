@@ -6,6 +6,7 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payReferralCredit } from "@/lib/referral/payout";
+import { sweepReferralStreakBonuses } from "@/lib/referral/streak";
 import { evaluateAndCreditReferral } from "@/lib/referral/evaluate";
 import { REFERRAL_ROUNDS, isReferralCampaignLive } from "@/lib/referral/campaign";
 
@@ -95,8 +96,10 @@ export async function GET(req: NextRequest) {
     }
 
     const sweep = await sweepUncreditedReferrals(admin);
+    // Friends who've now shown up 3 days in a row → the referrer's bonus.
+    const streak = await sweepReferralStreakBonuses(admin);
 
-    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending, sweep });
+    return jsonResponse({ ok: true, found: failed?.length ?? 0, retried, stillPending, sweep, streak });
   } catch (e: any) {
     return errorResponse(e?.message ?? "Cron failed", 500);
   }
