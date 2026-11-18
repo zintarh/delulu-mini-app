@@ -11,7 +11,7 @@ const base = (over: Partial<Person> = {}): Person => ({
   installedAt: null, lastSeenAt: new Date(now - 2 * H).toISOString(), platform: "android", pushOn: true,
   everStartedBingo: true, bestDays: 1, completedBingo: false, completedDays: 0, lastCompletedAt: null,
   lastProofAt: new Date(now - 20 * H).toISOString(), dormant: false,
-  activeCard: null, recentMiss: null, ...over,
+  activeCard: null, recentMiss: null, referredBy: null, ...over,
 });
 
 test("quiet hours are 10pm–8am Lagos", () => {
@@ -99,4 +99,23 @@ test("someone in the app this week is never 'dormant'; long-time players get the
   // Old account (no onboarding timestamp) still posting proofs, nothing running.
   const veteran = base({ onboardedAt: null, createdAt: "2026-08-01T08:00:00Z", installedAt: "x", lastProofAt: new Date(live - 20 * H).toISOString() });
   assert.equal(pickNudge(veteran, live)?.rule, "seven_day_start");
+});
+
+test("invited friends who go quiet get a nudge every 3 days naming their friend, rotating copy", () => {
+  const live = Date.parse("2026-12-10T12:00:00Z");
+  const friend = base({
+    createdAt: "2026-09-20T08:00:00Z", giftClaimedAt: "2026-09-21T08:00:00Z", onboardedAt: null, installedAt: "x",
+    lastSeenAt: null, lastProofAt: null, everStartedBingo: false, bestDays: 0, dormant: true,
+    referredBy: { wallet: "0xref", username: "kaddy" },
+  });
+  const first = pickNudge(friend, live);
+  assert.equal(first?.rule, "referred_back");
+  assert.match(first!.title, /@kaddy/);
+  const once = [{ rule: "referred_back", sentAt: new Date(live - 3 * 24 * H).toISOString(), acted: false }];
+  assert.equal(pickNudge(friend, live, once)?.path, "/bingo/outside-your-bubble");
+  // Active in the last 2 days → leave the referred track alone.
+  assert.notEqual(pickNudge({ ...friend, lastSeenAt: new Date(live - 5 * H).toISOString(), dormant: false }, live)?.rule, "referred_back");
+  // 5 ignored in a row → falls back to the normal come-back cadence.
+  const five = [1, 2, 3, 4, 5].map((i) => ({ rule: "referred_back", sentAt: new Date(live - i * 3 * 24 * H).toISOString(), acted: false }));
+  assert.notEqual(pickNudge(friend, live, five)?.rule, "referred_back");
 });

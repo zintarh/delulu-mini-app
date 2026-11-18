@@ -34,6 +34,7 @@ export const NUDGE_RULES = [
   "level_up",
   "seven_day_start",
   "referral_week",
+  "referred_back",
   "come_back",
 ] as const;
 export type NudgeRule = (typeof NUDGE_RULES)[number];
@@ -48,6 +49,7 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   level_up: "Finished a 3-day → 7-day",
   seven_day_start: "Active, nothing running → 7-day Bingo",
   referral_week: "Referral round is open",
+  referred_back: "Invited friend gone quiet",
   come_back: "Quiet 3+ days / dormant",
 };
 
@@ -261,6 +263,58 @@ export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory =
     };
   }
 
+  // 8b. Invited friends we've paid (or will pay) for: every 3 days while
+  //     they're quiet, naming the friend who brought them. After 5 ignored in
+  //     a row they fall through to the regular come-back cadence below.
+  if (p.referredBy && !card) {
+    const quietFor = lastActive > 0 ? nowMs - lastActive : Infinity;
+    const sent = history.filter((h) => h.rule === "referred_back").sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+    let ignored = 0;
+    for (const h of sent) {
+      if (h.acted) break;
+      ignored++;
+    }
+    if (quietFor >= 2 * DAY && ignored < 5) {
+      const friend = p.referredBy.username ? `@${p.referredBy.username}` : "Your friend";
+      const variant = sent.length % 3;
+      const copy = [
+        {
+          title: `${friend} saved you a spot 👀`,
+          body: "Come back and earn: free money every day + 100 G$ for each photo.",
+          emailSubject: `${friend} brought you to Delulu — your money's waiting`,
+          emailHeading: `${name(p)}${friend} wants you back`,
+          emailBody: `${friend} invited you to Delulu because it pays to show up.\n\nClaim your free daily money, then post one photo a day on a Bingo — every photo earns you 100 G$.`,
+          cta: "Claim today's money",
+          path: "/home",
+        },
+        {
+          title: "7 days, 7 photos, paid every day 📸",
+          body: "Start the 7-day Bingo: 100 G$ a photo and up to +2,000 G$ when you finish.",
+          emailSubject: "7 photos this week = up to 2,700 G$",
+          emailHeading: `${name(p)}one photo a day, paid every day`,
+          emailBody: `Start the 7-day Bingo today. Post one photo a day — it takes a minute between classes.\n\nEvery photo pays 100 G$, and finishing all 7 gets your stake back plus a bonus of up to 2,000 G$.`,
+          cta: "Start my 7 days",
+          path: "/bingo/outside-your-bubble",
+        },
+        {
+          title: "Your daily money is waiting 💸",
+          body: "Tap to claim it — then keep a streak going for more.",
+          emailSubject: "You have free money to claim today",
+          emailHeading: `${name(p)}don't leave money on the table`,
+          emailBody: `There's free money waiting for you on Delulu every single day — it takes one tap to claim.\n\nWhile you're there, start a Bingo and earn 100 G$ for every photo.`,
+          cta: "Claim my money",
+          path: "/home",
+        },
+      ][variant];
+      return {
+        rule: "referred_back",
+        dedupeKey: `r${Math.floor(nowMs / (3 * DAY))}`,
+        ...copy,
+        emailBody: withOffers(copy.emailBody, nowMs, variant === 1 ? "finish" : "photo", p),
+      };
+    }
+  }
+
   // 9. Quiet for a while. Recent players: after 3 days, weekly. Dormant
   //    accounts: every 2 weeks, and we stop after 3 ignored in a row.
   const comeBacks = history.filter((h) => h.rule === "come_back");
@@ -313,6 +367,7 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
       return after(p.installedAt);
     case "come_back":
     case "referral_week":
+    case "referred_back":
       return after(p.lastSeenAt) || after(p.lastProofAt);
     case "level_up":
     case "seven_day_start":

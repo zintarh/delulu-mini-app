@@ -39,6 +39,8 @@ export type Person = {
     todayMission: string | null;
     dayEndsAt: string;
   };
+  /** Joined through a friend's invite link — we pay for these, so we keep them coming back. */
+  referredBy: null | { wallet: string; username: string | null };
   /** A card that ended on a missed day in the last 2 days. */
   recentMiss: null | { attemptId: string; slug: string; title: string; oneTime: boolean };
 };
@@ -114,7 +116,7 @@ export async function loadPeople(
   admin: Admin,
   sinceIso: string,
   nowMs = Date.now(),
-  opts: { includeActive?: boolean; includeDormant?: boolean } = {},
+  opts: { includeActive?: boolean; includeDormant?: boolean; includeReferred?: boolean } = {},
 ): Promise<Person[]> {
   const profiles = await all<Record<string, unknown>>((f, t) =>
     admin.from("profiles").select("*").gte("created_at", sinceIso).order("created_at", { ascending: true }).range(f, t),
@@ -133,6 +135,21 @@ export async function loadPeople(
         .range(f, t),
     );
     profiles.push(...older);
+  }
+  if (opts.includeReferred) {
+    // Every invited friend with a real inbox, however old — many joined before
+    // onboarding was tracked, so the dormant query above never sees them.
+    const have = new Set(profiles.map((p) => String(p.address).toLowerCase()));
+    const referred = await all<Record<string, unknown>>((f, t) =>
+      admin
+        .from("profiles")
+        .select("*")
+        .lt("created_at", sinceIso)
+        .not("referred_by", "is", null)
+        .order("created_at", { ascending: true })
+        .range(f, t),
+    );
+    profiles.push(...referred.filter((p) => !have.has(String(p.address).toLowerCase())));
   }
   if (opts.includeActive) {
     const seen = new Set(profiles.map((p) => String(p.address).toLowerCase()));
@@ -199,6 +216,13 @@ export async function loadPeople(
       ? admin.from("bingo_versions").select("id, missions").in("id", [...new Set(live.map((a) => a.version_id))])
       : Promise.resolve({ data: [] as { id: string; missions: { title: string }[] }[] }),
   ]);
+  // Who invited whom — the nudge names the friend.
+  const referrerWallets = [...new Set(profiles.map((p) => p.referred_by).filter(Boolean).map((w) => String(w).toLowerCase()))];
+  const referrerNames = new Map<string, string | null>();
+  for (const c of chunks(referrerWallets)) {
+    const { data } = await admin.from("profiles").select("address, username").in("address", c);
+    for (const r of data ?? []) referrerNames.set(String(r.address).toLowerCase(), (r.username as string) ?? null);
+  }
   const filledSlots = new Set((filled ?? []).map((f) => `${f.attempt_id}:${f.slot_index}`));
   const missionsOf = new Map((versions ?? []).map((v) => [v.id as string, (v.missions as { title: string }[]).map((m) => m.title)]));
 
@@ -252,6 +276,9 @@ export async function loadPeople(
       lastProofAt: lastProof.get(wallet) ?? null,
       dormant: String(p.created_at) < sinceIso && !lastProof.has(wallet) && !active && cards.every((a) => Date.parse(a.started_at) < Date.parse(sinceIso)),
       activeCard,
+      referredBy: p.referred_by
+        ? { wallet: String(p.referred_by).toLowerCase(), username: referrerNames.get(String(p.referred_by).toLowerCase()) ?? null }
+        : null,
       recentMiss: missed ? { attemptId: missed.id, slug: camp(missed).slug, title: camp(missed).title, oneTime: camp(missed).recurrence === "one_time" } : null,
     };
   });
