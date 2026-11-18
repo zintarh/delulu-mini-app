@@ -35,7 +35,7 @@ test("newcomer for 2 weeks unless they pass 20 proofs or 20 days", () => {
 test("minimums and word pledges only bite once the season is live", () => {
   assert.equal(minStakeFor("regular", before), 0);
   assert.equal(minStakeFor("regular", live), 5_000);
-  assert.equal(minStakeFor("newcomer", live), 1_000);
+  assert.equal(minStakeFor("newcomer", live), 5_000); // First Week is the only 1k way in (exempt)
   assert.equal(canPledgeWord("regular", before), true);
   assert.equal(canPledgeWord("regular", live), false);
   assert.equal(canPledgeWord("newcomer", live), true);

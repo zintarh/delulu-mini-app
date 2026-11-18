@@ -123,7 +123,7 @@ export function canDoFirstWeek(p: Pick<Person, "createdAt" | "referredBy" | "fin
 }
 
 /** Comeback-type nudges that switch to the First Week offer for anyone who can still take it. */
-const FIRST_WEEK_RULES = new Set<NudgeRule>(["seven_day_start", "level_up", "referred_back", "come_back"]);
+const FIRST_WEEK_RULES = new Set<NudgeRule>(["gift_not_played", "missed_day", "seven_day_start", "level_up", "referred_back", "come_back"]);
 
 export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory = [], facts: EarnFacts | null = null): Nudge | null {
   const n = pickNudgeBase(p, nowMs, history, facts);

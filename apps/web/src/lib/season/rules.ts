@@ -3,9 +3,11 @@
  * server gates and the Season 2 leaderboard.
  *
  * From SEASON_2_START:
- *  - Newcomers (first 2 weeks, ≤ 20 proofs, ≤ 20 active days) stake at least 1k G$.
- *  - Everyone else ("regulars") stakes at least 5k G$ to start a Forfeit goal,
- *    join a campaign or play a Bingo. Word pledges stay newcomer-only.
+ *  - Everyone stakes at least 5k G$ to start a Forfeit goal, join a campaign or
+ *    play a Bingo. The one 1k way in is "Your First Week" (lib/bingo/first-week),
+ *    which pays enough (+ the stake back) to cover a 5k stake afterwards.
+ *  - Newcomers (first 2 weeks, ≤ 20 proofs, ≤ 20 active days) can still make
+ *    word pledges; regulars can't.
  *  - Nothing new runs longer than 7 days.
  *  - Points per verified proof scale with the stake behind it; under 5k is
  *    a token amount. Only proofs on/after the start count toward Season 2;
@@ -20,7 +22,8 @@ export const NEWCOMER_WINDOW_DAYS = 14;
 export const VETERAN_PROOF_COUNT = 20;
 export const VETERAN_ACTIVE_DAYS = 20;
 
-export const NEWCOMER_MIN_STAKE = 1_000;
+/** Same as regulars: new players' 1k way in is First Week only (exempt from the minimum). */
+export const NEWCOMER_MIN_STAKE = 5_000;
 export const REGULAR_MIN_STAKE = 5_000;
 export const MAX_GOAL_DAYS = 7;
 
@@ -32,7 +35,7 @@ export const LOW_STAKE_POINTS = 10;
 
 /** Stake presets shown to regulars — the points they earn sit right under them. */
 export const STAKE_PRESETS_REGULAR = [5_000, 10_000, 20_000] as const;
-export const STAKE_PRESETS_NEWCOMER = [1_000, 5_000, 10_000] as const;
+export const STAKE_PRESETS_NEWCOMER = STAKE_PRESETS_REGULAR;
 
 const DAY_MS = 86_400_000;
 

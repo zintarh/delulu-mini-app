@@ -152,3 +152,16 @@ test("new and invited players get the First Week offer ($ and ₦ from live conf
   // No facts (price feed down / not live yet) → plain copy, no invented numbers.
   assert.doesNotMatch(pickNudge(friend, live, [], null)!.emailBody, /\$1\.50/);
 });
+
+test("a new player with the gift but no card, or who missed a First Week day, is pointed at First Week", () => {
+  const live = Date.parse("2026-12-10T12:00:00Z");
+  const money = (g: number) => ({ g, usd: g * 0.0001, ngn: g * 0.0001 * 1350 });
+  const facts = { gdUsd: 0.0001, ngnPerUsd: 1350, sevenDay: null, firstWeek: { slug: "first-week", title: "Your First Week", entry: money(6750), top: money(6750), perPhoto: 500 }, topReferrers: [], topCampaign: [] };
+  const fresh = base({ createdAt: new Date(live - 20 * H).toISOString(), onboardedAt: new Date(live - 19 * H).toISOString(), giftClaimedAt: new Date(live - 18 * H).toISOString(), everStartedBingo: false, lastProofAt: null, bestDays: 0 });
+  const gift = pickNudge(fresh, live, [], facts)!;
+  assert.equal(gift.rule, "gift_not_played");
+  assert.equal(gift.path, "/bingo/first-week");
+  const missed = pickNudge({ ...fresh, everStartedBingo: true, playedSlugs: ["first-week"], recentMiss: { attemptId: "fw1", slug: "first-week", title: "Your First Week", oneTime: true } }, live, [], facts)!;
+  assert.equal(missed.rule, "missed_day");
+  assert.equal(missed.path, "/bingo/first-week");
+});
