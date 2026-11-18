@@ -18,6 +18,7 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { bingoTierForCampaign, otherTierAttempt } from "@/lib/bingo/attempts";
 import { DAY_MS, isBonusTier } from "@/lib/bingo/types";
 import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
+import { loadStakeRules, stakeGateError } from "@/lib/season/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,17 @@ export async function POST(
     const other = await otherTierAttempt(admin, bingoTier.cycle.id, walletAddress, bingoTier.id);
     if (other) {
       return NextResponse.json({ error: "You're already playing this Bingo." }, { status: 409 });
+    }
+  }
+
+  // ── Season 2 minimum stake (bonus squares are free extras for card holders) ──
+  if (!(bingoTier && isBonusTier(bingoTier.tier_key))) {
+    const rules = await loadStakeRules(admin, walletAddress);
+    const joinAmount = campaign.is_free_to_join ? 0 : Number(campaign.join_amount ?? 0);
+    // A free campaign is never a word pledge — it needs the minimum like any other.
+    const gate = rules.live && joinAmount < rules.minStake ? stakeGateError({ ...rules, canPledgeWord: false }, joinAmount) : null;
+    if (gate) {
+      return NextResponse.json({ error: gate, code: "stake_below_min", minStake: rules.minStake }, { status: 403 });
     }
   }
 

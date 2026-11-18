@@ -20,6 +20,7 @@ import {
 } from "@/hooks/use-creator-forfeits";
 import { destinationLabel, formatStakeAmount } from "@/components/forfeit/forfeit-day-card";
 import { FORFEIT_PROOF_POINTS_LOW, forfeitProofPointsForStake } from "@/lib/dashboard/campaign-constants";
+import { LOW_STAKE_POINTS } from "@/lib/season/rules";
 import { getTokenSymbol } from "@/lib/token-amounts";
 import { APP_HOME } from "@/components/main-nav-config";
 import { capitalizeFirst, cn } from "@/lib/utils";
@@ -433,7 +434,7 @@ export default function ContractDetailPage() {
         }}
         isOnChain
         pointsAwarded={proofPoints}
-        showStakeUpsell={proofPoints === FORFEIT_PROOF_POINTS_LOW}
+        showStakeUpsell={proofPoints === FORFEIT_PROOF_POINTS_LOW || proofPoints === LOW_STAKE_POINTS}
         campaignTitle={item?.title}
         myUsername={user?.username}
         myAvatar={user?.pfpUrl}

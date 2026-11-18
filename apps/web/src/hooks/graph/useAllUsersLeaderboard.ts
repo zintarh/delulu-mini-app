@@ -36,7 +36,8 @@ type ApiResponse = {
  * Global leaderboard: personal delulu points + all community campaign points
  * (same total as home useUserTotalPoints).
  */
-export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string) {
+/** `season` 1 = all-time totals, 2 = Season 2 (stake-scaled); omitted = the current season. */
+export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string, season?: 1 | 2) {
   const [entries, setEntries] = useState<UserLeaderboardEntry[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState<number | string | null>(null);
@@ -59,6 +60,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
       try {
         const qs = new URLSearchParams({ page: String(page) });
         if (currentUserAddress) qs.set("address", currentUserAddress);
+        if (season) qs.set("season", String(season));
         const res = await fetch(`/api/leaderboard/global?${qs}`);
         const json = (await res.json()) as ApiResponse;
         if (cancelled) return;
@@ -99,7 +101,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     return () => {
       cancelled = true;
     };
-  }, [page, currentUserAddress, reloadToken]);
+  }, [page, currentUserAddress, reloadToken, season]);
 
   const myPageEntry = useMemo(() => {
     if (!currentUserAddress) return null;

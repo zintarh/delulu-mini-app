@@ -15,6 +15,11 @@ import { cn } from "@/lib/utils";
  * the key never touches Delulu's code. Web3Auth users reveal it by holding a
  * button. Warnings and a confirm come first, every time.
  */
+function isUnknownMethod(e: unknown): boolean {
+  const code = (e as { code?: number } | null)?.code;
+  return code === -32601 || code === 4200 || /method.*(not (found|supported)|does not exist)/i.test(errorText(e));
+}
+
 export function ExportKeySheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { provider: authProvider, address } = useAuth();
   const { web3Auth } = useWeb3Auth();
@@ -48,25 +53,29 @@ export function ExportKeySheet({ open, onOpenChange }: { open: boolean; onOpenCh
       }
       const provider = web3Auth?.provider as { request: (a: { method: string }) => Promise<unknown> } | null | undefined;
       if (!provider) throw new Error("no provider");
-      // Web3Auth answers to either name depending on the wallet build; try both.
+      // Web3Auth v10's wallet (ws-embed) answers to "private_key" / "eth_privateKey";
+      // older builds used "eth_private_key". Keep the error from the method that
+      // exists — an "unknown method" from a fallback name must not hide the real reason.
       let raw: unknown;
-      let firstErr: unknown;
-      for (const method of ["eth_private_key", "private_key"]) {
+      let realErr: unknown;
+      for (const method of ["private_key", "eth_privateKey", "eth_private_key"]) {
         try {
           raw = await provider.request({ method });
           if (raw) break;
         } catch (err) {
-          firstErr ??= err;
+          if (!realErr || isUnknownMethod(realErr)) realErr = err;
         }
       }
-      if (typeof raw !== "string" || !raw) throw firstErr ?? new Error("empty");
+      if (typeof raw !== "string" || !raw) throw realErr ?? new Error("empty");
       setKey(raw.startsWith("0x") ? raw : `0x${raw}`);
     } catch (e) {
       const msg = errorText(e);
       console.error("[export-key]", e);
       setError(
-        /not (allowed|enabled|supported|found)|disabled|export|method/i.test(msg) || msg === "empty"
+        /key export.*(disabled|not enabled)|export.*not (allowed|enabled)/i.test(msg)
           ? "Key export isn't switched on for Delulu yet. We're fixing it — try again soon."
+          : msg === "empty" || isUnknownMethod(e)
+            ? "Your wallet didn't hand over the key. Sign out, sign back in, then try again."
           : msg === "no provider"
             ? "Your wallet is still loading. Wait a second and try again."
             : `Couldn't open your key (${msg.slice(0, 100)}). Try again, or reach out to us.`,

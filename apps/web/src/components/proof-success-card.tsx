@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Copy, XIcon } from "lucide-react";
-import { Bolt, Coin, Flame, GameButton } from "@/components/ds";
+import { Bolt, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { ProofRewardRow } from "@/components/proof-reward-row";
 import { ProofNextStep } from "@/components/next-step-card";
+import { SeasonNotice } from "@/components/season-notice";
+import { LOW_STAKE_POINTS, isSeason2Live } from "@/lib/season/rules";
 
 export async function fireConfetti() {
   try {
@@ -146,13 +148,9 @@ export function ProofSuccessCard({
       {/* G$ from the Rewards Engine for this proof */}
       <ProofRewardRow />
 
-      {showStakeUpsell ? (
-        <div className="mt-4 flex w-full animate-rise items-center gap-3 rounded-2xl border-2 border-yellow-line bg-yellow-soft px-3.5 py-3 text-left [animation-delay:.6s]">
-          <Coin size={28} className="shrink-0" />
-          <p className="m-0 text-sm font-semibold leading-snug">
-            Stake <b>1,000 G$</b> on your goal to earn <b>10× points</b>
-          </p>
-        </div>
+      {/* Season 2: before it starts everyone sees what's coming; after, anyone on token points. */}
+      {!isSeason2Live() || showStakeUpsell || pointsAwarded <= LOW_STAKE_POINTS ? (
+        <SeasonNotice force className="mt-4 animate-rise [animation-delay:.6s]" />
       ) : null}
 
       {myUsername ? (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { parseUnits } from "viem";
 import { useChainId } from "wagmi";
-import { CalendarDays, Camera, Coins, Eye, RotateCcw, TriangleAlert } from "lucide-react";
+import { CalendarDays, Camera, Coins, Eye, Lock, RotateCcw, TriangleAlert } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { LowBalancePanel } from "@/components/low-balance-panel";
 import { Coin, GameButton } from "@/components/ds";
@@ -20,6 +20,8 @@ import type { BingoView } from "@/lib/bingo/view";
 import { finishRollingStart } from "@/lib/bingo/rolling-client";
 import { fmtDay, fmtG } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
+import { useStakeRules } from "@/hooks/use-stake-rules";
+import { seasonPointsForStake } from "@/lib/season/rules";
 
 const DAY_S = 86_400;
 
@@ -50,7 +52,17 @@ export function BingoJoinSheet({
   const rolling = bingo.enrollment === "rolling";
   const tiers = bingo.tiers.filter((t) => t.ready && (rolling || t.campaignId));
   const [tierKey, setTierKey] = useState((initialTierKey && tiers.some((t) => t.key === initialTierKey) ? initialTierKey : tiers[0]?.key) ?? "");
+  // Season 2: tiers under this wallet's minimum stake are locked.
+  const { rules: stakeRules } = useStakeRules(address);
+  const isLocked = (stake: number) => stakeRules.live && stake < stakeRules.minStake;
+  const firstOpen = tiers.find((t) => !isLocked(t.stake));
+  useEffect(() => {
+    const cur = tiers.find((t) => t.key === tierKey);
+    if (cur && isLocked(cur.stake) && firstOpen) setTierKey(firstOpen.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stakeRules.minStake, stakeRules.live, firstOpen?.key]);
   const tier = tiers.find((t) => t.key === tierKey) ?? tiers[0];
+  const tierLocked = !!tier && isLocked(tier.stake);
   const { formatted, refetch } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const balance = Number(formatted) || 0;
 
@@ -185,15 +197,19 @@ export function BingoJoinSheet({
                 role="radio"
                 aria-checked={t.key === tier?.key}
                 onClick={() => setTierKey(t.key)}
-                disabled={busy}
+                disabled={busy || isLocked(t.stake)}
                 className={cn(
                   "press-edge flex flex-col items-center gap-0.5 rounded-2xl border-2 px-2 py-3",
+                  isLocked(t.stake) && "opacity-40",
                   t.key === tier?.key ? "border-ink bg-ink text-white shadow-[0_3px_0_#000]" : "border-line bg-white text-ink shadow-edge-sm",
                 )}
               >
-                <span className="label-mono text-[10px] opacity-70">{t.label}</span>
+                <span className="label-mono flex items-center gap-1 text-[10px] opacity-70">
+                  {isLocked(t.stake) ? <Lock className="h-3 w-3" /> : null}
+                  {t.label}
+                </span>
                 <span className="font-display text-xl font-extrabold leading-none">{fmtG(t.stake)}</span>
-                <span className="text-[10px] font-bold opacity-70">G$ stake</span>
+                <span className="text-[10px] font-bold opacity-70">G$ · +{seasonPointsForStake(t.stake).toLocaleString()} pts</span>
                 {typeof t.completionReward === "number" && t.completionReward > 0 ? (
                   <span className={cn("mt-1 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold", t.key === tier?.key ? "bg-green text-ink" : "bg-green-soft text-green-edge")}>
                     +{fmtG(t.completionReward)} finish
@@ -222,7 +238,11 @@ export function BingoJoinSheet({
 
         {error ? <p className="rounded-xl bg-orange-soft px-3 py-2 text-[13px] font-semibold text-orange">{error}</p> : null}
 
-        {short > 0 ? (
+        {tierLocked ? (
+          <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5 text-[13px] font-semibold">
+            <Lock className="h-4 w-4 shrink-0" /> Min stake {fmtG(stakeRules.minStake)} G$
+          </p>
+        ) : short > 0 ? (
           <LowBalancePanel need={tier?.stake ?? 0} have={balance} />
         ) : (
           <GameButton variant="yellow" full onClick={() => void join()} disabled={busy || !tier || !address}>

@@ -17,6 +17,7 @@ import {
 } from "@/lib/dashboard/campaign-constants";
 import {
   CAMPAIGN_DURATION_OPTIONS,
+  NEW_CAMPAIGN_MAX_DAYS,
   PRIZE_WINNER_COUNTS,
   LIVE_CAMERA_DURATION_MINUTES,
   type CampaignDurationDays,
@@ -251,7 +252,7 @@ function CampaignSettingsForm({
                   setDurationDays(Number(e.target.value) as CampaignDurationDays)
                 }
               >
-                {CAMPAIGN_DURATION_OPTIONS.map((days) => (
+                {CAMPAIGN_DURATION_OPTIONS.filter((d) => d <= NEW_CAMPAIGN_MAX_DAYS || d === durationDays).map((days) => (
                   <option key={days} value={days}>
                     {days} days
                   </option>

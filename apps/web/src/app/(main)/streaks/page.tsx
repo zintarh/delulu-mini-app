@@ -11,6 +11,7 @@ import { WeekFlamesView } from "@/components/home/home-progress";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStreak } from "@/hooks/useUserStreak";
 import { forfeitProofPointsForStake } from "@/lib/dashboard/campaign-constants";
+import { isSeason2Live } from "@/lib/season/rules";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 
 // Contract constants (mirrors Delulu-v3.sol); proof points are tiered by
@@ -18,15 +19,15 @@ import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 const G = BigInt("1000000000000000000");
 const POINTS = {
   proofWord: forfeitProofPointsForStake(null),
-  proofBase: forfeitProofPointsForStake(BigInt(1_000) * G),
-  proofHigh: forfeitProofPointsForStake(BigInt(50_000) * G),
+  proofBase: forfeitProofPointsForStake(BigInt(isSeason2Live() ? 5_000 : 1_000) * G),
+  proofHigh: forfeitProofPointsForStake(BigInt(isSeason2Live() ? 20_000 : 50_000) * G),
   streak: 250,
 } as const;
 
 const POINT_ACTIONS: { icon: LucideIcon; label: string; value: number; description: string; tint: HabitTint }[] = [
   { icon: Target, label: "Proof · your word", value: POINTS.proofWord, description: "Each kept day, nothing staked", tint: "yellow" },
-  { icon: Target, label: "Proof · 1,000+ G$", value: POINTS.proofBase, description: "Each kept day with money on it", tint: "yellow" },
-  { icon: Target, label: "Proof · 50,000+ G$", value: POINTS.proofHigh, description: "Each kept day, big stake", tint: "yellow" },
+  { icon: Target, label: isSeason2Live() ? "Proof · 5,000 G$" : "Proof · 1,000+ G$", value: POINTS.proofBase, description: "Each kept day with money on it", tint: "yellow" },
+  { icon: Target, label: isSeason2Live() ? "Proof · 20,000 G$" : "Proof · 50,000+ G$", value: POINTS.proofHigh, description: "Each kept day, big stake", tint: "yellow" },
   { icon: FlameIcon, label: "Keeping a streak", value: POINTS.streak, description: "Back-to-back kept days", tint: "orange" },
 ];
 
@@ -63,7 +64,8 @@ export default function StreaksPage() {
 function StreakContent({ address }: { address: string | null }) {
   const addr = address ?? undefined;
   const { currentStreak, last7Days, isLoading } = useUserStreak(addr);
-  const { myRankEntry } = useAllUsersLeaderboard(0, addr);
+  // All-time points drive levels — Season 1 totals are kept, never reset.
+  const { myRankEntry } = useAllUsersLeaderboard(0, addr, 1);
   const totalPoints = myRankEntry?.points ?? null;
 
   return (

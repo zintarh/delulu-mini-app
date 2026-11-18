@@ -1,5 +1,6 @@
 import { getSubgraphUrlForChain } from "@/lib/constant";
-import { CELO_MAINNET_ID, isLeaderboardBlacklisted } from "@/lib/constant";
+import { CELO_MAINNET_ID, isGoodDollarToken, isLeaderboardBlacklisted } from "@/lib/constant";
+import { seasonPointsForStake } from "@/lib/season/rules";
 import { getDashboardNextMilestones } from "@/lib/community/milestone-submit-eligibility";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 
@@ -1097,4 +1098,115 @@ export async function totalProofPointsOnGraph(walletAddress: string): Promise<{ 
   } catch {
     return { missions: 0, goals: 0, total: 0 };
   }
+}
+
+// ── Season 2: points from the stake behind each verified proof ─────────────
+
+const SEASON_FORFEIT_PROOFS_QUERY = `
+  query SeasonForfeitProofs($since: BigInt!, $after: String!) {
+    forfeitPeriodResolutions(
+      first: 1000
+      orderBy: id
+      where: { outcome: "success", createdAt_gte: $since, id_gt: $after }
+    ) {
+      id
+      creatorAddress
+      commitment { stakeAmount token }
+    }
+  }
+`;
+
+const SEASON_CAMPAIGN_PROOFS_QUERY = `
+  query SeasonCampaignProofs($since: BigInt!, $after: String!) {
+    communityCampaignMilestoneCompletions(
+      first: 1000
+      orderBy: id
+      where: { createdAt_gte: $since, id_gt: $after }
+    ) {
+      id
+      participantAddress
+      participant { username }
+      challenge { joinAmount joinToken isPaid }
+    }
+  }
+`;
+
+/** Whole G$ behind a proof; non-G$ stakes count as 0 (token points only). */
+function gDollarWhole(amount: string | null | undefined, token: string | null | undefined): number {
+  if (!amount) return 0;
+  if (token && !isGoodDollarToken(token)) return 0;
+  try {
+    return Number(BigInt(amount) / BigInt(10) ** BigInt(18));
+  } catch {
+    return 0;
+  }
+}
+
+async function pageAll<T extends { id: string }>(
+  query: string,
+  key: string,
+  since: number,
+): Promise<T[]> {
+  const out: T[] = [];
+  let after = "";
+  for (let i = 0; i < 50; i++) {
+    const data = await fetchSubgraph<Record<string, T[]>>(query, { since: String(since), after });
+    const batch = data[key] ?? [];
+    out.push(...batch);
+    if (batch.length < 1000) break;
+    after = batch[batch.length - 1].id;
+  }
+  return out;
+}
+
+/**
+ * Season leaderboard: every verified proof since `sinceUnix` earns
+ * seasonPointsForStake(stake) — Forfeit goals and 3-day Bingos by their
+ * stake, campaigns and weekly Bingos by the join stake.
+ */
+export async function fetchSeasonPointsFromGraph(sinceUnix: number): Promise<GlobalAppPointsRow[]> {
+  const byWallet = new Map<string, { delulu: number; campaign: number; username: string | null }>();
+  const add = (wallet: string, field: "delulu" | "campaign", pts: number, username: string | null = null) => {
+    const w = wallet.toLowerCase();
+    const row = byWallet.get(w) ?? { delulu: 0, campaign: 0, username: null };
+    row[field] += pts;
+    if (!row.username && username) row.username = username;
+    byWallet.set(w, row);
+  };
+
+  try {
+    const [forfeits, campaigns] = await Promise.all([
+      pageAll<{ id: string; creatorAddress: string; commitment: { stakeAmount: string; token: string } | null }>(
+        SEASON_FORFEIT_PROOFS_QUERY,
+        "forfeitPeriodResolutions",
+        sinceUnix,
+      ),
+      pageAll<{
+        id: string;
+        participantAddress: string;
+        participant: { username: string | null } | null;
+        challenge: { joinAmount: string; joinToken: string | null; isPaid: boolean } | null;
+      }>(SEASON_CAMPAIGN_PROOFS_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
+    ]);
+    for (const r of forfeits) {
+      add(r.creatorAddress, "delulu", seasonPointsForStake(gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token)));
+    }
+    for (const r of campaigns) {
+      const stake = r.challenge?.isPaid ? gDollarWhole(r.challenge.joinAmount, r.challenge.joinToken) : 0;
+      add(r.participantAddress, "campaign", seasonPointsForStake(stake), r.participant?.username ?? null);
+    }
+  } catch {
+    return [];
+  }
+
+  return Array.from(byWallet.entries())
+    .map(([wallet_address, v]) => ({
+      wallet_address,
+      points_total: v.delulu + v.campaign,
+      username: v.username,
+      delulu_points: v.delulu,
+      campaign_points: v.campaign,
+    }))
+    .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))
+    .sort((a, b) => b.points_total - a.points_total);
 }

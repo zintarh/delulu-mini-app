@@ -34,6 +34,13 @@ import { useTokenMetadata } from "@/hooks/use-token-metadata";
 import { getForfeitMarketAddress, FORFEIT_CREATION_ENABLED } from "@/lib/constant";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { formatUsdEquivalent } from "@/lib/token-amounts";
+import { useStakeRules } from "@/hooks/use-stake-rules";
+import {
+  MAX_GOAL_DAYS,
+  STAKE_PRESETS_NEWCOMER,
+  STAKE_PRESETS_REGULAR,
+  seasonPointsForStake,
+} from "@/lib/season/rules";
 import { TokenBadge } from "@/components/token-badge";
 import { ContractSignedSheet } from "@/components/support/contract-signed-sheet";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -157,7 +164,6 @@ const EVIDENCE_TYPES: EvidenceType[] = [
   },
 ];
 
-const PENALTY_AMOUNT_PRESETS = [1000, 5000, 10000] as const;
 // Floor matches the Delulu flow's MIN_STAKE_WHOLE (100 G$) — low enough that a
 // new user's first GoodDollar UBI claim (~100+ G$) can cover it. Stakes below
 // the 1000 G$ base tier still earn fewer points (see forfeitProofPoints in
@@ -483,6 +489,9 @@ export function ForfeitCreatePage() {
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  // Season 2: regulars stake 5k+, newcomers 1k+, nothing past 7 days.
+  const { rules: stakeRules, loading: stakeRulesLoading } = useStakeRules(address);
+  const amountPresets = stakeRules.live && stakeRules.tier === "regular" ? STAKE_PRESETS_REGULAR : STAKE_PRESETS_NEWCOMER;
   const chainId = useChainId();
   // Resolved lazily (not thrown at render time) so a missing env var surfaces as
   // a normal submit-time error instead of crashing the whole page.
@@ -667,16 +676,29 @@ export function ForfeitCreatePage() {
       : false;
 
   const minForfeitAmount =
-    selectedTokenSymbol === "G$" ? MIN_FORFEIT_AMOUNT_GOODDOLLAR : 1;
+    selectedTokenSymbol === "G$" ? Math.max(MIN_FORFEIT_AMOUNT_GOODDOLLAR, stakeRules.minStake) : 1;
   // An explicit 0 means "stake your word" — a deliberate choice via the Amount
   // sheet's dedicated button, not a typo'd empty field (the sheet's own Save
   // button and the minimum-amount warnings below still block any OTHER value
   // under minForfeitAmount).
   const isWordPledge = forfeitAmount === 0;
+  const wordPledgeAllowed = stakeRules.canPledgeWord;
+
+  // Lift a default (or remembered) stake that is now under this wallet's
+  // minimum — e.g. a regular opening the form with the old 1k default.
+  useEffect(() => {
+    if (stakeRulesLoading || selectedTokenSymbol !== "G$") return;
+    if (isWordPledge ? !wordPledgeAllowed : forfeitAmount < minForfeitAmount) {
+      setForfeitAmount(minForfeitAmount);
+      setAmountDraft(String(minForfeitAmount));
+      setStakeMode("money");
+    }
+  }, [stakeRulesLoading, selectedTokenSymbol, isWordPledge, wordPledgeAllowed, forfeitAmount, minForfeitAmount]);
 
   const canNext =
     description.trim().length >= 3 &&
-    (isWordPledge || forfeitAmount >= minForfeitAmount) &&
+    !stakeRulesLoading &&
+    (isWordPledge ? wordPledgeAllowed : forfeitAmount >= minForfeitAmount) &&
     !!selectedToken &&
     !hasInsufficientBalance &&
     (destinationId !== "friend" || ADDRESS_RE.test(destinationFriendAddress.trim())) &&
@@ -1459,6 +1481,7 @@ export function ForfeitCreatePage() {
               setShortDurationSeconds(null);
             }}
             minDate={minDeadlineDate}
+            daysAhead={stakeRules.live ? MAX_GOAL_DAYS - 1 : undefined}
             className="-mx-1 px-1"
           />
 
@@ -1686,18 +1709,20 @@ export function ForfeitCreatePage() {
             Stake
           </h2>
 
-          <Segmented<"money" | "word">
-            ariaLabel="Stake type"
-            value={stakeMode}
-            onChange={setStakeMode}
-            className="mb-3.5"
-            options={[
-              { value: "money", label: "Money" },
-              { value: "word", label: "Your word" },
-            ]}
-          />
+          {wordPledgeAllowed ? (
+            <Segmented<"money" | "word">
+              ariaLabel="Stake type"
+              value={stakeMode}
+              onChange={setStakeMode}
+              className="mb-3.5"
+              options={[
+                { value: "money", label: "Money" },
+                { value: "word", label: "Your word" },
+              ]}
+            />
+          ) : null}
 
-          {stakeMode === "word" ? (
+          {stakeMode === "word" && wordPledgeAllowed ? (
             <>
               <div className="flex flex-col items-center gap-2 rounded-[22px] border-2 border-line bg-white px-5 py-7 text-center shadow-edge">
                 <HandshakeIcon className="h-9 w-9 text-ink" strokeWidth={1.75} />
@@ -1830,7 +1855,7 @@ export function ForfeitCreatePage() {
           </div>
 
           <div className="mt-3.5 grid grid-cols-3 gap-2">
-            {PENALTY_AMOUNT_PRESETS.map((amount) => (
+            {amountPresets.map((amount) => (
               <button
                 key={amount}
                 type="button"
@@ -1848,6 +1873,11 @@ export function ForfeitCreatePage() {
                 style={MANROPE}
               >
                 {amount.toLocaleString()} {selectedTokenSymbol}
+                {selectedTokenSymbol === "G$" ? (
+                  <span className="block text-[10px] font-extrabold opacity-70">
+                    +{seasonPointsForStake(amount).toLocaleString()} pts
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>

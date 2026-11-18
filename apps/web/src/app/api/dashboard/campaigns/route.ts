@@ -4,6 +4,7 @@ import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import {
   parseDurationDays,
+  NEW_CAMPAIGN_MAX_DAYS,
   parsePrizeWinnerCount,
   parseProofType,
   parseLiveCameraDurationSeconds,
@@ -136,7 +137,8 @@ export async function POST(request: NextRequest) {
   const description = String(body.description ?? "").trim() || null;
   const proofCadence = body.proofCadence === "weekly" ? "weekly" : "daily";
   const proofInstructions = String(body.proofInstructions ?? "").trim() || null;
-  const durationDays = parseDurationDays(body.durationDays);
+  // Season 2: new campaigns run 7 days max.
+  const durationDays = Math.min(parseDurationDays(body.durationDays), NEW_CAMPAIGN_MAX_DAYS) as 7;
   const prizeWinnerCount = parsePrizeWinnerCount(body.prizeWinnerCount);
   const proofType = parseProofType(body.proofType);
   const liveCameraDurationSeconds =

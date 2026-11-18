@@ -4,6 +4,7 @@ import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { logCampaignEvent } from "@/lib/dashboard/log-campaign-event";
 import {
   parseDurationDays,
+  NEW_CAMPAIGN_MAX_DAYS,
   parsePrizeWinnerCount,
   parseProofType,
   parseLiveCameraDurationSeconds,
@@ -114,7 +115,7 @@ export async function PATCH(
 
   const { data: existing, error: fetchError } = await admin
     .from("community_campaigns")
-    .select("id, community_id, status, proof_type")
+    .select("id, community_id, status, proof_type, duration_days")
     .eq("id", id)
     .maybeSingle();
 
@@ -171,7 +172,12 @@ export async function PATCH(
       metadataEdited = true;
     }
     if (body.durationDays !== undefined) {
-      updates.duration_days = parseDurationDays(body.durationDays);
+      const nextDays = parseDurationDays(body.durationDays);
+      // Season 2: can't stretch a campaign past 7 days (an existing longer one may keep its length).
+      if (nextDays > NEW_CAMPAIGN_MAX_DAYS && nextDays !== Number(existing.duration_days)) {
+        return NextResponse.json({ error: `Campaigns run ${NEW_CAMPAIGN_MAX_DAYS} days max` }, { status: 400 });
+      }
+      updates.duration_days = nextDays;
       metadataEdited = true;
     }
     if (body.prizeWinnerCount !== undefined) {

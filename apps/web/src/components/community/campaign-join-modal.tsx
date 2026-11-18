@@ -1,10 +1,13 @@
 "use client";
 
 import { LowBalancePanel } from "@/components/low-balance-panel";
-import { CalendarX, Loader2, Target, TrendingDown, Trophy, Undo2 } from "lucide-react";
+import { CalendarX, Loader2, Lock, Target, TrendingDown, Trophy, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Coin, GameButton } from "@/components/ds";
 import { formatStake, getForfeitTerms } from "@/lib/community/campaign-forfeit";
+import { useAuth } from "@/hooks/use-auth";
+import { useStakeRules } from "@/hooks/use-stake-rules";
+import { seasonPointsForStake } from "@/lib/season/rules";
 
 export type CampaignJoinInfo = {
   title: string;
@@ -55,11 +58,15 @@ export function CampaignJoinModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { address } = useAuth();
+  const { rules: stakeRules } = useStakeRules(address);
   if (!open) return null;
 
   const joinAmount = info.joinAmount ?? 0;
   const joinToken = info.joinToken ?? "G$";
   const isPaid = !info.isFreeToJoin && joinAmount > 0;
+  // Season 2: free and small-stake missions are closed to wallets above their tier.
+  const belowMin = stakeRules.live && (isPaid ? joinAmount : 0) < stakeRules.minStake;
   const cadence = info.proofCadence === "weekly" ? "weekly" : "daily";
   // Claimable prize is funded G$ only — never treat proposed as claimable.
   const claimablePrize = info.fundedPoolAmount ?? info.totalPrizePoolAmount ?? 0;
@@ -106,7 +113,7 @@ export function CampaignJoinModal({
                 {isPaid ? `${formatStake(joinAmount)} ${joinToken}` : "Free"}
               </div>
               <div className="label-mono mt-1 text-[10px] text-muted-foreground">
-                {isPaid ? "Your stake to join" : "No stake needed"}
+                {isPaid ? "Your stake to join" : "No stake needed"} · +{seasonPointsForStake(isPaid ? joinAmount : 0).toLocaleString()} pts/proof
               </div>
             </div>
           </div>
@@ -137,7 +144,11 @@ export function CampaignJoinModal({
             </div>
           ) : null}
 
-          {atJoinLimit ? (
+          {belowMin ? (
+            <p className="mt-3 flex items-center gap-2 rounded-2xl bg-muted px-3 py-2.5 text-xs font-semibold text-ink">
+              <Lock className="h-4 w-4 shrink-0" /> Min stake {formatStake(stakeRules.minStake)} G$ — pick a bigger mission
+            </p>
+          ) : atJoinLimit ? (
             <p className="mt-3 rounded-2xl bg-orange-soft px-3 py-2.5 text-xs font-semibold text-orange">{JOIN_LIMIT_MESSAGE}</p>
           ) : insufficientBalance ? (
             joinToken === "G$" ? (
@@ -156,7 +167,7 @@ export function CampaignJoinModal({
             <GameButton variant="line" disabled={joining} onClick={onCancel}>
               Cancel
             </GameButton>
-            <GameButton variant="yellow" full disabled={joining || !!insufficientBalance || !!atJoinLimit} onClick={onConfirm}>
+            <GameButton variant="yellow" full disabled={joining || belowMin || !!insufficientBalance || !!atJoinLimit} onClick={onConfirm}>
               {joining ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

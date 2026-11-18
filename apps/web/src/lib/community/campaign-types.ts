@@ -132,5 +132,9 @@ export function parsePrizeWinnerCount(value: unknown): PrizeWinnerCount {
 export function parseDurationDays(value: unknown): CampaignDurationDays {
   const n = Number(value);
   if (n === 7 || n === 14 || n === 30 || n === 60) return n;
-  return 30;
+  return 7;
 }
+
+/** Season 2: nothing new runs longer than a week. */
+export const NEW_CAMPAIGN_MAX_DAYS = 7;
+export const NEW_CAMPAIGN_DURATION_OPTIONS = CAMPAIGN_DURATION_OPTIONS.filter((d) => d <= NEW_CAMPAIGN_MAX_DAYS);

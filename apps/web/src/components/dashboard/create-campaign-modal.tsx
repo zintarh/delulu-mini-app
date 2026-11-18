@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  CAMPAIGN_DURATION_OPTIONS,
+  NEW_CAMPAIGN_DURATION_OPTIONS,
   PRIZE_WINNER_COUNTS,
   LIVE_CAMERA_DURATION_MINUTES,
   type CampaignDurationDays,
@@ -43,7 +43,7 @@ export function CreateCampaignModal({
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [proofInstructions, setProofInstructions] = useState("");
   const [cadence, setCadence] = useState<"daily" | "weekly">("daily");
-  const [durationDays, setDurationDays] = useState<CampaignDurationDays>(30);
+  const [durationDays, setDurationDays] = useState<CampaignDurationDays>(7);
   const [prizeWinnerCount, setPrizeWinnerCount] = useState<PrizeWinnerCount>(10);
   const [proofType, setProofType] = useState<ProofType>("screenshot");
   const [liveCameraDurationMinutes, setLiveCameraDurationMinutes] =
@@ -145,7 +145,7 @@ export function CreateCampaignModal({
                 value={durationDays}
                 onChange={(e) => setDurationDays(Number(e.target.value) as CampaignDurationDays)}
               >
-                {CAMPAIGN_DURATION_OPTIONS.map((days) => (
+                {NEW_CAMPAIGN_DURATION_OPTIONS.map((days) => (
                   <option key={days} value={days}>{days} days</option>
                 ))}
               </DashboardSelect>

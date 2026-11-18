@@ -13,6 +13,7 @@ import { HomeBingo } from "@/components/home/home-bingo";
 import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step";
 import { FlowStateCard } from "@/components/home/flow-state-card";
 import { ReferralBanner } from "@/components/referral-banner";
+import { SeasonNotice } from "@/components/season-notice";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -78,6 +79,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               <LuluHero address={address} />
               <HomeNextStep />
               {/* Slim rows: the two things everyone should see right now. */}
+              <SeasonNotice />
               <FlowStateCard />
               <ReferralBanner address={address} />
               <DailyMoneyCard />

@@ -10,6 +10,13 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
+import {
+  LOW_STAKE_POINTS,
+  SEASON_2_START_LABEL,
+  STAKE_PRESETS_REGULAR,
+  isSeason2Live,
+  seasonPointsForStake,
+} from "@/lib/season/rules";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
@@ -17,7 +24,7 @@ import Link from "next/link";
 
 const PAGE_SIZE = 10;
 
-type Tab = "monthly" | "global";
+type Tab = "season" | "monthly" | "global";
 
 type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number };
 
@@ -237,10 +244,31 @@ function MonthlyLeaderboard() {
   );
 }
 
-function GlobalLeaderboard() {
+function SeasonStartsCard() {
+  return (
+    <div className="flex flex-col items-center py-10 text-center">
+      <Lulu size={64} mood="dream" />
+      <p className="mt-3 text-lg font-extrabold">Season 2 starts {SEASON_2_START_LABEL}</p>
+      <div className="mt-4 grid w-full max-w-xs grid-cols-3 gap-2">
+        {STAKE_PRESETS_REGULAR.map((stake) => (
+          <div key={stake} className="rounded-2xl border-2 border-line bg-white px-2 py-3 shadow-edge-sm">
+            <div className="font-display text-lg font-extrabold leading-none">{(stake / 1000).toFixed(0)}k G$</div>
+            <div className="label-mono mt-1 text-[10px] text-green-edge">+{seasonPointsForStake(stake).toLocaleString()} pts</div>
+          </div>
+        ))}
+      </div>
+      <p className="label-mono mt-3 text-[10px] text-muted-foreground">Per proof · under 5k = {LOW_STAKE_POINTS} pts</p>
+      <Link href="/forfeit" className={gameButtonClass({ size: "sm", className: "mt-4" })}>
+        Start a goal
+      </Link>
+    </div>
+  );
+}
+
+function GlobalLeaderboard({ season }: { season: 1 | 2 }) {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address);
+  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address, season);
   const me = address?.toLowerCase();
   const pfpMap = usePfps([...entries.map((e) => e.address.toLowerCase()), ...(me ? [me] : [])]);
   const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses([
@@ -250,7 +278,9 @@ function GlobalLeaderboard() {
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
-  if (entries.length === 0) return <EmptyState message="No one on the board yet." />;
+  if (entries.length === 0) {
+    return season === 2 ? <SeasonStartsCard /> : <EmptyState message="No one on the board yet." />;
+  }
 
   const isOnCurrentPage = !!me && entries.some((e) => e.address.toLowerCase() === me);
   const pinnedMe: Entry | null =
@@ -262,7 +292,9 @@ function GlobalLeaderboard() {
 
   return (
     <div>
-      <div className="label-mono pt-3.5 text-[10px] text-muted-foreground">All time · every player · total points</div>
+      <div className="label-mono pt-3.5 text-[10px] text-muted-foreground">
+        {season === 2 ? "Season 2 · bigger stake, more points" : "Season 1 · all-time points"}
+      </div>
       {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} earnedByAddress={earnedByAddress} /> : null}
       <div className="flex flex-col gap-1 pt-1.5">
         {rows.map((e) => (
@@ -294,7 +326,7 @@ function GlobalLeaderboard() {
 
 /** Leaderboard (design: docs/redesign/screens/Leaderboard.dc.html). */
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("monthly");
+  const [activeTab, setActiveTab] = useState<Tab>("season");
 
   return (
     <MainPage>
@@ -305,11 +337,20 @@ export default function LeaderboardPage() {
           value={activeTab}
           onChange={setActiveTab}
           options={[
+            { value: "season", label: "Season 2" },
             { value: "monthly", label: "This month" },
-            { value: "global", label: "Global" },
+            { value: "global", label: "Season 1" },
           ]}
         />
-        <Suspense fallback={<SkeletonRows />}>{activeTab === "monthly" ? <MonthlyLeaderboard /> : <GlobalLeaderboard />}</Suspense>
+        <Suspense fallback={<SkeletonRows />}>
+          {activeTab === "monthly" ? (
+            <MonthlyLeaderboard />
+          ) : activeTab === "season" ? (
+            isSeason2Live() ? <GlobalLeaderboard key="s2" season={2} /> : <SeasonStartsCard />
+          ) : (
+            <GlobalLeaderboard key="s1" season={1} />
+          )}
+        </Suspense>
       </div>
     </MainPage>
   );
