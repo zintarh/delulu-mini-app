@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/wallet-session";
 import { ensureReferralCode } from "@/lib/referral/code";
 import { attributeReferral } from "@/lib/referral/attribution";
+import { sendFirstWeekWelcome } from "@/lib/email/send-first-week-welcome";
 import { REFERRAL_COOKIE } from "@/lib/auth-redirect";
 
 // Required Supabase table (run once in your Supabase SQL editor):
@@ -160,6 +161,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
+    // First save = a brand-new account → welcome email after the save.
+    const { data: before } = await supabase.from("profiles").select("address").eq("address", normalizedAddress).maybeSingle();
+    const isNewAccount = !before;
+
     const { error } = await supabase.from("profiles").upsert(
       {
         address: normalizedAddress,
@@ -196,6 +201,14 @@ export async function POST(request: NextRequest) {
       await ensureReferralCode(supabase, normalizedAddress);
     } catch (err) {
       console.error("[profile] ensureReferralCode failed", err);
+    }
+
+    // "X invited you — your first week pays $1.59". Capped so sign-up never waits on email.
+    if (isNewAccount) {
+      await Promise.race([
+        sendFirstWeekWelcome(supabase, normalizedAddress),
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+      ]);
     }
 
     return NextResponse.json({ success: true });
