@@ -89,7 +89,8 @@ export default function CampaignsPage() {
 
         <div
           className={cn(
-            "mx-auto w-full px-5 sm:px-6 lg:px-8 xl:max-w-3xl",
+            // Wider on desktop so the boards breathe: 1024px on laptops, 1152px on big screens.
+            "mx-auto w-full px-5 sm:px-6 lg:max-w-5xl lg:px-8 xl:max-w-6xl",
             isSearchMode
               ? "max-w-3xl pt-6 pb-6 lg:py-8"
               : "max-w-3xl pt-6 pb-6 lg:pt-8 lg:pb-12",
@@ -128,7 +129,7 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               ) : isCampaignSearching ? (
-                <PinBoard>
+                <PinBoard className="xl:columns-4">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <CampaignBannerCardSkeleton key={i} pin={pinAspect(i)} />
                   ))}
@@ -147,7 +148,7 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <PinBoard>
+                <PinBoard className="xl:columns-4">
                   {campaignResults.map((c, i) => (
                     <CampaignBannerCard
                       key={c.id}
