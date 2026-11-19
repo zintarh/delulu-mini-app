@@ -126,7 +126,7 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         {/* The cashback, loud: what finishing pays at the top level. */}
         {earn.backAtStake > 0 && !playing ? (
           <span className={cn("inline-flex items-center rounded-full bg-green-strong font-extrabold text-white", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
-            Cashback +{earn.k(earn.backAtStake)}
+            Cashback +{earn.backAtStake.toLocaleString("en-US")} G${earn.ngn(earn.backAtStake) ? ` ≈ ${earn.ngn(earn.backAtStake)}` : ""}
           </span>
         ) : null}
         {/* Only while you're playing ("Day 2 of 7") — the squares already say 3 or 7 days. */}
@@ -145,7 +145,7 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         {/* One plain line: what you put in and for how long. The full breakdown is on the Bingo page. */}
         {!playing && bingo.joinable && Number.isFinite(earn.stake) ? (
           <p className={cn("m-0 mt-0.5 font-semibold text-white/85", pin ? "text-[11px]" : "text-[13px]")}>
-            Stake {earn.k(earn.stake)} G$ · {earn.days} days
+            <b className="font-extrabold text-white">{earn.k(earn.stake)} G$</b> · {earn.days} days
           </p>
         ) : (
           <p className={cn("m-0 mt-1 font-semibold text-white/85", pin ? "text-[11px] leading-snug" : "text-[13px]")}>{bingoCta(bingo)}</p>
