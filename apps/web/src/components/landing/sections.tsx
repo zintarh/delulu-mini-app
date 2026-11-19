@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   Bolt,
   CheckDot,
@@ -18,8 +18,27 @@ import { Wordmark } from "@/components/wordmark";
 import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn } from "@/lib/utils";
 import { APP_HOME } from "@/components/main-nav-config";
+import { useEffect, useState } from "react";
+import { fmtMoney, fmtNgn, type EarnFacts } from "@/lib/earn/format";
 
 /* Copy and layout follow docs/redesign/screens/Main.dc.html. */
+
+/** Live earn numbers for the landing page (no app providers here, so a plain fetch). */
+function useLandingFacts(): EarnFacts | null {
+  const [facts, setFacts] = useState<EarnFacts | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/earn/facts")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((f) => alive && setFacts(f))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return facts;
+}
+const ngnOf = (facts: EarnFacts | null, g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
 
 function SectionHead({ title, sub, center = true }: { title: React.ReactNode; sub?: string; center?: boolean }) {
   return (
@@ -98,13 +117,28 @@ export function HeroCopy() {
         </div>
       </div>
       <p className="m-0 max-w-[470px] animate-rise text-[clamp(17px,1.5vw,20px)] leading-[1.55] text-muted-foreground [animation-delay:.3s]">
-        Pick a habit, put your word or a little money on it, and prove it each day with a photo. Free to start.
+        Pick a Bingo, post one photo a day, and get paid for showing up — your stake back plus cashback. Free money to start.
       </p>
+      <HeroChips />
       <div className="flex animate-rise flex-wrap gap-3.5 [animation-delay:.4s]">
         <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
           Start now
         </Link>
       </div>
+    </div>
+  );
+}
+
+function HeroChips() {
+  const facts = useLandingFacts();
+  const chip = "inline-flex h-9 items-center gap-1.5 rounded-full border-2 border-line bg-white px-3 text-[13px] font-extrabold shadow-edge-sm";
+  return (
+    <div className="flex animate-rise flex-wrap gap-2 [animation-delay:.35s]">
+      {facts?.firstWeek ? (
+        <span className={cn(chip, "border-yellow-line bg-yellow-soft")}>🎁 Your first week pays ≈ {fmtNgn(facts.firstWeek.entry.ngn)}</span>
+      ) : null}
+      <span className={chip}>📸 Paid every photo</span>
+      <span className={chip}>🏆 Stake back + cashback</span>
     </div>
   );
 }
@@ -182,80 +216,72 @@ export function ProblemSection() {
   );
 }
 
-/* ---------------------------------------------------------------- two ways to play */
+/* ---------------------------------------------------------------- how you earn */
+/** Cashback on finishing (stake back + this), as the Bingos are set up: 3-day light stakes, 7-day bigger ones. */
+const CASHBACK_LADDER: { days: 3 | 7; stake: number; back: number }[] = [
+  { days: 3, stake: 2_000, back: 80 },
+  { days: 3, stake: 5_000, back: 200 },
+  { days: 7, stake: 10_000, back: 800 },
+  { days: 7, stake: 20_000, back: 2_000 },
+  { days: 7, stake: 30_000, back: 3_000 },
+];
+
 export function TwoWaysSection() {
-  const row = (t: string) => (
-    <div className="flex items-center gap-3">
-      <CheckDot size={26} />
-      <span>{t}</span>
-    </div>
-  );
+  const facts = useLandingFacts();
+  const k = (n: number) => `${n / 1000}k`;
+  const card = "reveal flex flex-col gap-3 rounded-[28px] border-2 border-line bg-white p-7 shadow-[0_6px_0_#e6e6e0]";
   return (
     <section id="ways" className="border-y-2 border-line bg-white">
-      <div className="mx-auto flex max-w-[1160px] flex-col gap-14 px-6 py-[110px]">
-        <SectionHead
-          title={<>Stake your word.<br />Or stake money.</>}
-          sub="Start free in a minute. Earn 10× the points when you add money."
-        />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-stretch gap-7">
-          <div data-reveal="left" className="reveal flex flex-col gap-[22px] rounded-[28px] border-2 border-line bg-white p-8 shadow-[0_6px_0_#e6e6e0]">
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-3">
-                <span className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-pink-soft text-pink">
-                  <MessageCircle className="h-[26px] w-[26px]" strokeWidth={2.4} />
-                </span>
-                <span className="text-2xl font-extrabold">Stake your word</span>
-              </span>
-              <Pill className="h-[34px] text-[13px]">Free</Pill>
-            </div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="font-display text-[72px] font-extrabold leading-[0.9]">+100</span>
-              <span className="label-mono text-muted-foreground">points per day kept</span>
-            </div>
-            <div className="label-mono -mb-3 text-[10px] text-muted-foreground">If you miss, you might…</div>
-            <div className="flex flex-wrap gap-2">
-              {["Call my dad", "5,000 words to my boss", "Public post"].map((t, i) => (
-                <span key={t} data-reveal="pop" style={revealDelay(0.3 + i * 0.08)} className="reveal inline-flex h-[34px] items-center rounded-xl border-2 border-pink-line bg-pink-soft px-3 text-[13px] font-extrabold shadow-[0_3px_0_#f6c3d6]">
-                  {t}
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
-              {row("Start right away. No money needed.")}
-              {row("AI checks every proof in seconds")}
-              {row("Streaks, badges and share cards")}
-            </div>
-            <Link href={APP_HOME} className={gameButtonClass({ variant: "line", full: true, className: "mt-auto" })}>
-              Start now
-            </Link>
+      <div className="mx-auto flex max-w-[1160px] flex-col gap-12 px-6 py-[110px]">
+        <SectionHead title={<>Show up.<br />Get paid.</>} sub="One photo a day. Every kept day pays — and finishing pays the most." />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
+          {/* First Week — the way in */}
+          <div data-reveal="left" className="reveal relative flex flex-col gap-3 rounded-[28px] border-2 border-yellow-line bg-yellow-soft p-7 shadow-[0_8px_0_#e5b41c]">
+            <span className="label-mono text-[11px] text-[#6b5300]">New here</span>
+            <span className="text-2xl font-extrabold">Your first week pays you</span>
+            <span className="font-display text-[56px] font-extrabold leading-[0.9]">{facts?.firstWeek ? fmtMoney(facts.firstWeek.entry) : "≈ ₦1,000"}</span>
+            <span className="text-[15px] leading-snug text-[#5c4a0a]">Show up 7 days in a row on Your First Week — paid as you go, plus a bonus when you finish. Once per person.</span>
           </div>
 
-          <div data-reveal="right" style={revealDelay(0.12)} className="reveal relative flex flex-col gap-[22px] rounded-[28px] border-2 border-yellow-line bg-yellow-soft p-8 shadow-[0_8px_0_#e5b41c]">
-            <span className="absolute -top-5 right-6 animate-bounce-in">
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-xl border-2 border-blue-edge bg-blue px-3 text-[15px] font-extrabold text-white shadow-edge-blue">
-                <Bolt size={18} color="#FFFFFF" />
-                10× points
-              </span>
+          {/* The ladder */}
+          <div data-reveal="right" style={revealDelay(0.1)} className={card}>
+            <span className="flex items-center gap-2 text-2xl font-extrabold">
+              <Coin size={28} /> Stake more, get more back
             </span>
-            <div className="flex items-center gap-3">
-              <span className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-white">
-                <Coin size={30} />
-              </span>
-              <span className="text-2xl font-extrabold">Stake money</span>
+            <span className="text-[15px] text-muted-foreground">Finish a Bingo: your stake comes back with cashback on top.</span>
+            <div className="mt-1 flex flex-col gap-1.5">
+              {CASHBACK_LADDER.map((r) => (
+                <div key={r.stake} className="flex items-center justify-between rounded-xl bg-paper px-3 py-2 text-[14px] font-bold">
+                  <span>
+                    {k(r.stake)} G$ <span className="font-semibold text-muted-foreground">· {r.days} days</span>
+                  </span>
+                  <span className="text-green-edge">
+                    +{r.back.toLocaleString("en-US")} back{ngnOf(facts, r.back) ? ` ≈ ${ngnOf(facts, r.back)}` : ""}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="font-display text-[72px] font-extrabold leading-[0.9]">+1,000</span>
-              <span className="label-mono text-[#6b5300]">points per day kept</span>
-            </div>
-            <div className="flex flex-col gap-3">
-              {row("Finish and get all your money back")}
-              {row("Join challenges with cash prizes")}
-              {row("Free daily money after a quick face check")}
-            </div>
-            <Link href={APP_HOME} className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto" })}>
-              Start now
-            </Link>
+            <span className="text-[12px] text-muted-foreground">Bigger stakes earn more points too — and climb the Season leaderboard.</span>
           </div>
+
+          <div data-reveal="left" style={revealDelay(0.15)} className={card}>
+            <span className="text-2xl font-extrabold">📸 Every photo pays</span>
+            <span className="text-[15px] text-muted-foreground">100 G$ for each day you keep{ngnOf(facts, 100) ? ` (≈ ${ngnOf(facts, 100)})` : ""}, the same day. Miss a day and the card ends — you keep everything you earned.</span>
+          </div>
+          <div data-reveal="right" style={revealDelay(0.2)} className={card}>
+            <span className="text-2xl font-extrabold">🤝 Invite friends</span>
+            <span className="text-[15px] text-muted-foreground">5,000 G$ for each friend who joins and shows up{ngnOf(facts, 5000) ? ` (≈ ${ngnOf(facts, 5000)})` : ""}. Fresh spots every Tuesday.</span>
+          </div>
+          <div data-reveal="left" style={revealDelay(0.25)} className={card}>
+            <span className="text-2xl font-extrabold">🇳🇬 Turn it into naira</span>
+            <span className="text-[15px] text-muted-foreground">Cash out from 5,000 G$. Start with free money every day from GoodDollar after one face check.</span>
+          </div>
+        </div>
+        <p className="m-0 text-center text-[13px] text-muted-foreground">G$ is a token, so its price moves — naira amounts are at today&apos;s rate.</p>
+        <div className="flex justify-center">
+          <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
+            Start now
+          </Link>
         </div>
       </div>
     </section>
@@ -374,11 +400,12 @@ export function StoriesSection() {
 
 /* ---------------------------------------------------------------- FAQ */
 const FAQS: [string, string][] = [
-  ["Do I need money to start?", "No. Stake your word for free. Want to stake money? Verify once and claim free money every day from GoodDollar."],
-  ["How are proofs checked?", "AI checks your photo in seconds. You can add a friend as a witness if you like, but you don't have to."],
-  ["What happens if I miss a day?", "You pay up. Do the consequence you picked, or your money goes to the friend, charity or community pool you chose."],
-  ["Why the face check?", "It proves you're one real person, so rewards stay fair. It also unlocks free daily money, money stakes and 10× points."],
-  ["Where does the free money come from?", "GoodDollar gives verified people a small amount of free money (G$) every day. Keep it, or stake it on your habits."],
+  ["Do I need money to start?", "No. After one quick face check you can claim free money every day from GoodDollar — and new players' first week pays them."],
+  ["How much can I earn?", "Every photo pays 100 G$. Finish a Bingo and your stake comes back with cashback on top — bigger stakes get more. Invite friends for 5,000 G$ each."],
+  ["What happens if I miss a day?", "The card ends and that stake goes to the community pool. You keep everything you've earned so far, and you can start another Bingo."],
+  ["How are proofs checked?", "AI checks your photo in seconds. Each day runs midnight to midnight, so you have the whole day to post."],
+  ["Can I turn it into naira?", "Yes — from 5,000 G$. G$ is a token, so its naira value moves with the market."],
+  ["Why the face check?", "It proves you're one real person, so rewards stay fair. It also unlocks free daily money and rewards."],
 ];
 
 export function FaqSection() {
@@ -429,7 +456,7 @@ export function FinalCta() {
             <br />
             <span className="text-yellow">starts today.</span>
           </h2>
-          <p className="m-0 text-lg text-[#c9c9c2]">Start free with your word. Earn 10× the points with money.</p>
+          <p className="m-0 text-lg text-[#c9c9c2]">One photo a day. Your stake back plus cashback when you finish. Free money to start.</p>
           <div className="flex flex-wrap gap-3.5">
             <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
               Start now

@@ -98,9 +98,9 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
   const earn = useEarnLine(bingo);
   const playing = !!bingo.me && bingo.me.status === "active" && bingo.me.phase !== "ended" && !bingo.me.missedDay;
   const squares = bingo.me ? bingo.me.squares : buildSquares(bingo.missions, [], false);
+  // The card opens the Bingo; "View players" (a sibling link on top) jumps to its leaderboard.
   return (
-    <Link
-      href={`/bingo/${bingo.slug}`}
+    <div
       className={cn(
         "group relative block min-w-0 animate-rise overflow-hidden bg-ink text-white no-underline",
         pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
@@ -108,11 +108,12 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         className,
       )}
     >
+      <Link href={`/bingo/${bingo.slug}`} aria-label={bingo.title} className="absolute inset-0 z-[1]" />
       {/* The board is the card — photos as they come in, stickers until then — with the words on a gradient over it. */}
       <BingoBoardBackground squares={squares} className="absolute inset-0" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" aria-hidden />
 
-      <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
+      <div className={cn("pointer-events-none absolute z-[2] flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
         <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
           <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
         </span>
@@ -125,7 +126,7 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         ) : null}
       </div>
 
-      <div className={cn("absolute", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
+      <div className={cn("pointer-events-none absolute z-[2]", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
         <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.45)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
           {bingo.title}
         </h3>
@@ -134,11 +135,17 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
           {!playing && bingo.joinable && earn ? earn : bingoCta(bingo)}
         </p>
         {bingo.players > 0 ? (
-          <p className={cn("m-0 inline-flex items-center gap-1.5 font-bold text-white/90", pin ? "mt-1.5 text-[11px]" : "mt-2 text-[12px]")}>
-            <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing
-          </p>
+          <Link
+            href={`/bingo/${bingo.slug}#players`}
+            className={cn(
+              "pointer-events-auto relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/15 font-bold text-white no-underline backdrop-blur-sm hover:bg-white/25",
+              pin ? "mt-1.5 px-2 py-0.5 text-[11px]" : "mt-2 px-2.5 py-1 text-[12px]",
+            )}
+          >
+            <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing · View
+          </Link>
         ) : null}
       </div>
-    </Link>
+    </div>
   );
 }

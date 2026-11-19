@@ -314,7 +314,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
         )}
 
         {showBoard ? (
-          <section className="mt-9">
+          <section id="players" className="mt-9 scroll-mt-20">
             <div className="flex items-baseline justify-between">
               <h2 className="font-display text-xl font-extrabold uppercase">Leaderboard</h2>
               <span className="label-mono text-[11px] text-muted-foreground">{board.total} {rolling ? "recent" : "playing"}</span>
